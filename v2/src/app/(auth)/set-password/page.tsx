@@ -19,5 +19,5 @@ export default async function SetPasswordPage({
   if (!me) redirect(`/sign-in?next=${encodeURIComponent('/set-password')}`);
   if (me.status !== 'ok') redirect('/auth/sign-out');
   if (!(await mustChangePassword())) redirect(target);
-  return <SetPassword next={target} name={me.person.nickname_en ?? me.person.full_name_en} />;
+  return <SetPassword next={target} />;
 }

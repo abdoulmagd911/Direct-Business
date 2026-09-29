@@ -12,7 +12,7 @@ import { BrandPanel } from './BrandPanel';
  * Set your own password (owner, 29 Sep 13:50): the first sign-in, or after an admin's reset. The rule is one line of
  * fact (at least ten characters) — no strength meter. Same layout as the sign-in page (V75, V204).
  */
-export function SetPassword({ next, name }: { next: string; name: string }) {
+export function SetPassword({ next }: { next: string }) {
   const t = useTranslations();
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
@@ -34,7 +34,7 @@ export function SetPassword({ next, name }: { next: string; name: string }) {
         <div className="flex flex-1 items-center justify-center py-8">
           <div className="flex w-full max-w-[440px] flex-col gap-8">
             <div className="flex flex-col gap-1.5">
-              <h1 className="text-3xl">{t('sign_in.password.setTitle', { name })}</h1>
+              <h1 className="text-3xl">{t('sign_in.password.setTitle')}</h1>
               <p className="text-base text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
             </div>
             <form

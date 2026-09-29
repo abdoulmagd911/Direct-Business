@@ -113,5 +113,6 @@ with Undo and Revert over the settings log) and `src/modules/org/` My profile, O
 record. `core/commands/run.ts` runs one write with its toast and Undo.
 
 The password door (V212): `core/auth/password-actions.ts` signs a person in with their work email and password, sends a
-person whose password must change to `/set-password` first, and changes a password from My profile; an admin sets or
-resets one from the person's record (`/auth/admin/password`). The emailed-code door stays behind `SIGN_IN_METHOD=code`.
+person whose password must change to `/set-password` first, and changes a password from My profile; an admin generates a
+temporary one from the person's record (`/auth/admin/password`, V441). The emailed-code door stays behind
+`SIGN_IN_METHOD=code`.

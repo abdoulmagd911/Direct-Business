@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
-import { MIN_PASSWORD } from '@/core/auth/password-rules';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -88,10 +87,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const [editing, setEditing] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [settingPassword, setSettingPassword] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
+  const [generating, setGenerating] = useState(false);
   const [temporary, setTemporary] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
@@ -159,29 +157,27 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       },
     );
   };
-  // Set or Reset password (owner, 29 Sep 13:50): admins only, with a reason; the person sets their own on their next
-  // sign-in. A reset's temporary password is shown once, here, to be handed over — no e-mail is sent.
-  const passwordAction = async (mode: 'set' | 'reset', reason: string) => {
-    const done = mode === 'set' ? t('settings.people.password.setDone') : t('settings.people.password.resetDone');
-    await run(words(done), async () => {
+  // Generate temporary password (V441): admins only, with a reason; random, shown once here with Copy, never typed,
+  // never mailed. The person chooses their own at their next sign-in.
+  const generatePassword = async (reason: string) => {
+    await run(words(t('settings.people.password.generated')), async () => {
       const res = await fetch('/auth/admin/password', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          person_id: person.id,
-          mode,
-          reason,
-          ...(mode === 'set' ? { password: newPassword } : {}),
-        }),
+        body: JSON.stringify({ person_id: person.id, reason }),
       });
       const body = (await res.json()) as { ok: boolean; error?: { key: string }; temporary_password?: string };
       if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
-      setSettingPassword(false);
-      setResettingPassword(false);
-      setNewPassword('');
+      setGenerating(false);
+      setCopied(false);
       if (body.temporary_password) setTemporary(body.temporary_password);
       return null;
     });
+  };
+  const copyTemporary = async () => {
+    if (!temporary) return;
+    await navigator.clipboard.writeText(temporary);
+    setCopied(true);
   };
   const signOutEverywhere = async (reason: string) => {
     await run(
@@ -427,11 +423,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             </Button>
           </MenuTrigger>
           <MenuContent>
-            <MenuItem onSelect={() => setSettingPassword(true)} data-password-set>
-              {t('settings.people.password.set')}
-            </MenuItem>
-            <MenuItem onSelect={() => setResettingPassword(true)} data-password-reset>
-              {t('settings.people.password.reset')}
+            <MenuItem onSelect={() => setGenerating(true)} data-password-generate>
+              {t('settings.people.password.generate')}
             </MenuItem>
             <MenuItem onSelect={() => setSigningOut(true)}>{t('settings.people.signOutEverywhere')}</MenuItem>
           </MenuContent>
@@ -676,44 +669,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         }}
       />
       <ReasonDialog
-        open={settingPassword}
-        onOpenChange={(o) => {
-          setSettingPassword(o);
-          if (!o) setNewPassword('');
-        }}
-        title={`${t('settings.people.password.set')} · ${person.full_name_en}`}
-        body={t('sign_in.password.rule', { min: MIN_PASSWORD })}
-        saveDisabled={newPassword.length < MIN_PASSWORD}
-        onSave={(reason) => passwordAction('set', reason)}
+        open={generating}
+        onOpenChange={setGenerating}
+        title={`${t('settings.people.password.generate')} · ${person.full_name_en}`}
+        body={t('settings.people.password.body')}
+        onSave={generatePassword}
         words={{
           reason: t('common.reason'),
-          save: t('settings.people.password.set'),
-          cancel: t('common.cancel'),
-          reasonRequired: t('settings.form.reasonRequired'),
-        }}
-      >
-        <Field label={t('sign_in.password.new')}>
-          {(p) => (
-            <Input
-              {...p}
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              data-password-value
-            />
-          )}
-        </Field>
-      </ReasonDialog>
-      <ReasonDialog
-        open={resettingPassword}
-        onOpenChange={setResettingPassword}
-        title={`${t('settings.people.password.reset')} · ${person.full_name_en}`}
-        body={t('settings.people.password.resetBody')}
-        onSave={(reason) => passwordAction('reset', reason)}
-        words={{
-          reason: t('common.reason'),
-          save: t('settings.people.password.reset'),
+          save: t('settings.people.password.generate'),
           cancel: t('common.cancel'),
           reasonRequired: t('settings.form.reasonRequired'),
         }}
@@ -725,9 +688,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         size="sm"
         closeLabel={t('common.close')}
         footer={
-          <Button variant="primary" onClick={() => setTemporary(null)}>
-            {t('common.close')}
-          </Button>
+          <>
+            <Button onClick={() => void copyTemporary()} data-password-copy>
+              {copied ? t('settings.people.password.copied') : t('settings.people.password.copy')}
+            </Button>
+            <Button variant="primary" onClick={() => setTemporary(null)}>
+              {t('common.close')}
+            </Button>
+          </>
         }
       >
         <div className="flex flex-col gap-3">

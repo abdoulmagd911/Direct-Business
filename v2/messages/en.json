@@ -27,22 +27,22 @@
       "invalid_email": "Enter your work email",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
-      "inactive": "This device was not used for 30 days — send a new code",
-      "signed_out_elsewhere": "This device was signed out — send a new code",
-      "signed_out_by_admin": "An admin signed this device out — send a new code"
+      "inactive": "This device was not used for 30 days — sign in again",
+      "signed_out_elsewhere": "This device was signed out — sign in again",
+      "signed_out_by_admin": "An admin signed this device out — sign in again"
     },
     "language": "Language",
     "password": {
       "label": "Password",
       "signIn": "Sign in",
-      "forgot": "Forgot your password? Ask an admin.",
-      "setTitle": "Set your own password, {name}",
+      "forgot": "Forgot your password? Ask your admin.",
+      "setTitle": "Choose a new password",
       "rule": "At least {min} characters.",
       "new": "New password",
       "again": "New password again",
       "setAndContinue": "Set password and continue",
       "error": {
-        "wrong_password": "That email or password is not right",
+        "wrong_password": "Wrong email or password",
         "too_short": "At least 10 characters",
         "mismatch": "The two passwords are not the same",
         "not_signed_in": "Sign in first",
@@ -627,13 +627,13 @@
       "system": "System",
       "reports": "Direct reports",
       "password": {
-        "set": "Set password",
-        "reset": "Reset password",
-        "setDone": "Password set",
-        "resetDone": "Password reset",
-        "resetBody": "A temporary password is made and shown once, here. The person sets their own at their next sign-in.",
+        "generate": "Generate temporary password",
+        "generated": "Temporary password generated",
+        "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand this over in person or by phone. It works once: the next sign-in asks for a new password."
+        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "copy": "Copy",
+        "copied": "Copied"
       }
     },
     "teams": {
