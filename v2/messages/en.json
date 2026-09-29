@@ -192,7 +192,6 @@
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
     "identifier_block": "Blocked value",
-    "call_outcome": "Call outcome",
     "contract_term": "Contract term",
     "priority": "Priority",
     "partner_side": "Side",
@@ -202,7 +201,17 @@
     "side_type": "Side type",
     "side_tier": "Side tier",
     "side_status_reason": "Status reason",
-    "contact_role": "Contact role"
+    "contact_role": "Contact role",
+    "activity_type": "Activity type",
+    "activity_outcome": "Activity outcome",
+    "contract": "Contract",
+    "contract_terms": "Contract terms",
+    "reference": "Reference",
+    "ref_system": "System",
+    "file_kind": "File kind",
+    "file_link": "File attached",
+    "note": "Note",
+    "mention": "Mention"
   },
   "status": {
     "done": "Done",
@@ -249,6 +258,9 @@
     },
     "org": {
       "sign_out": "Sign a person out of every device"
+    },
+    "files": {
+      "restricted": "See restricted files"
     }
   },
   "setting": {
@@ -257,7 +269,8 @@
       "week_starts_on": "The week starts on",
       "meeting_note_on_time_days": "Days to write meeting notes on time",
       "reminder_days_before_due": "Reminder, days before a due date",
-      "pipeline_weekly_target": "Pipeline updates expected each week"
+      "pipeline_weekly_target": "Pipeline updates expected each week",
+      "late_days": "Days after which an entry is logged late"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it needs a new code"
@@ -266,14 +279,16 @@
       "arabic_enabled": "Arabic",
       "default_theme": "Default theme",
       "default_density": "Default density",
-      "export_formats": "Export formats"
+      "export_formats": "Export formats",
+      "go_live_on": "The day the app went live"
     },
     "audit": {
       "undo_window_hours": "Hours an action can still be undone",
       "recently_deleted_days": "Days a removed record can be restored"
     },
     "files": {
-      "max_mb": "Largest file, in MB"
+      "max_mb": "Largest file, in MB",
+      "allowed_types": "File types that may be uploaded"
     },
     "notify": {
       "kinds_enabled": "Notifications sent"
@@ -281,7 +296,16 @@
     "partner": {
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
-      "one_code_per_partner": "One live discount code per partner"
+      "one_code_per_partner": "One live discount code per partner",
+      "contract_reminder_days": "Contract reminders, days before the end",
+      "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
+      "contract_notify": "Who is told a contract is expiring",
+      "logo_fallback": "An organisation with no logo shows",
+      "stale_after_days": "Days without activity before an organisation is stale"
+    },
+    "core": {
+      "file_download_display_name": "Downloads use the file's display name",
+      "file_keep_original_name": "Show a file's original name in its details"
     }
   }
 }

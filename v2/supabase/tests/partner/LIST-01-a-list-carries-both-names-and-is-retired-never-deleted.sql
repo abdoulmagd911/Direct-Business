@@ -29,6 +29,7 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.manager', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
+select set_config('t.call_type', (select id::text from partner.activity_type where key = 'call'), true);
 
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.ok(jsonb_array_length(api.list('side_type')) = 9, 'everyone reads the lists');
@@ -59,8 +60,9 @@ select test.eq(jsonb_array_length(api.list('side_type')), 10, 'a retired entry l
 select test.eq(jsonb_array_length(api.list('side_type', true)), 11, 'but is never deleted');
 select api.undo(current_setting('t.r')::uuid);
 select test.eq(jsonb_array_length(api.list('side_type')), 11, 'and one Undo brings it back');
-select test.ok((api.list_save('call_outcome', null, '{"key": "made_up_call", "name_en": "Made up", "name_ar": "متخيل",
-  "counts_as_demo": true}') ->> 'id') is not null, 'a list with columns of its own saves them too');
+select test.ok((api.list_save('activity_outcome', null, '{"key": "made_up_call", "name_en": "Made up", "name_ar": "متخيل",
+  "counts_as_demo": true}'::jsonb || jsonb_build_object('activity_type_id', current_setting('t.call_type'))) ->> 'id') is not null,
+  'a list with columns of its own saves them too');
 select test.raises($$select api.list('no_such_list')$$, 'P0002', 'an unknown list', 'list.unknown');
 select test.raises($$select api.list_save('role', null, '{"key": "made_up", "name_en": "Made up", "is_admin": true}')$$,
   'P0002', 'the access roles are no list: the list door refuses them', 'list.unknown');

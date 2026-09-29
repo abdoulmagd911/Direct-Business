@@ -164,6 +164,7 @@
     { "key": "clients.assign", "page": "clients" },
     { "key": "clients.identify", "page": "clients" },
     { "key": "clients.merge", "page": "clients" },
+    { "key": "files.restricted", "page": "settings.app" },
     { "key": "finance.credit", "page": "finance" },
     { "key": "finance.credit_control", "page": "clients" },
     { "key": "finance.import", "page": "finance" },
@@ -220,6 +221,18 @@
       "effective_dated": false
     },
     {
+      "key": "app.go_live_on",
+      "group": "settings.app",
+      "label": "setting.app.go_live_on",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$"
+      },
+      "default": "",
+      "effective_dated": false
+    },
+    {
       "key": "audit.recently_deleted_days",
       "group": "settings.app",
       "label": "setting.audit.recently_deleted_days",
@@ -259,6 +272,48 @@
       "effective_dated": false
     },
     {
+      "key": "core.file_download_display_name",
+      "group": "settings.app",
+      "label": "setting.core.file_download_display_name",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": false
+    },
+    {
+      "key": "core.file_keep_original_name",
+      "group": "settings.app",
+      "label": "setting.core.file_keep_original_name",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": false
+    },
+    {
+      "key": "files.allowed_types",
+      "group": "settings.app",
+      "label": "setting.files.allowed_types",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "minItems": 1,
+        "type": "array",
+        "items": { "type": "string", "pattern": "^[a-z0-9.+-]+\\/[a-z0-9.+-]+$" }
+      },
+      "default": [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "text/csv",
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      ],
+      "effective_dated": false
+    },
+    {
       "key": "files.max_mb",
       "group": "settings.app",
       "label": "setting.files.max_mb",
@@ -294,7 +349,9 @@
             "alert_contract_expiring",
             "alert_kpi_behind",
             "alert_invoice_unpaid",
-            "alert_kpi_checkin"
+            "alert_kpi_checkin",
+            "alert_activity_stale",
+            "alert_file_review"
           ]
         }
       },
@@ -312,8 +369,55 @@
         "alert_contract_expiring",
         "alert_kpi_behind",
         "alert_invoice_unpaid",
-        "alert_kpi_checkin"
+        "alert_kpi_checkin",
+        "alert_activity_stale",
+        "alert_file_review"
       ],
+      "effective_dated": false
+    },
+    {
+      "key": "partner.contract_expiring_from_days",
+      "group": "settings.partners",
+      "label": "setting.partner.contract_expiring_from_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 30,
+      "effective_dated": false
+    },
+    {
+      "key": "partner.contract_notify",
+      "group": "settings.partners",
+      "label": "setting.partner.contract_notify",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "account_manager": { "type": "boolean" },
+          "followers": { "type": "boolean" },
+          "commercial_manager": { "type": "boolean" }
+        },
+        "required": ["account_manager", "followers", "commercial_manager"],
+        "additionalProperties": false
+      },
+      "default": { "account_manager": true, "followers": true, "commercial_manager": false },
+      "effective_dated": false
+    },
+    {
+      "key": "partner.contract_reminder_days",
+      "group": "settings.partners",
+      "label": "setting.partner.contract_reminder_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "minItems": 1,
+        "maxItems": 6,
+        "type": "array",
+        "items": { "type": "integer", "minimum": 1, "maximum": 365 }
+      },
+      "default": [60, 30, 7],
       "effective_dated": false
     },
     {
@@ -334,6 +438,18 @@
       "effective_dated": false
     },
     {
+      "key": "partner.logo_fallback",
+      "group": "settings.partners",
+      "label": "setting.partner.logo_fallback",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["monogram", "blank"]
+      },
+      "default": "monogram",
+      "effective_dated": false
+    },
+    {
       "key": "partner.name_stop_words",
       "group": "settings.partners",
       "label": "setting.partner.name_stop_words",
@@ -351,6 +467,32 @@
       "label": "setting.partner.one_code_per_partner",
       "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
       "default": true,
+      "effective_dated": false
+    },
+    {
+      "key": "partner.stale_after_days",
+      "group": "settings.partners",
+      "label": "setting.partner.stale_after_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 21,
+      "effective_dated": false
+    },
+    {
+      "key": "work.late_days",
+      "group": "settings.work",
+      "label": "setting.work.late_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 90
+      },
+      "default": 14,
       "effective_dated": false
     },
     {
@@ -420,8 +562,18 @@
   ],
   "entities": [
     {
-      "key": "call_outcome",
-      "table": "partner.call_outcome",
+      "key": "activity_outcome",
+      "table": "partner.activity_outcome",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null
+    },
+    {
+      "key": "activity_type",
+      "table": "partner.activity_type",
       "page": "settings.partners",
       "owners": null,
       "list": true,
@@ -480,6 +632,16 @@
       "level": null
     },
     {
+      "key": "contract",
+      "table": "partner.contract",
+      "page": "clients",
+      "owners": "partner.contract_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "partner.row_level"
+    },
+    {
       "key": "contract_term",
       "table": "partner.term",
       "page": "settings.partners",
@@ -488,6 +650,16 @@
       "private": false,
       "visible": null,
       "level": null
+    },
+    {
+      "key": "contract_terms",
+      "table": "partner.contract_term",
+      "page": "clients",
+      "owners": "partner.contract_term_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "partner.row_level"
     },
     {
       "key": "credit_limit",
@@ -520,6 +692,36 @@
       "level": null
     },
     {
+      "key": "file",
+      "table": "core.file",
+      "page": null,
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": "core.file_visible_as",
+      "level": null
+    },
+    {
+      "key": "file_kind",
+      "table": "core.file_kind",
+      "page": "settings.app",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null
+    },
+    {
+      "key": "file_link",
+      "table": "core.file_link",
+      "page": null,
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": "core.file_link_visible",
+      "level": null
+    },
+    {
       "key": "identifier",
       "table": "partner.identifier",
       "page": "clients",
@@ -548,6 +750,26 @@
       "private": false,
       "visible": null,
       "level": null
+    },
+    {
+      "key": "mention",
+      "table": "core.mention",
+      "page": null,
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": "core.mention_visible",
+      "level": "core.mention_level"
+    },
+    {
+      "key": "note",
+      "table": "core.note",
+      "page": null,
+      "owners": "core.note_owners",
+      "list": false,
+      "private": false,
+      "visible": "core.note_visible",
+      "level": "core.note_level"
     },
     {
       "key": "page",
@@ -678,6 +900,26 @@
       "private": false,
       "visible": null,
       "level": null
+    },
+    {
+      "key": "ref_system",
+      "table": "work.ref_system",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null
+    },
+    {
+      "key": "reference",
+      "table": "partner.reference",
+      "page": "clients",
+      "owners": "partner.reference_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "partner.row_level"
     },
     {
       "key": "role",
@@ -921,6 +1163,7 @@
     { "role": "admin", "capability": "clients.assign", "granted": true },
     { "role": "admin", "capability": "clients.identify", "granted": true },
     { "role": "admin", "capability": "clients.merge", "granted": true },
+    { "role": "admin", "capability": "files.restricted", "granted": true },
     { "role": "admin", "capability": "finance.credit", "granted": true },
     { "role": "admin", "capability": "finance.credit_control", "granted": true },
     { "role": "admin", "capability": "finance.import", "granted": true },
@@ -932,6 +1175,7 @@
     { "role": "head", "capability": "clients.assign", "granted": true },
     { "role": "head", "capability": "clients.identify", "granted": true },
     { "role": "head", "capability": "clients.merge", "granted": true },
+    { "role": "head", "capability": "files.restricted", "granted": true },
     { "role": "head", "capability": "finance.credit", "granted": true },
     { "role": "head", "capability": "finance.credit_control", "granted": true },
     { "role": "head", "capability": "finance.import", "granted": true },
@@ -943,6 +1187,7 @@
     { "role": "manager", "capability": "clients.assign", "granted": true },
     { "role": "manager", "capability": "clients.identify", "granted": true },
     { "role": "manager", "capability": "clients.merge", "granted": false },
+    { "role": "manager", "capability": "files.restricted", "granted": true },
     { "role": "manager", "capability": "finance.credit", "granted": true },
     { "role": "manager", "capability": "finance.credit_control", "granted": false },
     { "role": "manager", "capability": "finance.import", "granted": false },
@@ -954,6 +1199,7 @@
     { "role": "member", "capability": "clients.assign", "granted": false },
     { "role": "member", "capability": "clients.identify", "granted": false },
     { "role": "member", "capability": "clients.merge", "granted": false },
+    { "role": "member", "capability": "files.restricted", "granted": false },
     { "role": "member", "capability": "finance.credit", "granted": false },
     { "role": "member", "capability": "finance.credit_control", "granted": false },
     { "role": "member", "capability": "finance.import", "granted": false },
@@ -965,6 +1211,7 @@
     { "role": "viewer", "capability": "clients.assign", "granted": false },
     { "role": "viewer", "capability": "clients.identify", "granted": false },
     { "role": "viewer", "capability": "clients.merge", "granted": false },
+    { "role": "viewer", "capability": "files.restricted", "granted": false },
     { "role": "viewer", "capability": "finance.credit", "granted": false },
     { "role": "viewer", "capability": "finance.credit_control", "granted": false },
     { "role": "viewer", "capability": "finance.import", "granted": false },

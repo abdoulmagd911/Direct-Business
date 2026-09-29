@@ -17,6 +17,8 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_behind',
   'alert_invoice_unpaid',
   'alert_kpi_checkin',
+  'alert_activity_stale',
+  'alert_file_review',
 ] as const;
 
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like
@@ -61,6 +63,41 @@ export default defineModule({
     { key: 'setting_def', table: 'core.setting_def', page: 'settings.app', label: 'entity.setting_def' },
     { key: 'wording', table: 'core.wording', page: 'settings.app', label: 'entity.wording' },
     { key: 'saved_view', table: 'core.saved_view', page: null, label: 'entity.saved_view', owners: 'owner_id' },
+    // Files and notes belong to whatever record they are linked to: seen and changed as it allows (V150, V152).
+    { key: 'file_kind', table: 'core.file_kind', page: 'settings.app', label: 'entity.file_kind', list: true },
+    {
+      key: 'file',
+      table: 'core.file',
+      page: null,
+      label: 'entity.file',
+      owners: 'created_by',
+      visible: 'core.file_visible_as',
+    },
+    {
+      key: 'file_link',
+      table: 'core.file_link',
+      page: null,
+      label: 'entity.file_link',
+      owners: 'created_by',
+      visible: 'core.file_link_visible',
+    },
+    {
+      key: 'note',
+      table: 'core.note',
+      page: null,
+      label: 'entity.note',
+      owners: 'core.note_owners',
+      visible: 'core.note_visible',
+      level: 'core.note_level',
+    },
+    {
+      key: 'mention',
+      table: 'core.mention',
+      page: null,
+      label: 'entity.mention',
+      visible: 'core.mention_visible',
+      level: 'core.mention_level',
+    },
   ],
   settings: [
     {
@@ -69,6 +106,15 @@ export default defineModule({
       label: 'setting.app.arabic_enabled',
       schema: z.boolean(),
       default: false,
+    },
+    {
+      // The day the app goes live (V400): an entry that happened on or after it and was logged more than
+      // work.late_days later is "logged late". Empty: nothing is late yet.
+      key: 'app.go_live_on',
+      group: 'settings.app',
+      label: 'setting.app.go_live_on',
+      schema: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/),
+      default: '',
     },
     {
       key: 'app.default_theme',
@@ -106,6 +152,40 @@ export default defineModule({
       default: 24,
     },
     {
+      key: 'core.file_download_display_name',
+      group: 'settings.app',
+      label: 'setting.core.file_download_display_name',
+      schema: z.boolean(),
+      default: true,
+    },
+    {
+      key: 'core.file_keep_original_name',
+      group: 'settings.app',
+      label: 'setting.core.file_keep_original_name',
+      schema: z.boolean(),
+      default: true,
+    },
+    {
+      key: 'files.allowed_types',
+      group: 'settings.app',
+      label: 'setting.files.allowed_types',
+      schema: z.array(z.string().regex(/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/)).min(1),
+      default: [
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'text/csv',
+        'text/plain',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      ],
+    },
+    {
       key: 'files.max_mb',
       group: 'settings.app',
       label: 'setting.files.max_mb',
@@ -118,6 +198,15 @@ export default defineModule({
       label: 'setting.notify.kinds_enabled',
       schema: z.array(z.enum(NOTIFICATION_KINDS)),
       default: [...NOTIFICATION_KINDS],
+    },
+  ],
+  capabilities: [
+    // Restricted files (IBAN letters, agreements — D10): heads and managers by default, admins always (§3.4).
+    {
+      key: 'files.restricted',
+      page: 'settings.app',
+      label: 'cap.files.restricted',
+      defaults: { head: true, manager: true },
     },
   ],
 });
