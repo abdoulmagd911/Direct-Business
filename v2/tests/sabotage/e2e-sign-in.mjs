@@ -157,8 +157,11 @@ export const sabotages = [
   },
   {
     name: 'e2e-undo-leaves-the-ban',
-    breaks: [e2e('undoing-an-email-removal-lifts-its-ban')],
-    expect: 'the undone removal lifts the ban',
+    breaks: [
+      e2e('undoing-an-email-removal-lifts-its-ban'),
+      e2e('undoing-a-switch-off-lifts-its-ban-and-the-person-signs-in-again'),
+    ],
+    expect: 'lifts the ban',
     edits: [
       {
         file: 'src/core/auth/allow-list.ts',
@@ -189,6 +192,45 @@ export const sabotages = [
         file: 'src/core/auth/password-actions.ts',
         find: "  if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };\n",
         replace: '  void check;\n',
+      },
+    ],
+  },
+  {
+    // ACC-100: a switch-off bans in the same call, so Auth never lags behind the database.
+    name: 'e2e-switch-leaves-auth-behind',
+    breaks: [e2e('undoing-a-switch-off-lifts-its-ban-and-the-person-signs-in-again')],
+    expect: 'the switch-off bans the auth user',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'return { ...done, ...(await syncPerson(personId)) };',
+        replace: 'return { ...done, synced: 0 };',
+      },
+    ],
+  },
+  {
+    // ACC-021: the server signs the other devices out when the person changes their own password.
+    name: 'e2e-own-password-keeps-the-other-devices',
+    breaks: [e2e('changing-your-own-password-signs-your-other-devices-out')],
+    expect: 'the other device is signed out',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "const { error } = await serviceDb().rpc('own_password_set', {",
+        replace: "const { error } = await serviceDb().rpc('password_changed', { p_auth_user: authUserId }); void ({",
+      },
+    ],
+  },
+  {
+    // ACC-093: the new person's e-mail is linked to its auth user in the same call.
+    name: 'e2e-a-new-person-without-a-sign-in',
+    breaks: [e2e('adding-a-person-with-an-email-is-one-request')],
+    expect: 'the e-mail has its sign-in',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'const authUserId = email ? await linkAuthUser(db, email) : null;',
+        replace: 'const authUserId = null; void linkAuthUser;',
       },
     ],
   },

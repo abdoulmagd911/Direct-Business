@@ -7,8 +7,8 @@
 //                        session, logs the sign-in and registers the device (V74). A person whose password must change
 //                        (first sign-in, or after an admin's generate) lands on /set-password first: the database
 //                        says so (V166), and until it is changed the person reaches nothing else.
-//   setOwnPassword     — the signed-in person sets their own password; the server records it (api.password_changed,
-//                        secret key only — the browser never clears its own flag).
+//   setOwnPassword     — the signed-in person sets their own password; the server records it (api.own_password_set,
+//                        secret key only — the browser never clears its own flag) and signs their other devices out.
 //   changePassword     — My profile → Change password, recorded the same way.
 // The 6-digit code door (actions.ts) stays in the code, off unless an admin switches auth.code_door_enabled on.
 import { headers } from 'next/headers';
@@ -93,9 +93,17 @@ function refusal(password: string, again: string, email: string | undefined): Pa
   return null;
 }
 
-/** After Auth took a person's new password: the server records it and clears "must change password" (V166). */
-async function recordChange(authUserId: string): Promise<boolean> {
-  const { error } = await serviceDb().rpc('password_changed', { p_auth_user: authUserId });
+/**
+ * After Auth took a person's new password: the server records it, clears "must change password" (V166) and signs
+ * every other device of the person out in the same logged request — this one stays in (ACC-021).
+ */
+async function recordChange(db: Awaited<ReturnType<typeof serverDb>>, authUserId: string): Promise<boolean> {
+  const { data } = await db.auth.getClaims();
+  const session = (data?.claims as { session_id?: string } | undefined)?.session_id;
+  const { error } = await serviceDb().rpc('own_password_set', {
+    p_auth_user: authUserId,
+    p_keep_session: session ?? '00000000-0000-0000-0000-000000000000',
+  });
   return !error;
 }
 
@@ -116,7 +124,7 @@ export async function setOwnPassword(
   if (me.error || (status !== 'ok' && status !== 'must_change_password')) return { ok: false, error: 'not_signed_in' };
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
+  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
   redirect(safeNext(next));
 }
 
@@ -140,6 +148,6 @@ export async function changePassword(
   if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
+  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
   return { ok: true };
 }

@@ -794,7 +794,8 @@
     },
     "person_password": {
       "has_one": "This person already has a password of their own — it is kept",
-      "no_sign_in": "This person has no allowed email yet"
+      "no_sign_in": "This person has no allowed email yet",
+      "confirm_required": "A Reset replaces the password they hold — confirm it first"
     }
   }
 }

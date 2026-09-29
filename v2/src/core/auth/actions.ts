@@ -103,6 +103,8 @@ export async function verifyCode(
     .toLowerCase();
   const code = String(rawCode ?? '').replace(/\D/g, '');
   if (!EMAIL.test(email)) return { ok: false, error: 'invalid_email' };
+  // The door is off unless an admin switched it on (ACC-011): no code is checked at all, whatever Auth would say.
+  if (!(await signInMethods()).code) return { ok: false, error: 'code_off' };
   const ua = await userAgent();
   const late = Number.isFinite(sentAt) && Date.now() - sentAt > CODE_LIFETIME_S * 1000;
   if (code.length !== 6) return { ok: false, error: 'code_invalid' };

@@ -59,6 +59,7 @@ function api.notifications_mark_read(p_ids uuid[]) execute authenticated
 function api.notifications_snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
 function api.notifications_unread() execute authenticated
 function api.org() execute authenticated
+function api.own_password_set(p_auth_user uuid, p_keep_session uuid) execute service_role
 function api.page_seen(p_page text) execute authenticated
 function api.partner(p_id uuid) execute authenticated
 function api.partner_bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
@@ -165,6 +166,7 @@ function core.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions
 function core.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p_offset integer) execute authenticated
 function core.notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.org() execute authenticated
+function core.own_password_set(p_auth_user uuid, p_keep_session uuid) execute service_role
 function core.page_seen(p_page text) execute authenticated
 function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated

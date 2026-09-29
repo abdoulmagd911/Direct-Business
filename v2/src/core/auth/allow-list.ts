@@ -120,6 +120,39 @@ export async function addEmail(personId: string, email: string, primary: boolean
   return { ...added, auth_user_id: authUserId };
 }
 
+/**
+ * Settings → People → Add (ACC-093): the person, their allowed e-mail, role and sign-in switch in one request — one
+ * entry in the log, one Undo (api.person_create). Then the e-mail's auth user is linked (the one already there, found
+ * by e-mail, or a new one) and the person's Auth state synced.
+ */
+export async function createPerson(person: Record<string, unknown>, reason?: string) {
+  const db = await serverDb();
+  const created = unwrap(await db.rpc('person_create', { p_person: person as never, p_reason: reason })) as {
+    id: string;
+    version: number;
+    email_id: string | null;
+    request_id: string;
+  };
+  const email = typeof person.email === 'string' ? person.email.trim().toLowerCase() : '';
+  const authUserId = email ? await linkAuthUser(db, email) : null;
+  await syncPerson(created.id);
+  return { ...created, auth_user_id: authUserId };
+}
+
+/**
+ * Switch a person's sign-in on or off (P3-5): the database decides and logs it (off ends every device at once — V74),
+ * then their auth users are banned or unbanned to match, in the same call, so Auth never lags behind.
+ */
+export async function switchPerson(personId: string, on: boolean, reason: string) {
+  const db = await serverDb();
+  const done = unwrap(await db.rpc('person_switch', { p_id: personId, p_on: on, p_reason: reason })) as {
+    can_sign_in: boolean;
+    devices_ended: number;
+    request_id: string;
+  };
+  return { ...done, ...(await syncPerson(personId)) };
+}
+
 type Generated = { person_id: string; auth_user_ids: string[]; signed_out: number; request_id: string };
 
 /**
