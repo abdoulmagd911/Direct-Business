@@ -71,6 +71,12 @@ function readCookie(name: string): string | undefined {
   return m?.[1] ? decodeURIComponent(m[1]) : undefined;
 }
 
+/** Whether this browser holds its own choice for a preference (a cookie), as opposed to the coerced default. */
+export function prefIsSet(key: keyof Prefs): boolean {
+  const raw = readCookie(PREF_DEFS[key].cookie);
+  return raw !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(raw);
+}
+
 export function readPrefs(): Prefs {
   return prefsFrom(readCookie);
 }

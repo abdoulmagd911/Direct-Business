@@ -3,7 +3,10 @@ import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { dirOf, prefsFrom } from '@/core/prefs';
+import { dirOf } from '@/core/prefs';
+import { serverPrefs } from '@/core/prefs/effective';
+import { getMe } from '@/core/auth/get-me';
+import { getAppSettings } from '@/core/settings/app';
 import { Hydrated } from '@/core/auth/Hydrated';
 import { fontClassNames } from '@/ui/fonts';
 import '@/ui/globals.css';
@@ -23,8 +26,11 @@ export const dynamic = 'force-dynamic';
  * preferences BEFORE the first paint — no flash of the wrong theme (A5, A13).
  */
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const store = await cookies();
-  const prefs = prefsFrom((n) => store.get(n)?.value);
+  // one api.me() per request (cached; null on the door) — the profile's theme and density stand in for a missing cookie
+  const [store, app, answer] = await Promise.all([cookies(), getAppSettings(), getMe().catch(() => null)]);
+  const me = answer?.status === 'ok' ? answer : null;
+  // the language follows the Arabic switch (ACC-139): a cookie saying Arabic is ignored while it is off
+  const prefs = serverPrefs(me, app, (n) => store.get(n)?.value);
   const locale = await getLocale();
   const messages = await getMessages();
   return (
