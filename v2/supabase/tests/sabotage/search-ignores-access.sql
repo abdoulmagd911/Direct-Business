@@ -1,7 +1,7 @@
 -- Sabotage: search-ignores-access
 -- Breaks: sql:SRCH-01
--- Expect: a person who cannot open Partners finds none
--- Ctrl K finds partners for anyone signed in, whatever their access.
+-- Expect: a person shut out of Clients finds no client, but finds a supplier
+-- Ctrl K finds organisations for anyone signed in, whatever their access to each side.
 create or replace function core.search(p_q text, p_limit int default 10) returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
@@ -10,6 +10,7 @@ declare
   q text := norm.fold(p_q);
   lim int := greatest(1, least(coalesce(p_limit, 10), 50));
   stop text[] := partner.stop_words();
+  sees_client boolean;
 begin
   if me is null then
     raise exception using errcode = '42501', message = 'auth.no_active_person';
@@ -17,8 +18,9 @@ begin
   if q is null or pg_catalog.length(q) < 2 then
     return pg_catalog.jsonb_build_object('partners', '[]'::jsonb, 'people', '[]'::jsonb);
   end if;
+  sees_client := authz.level_of(me, 'clients') >= 'view';
   return pg_catalog.jsonb_build_object(
-    'partners', case when false then '[]'::jsonb else coalesce((
+    'partners', coalesce((
       select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', y.id, 'number', y.number,
                'trade_name_en', y.trade_name_en, 'trade_name_ar', y.trade_name_ar, 'matched_by', y.matched_by)
                order by y.rank, pg_catalog.lower(y.trade_name_en))
@@ -36,7 +38,7 @@ begin
                   select p3.id, 'number', 0 from partner.partner p3 where norm.fold(p3.number) = q) m on m.partner_id = p.id
             where p.deleted_at is null and p.archived_at is null
             order by p.id, m.rank) x
-            order by x.rank, pg_catalog.lower(x.trade_name_en) limit lim) y), '[]'::jsonb) end,
+            order by x.rank, pg_catalog.lower(x.trade_name_en) limit lim) y), '[]'::jsonb),
     'people', coalesce((
       select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', p.id, 'full_name_en', p.full_name_en,
                'full_name_ar', p.full_name_ar, 'job_title_en', p.job_title_en) order by pg_catalog.lower(p.full_name_en))

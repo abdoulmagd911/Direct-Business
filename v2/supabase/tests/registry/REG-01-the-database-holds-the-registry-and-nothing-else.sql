@@ -28,7 +28,7 @@ begin
     'the setting definitions are the registry''s');
   perform test.eq(
     (select jsonb_agg(jsonb_build_object('key', key, 'table', table_name, 'page', page_key, 'owners', owners,
-                                         'list', is_list, 'private', private, 'visible', visible)
+                                         'list', is_list, 'private', private, 'visible', visible, 'level', level)
                       order by key collate "C") from core.entity where active),
     (select jsonb_agg(e order by e ->> 'key' collate "C") from jsonb_array_elements(reg -> 'entities') e),
     'the record types are the registry''s');
@@ -48,7 +48,9 @@ begin
   perform test.eq(
     (select jsonb_agg(jsonb_build_object('role', r.key, 'capability', c.capability_key, 'granted', c.granted)
                       order by r.key collate "C", c.capability_key collate "C")
-     from core.role_capability c join core.role r on r.id = c.role_id where c.deleted_at is null),
+     from core.role_capability c join core.role r on r.id = c.role_id
+       join core.capability k on k.key = c.capability_key and k.active
+     where c.deleted_at is null),
     (select jsonb_agg(x order by x ->> 'role' collate "C", x ->> 'capability' collate "C")
      from jsonb_array_elements(reg -> 'role_capabilities') x),
     'each role starts with the registry''s capabilities');

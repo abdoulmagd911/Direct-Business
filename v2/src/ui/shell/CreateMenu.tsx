@@ -10,7 +10,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 /** Create actions come from the registry from P3-4; until then this list mirrors its shape. */
 export const CREATE_ACTIONS: { key: string; page: string; route: string; icon: LucideIcon }[] = [
   { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare },
-  { key: 'partner', page: 'partners', route: '/partners/new', icon: Briefcase },
+  { key: 'partner', page: 'clients', route: '/partners/new', icon: Briefcase },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy },
 ];

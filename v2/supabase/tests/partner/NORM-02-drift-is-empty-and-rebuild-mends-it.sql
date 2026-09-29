@@ -4,8 +4,8 @@
 -- Sabotage: supabase/tests/sabotage/drift-sees-nothing.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Group Travel"}') ->> 'id', true);
-select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Travel"}') ->> 'id', true);
+select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Group Travel", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
+select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Travel", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 select api.identifier_add(current_setting('t.a')::uuid, 'email', 'desk@example.test', 'made up');
 select test.as_owner();
 select test.eq((select count(*)::int from norm.drift()), 0, 'drift is empty');

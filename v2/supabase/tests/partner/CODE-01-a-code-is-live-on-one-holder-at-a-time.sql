@@ -1,14 +1,14 @@
 -- CODE-01 — discount and campaign codes (V65, V135): a code is live on one partner or one campaign at a time, dates
 -- included — the same code may pass from one to another in time; one live code per partner unless someone with
--- partners.assign says a second is meant; a code's terms name who approved them. Every code is made up.
+-- clients.assign says a second is meant; a code's terms name who approved them. Every code is made up.
 -- Sabotage: supabase/tests/sabotage/a-campaign-code-and-a-partner-code-overlap.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.manager', test.person('Test Manager', 'manager')::text, true);
 insert into core.person_capability (person_id, capability_key, granted, reason)
-values (current_setting('t.manager')::uuid, 'partners.assign', false, 'made up: no second codes');
+values (current_setting('t.manager')::uuid, 'clients.assign', false, 'made up: no second codes');
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Delta"}') ->> 'id', true);
-select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Epsilon"}') ->> 'id', true);
+select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Delta", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
+select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Epsilon", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 
 select set_config('t.code', api.identifier_add(current_setting('t.a')::uuid, 'discount_code', 'MADEUP10', 'made up',
   null, '2027-01-01', '2027-06-30') ->> 'id', true);
@@ -29,7 +29,7 @@ select test.raises(format('select api.identifier_add(%L, %L, %L, %L, null, %L, %
 select test.as_person(current_setting('t.manager')::uuid);
 select test.raises(format('select api.identifier_add(%L, %L, %L, %L, null, %L, %L, null, true)', current_setting('t.a'),
   'discount_code', 'SECOND20', 'made up', '2027-02-01', '2027-02-28'), '42501',
-  'a second one needs partners.assign', 'access.needs_capability');
+  'a second one needs clients.assign', 'access.needs_capability');
 select test.as_person(current_setting('t.head')::uuid);
 select test.ok((api.identifier_add(current_setting('t.a')::uuid, 'discount_code', 'SECOND20', 'made up: a second is meant',
   null, '2027-02-01', '2027-02-28', null, true) ->> 'id') is not null, 'which says so');

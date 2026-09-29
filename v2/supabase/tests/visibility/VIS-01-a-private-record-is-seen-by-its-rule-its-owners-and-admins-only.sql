@@ -10,7 +10,7 @@ select set_config('t.am1', test.person('Test Account Manager', 'member')::text, 
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.pid', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Private',
-  'account_manager_id', current_setting('t.am1'))) ->> 'id', true);
+  'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate', 'owner_id', current_setting('t.am1'))))) ->> 'id', true);
 select test.as_person(current_setting('t.head')::uuid);
 select test.eq(api.can_see('partner', current_setting('t.pid')::uuid), true, 'an open record: Full on its page sees it');
 select api.follow('partner', current_setting('t.pid')::uuid);
