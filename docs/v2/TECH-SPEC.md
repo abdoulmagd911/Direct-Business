@@ -550,7 +550,7 @@ alert links to its record.
 - **Bulk actions**: lists allow multi-select; a bulk action (assign, change status, add a follower, link, remove) is
 **one** API call and one request, so one Undo reverts all of it. - **Recently deleted** (V401): `api.recently_deleted()`
 lists the records removed in the last `audit.recently_deleted_days` (30) that the caller could see, each with
-(30) that the caller could see, each with **Restore** — the removal's undo, allowed past the 24-hour window for this one
+**Restore** — the removal's undo, allowed past the 24-hour window for this one
 action; after 30 days a removed record stays in the change log but leaves the list. - **Escalate** (V401) on a task, a
 challenge or an organisation: `api.escalate(entity, id, to_person, note)` notifies the person (`escalated`), makes them
 a follower, and writes the note to the timeline and the change log in one request; a challenge also records
@@ -1322,7 +1322,7 @@ yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request,
 - **Awards**: an optional entry cost (amount).
 - **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
   ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
-number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without it the
+it the
 achievement is not saved), `happened_on` = the **handover to Product** (the ticket raised), which is when it counts;
 `go_live_on` recorded later on the same achievement and never counted again; a tracked-only KPI follows go-lives. -
 **Supplier cashback** (V90): the supplier (an organisation with the Supplier & partner side on), the amount received
