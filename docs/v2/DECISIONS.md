@@ -340,3 +340,11 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - `20260929060400_norm_fold_escapes.sql` writes the same rule with `\u` escapes, which normalization cannot touch, and ends with `norm.rebuild()`. It folds every Unicode character exactly as the file's rule does (checked over all of them). `norm.version()` stays 1, because the rule itself did not change. NORM-01 now tells the two apart; its sabotage `folding-swallows-the-letters-after-the-marks` restores the stretched range.
 - The check `normalized-text` refuses a migration that changes under NFC normalization, naming the line and the marks. Its sabotage is `plant-unnormalized-migration`. The one merged file that breaks the rule is exempt by name in the check: merged migrations are never edited (A9).
 - Applying on the cloud (V113) keeps its steps. The md5 of the stored statement must equal the file's; a mismatch is reported, never stamped over.
+
+**V139 — The database guard, as built** ACTIVE · 2026-09-29. Implements V402 in `.claude/hooks/sql-guard.mjs`, which runs before every `execute_sql` and `apply_migration` a session makes.
+- On the v2 project (`kimadjvaxgiqzjaukuqg`) it asks only before destructive statements: any DROP (ALTER … DROP included), TRUNCATE, DELETE or UPDATE without WHERE, turning row-level security off, and disabling a trigger. An upsert's `do update set` is not an UPDATE without WHERE.
+- On the old app's project (`vkxoeeoauexyfpzqufqd`) it asks before every call.
+- On any other project it keeps the rules of 27 Sep.
+- It reads the SQL as code: comments and strings decide nothing and hide nothing, and DO blocks and function bodies are read too.
+- A v2 unit test feeds it sample calls; the sabotage `guard-lets-a-drop-through` (a DROP no longer asks) turns it red.
+
