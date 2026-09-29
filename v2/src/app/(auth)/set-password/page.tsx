@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getMe } from '@/core/auth/get-me';
 import { mustChangePassword } from '@/core/auth/must-change';
 import { safeNext } from '@/core/auth/safe-next';
+import { getAppSettings } from '@/core/settings/app';
 import { SetPassword } from '@/modules/org/screens/SetPassword';
 
 /**
@@ -20,5 +21,5 @@ export default async function SetPasswordPage({
   if (me.status === 'ok') redirect(target);
   // api.me() answers must_change_password for exactly this person (V166); any other refusal is the sign-out's to word.
   if (!(await mustChangePassword())) redirect('/auth/sign-out');
-  return <SetPassword next={target} />;
+  return <SetPassword next={target} arabicEnabled={(await getAppSettings()).arabic_enabled} />;
 }

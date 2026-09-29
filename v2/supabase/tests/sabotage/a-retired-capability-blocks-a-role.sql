@@ -1,7 +1,7 @@
 -- Sabotage: a-retired-capability-blocks-a-role
 -- Breaks: sql:ACC-09
--- Expect: an admin makes a team member a head
--- A retired capability still counts: its old grants stop an admin from making anyone a head or a manager.
+-- Expect: and makes a head of a role still carrying its grant
+-- A retired capability still counts: a grant it left on a role stops an admin from giving that role.
 create or replace function core.access_set_person_role(p_person uuid, p_role uuid, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
