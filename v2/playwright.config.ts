@@ -23,7 +23,16 @@ export default defineConfig({
     timezoneId: 'Asia/Riyadh',
     launchOptions: executablePath ? { executablePath } : {},
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // The old app's lesson: the same flows under another clock and an Arabic browser — the app must still speak of
+    // Riyadh days, Gregorian dates and Western digits (V40), whatever the machine says.
+    {
+      name: 'utc-arabic-browser',
+      testMatch: /(p3-7|settings|org)\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], locale: 'ar-SA', timezoneId: 'UTC' },
+    },
+  ],
   webServer: {
     command: 'pnpm start',
     url: baseURL,

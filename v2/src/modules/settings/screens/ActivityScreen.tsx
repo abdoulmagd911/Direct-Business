@@ -21,6 +21,7 @@ import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { Tabs } from '@/ui/Tabs';
 import type { SettingsAnswer } from '../schema';
+import { RecentlyDeleted, type DeletedRow } from './RecentlyDeleted';
 
 export type SignInRow = {
   id: string;
@@ -31,7 +32,9 @@ export type SignInRow = {
   user_agent: string | null;
 };
 
-const TABS = ['changes', 'settings', 'signIns'] as const;
+const TABS = ['changes', 'settings', 'signIns', 'deleted'] as const;
+
+export type { DeletedRow } from './RecentlyDeleted';
 
 /**
  * Activity (V97: its own page): the whole change log with filters (who, what, since) and Undo; the settings log with
@@ -44,6 +47,7 @@ export function ActivityScreen({
   org,
   rows,
   signIns,
+  deleted,
   filters,
 }: {
   me: Me;
@@ -51,6 +55,7 @@ export function ActivityScreen({
   org: OrgAnswer;
   rows: HistoryRow[];
   signIns: SignInRow[];
+  deleted: DeletedRow[];
   filters: { actor: string; entity: string; since: string; person: string };
 }) {
   const t = useTranslations();
@@ -119,7 +124,6 @@ export function ActivityScreen({
     );
   };
   const settingRows = rows.filter((r) => r.changes.some((c) => c.entity === 'setting'));
-
   return (
     <PageFrame className="[&>*]:max-w-[1100px]">
       <PageHeader title={t('nav.activity')} />
@@ -128,7 +132,7 @@ export function ActivityScreen({
         value={current}
         tabs={TABS.map((k) => ({ value: k, label: t(`activity.tabs.${k}`), href: `/activity?tab=${k}` }))}
       />
-      {current !== 'signIns' ? (
+      {current === 'deleted' ? null : current !== 'signIns' ? (
         <div className="grid gap-3 sm:grid-cols-3" data-activity-filters>
           <Field label={t('activity.filters.who')}>
             {(p) => (
@@ -270,6 +274,7 @@ export function ActivityScreen({
           )}
         </section>
       ) : null}
+      {current === 'deleted' ? <RecentlyDeleted rows={deleted} people={people} /> : null}
       <ReasonDialog
         open={reverting !== null}
         onOpenChange={(o) => !o && setReverting(null)}
