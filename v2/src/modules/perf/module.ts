@@ -17,7 +17,8 @@ export default defineModule({
       route: '/settings/performance',
       label: 'nav.settings.performance',
       nav: { group: 'settings', order: 40 },
-      defaults: { admin: 'full', head: 'full', manager: 'view', member: 'view', viewer: 'view' },
+      levels: ['none', 'full'],
+      defaults: { admin: 'full' },
     },
   ],
 });

@@ -1,25 +1,26 @@
--- SETW-01 — changing a setting (§3.2, V131): View on the group's page reads it, Full changes it, with a reason and a
--- value its schema accepts; a setting without an effective date applies from today, one with a date takes it; a second
+-- SETW-01 — changing a setting (§3.2, V131, V97): Settings is admins-only — a head or a member neither reads nor
+-- changes it; an admin changes a setting with a reason and a value its schema accepts; a setting without an effective date applies from today, one with a date takes it; a second
 -- change the same day replaces the first (one live row, one Undo brings it back); a department's own value, and back to
 -- the company's.
--- Sabotage: supabase/tests/sabotage/view-changes-a-setting.sql.
+-- Sabotage: supabase/tests/sabotage/anyone-changes-a-setting.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.dep', test.department('settings_one')::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);
-select test.eq((api.settings('settings.app') ->> 'can_edit')::boolean, false, 'a head, with View on App, reads it');
-select test.ok(exists (select 1 from jsonb_array_elements(api.settings('settings.app') -> 'settings') s
-                       where s ->> 'key' = 'audit.undo_window_hours' and (s -> 'value')::int = 24),
-  'with each setting''s value today');
 select test.raises($$select api.setting_set('audit.undo_window_hours', null, '48', null, 'made up')$$, '42501',
-  'a head with View on App cannot change its settings', 'access.needs_level');
+  'a head cannot change a setting', 'access.needs_level');
+select test.raises($$select api.settings('settings.app')$$, '42501', 'nor read the Settings page', 'access.needs_level');
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises($$select api.settings('settings.app')$$, '42501', 'a member without App sees none of it',
   'access.needs_level');
 
 select test.as_person(current_setting('t.admin')::uuid);
+select test.eq((api.settings('settings.app') ->> 'can_edit')::boolean, true, 'an admin reads and changes it');
+select test.ok(exists (select 1 from jsonb_array_elements(api.settings('settings.app') -> 'settings') s
+                       where s ->> 'key' = 'audit.undo_window_hours' and (s -> 'value')::int = 24),
+  'with each setting''s value today');
 select test.raises($$select api.setting_set('audit.undo_window_hours', null, '48', null, null)$$, 'P0001',
   'a change needs a reason', 'common.reason_required');
 select test.raises($$select api.setting_set('audit.undo_window_hours', null, '"48"', null, 'made up')$$, 'P0001',

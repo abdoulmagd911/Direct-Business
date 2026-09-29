@@ -12,7 +12,7 @@ begin
   return pg_catalog.jsonb_build_object('status', 'ok',
     'person', pg_catalog.jsonb_build_object('id', p.id, 'role', pg_catalog.jsonb_build_object('key', r.key)),
     'levels', (select pg_catalog.jsonb_object_agg(pg.key, coalesce(case when r.is_admin then 'full'::core.level end,
-       (select l.level from core.role_page_level l where l.role_id = r.id and l.page_key = pg.key), 'none'))
+       (select l.level from core.role_page_level l where l.role_id = r.id and l.page_key = pg.key and l.deleted_at is null), 'none'))
        from core.page pg));
 end
 $$;

@@ -1,7 +1,7 @@
--- Sabotage: view-changes-a-setting
+-- Sabotage: anyone-changes-a-setting
 -- Breaks: sql:SETW-01
--- Expect: a head with View on App cannot change its settings
--- Changing a setting asks only for View on its group.
+-- Expect: a head cannot change a setting
+-- Changing a setting asks only that someone is signed in.
 create or replace function core.setting_set(p_key text, p_department uuid, p_value jsonb, p_valid_from date default null,
                                  p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -19,7 +19,7 @@ begin
   if d.id is null then
     raise exception using errcode = 'P0002', message = 'setting.unknown_key', detail = p_key;
   end if;
-  me := authz.require(d.group_page, 'view');
+  me := authz.me();
   why := core.access_reason(p_reason);
   if p_department is not null
      and not exists (select 1 from core.department x where x.id = p_department and x.deleted_at is null) then

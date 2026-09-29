@@ -38,7 +38,7 @@ select test.raises(format('select api.undo(%L)', current_setting('t.r2')), '4250
   'the person who made a change cannot undo it after the window', 'undo.not_allowed');
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.undo(%L)', current_setting('t.r2')), '42501',
-  'nor can someone with only View on the page', 'undo.not_allowed');
+  'nor can someone without Full on the page', 'undo.not_allowed');
 select test.as_owner();
 insert into core.setting (key, department_id, value, valid_from, reason)
 values ('audit.undo_window_hours', null, '48', core.riyadh_today(), 'made up for a test');
@@ -48,25 +48,27 @@ select test.as_owner();
 select test.eq((select name_en from core.department where id = current_setting('t.dep')::uuid), 'Undo Five',
   'the window is a setting: at 48 hours the person who made it undoes it after 25');
 
--- Full on the page, any time
+-- Full on the page, any time (a head has Full on Partners)
 select set_config('v2.test_now', '', true);
+select test.as_person(current_setting('t.head')::uuid);
+select set_config('t.p', api.partner_create('{"trade_name_en": "Made Up Undo Co"}') ->> 'id', true);
 select set_config('t.r3', test.act(current_setting('t.am1')::uuid)::text, true);
-update core.department set name_ar = 'اسم للتجربة' where id = current_setting('t.dep')::uuid;
+update partner.partner set city = 'Made Up City' where id = current_setting('t.p')::uuid;
 select test.done();
-insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.head')::uuid, 'settings.org', 'full', 'made up: runs the organisation');
 select set_config('v2.test_now', (now() + interval '100 hours')::text, true);
 select test.as_person(current_setting('t.head')::uuid);
 select api.undo(current_setting('t.r3')::uuid);
 select test.as_owner();
-select test.eq((select name_ar from core.department where id = current_setting('t.dep')::uuid), null::text,
+select test.eq((select city from partner.partner where id = current_setting('t.p')::uuid), null::text,
   'someone with Full on the page undoes a change long after the window');
 
 -- a change of someone's access: an admin's to undo
 select set_config('v2.test_now', '', true);
+select set_config('t.r4', test.act(current_setting('t.head')::uuid, 'access.person_level_set')::text, true);
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'kpis', 'view', 'made up: narrowed');
+select test.done();
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.r4', api.access_set_person_level(current_setting('t.am1')::uuid, 'kpis', 'view',
-  'made up: narrowed') ->> 'request_id', true);
 select test.raises(format('select api.undo(%L)', current_setting('t.r4')), '42501',
   'a non-admin cannot undo a change of someone''s access, not even their own change', 'undo.not_allowed');
 select test.as_person(current_setting('t.am1')::uuid);
