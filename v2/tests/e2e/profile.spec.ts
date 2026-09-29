@@ -138,7 +138,7 @@ test("the profile menu's theme and density are saved to the profile, not only th
   await page.locator('[data-profile-chip]').click();
   await page.locator('[data-theme-option="dark"]').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(toast(page, 'Profile saved')).toBeVisible();
+  await expect(toast(page, 'Profile saved'), 'the menu saves to the profile').toBeVisible();
   await page.locator('[data-profile-chip]').click();
   await page.locator('[data-density-option="compact"]').click();
   await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');

@@ -359,7 +359,7 @@ export const sabotages = [
   {
     name: 'menu-theme-stays-in-the-cookie',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the profile row holds both choices',
+    expect: 'the menu saves to the profile',
     edits: [
       {
         file: 'src/ui/shell/ProfileMenu.tsx',
