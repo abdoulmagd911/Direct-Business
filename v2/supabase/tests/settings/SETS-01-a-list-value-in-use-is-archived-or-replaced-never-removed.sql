@@ -4,6 +4,8 @@
 -- entry that feeds logic keeps its locked meaning — renamed, never re-meant, removed or retired. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-list-value-in-use-is-removed.sql,
 --            supabase/tests/sabotage/a-value-used-in-recently-deleted-is-removed.sql,
+--            supabase/tests/sabotage/a-retire-leaves-removed-rows-behind.sql,
+--            supabase/tests/sabotage/anyone-retires-a-list-value.sql,
 --            supabase/tests/sabotage/retire-rewrites-history.sql,
 --            supabase/tests/sabotage/retire-moves-definitions.sql,
 --            supabase/tests/sabotage/retire-leaks-a-raw-duplicate.sql.
@@ -32,6 +34,10 @@ select test.raises(format('select api.list_remove(%L, %L)', 'side_type', current
 select test.raises(format('select api.list_retire(%L, %L, %L, %L)', 'side_type', current_setting('t.s'),
   current_setting('t.supplier'), 'made up'), 'P0001', 'a side''s value is replaced from its own side''s list',
   'partner.list_of_other_side');
+select test.as_person(current_setting('t.head')::uuid);
+select test.raises(format('select api.list_retire(%L, %L, %L, %L)', 'side_type', current_setting('t.s'),
+  current_setting('t.corporate'), 'made up'), '42501', 'only an admin retires a list value (QA-96)', 'access.needs_level');
+select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.r', api.list_retire('side_type', current_setting('t.s')::uuid, current_setting('t.corporate')::uuid,
   'made up: folded into Corporate')::text, true);
 select test.eq((current_setting('t.r')::jsonb ->> 'moved')::int, 1, 'retiring replaces it everywhere, with the count');
@@ -84,6 +90,19 @@ select test.eq(api.list_usage('contact_role', current_setting('t.role')::uuid) -
   'a record in Recently deleted still uses the value, counted apart');
 select test.raises(format('select api.list_remove(%L, %L)', 'contact_role', current_setting('t.role')), 'P0001',
   'so the value is not removed from under it', 'list.in_use');
+-- retired, the value moves on that record too (QA-97): restored, the contact is on the replacement, never the archive
+select set_config('t.role2', api.list_save('contact_role', null, '{"key": "made_up_role_two", "name_en": "Made up role two",
+  "name_ar": "دور متخيل ثان"}') ->> 'id', true);
+select set_config('t.rc', api.list_retire('contact_role', current_setting('t.role')::uuid, current_setting('t.role2')::uuid,
+  'made up: folded together')::text, true);
+select test.eq((current_setting('t.rc')::jsonb ->> 'moved_removed')::int, 1,
+  'a record waiting in Recently deleted moves too, counted apart');
+select test.as_person(current_setting('t.head')::uuid);
+select api.restore('contact', current_setting('t.ct')::uuid, 'made up: back after all');
+select test.as_owner();
+select test.eq((select role_id::text from partner.contact where id = current_setting('t.ct')::uuid),
+  current_setting('t.role2'), 'restored, it is on the replacement, never on the archived value');
+select test.as_person(current_setting('t.admin')::uuid);
 
 -- history is never rewritten (V161): retiring a reason leaves it on the status changes that gave it, counted apart
 select test.as_person(current_setting('t.head')::uuid);
@@ -103,7 +122,7 @@ select api.activity_log(current_setting('t.p')::uuid, 'visit', 'visit_done');
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.ra', api.list_retire('activity_type', current_setting('t.visit')::uuid,
   current_setting('t.mtg')::uuid, 'made up: visits are meetings now')::text, true);
-select test.eq(current_setting('t.ra')::jsonb - 'request_id', '{"moved": 0, "kept_in_history": 1, "kept_in_lists": 1}'::jsonb,
+select test.eq(current_setting('t.ra')::jsonb - 'request_id', '{"moved": 0, "moved_removed": 0, "kept_in_history": 1, "kept_in_lists": 1}'::jsonb,
   'the visit logged stays a visit, and the visit''s outcome stays the visit''s');
 
 -- a move that would make two live rows one names the rule, never a raw database error: a contract holding both terms

@@ -5,7 +5,8 @@
 -- Sabotages: supabase/tests/sabotage/access-undone-by-anyone.sql,
 --            supabase/tests/sabotage/the-undo-window-never-closes.sql,
 --            supabase/tests/sabotage/undo-by-rights-then.sql,
---            supabase/tests/sabotage/my-profile-cannot-be-undone.sql.
+--            supabase/tests/sabotage/my-profile-cannot-be-undone.sql,
+--            supabase/tests/sabotage/anyone-with-own-undoes-anything.sql.
 -- Your own names and profile, changed on My profile, are yours to undo within the window, whatever your level on the
 -- people pages (V9, V97) — and nothing else of your own person record is.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
@@ -53,6 +54,13 @@ select test.raises(format('select api.undo(%L)', current_setting('t.r2')), '4250
 select test.as_owner();
 insert into core.setting (key, department_id, value, valid_from, reason)
 values ('audit.undo_window_hours', null, '48', core.riyadh_today(), 'made up for a test');
+-- within the window, Own is not enough for someone else's change to a record they do not own (QA-96)
+select set_config('t.am3', test.person('Test Third Manager', 'member')::text, true);
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am3')::uuid, 'clients', 'own', 'made up: own work only');
+select test.as_person(current_setting('t.am3')::uuid);
+select test.raises(format('select api.undo(%L)', current_setting('t.r2')), '42501',
+  'with Own, someone who neither made the change nor owns the record cannot undo it', 'undo.not_allowed');
 select test.as_person(current_setting('t.am2')::uuid);
 select api.undo(current_setting('t.r2')::uuid);
 select test.as_owner();

@@ -53,7 +53,7 @@ export type Database = {
         };
         Returns: Json;
       };
-      auth_ticket_issue: { Args: { p_kind: string; p_target: string }; Returns: string };
+      auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       campaign_code_add: {
         Args: {
@@ -270,6 +270,10 @@ export type Database = {
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
+      restore_ticketed: {
+        Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };
+        Returns: Json;
+      };
       role_save: {
         Args: {
           p_id: string;
@@ -324,6 +328,7 @@ export type Database = {
         Returns: Json;
       };
       undo: { Args: { p_request: string }; Returns: Json };
+      undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
       view_save: {
         Args: {
