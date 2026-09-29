@@ -14,6 +14,8 @@ export function formatDate(
   opts: Intl.DateTimeFormatOptions = {},
 ): string {
   const date = typeof d === 'string' ? new Date(d) : d;
+  // A value that is not a date costs one figure, never the screen (the old app's "NaN days ago").
+  if (Number.isNaN(date.getTime())) return '—';
   // A dateStyle/timeStyle cannot be mixed with the day/month/year parts (Intl refuses); the parts are the default only.
   const parts: Intl.DateTimeFormatOptions =
     opts.dateStyle || opts.timeStyle ? {} : { day: 'numeric', month: 'short', year: 'numeric' };

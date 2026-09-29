@@ -112,6 +112,11 @@ the database's own preview, the list editor with the Arabic name required and Us
 with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
 record. `core/commands/run.ts` runs one write with its toast and Undo.
 
+P3-7 (V211): `core/commands/command.ts` is the one way a screen writes — the toast with Undo, the global refetch
+(`RefetchBridge`), the conflict dialog when two people changed the same field (FLOW-08); the shell carries the bell
+(`useNotifications`, `NotificationsPanel`), `FollowButton`, `SavedViewsBar` and `BulkBar` for every list, Ctrl K with
+people search and the actions registry (`core/commands/actions.ts`), and Activity gains Recently deleted with Restore.
+
 The password door (V212): `core/auth/password-actions.ts` signs a person in with their work email and password, sends a
 person whose password must change to `/set-password` first, and changes a password from My profile; an admin generates a
 temporary one from the person's record (`/auth/admin/password`, V441). The emailed-code door stays behind

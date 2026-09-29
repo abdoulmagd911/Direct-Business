@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
-import { run } from '@/core/commands/run';
+import { command, run, type ConflictField } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -13,6 +13,7 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
+import { FollowButton } from '@/ui/FollowButton';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PersonChip } from '@/ui/PersonChip';
@@ -149,17 +150,70 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       return;
     }
     setBusy(true);
-    await run(
+    const write = (values: Record<string, unknown>, version: number) =>
+      rpc('person_update', {
+        p_id: person.id,
+        p_changes: values as never,
+        p_version: version,
+      } as never) as Promise<{ request_id?: string | null } | null>;
+    // FLOW-08: the fields this form writes, what it read when Edit opened, and how each reads in words — for the
+    // conflict dialog (QA-69: the form starts from the record as it was when Edit opened, and that version is checked).
+    const nameOfPerson = (id: unknown) => (typeof id === 'string' ? (byId(id)?.full_name_en ?? '—') : '—');
+    const every: ConflictField[] = [
+      { key: 'full_name_en', label: t('profile.fullNameEn'), mine: changes.full_name_en, read: row.full_name_en },
+      {
+        key: 'job_title_en',
+        label: t('settings.people.jobTitleEn'),
+        mine: changes.job_title_en,
+        read: row.job_title_en,
+      },
+      {
+        key: 'department_id',
+        label: t('settings.people.department'),
+        mine: changes.department_id,
+        read: row.department_id,
+        show: (v) => pick(org.departments.find((x) => x.id === v)) || '—',
+      },
+      {
+        key: 'team_id',
+        label: t('settings.people.team'),
+        mine: changes.team_id,
+        read: row.team_id,
+        show: (v) => pick(org.teams.find((x) => x.id === v)) || t('settings.people.noTeam'),
+      },
+      {
+        key: 'manager_id',
+        label: t('settings.people.manager'),
+        mine: changes.manager_id,
+        read: row.manager_id,
+        show: (v) => (v ? nameOfPerson(v) : t('settings.people.noManager')),
+      },
+      { key: 'joined_on', label: t('settings.people.joinedOn'), mine: changes.joined_on, read: row.joined_on },
+      { key: 'left_on', label: t('settings.people.leftOn'), mine: changes.left_on, read: row.left_on },
+    ];
+    const fields = every.filter((x) => x.key in changes);
+    await command(
       words(t('settings.people.updated', { name: f.full_name_en.trim() })),
-      () =>
-        rpc('person_update', {
-          p_id: person.id,
-          p_changes: changes as never,
-          p_version: formVersion ?? row.version,
-        } as never) as Promise<{ request_id?: string | null } | null>,
-      () => {
-        setEditing(false);
-        refresh();
+      () => write(changes, formVersion ?? row.version),
+      {
+        after: () => {
+          setEditing(false);
+          refresh();
+        },
+        nameOf: (id) => {
+          const p = byId(id);
+          return p ? nameOf(p, locale) : undefined;
+        },
+        conflict: {
+          fields,
+          theirs: async () => {
+            const rows = (await rpc('people', {} as never)) as unknown as PersonRow[];
+            const now = rows.find((p) => p.id === person.id);
+            if (!now) throw new Error('common.not_found');
+            return { version: now.version, values: now as unknown as Record<string, unknown> };
+          },
+          retry: write,
+        },
       },
     );
     setBusy(false);
@@ -440,12 +494,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     </>
   );
 
+  const follow = !self ? <FollowButton entity="person" id={person.id} /> : null;
   const actions =
     admin && !self ? (
       <>
         <Button variant="primary" onClick={openEdit} data-person-edit>
           {t('common.edit')}
         </Button>
+        {follow}
         <Button onClick={() => setSwitching(true)} data-person-switch>
           {row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn')}
         </Button>
@@ -467,7 +523,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <Button variant="primary" onClick={() => router.push('/profile')}>
         {t('profile.title')}
       </Button>
-    ) : null;
+    ) : (
+      follow
+    );
 
   return (
     <RecordPage
