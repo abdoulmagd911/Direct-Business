@@ -2,8 +2,8 @@
 -- list has a stable key and both names, and is edited on a settings page; every table shaped like a list is declared
 -- (the access roles alone are not a list: api.role_save and its rules edit them — V132); everyone signed in reads the
 -- lists; only an admin (Settings is admins-only — V97) adds and changes entries — both names required, the key fixed,
--- an entry retired and never deleted; each change logged and undoable; the list door refuses anything that is not a
--- declared list.
+-- an entry retired and never deleted; each change logged and undoable; a side's list (V98) names its side, which never
+-- changes; the list door refuses anything that is not a declared list.
 -- Sabotage: supabase/tests/sabotage/anyone-changes-a-list.sql.
 do $$
 declare
@@ -29,32 +29,40 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.manager', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
+select set_config('t.call_type', (select id::text from partner.activity_type where key = 'call'), true);
 
 select test.as_person(current_setting('t.viewer')::uuid);
-select test.ok(jsonb_array_length(api.list('segment')) = 4, 'everyone reads the lists');
+select test.ok(jsonb_array_length(api.list('side_type')) = 9, 'everyone reads the lists');
 select test.as_person(current_setting('t.manager')::uuid);
-select test.raises($$select api.list_save('segment', null, '{"key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
+select test.raises($$select api.list_save('side_type', null, '{"side": "client", "key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
   '42501', 'a manager cannot change a list', 'access.needs_level');
 select test.as_person(current_setting('t.head')::uuid);
-select test.raises($$select api.list_save('segment', null, '{"key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
+select test.raises($$select api.list_save('side_type', null, '{"side": "client", "key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
   '42501', 'nor can a head', 'access.needs_level');
 
 select test.as_person(current_setting('t.admin')::uuid);
-select test.raises($$select api.list_save('segment', null, '{"key": "made_up", "name_en": "Made up"}')$$, 'P0001',
-  'the Arabic name is required', 'list.invalid');
-select set_config('t.s', api.list_save('segment', null, '{"key": "made_up", "name_en": "Made up", "name_ar": "متخيل", "sort": 50}')
-  ->> 'id', true);
-select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'segment', current_setting('t.s'), '{"key": "renamed"}'),
+select test.raises($$select api.list_save('side_type', null, '{"side": "client", "key": "made_up", "name_en": "Made up"}')$$,
+  'P0001', 'the Arabic name is required', 'list.invalid');
+select test.raises($$select api.list_save('side_type', null, '{"key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
+  'P0001', 'a side''s list entry names its side', 'list.invalid');
+select set_config('t.s', api.list_save('side_type', null,
+  '{"side": "client", "key": "made_up", "name_en": "Made up", "name_ar": "متخيل", "sort": 50}') ->> 'id', true);
+select test.ok((api.list_save('side_type', null, '{"side": "supplier_partner", "key": "made_up", "name_en": "Made up",
+  "name_ar": "متخيل"}') ->> 'id') is not null, 'the same key may name an entry on the other side');
+select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'side_type', current_setting('t.s'), '{"side": "supplier_partner"}'),
+  'P0001', 'an entry keeps its side', 'partner.side_fixed');
+select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'side_type', current_setting('t.s'), '{"key": "renamed"}'),
   'P0001', 'a key never changes', 'list.key_fixed');
-select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'segment', current_setting('t.s'), '{"colour": "red"}'),
+select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'side_type', current_setting('t.s'), '{"colour": "red"}'),
   'P0001', 'a column the list does not have is refused', 'list.unknown_field');
-select set_config('t.r', api.list_save('segment', current_setting('t.s')::uuid, '{"active": false}', 1) ->> 'request_id', true);
-select test.eq(jsonb_array_length(api.list('segment')), 4, 'a retired entry leaves the list');
-select test.eq(jsonb_array_length(api.list('segment', true)), 5, 'but is never deleted');
+select set_config('t.r', api.list_save('side_type', current_setting('t.s')::uuid, '{"active": false}', 1) ->> 'request_id', true);
+select test.eq(jsonb_array_length(api.list('side_type')), 10, 'a retired entry leaves the list');
+select test.eq(jsonb_array_length(api.list('side_type', true)), 11, 'but is never deleted');
 select api.undo(current_setting('t.r')::uuid);
-select test.eq(jsonb_array_length(api.list('segment')), 5, 'and one Undo brings it back');
-select test.ok((api.list_save('call_outcome', null, '{"key": "made_up_call", "name_en": "Made up", "name_ar": "متخيل",
-  "counts_as_demo": true}') ->> 'id') is not null, 'a list with columns of its own saves them too');
+select test.eq(jsonb_array_length(api.list('side_type')), 11, 'and one Undo brings it back');
+select test.ok((api.list_save('activity_outcome', null, '{"key": "made_up_call", "name_en": "Made up", "name_ar": "متخيل",
+  "counts_as_demo": true}'::jsonb || jsonb_build_object('activity_type_id', current_setting('t.call_type'))) ->> 'id') is not null,
+  'a list with columns of its own saves them too');
 select test.raises($$select api.list('no_such_list')$$, 'P0002', 'an unknown list', 'list.unknown');
 select test.raises($$select api.list_save('role', null, '{"key": "made_up", "name_en": "Made up", "is_admin": true}')$$,
   'P0002', 'the access roles are no list: the list door refuses them', 'list.unknown');

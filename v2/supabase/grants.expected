@@ -13,17 +13,27 @@ function api.access_set_person_role(p_person uuid, p_role uuid, p_reason text) e
 function api.access_set_role_capability(p_role uuid, p_capability text, p_granted boolean, p_reason text) execute authenticated
 function api.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
+function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
 function api.auth_user_of(p_email text) execute service_role
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.contract_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function api.contracts(p_partner uuid, p_side text) execute authenticated
+function api.contracts_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.credit_limit_set(p_partner uuid, p_amount numeric, p_effective_from date, p_approved_by uuid, p_reason text) execute authenticated
 function api.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar text, p_head uuid, p_version integer, p_reason text) execute authenticated
 function api.device_sign_out(p_device uuid) execute authenticated
 function api.device_sign_out_others() execute authenticated
 function api.device_touch() execute authenticated
+function api.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
+function api.file_download(p_id uuid, p_locale text) execute authenticated
+function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
+function api.file_review_set(p_id uuid, p_review_on date, p_version integer) execute authenticated
+function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
+function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
 function api.hover_partner(p_id uuid) execute authenticated
@@ -39,6 +49,10 @@ function api.list_save(p_list text, p_id uuid, p_values jsonb, p_version integer
 function api.list_usage(p_list text, p_id uuid) execute authenticated
 function api.me() execute authenticated
 function api.my_devices() execute authenticated
+function api.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
+function api.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
+function api.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p_offset integer) execute authenticated
+function api.notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.notifications(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.notifications_mark_read(p_ids uuid[]) execute authenticated
 function api.notifications_snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
@@ -46,12 +60,14 @@ function api.notifications_unread() execute authenticated
 function api.org() execute authenticated
 function api.page_seen(p_page text) execute authenticated
 function api.partner(p_id uuid) execute authenticated
-function api.partner_bulk_assign(p_ids uuid[], p_owner uuid, p_priority uuid, p_reason text) execute authenticated
+function api.partner_bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
 function api.partner_create(p_partner jsonb, p_reason text) execute authenticated
-function api.partner_manager_set(p_id uuid, p_person uuid, p_from date, p_reason text) execute authenticated
 function api.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute authenticated
-function api.partner_roles_set(p_id uuid, p_roles jsonb, p_reason text) execute authenticated
-function api.partner_status_set(p_id uuid, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
+function api.partner_owner_set(p_id uuid, p_side text, p_person uuid, p_from date, p_reason text) execute authenticated
+function api.partner_references(p_partner uuid) execute authenticated
+function api.partner_side_off(p_id uuid, p_side text, p_until date, p_reason text) execute authenticated
+function api.partner_side_set(p_id uuid, p_side text, p_values jsonb, p_reason text) execute authenticated
+function api.partner_status_set(p_id uuid, p_side text, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
 function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.people() execute authenticated
@@ -67,6 +83,8 @@ function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reas
 function api.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
+function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
 function api.search(p_q text, p_limit integer) execute authenticated
@@ -75,6 +93,7 @@ function api.setting_preview(p_key text, p_department uuid, p_value jsonb, p_val
 function api.setting_set(p_key text, p_department uuid, p_value jsonb, p_valid_from date, p_reason text) execute authenticated
 function api.settings(p_group text) execute authenticated
 function api.settings_log(p_before timestamp with time zone, p_limit integer) execute authenticated
+function api.side_field_save(p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
@@ -91,6 +110,8 @@ function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
 function authz.can(p_capability text) execute authenticated
 function authz.can_see(p_entity text, p_id uuid) execute authenticated
+function authz.can_see_file(p_bucket text, p_path text) execute authenticated
+function authz.can_upload_file(p_bucket text, p_path text) execute authenticated
 function authz.in_my_departments(p_department uuid) execute authenticated
 function authz.is_admin() execute authenticated
 function authz.level(p_page text) execute authenticated
@@ -111,6 +132,12 @@ function core.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar 
 function core.device_sign_out(p_device uuid) execute authenticated
 function core.device_sign_out_others() execute authenticated
 function core.device_touch() execute authenticated
+function core.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
+function core.file_download(p_id uuid, p_locale text) execute authenticated
+function core.file_finish(p_id uuid, p_sha256 text) execute authenticated
+function core.file_review_set(p_id uuid, p_review_on date, p_version integer) execute authenticated
+function core.files(p_entity text, p_id uuid, p_side text) execute authenticated
+function core.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.format_number(prefix text, year integer, n integer, width integer) execute authenticated
 function core.hover_person(p_id uuid) execute authenticated
 function core.list_items(p_list text, p_include_retired boolean) execute authenticated
@@ -121,6 +148,10 @@ function core.list_usage(p_list text, p_id uuid) execute authenticated
 function core.me() execute authenticated
 function core.month_of(d date) execute authenticated
 function core.my_devices() execute authenticated
+function core.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
+function core.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
+function core.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p_offset integer) execute authenticated
+function core.notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.org() execute authenticated
 function core.page_seen(p_page text) execute authenticated
 function core.people() execute authenticated
@@ -162,25 +193,34 @@ function notify.list(p_tab text, p_before timestamp with time zone, p_limit inte
 function notify.mark_read(p_ids uuid[]) execute authenticated
 function notify.snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
 function notify.unread_count() execute authenticated
+function partner.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
 function partner.block_add(p_kind text, p_match text, p_value text, p_reason text) execute authenticated
-function partner.bulk_assign(p_ids uuid[], p_owner uuid, p_priority uuid, p_reason text) execute authenticated
+function partner.bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
 function partner.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function partner.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function partner.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function partner.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
+function partner.contract_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function partner.contracts(p_partner uuid, p_side text) execute authenticated
+function partner.contracts_remove(p_ids uuid[], p_reason text) execute authenticated
 function partner.credit_limit_set(p_partner uuid, p_amount numeric, p_effective_from date, p_approved_by uuid, p_reason text) execute authenticated
 function partner.hover(p_id uuid) execute authenticated
 function partner.identifier_add(p_partner uuid, p_kind text, p_value text, p_reason text, p_subkind text, p_valid_from date, p_valid_to date, p_note text, p_second_code boolean) execute authenticated
 function partner.identifier_remove(p_id uuid, p_reason text) execute authenticated
 function partner.individual_add(p_name text, p_reason text) execute authenticated
-function partner.manager_set(p_id uuid, p_person uuid, p_from date, p_reason text) execute authenticated
 function partner.partner_create(p_partner jsonb, p_reason text) execute authenticated
 function partner.partner_get(p_id uuid) execute authenticated
 function partner.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute authenticated
 function partner.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function partner.partners_list(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
-function partner.roles_set(p_id uuid, p_roles jsonb, p_reason text) execute authenticated
-function partner.status_set(p_id uuid, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
+function partner.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function partner.references(p_partner uuid) execute authenticated
+function partner.references_remove(p_ids uuid[], p_reason text) execute authenticated
+function partner.side_field_save(p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function partner.side_off(p_id uuid, p_side text, p_until date, p_reason text) execute authenticated
+function partner.side_owner_set(p_id uuid, p_side text, p_person uuid, p_from date, p_reason text) execute authenticated
+function partner.side_set(p_id uuid, p_side text, p_values jsonb, p_reason text) execute authenticated
+function partner.side_status_set(p_id uuid, p_side text, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated

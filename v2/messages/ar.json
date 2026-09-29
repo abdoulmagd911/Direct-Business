@@ -60,7 +60,7 @@
     "settings": {
       "profile": "ملفي",
       "org": "المنظمة والصلاحيات",
-      "partners": "الشركاء",
+      "partners": "العملاء والموردون والشركاء",
       "performance": "الخطة والأداء",
       "finance": "المالية",
       "work": "العمل",
@@ -184,26 +184,34 @@
     "setting_def": "تعريف إعداد",
     "wording": "الصياغة",
     "saved_view": "عرض محفوظ",
-    "partner_role": "دور الشريك",
-    "partner_status": "حالة الشريك",
     "credit_limit": "الحد الائتماني",
     "identifier": "معرّف",
-    "account_manager": "مدير الحساب",
     "contact": "جهة اتصال",
     "partner_merge": "دمج شريكين",
     "code_terms": "شروط الرمز",
     "campaign_code": "رمز حملة",
     "individual_name": "فرد",
     "identifier_block": "قيمة محظورة",
-    "partner_role_def": "دور الشريك (قائمة)",
-    "role_field": "حقل الدور",
-    "partner_category": "فئة الشريك",
-    "partner_tier": "مستوى الشريك",
-    "segment": "القطاع",
-    "status_reason": "سبب الحالة",
-    "call_outcome": "نتيجة الاتصال",
     "contract_term": "شرط العقد",
-    "priority": "الأولوية"
+    "priority": "الأولوية",
+    "partner_side": "الجانب",
+    "side_status": "حالة الجانب",
+    "side_owner": "مسؤول الجانب",
+    "side_field": "حقل الجانب",
+    "side_type": "نوع الجانب",
+    "side_tier": "مستوى الجانب",
+    "side_status_reason": "سبب الحالة",
+    "contact_role": "دور جهة الاتصال",
+    "activity_type": "نوع النشاط",
+    "activity_outcome": "نتيجة النشاط",
+    "contract": "عقد",
+    "contract_terms": "شروط العقد",
+    "reference": "مرجع",
+    "ref_system": "النظام",
+    "file_kind": "نوع الملف",
+    "file_link": "ملف مرفق",
+    "note": "ملاحظة",
+    "mention": "إشارة"
   },
   "status": {
     "done": "منجزة",
@@ -230,10 +238,15 @@
     "remove": "إزالة التصفية {field}: {value}"
   },
   "cap": {
-    "partners": {
+    "clients": {
+      "identify": "تغيير معرّفات العملاء وحسم المطابقات",
+      "merge": "دمج الجهات",
+      "assign": "تحديد حالة جانب العميل ومسؤوله وأولويته"
+    },
+    "suppliers_partners": {
       "identify": "تغيير المعرّفات وحسم المطابقات",
-      "merge": "دمج الشركاء",
-      "assign": "تحديد الحالة وتعيين المسؤول والأولوية"
+      "merge": "دمج الجهات",
+      "assign": "تحديد حالة جانب المورد والشريك ومسؤوله وأولويته"
     },
     "finance": {
       "credit_control": "حدود الائتمان والإحالة إلى الشؤون القانونية",
@@ -245,6 +258,9 @@
     },
     "org": {
       "sign_out": "تسجيل خروج شخص من كل أجهزته"
+    },
+    "files": {
+      "restricted": "رؤية الملفات المقيّدة"
     }
   },
   "setting": {
@@ -253,7 +269,8 @@
       "week_starts_on": "بداية الأسبوع",
       "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
       "reminder_days_before_due": "التذكير قبل موعد الاستحقاق بأيام",
-      "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا"
+      "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا",
+      "late_days": "الأيام التي يُعدّ بعدها الإدخال متأخراً"
     },
     "auth": {
       "device_idle_days": "أيام عدم استخدام الجهاز قبل طلب رمز جديد"
@@ -262,14 +279,16 @@
       "arabic_enabled": "العربية",
       "default_theme": "المظهر الافتراضي",
       "default_density": "الكثافة الافتراضية",
-      "export_formats": "صيغ التصدير"
+      "export_formats": "صيغ التصدير",
+      "go_live_on": "يوم تشغيل التطبيق"
     },
     "audit": {
       "undo_window_hours": "ساعات إمكان التراجع عن إجراء",
       "recently_deleted_days": "أيام استعادة السجل المحذوف"
     },
     "files": {
-      "max_mb": "أكبر حجم للملف بالميغابايت"
+      "max_mb": "أكبر حجم للملف بالميغابايت",
+      "allowed_types": "أنواع الملفات المسموح برفعها"
     },
     "notify": {
       "kinds_enabled": "الإشعارات المرسلة"
@@ -277,7 +296,16 @@
     "partner": {
       "id_format": "صيغة رقم الشريك",
       "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
-      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك"
+      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك",
+      "contract_reminder_days": "تذكيرات العقد، بالأيام قبل انتهائه",
+      "contract_expiring_from_days": "يظهر العقد «ينتهي خلال» قبل هذا العدد من الأيام",
+      "contract_notify": "من يُبلَّغ بقرب انتهاء العقد",
+      "logo_fallback": "ما يظهر للجهة التي ليس لها شعار",
+      "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة"
+    },
+    "core": {
+      "file_download_display_name": "التنزيل باسم العرض للملف",
+      "file_keep_original_name": "إظهار الاسم الأصلي للملف في تفاصيله"
     }
   }
 }

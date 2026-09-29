@@ -51,7 +51,7 @@ select test.eq((select name_en from core.department where id = current_setting('
 -- Full on the page, any time (a head has Full on Partners)
 select set_config('v2.test_now', '', true);
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.p', api.partner_create('{"trade_name_en": "Made Up Undo Co"}') ->> 'id', true);
+select set_config('t.p', api.partner_create('{"trade_name_en": "Made Up Undo Co", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 select set_config('t.r3', test.act(current_setting('t.am1')::uuid)::text, true);
 update partner.partner set city = 'Made Up City' where id = current_setting('t.p')::uuid;
 select test.done();

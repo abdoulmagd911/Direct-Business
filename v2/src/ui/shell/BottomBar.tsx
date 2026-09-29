@@ -14,7 +14,7 @@ import { CreateMenu } from './CreateMenu';
 import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 
 /** The phone's five (< 640 px, V85; owner, 29 Sep): My day · Tasks · Clients · KPIs · More; More opens a sheet with the rest. */
-const PRIMARY = ['my_day', 'tasks', 'partners:clients', 'kpis'];
+const PRIMARY = ['my_day', 'tasks', 'clients', 'kpis'];
 
 export function BottomBar() {
   const t = useTranslations();

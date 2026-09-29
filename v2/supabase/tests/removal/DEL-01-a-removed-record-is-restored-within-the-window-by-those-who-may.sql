@@ -7,7 +7,7 @@ select set_config('t.am1', test.person('Test Account Manager', 'member')::text, 
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.pid', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Removals',
-  'account_manager_id', current_setting('t.am1'))) ->> 'id', true);
+  'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate', 'owner_id', current_setting('t.am1'))))) ->> 'id', true);
 select set_config('t.a', api.contact_save(current_setting('t.pid')::uuid, null,
   '{"name_en": "Made Up Contact A", "is_primary": true}') ->> 'id', true);
 select set_config('t.c', api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact C"}')

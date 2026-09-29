@@ -113,16 +113,17 @@ function migrationOf(s: Snapshot): string {
   out.push('', '-- entities: the tables whose records are logged, undone and followed (V127)');
   if (s.entities.length)
     out.push(
-      'insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, active) values',
+      'insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, level, active) values',
       s.entities
         .map(
           (e) =>
-            `  (${text(e.key)}, ${text(e.table)}, ${text(e.page)}, ${text(e.owners)}, ${e.list}, ${e.private}, ${text(e.visible)}, true)`,
+            `  (${text(e.key)}, ${text(e.table)}, ${text(e.page)}, ${text(e.owners)}, ${e.list}, ${e.private}, ${text(e.visible)}, ` +
+            `${text(e.level)}, true)`,
         )
         .join(',\n'),
       'on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,',
       '  owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,',
-      '  active = true;',
+      '  level = excluded.level, active = true;',
       `update core.entity set active = false where active and key not in (${list(s.entities.map((e) => e.key))});`,
     );
   else out.push('update core.entity set active = false where active;');
@@ -162,6 +163,26 @@ function migrationOf(s: Snapshot): string {
       s.settings.map((x) => `  (${text(x.key)}, ${json(x.default)})`).join(',\n'),
       ') v (key, value)',
       'where not exists (select 1 from core.setting s where s.key = v.key);',
+      '',
+      '-- a changed default takes effect from today where no admin value is in force (V155): a new company-wide default',
+      '-- row, the rows before it keeping the past as it was; a default changed twice in a day keeps the later one',
+      "update core.setting s set deleted_at = pg_catalog.now(), delete_reason = 'default changed again'",
+      'from (values',
+      s.settings.map((x) => `  (${text(x.key)}, ${json(x.default)})`).join(',\n'),
+      ') v (key, value)',
+      "where s.key = v.key and s.department_id is null and s.deleted_at is null and s.reason = 'default'",
+      "  and s.valid_from = core.riyadh_today() and s.valid_from > date '2000-01-01' and s.value is distinct from v.value",
+      '  and not exists (select 1 from core.setting x where x.key = s.key and x.department_id is null',
+      '                  and x.deleted_at is null and x.valid_from > s.valid_from);',
+      'insert into core.setting (key, department_id, value, valid_from, reason)',
+      "select v.key, null, v.value, core.riyadh_today(), 'default'",
+      'from (values',
+      s.settings.map((x) => `  (${text(x.key)}, ${json(x.default)})`).join(',\n'),
+      ') v (key, value)',
+      'cross join lateral (select s.reason, s.value, s.valid_from from core.setting s',
+      '                    where s.key = v.key and s.department_id is null and s.deleted_at is null',
+      '                    order by s.valid_from desc limit 1) cur',
+      "where cur.reason = 'default' and cur.value is distinct from v.value and cur.valid_from < core.riyadh_today();",
     );
   out.push('', 'select audit.end();', '');
   return out.join('\n');

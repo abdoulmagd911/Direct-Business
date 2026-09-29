@@ -88,6 +88,11 @@ export interface EntityDef {
   private?: boolean;
   /** Its own visibility rule: a schema-qualified SQL function `(record uuid, person uuid) → boolean`. */
   visible?: string;
+  /**
+   * How a person's level on one record is found (V98): a function `schema.fn(table text, id uuid, person uuid)` returning
+   * a level — an organisation's records go by the pages of its sides. Without one, the level on `page`.
+   */
+  level?: string;
 }
 
 export interface ModuleDef {
