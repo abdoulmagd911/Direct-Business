@@ -756,7 +756,9 @@
       "key_fixed": "A key never changes",
       "nothing_to_change": "Nothing to change",
       "invalid": "That value is not allowed: {detail}",
-      "unknown_field": "Unknown field: {detail}"
+      "unknown_field": "Unknown field: {detail}",
+      "retire_blocked_by_duplicate": "Another record already holds the replacement there, so nothing was replaced",
+      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced"
     },
     "profile": {
       "invalid": "That value is not allowed: {detail}",
@@ -776,7 +778,11 @@
       "blocked_by_duplicate": "Another record now holds that value: {detail}",
       "not_undoable": "What the system wrote cannot be undone",
       "nothing_to_undo": "Nothing to undo",
-      "cannot_remove": "This record cannot be removed"
+      "cannot_remove": "This record cannot be removed",
+      "via_admin_route": "A sign-in change is undone from Settings, so the sign-in follows at once — try Undo there"
+    },
+    "restore": {
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there"
     },
     "auth": {
       "no_active_person": "You are not signed in"
