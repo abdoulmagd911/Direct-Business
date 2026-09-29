@@ -3,7 +3,7 @@
 const CATALOG =
   'unit:tests/unit/arabic/every-arabic-message-formats-in-arabic-with-latin-digits-and-the-owners-words.test.ts';
 const AR = 'messages/ar.json';
-const SWITCH = 'unit:tests/unit/arabic/arabic-shows-only-while-it-is-switched-on.test.ts';
+const LOADER = 'unit:tests/unit/arabic/the-language-loader-puts-english-beneath-arabic.test.ts';
 const FALLBACK = 'unit:tests/unit/arabic/a-key-with-no-arabic-yet-shows-its-english.test.ts';
 
 /** @type {{ name: string, breaks: string[], expect: string, edits: { file: string, find: string, replace: string }[] }[]} */
@@ -89,21 +89,15 @@ export const sabotages = [
     ],
   },
   {
-    name: 'arabic-ignores-the-switch',
-    breaks: [SWITCH],
-    expect: 'an ar cookie alone shows English',
+    name: 'request-drops-the-english-fallback',
+    breaks: [LOADER],
+    expect: 'a key with no Arabic arrives in English',
     edits: [
       {
         file: 'src/core/i18n/request.ts',
-        find: "const locale = effectiveLocale(prefs.locale, prefs.locale === 'ar' && (await arabicEnabled()));",
-        replace: 'const locale = prefs.locale;',
+        find: 'withFallback((await import(`../../../messages/${locale}.json`)).default as Messages, en)',
+        replace: '((await import(`../../../messages/${locale}.json`)).default as Messages)',
       },
     ],
-  },
-  {
-    name: 'arabic-on-when-the-switch-cannot-be-read',
-    breaks: [SWITCH],
-    expect: 'a switch that cannot be read is off',
-    edits: [{ file: 'src/core/i18n/arabic.ts', find: 'if (error) return false;', replace: 'if (error) return true;' }],
   },
 ];
