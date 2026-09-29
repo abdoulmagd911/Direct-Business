@@ -10,6 +10,8 @@ const BUTTON = 'tests/unit/export/the-export-button-downloads-the-list-and-says-
 const ROLES =
   'tests/unit/export/an-export-holds-the-columns-and-rows-each-role-sees-guarded-named-and-in-the-apps-own-words.test.ts';
 const ZONES = 'tests/unit/export/an-export-is-the-same-file-in-every-time-zone-and-at-every-riyadh-midnight.test.ts';
+const OLD =
+  'tests/unit/export/an-export-leaves-money-to-finance-writes-list-values-in-the-readers-language-and-needs-columns.test.tsx';
 
 const GUARD = 'src/core/export/csvGuard.ts';
 const CSVW = 'src/core/export/csv.ts';
@@ -351,5 +353,41 @@ export const sabotages = [
     breaks: [`unit:${BUTTON}`],
     expect: 'an empty formats list offers CSV',
     edits: [{ file: BTN, find: "asked.length ? asked : ['csv']", replace: 'asked' }],
+  }, // ---------------------------------------------------------------- the old app's missed rows (round 13)
+  {
+    name: 'export-keeps-money-without-finance',
+    breaks: [`unit:${OLD}`],
+    expect: 'no money column',
+    edits: [{ file: EXPORT, find: 'if (input.seesFinance) return planned;', replace: 'return planned;' }],
+  },
+  {
+    name: 'export-names-no-money-column-left-out',
+    breaks: [`unit:${OLD}`],
+    expect: 'the money column is named, with its reason',
+    edits: [
+      {
+        file: EXPORT,
+        find: 'omitted: [...planned.omitted, ...money.map((c) => ({ key: c.key, reason: input.financeOnly }))],',
+        replace: 'omitted: planned.omitted,',
+      },
+    ],
+  },
+  {
+    name: 'export-writes-list-values-as-stored',
+    breaks: [`unit:${OLD}`],
+    expect: 'each status in the reader’s words',
+    edits: [
+      {
+        file: COLS,
+        find: 'const word = (v: string) => (column.words && Object.hasOwn(column.words, v) ? column.words[v]! : v);',
+        replace: 'const word = (v: string) => v;',
+      },
+    ],
+  },
+  {
+    name: 'export-button-shows-with-nothing-to-export',
+    breaks: [`unit:${OLD}`],
+    expect: 'no columns',
+    edits: [{ file: BTN, find: '  if (nothing) return null;', replace: '' }],
   },
 ];

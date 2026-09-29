@@ -18,6 +18,8 @@ describe('exportList', () => {
   it('writes every row of a 2,500-row list to the CSV, after its byte-order mark', async () => {
     const api = standIn(rows, { cap: 1000, count: true });
     const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
       list: 'Invoices',
       columns: sampleColumns,
       page: api.page,
@@ -41,6 +43,8 @@ describe('exportList', () => {
     const seen = rows.filter(where).length;
     const api = standIn(rows, { cap: 1000, count: true, where });
     const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
       list: 'Invoices',
       columns: sampleColumns,
       page: api.page,
@@ -57,6 +61,8 @@ describe('exportList', () => {
 
   it('writes an empty list as its header alone', async () => {
     const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
       list: 'Invoices',
       columns: sampleColumns,
       page: standIn([]).page,
@@ -71,6 +77,8 @@ describe('exportList', () => {
 
   it('reads an Arabic workbook right to left', async () => {
     const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
       list: 'الفواتير',
       columns: sampleColumns,
       page: standIn(rows.slice(0, 5)).page,

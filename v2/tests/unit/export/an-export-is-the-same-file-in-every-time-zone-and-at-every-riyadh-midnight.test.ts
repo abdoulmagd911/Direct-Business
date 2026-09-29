@@ -79,7 +79,15 @@ describe('a date or a moment in the file', () => {
 describe('the whole file', () => {
   const rows = sampleRows(60);
   const run = (format: 'csv' | 'xlsx', lang: 'en' | 'ar') => async () => {
-    const out = await exportList({ list: 'Invoices', columns: sampleColumns, page: standIn(rows).page, format, lang });
+    const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
+      list: 'Invoices',
+      columns: sampleColumns,
+      page: standIn(rows).page,
+      format,
+      lang,
+    });
     return { name: out.fileName, bytes: Array.from(await blobBytes(out.blob)) };
   };
 

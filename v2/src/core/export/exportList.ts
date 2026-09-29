@@ -38,6 +38,13 @@ export interface ExportListInput<T> {
   visible?: readonly string[];
   /** A visible column that cannot be a cell (a row's buttons), with the reason the person is told, in their words. */
   omit?: Readonly<Record<string, string>>;
+  /**
+   * May this session see Finance (`me.levels.finance` above none)? Asked of every export (OLD-037): without it no
+   * money column is written, whatever the screen shows — each one is named in `omitted` with `financeOnly`.
+   */
+  seesFinance: boolean;
+  /** The person's words for a money column left out: "Finance only". */
+  financeOnly: string;
 }
 
 export interface ExportResult {
@@ -76,11 +83,27 @@ export function fileColumns<T>(
   return { columns: out, omitted };
 }
 
+/**
+ * What the file will hold, before anything is read: the visible columns (OA23), less every money column when the
+ * session may not see Finance (OLD-037) — each left-out column named with its reason. Throws `ExportColumnMissing`.
+ */
+export function plannedColumns<T>(
+  input: Pick<ExportListInput<T>, 'columns' | 'visible' | 'omit' | 'seesFinance' | 'financeOnly'>,
+): { columns: ExportColumn<T>[]; omitted: ExportResult['omitted'] } {
+  const planned = fileColumns(input.columns, input.visible, input.omit);
+  if (input.seesFinance) return planned;
+  const money = planned.columns.filter((c) => c.kind === 'money');
+  return {
+    columns: planned.columns.filter((c) => c.kind !== 'money'),
+    omitted: [...planned.omitted, ...money.map((c) => ({ key: c.key, reason: input.financeOnly }))],
+  };
+}
+
 /** Reads the whole list and writes it as one file (spec §3.11 Export). Nothing is downloaded here — see `saveFile`. */
 export async function exportList<T>(input: ExportListInput<T>): Promise<ExportResult> {
   const at = input.at ?? new Date();
-  // Before any read: a visible column with no place in the file is refused at once (OA23).
-  const { columns, omitted } = fileColumns(input.columns, input.visible, input.omit);
+  // Before any read: a visible column with no place in the file is refused at once (OA23); money needs Finance.
+  const { columns, omitted } = plannedColumns(input);
   const rows = await fetchAll(input.page, { key: input.key, signal: input.signal, onProgress: input.onProgress });
   input.signal?.throwIfAborted();
   const body =

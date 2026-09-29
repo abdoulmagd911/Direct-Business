@@ -24,6 +24,7 @@ const labels: ExportButtonLabels = {
   tooMany: 'Too many rows for one file.',
   tooLong: 'A cell is too long for Excel.',
   done: (n) => `Exported ${n.toLocaleString('en')} rows`,
+  financeOnly: 'Finance only',
 };
 
 let host: HTMLDivElement;
@@ -60,6 +61,7 @@ function draw(page: PageFetcher<SampleRow>, formats?: ('csv' | 'xlsx')[]) {
   act(() =>
     root.render(
       <ExportButton
+        seesFinance
         list="Invoices"
         columns={sampleColumns}
         page={page}
@@ -110,6 +112,7 @@ describe('the Export button', () => {
     act(() =>
       root.render(
         <ExportButton
+          seesFinance
           list="Invoices"
           columns={sampleColumns}
           page={standIn(sampleRows(4), { count: true }).page}

@@ -6,6 +6,7 @@ export { ExportButton, type ExportButtonLabels, type ExportButtonProps } from '.
 export {
   exportList,
   fileColumns,
+  plannedColumns,
   saveFile,
   ExportColumnMissing,
   MIME,

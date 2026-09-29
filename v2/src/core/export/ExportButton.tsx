@@ -1,11 +1,11 @@
 'use client';
 import { Download } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/ui/Button';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { toast } from '@/ui/Toast';
 import type { ExportColumn } from './columns';
-import { exportList, saveFile, type ExportFormat, type ExportListInput } from './exportList';
+import { exportList, plannedColumns, saveFile, type ExportFormat, type ExportListInput } from './exportList';
 import { ExportRefused } from './fetchAll';
 import { XlsxCellTooLong } from './xlsx';
 
@@ -29,6 +29,8 @@ export interface ExportButtonLabels {
   done: (rows: number) => string;
   /** Under the done toast when a visible column is left out (OA23): "Not in the file: Actions — buttons, not data". */
   omitted?: (columns: string) => string;
+  /** Why a money column is not in the file of a person without Finance (OLD-037): "Finance only". */
+  financeOnly: string;
 }
 
 export interface ExportButtonProps<T> {
@@ -45,6 +47,8 @@ export interface ExportButtonProps<T> {
   visible?: readonly string[];
   /** A visible column that cannot be a cell, with the reason the person is told. */
   omit?: Readonly<Record<string, string>>;
+  /** May this session see Finance (`me.levels.finance` above none)? Without it no money column is exported (OLD-037). */
+  seesFinance: boolean;
   /** The header each visible key shows on screen, to name a left-out column (defaults to the key). */
   headers?: Readonly<Record<string, string>>;
   /**
@@ -60,7 +64,9 @@ export interface ExportButtonProps<T> {
 
 /**
  * Export on every list (spec §3.11, P3-12): reads the list through `fetchAll` with its chips, writes CSV or Excel and
- * hands the file to the browser. The button waits (spinner) while it reads; leaving the page stops the read.
+ * hands the file to the browser. The button waits (spinner) while it reads; leaving the page stops the read. A list
+ * with no column to export shows no button at all (OLD-054): the old app's Export on a page with no table downloaded
+ * the whole workspace.
  */
 export function ExportButton<T>({
   list,
@@ -71,6 +77,7 @@ export function ExportButton<T>({
   rowKey,
   visible,
   omit,
+  seesFinance,
   headers,
   formats: asked = ['csv', 'xlsx'],
   onError,
@@ -81,6 +88,15 @@ export function ExportButton<T>({
   const [busy, setBusy] = useState(false);
   const running = useRef<AbortController | null>(null);
   useEffect(() => () => running.current?.abort(), []);
+  const nothing = useMemo(() => {
+    try {
+      return (
+        plannedColumns({ columns, visible, omit, seesFinance, financeOnly: labels.financeOnly }).columns.length === 0
+      );
+    } catch {
+      return false; // a column with no place in the file: the click names the refusal (OA23)
+    }
+  }, [columns, visible, omit, seesFinance, labels.financeOnly]);
 
   async function run(format: ExportFormat) {
     if (running.current) return;
@@ -98,6 +114,8 @@ export function ExportButton<T>({
         signal: ctrl.signal,
         visible,
         omit,
+        seesFinance,
+        financeOnly: labels.financeOnly,
       });
       if (ctrl.signal.aborted) return;
       saveFile(out.blob, out.fileName);
@@ -118,6 +136,7 @@ export function ExportButton<T>({
 
   const words: Record<ExportFormat, string> = { csv: labels.csv, xlsx: labels.excel };
   const icon = <Download aria-hidden="true" />;
+  if (nothing) return null;
 
   if (formats.length === 1) {
     const only = formats[0]!;

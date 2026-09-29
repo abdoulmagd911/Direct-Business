@@ -38,25 +38,39 @@ const ROLES: {
   role: string;
   visible: string[];
   sees: (r: SampleRow) => boolean;
+  /** Finance above none (OLD-037). */
+  finance: boolean;
 }[] = [
   {
     role: 'admin',
     visible: ['number', 'partner', 'status', 'amount', 'share', 'due', 'updated', 'paid', 'roles', 'actions'],
     sees: () => true,
+    finance: true,
   },
   {
     role: 'head of department',
     visible: ['number', 'partner', 'status', 'amount', 'due', 'updated', 'paid', 'actions'],
     sees: () => true,
+    finance: true,
   },
-  { role: 'manager', visible: ['number', 'partner', 'status', 'amount', 'due', 'actions'], sees: (r) => !r.paid },
-  { role: 'member', visible: ['number', 'partner', 'status', 'due', 'actions'], sees: (r) => r.status !== 'done' },
-  { role: 'viewer', visible: ['partner', 'number', 'status'], sees: (r) => r.status === 'open' },
+  {
+    role: 'manager',
+    visible: ['number', 'partner', 'status', 'amount', 'due', 'actions'],
+    sees: (r) => !r.paid,
+    finance: true,
+  },
+  {
+    role: 'member',
+    visible: ['number', 'partner', 'status', 'due', 'actions'],
+    sees: (r) => r.status !== 'done',
+    finance: false,
+  },
+  { role: 'viewer', visible: ['partner', 'number', 'status'], sees: (r) => r.status === 'open', finance: false },
 ];
 const OMIT = { actions: 'buttons, not data' };
 
 describe('an export for every role', () => {
-  for (const { role, visible, sees } of ROLES)
+  for (const { role, visible, sees, finance } of ROLES)
     for (const format of ['csv', 'xlsx'] as const)
       for (const lang of ['en', 'ar'] as const)
         it(`holds what the ${role} sees, and nothing else (${format}, ${lang})`, async () => {
@@ -71,6 +85,8 @@ describe('an export for every role', () => {
             at,
             visible,
             omit: OMIT,
+            seesFinance: finance,
+            financeOnly: 'Finance only',
           });
           const shown = visible.filter((k) => k !== 'actions');
           const want = shown.map(header);
@@ -114,6 +130,8 @@ describe('an export for every role', () => {
     let refused: unknown = null;
     try {
       await exportList({
+        seesFinance: true,
+        financeOnly: 'Finance only',
         list: 'Invoices',
         columns: sampleColumns,
         page: api.page,
@@ -131,6 +149,8 @@ describe('an export for every role', () => {
 
   it('writes every column when the screen names none (a screen with no hidden columns)', async () => {
     const out = await exportList({
+      seesFinance: true,
+      financeOnly: 'Finance only',
       list: 'Invoices',
       columns: sampleColumns,
       page: standIn(rows.slice(0, 3)).page,
@@ -155,6 +175,8 @@ describe("every list name in the app's own words", () => {
       const one: ExportColumn<SampleRow>[] = [{ key: 'n', header: words[0]![1], kind: 'id', value: (r) => r.number }];
       for (const [key, name] of words) {
         const out = await exportList({
+          seesFinance: true,
+          financeOnly: 'Finance only',
           list: name,
           columns: one,
           page: standIn(rows.slice(0, 1)).page,

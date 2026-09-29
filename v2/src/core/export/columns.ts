@@ -20,6 +20,12 @@ export interface ExportColumn<T> {
    * texts (joined with "; ").
    */
   value: (row: T) => unknown;
+  /**
+   * A list value's word in the person's language — a status or a type (OLD-053): the stored value `done` is written
+   * «منجزة» in an Arabic file. Only `text` columns take words; a value with no word, and every other cell (names, IDs,
+   * notes), is written verbatim.
+   */
+  words?: Readonly<Record<string, string>>;
   /** Excel column width in characters (a default by kind otherwise). */
   width?: number;
 }
@@ -90,16 +96,17 @@ function calendarDay(v: string): { y: number; m: number; d: number } | null {
 }
 
 /** The typed cell for one value of one column. Throws `ExportColumnError` when the value cannot be that kind. */
-export function cellOf(column: Pick<ExportColumn<unknown>, 'key' | 'kind'>, raw: unknown): Cell {
+export function cellOf(column: Pick<ExportColumn<unknown>, 'key' | 'kind' | 'words'>, raw: unknown): Cell {
   if (raw === null || raw === undefined || raw === '') return { t: 'empty' };
   const fail = () => new ExportColumnError(column.key, column.kind, raw);
   switch (column.kind) {
     case 'text': {
-      if (typeof raw === 'string') return { t: 'text', v: raw };
+      const word = (v: string) => (column.words && Object.hasOwn(column.words, v) ? column.words[v]! : v);
+      if (typeof raw === 'string') return { t: 'text', v: word(raw) };
       if (typeof raw === 'number' && Number.isFinite(raw)) return { t: 'text', v: String(raw) };
       if (typeof raw === 'boolean') return { t: 'text', v: String(raw) };
       if (Array.isArray(raw) && raw.every((x) => typeof x === 'string')) {
-        const joined = raw.filter(Boolean).join('; ');
+        const joined = raw.filter(Boolean).map(word).join('; ');
         return joined ? { t: 'text', v: joined } : { t: 'empty' };
       }
       throw fail();
