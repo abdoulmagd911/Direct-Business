@@ -455,7 +455,7 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   that is flagged) ·
   `finance.cost_estimate` on (D23) · `perf.pace_bands` {on_track 1.00, at_risk 0.85} (a plan setting — V401) ·
   `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
-  `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
+  `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
   `finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) ·
   `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
   `files.max_mb` 20 · `partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27"
@@ -1624,16 +1624,17 @@ add up to the total shown; a difference of 1 SAR or more is named as a differenc
 ## 4. Sign-in (§0, §10; V2 as amended by V59, V74, V75 and V431)
 
 **The rule (owner, 29 Sep 13:50 — V431).** For now the door is **email + password**. The app is internal to the team,
-and nothing sends email — no IT, no DNS, no outside mailbox. An **admin creates each person in Settings → People with a
-starting password** and can **reset** it there; there are no emails and no "forgot password" link — the sign-in page
-says **"Forgot your password? Ask an admin"**. The person **must change the password at first sign-in** and can change
-it any time in **My profile → Change password**; **minimum 10 characters** (`auth.password_min_length`); sign-ups stay
-off; only allow-listed, switched-on people sign in. **A device stays signed in until the person signs out; a device
-unused for 30 days asks for the password again** (owner, 29 Sep — V74), and "sign out everywhere" stays. The **emailed
-6-digit code** (V59) stays in the code as a second door, **switched off by `auth.code_door_enabled`** (false), to turn
-on if a company email sender ever exists (V24, deferred). Google (`@directksa.com`) and Zoom (`@directksa.net`) remain
-optional shortcuts for later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person
-record**; a door never creates a person.
+and nothing sends email — no IT, no DNS, no outside mailbox. An **admin adds each person in Settings → People and
+generates a temporary password** for them (V441: random, 14 characters or more, shown once with Copy, never typed) and
+can generate a new one at any time; there are no emails and no "forgot password" link — the sign-in page says **"Forgot
+your password? Ask an admin"**. The person **must change the password at first sign-in** and can change it any time in
+**My profile → Change password**; **minimum 10 characters** (`auth.password_min_length`); sign-ups stay off; only
+allow-listed, switched-on people sign in. **A device stays signed in until the person signs out; a device unused for 30
+days asks for the password again** (owner, 29 Sep — V74), and "sign out everywhere" stays. The **emailed 6-digit code**
+(V59) stays in the code as a second door, **switched off by `auth.code_door_enabled`** (false), to turn on if a company
+email sender ever exists (V24, deferred). Google (`@directksa.com`) and Zoom (`@directksa.net`) remain optional
+shortcuts for later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person record**; a
+door never creates a person.
 
 **The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a
 **brand panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo
@@ -1669,6 +1670,17 @@ core.device_session  id; person_id; auth_session_id uuid unique (the Supabase se
 **No mail is sent** (V431). The mail sender (V24) is needed only if the code door is ever switched on; until then nothing
 in the app sends email, and staging needs no sender at all.
 
+**View as** (V442 — the oversight's proposal, recorded; the owner may veto). An admin can preview the app **as any
+person, read-only**: a server route (`/auth/view-as/start`, admins only, while `auth.view_as_enabled` is on) mints a
+short-lived **signed claim** — `view_as` = the person, `view_as_by` = the admin — that the proxy carries and
+`authz.me()` honours: reads are evaluated **as that person** (page levels, per-record visibility, appraisal privacy —
+V96, V143), so the admin sees exactly what they see; **every write door refuses** while the claim is present
+(`auth.view_as_read_only`, checked once in `authz`, so no door can forget it); a clear banner **"Viewing as X —
+read-only"** with **Exit** on every page; every start and stop is logged (`view_as_start`, `view_as_stop`) in the
+settings/access log; the claim dies with Exit or the admin's session. The setting `auth.view_as_enabled` is on until
+go-live and **off at go-live**. Builder A: the claim, the refusal, tests and sabotages (P3-15); builder B: the banner,
+the View as action on a person's record, Exit (P3-16).
+
 **Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's chrome or
 wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" (a check scans the message catalogs and the
 page templates). **The banned words cover data labels too** (V404): seed lists, settings defaults and the values admins
@@ -1688,7 +1700,7 @@ core.person_auth    auth_user_id uuid pk → auth.users; person_id → core.pers
                     cleared by the person's own change); password_set_at; linked_at
                                                                  -- every Supabase identity resolves to exactly one person
 core.sign_in_log    id; at; person_id (null when refused); email; provider; result ('ok','not_listed','switched_off',
-                    'provider_error','code_expired','bad_password','password_set','password_reset','password_changed');
+                    'provider_error','code_expired','bad_password','password_generated','password_changed');
                     detail; user_agent                            -- never a password, never a hash
 ```
 
@@ -1700,13 +1712,16 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
 1. **Sign-ups are off** in Supabase Auth. **Supabase's email provider with password is the door** (V431); the code
    door's `signInWithOtp` path stays in the code behind `auth.code_door_enabled`. An auth user can exist only because an
    admin created the person.
-2. **Creating a person with a starting password** (Settings → People — admins only, V97, V138): a server-only route
-   handler, after checking through `api.me()` that the caller is an admin, creates the auth user for the allowed email
-   with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`), writes `core.person_auth`
-   with `must_change_password` on, and logs `password_set` in the settings/access log. **Reset password** (the same
-   page): `auth.admin.updateUserById(id, { password })`, `must_change_password` on, **every device signed out** (V74),
-   logged `password_reset`. A starting or reset password is shown to the admin once, never stored by the app, never
-   mailed. One auth user per allowed email; all of a person's auth users point to the same person.
+2. **Generating a temporary password** (Settings → People — admins only, V97, V138; V441): **nobody types a password
+   for someone else**. **Generate temporary password** on a person: a server-only route handler, after checking through
+   `api.me()` that the caller is an admin, makes a random password of 14 characters or more, creates the auth user for
+   the allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) or, when
+   one exists, replaces its password (`auth.admin.updateUserById`), sets `must_change_password` on `core.person_auth`,
+   signs **every device out** on a replacement (V74), logs `password_generated` in the settings/access log, and
+   returns the password **once** — shown with a **Copy** button, never stored by the app, never mailed, never logged.
+   **Generate for everyone without a password**: the same, for every allowed person with no password yet, in one
+   request — one list shown once to copy, one log line per person. One auth user per allowed email; all of a
+   person's auth users point to the same person.
 3. **Password — the door**: `api.sign_in_check` first (allowed / not_listed / switched_off — a refusal is logged and
    shown before any password is checked; V116), then `signInWithPassword({ email, password })`, then
    `api.sign_in_complete` as the new session (device registered, `ok` logged) — or the session is ended at once. A
@@ -1729,14 +1744,15 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
 10. **Every sign-in is logged** in `core.sign_in_log` (successes and refusals), and every password set, reset and
     change in the settings/access log — never the password itself — both readable in Settings → Activity by admins.
     Supabase's own auth audit log is kept as the second record.
-11. **Tested in CI** with passwords: a created person signs in with the starting password and lands on Choose a new
-    password; fewer than 10 characters is refused; an admin reset signs every device out and forces a change; a wrong
-    password is one red line and `bad_password` in the log; a switched-off person is refused before the password is
-    checked; the 30-day idle rule (a test clock); a device signed out from another device; an admin's sign-out taking
-    effect on the next request; no password or hash in any log or API answer (a sabotage plants one). **The code
-    door's tests run only with the setting on** (the stack's mail catcher). When the Google and Zoom keys arrive, each
-    door is checked once on the cloud project by a real `.com` and a real `.net` account, including "the Zoom email
-    arrives verified and links to the existing user" — the one behaviour the documentation does not settle.
+11. **Tested in CI** with passwords: a person signs in with the generated temporary password and lands on Choose a new
+    password; generate-for-everyone skips people who already have one and logs each; fewer than 10 characters is
+    refused; an admin reset signs every device out and forces a change; a wrong password is one red line and
+    `bad_password` in the log; a switched-off person is refused before the password is checked; the 30-day idle rule (a
+    test clock); a device signed out from another device; an admin's sign-out taking effect on the next request; no
+    password or hash in any log or API answer (a sabotage plants one). **The code door's tests run only with the setting
+    on** (the stack's mail catcher). When the Google and Zoom keys arrive, each door is checked once on the cloud
+    project by a real `.com` and a real `.net` account, including "the Zoom email arrives verified and links to the
+    existing user" — the one behaviour the documentation does not settle.
 
 **Mail sender for codes — options** (kept for the day a company sender exists — V431; nothing is set up now; only
 authentication mail, a few dozen messages a month):
@@ -1769,7 +1785,9 @@ optional: the Google and Zoom keys (steps 1–2, V23) and, only if the code door
 **Levels per page** (D2, unchanged in meaning): **No access** (page hidden, reads refused) · **View** (read what the
 page shows) · **Own work** (read everything; create; edit and remove your own) · **Full control** (edit and remove
 anyone's; managers). **Capabilities** are yes/no rows for actions that move money or people (assigning tasks, changing
-identifiers, merging, importing, splitting credit) — shown in the matrix under their page.
+identifiers, merging, importing, splitting credit) — shown in the matrix under their page. **View as** (V442): with the
+signed claim present, every level and visibility rule below is evaluated for the viewed person, and every write is
+refused in `authz` — the admin sees what that person sees, and changes nothing.
 
 **What "your own" means**, per record (the `authz.can_edit_*` functions, one per entity):
 
@@ -1849,9 +1867,10 @@ Top bar: search and command palette (Ctrl K — pages, records through `api.sear
 activity · New invoice · Go to** — V401), Create menu, bell (the notification centre: All · Mentions · Assigned to me,
 by day, mark all read, snooze — §3.3) (notifications; due items counted live), profile chip (avatar, nickname, badge)
 opening My profile (theme, density, language once Arabic is enabled, change password — V431, sign out) and **Documents**
-(the SOP and SLA links to Drive — V435). The drawer: My day, Overview, Clients, Suppliers & partners, Pipeline,
-Projects, Tasks, Finance, KPIs, Reports, Appraisal, Activity; Settings for admins (§2.5); on phones the bottom bar My
-day · Tasks · Clients · KPIs · More (V85).
+(the SOP and SLA links to Drive — V435); while **View as** is on, a banner across the top of every page — "Viewing as X
+— read-only" with Exit (V442). The drawer: My day, Overview, Clients, Suppliers & partners, Pipeline, Projects, Tasks,
+Finance, KPIs, Reports, Appraisal, Activity; Settings for admins (§2.5); on phones the bottom bar My day · Tasks ·
+Clients · KPIs · More (V85).
 
 ---
 
@@ -2083,7 +2102,10 @@ owner in Vercel, never from the repository** (V427). No deploy secret is
 stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
 after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
 once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
-file (rule 7, D17).
+file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). **Every other person is added through
+Settings → People by the oversight in the browser, never seeded or hard-coded** (V440; the list lives in the owner's
+private knowledge base, never in this repository — rule 7); before go-live each gets a generated temporary password to
+change at first sign-in (V441).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.

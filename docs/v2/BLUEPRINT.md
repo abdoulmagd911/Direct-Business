@@ -256,6 +256,12 @@ Vercel (V13, V21, V84).
     date on contact roles (V436); Academies is a service, not a segment (V437); subtasks are checklists inside a task,
     categories are the task-type setting, dependencies later (V438).
 72. **Shell rules for every session** (V439).
+73. **People are added through the app** by the oversight, never seeded; the first admin and the department once by
+    builder A; the list stays in the owner's private knowledge base (V440).
+74. **Temporary passwords are generated, never typed**: per person, or for everyone without one; shown once with Copy;
+    changed at first sign-in (V441).
+75. **View as** — an admin previews the app as any person, read-only, with a banner and Exit, every start and stop
+    logged, writes refused server-side; off at go-live (V442, the oversight's proposal; the owner may veto).
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
