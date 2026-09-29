@@ -1,0 +1,13 @@
+import { chromium } from '@playwright/test';
+const [, , theme = 'direct', path = '/kit', selector, name] = process.argv;
+const b = await chromium.launch({ args: ['--no-proxy-server'] });
+const ctx = await b.newContext({ viewport: { width: 1500, height: 1000 }, deviceScaleFactor: 3 });
+await ctx.addCookies([{ name: 'v2.theme', value: theme, url: 'http://127.0.0.1:9300' }]);
+const p = await ctx.newPage();
+await p.goto('http://127.0.0.1:9300' + path, { waitUntil: 'load' });
+await p.waitForTimeout(300);
+await p
+  .locator(selector)
+  .first()
+  .screenshot({ path: `${process.env.OUT}/${name}.png` });
+await b.close();

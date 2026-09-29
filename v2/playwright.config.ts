@@ -14,9 +14,13 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    locale: 'en-GB',
+    timezoneId: 'Asia/Riyadh',
     launchOptions: executablePath ? { executablePath } : {},
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
@@ -25,5 +29,7 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // V2_KIT lets the test build serve /kit (V202); the specs sign in through the local stack (tests/e2e/support/stack.ts).
+    env: { V2_KIT: '1', NEXT_TELEMETRY_DISABLED: '1' },
   },
 });

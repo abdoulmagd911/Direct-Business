@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { getMe } from '@/core/auth/get-me';
 import { safeNext } from '@/core/auth/safe-next';
-import { word } from '@/core/auth/words';
-import { SignInForm } from './sign-in-form';
+import { SignIn } from '@/modules/org/screens/SignIn';
 
-// The sign-in page says only this (TECH-SPEC §4, V59, V75): the workspace name, the brand line, the form and © Direct.
-// The logo, the brand panel and the language toggle come with P3-3's styled page; Arabic stays off until approved.
+// The sign-in page (TECH-SPEC §4, V59, V75, V204): the brand panel, the workspace name, the two-step form and © Direct.
+// A refused session arrives here with ?reason= and is told why in one line (P3-2).
 const REFUSALS = new Set(['not_listed', 'switched_off', 'inactive', 'signed_out_elsewhere', 'signed_out_by_admin']);
 
 export default async function SignInPage({
@@ -20,12 +20,6 @@ export default async function SignInPage({
   const me = await getMe();
   if (me?.status === 'ok') redirect(safeNext(next));
 
-  return (
-    <main>
-      <h1>{word('app.name')}</h1>
-      <p>{word('app.brand_line')}</p>
-      <SignInForm next={next} refusal={reason ? word(`sign_in.error.${reason}`) : null} />
-      <footer>{word('app.copyright')}</footer>
-    </main>
-  );
+  const t = await getTranslations();
+  return <SignIn next={next} refusal={reason ? t(`sign_in.error.${reason}`) : null} />;
 }

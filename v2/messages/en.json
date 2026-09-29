@@ -3,7 +3,11 @@
     "name": "Commercial Workspace",
     "brand_line": "The commercial arm of the all-in-one travel app",
     "copyright": "© Direct",
-    "department": "Commercial"
+    "department": "Commercial",
+    "workspace": "Commercial Workspace",
+    "brand": "Direct",
+    "name_other": "مساحة العمل التجارية",
+    "brand_line_other": "الذراع التجاري لتطبيق السفر الشامل"
   },
   "sign_in": {
     "email_label": "Work email",
@@ -26,13 +30,22 @@
       "inactive": "This device was not used for 30 days — send a new code",
       "signed_out_elsewhere": "This device was signed out — send a new code",
       "signed_out_by_admin": "An admin signed this device out — send a new code"
-    }
+    },
+    "language": "Language"
   },
   "session": {
     "sign_out": "Sign out",
     "unknown_device": "A browser"
   },
   "nav": {
+    "main": "Main",
+    "pin": "Pin drawer",
+    "unpin": "Unpin drawer",
+    "collapse": "Collapse drawer",
+    "expand": "Expand drawer",
+    "open": "Open menu",
+    "close": "Close menu",
+    "more": "More",
     "my_day": "My day",
     "overview": "Overview",
     "partners": "Partners",
@@ -52,7 +65,169 @@
       "finance": "Finance",
       "work": "Work",
       "app": "App"
+    },
+    "settings_home": "Settings",
+    "clients": "Clients",
+    "suppliers_partners": "Suppliers & partners"
+  },
+  "top": {
+    "search": "Search partners, tasks, INV-, DRS-",
+    "searchLabel": "Search",
+    "create": "Create",
+    "notifications": "Notifications",
+    "notificationsUnread": "Notifications, {count} unread",
+    "profile": "My profile"
+  },
+  "palette": {
+    "placeholder": "Go to a page or search…",
+    "pages": "Pages",
+    "actions": "Actions",
+    "empty": "Nothing matches",
+    "openInSettings": "Open Settings"
+  },
+  "profileMenu": {
+    "theme": "Theme",
+    "density": "Density",
+    "language": "Language",
+    "direction": "Direction (development)",
+    "signOut": "Sign out",
+    "myProfile": "My profile"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "colorful": "Colorful",
+    "direct": "Direct"
+  },
+  "density": {
+    "comfortable": "Comfortable",
+    "compact": "Compact"
+  },
+  "locale": {
+    "en": "English",
+    "ar": "العربية"
+  },
+  "dir": {
+    "auto": "Automatic",
+    "ltr": "Left to right",
+    "rtl": "Right to left"
+  },
+  "create": {
+    "task": "Task",
+    "partner": "Partner",
+    "invoice": "Invoice",
+    "achievement": "Achievement",
+    "project": "Project"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "remove": "Remove",
+    "undo": "Undo",
+    "tryAgain": "Try again",
+    "export": "Export",
+    "clearAll": "Clear all",
+    "more": "More",
+    "back": "Back",
+    "notMeasured": "not measured",
+    "loading": "Loading",
+    "sar": "SAR"
+  },
+  "state": {
+    "failed": "{what} could not be loaded",
+    "noAccess": "You do not have access to {what}",
+    "empty": "Nothing here yet",
+    "notMeasured": "Not measured"
+  },
+  "confirm": {
+    "title": "Remove {item}?",
+    "body": "{item} will be removed. You can undo this from the toast.",
+    "confirm": "Remove"
+  },
+  "pages": {
+    "myDay": {
+      "greeting": "Good day, {name}"
+    },
+    "settings": {
+      "myProfile": "My profile",
+      "find": "Find a setting"
     }
+  },
+  "entity": {
+    "partner": "Partner",
+    "invoice": "Invoice",
+    "task": "Task",
+    "achievement": "Achievement",
+    "kpi": "KPI",
+    "reportLine": "Report line",
+    "person": "Person",
+    "project": "Project",
+    "report": "Report",
+    "file": "File",
+    "department": "Department",
+    "team": "Team",
+    "role": "Role",
+    "person_team": "Team helped",
+    "person_department": "Department seen",
+    "person_email": "Allowed email",
+    "person_auth": "Sign-in",
+    "person_level": "Page level",
+    "person_capability": "Capability",
+    "role_level": "Role's page level",
+    "role_capability": "Role's capability",
+    "page": "Page",
+    "capability": "Capability definition",
+    "entity": "Record type",
+    "profile": "Profile",
+    "setting": "Setting",
+    "setting_def": "Setting definition",
+    "wording": "Wording",
+    "saved_view": "Saved view",
+    "partner_role": "Partner role",
+    "partner_status": "Partner status",
+    "credit_limit": "Credit limit",
+    "identifier": "Identifier",
+    "account_manager": "Account manager",
+    "contact": "Contact",
+    "partner_merge": "Partner merge",
+    "code_terms": "Code terms",
+    "campaign_code": "Campaign code",
+    "individual_name": "Individual",
+    "identifier_block": "Blocked value",
+    "partner_role_def": "Partner role (list)",
+    "role_field": "Role field",
+    "partner_category": "Partner category",
+    "partner_tier": "Partner tier",
+    "segment": "Segment",
+    "status_reason": "Status reason",
+    "call_outcome": "Call outcome",
+    "contract_term": "Contract term",
+    "priority": "Priority"
+  },
+  "status": {
+    "done": "Done",
+    "inProgress": "In progress",
+    "waiting": "Waiting on client",
+    "overdue": "Overdue",
+    "blocked": "Blocked",
+    "draft": "Draft",
+    "todo": "To do"
+  },
+  "table": {
+    "selectRow": "Select row",
+    "selectAll": "Select all",
+    "selected": "{count} selected",
+    "clearSelection": "Clear selection",
+    "sortedAsc": "Sorted ascending",
+    "sortedDesc": "Sorted descending"
+  },
+  "panel": {
+    "close": "Close panel"
+  },
+  "chips": {
+    "add": "Add filter: {field}",
+    "remove": "Remove filter {field}: {value}"
   },
   "cap": {
     "partners": {
@@ -103,48 +278,5 @@
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner"
     }
-  },
-  "entity": {
-    "department": "Department",
-    "team": "Team",
-    "role": "Role",
-    "person": "Person",
-    "person_team": "Team helped",
-    "person_department": "Department seen",
-    "person_email": "Allowed email",
-    "person_auth": "Sign-in",
-    "person_level": "Page level",
-    "person_capability": "Capability",
-    "role_level": "Role's page level",
-    "role_capability": "Role's capability",
-    "page": "Page",
-    "capability": "Capability definition",
-    "entity": "Record type",
-    "profile": "Profile",
-    "setting": "Setting",
-    "setting_def": "Setting definition",
-    "wording": "Wording",
-    "saved_view": "Saved view",
-    "partner": "Partner",
-    "partner_role": "Partner role",
-    "partner_status": "Partner status",
-    "credit_limit": "Credit limit",
-    "identifier": "Identifier",
-    "account_manager": "Account manager",
-    "contact": "Contact",
-    "partner_merge": "Partner merge",
-    "code_terms": "Code terms",
-    "campaign_code": "Campaign code",
-    "individual_name": "Individual",
-    "identifier_block": "Blocked value",
-    "partner_role_def": "Partner role (list)",
-    "role_field": "Role field",
-    "partner_category": "Partner category",
-    "partner_tier": "Partner tier",
-    "segment": "Segment",
-    "status_reason": "Status reason",
-    "call_outcome": "Call outcome",
-    "contract_term": "Contract term",
-    "priority": "Priority"
   }
 }

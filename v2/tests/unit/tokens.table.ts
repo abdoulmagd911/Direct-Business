@@ -1,0 +1,91 @@
+/**
+ * The token table the design system page shows (BUILD-PLAN "Design tokens"), with the Direct column
+ * as the official brand palette relayed by the oversight on 28 Sep (V200). tokens.css must equal it.
+ */
+export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;
+
+export const TABLE: Record<string, [string, string, string, string]> = {
+  bg: ['#F2F3EF', '#161B1B', '#EDF4F6', '#F6F7F9'],
+  surface: ['#F9FAF7', '#1C2322', '#F7FBFC', '#FAFBFC'],
+  raised: ['#FFFFFF', '#242C2B', '#FFFFFF', '#FFFFFF'],
+  border: ['#DADDD5', '#33403E', '#C9DDE3', '#E6E8EC'],
+  'border-strong': ['#858F88', '#6B7A76', '#718F99', '#858E99'],
+  text: ['#1A1F1C', '#E4EAE7', '#0F2A33', '#303848'],
+  muted: ['#566059', '#9AA7A3', '#46636D', '#646D79'],
+  link: ['#0B6B66', '#3FC1B4', '#C4314A', '#B5490E'],
+  accent: ['#0B6B66', '#3FC1B4', '#C4314A', '#F06820'],
+  'accent-hover': ['#08524E', '#66D3C8', '#A3243A', '#FF6B00'],
+  'on-accent': ['#FFFFFF', '#0D2422', '#FFFFFF', '#FFFFFF'],
+  'accent-soft': ['#DDEDEA', '#1D3836', '#FBE3E6', '#FFF3EC'],
+  primary: ['#0B6B66', '#3FC1B4', '#C4314A', '#C94C14'],
+  'primary-hover': ['#08524E', '#66D3C8', '#A3243A', '#B5430F'],
+  'on-primary': ['#FFFFFF', '#0D2422', '#FFFFFF', '#FFFFFF'],
+  focus: ['#2B63D9', '#7FA8FF', '#6A4FD8', '#2563EB'],
+  success: ['#1D7543', '#4CC38A', '#17794A', '#1F7A4D'],
+  warning: ['#8F5500', '#E6A94B', '#935200', '#7D6200'],
+  danger: ['#B42318', '#F27A6F', '#B3261E', '#C0233F'],
+  info: ['#1F5FAD', '#6FAAF2', '#1D5FB8', '#2563B0'],
+  'success-soft': ['#E1F0E6', '#193328', '#DDF1E6', '#E2F2EA'],
+  'warning-soft': ['#F6EAD6', '#3A2E17', '#FBEBD3', '#FBF3D6'],
+  'danger-soft': ['#F8E1DE', '#3D2220', '#FADFDC', '#FBE4E8'],
+  'info-soft': ['#E0EAF6', '#1B2C40', '#DDE9F8', '#E3ECF8'],
+  'nav-bg': ['#E8EAE5', '#121717', '#0F4C5C', '#323E48'],
+  'nav-text': ['#2A302D', '#C9D2CF', '#E8F4F6', '#E6E8EC'],
+  'nav-muted': ['#566059', '#7F8C88', '#9CC3CC', '#B3BAC3'],
+  'nav-active': ['#FFFFFF', '#242C2B', '#1B6475', '#3E4B56'],
+  'nav-active-text': ['#1A1F1C', '#E4EAE7', '#FFFFFF', '#FFFFFF'],
+  'nav-mark': ['#0B6B66', '#3FC1B4', '#F2B544', '#FF6B00'],
+  'top-bg': ['#F9FAF7', '#1C2322', '#F7FBFC', '#323E48'],
+  'top-text': ['#1A1F1C', '#E4EAE7', '#0F2A33', '#FFFFFF'],
+  c1: ['#0B6B66', '#3FC1B4', '#C4314A', '#F06820'],
+  c2: ['#C8741E', '#F0A35E', '#0E8A8C', '#FBAE16'],
+  c3: ['#5552C9', '#A3A1F7', '#B8740A', '#323E48'],
+  c4: ['#B8407A', '#EC80B3', '#5B45C8', '#2563B0'],
+  c5: ['#3C8A3A', '#86CF78', '#2A78D6', '#1F7A4D'],
+  c6: ['#7A6A1E', '#D9BC5C', '#6E9A2E', '#858E99'],
+};
+
+export const SHADOWS: Record<string, [string, string]> = {
+  light: [
+    '0 1px 2px rgba(26,31,28,.06), 0 0 0 1px rgba(26,31,28,.04)',
+    '0 8px 24px -8px rgba(26,31,28,.18), 0 0 0 1px rgba(26,31,28,.05)',
+  ],
+  dark: ['0 0 0 1px rgba(255,255,255,.04)', '0 12px 28px -10px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06)'],
+  colorful: [
+    '0 1px 2px rgba(15,42,51,.07), 0 0 0 1px rgba(15,42,51,.04)',
+    '0 10px 26px -10px rgba(15,76,92,.30), 0 0 0 1px rgba(15,42,51,.05)',
+  ],
+  direct: [
+    '0 1px 2px rgba(48,56,72,.06), 0 0 0 1px rgba(48,56,72,.04)',
+    '0 10px 26px -10px rgba(48,56,72,.22), 0 0 0 1px rgba(48,56,72,.05)',
+  ],
+};
+
+export const SCALE: Record<string, string> = {
+  't-xs': '11.5px',
+  't-sm': '13px',
+  't-base': '14px',
+  't-md': '14px',
+  't-lg': '16px',
+  't-xl': '20px',
+  't-2xl': '24px',
+  't-3xl': '30px',
+  's-1': '4px',
+  's-2': '8px',
+  's-3': '12px',
+  's-4': '16px',
+  's-5': '20px',
+  's-6': '24px',
+  's-8': '32px',
+  's-10': '40px',
+  'r-sm': '4px',
+  'r-md': '6px',
+  'r-lg': '10px',
+  'r-pill': '999px',
+  'control-h': '40px',
+  'row-h': '48px',
+  'drawer-w': '232px',
+  'drawer-w-collapsed': '56px',
+  'topbar-h': '60px',
+  'panel-w': '480px',
+};
