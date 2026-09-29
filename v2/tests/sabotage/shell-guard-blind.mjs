@@ -15,7 +15,7 @@ export const sabotages = [
   {
     name: 'shell-guard-lets-a-linked-reset-through',
     breaks: ['unit:tests/unit/guard/the-shell-guard-refuses-force-and-production.test.ts'],
-    expect: 'denies: supabase db reset --linked',
+    expect: 'refuses: supabase db reset --linked',
     edits: [
       {
         file: '../.claude/hooks/bash-guard.mjs',
