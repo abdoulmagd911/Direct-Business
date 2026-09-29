@@ -10,7 +10,35 @@ export async function openPptx(bytes: Uint8Array | ArrayBuffer): Promise<JSZip> 
   return JSZip.loadAsync(bytes);
 }
 
-export async function writePptx(zip: JSZip, stamp: Date): Promise<Uint8Array> {
+/**
+ * One `<a:pPr>` per paragraph, as its first child. pptxgenjs writes a paragraph's settings before every run of a
+ * paragraph made of several runs (a tile's figure and its "ريال"), which the file format does not allow — PowerPoint
+ * may offer to repair such a deck. The paragraph keeps its first settings (its direction among them); later copies are
+ * dropped.
+ */
+export function oneSettingsPerParagraph(xml: string): string {
+  return xml.replace(/<a:p>([\s\S]*?)<\/a:p>/g, (paragraph: string, body: string) => {
+    let first = true;
+    const kept = body.replace(/<a:pPr\b[^>]*?(?:\/>|>[\s\S]*?<\/a:pPr>)/g, (ppr: string, at: number) => {
+      const keep = first && at === 0;
+      first = false;
+      return keep ? ppr : '';
+    });
+    return kept === body ? paragraph : `<a:p>${kept}</a:p>`;
+  });
+}
+
+/**
+ * `rtl`: an Arabic deck — every text box is marked right to left as well as its paragraphs (`rtlCol`, which
+ * pptxgenjs always writes as "0").
+ */
+export async function writePptx(zip: JSZip, stamp: Date, opts: { rtl?: boolean } = {}): Promise<Uint8Array> {
+  for (const name of Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))) {
+    const xml = await zip.file(name)!.async('string');
+    let fixed = oneSettingsPerParagraph(xml);
+    if (opts.rtl) fixed = fixed.replace(/(<a:bodyPr\b[^>]*?)\srtlCol="0"/g, '$1 rtlCol="1"');
+    if (fixed !== xml) zip.file(name, fixed);
+  }
   const core = zip.file('docProps/core.xml');
   if (core) {
     const iso = stamp.toISOString().replace(/\.\d{3}Z$/, 'Z');

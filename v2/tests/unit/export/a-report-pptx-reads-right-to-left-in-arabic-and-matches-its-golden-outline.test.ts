@@ -10,7 +10,9 @@ import { ARABIC_LETTER, paragraphs, readDeck, renderReportPptx, type Deck } from
  * paragraph's right-to-left flag and language, the three document fonts, Latin digits, page numbers, and tables
  * whose columns run from the right in Arabic (PowerPoint does not mirror a table). The deck's outline — every slide's
  * paragraphs, their text and direction — must equal its golden JSON; the sample decks sit beside it for the PR.
- * Sabotages: `pptx-forgets-right-to-left`, `pptx-keeps-the-table-left-to-right` (tests/sabotage/export.mjs).
+ * Every text box of the Arabic deck is right to left, and each paragraph carries one settings tag (oversight, 29 Sep).
+ * Sabotages: `pptx-forgets-right-to-left`, `pptx-keeps-the-table-left-to-right`, `pptx-box-left-to-right`,
+ * `pptx-keeps-a-second-settings-tag` (tests/sabotage/export.mjs).
  */
 const decks = {} as Record<'ar' | 'en', Deck>;
 beforeAll(async () => {
@@ -52,6 +54,34 @@ describe('a report PPTX reads right to left in Arabic and matches its golden out
         .map((p) => p.text),
       'no English paragraph is right to left',
     ).toEqual([]);
+  });
+
+  it('marks every text box and every paragraph of the Arabic deck right to left, and none of the English one', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      const rtl = lang === 'ar';
+      const boxes = decks[lang].slides.flatMap((xml) =>
+        [...xml.matchAll(/<p:sp>[\s\S]*?<\/p:sp>/g)].map((m) => m[0]).filter((sp) => /<a:t>[^<]/.test(sp)),
+      );
+      expect(boxes.length, `${lang}: text boxes`).toBeGreaterThan(60);
+      for (const sp of boxes) {
+        const text = paragraphs(sp)
+          .map((p) => p.text)
+          .join(' / ');
+        expect(/<a:bodyPr\b[^>]*\srtlCol="1"/.test(sp), `${lang}: the text box "${text}"`).toBe(rtl);
+        if (rtl)
+          for (const p of paragraphs(sp).filter((x) => x.text))
+            expect(p.rtl, `the paragraph "${p.text}" is right to left`).toBe(true);
+      }
+    }
+  });
+
+  it('writes one paragraph settings tag per paragraph, first — the file format allows no other', () => {
+    for (const lang of ['ar', 'en'] as const)
+      for (const xml of decks[lang].slides)
+        for (const [, body] of xml.matchAll(/<a:p>([\s\S]*?)<\/a:p>/g)) {
+          const at = [...body!.matchAll(/<a:pPr\b/g)].map((m) => m.index);
+          expect(at.length <= 1 && (at[0] ?? 0) === 0, `${lang}: ${body!.slice(0, 120)}`).toBe(true);
+        }
   });
 
   it('uses only the document fonts and prints Latin digits', () => {

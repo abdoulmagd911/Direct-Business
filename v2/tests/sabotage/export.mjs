@@ -12,6 +12,8 @@ const TEXT = unit('export/the-document-text-prints-latin-digits-live-names-and-h
 const DESIGN = unit('export/the-document-palette-and-logo-come-from-the-design-files');
 const ENGLISH_COPY = unit('export/the-english-copy-prints-a-line-with-no-english-in-arabic');
 const AWKWARD = unit('export/awkward-reports-still-print-every-section-and-refuse-a-bad-date');
+const WORDS = unit('export/an-amount-in-words-says-every-range-to-the-billions-in-arabic-and-english');
+const COLUMNS = unit('export/a-report-table-never-drops-a-column-in-the-pdf-or-the-pptx');
 const TRANSLATE = `unit:tests/unit/export/the-translate-button-shows-only-where-the-device-can-translate-and-sends-nothing.test.tsx`;
 
 export const sabotages = [
@@ -269,6 +271,129 @@ export const sabotages = [
         find: '  const out = await (await translator).translate(text, { signal: options.signal });',
         replace:
           '  void fetch(`https://translate.example/?q=${encodeURIComponent(text)}`);\n  const out = await (await translator).translate(text, { signal: options.signal });',
+      },
+    ],
+  },
+  // ---- the amount in words (oversight, 29 Sep)
+  {
+    name: 'words-say-million-for-a-billion',
+    breaks: [WORDS],
+    expect: 'says billion for a billion',
+    edits: [
+      {
+        file: 'src/core/print/amountInWords.ts',
+        find: '[Math.floor(riyals / 1e9), BILLION],',
+        replace: '[Math.floor(riyals / 1e9), MILLION],',
+      },
+    ],
+  },
+  {
+    name: 'words-drop-the-construct-form',
+    breaks: [WORDS],
+    expect: 'فقط ألفا ريال لا غير',
+    edits: [
+      {
+        file: 'src/core/print/amountInWords.ts',
+        find: '`${last.of} ${RIYAL.one}`',
+        replace: '`${last.text} ${RIYAL.one}`',
+      },
+    ],
+  },
+  {
+    name: 'words-count-halalas-as-riyals',
+    breaks: [WORDS],
+    expect: 'read back into the same amount',
+    edits: [
+      {
+        file: 'src/core/print/amountInWords.ts',
+        find: 'counted(halalas, HALALA, true)',
+        replace: 'counted(halalas, RIYAL, true)',
+      },
+    ],
+  },
+  {
+    name: 'words-lose-the-accusative',
+    breaks: [WORDS],
+    expect: 'فقط أحد عشر ريالاً لا غير',
+    edits: [{ file: 'src/core/print/amountInWords.ts', find: '  many: ACCUSATIVE.riyal,', replace: "  many: 'ريال'," }],
+  },
+  {
+    name: 'words-say-wahida-for-ihda',
+    breaks: [WORDS],
+    expect: 'فقط إحدى وعشرون هللة لا غير',
+    edits: [{ file: 'src/core/print/amountInWords.ts', find: "feminine && unit === 1 ? 'إحدى' : ", replace: '' }],
+  },
+  // ---- never drop a column (oversight, 29 Sep)
+  {
+    name: 'table-drops-its-last-column-in-the-pdf',
+    breaks: [COLUMNS],
+    expect: 'prints every column of every row in the PDF',
+    edits: [
+      {
+        file: 'src/core/print/report/pdf/ReportPdf.tsx',
+        find: '          {columns.map((c, ci) => {',
+        replace: '          {columns.slice(0, -1).map((c, ci) => {',
+      },
+    ],
+  },
+  {
+    name: 'table-drops-its-last-column-in-the-pptx',
+    breaks: [COLUMNS],
+    expect: 'keeps all 19 columns in the PPTX table',
+    edits: [
+      {
+        file: 'src/core/print/report/pptx/reportPptx.ts',
+        find: '  const body: PptxGenJS.TableRow[] = rows.map((row) =>\n    order.map((i) => {',
+        replace: '  const body: PptxGenJS.TableRow[] = rows.map((row) =>\n    order.slice(1).map((i) => {',
+      },
+    ],
+  },
+  {
+    name: 'table-lets-a-short-row-print',
+    breaks: [COLUMNS],
+    expect: 'a cell short or a cell long',
+    edits: [
+      {
+        file: 'src/core/print/report/format.ts',
+        find: '    if (row.length !== t.columns.length)',
+        replace: '    if (row.length > t.columns.length)',
+      },
+    ],
+  },
+  // ---- every Arabic text box right to left, one settings tag per paragraph (oversight, 29 Sep)
+  {
+    name: 'pptx-box-left-to-right',
+    breaks: [PPTX],
+    expect: 'marks every text box',
+    edits: [
+      {
+        file: 'src/core/print/report/pptx/zip.ts',
+        find: 'if (opts.rtl) fixed =',
+        replace: 'if (opts.rtl && false) fixed =',
+      },
+    ],
+  },
+  {
+    name: 'pptx-chip-left-to-right',
+    breaks: [PPTX],
+    expect: 'is right to left',
+    edits: [
+      {
+        file: 'src/core/print/report/pptx/reportPptx.ts',
+        find: "        margin: 0,\n        rtlMode: d.rtl,\n        lang: 'en-GB',",
+        replace: "        margin: 0,\n        lang: 'en-GB',",
+      },
+    ],
+  },
+  {
+    name: 'pptx-keeps-a-second-settings-tag',
+    breaks: [PPTX],
+    expect: 'one paragraph settings tag per paragraph',
+    edits: [
+      {
+        file: 'src/core/print/report/pptx/zip.ts',
+        find: 'let fixed = oneSettingsPerParagraph(xml);',
+        replace: 'let fixed = xml;',
       },
     ],
   },

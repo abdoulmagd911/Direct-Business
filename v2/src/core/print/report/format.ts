@@ -28,11 +28,29 @@ export function calendarDay(iso: string): Date {
  * Checks what a report's pages are built from before any rendering starts — react-pdf turns an error thrown while it
  * lays out a page into a meaningless one, so a bad date must be refused here, by name.
  */
-export function checkPrintable(doc: Pick<ReportDoc, 'period' | 'issuedOn'>): void {
+export function checkPrintable(doc: Pick<ReportDoc, 'period' | 'issuedOn' | 'sections'>): void {
   const start = calendarDay(doc.period.start);
   const end = calendarDay(doc.period.end);
   if (start > end) throw new Error(`print: the period ends (${doc.period.end}) before it starts (${doc.period.start})`);
   if (doc.issuedOn !== null) calendarDay(doc.issuedOn);
+  for (const s of doc.sections) if (s.kind === 'table') checkTable(s);
+}
+
+/**
+ * A table prints every column, or nothing: a row a cell short would print a dash that is not in the data, and a cell
+ * too many would be dropped unseen — both are refused by name, as are widths that cannot hold every column.
+ */
+function checkTable(t: Extract<ReportDoc['sections'][number], { kind: 'table' }>): void {
+  const name = `print: table "${t.key}"`;
+  if (!t.columns.length) throw new Error(`${name} has no columns`);
+  if (new Set(t.columns.map((c) => c.key)).size !== t.columns.length) throw new Error(`${name} repeats a column key`);
+  if (t.columns.some((c) => !(c.width > 0))) throw new Error(`${name} has a column without a width`);
+  const total = t.columns.reduce((sum, c) => sum + c.width, 0);
+  if (Math.abs(total - 1) > 0.005) throw new Error(`${name}'s column widths add up to ${total}, not 1`);
+  t.rows.forEach((row, i) => {
+    if (row.length !== t.columns.length)
+      throw new Error(`${name}, row ${i + 1} has ${row.length} cells for ${t.columns.length} columns`);
+  });
 }
 
 /** The report's number as printed (V40: Latin digits), or null for a draft. */

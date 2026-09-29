@@ -289,7 +289,7 @@ export async function reportPptx(doc: ReportDoc, lang: Lang, opts: PptxOptions):
   });
 
   const bytes = (await pptx.write({ outputType: 'uint8array' })) as Uint8Array;
-  return writePptx(await openPptx(bytes), calendarDay(doc.issuedOn ?? doc.period.end));
+  return writePptx(await openPptx(bytes), calendarDay(doc.issuedOn ?? doc.period.end), { rtl: d.rtl });
 }
 
 // ------------------------------------------------------------------------------------------------ parts
@@ -364,7 +364,8 @@ function addTiles(
       const bad = better === 'up' ? delta.percent < 0 : delta.percent > 0;
       const cw = pt(58);
       const cx = d.rtl ? x + pt(14) : x + tw - pt(14) - cw;
-      slide.addText(delta.text, {
+      // Every Arabic text box reads right to left (oversight, 29 Sep); the left-to-right mark keeps "+18.5%" in order.
+      slide.addText(d.rtl ? `\u{200E}${delta.text}` : delta.text, {
         x: cx,
         y: y + th - pt(30),
         w: cw,
@@ -379,6 +380,7 @@ function addTiles(
         align: 'center',
         valign: 'middle',
         margin: 0,
+        rtlMode: d.rtl,
         lang: 'en-GB',
       });
     }
