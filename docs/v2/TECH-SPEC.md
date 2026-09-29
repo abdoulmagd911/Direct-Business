@@ -569,7 +569,13 @@ partner.identifier  id; partner_id not null; kind ('payments_client_id','vat','c
                   subkind (client ID: 'prepaid'|'postpaid'|'tender'; name: 'official_en'|'official_ar'|'trade_en'|'trade_ar'|'alias');
                   value_raw not null; value_key not null; norm_version int; reason not null (§3 "each with a reason");
                   valid_from date; valid_to date (discount codes only, check to ≥ from); source ('person','decision','import','merge');
+                  closed_on date (client IDs — V411: a closed ID still matches rows whose booking date is on or before it;
+                  later rows stop; nothing about the past changes);
                   note; created_at; created_by; deleted_at; deleted_by; delete_reason (V133)
+                  -- V422: at most one OPEN (closed_on null) prepaid and one open postpaid client ID per organisation
+                  -- (partial unique index); tender IDs unlimited, never collapsed
+                  -- V421: the official and trade names are kept as identifiers for search and suggestion only — they never
+                  -- match money; a name matches only as an 'alias' a person typed
                   unique (kind, value_key) where deleted_at is null and kind <> 'discount_code'
                   exclude using gist (value_key with =, daterange(valid_from, valid_to, '[]') with &&)
                           where kind = 'discount_code' and deleted_at is null
@@ -771,22 +777,29 @@ discount code (with the row's **booking date** — see V28), email, phone, both 
      matches by itself and the pin is cleared in the same request;
    - `decision` — a manager's last resort for a true conflict.
    A pin whose invoice would now match a **different** partner without it is listed in `finance.health`.
-2. For each level in `partner.match_order` (setting; default client ID → VAT/CR → discount code within its dates →
-   email → phone → name), find the partners holding a matching live identifier. Values under
-   `partner.identifier_block` are ignored.
-3. **The first level that finds anything decides.** One partner → `matched`. Two or more → `conflict`, listing every
+2. **Unknown client ID** (V420): a row carrying a Payments client ID that no organisation holds stops here — state
+   `unknown_client_id`, in Needs a decision; it never falls through to VAT, code, email, phone or name. A **closed**
+   client ID (`closed_on`, V411) still matches rows whose booking date is on or before its close date.
+3. For each level in `partner.match_order` (setting; default client ID → VAT/CR → discount code within its dates →
+   email → phone → typed alias), find the partners holding a matching live identifier. Values under
+   `partner.identifier_block` are ignored. An organisation's **official and trade names are never matching
+   identifiers** (V421): they only *suggest* a match in Needs a decision; a name matches only as an alias a person typed,
+   and an alias or a name exclusion acts only on a row with no client ID (V412).
+4. **The first level that finds anything decides.** One partner → `matched`. Two or more → `conflict`, listing every
    candidate; nothing is guessed. At the discount-code level a live **campaign code** (V65) gives `campaign` — credited
    to nobody, listed apart. None at any level → `individual` if a name key is on the individuals list, else `none`.
 
-Output: `(source_table, source_id, state, level, partner_id, campaign_code_id, candidates uuid[])`. Finance exclusions are applied
+Output: `(source_table, source_id, state, level, partner_id, campaign_code_id, candidates uuid[])`; states `matched` ·
+`conflict` · `campaign` · `individual` · `unknown_client_id` · `none`. Finance exclusions are applied
 separately (§3.6) — an excluded row still shows its partner.
 
-**Needs a decision — `api.match_queue()`.** Rows in `none` or `conflict` grouped by customer (same keys), each group
-with its row count and **the riyals at stake** (M52). A person decides once per customer:
+**Needs a decision — `api.match_queue()`.** Rows in `none`, `unknown_client_id` or `conflict` grouped by customer
+(same keys), each group with its row count, **the riyals at stake** (M52) and the organisations whose names resemble
+the row's (a suggestion, never a match — V421). A person decides once per customer:
 
 | Decision | Effect (one request, logged, undoable) |
 |---|---|
-| "This is client X" | adds the chosen clues from the group (default: the strongest — client ID, else VAT/CR, else email, else name) as identifiers of X; every future row with those clues matches by itself |
+| "This is client X" | adds the chosen clues from the group (default: the strongest — client ID, else VAT/CR, else email, else the name as a typed alias) as identifiers of X; every future row with those clues matches by itself |
 | "New client" | creates the organisation with its Client side on and those identifiers |
 | "Individual (not an organisation)" | adds the name to `partner.individual_name` (D25) |
 | "Exclude" | opens the Finance exclusion rule form (reason required) |
@@ -848,6 +861,7 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        status_raw (Invoice Status); status_id → finance.status_map; consolidation_status_raw (B2B transaction
                        status, e.g. consolidation_invoiced — never read as payment); created_on; generated_on; paid_on; status_at;
                        total_sar (as Payments records it); product (main product); branch; salesman_raw;
+                       due_on date (V415: the invoice's own due date when typed or imported; null = the setting's fallback);
                        segment_id (V64: an override; null = the project's, else the partner's);
                        source ('manual','import'); src jsonb (per-field export time, imports only); first_batch_id; last_batch_id;
                        payments_as_of date not null (V401: the day the figures were read from Payments — typed: entered by
@@ -862,10 +876,15 @@ finance.expense_line   STD SOFT; invoice_id → finance.invoice (kind transactio
                        line_key unique (ref + expense type + created-at, for imports); expense_type; status ('approved',
                        'pending','under_review','cancelled','rejected'); status_raw; amount_sar (null while pending); merchant;
                        id_reference; created_at_src; submitted_at; decided_at; submitter; approver; source
-finance.tax_invoice    STD SOFT; dpin text unique not null; parent_invoice_id → finance.invoice (kind billing or standalone);
+finance.tax_invoice    STD SOFT; dpin text not null (unique — V417: a check that can be relaxed to (dpin, parent) if real Payments
+                       data shows a DPIN repeating; the oversight looks once before P4-1 ships); parent_invoice_id → finance.invoice (kind billing or standalone);
                        total_sar (as recorded — used only by the checks); issued_on; source
-finance.receipt        STD SOFT; invoice_id (billing or standalone for collections); receipt_key unique; method; amount_sar;
-                       paid_on; ref_at_method; paid_by; notes; source                      -- never revenue
+finance.receipt        STD SOFT; receipt_key unique; method; amount_sar; paid_on; ref_at_method; paid_by; notes; source
+                       -- never revenue
+finance.receipt_allocation  STD SOFT; receipt_id → finance.receipt; invoice_id → finance.invoice (billing or standalone —
+                       collections); amount_sar > 0        unique (receipt_id, invoice_id) where live
+                       -- V416: a receipt may be split across invoices; its allocations never exceed its amount (trigger);
+                       -- a one-invoice receipt is one allocation; outstanding = total − allocated receipts
 finance.payments_fact  ref pk; request_number; invoice_product; invoice_amount; invoice_status; invoice_type; expense_assignments;
                        overdue; created_by_src; created_on_src; rr_total_expense_sar; src; batch ids   -- later imports only (P7)
 finance.payments_client  client_id pk; the 29 exported columns; contact_email_key; src; batch ids          -- later imports (P7)
@@ -888,6 +907,8 @@ finance.item_service   item_head_key unique → service_id                   -- 
 finance.item_class     item_tail_key unique; class ('pass_through','fee')  -- D23, the LAST part — the fallback estimate only
 finance.exclusion_rule STD SOFT; kind ('client_id','name','tax_no','discount_code','invoice','product','partner'); value_raw;
                        value_key; mode ('exclude','hide'); reason not null      unique (kind, value_key) live (D16; 'hide' = MF5)
+                       -- V412: a 'name' rule applies only to rows carrying no client ID; V413: a 'tax_no' rule excludes every
+                       -- row matched to the organisation holding that VAT/CR, under any of its IDs, codes or names
 finance.receivable_flag STD SOFT; invoice_id (billing or standalone); kind ('sent_to_legal'); flagged_on date; note not null
                        -- V70: shown as a chip in Collections and on the partner card; still in outstanding
 finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note not null
@@ -901,17 +922,18 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 |---|---|
 | `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
 | `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
-| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart), margin = revenue − cost where cost is known, as recorded (V51) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units** |
+| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart and flagged — **no "profit with estimates" figure exists**, V419), margin = revenue − cost where cost is known, as recorded (V51; **negative when cost is above revenue, and the unit is flagged Loss** — V414) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units; a credit note never reduces revenue in v1** (V423) |
 | `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
 | `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the revenue date** (V27), else nobody ("uncredited", shown) |
-| `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft, **through the same exclusion rules as `money_row`** (a hidden row never appears; an excluded one is listed apart, never in outstanding — D16, MF5); outstanding = total − receipts; due = created date + `finance.collection_due_days`; ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future; **days to pay** = paid date − created date of each paid unit, averaged per client and overall (V401) |
+| `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft, **through the same exclusion rules as `money_row`** (a hidden row never appears; an excluded one is listed apart, never in outstanding — D16, MF5); outstanding = total − allocated receipts (V416); **due** = the invoice's own `due_on` when it has one, else created date + `finance.collection_due_days`, and each row says its `due_basis` (invoice · setting · payments — Payments' own overdue flag preferred once P7 brings it, V415); ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future; **days to pay** = paid date − created date of each paid unit, averaged per client and overall (V401) |
 | `finance.check` | the reconciliation, per billing or standalone invoice: billing total vs sum of its transactions; DPIN total vs (total − approved expenses of its units) within 1 SAR; DPIN = 100 % of total on non-commission → "expenses missing"; expenses entered on a billing invoice (refused at write, listed if imported); transactions with no billing invoice after N days (setting) |
 | `finance.partner_month` | partner × month: revenue, cost, estimate, margin, counted units, outstanding |
 | `finance.partner_credit` | V70: per partner, the credit limit in force (with who approved it) and outstanding against it |
 | `finance.partner_wallet` | V70: per partner, paid wallet top-ups − the wallet part of its counted invoices = the prepaid balance |
 | `finance.sales_by_code` | V65: discount or campaign code × month: counted units, revenue, profit, the partner or campaign, the terms in force |
 | `finance.quiet_client` | V401: organisations with the Client side Active and no Fully Paid invoice in `finance.quiet_client_days` (60) — the alert `alert_quiet_client` to the account manager, the row chip Quiet |
-| `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner, cost missing, estimates in use, Provisional units, failed checks |
+| `finance.not_invoiced` | V424: the Overview line **Not yet invoiced: Ready / Pending** — units not yet paid, **never in revenue** (only paid units count — V418): Ready = status maps to `draft`, Pending = status maps to `pending`; the oversight may re-point the feed (a one-line change) |
+| `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner or with an unknown client ID (V420), cost missing, estimates in use, Provisional units, **Losses** (V414), failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
 default — or margin), which services, which partner categories, whether commissions count. The structure is built
@@ -920,8 +942,8 @@ now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and not
 and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording setting, `core.wording`); code keeps
 `revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy sheet does.
 
-**Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged) · credit
-notes never count · wallet top-ups never revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue;
+**Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read as "only paid units count", V418) ·
+credit notes never count and never reduce revenue (V423) · wallet top-ups never revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue;
 collections measured on them · cost empty until an approved expense exists; the estimate always flagged and never in
 cost or margin · never estimate a commission · income by service adds up to the revenue tile · VAT never stored or
 shown (DPIN totals only feed the check) · exclusions win over everything and apply to past rows at once (D16) ·
@@ -1714,7 +1736,7 @@ reports — and revisited later (V83).
 | **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
 | **Clients** `/clients/[id]` and **Suppliers & partners** `/suppliers/[id]` (V98) | Two list pages over the one organisation table, each lean: **saved views across the top** (Clients: All · Government · Corporate · Agencies · Individuals; Suppliers & partners: All · Suppliers · Strategic partners · Sales channels · Integrations; a default per person); visible chips **Type · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; organisations that contributed); everything else under **More filters**; any combination saves as a view. Columns: logo or monogram, trade name (V77), the side's type, status chip, owner, last activity, and on Clients YTD revenue and outstanding | **The record page of V95**: header (trade name, side chips with type and status, up to five figures, New task · Log activity · Log achievement · New project); **Overview · Activity · Related · Finance** (Finance only with the Client side on: invoices, months, collections, credit limit and outstanding against it, prepaid balance, Sent to legal, codes with their terms, days to pay, **Open in Finance** carrying the filters); the details rail: both sides' fields, identifiers with add / remove / history, contacts with roles, Direct references, contracts | New client / New supplier & partner; **Log activity** (type, outcome, next step — V401); switch a side on or off; set a side's status (with reason); add identifier; upload logo; add contract; merge; set the side's owner; Escalate; Follow |
 | **Needs a decision** (a view of Clients) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
-| **Finance** `/finance/[view]` | Views: Overview (tiles: Revenue, Cost, Profit (the screen words — V73), the estimate apart, counted units; months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: **payment type** (prepaid · postpaid · code · tender — V87), Provisional, checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; the payment-type chip; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
+| **Finance** `/finance/[view]` | Views: Overview (tiles: Revenue, Cost, Profit (the screen words — V73), the estimate apart and flagged — never a "profit with estimates" (V419), counted units, **Not yet invoiced: Ready / Pending** (V424 — never in revenue); months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: **payment type** (prepaid · postpaid · code · tender — V87), Provisional, **Loss** (V414), checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; each row's due basis — V415; the payment-type chip; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
 | **Projects** `/projects/[id]` | Number, name, partner, owner, status, dates, linked revenue and profit | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
 | **Tasks** `/tasks/[number]` | Switch List / Board by status / Calendar by due date. Chips: My work, owned, helping, team, status, due, stale, partner, project | Header (title, status, owner, due, priority) · Action items (inline add, owner, due, helper) · Timeline (updates, meeting notes, comments, @mentions) · Links (partner, project, contacts, invoices, KPIs, Direct references) · Files | Quick add (title, owner, due — Enter); **Team load** view for managers (V91); close (offers "Log the achievement"); log meeting |
 | **KPIs** `/kpis/<year>/<code>`, `/kpis/achievements/<id>`, `/kpis/challenges/<id>` | Views: **KPIs** (the year's plan grouped by objective: code, title, Responsible (the KPI leads — V405), YTD, year target, pace light, Q1–Q4, measured) · **Achievements** · **Challenges** (V37). Year chooser (the plan) | KPI: target and result by month and quarter; drill-down achievements/invoices → partner → evidence; readings; status notes; definition and target history. Achievement: its line, fields, evidence, invoices, KPIs, history | Log achievement (category first, then its own fields; mark "use as example"); add reading; declare status; escalate a critical challenge (to whom, when — V69); export the KPI sheet |
@@ -1749,7 +1771,8 @@ first-class, fast screen, built for someone copying from a Payments page:
   pasted from Payments (tab-separated) fills it.
 - **Expenses** grid on transactions and standalone invoices (type, amount, status, merchant, reference, dates).
 - On a **billing invoice**: pick its transactions (search by reference or customer); the sum is compared with the total
-  as you type. **DPIN** (number, total as recorded, date) and **receipts** (amount, date, method).
+  as you type. **DPIN** (number, total as recorded, date) and **receipts** (amount, date, method — a receipt may be
+  split across invoices, V416); a **due date** when Payments shows one (V415).
 - A side panel shows, live from the database: revenue, approved cost, **cost status Provisional/Final**, the checks
   (billing = sum of transactions; DPIN = total − approved expenses; "expenses missing"), the credited person.
 - Save (Ctrl+Enter), **Save and new**, **Duplicate**; every save is one request, undoable from the toast.
@@ -1856,7 +1879,7 @@ changed it and when, and chooses).
 
 `ACC-*` access attacks (§5) · `GRANTS-*` · `CONC-*` optimistic concurrency · `UNDO-*` (per field, all-or-nothing,
 redo, import undo) · `NORM-*` (folding table: every Arabic form, digits, stop words, phones with `00966`/`0966`/`+966`,
-L.L.C.) and `NORM-DRIFT` · `IDN-*` (ported IDN-01…14, now against the live view) · `FIN-*` (ported D1/D21 tests: statuses, top-ups, billing invoices never revenue, collections on billing invoices, expenses refused on billing invoices, exclusions win, credit notes, VAT never stored) · `CHK-*` (the reconciliation and cost status of §3.6) · `COST-*` (ported
+L.L.C.) and `NORM-DRIFT` · `IDN-*` (ported IDN-01…14, now against the live view; V411 a closed client ID keeps its past rows; V422 one open prepaid and one open postpaid) · `MATCH-*` (V420: an unknown client ID stops in Needs a decision and never falls through; V421: a name never matches by itself) · `FIN-*` (ported D1/D21 tests: statuses, top-ups, billing invoices never revenue, collections on billing invoices, expenses refused on billing invoices, exclusions win, credit notes never count nor reduce revenue, a split receipt adds up, Loss flagged, VAT never stored) · `CHK-*` (the reconciliation and cost status of §3.6) · `COST-*` (ported
 COST-01…11, P7) · `CP-*` (ported clients/promo, P7) · `D24-*` (income by service adds up to the revenue tile) · `IMP-*` (P7: any
 order, newer wins per field, blank never wipes, same file twice, resume after a stopped chunk, held rows listed) ·
 `KPI-*` (sources, aggregation, cumulative pace, not measured ≠ 0, effective-dated targets and mappings) · `RPT-*`
@@ -2014,4 +2037,5 @@ reset only on the owner's word) · D16 · D17 · D19 · D20 · D21 · D23 · D24
 M27, M39, M48, M52, M53, M60 · CP5 · DP4 (rule 7). **Not carried** (they describe the old code): the `js/NN` layer rules,
 `app_state`, the mock, the js/21 dictionary, passwords (D15, CP6), DirectFont (D4 — replaced by the v2 design), the
 Finance role floors (replaced by capabilities). v2's own decisions start a new file, `docs/v2/DECISIONS.md`, with the
-ID ranges of A18.
+ID ranges of A18. **MF10 is read in v2 as "only paid units count"** (V418): the unit is the transaction (V1), and MF10's
+done-but-uninvoiced split is the Finance overview's "Not yet invoiced: Ready / Pending" line (V424), never in revenue.

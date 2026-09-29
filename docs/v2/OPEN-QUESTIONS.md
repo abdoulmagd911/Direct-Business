@@ -7,3 +7,8 @@ Every question so far has been answered and now lives in `docs/v2/DECISIONS.md`:
 
 **No question is open** (29 Sep 2026). A new one is written here with its recommended answer, and the spec assumes that
 answer until the owner or the oversight rules.
+
+**Defaults in force, pending the owner's word** (the Scout's review, 29 Sep; each a one-line change if he reverses it):
+V420 (an unknown client ID stops in Needs a decision) · V421 (names suggest, never match) · V422 (one open prepaid and
+one open postpaid client ID) · V423 (credit notes never count in v1) · V424 (the "Not yet invoiced: Ready / Pending"
+line) · V425 (the at-risk band at 0.85).
