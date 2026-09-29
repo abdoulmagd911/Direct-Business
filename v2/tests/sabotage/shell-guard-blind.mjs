@@ -22,6 +22,11 @@ export const sabotages = [
         find: "      if (/\\bdb\\s+reset\\b[^]*--linked/.test(s)) return deny('supabase db reset --linked wipes the hosted database');\n",
         replace: '',
       },
+      {
+        file: '../.claude/hooks/bash-guard.mjs',
+        find: "      if (/--linked\\b|--project-ref\\b|--db-url\\b/.test(s)) return deny('a supabase call naming the hosted project — refused; the hosted database changes by migration through the oversight');\n",
+        replace: '',
+      },
     ],
   },
 ];
