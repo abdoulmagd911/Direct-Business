@@ -315,7 +315,16 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           </RailSection>
         );
       })}
-      <RailSection title={t('partners.identifier.title')}>
+      <RailSection
+        title={t('partners.identifier.title')}
+        footer={
+          mayIdentify ? (
+            <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setAddingId(true)} data-identifier-add>
+              {t('partners.identifier.add')}
+            </Button>
+          ) : null
+        }
+      >
         {identifierGroups.map((g) => (
           <RailField
             key={g.kind}
@@ -352,13 +361,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             </ul>
           </RailField>
         ))}
-        {mayIdentify ? (
-          <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setAddingId(true)} data-identifier-add>
-            {t('partners.identifier.add')}
-          </Button>
-        ) : null}
       </RailSection>
-      <RailSection title={t('partners.contact.title')}>
+      <RailSection title={t('partners.contact.title')} plain>
         {card.contacts.length ? (
           <ul className="flex flex-col gap-2">
             {card.contacts.map((c) => (
@@ -399,7 +403,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           </Button>
         ) : null}
       </RailSection>
-      <RailSection title={t('partners.reference.title')}>
+      <RailSection title={t('partners.reference.title')} plain>
         {card.references.length ? (
           <ul className="flex flex-col gap-1.5">
             {card.references.map((r) => (
@@ -443,7 +447,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           </Button>
         ) : null}
       </RailSection>
-      <RailSection title={t('partners.contract.title')}>
+      <RailSection title={t('partners.contract.title')} plain>
         {contracts.length ? (
           <ul className="flex flex-col gap-2">
             {contracts.map((c) => (

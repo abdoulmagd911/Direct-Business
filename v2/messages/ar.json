@@ -306,6 +306,11 @@
     "core": {
       "file_download_display_name": "التنزيل باسم العرض للملف",
       "file_keep_original_name": "إظهار الاسم الأصلي للملف في تفاصيله"
+    },
+    "record": {
+      "header_figures": {
+        "partner": "الأرقام المعروضة في ترويسة سجل المنشأة"
+      }
     }
   }
 }

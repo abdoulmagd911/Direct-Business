@@ -6,15 +6,26 @@ export function RailSection({
   title,
   children,
   className,
+  plain = false,
+  footer,
 }: {
   title: ReactNode;
   children: ReactNode;
   className?: string;
+  /** A section of lists and buttons rather than fields: no <dl> (a <dl> may hold only term–definition pairs). */
+  plain?: boolean;
+  /** A control after the fields (an "Add" button), outside the <dl>. */
+  footer?: ReactNode;
 }) {
   return (
     <section className={cn('flex flex-col gap-3', className)}>
       <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
-      <dl className="flex flex-col gap-3">{children}</dl>
+      {plain ? (
+        <div className="flex flex-col gap-3">{children}</div>
+      ) : (
+        <dl className="flex flex-col gap-3">{children}</dl>
+      )}
+      {footer}
     </section>
   );
 }

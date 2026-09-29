@@ -63,7 +63,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   const status = page.locator('[data-status-form]');
   await status.getByLabel('Status').click();
   await page.getByRole('option', { name: 'At risk' }).click();
-  await expect(status.getByText('At risk and Lost need a reason')).toBeVisible();
+  await expect(status.getByText('At risk and Lost need a reason'), 'At risk asks for a reason').toBeVisible();
   await expect(page.locator('[data-status-save]')).toBeDisabled();
   await status.getByLabel('Reason').click();
   await page.getByRole('option', { name: 'Competitor' }).first().click();
@@ -92,8 +92,8 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await expect(hover).toBeVisible();
   const [row] = await sql<{ number: string }>(`select number from partner.partner where id = $1`, [id]);
   await expect(hover).toContainText(row!.number);
-  await expect(hover).toContainText('Client · Corporate · At risk');
-  await expect(hover).toContainText('Supplier & partner · Supplier');
+  await expect(hover, 'the hover card names both sides').toContainText('Client · Corporate · At risk');
+  await expect(hover, 'the hover card names both sides').toContainText('Supplier & partner · Supplier');
 });
 
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {
@@ -106,6 +106,8 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
   const ids: string[] = [];
   for (let i = 0; i < 20; i += 1)
     ids.push(await createPartner(context, `Bulk ${t} ${String(i).padStart(2, '0')}`, 'client', 'corporate'));
+
+  const since = (await sql<{ since: string }>(`select now()::text as since`))[0]!.since;
 
   await page.goto(`/clients?q=${encodeURIComponent(`Bulk ${t}`)}`);
   await hydrated(page);
@@ -122,16 +124,17 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
 
   const owned = () =>
     sql<{ n: string }>(
-      `select count(*)::text as n from partner.partner_side s
-        where s.partner_id = any($1::uuid[]) and s.side = 'client' and s.owner_id = $2 and s.deleted_at is null`,
+      `select count(*)::text as n from partner.side_owner o
+        where o.partner_id = any($1::uuid[]) and o.side = 'client' and o.person_id = $2
+          and o.effective_to is null and o.deleted_at is null`,
       [ids, other.id],
     ).then((r) => Number(r[0]!.n));
   await expect.poll(owned, { message: 'every selected organisation is owned by the new owner' }).toBe(20);
   const [req] = await sql<{ n: string }>(
     `select count(distinct c.request_id)::text as n from audit.change c
-      where c.table_name = 'partner.partner_side' and c.row_id in (select id from partner.partner_side where partner_id = any($1::uuid[]))
-        and c.at > now() - interval '2 minutes'`,
-    [ids],
+      where c.table_name = 'partner.side_owner' and c.row_id in (select id from partner.side_owner where partner_id = any($1::uuid[]))
+        and c.at > $2::timestamptz`,
+    [ids, since],
   );
   expect(Number(req!.n), 'one request for the whole selection').toBe(1);
 

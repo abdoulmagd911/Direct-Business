@@ -502,7 +502,8 @@ function ChipPicker({
   const [open, setOpen] = useState(false);
   return (
     <RP.Root open={open} onOpenChange={setOpen}>
-      <RP.Trigger asChild>
+      {/* an anchor, not a trigger: a trigger would put aria-expanded on the span (axe: aria-allowed-attr) */}
+      <RP.Anchor asChild>
         <span data-chip={field}>
           <FilterChip
             field={field}
@@ -514,7 +515,7 @@ function ChipPicker({
             removeLabel={words('chips.remove', { field, value: value ?? '' })}
           />
         </span>
-      </RP.Trigger>
+      </RP.Anchor>
       <RP.Portal>
         <RP.Content
           align="start"
