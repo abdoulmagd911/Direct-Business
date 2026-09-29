@@ -1,8 +1,8 @@
 -- Sabotage: me-ignores-overrides
 -- Breaks: sql:ME-01
--- Expect: role default, then the override wins, then none
+-- Expect: the person's override wins
 -- api.me() reads only the role's defaults: a person's override is lost (D2).
-create or replace function api.me() returns jsonb
+create or replace function core.me() returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare

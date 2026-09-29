@@ -15,7 +15,10 @@ test('an admin signing a person out refuses their next request', async ({ browse
 
   const refused = await memberPage.request.post('/auth/admin/sign-out', { data: { person_id: admin.id } });
   expect(refused.status()).toBe(403);
-  expect(await refused.json()).toEqual({ ok: false, error: { kind: 'PermissionDenied', key: 'access.needs_admin' } });
+  expect(await refused.json()).toEqual({
+    ok: false,
+    error: { kind: 'PermissionDenied', key: 'access.needs_capability' },
+  });
 
   const done = await adminPage.request.post('/auth/admin/sign-out', { data: { person_id: member.id } });
   expect(await done.json()).toEqual({ ok: true, signed_out: 1 });

@@ -2,7 +2,7 @@
 -- Breaks: sql:SIGN-04
 -- Expect: each link records the door it used
 -- The doors a sign-in used are no longer recorded on its link.
-create or replace function api.sign_in_complete(p_provider text default 'email', p_device_label text default null,
+create or replace function core.sign_in_complete(p_provider text default 'email', p_device_label text default null,
                                      p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
 as $$

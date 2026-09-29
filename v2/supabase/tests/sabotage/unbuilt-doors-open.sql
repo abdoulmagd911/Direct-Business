@@ -3,7 +3,7 @@
 -- Expect: a door that is not built is refused
 -- Google and Zoom sign-ins are accepted before their keys exist and before a migration opens them (V59, V23).
 alter table core.sign_in_log drop constraint sign_in_log_provider_check;
-create or replace function api.sign_in_complete(p_provider text default 'email', p_device_label text default null,
+create or replace function core.sign_in_complete(p_provider text default 'email', p_device_label text default null,
                                      p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
 as $$

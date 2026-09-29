@@ -162,6 +162,16 @@ if (fs.existsSync(GRANTS)) {
   if (values) must('loading grants.expected', psql(DB, ['-c', `insert into test.grants_expected values ${values}`]));
 }
 
+const REGISTRY = path.join(SUPA, 'registry.json');
+if (fs.existsSync(REGISTRY)) {
+  const doc = fs.readFileSync(REGISTRY, 'utf8');
+  if (doc.includes('$registry$')) throw new Error("registry.json holds the loader's quote tag");
+  must(
+    'loading registry.json',
+    psql(DB, [], `insert into test.registry_expected values ($registry$${doc}$registry$::jsonb);`),
+  );
+}
+
 // ---------------------------------------------------------------- run
 let failed = 0;
 for (const t of chosen) {

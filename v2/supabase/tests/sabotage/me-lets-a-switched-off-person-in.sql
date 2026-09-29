@@ -2,7 +2,7 @@
 -- Breaks: sql:ME-02
 -- Expect: switched off, not allowed, or removed
 -- api.me() answers 'ok' for anyone with a link, active or not (§4).
-create or replace function api.me() returns jsonb
+create or replace function core.me() returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 begin

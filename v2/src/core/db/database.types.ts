@@ -12,6 +12,30 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      access_clear_person_capability: {
+        Args: { p_capability: string; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_clear_person_level: { Args: { p_page: string; p_person: string; p_reason: string }; Returns: Json };
+      access_matrix: { Args: Record<PropertyKey, never>; Returns: Json };
+      access_of_person: { Args: { p_person: string }; Returns: Json };
+      access_set_person_capability: {
+        Args: { p_capability: string; p_granted: boolean; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_set_person_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_set_person_role: { Args: { p_person: string; p_reason: string; p_role: string }; Returns: Json };
+      access_set_role_capability: {
+        Args: { p_capability: string; p_granted: boolean; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      access_set_role_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
+        Returns: Json;
+      };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };

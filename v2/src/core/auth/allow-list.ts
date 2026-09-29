@@ -2,14 +2,14 @@ import 'server-only';
 
 // The admin's allow-list, server side (TECH-SPEC §4 steps 2 and 5). Every change is made twice over, on purpose:
 // the database decides and logs it (api.person_email_add / _remove / person_auth_link / person_sign_out, called as
-// the admin — they refuse anyone else), and the secret key keeps Supabase Auth in step (an auth user per allowed
+// the caller — they refuse anyone without Organization & access · Full, or org.sign_out — V125), and the secret key keeps Supabase Auth in step (an auth user per allowed
 // email, created confirmed; banned the moment it may no longer sign in). Screens call these through /auth/admin/*.
 import { NextResponse } from 'next/server';
 import { DbError, unwrap } from '@/core/db/errors';
 import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { getMe } from './get-me';
-import type { Me } from './me';
+import type { Level, Me } from './me';
 
 /** Banned for a century: Supabase has no "forever"; unbanning is `none`. */
 const BANNED = '876000h';
@@ -38,11 +38,27 @@ export async function adminRoute(request: Request, run: (body: Record<string, un
   }
 }
 
-/** The signed-in admin, or a PermissionDenied the route turns into 401/403. The database checks again. */
-export async function requireAdmin(): Promise<Me> {
+const LEVEL_ORDER: Level[] = ['none', 'view', 'own', 'full'];
+
+async function signedIn(): Promise<Me> {
   const me = await getMe();
   if (!me || me.status !== 'ok') throw new DbError('PermissionDenied', 'auth.not_signed_in');
-  if (!me.person.role?.is_admin) throw new DbError('PermissionDenied', 'access.needs_admin');
+  return me;
+}
+
+/** The caller at `level` or above on `page` (from api.me() — V125), else the refusal the database would give. */
+export async function requireLevel(page: string, level: Level): Promise<Me> {
+  const me = await signedIn();
+  if (LEVEL_ORDER.indexOf(me.levels[page] ?? 'none') < LEVEL_ORDER.indexOf(level))
+    throw new DbError('PermissionDenied', 'access.needs_level', JSON.stringify({ page, level }));
+  return me;
+}
+
+/** The caller holding `capability`, else the refusal the database would give. */
+export async function requireCapability(capability: string): Promise<Me> {
+  const me = await signedIn();
+  if (!me.capabilities.includes(capability))
+    throw new DbError('PermissionDenied', 'access.needs_capability', JSON.stringify({ capability }));
   return me;
 }
 

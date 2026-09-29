@@ -1,0 +1,65 @@
+import { z } from 'zod';
+import { defineModule } from '../../core/registry/define-module';
+
+// Tasks, and the Work settings (§3.2). Levels: TECH-SPEC §8.
+export default defineModule({
+  key: 'tasks',
+  pages: [
+    {
+      key: 'tasks',
+      route: '/tasks',
+      label: 'nav.tasks',
+      icon: 'check-square',
+      nav: { group: 'main', order: 60 },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
+    },
+    {
+      key: 'settings.work',
+      route: '/settings/work',
+      label: 'nav.settings.work',
+      nav: { group: 'settings', order: 60 },
+      defaults: { admin: 'full', head: 'full', manager: 'view' },
+    },
+  ],
+  capabilities: [
+    { key: 'tasks.assign', page: 'tasks', label: 'cap.tasks.assign', defaults: { head: true, manager: true } },
+  ],
+  settings: [
+    {
+      key: 'work.no_update_days',
+      group: 'settings.work',
+      label: 'setting.work.no_update_days',
+      schema: z.number().int().min(1).max(60),
+      default: 7,
+    },
+    {
+      key: 'work.week_starts_on',
+      group: 'settings.work',
+      label: 'setting.work.week_starts_on',
+      schema: z.enum(['saturday', 'sunday', 'monday']),
+      default: 'sunday',
+    },
+    {
+      key: 'work.meeting_note_on_time_days',
+      group: 'settings.work',
+      label: 'setting.work.meeting_note_on_time_days',
+      schema: z.number().int().min(0).max(14),
+      default: 1,
+    },
+    {
+      key: 'work.reminder_days_before_due',
+      group: 'settings.work',
+      label: 'setting.work.reminder_days_before_due',
+      schema: z.number().int().min(0).max(30),
+      default: 1,
+    },
+    {
+      key: 'work.pipeline_weekly_target',
+      group: 'settings.work',
+      label: 'setting.work.pipeline_weekly_target',
+      schema: z.number().int().min(0).max(100),
+      default: 1,
+      effectiveDated: true,
+    },
+  ],
+});

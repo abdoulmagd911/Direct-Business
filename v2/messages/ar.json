@@ -31,5 +31,69 @@
   "session": {
     "sign_out": "تسجيل الخروج",
     "unknown_device": "متصفح"
+  },
+  "nav": {
+    "my_day": "يومي",
+    "overview": "نظرة عامة",
+    "partners": "الشركاء",
+    "pipeline": "الفرص",
+    "projects": "المشاريع",
+    "tasks": "المهام",
+    "finance": "المالية",
+    "kpis": "مؤشرات الأداء",
+    "reports": "التقارير",
+    "appraisal": "تقييم الأداء",
+    "activity": "سجل النشاط",
+    "settings": {
+      "profile": "ملفي",
+      "org": "المنظمة والصلاحيات",
+      "partners": "الشركاء",
+      "performance": "الخطة والأداء",
+      "finance": "المالية",
+      "work": "العمل",
+      "app": "التطبيق"
+    }
+  },
+  "cap": {
+    "partners": {
+      "identify": "تغيير المعرّفات وحسم المطابقات",
+      "merge": "دمج الشركاء",
+      "assign": "تحديد الحالة وتعيين المسؤول والأولوية"
+    },
+    "finance": {
+      "credit_control": "حدود الائتمان والإحالة إلى الشؤون القانونية",
+      "import": "استيراد الملفات",
+      "credit": "تقسيم الإيراد أو نقله"
+    },
+    "tasks": {
+      "assign": "إسناد المهام للآخرين"
+    },
+    "org": {
+      "sign_out": "تسجيل خروج شخص من كل أجهزته"
+    }
+  },
+  "setting": {
+    "work": {
+      "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة متأخرة",
+      "week_starts_on": "بداية الأسبوع",
+      "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
+      "reminder_days_before_due": "التذكير قبل موعد الاستحقاق بأيام",
+      "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا"
+    },
+    "auth": {
+      "device_idle_days": "أيام عدم استخدام الجهاز قبل طلب رمز جديد"
+    },
+    "app": {
+      "arabic_enabled": "العربية",
+      "default_theme": "المظهر الافتراضي",
+      "default_density": "الكثافة الافتراضية",
+      "export_formats": "صيغ التصدير"
+    },
+    "audit": {
+      "undo_window_hours": "ساعات إمكان التراجع عن إجراء"
+    },
+    "files": {
+      "max_mb": "أكبر حجم للملف بالميغابايت"
+    }
   }
 }
