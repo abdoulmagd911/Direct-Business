@@ -1,17 +1,20 @@
 'use client';
 import { useEffect } from 'react';
-import { readPrefs, setPref, type Prefs } from '@/core/prefs';
+import { prefIsSet, readPrefs, setPref, type Prefs } from '@/core/prefs';
 
 /**
- * Keeps the preference cookies (the cache) in line with what the person should see — their profile, or the admin's
- * defaults (ACC-090/091/139): where a cookie differs, it is set and the page's theme, density and direction change at
- * once. A changed language asks for the page again, since the words come from the server.
+ * Brings the preference cookies in line with what the person should see (ACC-090/091/139). Three sources, in order:
+ * this browser's own choice (a cookie the profile menu or My profile set), the person's saved profile, the admin's
+ * defaults — so a browser with no choice of its own gets the profile's or the admin's theme and density the first time
+ * it opens the app, and a choice made in the menu is never undone on the next page. The language is different: while
+ * Arabic is off the cookie is overruled, and a changed language asks for the page again (the words come from the
+ * server).
  */
 export function PrefsSync({ theme, density, locale }: Pick<Prefs, 'theme' | 'density' | 'locale'>) {
   useEffect(() => {
     const now = readPrefs();
-    if (now.theme !== theme) setPref('theme', theme);
-    if (now.density !== density) setPref('density', density);
+    if (!prefIsSet('theme') && now.theme !== theme) setPref('theme', theme);
+    if (!prefIsSet('density') && now.density !== density) setPref('density', density);
     if (now.locale !== locale) {
       setPref('locale', locale);
       window.location.reload();

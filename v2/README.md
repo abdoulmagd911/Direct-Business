@@ -123,3 +123,9 @@ slate panel with the logo alone at 1,024 px and wider, a slate bar on a phone, a
 the four refusals in words). The tab icon is `app/icon.svg`, `app/favicon.ico` and `app/apple-icon.png`. Proof:
 `tests/e2e/door.spec.ts`; sabotages `door-offline-reads-as-wrong-password`, `door-eye-shows-nothing`,
 `door-panel-grows-a-tagline`.
+The catalogue gaps (V214): a screen names its page (`<Page page=… title=…>`) and a person at none gets the no-access
+state; the root goes to the start page; the admin's default theme, density and start page and the Arabic switch come
+from `core/settings/app.ts` (builder A's `api.app_settings()`, defaults until then) — `PrefsSync` keeps the cookies in
+line and `effectiveLocale` keeps the app English while Arabic is off. Playwright's second project (`utc-arabic-browser`)
+re-runs the screen specs in an Arabic browser on UTC with a moved clock (`tests/e2e/support/fixtures.ts`). The QA
+preview gallery: `GALLERY=1 pnpm test:e2e tests/e2e/gallery.spec.ts --workers=1` (`docs/v2/PREVIEW-GALLERY.md`).

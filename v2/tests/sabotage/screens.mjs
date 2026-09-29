@@ -358,7 +358,7 @@ export const sabotages = [
       {
         file: 'src/ui/shell/Page.tsx',
         find: "  if (page && (me.levels[page] ?? 'none') === 'none') {",
-        replace: "  if (page && (me.levels[page] ?? 'none') === 'never') {",
+        replace: "  if (page && (me.levels[page] ?? 'none') === 'none' && !page) {",
       },
     ],
   },
@@ -395,6 +395,30 @@ export const sabotages = [
         file: 'src/ui/shell/Drawer.tsx',
         find: '          href="/profile"\n          data-entity="person"',
         replace: '          href="/settings/profile"\n          data-entity="person"',
+      },
+    ],
+  },
+  {
+    name: 'failed-read-drawn-as-empty',
+    breaks: ['e2e:tests/e2e/person-reads.spec.ts'],
+    expect: 'the failed read is named',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: "          {failedRead('signIns', t('settings.people.signInLog'))}\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'profile-link-lost-in-the-bottom-bar',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the bottom bar opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/BottomBar.tsx',
+        find: '              href="/profile"\n              data-entity="person"',
+        replace: '              href="/settings/profile"\n              data-entity="person"',
       },
     ],
   },

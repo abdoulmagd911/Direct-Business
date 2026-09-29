@@ -88,7 +88,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   /** A read that failed (not a refusal) is said in words with Try again — never drawn as empty or as no access. */
   const failedRead = (name: string, what: string) =>
     failed.includes(name) ? (
-      <DataState kind="failed" what={what} onRetry={refresh} retryLabel={t('common.tryAgain')} />
+      <DataState
+        kind="failed"
+        what={what}
+        message={t('state.failed', { what })}
+        onRetry={refresh}
+        retryLabel={t('common.tryAgain')}
+      />
     ) : null;
 
   const [editing, setEditing] = useState(false);
