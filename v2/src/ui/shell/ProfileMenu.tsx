@@ -1,9 +1,13 @@
 'use client';
-import { LogOut, UserRound } from 'lucide-react';
+import { LogOut, UserRound, History } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { useMe } from '@/core/auth/me-context';
-import { DENSITIES, DIRS, LOCALES, THEMES } from '@/core/prefs';
+import { run } from '@/core/commands/run';
+import { rpc } from '@/core/db/rpc';
+import { DENSITIES, DIRS, LOCALES, THEMES, type Prefs } from '@/core/prefs';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { Avatar } from '../Avatar';
 import { personOf } from '../person';
@@ -32,7 +36,38 @@ export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean
   const me = useMe();
   const person = personOf(me);
   const { prefs, set } = usePrefs();
+  const router = useRouter();
   const dev = process.env.NODE_ENV !== 'production';
+  /**
+   * A theme or density chosen here is saved to the profile as well as the cookie (V201: the cookies are the profile's
+   * cache; QA-126) — the same api.profile_update as My profile, with Undo. The version follows each answer so two
+   * quick choices never conflict with each other.
+   */
+  const version = useRef(me.profile?.version);
+  useEffect(() => {
+    version.current = me.profile?.version;
+  }, [me]);
+  const choose = <K extends 'theme' | 'density'>(key: K, value: Prefs[K]) => {
+    set(key, value);
+    void run(
+      {
+        done: t('profile.saved'),
+        undo: t('common.undo'),
+        undone: t('activity.undone'),
+        has: (k: string) => t.has(k),
+        failed: (k: string, d: string) => t(k, { detail: d }),
+      },
+      async () => {
+        const r = (await rpc('profile_update', {
+          p_changes: { [key]: value } as never,
+          p_version: version.current ?? undefined,
+        })) as { version?: number; request_id?: string } | null;
+        if (r?.version !== undefined) version.current = r.version;
+        return r;
+      },
+      () => router.refresh(),
+    );
+  };
   return (
     <Menu>
       <form id={SIGN_OUT_FORM} method="post" action="/auth/sign-out" hidden />
@@ -54,9 +89,15 @@ export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean
             {t('profileMenu.myProfile')}
           </Link>
         </MenuItem>
+        <MenuItem asChild>
+          <Link href="/recently-deleted" data-menu-recently-deleted>
+            <History />
+            {t('profileMenu.recentlyDeleted')}
+          </Link>
+        </MenuItem>
         <MenuSeparator />
         <MenuLabel>{t('profileMenu.theme')}</MenuLabel>
-        <MenuRadioGroup value={prefs.theme} onValueChange={(v) => set('theme', v as typeof prefs.theme)}>
+        <MenuRadioGroup value={prefs.theme} onValueChange={(v) => choose('theme', v as typeof prefs.theme)}>
           {THEMES.map((th) => (
             <MenuRadioItem key={th} value={th} data-theme-option={th}>
               <span className={cn('size-3.5 rounded-full border border-border', themeSwatch[th])} aria-hidden="true" />
@@ -66,7 +107,7 @@ export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean
         </MenuRadioGroup>
         <MenuSeparator />
         <MenuLabel>{t('profileMenu.density')}</MenuLabel>
-        <MenuRadioGroup value={prefs.density} onValueChange={(v) => set('density', v as typeof prefs.density)}>
+        <MenuRadioGroup value={prefs.density} onValueChange={(v) => choose('density', v as typeof prefs.density)}>
           {DENSITIES.map((d) => (
             <MenuRadioItem key={d} value={d} data-density-option={d}>
               {t(`density.${d}`)}
