@@ -3,7 +3,16 @@
  * query; everything else here is what the button is built from, kept public for the E2E and for other exporters.
  */
 export { ExportButton, type ExportButtonLabels, type ExportButtonProps } from './ExportButton';
-export { exportList, saveFile, MIME, type ExportFormat, type ExportListInput, type ExportResult } from './exportList';
+export {
+  exportList,
+  fileColumns,
+  saveFile,
+  ExportColumnMissing,
+  MIME,
+  type ExportFormat,
+  type ExportListInput,
+  type ExportResult,
+} from './exportList';
 export { fetchAll, ExportRefused, PAGE_SIZE, type PageFetcher, type PageResult } from './fetchAll';
 export { csvGuard } from './csvGuard';
 export { cellOf, ExportColumnError, type Cell, type ExportColumn, type ExportKind } from './columns';

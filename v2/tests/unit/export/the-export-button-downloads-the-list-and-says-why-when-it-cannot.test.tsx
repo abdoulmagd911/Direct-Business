@@ -106,6 +106,31 @@ describe('the Export button', () => {
     expect(button.disabled).toBe(false);
   });
 
+  it('writes only the columns the person sees, and names one it leaves out, and why (OA23)', async () => {
+    act(() =>
+      root.render(
+        <ExportButton
+          list="Invoices"
+          columns={sampleColumns}
+          page={standIn(sampleRows(4), { count: true }).page}
+          lang="en"
+          labels={{ ...labels, omitted: (cols) => `Not in the file: ${cols}` }}
+          formats={['csv']}
+          visible={['number', 'partner', 'actions']}
+          omit={{ actions: 'buttons, not data' }}
+          headers={{ actions: 'Actions' }}
+        />,
+      ),
+    );
+    act(() => host.querySelector<HTMLButtonElement>('[data-export-button]')!.click());
+    await settle();
+    const table = readCsv((await textOf(saved[0]!.blob)).slice(BOM.length));
+    expect(table[0]).toEqual(['Invoice', 'Partner']);
+    expect(toast.done, 'the done toast names the column left out').toHaveBeenCalledWith('Exported 4 rows', {
+      description: 'Not in the file: Actions — buttons, not data',
+    });
+  });
+
   it('waits while it reads, and a second click starts nothing', async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));

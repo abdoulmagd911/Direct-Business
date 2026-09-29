@@ -27,6 +27,8 @@ export interface ExportButtonLabels {
   tooLong: string;
   /** The done toast: "Exported 2,500 rows". */
   done: (rows: number) => string;
+  /** Under the done toast when a visible column is left out (OA23): "Not in the file: Actions — buttons, not data". */
+  omitted?: (columns: string) => string;
 }
 
 export interface ExportButtonProps<T> {
@@ -39,6 +41,12 @@ export interface ExportButtonProps<T> {
   labels: ExportButtonLabels;
   /** A row's identity, to refuse a row read twice. */
   rowKey?: (row: T) => string;
+  /** The keys of the columns the person sees, in order — the file holds exactly these (OA23; see `exportList`). */
+  visible?: readonly string[];
+  /** A visible column that cannot be a cell, with the reason the person is told. */
+  omit?: Readonly<Record<string, string>>;
+  /** The header each visible key shows on screen, to name a left-out column (defaults to the key). */
+  headers?: Readonly<Record<string, string>>;
   /** The formats offered (`app.export_formats`); one format makes a plain button. */
   formats?: readonly ExportFormat[];
   /** The screen takes over failures (a `DbError` carries its catalog key); by default a toast says why. */
@@ -58,6 +66,9 @@ export function ExportButton<T>({
   lang,
   labels,
   rowKey,
+  visible,
+  omit,
+  headers,
   formats = ['csv', 'xlsx'],
   onError,
   onDone,
@@ -73,10 +84,23 @@ export function ExportButton<T>({
     running.current = ctrl;
     setBusy(true);
     try {
-      const out = await exportList({ list, columns, page, format, lang, key: rowKey, signal: ctrl.signal });
+      const out = await exportList({
+        list,
+        columns,
+        page,
+        format,
+        lang,
+        key: rowKey,
+        signal: ctrl.signal,
+        visible,
+        omit,
+      });
       if (ctrl.signal.aborted) return;
       saveFile(out.blob, out.fileName);
-      toast.done(labels.done(out.rows));
+      const left = out.omitted.map((o) => `${headers?.[o.key] ?? o.key} — ${o.reason}`).join('; ');
+      // A left-out column is always named, in the screen's sentence when it gives one (OA23).
+      if (left) toast.done(labels.done(out.rows), { description: labels.omitted?.(left) ?? left });
+      else toast.done(labels.done(out.rows));
       onDone?.({ fileName: out.fileName, rows: out.rows, format });
     } catch (error) {
       if (ctrl.signal.aborted) return;

@@ -7,6 +7,8 @@ const FORMS = 'tests/unit/export/dates-numbers-and-ids-keep-their-form-in-csv-an
 const XLSX = 'tests/unit/export/an-excel-export-opens-as-typed-with-riyadh-dates-and-text-ids.test.ts';
 const LIST = 'tests/unit/export/an-export-holds-exactly-the-lists-rows-and-is-named-with-the-list-and-time.test.ts';
 const BUTTON = 'tests/unit/export/the-export-button-downloads-the-list-and-says-why-when-it-cannot.test.tsx';
+const ROLES =
+  'tests/unit/export/an-export-holds-the-columns-and-rows-each-role-sees-guarded-named-and-in-the-apps-own-words.test.ts';
 const ZONES = 'tests/unit/export/an-export-is-the-same-file-in-every-time-zone-and-at-every-riyadh-midnight.test.ts';
 
 const GUARD = 'src/core/export/csvGuard.ts';
@@ -311,6 +313,36 @@ export const sabotages = [
         find: 'clockText(riyadhClock(at))',
         replace:
           'clockText({ y: at.getFullYear(), m: at.getMonth() + 1, d: at.getDate(), h: at.getHours(), mi: at.getMinutes(), s: at.getSeconds() })',
+      },
+    ],
+  },
+  {
+    name: 'export-writes-hidden-columns',
+    breaks: [`unit:${ROLES}`],
+    expect: "'s columns, in their order",
+    edits: [
+      {
+        file: EXPORT,
+        find: '  if (!visible) return { columns: [...columns], omitted: [] };',
+        replace: '  return { columns: [...columns], omitted: [] };',
+      },
+    ],
+  },
+  {
+    name: 'export-drops-a-visible-column-unseen',
+    breaks: [`unit:${ROLES}`],
+    expect: 'a visible column with no place in the file is refused',
+    edits: [{ file: EXPORT, find: '    else throw new ExportColumnMissing(key);', replace: '    else continue;' }],
+  },
+  {
+    name: 'button-hides-a-left-out-column',
+    breaks: [`unit:${BUTTON}`],
+    expect: 'the done toast names the column left out',
+    edits: [
+      {
+        file: BTN,
+        find: '      if (left) toast.done(',
+        replace: '      if (left && false) toast.done(',
       },
     ],
   },
