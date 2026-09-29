@@ -3,6 +3,7 @@
 const CATALOG =
   'unit:tests/unit/arabic/every-arabic-message-formats-in-arabic-with-latin-digits-and-the-owners-words.test.ts';
 const AR = 'messages/ar.json';
+const SWITCH = 'unit:tests/unit/arabic/arabic-shows-only-while-it-is-switched-on.test.ts';
 const FALLBACK = 'unit:tests/unit/arabic/a-key-with-no-arabic-yet-shows-its-english.test.ts';
 
 /** @type {{ name: string, breaks: string[], expect: string, edits: { file: string, find: string, replace: string }[] }[]} */
@@ -86,5 +87,23 @@ export const sabotages = [
         replace: '      "profile.updated": "تحديث الملف الشخصي",\n',
       },
     ],
+  },
+  {
+    name: 'arabic-ignores-the-switch',
+    breaks: [SWITCH],
+    expect: 'an ar cookie alone shows English',
+    edits: [
+      {
+        file: 'src/core/i18n/request.ts',
+        find: "const locale = effectiveLocale(prefs.locale, prefs.locale === 'ar' && (await arabicEnabled()));",
+        replace: 'const locale = prefs.locale;',
+      },
+    ],
+  },
+  {
+    name: 'arabic-on-when-the-switch-cannot-be-read',
+    breaks: [SWITCH],
+    expect: 'a switch that cannot be read is off',
+    edits: [{ file: 'src/core/i18n/arabic.ts', find: 'if (error) return false;', replace: 'if (error) return true;' }],
   },
 ];
