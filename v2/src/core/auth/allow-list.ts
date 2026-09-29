@@ -135,7 +135,24 @@ export async function syncPerson(personId: string) {
  */
 export async function undoAndSync(requestId: string) {
   const db = await serverDb();
+  // The database undoes a sign-in change only against this route's one-time ticket, so Auth is never left behind (V162).
+  unwrap(await serviceDb().rpc('auth_ticket_issue', { p_kind: 'undo', p_target: requestId }));
   const done = unwrap(await db.rpc('undo', { p_request: requestId })) as { auth_resync?: string[] };
+  let synced = 0;
+  for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;
+  return { ...done, synced };
+}
+
+/**
+ * Restore a removed allowed e-mail or sign-in link, then keep Supabase Auth in step (V162): the database restores a
+ * sign-in record only against this route's ticket, and names whose sign-in to re-sync. Any other record restores the same.
+ */
+export async function restoreAndSync(entity: string, id: string, reason?: string) {
+  const db = await serverDb();
+  unwrap(await serviceDb().rpc('auth_ticket_issue', { p_kind: 'restore', p_target: `${entity}:${id}` }));
+  const done = unwrap(await db.rpc('restore', { p_entity: entity, p_id: id, p_reason: reason })) as {
+    auth_resync?: string[];
+  };
   let synced = 0;
   for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;
   return { ...done, synced };

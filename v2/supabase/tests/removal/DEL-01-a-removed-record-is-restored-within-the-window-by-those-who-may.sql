@@ -2,7 +2,10 @@
 -- Recently deleted for audit.recently_deleted_days (30, a setting), to those who may see it, with who removed it and
 -- why. Within the window it is restored, in one request that Undo takes back, by whoever removed it, its owner, Full on
 -- its page or an admin — not a viewer; never over a live duplicate; after the window it is gone for good. Made up.
--- Sabotage: supabase/tests/sabotage/restore-ignores-the-window.sql.
+-- Sabotages: supabase/tests/sabotage/restore-ignores-the-window.sql,
+--            supabase/tests/sabotage/restore-by-rights-then.sql,
+--            supabase/tests/sabotage/restore-by-owners-and-full-only.sql,
+--            supabase/tests/sabotage/access-restored-by-anyone.sql.
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
@@ -36,6 +39,47 @@ select api.undo(current_setting('t.r')::uuid);
 select test.as_owner();
 select test.eq((select deleted_at is not null from partner.contact where id = current_setting('t.c')::uuid), true,
   'Undo removes it again');
+
+-- whoever removed it, alone: someone neither its owner nor Full on its page restores what they removed — while they
+-- still hold Own on it (rights now, V161)
+select set_config('t.am2', test.person('Test Second Member', 'member')::text, true);
+select test.as_person(current_setting('t.am2')::uuid);
+select set_config('t.d', api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact D",
+  "name_ar": "جهة اتصال متخيلة"}') ->> 'id', true);
+select api.contacts_remove(array[current_setting('t.d')::uuid], 'made up: wrong one');
+select test.eq((select x ->> 'label_ar' from jsonb_array_elements(api.recently_deleted()) x where x ->> 'id' = current_setting('t.d')),
+  'جهة اتصال متخيلة', 'Recently deleted names it in Arabic too');
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am2')::uuid, 'clients', 'view', 'made up: moved to another desk');
+select test.as_person(current_setting('t.am2')::uuid);
+select test.raises(format('select api.restore(%L, %L)', 'contact', current_setting('t.d')), '42501',
+  'with View only now, the one who removed it cannot restore it', 'restore.not_allowed');
+select test.as_owner();
+update core.person_page_level set level = 'own' where person_id = current_setting('t.am2')::uuid and page_key = 'clients';
+select test.as_person(current_setting('t.am2')::uuid);
+select test.runs(format('select api.restore(%L, %L, %L)', 'contact', current_setting('t.d'), 'made up: back'),
+  'with Own, neither owner nor Full, the one who removed it restores it');
+select test.as_owner();
+
+-- access is an admin's to restore (V128), whatever a page grants: were an access table ever registered on an ordinary
+-- page, Full on that page would still restore none of its rows (audit.access_tables — the one list undo reads too)
+select set_config('t.head', test.person('Test Head', 'head')::text, true);
+select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
+update core.entity set page_key = 'clients' where table_name = 'core.person_page_level';
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'pipeline', 'view', 'made up: a level to remove');
+select set_config('t.lvl', (select id::text from core.person_page_level
+                            where person_id = current_setting('t.am1')::uuid and page_key = 'pipeline'), true);
+update core.person_page_level set deleted_at = core.clock(), deleted_by = current_setting('t.head')::uuid,
+  delete_reason = 'made up: removed' where id = current_setting('t.lvl')::uuid;
+select test.as_person(current_setting('t.head')::uuid);
+select test.raises(format('select api.restore(%L, %L)', 'person_level', current_setting('t.lvl')), '42501',
+  'Full on the page restores no access row, not even one they removed', 'restore.not_allowed');
+select test.as_person(current_setting('t.admin')::uuid);
+select test.runs(format('select api.restore(%L, %L, %L)', 'person_level', current_setting('t.lvl'), 'made up: back'),
+  'an admin restores it');
+select test.as_owner();
 
 -- the window, 31 days on (the test's device stays signed in past its 30 idle days)
 select set_config('v2.test_now', (now() + interval '31 days')::text, true);

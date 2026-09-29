@@ -53,6 +53,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      auth_ticket_issue: { Args: { p_kind: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       campaign_code_add: {
         Args: {

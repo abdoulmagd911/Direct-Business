@@ -538,6 +538,39 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 
 Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`.
 
+**V161 — Rights are read at the moment of an undo or a restore** ACTIVE · 2026-09-29 (the oversight's QA review of #93). Having made a change, or removed a record, is never a right by itself. Before, an admin demoted to head could still undo their own settings, list and person changes (a manager line included) for the whole Undo window.
+- `audit.undo_allowed` decides from the person's rights today:
+  - an admin: always;
+  - access (V128): admins only;
+  - every record the request touched must be one the person may see now (V143);
+  - Full on every record it touched: yes, at any time;
+  - else, within the window, at least Own now on every record it touched (a record type with neither page nor level counts as Own), and, for someone else's request, being one of each record's owners.
+- `core.restore` the same way: an admin; Full on the record; or at least Own now, and either being the one who removed it or one of its owners. Access rows are an admin's alone, from one list (`audit.access_tables()`) that the undo rule reads too.
+- Tests: UNDO-05 (a demoted admin undoes neither a setting nor a manager line), DEL-01 (the one who removed it restores it with Own, not with View; Full on a page restores no access row). Sabotages: `undo-by-rights-then`, `restore-by-rights-then`, `restore-by-owners-and-full-only`, `access-restored-by-anyone`, and `access-undone-by-anyone` rewritten on the new rule.
+
+**V162 — Undoing or restoring a sign-in record goes through the admin route** ACTIVE · 2026-09-29 (QA). Undoing or restoring an allowed e-mail, a sign-in link or a person switched on or off changes who may sign in, so Supabase Auth must follow in the same breath. Only the server can do that, with the secret key.
+- The server routes `/auth/admin/undo` and the new `/auth/admin/restore` first take a one-time ticket (`api.auth_ticket_issue`, service role only; `core.auth_ticket`, no grants). Then they call `api.undo` or `api.restore` as the person, and re-sync the people named in `auth_resync`.
+- The database undoes or restores a sign-in record only against a fresh ticket for it (under a minute old, used once). Without one it refuses as `undo.via_admin_route` or `restore.via_admin_route`, naming the route. So no screen can skip the re-sync.
+- Builder B: the undo toast for a sign-in request and the Recently deleted screen's Restore for an allowed e-mail or a sign-in link call these routes, not the database directly.
+- Test UNDO-06. Sabotages: `a-sign-in-undone-without-its-ticket`, `a-sign-in-restored-without-its-ticket`.
+
+**V163 — Who may see is asked everywhere (V143), and the appraisal line about anyone** ACTIVE · 2026-09-29 (QA).
+- Undo refuses a request that touched a record the person may not see (VIS-01; sabotage `undo-ignores-who-may-see`).
+- The daily alerts job inserts a notice only for someone who may see its record (`authz.can_see_as`; ALR-01; sabotage `alerts-ignore-who-may-see`).
+- `authz.reports_to(person, manager)` answers for any two people; the one-argument form asks with the signed-in person as the manager. Rules that decide for someone else (who may see an appraisal, who is told) use the two-argument form (VIS-01; sabotage `reports-to-asks-about-me`).
+
+**V164 — Setting lists: Recently deleted counts, history stays as it was** ACTIVE · 2026-09-29 (QA).
+- "Used in" (`core.list_uses`) also counts records waiting in Recently deleted, apart (`in_recently_deleted`), so a value such a record uses cannot be removed: a restore would bring back a reference to it.
+- The registry says which record types are history (`history: true` in a module, `core.entity.history`): a side's status changes and the notes (activities logged). Retiring a list value never rewrites them. They keep the old value, counted as `kept_in_history`.
+- Nor does a retire move another setting list's own rows (an activity type's outcomes stay that type's), counted as `kept_in_lists`. (The old per-role field definitions no longer exist: side fields belong to a side, not a type.)
+- A move that would make two live rows one (a contract holding both terms) is refused as `list.retire_blocked_by_duplicate`; one that breaks another rule as `list.retire_blocked_by_rule`, naming the rule.
+- Tests SETS-01. Sabotages: `a-value-used-in-recently-deleted-is-removed`, `retire-rewrites-history`, `retire-moves-definitions`, `retire-leaks-a-raw-duplicate`.
+
+**V165 — Setting defaults by one function; Arabic names filled; Recently deleted in Arabic** ACTIVE · 2026-09-29 (QA).
+- The registry sync now writes its defaults through `core.setting_defaults_sync`: a new setting's default from the floor date, a changed default from today only while the latest company-wide row is a default (never under or over an admin's value), a default changed twice in a day keeping the later one. SETS-02 now checks the floor row itself and a value an admin set before the change. Sabotages: `a-default-over-an-admins-value` (rewritten), `a-setting-without-its-floor-row`.
+- Every department, team and role made before P3-6d's rule has an Arabic name, so they can be saved again: the seeded Commercial department takes التجاري, the others their English name until an admin writes the Arabic.
+- `api.recently_deleted` gives each row's `label_ar` where its record has one, for the Arabic screens.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
