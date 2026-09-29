@@ -121,7 +121,7 @@ export const sabotages = [
   {
     name: 'blind-seed-words',
     breaks: [unit('the-words-check-refuses-the-names-the-app-never-says')],
-    expect: '> refuses them in the seeds of a migration from V404 on',
+    expect: '> refuses the data words in the seeds of a migration from V404 on',
     edits: [
       {
         file: 'scripts/checks/forbidden-words.mjs',
@@ -133,12 +133,25 @@ export const sabotages = [
   {
     name: 'words-lists-drift',
     breaks: [unit('the-words-check-refuses-the-names-the-app-never-says')],
-    expect: '> holds the same list as the database',
+    expect: '> holds the same data list as the database',
     edits: [
       {
         file: 'scripts/checks/forbidden-words.mjs',
         find: "  [/\\bb[\\s\\-_.]*2[\\s\\-_.]*g\\b/gi, 'B2G'],\n",
         replace: '',
+      },
+    ],
+  },
+  {
+    // QA-67: Google, Zoom and GMV are words for the chrome; a seed may name a meeting channel after its tool.
+    name: 'seeds-scanned-for-chrome-words',
+    breaks: [unit('the-words-check-refuses-the-names-the-app-never-says')],
+    expect: '> refuses the data words in the seeds of a migration from V404 on',
+    edits: [
+      {
+        file: 'scripts/checks/forbidden-words.mjs',
+        find: 'forbiddenIn(lit.text, FORBIDDEN_IN_DATA)',
+        replace: 'forbiddenIn(lit.text)',
       },
     ],
   },

@@ -531,12 +531,13 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - **The words check** (`forbidden-words`) reads, besides the catalogs, the templates and the page text (the settings' defaults included), the string literals of every migration from `20260929091000` on: seeds and list values are wording too. Comments are not.
   - Older migrations are history (V103). The database they build is scanned instead.
   - `check-allow: forbidden-words — …` waives a line with its reason. Only the database's own copy of the list uses it.
-- **The database** has `core.banned_word(text)`, the same list, naming the first banned word a text carries.
+- **The database** has `core.banned_word(text)`, naming the first banned word a text carries.
   - The list editor (`core.list_save`) and the side-field editor (`partner.side_field_save`) refuse a value, a label or an option that carries one, as `list.banned_word`, naming it.
-  - A unit test keeps the two copies of the list equal.
+  - So does every save of a department, a team or a role (a trigger, whichever door saves the name; a name left as it was is not asked again — QA-68).
+- **Data bans fewer words than screens (QA-67).** In data (seeds, list values, names typed in) the banned words are V59's five and B2G: Direct KSA, Direct Corporate, B2B, B2G, MICE. Google, Zoom, "Keep me signed in" and GMV stay banned on screens only: a meeting channel or a reference system may be named after its tool, and V73 lets the KPI mapping say GMV. The check holds the data list as `FORBIDDEN_IN_DATA` and scans seeds with it; a unit test keeps it equal to the database's copy. Builder B's typed-value check (`src/core/words/banned.ts`) should follow the same split.
 - **WORDS-01** scans the database built from zero: every setting list's values, every setting default and value, and every wording. The segment is Government.
 
-Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`.
+Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-scanned-for-chrome-words`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`, `an-org-name-takes-a-banned-word`.
 
 **V161 — Rights are read at the moment of an undo or a restore** ACTIVE · 2026-09-29 (the oversight's QA review of #93). Having made a change, or removed a record, is never a right by itself. Before, an admin demoted to head could still undo their own settings, list and person changes (a manager line included) for the whole Undo window.
 - `audit.undo_allowed` decides from the person's rights today:

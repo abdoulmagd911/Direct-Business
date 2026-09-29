@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import check, { FORBIDDEN, SEEDS_FROM } from '../../../scripts/checks/forbidden-words.mjs';
+import check, { FORBIDDEN_IN_DATA, SEEDS_FROM } from '../../../scripts/checks/forbidden-words.mjs';
 import { findings, fixture } from './helpers';
 
 // Sabotages: tests/sabotage/blind-checks.mjs "blind-forbidden-words" and "blind-seed-words", and
@@ -57,7 +57,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
     expect(await findings(check, root)).toEqual([]);
   });
 
-  it('refuses them in the seeds of a migration from V404 on — not in its comments, nor in the history before', async () => {
+  it('refuses the data words in the seeds of a migration from V404 on — not the chrome words, not in its comments, nor in the history before', async () => {
     const root = fixture({
       [`supabase/migrations/${SEEDS_FROM}_seeds.sql`]: [
         '-- a comment may say B2G: comments are not wording',
@@ -66,6 +66,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
         '-- check-allow: forbidden-words — a line waived with its reason',
         "select 'Direct KSA';",
         "select 'Government', 'it''s fine';",
+        "insert into partner.activity_type (key, name_en) values ('video', 'Zoom meeting'), ('drive', 'Google Drive');",
         '',
       ].join('\n'),
       'supabase/migrations/20260929010000_history.sql': "insert into t (name) values ('Government (B2G)');\n",
@@ -81,7 +82,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
     ]);
   });
 
-  it('holds the same list as the database (core.banned_word)', () => {
+  it('holds the same data list as the database (core.banned_word)', () => {
     const dir = path.join(__dirname, '../../../supabase/migrations');
     const latest = fs
       .readdirSync(dir)
@@ -97,6 +98,6 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
       sql.indexOf('$$;', sql.indexOf('function core.banned_word(')),
     );
     const labels = [...body.matchAll(/\(\d+, '(?:[^']|'')*', '([^']*)'\)/g)].map((m) => m[1]);
-    expect(labels).toEqual(FORBIDDEN.map(([, word]) => word));
+    expect(labels).toEqual(FORBIDDEN_IN_DATA.map(([, word]) => word));
   });
 });
