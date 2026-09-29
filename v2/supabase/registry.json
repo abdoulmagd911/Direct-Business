@@ -501,7 +501,7 @@
         "maximum": 90
       },
       "default": 14,
-      "effective_dated": false
+      "effective_dated": true
     },
     {
       "key": "work.meeting_note_on_time_days",
