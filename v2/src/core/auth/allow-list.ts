@@ -201,7 +201,7 @@ export async function restoreAndSync(entity: string, id: string, reason?: string
     auth_resync?: string[];
   };
   let synced = 0;
-  for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;
+  for (const person of done.auth_resync ?? []) synced += (await syncPerson(person)).synced;
   return { ...done, synced };
 }
 
