@@ -248,6 +248,51 @@
       "effective_dated": false
     },
     {
+      "key": "notify.kinds_enabled",
+      "group": "settings.app",
+      "label": "setting.notify.kinds_enabled",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "assigned",
+            "helper_added",
+            "mentioned",
+            "changed_by_other",
+            "followed_change",
+            "decision_needed",
+            "report_issued",
+            "report_for_review",
+            "appraisal_step",
+            "import_done",
+            "alert_contract_expiring",
+            "alert_kpi_behind",
+            "alert_invoice_unpaid",
+            "alert_kpi_checkin"
+          ]
+        }
+      },
+      "default": [
+        "assigned",
+        "helper_added",
+        "mentioned",
+        "changed_by_other",
+        "followed_change",
+        "decision_needed",
+        "report_issued",
+        "report_for_review",
+        "appraisal_step",
+        "import_done",
+        "alert_contract_expiring",
+        "alert_kpi_behind",
+        "alert_invoice_unpaid",
+        "alert_kpi_checkin"
+      ],
+      "effective_dated": false
+    },
+    {
       "key": "work.meeting_note_on_time_days",
       "group": "settings.work",
       "label": "setting.work.meeting_note_on_time_days",
@@ -328,6 +373,7 @@
     { "key": "role", "table": "core.role", "page": "settings.org", "owners": null },
     { "key": "role_capability", "table": "core.role_capability", "page": "settings.org", "owners": null },
     { "key": "role_level", "table": "core.role_page_level", "page": "settings.org", "owners": null },
+    { "key": "saved_view", "table": "core.saved_view", "page": null, "owners": "owner_id" },
     { "key": "setting", "table": "core.setting", "page": "settings.app", "owners": null },
     { "key": "setting_def", "table": "core.setting_def", "page": "settings.app", "owners": null },
     { "key": "team", "table": "core.team", "page": "settings.org", "owners": "lead_person_id" },

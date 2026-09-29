@@ -94,6 +94,9 @@
     },
     "files": {
       "max_mb": "Largest file, in MB"
+    },
+    "notify": {
+      "kinds_enabled": "Notifications sent"
     }
   },
   "entity": {
@@ -115,6 +118,7 @@
     "profile": "Profile",
     "setting": "Setting",
     "setting_def": "Setting definition",
-    "wording": "Wording"
+    "wording": "Wording",
+    "saved_view": "Saved view"
   }
 }

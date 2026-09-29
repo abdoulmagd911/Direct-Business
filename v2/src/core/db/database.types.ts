@@ -44,6 +44,8 @@ export type Database = {
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
       device_touch: { Args: Record<PropertyKey, never>; Returns: string };
+      follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
+      following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_devices: {
         Args: Record<PropertyKey, never>;
@@ -55,6 +57,11 @@ export type Database = {
           this_device: boolean;
         }[];
       };
+      notifications: { Args: { p_before?: string; p_limit?: number; p_tab?: string }; Returns: Json };
+      notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
+      notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
+      notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      page_seen: { Args: { p_page: string }; Returns: string };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
         Args: { p_person: string };
@@ -90,6 +97,21 @@ export type Database = {
         Returns: undefined;
       };
       undo: { Args: { p_request: string }; Returns: Json };
+      view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
+      view_save: {
+        Args: {
+          p_id: string;
+          p_name: string;
+          p_page: string;
+          p_query: Json;
+          p_shared?: boolean;
+          p_sort?: number;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      views: { Args: { p_page: string }; Returns: Json };
+      views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;

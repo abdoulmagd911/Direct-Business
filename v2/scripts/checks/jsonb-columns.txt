@@ -8,3 +8,5 @@ core.setting_def.default_value — a setting's default value, of any shape its s
 core.setting.value — a setting's value, of any shape its schema allows — §3.2
 core.person_profile.notify — per notification kind, in-app and e-mail switches; kinds grow with the modules — §3.1
 core.person_profile.seen — what the person has seen per page ("Since your last visit") — §3.1
+notify.notification.label_args — the arguments of the notification's label key, as its request's — §3.3
+core.saved_view.query — a list's filters, columns, sort and grouping; each list has its own — §3.3, V78

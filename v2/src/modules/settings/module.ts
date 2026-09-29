@@ -1,6 +1,24 @@
 import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
+// Every kind of notification (TECH-SPEC §3.3); an admin can switch a kind off for everyone, or a department.
+export const NOTIFICATION_KINDS = [
+  'assigned',
+  'helper_added',
+  'mentioned',
+  'changed_by_other',
+  'followed_change',
+  'decision_needed',
+  'report_issued',
+  'report_for_review',
+  'appraisal_step',
+  'import_done',
+  'alert_contract_expiring',
+  'alert_kpi_behind',
+  'alert_invoice_unpaid',
+  'alert_kpi_checkin',
+] as const;
+
 // Settings: My profile (every person's own — it cannot be switched off), App, and Activity (the change log).
 // Levels: TECH-SPEC §8.
 export default defineModule({
@@ -40,6 +58,7 @@ export default defineModule({
     { key: 'setting', table: 'core.setting', page: 'settings.app', label: 'entity.setting' },
     { key: 'setting_def', table: 'core.setting_def', page: 'settings.app', label: 'entity.setting_def' },
     { key: 'wording', table: 'core.wording', page: 'settings.app', label: 'entity.wording' },
+    { key: 'saved_view', table: 'core.saved_view', page: null, label: 'entity.saved_view', owners: 'owner_id' },
   ],
   settings: [
     {
@@ -83,6 +102,13 @@ export default defineModule({
       label: 'setting.files.max_mb',
       schema: z.number().int().min(1).max(50),
       default: 20,
+    },
+    {
+      key: 'notify.kinds_enabled',
+      group: 'settings.app',
+      label: 'setting.notify.kinds_enabled',
+      schema: z.array(z.enum(NOTIFICATION_KINDS)),
+      default: [...NOTIFICATION_KINDS],
     },
   ],
 });
