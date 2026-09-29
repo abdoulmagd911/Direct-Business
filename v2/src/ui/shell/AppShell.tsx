@@ -16,7 +16,7 @@ import { TopBar } from './TopBar';
  * panel, the conflict dialog and the global refetch live here once, for every screen (P3-7).
  * Rendered only after `me` is known (the server layout gates it).
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, arabicEnabled = false }: { children: ReactNode; arabicEnabled?: boolean }) {
   const [search, setSearch] = useState(false);
   const [bell, setBell] = useState(false);
   const [tab, setTab] = useState<NotificationTab>('all');
@@ -31,6 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onOpenBell={() => setBell((o) => !o)}
             bellOpen={bell}
             unread={notifications.unread ?? 0}
+            arabicEnabled={arabicEnabled}
           />
           <main id="main" className="flex min-h-0 flex-1 overflow-hidden">
             {children}

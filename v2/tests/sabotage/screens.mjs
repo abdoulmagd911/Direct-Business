@@ -357,6 +357,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'menu-theme-stays-in-the-cookie',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the menu saves to the profile',
+    edits: [
+      {
+        file: 'src/ui/shell/ProfileMenu.tsx',
+        find: "onValueChange={(v) => choose('theme', v as typeof prefs.theme)}",
+        replace: "onValueChange={(v) => set('theme', v as typeof prefs.theme)}",
+      },
+    ],
+  },
+  {
     name: 'profile-keeps-the-undone-theme',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone theme is gone from the page',
@@ -401,6 +413,79 @@ export const sabotages = [
         file: 'src/modules/org/read-or-fail.ts',
         find: "    if (kind !== 'PermissionDenied') failed.push(name);\n",
         replace: '',
+      },
+    ],
+  },
+  // ---- the catalogue gaps (ACC-090/091/127/129/139, PRF-002/123)
+  {
+    name: 'none-gets-an-empty-page',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'says no access',
+    edits: [
+      {
+        file: 'src/ui/shell/Page.tsx',
+        find: "  if (page && (me.levels[page] ?? 'none') === 'none') {",
+        replace: "  if (page && (me.levels[page] ?? 'none') === 'none' && !page) {",
+      },
+    ],
+  },
+  {
+    name: 'root-ignores-the-start-page',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the start page is Tasks',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
+        replace: '  for (const key of [app.default_start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'arabic-cookie-wins-while-off',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the door stays English',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
+        replace: '  return cookieLocale;',
+      },
+    ],
+  },
+  {
+    name: 'profile-link-lost-in-the-drawer',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the drawer foot opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/Drawer.tsx',
+        find: '          href="/profile"\n          data-entity="person"',
+        replace: '          href="/settings/profile"\n          data-entity="person"',
+      },
+    ],
+  },
+  {
+    name: 'failed-read-drawn-as-empty',
+    breaks: ['e2e:tests/e2e/person-reads.spec.ts'],
+    expect: 'the failed read is named',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: "          {failedRead('signIns', t('settings.people.signInLog'))}\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'profile-link-lost-in-the-bottom-bar',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the bottom bar opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/BottomBar.tsx',
+        find: '              href="/profile"\n              data-entity="person"',
+        replace: '              href="/settings/profile"\n              data-entity="person"',
       },
     ],
   },

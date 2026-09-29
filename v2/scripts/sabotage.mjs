@@ -104,7 +104,11 @@ function command(target) {
     case 'unit':
       return ['pnpm', ['exec', 'vitest', 'run', arg]];
     case 'e2e':
-      return ['sh', ['-c', `pnpm build >/dev/null && pnpm exec playwright test ${JSON.stringify(arg)}`]];
+      // one browser project is proof enough of a red; the second (UTC, Arabic, the moved clock) is for the green run
+      return [
+        'sh',
+        ['-c', `pnpm build >/dev/null && pnpm exec playwright test --project=chromium ${JSON.stringify(arg)}`],
+      ];
     case 'sql':
       return ['node', ['scripts/db/test.mjs', '--only', arg]];
     default:
