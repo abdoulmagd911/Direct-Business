@@ -9,9 +9,10 @@ export const sabotages = [
     expect: '/finance refuses by address',
     edits: [
       {
-        file: 'src/app/(app)/finance/page.tsx',
-        find: "const allowed = (me.levels['finance'] ?? 'none') !== 'none';",
-        replace: 'const allowed = true; void me;',
+        // the rule lives in the screens' shared <Page page=…> (V214); the area pages hold no copy of it
+        file: 'src/ui/shell/Page.tsx',
+        find: "if (page && (me.levels[page] ?? 'none') === 'none') {",
+        replace: 'if (page && !me) {',
       },
     ],
   },
