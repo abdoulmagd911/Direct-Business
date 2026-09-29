@@ -184,6 +184,14 @@ describe('the Export button', () => {
     expect(toast.failed).toHaveBeenCalledWith('Export failed', undefined);
   });
 
+  it('offers CSV alone, as a plain button, when the formats setting reaches it empty (PRF-129)', async () => {
+    const button = draw(standIn(sampleRows(3)).page, []);
+    expect(button.dataset.exportFormat, 'an empty formats list offers CSV').toBe('csv');
+    act(() => button.click());
+    await settle();
+    expect(saved.map((s) => s.name)).toEqual([expect.stringMatching(/^Invoices_.*\.csv$/)]);
+  });
+
   it('offers CSV and Excel from a menu by default', async () => {
     const button = draw(standIn(sampleRows(12)).page);
     act(() => {

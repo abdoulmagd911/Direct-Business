@@ -346,4 +346,10 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'button-offers-an-empty-menu',
+    breaks: [`unit:${BUTTON}`],
+    expect: 'an empty formats list offers CSV',
+    edits: [{ file: BTN, find: "asked.length ? asked : ['csv']", replace: 'asked' }],
+  },
 ];

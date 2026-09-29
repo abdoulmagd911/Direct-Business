@@ -47,7 +47,10 @@ export interface ExportButtonProps<T> {
   omit?: Readonly<Record<string, string>>;
   /** The header each visible key shows on screen, to name a left-out column (defaults to the key). */
   headers?: Readonly<Record<string, string>>;
-  /** The formats offered (`app.export_formats`); one format makes a plain button. */
+  /**
+   * The formats offered (`app.export_formats`); one format makes a plain button. The setting holds at least one
+   * (V126); an empty list that reaches the button anyway offers CSV, never an empty menu (PRF-129).
+   */
   formats?: readonly ExportFormat[];
   /** The screen takes over failures (a `DbError` carries its catalog key); by default a toast says why. */
   onError?: (error: unknown) => void;
@@ -69,11 +72,12 @@ export function ExportButton<T>({
   visible,
   omit,
   headers,
-  formats = ['csv', 'xlsx'],
+  formats: asked = ['csv', 'xlsx'],
   onError,
   onDone,
   size = 'sm',
 }: ExportButtonProps<T>) {
+  const formats: readonly ExportFormat[] = asked.length ? asked : ['csv'];
   const [busy, setBusy] = useState(false);
   const running = useRef<AbortController | null>(null);
   useEffect(() => () => running.current?.abort(), []);
