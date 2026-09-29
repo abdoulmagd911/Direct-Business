@@ -150,7 +150,7 @@ async function shoot(browser: Browser, key: string, routes: Route[], down = fals
     const pp = await phone.newPage();
     const persona = PERSONAS.find((p) => p.key === key)?.label ?? key;
     for (const r of routes) {
-      const path = r.path(fx());
+      const path = r.path(fx(), key);
       const d = await take(dp, path);
       const p = await take(pp, path);
       const state = d.state === p.state ? d.state : `${d.state} / ${p.state}`;

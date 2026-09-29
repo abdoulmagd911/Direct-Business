@@ -17,7 +17,13 @@ export const PERSONAS: Persona[] = [
   { key: 'qa_test', label: 'Test account', note: 'an admin, standing in for the QA test account' },
 ];
 
-export type Route = { id: string; group: string; label: string; path: (f: Fixtures) => string; list?: boolean };
+export type Route = {
+  id: string;
+  group: string;
+  label: string;
+  path: (f: Fixtures, persona: string) => string;
+  list?: boolean;
+};
 
 export const ROUTES: Route[] = [
   { id: 'my-day', group: 'Work', label: 'My day', path: () => '/my-day', list: true },
@@ -53,6 +59,12 @@ export const ROUTES: Route[] = [
   { id: 'activity-signins', group: 'Activity', label: 'Activity · Sign-ins', path: () => '/activity?tab=signIns' },
   { id: 'profile', group: 'People', label: 'My profile', path: () => '/profile' },
   { id: 'person', group: 'People', label: "A colleague's record", path: (f) => `/people/${f.users.member2!.id}` },
+  {
+    id: 'own-record',
+    group: 'People',
+    label: 'Their own record',
+    path: (f, persona) => `/people/${(f.users[persona] ?? f.users.admin!).id}`,
+  },
   { id: 'settings-people', group: 'Settings', label: 'Organization & access · People', path: () => '/settings/org' },
   {
     id: 'settings-access',
