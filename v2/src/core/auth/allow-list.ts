@@ -129,7 +129,8 @@ type Generated = { person_id: string; auth_user_ids: string[]; signed_out: numbe
  * with its reason, marks every sign-in of the person "must change password" and signs the person's devices out; a
  * person who already holds a password — one the owner typed himself (V166), or one generated before — keeps it unless
  * `replace` says otherwise (the screen's Reset, asked explicitly). Then the secret key sets the one generated password on
- * each of those sign-ins, confirmed. The password goes back to the admin once, in this answer — never stored or logged.
+ * each of those sign-ins, confirmed. The password goes back to the admin once, in this answer (`temporary_password`) —
+ * never stored or logged.
  */
 export async function generatePassword(personId: string, reason: string, replace = false) {
   if (!reason.trim()) throw new DbError('RuleBroken', 'common.reason_required');
@@ -144,7 +145,7 @@ export async function generatePassword(personId: string, reason: string, replace
     const { error } = await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });
     if (error) throw new DbError('Unavailable', 'common.unavailable', error.message);
   }
-  return { ...set, password };
+  return { ...set, temporary_password: password };
 }
 
 /**
@@ -165,8 +166,8 @@ export async function generateForEveryoneWithout(reason: string) {
   const skipped = [];
   for (const p of people) {
     try {
-      const { password } = await generatePassword(p.person_id, reason);
-      out.push({ ...p, password });
+      const { temporary_password } = await generatePassword(p.person_id, reason);
+      out.push({ ...p, temporary_password });
     } catch (e) {
       if (
         !(e instanceof DbError) ||

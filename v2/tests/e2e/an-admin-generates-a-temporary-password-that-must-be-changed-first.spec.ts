@@ -38,7 +38,7 @@ test('an admin generates a temporary password, which must be changed before anyt
     data: { person_id: person.id, reason: 'Test: first sign-in' },
   });
   expect(made.status(), 'an admin generates it').toBe(200);
-  const { password } = (await made.json()) as { password: string };
+  const { temporary_password: password } = (await made.json()) as { temporary_password: string };
   expect(password.length, 'fourteen characters or more, answered once').toBeGreaterThanOrEqual(14);
 
   const db = publicClient();
@@ -66,7 +66,7 @@ test('an admin generates a temporary password, which must be changed before anyt
   const everyone = await adminPage.request.post('/auth/admin/password/everyone', {
     data: { reason: 'Test: everyone without one' },
   });
-  const list = ((await everyone.json()) as { people: { person_id: string; password: string }[] }).people;
+  const list = ((await everyone.json()) as { people: { person_id: string; temporary_password: string }[] }).people;
   expect(
     list.map((p) => p.person_id),
     'everyone without a password gets one',

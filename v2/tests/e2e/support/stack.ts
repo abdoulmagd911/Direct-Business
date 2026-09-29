@@ -26,6 +26,10 @@ function admin() {
   }).auth.admin;
 }
 
+/** Every test person's password (made up; the door is email + password — owner, 29 Sep). */
+export const TEST_PASSWORD = 'Test-Pass-2026-Riyadh';
+const CODE_DOOR = process.env.SIGN_IN_METHOD === 'code';
+
 export interface TestPerson {
   id: string;
   email: string;
@@ -64,7 +68,7 @@ export async function makePerson(
   );
   if (!listed) return { id, email, authUserId: null, name };
   await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [id, email]);
-  const created = await admin().createUser({ email, email_confirm: true });
+  const created = await admin().createUser({ email, email_confirm: true, password: TEST_PASSWORD });
   if (!created.data.user) throw new Error(`could not create the auth user: ${created.error?.message}`);
   await sql(`insert into core.person_auth (auth_user_id, person_id, email) values ($1, $2, $3)`, [
     created.data.user.id,
@@ -141,10 +145,51 @@ export async function sendCode(page: Page, email: string): Promise<number> {
   return since;
 }
 
-/** The whole door: open `from` signed out, land on the sign-in page, email → code → back to `from`. */
-export async function signIn(page: Page, email: string, from = '/'): Promise<void> {
+/**
+ * Tries the door once with an email (the sign-in page is open): the password door fills the password and clicks
+ * Sign in; the code door asks for a code. The refusal, if any, is the page's alert line.
+ */
+export async function attemptSignIn(page: Page, email: string, password = TEST_PASSWORD): Promise<void> {
+  if (CODE_DOOR) {
+    await sendCode(page, email);
+    return;
+  }
+  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+}
+
+/** The person's own Sign out (POST /auth/sign-out): the device is marked signed out and the cookies cleared. */
+export async function signOut(page: Page): Promise<void> {
+  await page.request.post('/auth/sign-out');
+  await page.context().clearCookies();
+}
+
+/** Whether the door sends e-mails at all: only the code door does. */
+export const DOOR_SENDS_MAIL = CODE_DOOR;
+
+/**
+ * Gives an auth user made through the allow-list (an admin allowing an email) the test password, as an admin's
+ * "Set password" would — without the must-change step, so a spec about the allow-list stays about the allow-list.
+ */
+export async function givePassword(email: string, password = TEST_PASSWORD): Promise<void> {
+  const [row] = await sql<{ id: string }>(`select id from auth.users where email = $1`, [email]);
+  if (!row) throw new Error(`no auth user for ${email}`);
+  const { error } = await admin().updateUserById(row.id, { password });
+  if (error) throw new Error(error.message);
+}
+
+/** The whole door: open `from` signed out, land on the sign-in page, email + password (or the code) → back to `from`. */
+export async function signIn(page: Page, email: string, from = '/', password = TEST_PASSWORD): Promise<void> {
   await page.goto(from);
   await page.waitForURL(/\/sign-in\?/);
+  if (!CODE_DOOR) {
+    await page.getByLabel('Work email').fill(email);
+    await page.getByLabel('Password', { exact: true }).fill(password);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page, 'the password signs in').not.toHaveURL(/\/sign-in(\?|$)/, { timeout: 15_000 });
+    return;
+  }
   const since = await sendCode(page, email);
   await page.getByLabel('Digit 1 of 6').waitFor();
   await page.getByLabel('Digit 1 of 6').fill(await codeFor(email, since));
