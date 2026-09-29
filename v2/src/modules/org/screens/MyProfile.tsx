@@ -1,12 +1,12 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { run } from '@/core/commands/run';
 import type { Me } from '@/core/auth/me';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { DENSITIES, THEMES, setPref } from '@/core/prefs';
+import { DENSITIES, PREF_DEFS, THEMES, readPrefs, setPref } from '@/core/prefs';
 import { NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar, type AvatarColor } from '@/ui/Avatar';
 import { BADGE_ICONS, ZODIAC } from '@/ui/badges';
@@ -56,6 +56,15 @@ const COLOURS: AvatarColor[] = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
  * api.profile_update with Undo; theme, density, language and the drawer also take effect on this screen at once
  * (the cookies are the profile's cache — V201).
  */
+
+function stateOf(me: Me) {
+  return {
+    person: me.person,
+    profile: me.profile,
+    personVersion: (me.person as { version?: number }).version ?? null,
+  };
+}
+
 export function MyProfile({
   me,
   devices,
@@ -68,11 +77,27 @@ export function MyProfile({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
-  const [state, setState] = useState(() => ({
-    person: me.person,
-    profile: me.profile,
-    personVersion: (me.person as { version?: number }).version ?? null,
-  }));
+  /**
+   * The screen shows the stored profile: its state is rebuilt from `me` every time the server answers again (a refresh,
+   * an Undo — `run` refreshes after both), so an undone value never lingers on screen; and the theme, density and
+   * language cookies are that profile's cache (core/prefs), so they follow it too — an undone theme reverts at once.
+   */
+  const [state, setState] = useState(() => stateOf(me));
+  const [seenMe, setSeenMe] = useState(me);
+  if (me !== seenMe) {
+    setSeenMe(me);
+    setState(stateOf(me));
+  }
+  useEffect(() => {
+    const before = readPrefs();
+    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);
+    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);
+    setPref('locale', me.profile?.locale ?? PREF_DEFS.locale.default);
+    if (me.profile?.drawer_pinned !== null && me.profile?.drawer_pinned !== undefined)
+      setPref('drawer', me.profile.drawer_pinned ? 'pinned' : 'collapsed');
+    // the words on screen come from the server in the cookie's language: a reverted language needs one more answer
+    if (readPrefs().locale !== before.locale) router.refresh();
+  }, [me, router]);
   const [deviceRows, setDeviceRows] = useState(devices);
   const person = personOf({ ...me, person: state.person, profile: state.profile });
   const words = {

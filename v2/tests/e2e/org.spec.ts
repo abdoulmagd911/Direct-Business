@@ -159,3 +159,50 @@ test('a non-admin is refused Settings by address', async ({ page }) => {
   await expect(page.locator('[data-state="no-access"]')).toBeVisible();
   await expect(page.locator('[data-setting]')).toHaveCount(0);
 });
+
+test('an admin edits one field of a person: only that field is sent, and the form reopens on the stored values', async ({
+  page,
+}) => {
+  const admin = await makePerson({ admin: true });
+  const member = await makePerson();
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, admin.email, `/people/${member.id}`);
+  await hydrated(page);
+
+  // one field changed → one field in the request (the old app's lesson: never every field, never a stale copy)
+  await page.locator('[data-person-edit]').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Full name')).toHaveValue(member.name);
+  await dialog.getByLabel('Job title').fill('Made-up title');
+  const sent = page.waitForRequest((r) => r.url().includes('/rpc/person_update') && r.method() === 'POST');
+  await dialog.locator('[data-person-save]').click();
+  const body = (await sent).postDataJSON() as { p_changes: Record<string, unknown>; p_version: number };
+  expect(Object.keys(body.p_changes), 'only the changed fields are sent').toEqual(['job_title_en']);
+  await expect(toast(page, 'updated')).toBeVisible();
+  await expect(page.getByRole('main').getByText(/^Made-up title · /)).toBeVisible();
+
+  // someone else changes the record (a team, by SQL here); the form, reopened after a reload, starts from that —
+  // and the write is checked against the fresh version, so it is not refused as a conflict
+  const tag = Date.now().toString(36);
+  const [team] = await sql<{ id: string; name: string }>(
+    `insert into core.team (department_id, code, name_en, name_ar)
+       select department_id, $2, $3, $4 from core.person where id = $1 returning id, name_en as name`,
+    [member.id, `te_${tag}`, `Test Team Edit ${tag}`, `فريق اختبار ${tag}`],
+  );
+  await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
+  await page.reload();
+  await hydrated(page);
+  await page.locator('[data-person-edit]').click();
+  await expect(page.getByRole('dialog').getByLabel('Team'), 'the form shows the stored value').toContainText(
+    team!.name,
+  );
+  await expect(page.getByRole('dialog').getByLabel('Job title')).toHaveValue('Made-up title');
+  await page.getByRole('dialog').getByLabel('Job title').fill('Made-up title two');
+  const again = page.waitForRequest((r) => r.url().includes('/rpc/person_update') && r.method() === 'POST');
+  await page.getByRole('dialog').locator('[data-person-save]').click();
+  const second = (await again).postDataJSON() as { p_changes: Record<string, unknown>; p_version: number };
+  expect(Object.keys(second.p_changes)).toEqual(['job_title_en']);
+  expect(second.p_version).toBeGreaterThan(body.p_version);
+  await expect(toast(page, 'updated').last()).toBeVisible();
+  await expect(page.getByRole('main').getByText(/^Made-up title two · /)).toBeVisible();
+});
