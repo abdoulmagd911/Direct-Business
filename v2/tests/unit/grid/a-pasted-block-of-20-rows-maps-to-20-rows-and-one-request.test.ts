@@ -25,7 +25,7 @@ describe('a pasted block of 20 rows', () => {
     expect(mapping).toEqual({
       hasHeader: true,
       dateOrder: 'dmy',
-      columns: { title: 0, happened_on: 1, kind: 2, organisation: 3, notes: 4 },
+      columns: { title: 0, happened_on: 1, kind: 2, organisation: 3, notes: 4, person: null },
     });
   });
 
@@ -48,7 +48,10 @@ describe('a pasted block of 20 rows', () => {
       kind: 'done',
       organisation_id: '00000000-0000-4000-8000-00000000000a',
       notes: null,
+      person_id: null,
+      import_key: rows[1]!.key,
     });
+    expect(new Set(request.rows.map((r) => r.import_key)).size, 'one key a row').toBe(20);
   });
 
   it('takes a paste without headers in the grid’s own column order', () => {
