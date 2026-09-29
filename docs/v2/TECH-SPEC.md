@@ -876,8 +876,9 @@ finance.expense_line   STD SOFT; invoice_id → finance.invoice (kind transactio
                        line_key unique (ref + expense type + created-at, for imports); expense_type; status ('approved',
                        'pending','under_review','cancelled','rejected'); status_raw; amount_sar (null while pending); merchant;
                        id_reference; created_at_src; submitted_at; decided_at; submitter; approver; source
-finance.tax_invoice    STD SOFT; dpin text not null (unique — V417: a check that can be relaxed to (dpin, parent) if real Payments
-                       data shows a DPIN repeating; the oversight looks once before P4-1 ships); parent_invoice_id → finance.invoice (kind billing or standalone);
+finance.tax_invoice    STD SOFT; dpin text not null (unique — V417: a check that can be relaxed to (dpin, parent) if real
+                       Payments data shows a DPIN repeating; the oversight looks once before P4-1 ships);
+                       parent_invoice_id → finance.invoice (kind billing or standalone);
                        total_sar (as recorded — used only by the checks); issued_on; source
 finance.receipt        STD SOFT; receipt_key unique; method; amount_sar; paid_on; ref_at_method; paid_by; notes; source
                        -- never revenue
@@ -942,12 +943,13 @@ now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and not
 and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording setting, `core.wording`); code keeps
 `revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy sheet does.
 
-**Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read as "only paid units count", V418) ·
-credit notes never count and never reduce revenue (V423) · wallet top-ups never revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue;
-collections measured on them · cost empty until an approved expense exists; the estimate always flagged and never in
-cost or margin · never estimate a commission · income by service adds up to the revenue tile · VAT never stored or
-shown (DPIN totals only feed the check) · exclusions win over everything and apply to past rows at once (D16) ·
-verification products are a `hide` rule typed by a person, never a silent skip (MF5; nothing is lost).
+**Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read
+as "only paid units count", V418) · credit notes never count and never reduce revenue (V423) · wallet top-ups never
+revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue; collections measured on them · cost empty
+until an approved expense exists; the estimate always flagged and never in cost or margin · never estimate a commission
+· income by service adds up to the revenue tile · VAT never stored or shown (DPIN totals only feed the check) ·
+exclusions win over everything and apply to past rows at once (D16) · verification products are a `hide` rule typed by a
+person, never a silent skip (MF5; nothing is lost).
 
 **Known faults in the old code, fixed by design:** receipts read without paging (A7); `Voided` left in outstanding (the
 status map decides everything); twin pairing only inside one 5,000-row batch (v2 links from Payments' own
