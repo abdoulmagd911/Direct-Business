@@ -59,6 +59,23 @@
   /* motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --dur: 160ms;
+
+  /* the door (sign in, choose a new password) — one light set whatever the theme (the visual spec of 29 Sep, V213) */
+  --door-panel: #323e48;
+  --door-on-panel: #ffffff;
+  --door-rule: #f06820;
+  --door-bg: #f5f6f8;
+  --door-text: #323e48;
+  --door-muted: #646d79;
+  --door-border: #858e99;
+  --door-field-bg: #ffffff;
+  --door-button: #323e48;
+  --door-button-hover: #26313a;
+  --door-on-button: #ffffff;
+  --door-focus: #323e48;
+  --door-caps: #7d6200;
+  --door-danger: #c0233f;
+  --door-danger-bg: #fbe4e8;
 }
 
 [data-density='compact'] {

@@ -24,7 +24,9 @@ test('email step → code step → signed in on the deep link', async ({ page, c
   await expect(page.locator('[data-step="code"]')).toHaveCount(0);
 
   await sendCode(page, unlistedEmail());
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    "This email isn't on the team list. Ask your admin to add you.",
+  );
   await expect(page.locator('[data-step="code"]')).toHaveCount(0);
 
   const person = await makePerson();
