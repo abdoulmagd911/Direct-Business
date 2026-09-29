@@ -1,14 +1,14 @@
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { BrandLogo } from '@/ui/BrandLogo';
 
 /**
- * The sign-in brand panel (owner, 28 Sep): Direct slate, the white logo, the tagline, and one quiet
+ * The sign-in brand panel (owner, 28 Sep; no tagline — oversight, 29 Sep): Direct slate, the white logo, the workspace
+ * name, and one quiet
  * flight-path pattern — the single bold element of the page. Sits at the inline start (left in
  * English, right in Arabic) on wide screens and as a band on top on a phone.
  */
 export function BrandPanel() {
   const t = useTranslations('app');
-  const locale = useLocale();
   return (
     <aside
       className="relative flex shrink-0 flex-col justify-between overflow-hidden bg-nav-bg px-8 py-8 text-nav-text md:w-[46%] md:max-w-[640px] md:px-14 md:py-12"
@@ -20,14 +20,7 @@ export function BrandPanel() {
       </div>
       <div className="relative mt-10 flex flex-col items-start gap-3 md:mb-16 md:mt-auto">
         <p className="max-w-[22ch] font-display text-2xl font-medium leading-snug text-nav-active-text md:text-3xl">
-          {t('brand_line')}
-        </p>
-        <p
-          lang={locale === 'ar' ? 'en' : 'ar'}
-          dir={locale === 'ar' ? 'ltr' : 'rtl'}
-          className="max-w-[32ch] text-end text-base text-nav-muted md:text-lg"
-        >
-          {locale === 'ar' ? 'The commercial arm of the all-in-one travel app' : 'الذراع التجاري لتطبيق السفر الشامل'}
+          {t('workspace')}
         </p>
       </div>
       <p className="relative hidden text-sm text-nav-muted md:block">{t('copyright')}</p>

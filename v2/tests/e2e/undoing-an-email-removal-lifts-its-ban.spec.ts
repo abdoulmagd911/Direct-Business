@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { makePerson, signIn, sql } from './support/stack';
+import { givePassword, makePerson, signIn, sql } from './support/stack';
 
 // P3-6d · V128, V144: undoing a sign-in change keeps Supabase Auth in step. An admin removes an allowed e-mail (its
 // auth user is banned), then undoes the removal through /auth/admin/undo: the database names the person, their auth
@@ -16,6 +16,7 @@ test('undoing an e-mail removal lifts its ban', async ({ browser }) => {
   const added = await adminPage.request.post('/auth/admin/emails', {
     data: { person_id: newcomer.id, email: newcomer.email, primary: true },
   });
+  await givePassword(newcomer.email);
   const addedBody = (await added.json()) as { id: string; auth_user_id: string };
   const removed = await adminPage.request.post('/auth/admin/emails/remove', {
     data: { id: addedBody.id, reason: 'Test: removed by mistake' },

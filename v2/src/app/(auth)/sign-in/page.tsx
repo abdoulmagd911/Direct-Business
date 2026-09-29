@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getMe } from '@/core/auth/get-me';
+import { signInMethod } from '@/core/auth/password-rules';
 import { safeNext } from '@/core/auth/safe-next';
 import { SignIn } from '@/modules/org/screens/SignIn';
 
@@ -21,5 +22,5 @@ export default async function SignInPage({
   if (me?.status === 'ok') redirect(safeNext(next));
 
   const t = await getTranslations();
-  return <SignIn next={next} refusal={reason ? t(`sign_in.error.${reason}`) : null} />;
+  return <SignIn next={next} refusal={reason ? t(`sign_in.error.${reason}`) : null} method={signInMethod()} />;
 }
