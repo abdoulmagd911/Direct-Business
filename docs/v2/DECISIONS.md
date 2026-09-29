@@ -599,6 +599,18 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - REG-01 now checks that every setting has its floor row and answers the registry's default today. Sabotage: `a-changed-default-never-lands`.
 - A department's own value, or an admin's company-wide one, is left alone. A kind added to `notify.kinds_enabled` is therefore off where an admin set the list; the Settings screen shows it.
 
+**V156 — The banned words cover the data too, as built** ACTIVE · 2026-09-29 (V404). "B2G" joins the banned words beside "B2B". They are now kept out of the data in three places:
+- **The words check** (`forbidden-words`) reads, besides the catalogs, the templates and the page text (the settings' defaults included), the string literals of every migration from `20260929091000` on: seeds and list values are wording too. Comments are not.
+  - Older migrations are history (V103). The database they build is scanned instead.
+  - `check-allow: forbidden-words — …` waives a line with its reason. Only the database's own copy of the list uses it.
+- **The database** has `core.banned_word(text)`, naming the first banned word a text carries.
+  - The list editor (`core.list_save`) and the side-field editor (`partner.side_field_save`) refuse a value, a label or an option that carries one, as `list.banned_word`, naming it.
+  - So does every save of a department, a team or a role (a trigger, whichever door saves the name; a name left as it was is not asked again — QA-68).
+- **Data bans fewer words than screens (QA-67).** In data (seeds, list values, names typed in) the banned words are V59's five and B2G: Direct KSA, Direct Corporate, B2B, B2G, MICE. Google, Zoom, "Keep me signed in" and GMV stay banned on screens only: a meeting channel or a reference system may be named after its tool, and V73 lets the KPI mapping say GMV. The check holds the data list as `FORBIDDEN_IN_DATA` and scans seeds with it; a unit test keeps it equal to the database's copy. Builder B's typed-value check (`src/core/words/banned.ts`) should follow the same split.
+- **WORDS-01** scans the database built from zero: every setting list's values, every setting default and value, and every wording. The segment is Government.
+
+Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-scanned-for-chrome-words`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`, `an-org-name-takes-a-banned-word`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
