@@ -289,7 +289,7 @@ export const sabotages = [
     name: 'button-offers-one-format',
     breaks: [`unit:${BUTTON}`],
     expect: 'offers CSV and Excel from a menu',
-    edits: [{ file: BTN, find: "formats = ['csv', 'xlsx'],", replace: "formats = ['csv']," }],
+    edits: [{ file: BTN, find: "formats: asked = ['csv', 'xlsx'],", replace: "formats: asked = ['csv']," }],
   },
   {
     name: 'moment-without-offset-read-as-local',
