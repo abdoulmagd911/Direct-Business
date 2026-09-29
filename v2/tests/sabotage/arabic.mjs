@@ -41,7 +41,9 @@ export const sabotages = [
     name: 'ar-calls-an-admin-al-masool',
     breaks: [CATALOG],
     expect: 'راجع أحد المسؤولين',
-    edits: [{ file: AR, find: 'راجع مدير النظام', replace: 'راجع أحد المسؤولين' }],
+    edits: [
+      { file: AR, find: 'نسيت كلمة المرور؟ راجع مدير النظام.', replace: 'نسيت كلمة المرور؟ راجع أحد المسؤولين.' },
+    ],
   },
   {
     name: 'ar-says-company',
@@ -72,5 +74,17 @@ export const sabotages = [
     breaks: ['check:i18n-catalogs'],
     expect: 'missing "nav.collapse"',
     edits: [{ file: AR, find: '    "collapse": "طي القائمة",\n', replace: '' }],
+  },
+  {
+    name: 'ar-writes-a-dotted-key',
+    breaks: [FALLBACK],
+    expect: 'a key name with a dot in ar.json',
+    edits: [
+      {
+        file: AR,
+        find: '      "profile": {\n        "updated": "تحديث الملف الشخصي"\n      },\n',
+        replace: '      "profile.updated": "تحديث الملف الشخصي",\n',
+      },
+    ],
   },
 ];

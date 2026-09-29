@@ -8,7 +8,7 @@ import { withFallback, type Messages } from '@/core/i18n/messages';
  * English beneath Arabic (V410; restored with the catalog check by the oversight, 29 Sep): the catalog check keeps
  * ar.json complete, and if a key slips through anyway the Arabic screen shows its English — never the key itself,
  * never an error — while every key that has its Arabic keeps it.
- * Sabotages: `ar-fallback-shows-the-key`, `plant-missing-ar-key` (tests/sabotage/arabic.mjs).
+ * Sabotages: `ar-fallback-shows-the-key`, `plant-missing-ar-key`, `ar-writes-a-dotted-key` (tests/sabotage/arabic.mjs).
  */
 const V2 = path.resolve(import.meta.dirname, '../../..');
 const read = (lang: string) => JSON.parse(fs.readFileSync(path.join(V2, `messages/${lang}.json`), 'utf8')) as Messages;
@@ -39,6 +39,18 @@ describe('the Arabic catalog with English beneath it', () => {
     expect(t('sign_in.sent_to' as never, { email: 'test.am1@example.com' } as never)).toBe(
       'أُرسل إلى test.am1@example.com',
     );
+  });
+
+  it('names no key with a dot in it — next-intl splits a key on dots, so a dotted name is never found', () => {
+    const dotted: string[] = [];
+    const walk = (o: Messages, at: string) => {
+      for (const [k, v] of Object.entries(o)) {
+        if (k.includes('.')) dotted.push(`${at}${k}`);
+        if (typeof v === 'object') walk(v, `${at}${k}.`);
+      }
+    };
+    walk(read('ar'), '');
+    expect(dotted, 'a key name with a dot in ar.json').toEqual([]);
   });
 
   it('merges nested groups key by key', () => {
