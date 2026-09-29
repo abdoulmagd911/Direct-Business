@@ -5,7 +5,8 @@ import { makePerson, signIn } from './support/stack';
 // V431, V441, V166 · e-mail and password: an admin's route generates a person's temporary password — refused to anyone
 // but an admin and without a reason — answers it once, 14 characters or more, and Auth takes it; the sign-in it opens
 // completes as must_change_password and reaches nothing else until the change is recorded, which the browser cannot do.
-// "Generate for everyone without a password" skips who already has one; replacing one is a confirmed Reset (V451). The person's own screens are builder B's.
+// "Generate for everyone without a password" is generate-for-everyone-without-a-password.alone.spec.ts (it runs alone);
+// replacing a password someone holds is a confirmed Reset (V451). The person's own screens are builder B's.
 // Every value is made up. Sabotage: tests/sabotage/e2e-sign-in.mjs "e2e-password-never-reaches-auth".
 function publicClient() {
   return createClient(
@@ -18,7 +19,7 @@ function publicClient() {
 test('an admin generates a temporary password, which must be changed before anything else', async ({ browser }) => {
   const admin = await makePerson({ admin: true });
   const member = await makePerson();
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
 
   const memberCtx = await browser.newContext();
   const memberPage = await memberCtx.newPage();
@@ -66,19 +67,6 @@ test('an admin generates a temporary password, which must be changed before anyt
     data: { person_id: person.id, reason: 'Test: reset', confirm: true },
   });
   expect(reset.status(), 'unless the admin asks for a Reset and confirms it').toBe(200);
-
-  const everyone = await adminPage.request.post('/auth/admin/password/everyone', {
-    data: { reason: 'Test: everyone without one' },
-  });
-  const list = ((await everyone.json()) as { people: { person_id: string; temporary_password: string }[] }).people;
-  expect(
-    list.map((p) => p.person_id),
-    'everyone without a password gets one',
-  ).toContain(member.id);
-  expect(
-    list.map((p) => p.person_id),
-    'but not who already has one',
-  ).not.toContain(person.id);
 
   await memberCtx.close();
   await adminCtx.close();

@@ -59,6 +59,18 @@ begin
   if audit.touches_access(q.id) then
     return false;
   end if;
+  -- My profile (V9, V97): a change you made to your own names or your own profile is yours to undo within the window,
+  -- whatever your level on the people pages — exactly what api.profile_update let you change.
+  if q.actor_id = me and q.at > core.clock() - pg_catalog.make_interval(hours => window_h)
+     and not exists (
+       select 1 from audit.change c
+       where c.request_id = q.id
+         and not ((c.table_name = 'core.person' and c.row_id = me
+                   and c.fields <@ array['full_name_en', 'full_name_ar', 'nickname_en', 'nickname_ar'])
+                  or (c.table_name = 'core.person_profile'
+                      and exists (select 1 from core.person_profile pp where pp.id = c.row_id and pp.person_id = me)))) then
+    return true;
+  end if;
   if exists (select 1 from audit.change c where c.request_id = q.id and not authz.can_see_as(me, c.table_name, c.row_id)) then
     return false;
   end if;
@@ -84,32 +96,41 @@ $$;
 -- ================================================================ sign-in changes go through the admin route (QA)
 -- Undoing or restoring an allowed e-mail, a sign-in link or a switch changes who may sign in, so Supabase Auth must
 -- follow in the same breath — which only the server can do, with the secret key (/auth/admin/undo, /auth/admin/restore).
--- The route takes a one-time ticket first (service role only); the database undoes or restores a sign-in record only
--- against a fresh ticket for it, so no screen can skip the re-sync.
+-- The route takes a one-time ticket first (service role only), for the signed-in person and that one request or record,
+-- and hands its id to the database with the call (api.undo_ticketed, api.restore_ticketed): the database undoes or
+-- restores a sign-in record only against that ticket — fresh, unused, issued for this person and this target — so no
+-- screen can skip the re-sync, and a ticket left over by a call that failed serves nobody else (QA-94).
 create table core.auth_ticket (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in ('undo', 'restore')),
   target text not null check (pg_catalog.length(target) <= 200),
+  person_id uuid not null references core.person (id),
   issued_at timestamptz not null default now(),
   used_at timestamptz
 );
+create index auth_ticket_person on core.auth_ticket (person_id);
 alter table core.auth_ticket enable row level security;
 comment on table core.auth_ticket is 'One-time tickets the admin route takes (service role) before undoing or restoring a sign-in record, so Auth is re-synced every time (V162).';
 
-create function core.auth_ticket_issue(p_kind text, p_target text) returns uuid
+create function core.auth_ticket_issue(p_kind text, p_target text, p_person uuid) returns uuid
 language sql volatile security definer set search_path = ''
-as $$ insert into core.auth_ticket (kind, target) values (p_kind, p_target) returning id $$;
+as $$ insert into core.auth_ticket (kind, target, person_id) values (p_kind, p_target, p_person) returning id $$;
 
--- Takes a fresh ticket (under a minute old, unused) for this undo or restore, or answers false.
-create function core.auth_ticket_take(p_kind text, p_target text) returns boolean
+-- Takes the ticket named — issued for the signed-in person and this undo or restore, under a minute old, unused — or
+-- answers false.
+create function core.auth_ticket_take(p_ticket uuid, p_kind text, p_target text) returns boolean
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   t uuid;
 begin
+  if p_ticket is null then
+    return false;
+  end if;
   select a.id into t from core.auth_ticket a
-  where a.kind = p_kind and a.target = p_target and a.used_at is null and a.issued_at > pg_catalog.now() - interval '1 minute'
-  order by a.issued_at desc limit 1 for update;
+  where a.id = p_ticket and a.kind = p_kind and a.target = p_target and a.person_id = authz.me()
+    and a.used_at is null and a.issued_at > pg_catalog.now() - interval '1 minute'
+  for update;
   if t is null then
     return false;
   end if;
@@ -118,13 +139,16 @@ begin
 end
 $$;
 
-create function api.auth_ticket_issue(p_kind text, p_target text) returns uuid
-language sql volatile security invoker set search_path = '' as $$ select core.auth_ticket_issue(p_kind, p_target) $$;
-revoke all on function core.auth_ticket_issue(text, text), api.auth_ticket_issue(text, text) from public;
-grant execute on function core.auth_ticket_issue(text, text), api.auth_ticket_issue(text, text) to service_role;
+create function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) returns uuid
+language sql volatile security invoker set search_path = ''
+as $$ select core.auth_ticket_issue(p_kind, p_target, p_person) $$;
+revoke all on function core.auth_ticket_issue(text, text, uuid), api.auth_ticket_issue(text, text, uuid),
+  core.auth_ticket_take(uuid, text, text) from public;
+grant execute on function core.auth_ticket_issue(text, text, uuid), api.auth_ticket_issue(text, text, uuid)
+  to service_role;
 
--- audit.undo as P3-6d wrote it: a sign-in change is undone only against the admin route's ticket.
-create or replace function audit.undo(p_request uuid) returns jsonb
+-- audit.undo as P3-6d wrote it: a sign-in change is undone only against the admin route's ticket, named in the call.
+create function audit.undo_ticketed(p_request uuid, p_ticket uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -154,7 +178,7 @@ begin
   if not audit.undo_allowed(q, me) then
     raise exception using errcode = '42501', message = 'undo.not_allowed';
   end if;
-  if audit.touches_sign_in(q.id) and not core.auth_ticket_take('undo', q.id::text) then
+  if audit.touches_sign_in(q.id) and not core.auth_ticket_take(p_ticket, 'undo', q.id::text) then
     raise exception using errcode = 'P0001', message = 'undo.via_admin_route', detail = '/auth/admin/undo';
   end if;
   req := audit.begin('undo', 'undo.done', pg_catalog.jsonb_build_object('request', q.id, 'label', q.label_key), null);
@@ -183,10 +207,45 @@ begin
 end
 $$;
 
+-- Undo from anywhere but the admin route: no ticket, so a sign-in change is refused (undo.via_admin_route).
+create or replace function audit.undo(p_request uuid) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select audit.undo_ticketed(p_request, null) $$;
+create function api.undo_ticketed(p_request uuid, p_ticket uuid) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select audit.undo_ticketed(p_request, p_ticket) $$;
+revoke all on function audit.undo_ticketed(uuid, uuid), api.undo_ticketed(uuid, uuid) from public;
+grant execute on function audit.undo_ticketed(uuid, uuid), api.undo_ticketed(uuid, uuid) to authenticated;
+
+-- What a record type's own write asks, asked again to bring it back (QA-47): an identifier needs its side's identify
+-- capability (a client ID or a discount code the Client side's), a side's owner its side's assign, a credit limit
+-- finance.credit_control — raised as the write itself would raise it. Admins hold them all.
+create function core.restore_needs(p_table text, p_id uuid) returns void
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  i record;
+begin
+  if authz.me() is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  if p_table = 'partner.identifier' then
+    select x.partner_id, x.kind into i from partner.identifier x where x.id = p_id;
+    perform partner.require_cap(i.partner_id,
+                                case when i.kind in ('payments_client_id', 'discount_code') then 'client' end, 'identify');
+  elsif p_table = 'partner.side_owner' then
+    select x.side into i from partner.side_owner x where x.id = p_id;
+    perform authz.require_capability(partner.side_page(i.side) || '.assign');
+  elsif p_table = 'partner.credit_limit' then
+    perform authz.require_capability('finance.credit_control');
+  end if;
+end
+$$;
+revoke all on function core.restore_needs(text, uuid) from public;
+
 -- core.restore as P3-8b-1 wrote it, with rights read now: whoever removed it restores it only while they still hold
--- Own on it (or it has neither page nor level); access rows stay an admin's (audit.access_tables); a sign-in record is
--- restored only against the admin route's ticket, and the answer names whose sign-in to re-sync.
-create or replace function core.restore(p_entity text, p_id uuid, p_reason text default null) returns jsonb
+-- Own on it (or it has neither page nor level), and the record type's own capability (core.restore_needs); access rows
+-- stay an admin's (audit.access_tables); a sign-in record is restored only against the admin route's ticket, named in the
+-- call, and the answer names whose sign-in to re-sync.
+create function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -219,8 +278,9 @@ begin
                    or (may_own and (who = me or me = any (core.owners_of(e.table_name, p_id))))))) then
     raise exception using errcode = '42501', message = 'restore.not_allowed';
   end if;
+  perform core.restore_needs(e.table_name, p_id);
   if e.table_name in ('core.person_email', 'core.person_auth')
-     and not core.auth_ticket_take('restore', p_entity || ':' || p_id) then
+     and not core.auth_ticket_take(p_ticket, 'restore', p_entity || ':' || p_id) then
     raise exception using errcode = 'P0001', message = 'restore.via_admin_route', detail = '/auth/admin/restore';
   end if;
   req := audit.begin('ui', 'record.restored', pg_catalog.jsonb_build_object('entity', p_entity), p_reason);
@@ -239,6 +299,19 @@ begin
                                        'auth_resync', coalesce(pg_catalog.to_jsonb(resync), '[]'::jsonb));
 end
 $$;
+
+-- Restore from anywhere but the admin route: no ticket, so a sign-in record is refused (restore.via_admin_route).
+create or replace function core.restore(p_entity text, p_id uuid, p_reason text default null) returns jsonb
+language sql volatile security invoker set search_path = ''
+as $$ select core.restore_ticketed(p_entity, p_id, null, p_reason) $$;
+create function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null)
+  returns jsonb
+language sql volatile security invoker set search_path = ''
+as $$ select core.restore_ticketed(p_entity, p_id, p_ticket, p_reason) $$;
+revoke all on function core.restore_ticketed(text, uuid, uuid, text), api.restore_ticketed(text, uuid, uuid, text)
+  from public;
+grant execute on function core.restore_ticketed(text, uuid, uuid, text), api.restore_ticketed(text, uuid, uuid, text)
+  to authenticated;
 
 -- ================================================================ the alerts job asks too (V143)
 -- notify.generate_alerts as P3-6b wrote it: nobody is told of a record they may not see.
@@ -286,7 +359,8 @@ as $$
 $$;
 create or replace function authz.reports_to(p_person uuid) returns boolean
 language sql stable security definer set search_path = '' as $$ select authz.reports_to(p_person, authz.me()) $$;
-grant execute on function authz.reports_to(uuid, uuid) to authenticated;
+-- The two-person form stays inside the database (QA-99): only rules that run as their owner ask it.
+revoke all on function authz.reports_to(uuid, uuid) from public, authenticated;
 
 -- ================================================================ setting lists (V97; QA)
 -- A list entry is in use by live records and by records waiting in Recently deleted (a restore would bring back a
@@ -352,8 +426,10 @@ declare
   r record;
   n bigint;
   moved bigint := 0;
+  moved_removed bigint := 0;
   kept bigint := 0;
   defs bigint := 0;
+  gone bigint;
   req uuid;
   what text;
 begin
@@ -380,11 +456,18 @@ begin
         if core.is_history(r.tbl) then kept := kept + n; else defs := defs + n; end if;
         continue;
       end if;
-      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1%s', r.tbl, r.col, r.col,
-                                case when r.soft then ' and t.deleted_at is null' else '' end)
+      -- rows waiting in Recently deleted move too, so a restore brings them back on the replacement (QA-97)
+      gone := 0;
+      if r.soft then
+        execute pg_catalog.format('select pg_catalog.count(*) from %s t where t.%I = $1 and t.deleted_at is not null',
+                                  r.tbl, r.col)
+          into gone using p_id;
+      end if;
+      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1', r.tbl, r.col, r.col)
         using p_id, p_replacement;
       get diagnostics n = row_count;
-      moved := moved + n;
+      moved := moved + n - gone;
+      moved_removed := moved_removed + gone;
     end loop;
   exception
     when unique_violation or exclusion_violation then
@@ -396,7 +479,8 @@ begin
   end;
   perform audit.write_fields(e.table_name, p_id, '{"active": false}');
   perform audit.end();
-  return pg_catalog.jsonb_build_object('moved', moved, 'kept_in_history', kept, 'kept_in_lists', defs, 'request_id', req);
+  return pg_catalog.jsonb_build_object('moved', moved, 'moved_removed', moved_removed, 'kept_in_history', kept,
+                                       'kept_in_lists', defs, 'request_id', req);
 end
 $$;
 
@@ -497,3 +581,49 @@ where name_ar is null or pg_catalog.btrim(name_ar) = '';
 update core.team set name_ar = name_en where name_ar is null or pg_catalog.btrim(name_ar) = '';
 update core.role set name_ar = name_en where name_ar is null or pg_catalog.btrim(name_ar) = '';
 select audit.end();
+
+-- ================================================================ retired capabilities grant nothing (QA-56)
+-- core.access_set_person_role as P3-4 wrote it, asking only the capabilities still in use: the grants of a retired one
+-- (partners.assign, partners.identify, partners.merge — replaced by each side's own, V98) give nothing, so they no longer
+-- stop an admin, or anyone, from giving a role that holds one.
+create or replace function core.access_set_person_role(p_person uuid, p_role uuid, p_reason text) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  me uuid := core.access_guard(p_person);
+  why text := core.access_reason(p_reason);
+  target core.role;
+  req uuid;
+  x core.person;
+  over text;
+begin
+  select * into target from core.role where id = p_role and active;
+  if target.id is null then
+    raise exception using errcode = 'P0002', message = 'common.not_found';
+  end if;
+  if target.is_admin and not authz.is_admin() then
+    raise exception using errcode = '42501', message = 'access.admins_only';
+  end if;
+  if not target.is_admin then
+    select l.page_key into over from core.role_page_level l join core.page pg on pg.key = l.page_key and pg.active
+    where l.role_id = p_role and l.deleted_at is null and l.level > authz.level_of(me, l.page_key)
+    order by l.page_key limit 1;
+    if over is not null then
+      raise exception using errcode = '42501', message = 'access.above_your_level',
+        detail = pg_catalog.jsonb_build_object('page', over)::text;
+    end if;
+    select c.capability_key into over from core.role_capability c
+    join core.capability k on k.key = c.capability_key and k.active
+    where c.role_id = p_role and c.granted and c.deleted_at is null and not authz.can_of(me, c.capability_key)
+    order by c.capability_key limit 1;
+    if over is not null then
+      raise exception using errcode = '42501', message = 'access.above_your_level',
+        detail = pg_catalog.jsonb_build_object('capability', over)::text;
+    end if;
+  end if;
+  req := audit.begin('ui', 'access.person_role_set', pg_catalog.jsonb_build_object('role', target.key), why);
+  update core.person set role_id = p_role where id = p_person returning * into x;
+  perform audit.end();
+  return pg_catalog.jsonb_build_object('id', x.id, 'version', x.version, 'request_id', req);
+end
+$$;

@@ -16,9 +16,12 @@ select test.eq((select string_agg(distinct c.table_name, ',' order by c.table_na
   'core.person,core.person_email', 'the person and the e-mail are one request');
 select test.eq((select count(*)::int from audit.request r where r.actor_id = current_setting('t.admin')::uuid
                 and r.label_key = 'person_email.added'), 0, 'with no request of its own for the e-mail');
-select core.auth_ticket_issue('undo', current_setting('t.new')::jsonb ->> 'request_id');  -- the admin route's (V162)
+-- the admin route's ticket, for this admin and this request (V162)
+select set_config('t.k', core.auth_ticket_issue('undo', current_setting('t.new')::jsonb ->> 'request_id',
+  current_setting('t.admin')::uuid)::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
-select test.eq(api.undo((current_setting('t.new')::jsonb ->> 'request_id')::uuid) -> 'auth_resync',
+select test.eq(api.undo_ticketed((current_setting('t.new')::jsonb ->> 'request_id')::uuid,
+  current_setting('t.k')::uuid) -> 'auth_resync',
   jsonb_build_array(current_setting('t.new')::jsonb ->> 'id'), 'the undo names the person for the sign-in re-sync');
 select test.as_owner();
 select test.eq((select count(*)::int from core.person_email where email = 'test.added.with.email@example.test'

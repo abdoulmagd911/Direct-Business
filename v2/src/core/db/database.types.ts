@@ -53,7 +53,7 @@ export type Database = {
         };
         Returns: Json;
       };
-      auth_ticket_issue: { Args: { p_kind: string; p_target: string }; Returns: string };
+      auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       campaign_code_add: {
         Args: {
@@ -272,6 +272,10 @@ export type Database = {
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
+      restore_ticketed: {
+        Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };
+        Returns: Json;
+      };
       role_save: {
         Args: {
           p_id: string;
@@ -306,13 +310,11 @@ export type Database = {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
       };
+      sign_in_limited: { Args: { p_email: string }; Returns: string };
       sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
       sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
       sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
-      sign_in_password_refused: {
-        Args: { p_detail: string; p_email: string; p_user_agent?: string };
-        Returns: undefined;
-      };
+      sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {
@@ -328,6 +330,7 @@ export type Database = {
         Returns: Json;
       };
       undo: { Args: { p_request: string }; Returns: Json };
+      undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
       view_save: {
         Args: {

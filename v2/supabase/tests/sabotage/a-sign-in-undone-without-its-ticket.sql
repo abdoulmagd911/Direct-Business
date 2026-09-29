@@ -2,7 +2,7 @@
 -- Breaks: sql:UNDO-06
 -- Expect: even an admin undoes it only through the admin route, which re-syncs Auth
 -- A sign-in change is undone without the admin route, so Supabase Auth is left behind (V162).
-create or replace function audit.undo(p_request uuid) returns jsonb
+create or replace function audit.undo_ticketed(p_request uuid, p_ticket uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare

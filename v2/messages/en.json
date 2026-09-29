@@ -20,12 +20,12 @@
     "resend": "Resend code",
     "resend_in": "Resend code ({time})",
     "error": {
-      "not_listed": "This email is not on the list — ask an admin",
+      "not_listed": "This email isn't on the team list. Ask your admin to add you.",
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
       "code_off": "Sign in with your password",
-      "invalid_email": "Enter your work email",
+      "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
       "inactive": "This device was not used for 30 days — sign in again",
@@ -44,20 +44,32 @@
       "again": "New password again",
       "setAndContinue": "Set password and continue",
       "error": {
-        "wrong_password": "Wrong email or password",
+        "wrong_password": "That email and password don't match. Try again or ask your admin to reset it.",
         "wrong_current": "The current password is wrong",
         "too_short": "At least 10 characters",
         "mismatch": "The two passwords are not the same",
         "not_signed_in": "Sign in first",
-        "invalid_email": "Enter your work email",
-        "not_listed": "This email is not on the list — ask an admin",
+        "invalid_email": "Enter your work email.",
+        "not_listed": "This email isn't on the team list. Ask your admin to add you.",
         "switched_off": "Your account is switched off",
-        "rate_limited": "Too many tries — wait a minute and try again",
-        "unavailable": "Sign-in is not available right now — try again",
+        "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
+        "unavailable": "Can't reach the server. Check your connection and try again.",
+        "email_required": "Enter your work email.",
+        "password_required": "Enter your password.",
         "too_long": "Too long — choose a shorter password",
-        "same_as_email": "Not your email address"
-      }
-    }
+        "same_as_email": "Not your email address",
+        "not_needed": "Your password doesn't need changing here — use My profile → Change password."
+      },
+      "subtitle": "Sign in with your work email and password.",
+      "signingIn": "Signing in…",
+      "show": "Show password",
+      "hide": "Hide password",
+      "capsLock": "Caps Lock is on"
+    },
+    "footer": "© {year} Direct",
+    "tab_title": "Sign in · Commercial Workspace",
+    "switch_to_ar": "العربية",
+    "switch_to_en": "English"
   },
   "session": {
     "sign_out": "Sign out",
@@ -438,7 +450,9 @@
         "code_expired": "Code expired",
         "provider_error": "Sending failed",
         "signed_out": "Signed out",
-        "rate_limited": "Too many codes"
+        "rate_limited": "Too many tries",
+        "wrong_password": "Wrong password",
+        "locked": "Locked — too many wrong passwords"
       }
     },
     "loadMore": "Show earlier"
@@ -488,7 +502,9 @@
       "alert_contract_expiring": "A contract is expiring",
       "alert_kpi_behind": "A KPI is behind pace",
       "alert_invoice_unpaid": "An invoice is unpaid",
-      "alert_kpi_checkin": "KPI check-in day"
+      "alert_kpi_checkin": "KPI check-in day",
+      "alert_activity_stale": "A partner has gone quiet",
+      "alert_file_review": "A file waits for review"
     },
     "devices": {
       "label": "Device",
@@ -638,7 +654,7 @@
         "generated": "Temporary password generated",
         "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "temporaryBody": "Hand it over in person or by phone — it is shown only now. It works until they choose their own password, which their next sign-in asks for before anything else.",
         "copy": "Copy",
         "copied": "Copied"
       }
@@ -752,7 +768,9 @@
       "key_fixed": "A key never changes",
       "nothing_to_change": "Nothing to change",
       "invalid": "That value is not allowed: {detail}",
-      "unknown_field": "Unknown field: {detail}"
+      "unknown_field": "Unknown field: {detail}",
+      "retire_blocked_by_duplicate": "Another record already holds the replacement there, so nothing was replaced",
+      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced"
     },
     "profile": {
       "invalid": "That value is not allowed: {detail}",
@@ -772,7 +790,11 @@
       "blocked_by_duplicate": "Another record now holds that value: {detail}",
       "not_undoable": "What the system wrote cannot be undone",
       "nothing_to_undo": "Nothing to undo",
-      "cannot_remove": "This record cannot be removed"
+      "cannot_remove": "This record cannot be removed",
+      "via_admin_route": "A sign-in change is undone from Settings, so the sign-in follows at once — try Undo there"
+    },
+    "restore": {
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there"
     },
     "auth": {
       "no_active_person": "You are not signed in"
