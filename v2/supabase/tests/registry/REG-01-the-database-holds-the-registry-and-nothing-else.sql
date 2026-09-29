@@ -1,7 +1,7 @@
 -- REG-01 — the database holds the registry and nothing else (TECH-SPEC §2.3, V123): on a database built from zero, the
 -- active pages, capabilities, setting definitions and record types (V127) are exactly supabase/registry.json's, the
--- five roles exist, each role starts at the registry's level on every page and with its capabilities, and every
--- setting has its default as a company-wide row from the floor date (V97). The old app registered a page in three
+-- five roles exist, each role starts at the registry's level on every page and with its capabilities, every setting
+-- has a company-wide default row from the floor date (V97), and answers the registry's default today (V155). The old app registered a page in three
 -- places and a finance page sat unreachable for two days; here a module.ts changed without `pnpm registry:sync` fails the unit test, and a
 -- sync that lost something fails this. Sabotage: supabase/tests/sabotage/a-page-left-out-of-the-sync.sql.
 do $$
@@ -55,10 +55,16 @@ begin
      from jsonb_array_elements(reg -> 'role_capabilities') x),
     'each role starts with the registry''s capabilities');
   perform test.eq(
-    (select jsonb_agg(jsonb_build_object('key', key, 'value', value) order by key collate "C")
+    (select jsonb_agg(key order by key collate "C")
      from core.setting where department_id is null and reason = 'default' and deleted_at is null
        and valid_from = date '2000-01-01'),
+    (select jsonb_agg(s ->> 'key' order by s ->> 'key' collate "C") from jsonb_array_elements(reg -> 'settings') s),
+    'every setting has a company-wide default row from the floor date');
+  perform test.eq(
+    (select jsonb_agg(jsonb_build_object('key', d.key, 'value', core.setting_at(d.key, null, core.riyadh_today()))
+                      order by d.key collate "C")
+     from core.setting_def d where d.active),
     (select jsonb_agg(jsonb_build_object('key', s ->> 'key', 'value', s -> 'default') order by s ->> 'key' collate "C")
      from jsonb_array_elements(reg -> 'settings') s),
-    'every setting has its default as a company-wide row from the floor date');
+    'with no admin value, every setting answers the registry''s default today — a changed default too (V155)');
 end $$;
