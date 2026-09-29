@@ -97,6 +97,11 @@
     },
     "notify": {
       "kinds_enabled": "Notifications sent"
+    },
+    "partner": {
+      "id_format": "Partner number format",
+      "name_stop_words": "Words left out when matching names",
+      "one_code_per_partner": "One live discount code per partner"
     }
   },
   "entity": {
@@ -119,6 +124,27 @@
     "setting": "Setting",
     "setting_def": "Setting definition",
     "wording": "Wording",
-    "saved_view": "Saved view"
+    "saved_view": "Saved view",
+    "partner": "Partner",
+    "partner_role": "Partner role",
+    "partner_status": "Partner status",
+    "credit_limit": "Credit limit",
+    "identifier": "Identifier",
+    "account_manager": "Account manager",
+    "contact": "Contact",
+    "partner_merge": "Partner merge",
+    "code_terms": "Code terms",
+    "campaign_code": "Campaign code",
+    "individual_name": "Individual",
+    "identifier_block": "Blocked value",
+    "partner_role_def": "Partner role (list)",
+    "role_field": "Role field",
+    "partner_category": "Partner category",
+    "partner_tier": "Partner tier",
+    "segment": "Segment",
+    "status_reason": "Status reason",
+    "call_outcome": "Call outcome",
+    "contract_term": "Contract term",
+    "priority": "Priority"
   }
 }

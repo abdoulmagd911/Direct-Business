@@ -25,7 +25,7 @@ export interface Snapshot {
     default: unknown;
     effective_dated: boolean;
   }[];
-  entities: { key: string; table: string; page: string | null; owners: string | null }[];
+  entities: { key: string; table: string; page: string | null; owners: string | null; list: boolean }[];
   role_levels: { role: string; page: string; level: Level }[];
   role_capabilities: { role: string; capability: string; granted: boolean }[];
 }
@@ -109,7 +109,9 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
       if (e.page !== null && !pageKeys.has(e.page)) problems.push(`entity "${e.key}": no page "${e.page}"`);
       if (e.owners !== undefined && !/^([a-z][a-z0-9_]*|[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*)$/.test(e.owners))
         problems.push(`entity "${e.key}": owners is a column or schema.function`);
-      entities.push({ key: e.key, table: e.table, page: e.page, owners: e.owners ?? null });
+      if (e.list && !(e.page ?? '').startsWith('settings.'))
+        problems.push(`entity "${e.key}": a setting list is edited on a settings page`);
+      entities.push({ key: e.key, table: e.table, page: e.page, owners: e.owners ?? null, list: e.list ?? false });
     }
 
   if (problems.length) throw new Error(`the registry cannot be synced:\n  ${problems.join('\n  ')}`);

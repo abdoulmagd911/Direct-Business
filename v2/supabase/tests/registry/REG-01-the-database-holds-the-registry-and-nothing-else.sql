@@ -27,7 +27,7 @@ begin
     (select jsonb_agg(s order by s ->> 'key' collate "C") from jsonb_array_elements(reg -> 'settings') s),
     'the setting definitions are the registry''s');
   perform test.eq(
-    (select jsonb_agg(jsonb_build_object('key', key, 'table', table_name, 'page', page_key, 'owners', owners)
+    (select jsonb_agg(jsonb_build_object('key', key, 'table', table_name, 'page', page_key, 'owners', owners, 'list', is_list)
                       order by key collate "C") from core.entity where active),
     (select jsonb_agg(e order by e ->> 'key' collate "C") from jsonb_array_elements(reg -> 'entities') e),
     'the record types are the registry''s');

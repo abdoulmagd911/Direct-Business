@@ -24,6 +24,7 @@ export default defineModule({
   capabilities: [
     { key: 'tasks.assign', page: 'tasks', label: 'cap.tasks.assign', defaults: { head: true, manager: true } },
   ],
+  entities: [{ key: 'priority', table: 'work.priority', page: 'settings.work', label: 'entity.priority', list: true }],
   settings: [
     {
       key: 'work.no_update_days',
