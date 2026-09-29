@@ -14,8 +14,10 @@ declare
   r record;
   n bigint;
   moved bigint := 0;
+  moved_removed bigint := 0;
   kept bigint := 0;
   defs bigint := 0;
+  gone bigint;
   req uuid;
   what text;
 begin
@@ -42,11 +44,18 @@ begin
         if core.is_history(r.tbl) then kept := kept + n; else defs := defs + n; end if;
         continue;
       end if;
-      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1%s', r.tbl, r.col, r.col,
-                                case when r.soft then ' and t.deleted_at is null' else '' end)
+      -- rows waiting in Recently deleted move too, so a restore brings them back on the replacement (QA-97)
+      gone := 0;
+      if r.soft then
+        execute pg_catalog.format('select pg_catalog.count(*) from %s t where t.%I = $1 and t.deleted_at is not null',
+                                  r.tbl, r.col)
+          into gone using p_id;
+      end if;
+      execute pg_catalog.format('update %s t set %I = $2 where t.%I = $1', r.tbl, r.col, r.col)
         using p_id, p_replacement;
       get diagnostics n = row_count;
-      moved := moved + n;
+      moved := moved + n - gone;
+      moved_removed := moved_removed + gone;
     end loop;
   exception
     when unique_violation or exclusion_violation then
@@ -58,6 +67,7 @@ begin
   end;
   perform audit.write_fields(e.table_name, p_id, '{"active": false}');
   perform audit.end();
-  return pg_catalog.jsonb_build_object('moved', moved, 'kept_in_history', kept, 'kept_in_lists', defs, 'request_id', req);
+  return pg_catalog.jsonb_build_object('moved', moved, 'moved_removed', moved_removed, 'kept_in_history', kept,
+                                       'kept_in_lists', defs, 'request_id', req);
 end
 $$;

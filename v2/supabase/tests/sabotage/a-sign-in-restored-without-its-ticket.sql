@@ -2,7 +2,7 @@
 -- Breaks: sql:UNDO-06
 -- Expect: a sign-in record is restored only through the admin route
 -- A sign-in record is restored without the admin route, so Supabase Auth is left behind (V162).
-create or replace function core.restore(p_entity text, p_id uuid, p_reason text default null) returns jsonb
+create or replace function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -35,6 +35,7 @@ begin
                    or (may_own and (who = me or me = any (core.owners_of(e.table_name, p_id))))))) then
     raise exception using errcode = '42501', message = 'restore.not_allowed';
   end if;
+  perform core.restore_needs(e.table_name, p_id);
   req := audit.begin('ui', 'record.restored', pg_catalog.jsonb_build_object('entity', p_entity), p_reason);
   begin
     perform audit.write_fields(e.table_name, p_id, '{"deleted_at": null, "deleted_by": null, "delete_reason": null}');

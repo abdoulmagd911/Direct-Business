@@ -2,7 +2,7 @@
 -- Breaks: sql:DEL-01
 -- Expect: Full on the page restores no access row, not even one they removed
 -- Restore forgets that access rows are an admin's (V128).
-create or replace function core.restore(p_entity text, p_id uuid, p_reason text default null) returns jsonb
+create or replace function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -34,8 +34,9 @@ begin
                    or (may_own and (who = me or me = any (core.owners_of(e.table_name, p_id))))))) then
     raise exception using errcode = '42501', message = 'restore.not_allowed';
   end if;
+  perform core.restore_needs(e.table_name, p_id);
   if e.table_name in ('core.person_email', 'core.person_auth')
-     and not core.auth_ticket_take('restore', p_entity || ':' || p_id) then
+     and not core.auth_ticket_take(p_ticket, 'restore', p_entity || ':' || p_id) then
     raise exception using errcode = 'P0001', message = 'restore.via_admin_route', detail = '/auth/admin/restore';
   end if;
   req := audit.begin('ui', 'record.restored', pg_catalog.jsonb_build_object('entity', p_entity), p_reason);
