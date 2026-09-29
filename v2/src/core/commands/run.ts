@@ -1,6 +1,6 @@
 'use client';
-import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
+import { undoRequest } from './undo';
 import { toast } from '@/ui/Toast';
 
 export type CommandWords = {
@@ -35,7 +35,7 @@ export async function run<T extends Written>(
             label: words.undo,
             onUndo: async () => {
               try {
-                await rpc('undo', { p_request: requestId });
+                await undoRequest(requestId);
                 toast.done(words.undone);
                 await after?.(result);
               } catch (e) {
