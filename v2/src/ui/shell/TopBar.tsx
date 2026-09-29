@@ -16,10 +16,13 @@ export function TopBar({
   onOpenSearch,
   onOpenBell,
   bellOpen,
+  arabicEnabled = false,
 }: {
   onOpenSearch: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
+  /** The language switch shows once Arabic is on (`app.arabic_enabled`, V122). */
+  arabicEnabled?: boolean;
 }) {
   const t = useTranslations('top');
   const pathname = usePathname();
@@ -62,7 +65,7 @@ export function TopBar({
           </span>
         ) : null}
       </IconButton>
-      <ProfileMenu />
+      <ProfileMenu arabicEnabled={arabicEnabled} />
       <span data-testid="address" className="sr-only">
         {pathname}
       </span>

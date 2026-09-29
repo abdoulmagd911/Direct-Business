@@ -11,14 +11,14 @@ import { TopBar } from './TopBar';
  * Drawer + top bar + the page; on a phone the drawer gives way to the bottom bar (oversight, 29 Sep).
  * Rendered only after `me` is known (the server layout gates it).
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, arabicEnabled = false }: { children: ReactNode; arabicEnabled?: boolean }) {
   const [search, setSearch] = useState(false);
   return (
     <TooltipProvider>
       <div className="flex h-dvh min-h-0 overflow-hidden bg-bg text-text" data-app-shell>
         <Drawer />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar onOpenSearch={() => setSearch(true)} />
+          <TopBar onOpenSearch={() => setSearch(true)} arabicEnabled={arabicEnabled} />
           <main id="main" className="flex min-h-0 flex-1 overflow-hidden">
             {children}
           </main>

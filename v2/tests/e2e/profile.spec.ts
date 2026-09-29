@@ -5,7 +5,8 @@
  * Sabotage: tests/sabotage/screens.mjs "profile-saves-nothing", "settings-open-to-everyone", "profile-chip-leads-
  * nowhere", "profile-keeps-the-undone-value".
  */
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));

@@ -4,6 +4,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { dirOf, prefsFrom } from '@/core/prefs';
+import { effectiveLocale } from '@/core/prefs/effective';
+import { getAppSettings } from '@/core/settings/app';
 import { Hydrated } from '@/core/auth/Hydrated';
 import { fontClassNames } from '@/ui/fonts';
 import '@/ui/globals.css';
@@ -23,8 +25,10 @@ export const dynamic = 'force-dynamic';
  * preferences BEFORE the first paint — no flash of the wrong theme (A5, A13).
  */
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const store = await cookies();
-  const prefs = prefsFrom((n) => store.get(n)?.value);
+  const [store, app] = await Promise.all([cookies(), getAppSettings()]);
+  const raw = prefsFrom((n) => store.get(n)?.value);
+  // the language follows the Arabic switch (ACC-139): a cookie saying Arabic is ignored while it is off
+  const prefs = { ...raw, locale: effectiveLocale(raw.locale, app) };
   const locale = await getLocale();
   const messages = await getMessages();
   return (

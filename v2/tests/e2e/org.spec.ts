@@ -4,7 +4,8 @@
  * the member's drawer after a reload; every change is in Activity and undoes; a team retires with its people moved.
  * Sabotage: tests/sabotage/screens.mjs "matrix-skips-the-reason".
  */
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 import { givePassword, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));

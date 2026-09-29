@@ -349,4 +349,53 @@ export const sabotages = [
       },
     ],
   },
+  // ---- the catalogue gaps (ACC-090/091/127/129/139, PRF-002/123)
+  {
+    name: 'none-gets-an-empty-page',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'says no access',
+    edits: [
+      {
+        file: 'src/ui/shell/Page.tsx',
+        find: "  if (page && (me.levels[page] ?? 'none') === 'none') {",
+        replace: "  if (page && (me.levels[page] ?? 'none') === 'never') {",
+      },
+    ],
+  },
+  {
+    name: 'root-ignores-the-start-page',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the start page is Tasks',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
+        replace: '  for (const key of [app.default_start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'arabic-cookie-wins-while-off',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the door stays English',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
+        replace: '  return cookieLocale;',
+      },
+    ],
+  },
+  {
+    name: 'profile-link-lost-in-the-drawer',
+    breaks: ['e2e:tests/e2e/access.spec.ts'],
+    expect: 'the drawer foot opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/Drawer.tsx',
+        find: '          href="/profile"\n          data-entity="person"',
+        replace: '          href="/settings/profile"\n          data-entity="person"',
+      },
+    ],
+  },
 ];
