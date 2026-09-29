@@ -6,8 +6,10 @@ import { logOf, makePerson, signIn, sql } from './support/stack';
 test('an allowed email signs in with the emailed code', async ({ page }) => {
   const person = await makePerson();
   await signIn(page, person.email);
-  await expect(page.getByRole('heading', { level: 1, name: 'Commercial Workspace' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  await expect(page.getByTestId('address')).toHaveText('/my-day');
+  await page.locator('[data-profile-chip]').click();
+  await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeVisible();
+  await page.keyboard.press('Escape');
   expect(await logOf(person.email)).toEqual(['code_sent', 'ok']);
   const devices = await sql(`select 1 from core.device_session where person_id = $1 and signed_out_at is null`, [
     person.id,

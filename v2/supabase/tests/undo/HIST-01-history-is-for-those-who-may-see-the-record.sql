@@ -1,5 +1,5 @@
 -- HIST-01 — history is for those who may see the record (§3.3): a record's changes, newest first, for View on its page
--- or an admin; a profile's for its owner (and an admin); the whole log (Settings → Activity) for Activity · View —
+-- or an admin (a department's for admins only — Settings, V97); a profile's for its owner (and an admin); the whole log (Settings → Activity) for Activity · View —
 -- admins and managers — filtered by who and by record type.
 -- Sabotage: supabase/tests/sabotage/history-is-open-to-all.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
@@ -20,7 +20,7 @@ select test.done();
 select set_config('t.prof', (select id::text from core.person_profile where person_id = current_setting('t.am1')::uuid),
   true);
 
-select test.as_person(current_setting('t.head')::uuid);
+select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.h', api.record_history('department', current_setting('t.dep')::uuid)::text, true);
 select test.eq(jsonb_array_length(current_setting('t.h')::jsonb), 3, 'the department''s changes: made, renamed, renamed');
 select test.eq(current_setting('t.h')::jsonb -> 0 ->> 'request_id', current_setting('t.r2'), 'newest first');
@@ -29,6 +29,10 @@ select test.eq(current_setting('t.h')::jsonb -> 1 -> 'after' ->> 'name_en', 'His
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.record_history(%L, %L)', 'department', current_setting('t.dep')), '42501',
   'a member without View on Organization & access does not see a department''s history', 'access.needs_level');
+select test.as_person(current_setting('t.head')::uuid);
+select test.raises(format('select api.record_history(%L, %L)', 'department', current_setting('t.dep')), '42501',
+  'nor does a head', 'access.needs_level');
+select test.as_person(current_setting('t.am1')::uuid);
 select test.eq(jsonb_array_length(api.record_history('profile', current_setting('t.prof')::uuid)), 1,
   'a person sees their own profile''s history');
 select test.as_person(current_setting('t.am2')::uuid);
@@ -45,10 +49,15 @@ select test.raises(format('select api.record_history(%L, %L)', 'made_up', curren
 
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises('select api.activity()', '42501', 'a member does not see the whole log', 'access.needs_level');
-select test.as_person(current_setting('t.head')::uuid);
+select test.as_person(current_setting('t.admin')::uuid);
 select test.ok(exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
                        where r ->> 'request_id' = current_setting('t.r1')),
-  'a head sees the log, by who');
+  'the log, by who');
+select test.as_person(current_setting('t.head')::uuid);
+select test.ok(not exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
+                           where r ->> 'request_id' = current_setting('t.r1')),
+  'a head sees no change to a record they may not see (a department — V97)');
+select test.as_person(current_setting('t.admin')::uuid);
 select test.ok(not exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
                            where r ->> 'request_id' in (current_setting('t.r2'), current_setting('t.r3'))),
   'and only that person''s requests');

@@ -2,3 +2,5 @@
 # Real files (invoices, exports, PDFs, spreadsheets, screenshots of real data) never live here: Drive or local only.
 public/fonts/**/*.{woff2,woff,ttf} — self-hosted OFL fonts (Readex Pro, IBM Plex Sans / Arabic / Mono): no data
 src/app/favicon.ico — the app's tab icon: no data
+tests/e2e/screenshots/**/*.png — the UI-* screenshots of the kit and screens, made-up values only, kept for the oversight review: no data
+public/brand/*.svg — the official Direct logo (a public brand asset): no data

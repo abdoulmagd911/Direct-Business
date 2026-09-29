@@ -8,7 +8,13 @@ export const sabotages = [
     name: 'e2e-first-page-draws-nothing',
     breaks: [e2e('the-app-serves-its-first-page')],
     expect: 'Commercial Workspace',
-    edits: [{ file: 'src/app/(auth)/sign-in/page.tsx', find: "<h1>{word('app.name')}</h1>", replace: '{null}' }],
+    edits: [
+      {
+        file: 'src/modules/org/screens/SignIn.tsx',
+        find: `<h1 className="text-3xl">{t('app.name')}</h1>`,
+        replace: '{null}',
+      },
+    ],
   },
   {
     name: 'e2e-sign-in-forgets-the-device',
@@ -57,9 +63,9 @@ export const sabotages = [
     expect: 'a refused session gets no content',
     edits: [
       {
-        file: 'src/app/(app)/layout.tsx',
+        file: 'src/core/auth/require-me.ts',
         find: "if (me.status !== 'ok') redirect(`/auth/sign-out?next=${encodeURIComponent(here)}`);",
-        replace: "if (me.status !== 'ok') return <>{children}</>;",
+        replace: "if (me.status !== 'ok') return me as never;",
       },
     ],
   },
@@ -69,11 +75,11 @@ export const sabotages = [
     expect: 'the idle device asks for a new code',
     edits: [
       {
-        file: 'src/app/(app)/layout.tsx',
+        file: 'src/core/auth/require-me.ts',
         find: "if (me.status !== 'ok') redirect(",
         replace: "if (me.status === 'not_listed' || me.status === 'switched_off') redirect(",
       },
-      { file: 'src/app/(app)/layout.tsx', find: '<MeProvider me={me}>', replace: '<MeProvider me={me as never}>' },
+      { file: 'src/core/auth/require-me.ts', find: '  return me;', replace: '  return me as never;' },
       {
         file: 'src/core/db/proxy-session.ts',
         find: "if (state === 'signed_out') {",
@@ -105,6 +111,18 @@ export const sabotages = [
         file: 'src/core/auth/allow-list.ts',
         find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
         replace: 'for (const authUserId of removed.ban) void authUserId;',
+      },
+    ],
+  },
+  {
+    name: 'e2e-undo-leaves-the-ban',
+    breaks: [e2e('undoing-an-email-removal-lifts-its-ban')],
+    expect: 'the undone removal lifts the ban',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;',
+        replace: 'for (const personId of done.auth_resync ?? []) void personId;',
       },
     ],
   },

@@ -4,8 +4,8 @@
 -- Sabotage: supabase/tests/sabotage/two-partners-hold-one-phone.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Alpha"}') ->> 'id', true);
-select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Beta"}') ->> 'id', true);
+select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Alpha", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
+select set_config('t.b', api.partner_create('{"trade_name_en": "Made Up Beta", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 
 select set_config('t.i1', api.identifier_add(current_setting('t.a')::uuid, 'phone', '+966 50 000 0001', 'made up: from a form')
   ->> 'id', true);

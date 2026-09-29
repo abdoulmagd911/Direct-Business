@@ -15,8 +15,8 @@ select set_config('t.u1', api.undo(current_setting('t.r1')::uuid) ->> 'request_i
 select test.as_owner();
 select test.eq((select name_en from core.department where id = current_setting('t.dep')::uuid), 'Undo One',
   'undo puts the name back');
-select test.eq((select name_ar from core.department where id = current_setting('t.dep')::uuid), null::text,
-  'and the Arabic name it had set');
+select test.eq((select name_ar from core.department where id = current_setting('t.dep')::uuid), 'قسم undo_one',
+  'and the Arabic name it had');
 select test.eq((select kind from audit.request where id = current_setting('t.u1')::uuid), 'undo',
   'the undo is itself a request');
 select test.eq((select undo_of from audit.request where id = current_setting('t.u1')::uuid),

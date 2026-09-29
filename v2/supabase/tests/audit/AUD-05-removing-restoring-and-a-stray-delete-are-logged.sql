@@ -1,7 +1,7 @@
 -- AUD-05 — setting deleted_at is logged as 'remove', clearing it as 'restore', and a stray DELETE (impossible through
 -- the API, but a migration or psql could) is still logged with the row as it was (§3.3).
 -- Sabotage: supabase/tests/sabotage/every-change-is-an-update.sql.
-insert into core.department (code, name_en) values ('test_rm', 'Test Removal');
+insert into core.department (code, name_en, name_ar) values ('test_rm', 'Test Removal', 'قسم للحذف');
 update core.department set deleted_at = now(), delete_reason = 'made up for a test' where code = 'test_rm';
 update core.department set deleted_at = null, delete_reason = null where code = 'test_rm';
 select set_config('t.dep', (select id from core.department where code = 'test_rm')::text, true);

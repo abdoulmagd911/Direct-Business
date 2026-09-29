@@ -10,7 +10,7 @@ select test.raises(format('update core.person set manager_id = %L where id = %L'
   'P0001', 'A under C under B under A is a loop', 'person.manager_cycle');
 select test.raises(format('update core.person set manager_id = id where id = %L', current_setting('t.a')),
   'P0001', 'nobody manages themselves', 'person.manager_cycle');
-insert into core.team (department_id, code, name_en) values (test.department('other_dept'), 'elsewhere', 'Elsewhere');
+insert into core.team (department_id, code, name_en, name_ar) values (test.department('other_dept'), 'elsewhere', 'Elsewhere', 'مكان آخر');
 select test.raises(format('update core.person set team_id = (select id from core.team where code = %L) where id = %L',
   'elsewhere', current_setting('t.a')), 'P0001', 'a team of another department', 'person.team_outside_department');
 select test.raises($$insert into core.person (full_name_en) values ('Test Nowhere')$$, '23514',
