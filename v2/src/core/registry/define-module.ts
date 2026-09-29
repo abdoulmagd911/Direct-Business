@@ -63,6 +63,11 @@ export interface EntityDef {
    * (`person_id`, `head_person_id`), or a schema-qualified SQL function `(uuid) → setof uuid` (`work.task_owners`).
    */
   owners?: string;
+  /**
+   * A setting list (§3.0 LIST, V76): key, name_en and name_ar (both required), sort, active — read by everyone through
+   * api.list and changed only through api.list_save, with Full on its page (a settings page). Nothing else is.
+   */
+  list?: boolean;
 }
 
 export interface ModuleDef {

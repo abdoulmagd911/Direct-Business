@@ -97,6 +97,11 @@
     },
     "notify": {
       "kinds_enabled": "الإشعارات المرسلة"
+    },
+    "partner": {
+      "id_format": "صيغة رقم الشريك",
+      "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
+      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك"
     }
   },
   "entity": {
@@ -119,6 +124,27 @@
     "setting": "إعداد",
     "setting_def": "تعريف إعداد",
     "wording": "الصياغة",
-    "saved_view": "عرض محفوظ"
+    "saved_view": "عرض محفوظ",
+    "partner": "شريك",
+    "partner_role": "دور الشريك",
+    "partner_status": "حالة الشريك",
+    "credit_limit": "الحد الائتماني",
+    "identifier": "معرّف",
+    "account_manager": "مدير الحساب",
+    "contact": "جهة اتصال",
+    "partner_merge": "دمج شريكين",
+    "code_terms": "شروط الرمز",
+    "campaign_code": "رمز حملة",
+    "individual_name": "فرد",
+    "identifier_block": "قيمة محظورة",
+    "partner_role_def": "دور الشريك (قائمة)",
+    "role_field": "حقل الدور",
+    "partner_category": "فئة الشريك",
+    "partner_tier": "مستوى الشريك",
+    "segment": "القطاع",
+    "status_reason": "سبب الحالة",
+    "call_outcome": "نتيجة الاتصال",
+    "contract_term": "شرط العقد",
+    "priority": "الأولوية"
   }
 }

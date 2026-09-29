@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
 // Partners — clients, suppliers, strategic partners (V52); helpers, not locks (D7, V26). Levels: TECH-SPEC §8.
@@ -18,6 +19,136 @@ export default defineModule({
       label: 'nav.settings.partners',
       nav: { group: 'settings', order: 30 },
       defaults: { admin: 'full', head: 'full', manager: 'view' },
+    },
+  ],
+  entities: [
+    {
+      key: 'partner',
+      table: 'partner.partner',
+      page: 'partners',
+      label: 'entity.partner',
+      owners: 'partner.partner_owners',
+    },
+    {
+      key: 'partner_role',
+      table: 'partner.partner_role',
+      page: 'partners',
+      label: 'entity.partner_role',
+      owners: 'partner.partner_role_owners',
+    },
+    {
+      key: 'partner_status',
+      table: 'partner.status_change',
+      page: 'partners',
+      label: 'entity.partner_status',
+      owners: 'partner.status_change_owners',
+    },
+    {
+      key: 'credit_limit',
+      table: 'partner.credit_limit',
+      page: 'partners',
+      label: 'entity.credit_limit',
+      owners: 'partner.credit_limit_owners',
+    },
+    {
+      key: 'identifier',
+      table: 'partner.identifier',
+      page: 'partners',
+      label: 'entity.identifier',
+      owners: 'partner.identifier_owners',
+    },
+    {
+      key: 'account_manager',
+      table: 'partner.account_manager',
+      page: 'partners',
+      label: 'entity.account_manager',
+      owners: 'partner.account_manager_owners',
+    },
+    {
+      key: 'contact',
+      table: 'partner.contact',
+      page: 'partners',
+      label: 'entity.contact',
+      owners: 'partner.contact_owners',
+    },
+    { key: 'partner_merge', table: 'partner.merge', page: 'partners', label: 'entity.partner_merge' },
+    { key: 'code_terms', table: 'partner.code_terms', page: 'partners', label: 'entity.code_terms' },
+    {
+      key: 'campaign_code',
+      table: 'partner.campaign_code',
+      page: 'partners',
+      label: 'entity.campaign_code',
+      owners: 'owner_id',
+    },
+    { key: 'individual_name', table: 'partner.individual_name', page: 'partners', label: 'entity.individual_name' },
+    {
+      key: 'identifier_block',
+      table: 'partner.identifier_block',
+      page: 'settings.partners',
+      label: 'entity.identifier_block',
+    },
+    {
+      key: 'partner_role_def',
+      table: 'partner.role',
+      page: 'settings.partners',
+      label: 'entity.partner_role_def',
+      list: true,
+    },
+    { key: 'role_field', table: 'partner.role_field', page: 'settings.partners', label: 'entity.role_field' },
+    {
+      key: 'partner_category',
+      table: 'partner.category',
+      page: 'settings.partners',
+      label: 'entity.partner_category',
+      list: true,
+    },
+    { key: 'partner_tier', table: 'partner.tier', page: 'settings.partners', label: 'entity.partner_tier', list: true },
+    { key: 'segment', table: 'partner.segment', page: 'settings.partners', label: 'entity.segment', list: true },
+    {
+      key: 'status_reason',
+      table: 'partner.status_reason',
+      page: 'settings.partners',
+      label: 'entity.status_reason',
+      list: true,
+    },
+    {
+      key: 'call_outcome',
+      table: 'partner.call_outcome',
+      page: 'settings.partners',
+      label: 'entity.call_outcome',
+      list: true,
+    },
+    {
+      key: 'contract_term',
+      table: 'partner.term',
+      page: 'settings.partners',
+      label: 'entity.contract_term',
+      list: true,
+    },
+  ],
+  settings: [
+    {
+      key: 'partner.id_format',
+      group: 'settings.partners',
+      label: 'setting.partner.id_format',
+      schema: z
+        .object({ prefix: z.string().regex(/^[A-Z][A-Z0-9-]*$/), width: z.number().int().min(3).max(8) })
+        .strict(),
+      default: { prefix: 'DK-P', width: 4 },
+    },
+    {
+      key: 'partner.name_stop_words',
+      group: 'settings.partners',
+      label: 'setting.partner.name_stop_words',
+      schema: z.array(z.string().min(1)),
+      default: ['شركة', 'مؤسسة', 'company', 'co', 'corp', 'corporation', 'ltd', 'limited', 'llc', 'inc', 'est'],
+    },
+    {
+      key: 'partner.one_code_per_partner',
+      group: 'settings.partners',
+      label: 'setting.partner.one_code_per_partner',
+      schema: z.boolean(),
+      default: true,
     },
   ],
   capabilities: [

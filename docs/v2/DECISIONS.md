@@ -276,3 +276,44 @@ example uses made-up names.
 - `api.role_save`: a new role is never an admin role, a key never changes, and the admin role is renamed only by an admin. Its levels are set in the matrix (V125).
 
 PPL-01, PPL-02, TEAM-01, ROLE-01, ORGR-01.
+
+**V133 — Setting lists and identifiers, as built** ACTIVE · 2026-09-29.
+
+**Lists** (§3.0 LIST, V76). A record type is a setting list only when its module declares it (`list: true` in `entities`, synced to `core.entity.is_list`; REG-01 compares it). A list table has `key`, `name_en` and `name_ar`, both names required, plus `sort` and `active`.
+- Everyone signed in reads the lists (`api.list(key, include_retired)`).
+- `api.list_save(key, id, values, version, reason)` needs Full on the list's settings page. It refuses a column the table lacks and a changed key. Entries are retired, never deleted.
+- The list door refuses anything undeclared. The access roles are shaped like a list but are not one: without this rule the door would have let a head rename the admin role, or make a role an admin. LIST-01 checks every list-shaped table is declared, except `core.role`, which `api.role_save` edits (V132).
+- The starting lists: roles, segments, status reasons (at risk and lost), call outcomes, contract terms, and `work.priority`. Categories and tiers start empty.
+
+**Identifiers** (§3.4, §3.5). Each value is held by one partner at a time, compared by its folded key (`norm.*`, versioned — NORM-01). A second holder is refused (23505 `identifier.held`), naming the holder.
+- A value is never rewritten or moved. It is removed and added again, and its Undo waits while another partner holds it.
+- `partners.identify` adds and removes identifiers. Only an `alias` name is added directly; the four names follow the partner's name fields (V77).
+- The block list (`api.identifier_block_add`: an exact value, or every email of a domain) refuses a value, giving the list's reason.
+- Individuals (`api.individual_add`) are listed apart and never hold a partner's name.
+- Keys stay true: `norm.drift()` must be empty. `norm.rebuild()` recomputes keys as one system request and lists, for a person, any key that would now collide.
+
+**Departures from the spec's text:**
+- Removal columns are named `deleted_at`, `deleted_by` and `delete_reason`, like every other v2 table, rather than §3.4's `removed_*`, so the change log and Undo treat identifiers like everything else.
+- The first definitions of `norm.*` carry a `check-allow` note: nothing is stored before them, so there is no rebuild to call.
+
+IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
+
+**V134 — Partners, their names, roles and status** ACTIVE · 2026-09-29. `api.partner_create` needs Full on Partners (D7: helpers, not locks). In one request it takes the number from `partner.id_format` (a setting: DK-P plus four digits, numbering that never restarts), the four names as identifiers, the roles and the account manager. Making someone else the account manager needs `partners.assign`.
+- **Names.** A second partner with a name another holds is refused, naming the holder (duplicates caught at entry). A rename removes what no longer holds and adds what is new in the same request, so matching and search follow, and one Undo takes it back (NAME-01).
+- **Roles.** `api.partner_roles_set` sets any number of roles. Each role's own fields (`partner.role_field`, a setting) are checked: required, typed, select options. Roles left out are removed (PRT-01).
+- **Status** (V62): Prospect, Active, At risk or Lost, from an effective date. At risk and lost need a reason from their own list. Changes are never rewritten; the status on a day is the latest change on or before it. The account manager and anyone with `partners.assign` set it (PST-01).
+- An archived partner is read-only.
+
+**V135 — Codes** ACTIVE · 2026-09-29. A code is live on one partner or one campaign at a time, dates included: exclusion constraints keep each table apart, and triggers keep the two apart from each other. The same code may pass from one holder to another over time.
+- One live code per partner (`partner.one_code_per_partner`). A second needs `partners.assign` and an explicit "a second is meant".
+- A campaign code (`api.campaign_code_add`) is credited to no partner (V65).
+- A code's terms (`api.code_terms_add`) are a new row per change, with the approver required. CODE-01.
+
+**V136 — Account managers, bulk assign, contacts, credit limits, merge, and the reads** ACTIVE · 2026-09-29. A partner's owners are its account managers today. Every record of a partner is owned by them: they are told of changes (V129) and may undo within the window (V128).
+- **Account manager.** `api.partner_manager_set` (`partners.assign`) ends the previous manager's time the day the new one starts. The revenue rule of V26/V27 (changing it where revenue exists stays with heads and admins) arrives with revenue in P4-2.
+- **Bulk assign.** `api.partner_bulk_assign` gives owner and priority to many partners in one request and one Undo; a partner with no status becomes a Prospect (PROS-01).
+- **Contacts.** `api.contact_save` and `api.contacts_remove`; one primary contact per partner.
+- **Credit limits.** `api.credit_limit_set` needs `finance.credit_control`, an approver and a reason; 0 is Prepaid only; the history stays. The card shows limits only with Finance · View (CRL-01).
+- **Merge.** `api.partner_merge` needs `partners.merge`. Identifiers move to the kept partner (the merged partner's names become aliases), missing roles are added and contacts move. The merged partner keeps its history, is archived and points at the kept one. One Undo takes it all back (MRG-01). Files, notes, tasks and the rest are re-pointed by the steps that bring them.
+- **Reads.** `api.partners(filters)` filters by role, segment, owner, status, text and key partner. `api.partner(id)` returns the card, and `api.hover_partner` / `api.hover_person` the hover cards. `api.search(q)` (Ctrl K) finds partners by any identifier in any spelling, by name or number, and people by name — partners only for those who can open Partners (SRCH-01).
+- **Renewal tasks.** The contract renewal task needs tasks, which arrive in P5-1 (after P3-8), so P3-8b brings contracts and their alert, and P5-1 adds the task.
