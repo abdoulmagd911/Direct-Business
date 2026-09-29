@@ -38,6 +38,8 @@ export interface Choice {
 /** A name looked up in the database: exactly one match, none, or more than one — never a guess. */
 export type OrgMatch = { kind: 'one'; id: string } | { kind: 'none' } | { kind: 'many' };
 export type PersonMatch = OrgMatch;
+/** Why a past row's owner is Unknown (V491): no name pasted, no one has the name, or more than one has it. */
+export type OwnerUnknown = 'missing' | 'none' | 'many';
 
 export type Problem =
   | 'title_missing'
@@ -50,9 +52,6 @@ export type Problem =
   | 'organisation_unknown'
   | 'organisation_ambiguous'
   | 'organisation_checking'
-  | 'person_missing'
-  | 'person_unknown'
-  | 'person_ambiguous'
   | 'person_checking'
   | 'repeated'
   | 'already_saved'
@@ -67,8 +66,11 @@ export interface PastRow {
   kind: string | null;
   organisation: { name: string; id: string | null } | null;
   notes: string | null;
-  /** Whose work it is, when the paste names people: the name as pasted and the one person it matched. */
-  person: { name: string; id: string | null } | null;
+  /**
+   * Whose work it is, where the paste may name people: the name as pasted, the one person it matched, or why the owner
+   * is Unknown — no name, no one, or more than one (V491: past work may be saved with an Unknown owner, never a guess).
+   */
+  person: { name: string; id: string | null; unknown: OwnerUnknown | null } | null;
   /**
    * The row's identity — whose, title, day, status or category, organisation — the same text however often it is
    * pasted: two rows with one key are the same row (OLD-PRF-045), and the database keeps one.
@@ -182,16 +184,19 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
     }
 
     // Whose work: only where the screen offers the person column. The database matched each name (OLD-059: real names
-    // beat nicknames and e-mail prefixes, exactly one match or none); the grid holds every other answer, never guesses.
+    // beat nicknames and e-mail prefixes, exactly one match or none). Every other answer — no name, no one, more than
+    // one — leaves the owner Unknown for a manager to assign (V491), never a guess; a name not yet answered waits.
     let person: PastRow['person'] = null;
     if (o.people && columns.person !== null && columns.person !== undefined) {
       const name = at(row, 'person');
       const match = name ? o.people.get(name) : undefined;
-      person = name ? { name, id: match?.kind === 'one' ? match.id : null } : null;
-      if (!name) problems.push('person_missing');
-      else if (!match) problems.push('person_checking');
-      else if (match.kind === 'none') problems.push('person_unknown');
-      else if (match.kind === 'many') problems.push('person_ambiguous');
+      if (name && !match) problems.push('person_checking');
+      const unknown: OwnerUnknown | null = !name
+        ? 'missing'
+        : match?.kind === 'none' || match?.kind === 'many'
+          ? match.kind
+          : null;
+      person = { name, id: match?.kind === 'one' ? match.id : null, unknown };
     }
 
     // The same row twice (OLD-PRF-045): whose, title, day, status or category and organisation — the matched person and
@@ -257,8 +262,10 @@ export interface BackfillRequest {
     kind: string;
     organisation_id: string | null;
     notes: string | null;
-    /** Whose work; null is the signed-in person's own. */
+    /** Whose work; null with `owner_unknown` false is the signed-in person's own. */
     person_id: string | null;
+    /** The owner is Unknown (V491): past work a manager assigns later, under Needs an owner. */
+    owner_unknown: boolean;
     /** The row's identity (`PastRow.key`): the database keeps one row per key, so a second paste adds nothing. */
     import_key: string;
   }[];
@@ -278,6 +285,7 @@ export function toRequest(rows: readonly PastRow[], mode: PastWorkMode): Backfil
         organisation_id: r.organisation?.id ?? null,
         notes: r.notes,
         person_id: r.person?.id ?? null,
+        owner_unknown: r.person?.unknown != null,
         import_key: r.key,
       })),
   };

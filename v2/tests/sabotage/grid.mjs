@@ -138,12 +138,28 @@ export const sabotages = [
   },
   // ---------------------------------------------------------------- the old app's missed rows (round 13)
   {
-    name: 'grid-takes-one-of-many-people',
+    name: 'grid-holds-an-unknown-owner',
     breaks: [OLD],
-    expect: 'holds none, more than one',
+    expect: 'saves no one, more than one and an empty cell as Unknown',
     edits: [
-      { file: ROWS, find: "      else if (match.kind === 'many') problems.push('person_ambiguous');\n", replace: '' },
+      {
+        file: ROWS,
+        find: "      if (name && !match) problems.push('person_checking');",
+        replace: "      if (match?.kind !== 'one') problems.push('person_checking');",
+      },
     ],
+  },
+  {
+    name: 'grid-sends-an-unknown-owner-as-the-paster',
+    breaks: [OLD],
+    expect: 'never the person pasting',
+    edits: [{ file: ROWS, find: 'owner_unknown: r.person?.unknown != null,', replace: 'owner_unknown: false,' }],
+  },
+  {
+    name: 'grid-calls-many-people-no-one',
+    breaks: [OLD],
+    expect: 'each Unknown owner says why',
+    edits: [{ file: ROWS, find: '          ? match.kind\n', replace: "          ? 'none'\n" }],
   },
   {
     name: 'grid-reads-people-it-was-not-offered',
@@ -165,7 +181,7 @@ export const sabotages = [
   {
     name: 'grid-sends-no-person',
     breaks: [OLD],
-    expect: 'only the rows with one match are sent, with that person',
+    expect: 'a matched person, or owner Unknown — never the person pasting',
     edits: [{ file: ROWS, find: 'person_id: r.person?.id ?? null,', replace: 'person_id: null,' }],
   },
   {

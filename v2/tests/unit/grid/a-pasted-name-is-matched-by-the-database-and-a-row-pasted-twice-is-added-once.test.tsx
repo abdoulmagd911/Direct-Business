@@ -18,16 +18,19 @@ import { excelPaste, LABELS, ORGS, PEOPLE, STATUSES, TODAY, twentyTasks } from '
 
 /**
  * The old app's missed Past work rows (the Architect's round 13, SCENARIOS-OLD.csv):
- * - **OLD-059** — where the screen may backfill for others, the grid offers a Person column and asks the database for
- *   every pasted name at once; it keeps exactly one match and holds every other answer (none, more than one, an empty
- *   cell) for a person to settle — never a guess. The rule itself (real names beat nicknames and e-mail prefixes) is the
- *   database's, where name folding lives (A10).
+ * - **OLD-059**, with the owner's **V491** — where the screen may backfill for others, the grid offers a Person column
+ *   and asks the database for every pasted name at once; it keeps exactly one match, and every other answer (no one,
+ *   more than one, an empty cell) saves the row with its owner **Unknown**, for a manager to assign under Needs an owner
+ *   — never a guess, and never the person pasting. A name not yet answered waits. The rule itself (real names beat
+ *   nicknames and e-mail prefixes) is the database's, where name folding lives (A10).
  * - **OLD-PRF-045** — the same row twice in a paste is named and left out; a row the database already holds (by its
  *   key: whose, title, day, status or category, organisation) is named "saved before" and left out, so pasting the same
  *   rows again adds nothing; every row sent carries its key, so the database can keep one.
  * - A lookup's answer that arrives after the grid redrew is kept (a row stayed "checking" for good before).
- * Sabotages: `grid-takes-one-of-many-people`, `grid-reads-people-it-was-not-offered`, `grid-forgets-saved-rows`,
- * `grid-key-ignores-case`, `grid-drops-a-late-answer`, `grid-asks-again-while-waiting` (tests/sabotage/grid.mjs).
+ * Sabotages: `grid-holds-an-unknown-owner`, `grid-sends-an-unknown-owner-as-the-paster`, `grid-calls-many-people-no-one`,
+ * `grid-reads-people-it-was-not-offered`, `grid-sends-no-person`, `grid-key-keeps-case-and-spaces`,
+ * `grid-ignores-saved-rows`, `grid-sends-no-key`, `grid-forgets-what-it-saved`, `grid-drops-a-late-answer`,
+ * `grid-asks-again-while-waiting` (tests/sabotage/grid.mjs).
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -57,7 +60,7 @@ describe('OLD-059 — a pasted name is matched by the database, never guessed', 
     expect(guessMapping(table).columns.person ?? null, 'not offered').toBeNull();
   });
 
-  it('OLD-059: keeps exactly one match, and holds none, more than one, an empty cell and a name not yet answered', () => {
+  it('OLD-059, V491: keeps exactly one match, saves no one, more than one and an empty cell as Unknown, and waits for a name not yet answered', () => {
     const rows = readRows(table, {
       mode: 'tasks',
       mapping: guessMapping(table, FIELDS),
@@ -66,26 +69,34 @@ describe('OLD-059 — a pasted name is matched by the database, never guessed', 
       organisations: ORGS,
       people,
     });
-    expect(rows.map((r) => [r.person?.name ?? '', r.person?.id ?? null, r.problems])).toEqual([
-      ['Test Person One', ONE, []],
-      ['tp.two', TWO, []],
-      ['Tester', null, ['person_ambiguous']],
-      ['Test Persn One', null, ['person_unknown']],
-      ['', null, ['person_missing']],
-      ['Someone Not Asked', null, ['person_checking']],
+    expect(rows.map((r) => [r.person?.name, r.person?.id, r.person?.unknown, r.problems])).toEqual([
+      ['Test Person One', ONE, null, []],
+      ['tp.two', TWO, null, []],
+      ['Tester', null, 'many', []],
+      ['Test Persn One', null, 'none', []],
+      ['', null, 'missing', []],
+      ['Someone Not Asked', null, null, ['person_checking']],
     ]);
     const request = toRequest(rows, 'tasks');
     expect(
-      request.rows.map((r) => r.person_id),
-      'only the rows with one match are sent, with that person',
-    ).toEqual([ONE, TWO]);
+      request.rows.map((r) => [r.person_id, r.owner_unknown]),
+      'a matched person, or owner Unknown — never the person pasting',
+    ).toEqual([
+      [ONE, false],
+      [TWO, false],
+      [null, true],
+      [null, true],
+      [null, true],
+    ]);
   });
 
   it('OLD-059: reads no person where the screen does not offer the column — every row is the signed-in person’s', () => {
     const mapping = guessMapping(table, FIELDS);
     const rows = readRows(table, { mode: 'tasks', mapping, today: TODAY, choices: STATUSES, organisations: ORGS });
     expect(rows.every((r) => r.person === null && r.problems.length === 0)).toBe(true);
-    expect(toRequest(rows, 'tasks').rows.map((r) => r.person_id)).toEqual(Array(6).fill(null));
+    expect(toRequest(rows, 'tasks').rows.map((r) => [r.person_id, r.owner_unknown])).toEqual(
+      Array(6).fill([null, false]),
+    );
   });
 });
 
@@ -179,7 +190,7 @@ describe('the grid on a screen', () => {
     return { save, all };
   };
 
-  it('OLD-059: offers the Person column, asks for every name once, and sends only the matched people', async () => {
+  it('OLD-059, V491: offers the Person column, asks for every name once, and sends each row with its person or owner Unknown', async () => {
     const resolvePeople = lookup<PersonMatch>(PEOPLE, { kind: 'none' });
     const { save } = draw({ resolvePeople });
     paste(excelPaste(PASTE));
@@ -189,10 +200,28 @@ describe('the grid on a screen', () => {
     expect(resolvePeople.mock.calls[0]![0].sort()).toEqual(
       ['Someone Not Asked', 'Test Person One', 'Test Persn One', 'Tester', 'tp.two'].sort(),
     );
-    expect(lines().map((tr) => tr.dataset.ready)).toEqual(['true', 'true', 'false', 'false', 'false', 'false']);
+    expect(lines().map((tr) => tr.dataset.ready)).toEqual(Array(6).fill('true'));
+    expect(
+      lines().map((tr) => tr.querySelector('[data-owner-unknown]')?.textContent ?? null),
+      'each Unknown owner says why',
+    ).toEqual([
+      null,
+      null,
+      'Owner unknown: more than one person has this name',
+      'Owner unknown: no one has this name',
+      'Owner unknown: no name',
+      'Owner unknown: no one has this name',
+    ]);
     act(() => saveButton().click());
     await settle();
-    expect(save.mock.calls[0]![0].rows.map((r) => r.person_id)).toEqual([ONE, TWO]);
+    expect(save.mock.calls[0]![0].rows.map((r) => [r.person_id, r.owner_unknown])).toEqual([
+      [ONE, false],
+      [TWO, false],
+      [null, true],
+      [null, true],
+      [null, true],
+      [null, true],
+    ]);
   });
 
   it('OLD-059: offers no Person column where the screen does not', async () => {

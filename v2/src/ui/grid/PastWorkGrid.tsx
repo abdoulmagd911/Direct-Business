@@ -22,6 +22,7 @@ import {
   type Field,
   type Mapping,
   type OrgMatch,
+  type OwnerUnknown,
   type OwnField,
   type PastWorkMode,
   type PersonMatch,
@@ -50,6 +51,11 @@ export interface PastWorkLabels {
   ready: string;
   /** Why a row is refused, one sentence each. */
   problems: Record<Problem, string>;
+  /**
+   * Where the paste names people: the chip on a row saved with an Unknown owner (V491), and why — "Owner unknown: no
+   * name", "… no one has this name", "… more than one person has this name".
+   */
+  ownerUnknown?: Record<OwnerUnknown, string>;
   /** "18 rows ready · 2 refused". */
   summary: (ready: number, refused: number) => string;
   /** The save button: "Save 18 rows". */
@@ -327,7 +333,17 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                     <td className="px-3 py-2">{choiceName(r.kind)}</td>
                     <td className="px-3 py-2">{r.organisation?.name ?? ''}</td>
                     <td className="px-3 py-2 text-muted">{r.notes ?? ''}</td>
-                    {props.resolvePeople ? <td className="px-3 py-2">{r.person?.name ?? ''}</td> : null}
+                    {props.resolvePeople ? (
+                      <td className="px-3 py-2" data-owner-unknown={r.person?.unknown ?? undefined}>
+                        {r.person?.unknown ? (
+                          <StatusChip tone="warning">
+                            {labels.ownerUnknown?.[r.person.unknown] ?? r.person.name}
+                          </StatusChip>
+                        ) : (
+                          (r.person?.name ?? '')
+                        )}
+                      </td>
+                    ) : null}
                     <td className="px-3 py-2">
                       {r.problems.length ? (
                         <ul className="flex flex-col gap-0.5 text-danger" data-problems={r.problems.join(' ')}>

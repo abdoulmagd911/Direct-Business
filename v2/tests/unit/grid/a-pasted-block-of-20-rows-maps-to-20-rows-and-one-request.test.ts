@@ -49,6 +49,7 @@ describe('a pasted block of 20 rows', () => {
       organisation_id: '00000000-0000-4000-8000-00000000000a',
       notes: null,
       person_id: null,
+      owner_unknown: false,
       import_key: rows[1]!.key,
     });
     expect(new Set(request.rows.map((r) => r.import_key)).size, 'one key a row').toBe(20);
