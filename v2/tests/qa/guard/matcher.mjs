@@ -16,7 +16,8 @@ import { pathToFileURL } from 'node:url';
 const root = resolve(process.argv[2] || join(import.meta.dirname, '..', '..', '..', '..'));
 const { decide, segmentsOf } = await import(pathToFileURL(join(root, '.claude/hooks/bash-guard.mjs')).href);
 const settings = JSON.parse(readFileSync(join(root, '.claude/settings.json'), 'utf8'));
-const rules = (/** @type {string} */ kind) =>
+/** @type {(kind: string) => string[]} */
+const rules = (kind) =>
   (settings.permissions?.[kind] ?? [])
     .filter((/** @type {string} */ r) => r.startsWith('Bash('))
     .map((/** @type {string} */ r) => r.slice(5, -1));
@@ -34,7 +35,10 @@ function outcome(cmd) {
   return segs.every((/** @type {string} */ s) => rules('allow').some((r) => matches(r, s))) ? 'ALLOW' : 'ASK';
 }
 
-/** [command, the loosest answer allowed, why] — every value is made up; no command here is ever run. */
+/**
+ * [command, the loosest answer allowed, why] — every value is made up; no command here is ever run.
+ * @type {[string, 'DENY' | 'ASK' | 'ALLOW', string][]}
+ */
 const CASES = [
   // the independent QA's strings (#110)
   ['git push --force origin v2/q-1', 'ASK', 'a force push'],
@@ -79,7 +83,7 @@ const rank = { DENY: 0, ASK: 1, ALLOW: 2 };
 let bad = 0;
 const rows = CASES.map(([cmd, most, why]) => {
   const got = outcome(cmd);
-  const tooLoose = rank[got] > rank[/** @type {'DENY'|'ASK'|'ALLOW'} */ (most)];
+  const tooLoose = rank[got] > rank[most];
   const tooTight = most === 'ALLOW' && got !== 'ALLOW';
   if (tooLoose) bad += 1;
   return { verdict: tooLoose ? 'FAIL' : tooTight ? 'tight' : 'ok', got, must: most, why, cmd };
