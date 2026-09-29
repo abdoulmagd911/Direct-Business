@@ -16,8 +16,6 @@ import { SchemaEditor, SchemaValue } from './SchemaEditor';
 
 export type Department = { id: string; name_en: string; name_ar: string | null };
 
-const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
-
 /** api.setting_preview's answer (V97): a rolled-back dry run of the change. */
 type ServerPreview = {
   valid_from: string;
@@ -37,10 +35,13 @@ export function SettingCard({
   def,
   departments,
   canEdit,
+  today,
 }: {
   def: SettingDefRow;
   departments: Department[];
   canEdit: boolean;
+  /** Riyadh's date on the SERVER (YYYY-MM-DD): the day a change applies from is never the browser's clock (PRF-139). */
+  today: string;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -48,7 +49,7 @@ export function SettingCard({
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<string>('all');
   const [value, setValue] = useState<unknown>(def.value);
-  const [from, setFrom] = useState(today());
+  const [from, setFrom] = useState(today);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [answered, setAnswered] = useState<(ServerPreview & { of: string }) | null>(null);
@@ -69,7 +70,7 @@ export function SettingCard({
   const openDialog = () => {
     setScope('all');
     setValue(def.value);
-    setFrom(today());
+    setFrom(today);
     setReason('');
     setOpen(true);
   };
@@ -261,7 +262,7 @@ export function SettingCard({
             </dd>
             <dt className="text-muted">{t('settings.setting.appliesFrom')}</dt>
             <dd>
-              {(previewed ? previewed.valid_from : def.effective_dated ? from : today()) !== today()
+              {(previewed ? previewed.valid_from : def.effective_dated ? from : today) !== today
                 ? t('settings.setting.preview.fromDate', {
                     date: formatDate(new Date(previewed ? previewed.valid_from : from), locale, {
                       dateStyle: 'medium',

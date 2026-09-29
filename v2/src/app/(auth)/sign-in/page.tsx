@@ -5,6 +5,7 @@ import { signInMethods } from '@/core/auth/actions';
 import { getMe } from '@/core/auth/get-me';
 import { signInMethod } from '@/core/auth/password-rules';
 import { safeNext } from '@/core/auth/safe-next';
+import { getAppSettings } from '@/core/settings/app';
 import { SignIn } from '@/modules/org/screens/SignIn';
 
 // The sign-in page (TECH-SPEC §4, V59, V75, V204): the brand panel, the workspace name, the two-step form and © Direct.
@@ -27,10 +28,17 @@ export default async function SignInPage({
   const next = typeof params.next === 'string' ? params.next : null;
   const reason = typeof params.reason === 'string' && REFUSALS.has(params.reason) ? params.reason : null;
 
-  const me = await getMe();
+  const [me, app] = await Promise.all([getMe(), getAppSettings()]);
   if (me?.status === 'ok') redirect(safeNext(next));
 
   const t = await getTranslations();
   const method = signInMethod() === 'code' && (await signInMethods()).code ? 'code' : 'password';
-  return <SignIn next={next} refusal={reason ? t(`sign_in.error.${reason}`) : null} method={method} />;
+  return (
+    <SignIn
+      next={next}
+      refusal={reason ? t(`sign_in.error.${reason}`) : null}
+      method={method}
+      arabicEnabled={app.arabic_enabled}
+    />
+  );
 }

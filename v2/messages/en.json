@@ -122,7 +122,8 @@
     "pages": "Pages",
     "actions": "Actions",
     "empty": "Nothing matches",
-    "openInSettings": "Open Settings"
+    "openInSettings": "Open Settings",
+    "people": "People"
   },
   "profileMenu": {
     "theme": "Theme",
@@ -130,7 +131,8 @@
     "language": "Language",
     "direction": "Direction (development)",
     "signOut": "Sign out",
-    "myProfile": "My profile"
+    "myProfile": "My profile",
+    "recentlyDeleted": "Recently deleted"
   },
   "theme": {
     "light": "Light",
@@ -390,7 +392,8 @@
     "tabs": {
       "changes": "Changes",
       "settings": "Settings log",
-      "signIns": "Sign-ins"
+      "signIns": "Sign-ins",
+      "deleted": "Recently deleted"
     },
     "filters": {
       "who": "Who",
@@ -434,7 +437,12 @@
       "team.saved": "Team saved",
       "department.saved": "Department saved",
       "role.saved": "Role saved",
-      "person.account_set": "Account type set"
+      "person.account_set": "Account type set",
+      "view.removed": "View removed",
+      "view.saved": "View saved",
+      "record.restored": "Record restored",
+      "list.removed": "List entry removed",
+      "list.retired": "List entry archived"
     },
     "signIn": {
       "at": "When",
@@ -455,7 +463,12 @@
         "locked": "Locked — too many wrong passwords"
       }
     },
-    "loadMore": "Show earlier"
+    "loadMore": "Show earlier",
+    "deleted": {
+      "restore": "Restore",
+      "restored": "{what} restored",
+      "none": "Nothing removed recently"
+    }
   },
   "profile": {
     "title": "My profile",
@@ -746,6 +759,7 @@
       "conflict": "Someone changed this since you opened it. Reload and try again.",
       "not_found": "This record was not found",
       "unavailable": "The server did not answer. Try again.",
+      "nothing_selected": "Nothing is selected",
       "reason_required": "A reason is required",
       "bad_request": "The request was not understood: {detail}"
     },
@@ -810,6 +824,23 @@
     "org": {
       "name_ar_required": "An Arabic name is required"
     },
+    "view": {
+      "not_yours": "Only its owner removes a saved view",
+      "shared_needs_full": "Sharing a view needs the Full level on this page",
+      "name_taken": "A view with this name already exists on this page"
+    },
+    "restore": {
+      "not_removable": "{detail} records are never removed, so nothing to restore",
+      "not_removed": "This record is not removed",
+      "too_late": "Removed more than {detail} days ago — ask an admin",
+      "not_allowed": "Only who removed it, its owners or an admin restore it",
+      "blocked_by_duplicate": "Another record now holds the same value: {detail}"
+    },
+    "notify": {
+      "unknown_tab": "Unknown notifications tab",
+      "snooze_in_the_past": "Pick a time that is still to come",
+      "snooze_too_far": "Snooze for a shorter time"
+    },
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
@@ -818,5 +849,79 @@
       "has_one": "This person already has a password of their own — it is kept",
       "no_sign_in": "This person has no allowed email yet"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "tabs": {
+      "all": "All",
+      "mentions": "Mentions",
+      "assigned": "Assigned to me"
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
+    "unread": "Unread",
+    "markAllRead": "Mark all read",
+    "markRead": "Mark as read",
+    "snooze": "Snooze",
+    "snoozeTomorrow": "Until tomorrow 08:00",
+    "snoozeWeek": "For a week",
+    "snoozeDate": "Until a date…",
+    "snoozeUntil": "Snooze until",
+    "kinds": {
+      "assigned": "{actor} assigned you {what}",
+      "helper_added": "{actor} added you as a helper on {what}",
+      "mentioned": "{actor} mentioned you on {what}",
+      "changed_by_other": "{actor} changed your {what}",
+      "followed_change": "{actor} changed {what} you follow",
+      "decision_needed": "{what} needs your decision",
+      "report_issued": "{actor} issued {what}",
+      "report_for_review": "{actor} sent {what} for your review",
+      "appraisal_step": "{actor} moved your appraisal on",
+      "import_done": "Import finished",
+      "alert_contract_expiring": "A contract on {what} is expiring",
+      "alert_kpi_behind": "{what} is behind pace",
+      "alert_invoice_unpaid": "{what} is unpaid past its limit",
+      "alert_kpi_checkin": "KPI check-in day: {what}",
+      "escalated": "{actor} escalated {what} to you",
+      "alert_quiet_client": "{what} has gone quiet",
+      "alert_project_no_update": "{what} has no health update",
+      "alert_activity_stale": "{what} has had no activity",
+      "alert_file_review": "A file on {what} is due for review",
+      "other": "{actor} · {what}"
+    }
+  },
+  "follow": {
+    "follow": "Follow",
+    "following": "Following",
+    "unfollowed": "No longer following",
+    "failed": "Follow · try again"
+  },
+  "conflict": {
+    "title": "Someone changed this since you opened it",
+    "titleBy": "{name} changed this since you opened it",
+    "description": "Choose, for each field, which value to keep.",
+    "when": "Changed {time}",
+    "theirs": "Their value",
+    "theirsBy": "{name} wrote",
+    "mine": "Mine",
+    "save": "Save my choice"
+  },
+  "views": {
+    "save": "Save view",
+    "saveTitle": "Save this view",
+    "name": "Name",
+    "shared": "Shared with everyone who can open this page",
+    "saved": "View saved",
+    "removed": "{name} removed",
+    "default": "Default view",
+    "setDefault": "Open this view first",
+    "menu": "{name}: more",
+    "label": "Views"
+  },
+  "recentlyDeleted": {
+    "title": "Recently deleted"
   }
 }
