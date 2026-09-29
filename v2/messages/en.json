@@ -818,7 +818,8 @@
     "notify": {
       "unknown_tab": "Unknown notifications tab",
       "snooze_in_the_past": "Pick a time that is still to come",
-      "snooze_too_far": "Snooze for a shorter time",
+      "snooze_too_far": "Snooze for a shorter time"
+    },
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
