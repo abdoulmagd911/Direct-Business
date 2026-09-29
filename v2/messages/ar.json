@@ -70,6 +70,9 @@
     },
     "org": {
       "sign_out": "تسجيل خروج شخص من كل أجهزته"
+    },
+    "files": {
+      "restricted": "رؤية الملفات المقيدة"
     }
   },
   "setting": {
@@ -93,7 +96,8 @@
       "undo_window_hours": "ساعات إمكان التراجع عن إجراء"
     },
     "files": {
-      "max_mb": "أكبر حجم للملف بالميغابايت"
+      "max_mb": "أكبر حجم للملف بالميغابايت",
+      "allowed_types": "أنواع الملفات المسموح برفعها"
     },
     "notify": {
       "kinds_enabled": "الإشعارات المرسلة"
@@ -101,7 +105,15 @@
     "partner": {
       "id_format": "صيغة رقم الشريك",
       "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
-      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك"
+      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك",
+      "contract_reminder_days": "تذكيرات العقد، بالأيام قبل الانتهاء",
+      "contract_expiring_from_days": "يظهر \"ينتهي خلال\" للعقد من هذا العدد من الأيام",
+      "contract_notify": "من يُبلَّغ بقرب انتهاء العقد",
+      "logo_fallback": "الشريك بلا شعار يظهر"
+    },
+    "core": {
+      "file_download_display_name": "التنزيل باسم العرض للملف",
+      "file_keep_original_name": "إظهار الاسم الأصلي للملف في تفاصيله"
     }
   },
   "entity": {
@@ -145,6 +157,13 @@
     "status_reason": "سبب الحالة",
     "call_outcome": "نتيجة الاتصال",
     "contract_term": "شرط العقد",
-    "priority": "الأولوية"
+    "priority": "الأولوية",
+    "file_kind": "نوع الملف",
+    "file": "ملف",
+    "file_link": "ملف مرفق",
+    "note": "ملاحظة",
+    "mention": "إشارة",
+    "contract": "عقد",
+    "contract_terms": "شروط العقد"
   }
 }

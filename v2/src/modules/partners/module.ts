@@ -72,6 +72,20 @@ export default defineModule({
       owners: 'partner.contact_owners',
     },
     { key: 'partner_merge', table: 'partner.merge', page: 'partners', label: 'entity.partner_merge' },
+    {
+      key: 'contract',
+      table: 'partner.contract',
+      page: 'partners',
+      label: 'entity.contract',
+      owners: 'partner.contract_owners',
+    },
+    {
+      key: 'contract_terms',
+      table: 'partner.contract_term',
+      page: 'partners',
+      label: 'entity.contract_terms',
+      owners: 'partner.contract_term_owners',
+    },
     { key: 'code_terms', table: 'partner.code_terms', page: 'partners', label: 'entity.code_terms' },
     {
       key: 'campaign_code',
@@ -142,6 +156,36 @@ export default defineModule({
       label: 'setting.partner.name_stop_words',
       schema: z.array(z.string().min(1)),
       default: ['شركة', 'مؤسسة', 'company', 'co', 'corp', 'corporation', 'ltd', 'limited', 'llc', 'inc', 'est'],
+    },
+    {
+      key: 'partner.contract_reminder_days',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_reminder_days',
+      schema: z.array(z.number().int().min(1).max(365)).min(1).max(6),
+      default: [60, 30, 7],
+    },
+    {
+      key: 'partner.contract_expiring_from_days',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_expiring_from_days',
+      schema: z.number().int().min(1).max(365),
+      default: 30,
+    },
+    {
+      key: 'partner.contract_notify',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_notify',
+      schema: z
+        .object({ account_manager: z.boolean(), followers: z.boolean(), commercial_manager: z.boolean() })
+        .strict(),
+      default: { account_manager: true, followers: true, commercial_manager: false },
+    },
+    {
+      key: 'partner.logo_fallback',
+      group: 'settings.partners',
+      label: 'setting.partner.logo_fallback',
+      schema: z.enum(['monogram', 'blank']),
+      default: 'monogram',
     },
     {
       key: 'partner.one_code_per_partner',

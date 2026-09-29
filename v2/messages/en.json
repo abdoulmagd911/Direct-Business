@@ -70,6 +70,9 @@
     },
     "org": {
       "sign_out": "Sign a person out of every device"
+    },
+    "files": {
+      "restricted": "See restricted files"
     }
   },
   "setting": {
@@ -93,7 +96,8 @@
       "undo_window_hours": "Hours an action can still be undone"
     },
     "files": {
-      "max_mb": "Largest file, in MB"
+      "max_mb": "Largest file, in MB",
+      "allowed_types": "File types that may be uploaded"
     },
     "notify": {
       "kinds_enabled": "Notifications sent"
@@ -101,7 +105,15 @@
     "partner": {
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
-      "one_code_per_partner": "One live discount code per partner"
+      "one_code_per_partner": "One live discount code per partner",
+      "contract_reminder_days": "Contract reminders, days before the end",
+      "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
+      "contract_notify": "Who is told a contract is expiring",
+      "logo_fallback": "A partner with no logo shows"
+    },
+    "core": {
+      "file_download_display_name": "Downloads use the file's display name",
+      "file_keep_original_name": "Show a file's original name in its details"
     }
   },
   "entity": {
@@ -145,6 +157,13 @@
     "status_reason": "Status reason",
     "call_outcome": "Call outcome",
     "contract_term": "Contract term",
-    "priority": "Priority"
+    "priority": "Priority",
+    "file_kind": "File kind",
+    "file": "File",
+    "file_link": "File attached",
+    "note": "Note",
+    "mention": "Mention",
+    "contract": "Contract",
+    "contract_terms": "Contract terms"
   }
 }
