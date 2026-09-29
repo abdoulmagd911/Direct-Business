@@ -7,7 +7,7 @@ select set_config('t.am1', test.person('Test Account Manager', 'member')::text, 
 select set_config('t.new', test.person('Test Newcomer', 'member')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.person_email_add(%L, %L)', current_setting('t.new'), 'test.new@example.com'),
-  '42501', 'a team member cannot allow an e-mail', 'access.needs_level');
+  '42501', 'a team member cannot allow an e-mail', 'access.needs_admin');
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.added', api.person_email_add(current_setting('t.new')::uuid, 'Test.New@example.com')::text, true);
 select test.as_owner();

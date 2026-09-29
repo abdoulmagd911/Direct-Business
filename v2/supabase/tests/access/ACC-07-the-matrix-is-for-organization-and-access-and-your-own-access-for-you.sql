@@ -1,6 +1,7 @@
--- ACC-07 — reading access (§5, P3-5's screens): the matrix of roles × pages and capabilities needs Organization &
--- access · View; a person's own access is theirs to read, anyone else's needs the same View.
+-- ACC-07 — reading access (§5, P3-5's screens): the matrix of roles × pages and capabilities is on Settings →
+-- Organization & access, so for admins (V97); a person's own access is theirs to read, anyone else's is an admin's.
 -- Sabotage: supabase/tests/sabotage/the-matrix-is-open-to-all.sql.
+select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 insert into core.person_page_level (person_id, page_key, level, reason)
@@ -13,6 +14,8 @@ select test.raises(format('select api.access_of_person(%L)', current_setting('t.
 select set_config('t.mine', api.access_of_person(current_setting('t.am1')::uuid)::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);
+select test.raises($$select api.access_matrix()$$, '42501', 'nor can a head', 'access.needs_level');
+select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.matrix', api.access_matrix()::text, true);
 select set_config('t.theirs', api.access_of_person(current_setting('t.am1')::uuid)::text, true);
 select test.as_owner();
@@ -23,4 +26,4 @@ select test.eq(jsonb_array_length(current_setting('t.matrix')::jsonb -> 'pages')
 select test.eq(jsonb_array_length(current_setting('t.matrix')::jsonb -> 'role_levels'),
   (select count(*) from core.role_page_level where deleted_at is null)::int, 'every role''s starting levels');
 select test.eq(current_setting('t.theirs')::jsonb -> 'level_overrides' -> 0 ->> 'reason', 'made up for a test',
-  'a head at View on access sees another person''s overrides and why');
+  'an admin sees another person''s overrides and why');

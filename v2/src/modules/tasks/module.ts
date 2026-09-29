@@ -18,7 +18,8 @@ export default defineModule({
       route: '/settings/work',
       label: 'nav.settings.work',
       nav: { group: 'settings', order: 60 },
-      defaults: { admin: 'full', head: 'full', manager: 'view' },
+      levels: ['none', 'full'],
+      defaults: { admin: 'full' },
     },
   ],
   capabilities: [
