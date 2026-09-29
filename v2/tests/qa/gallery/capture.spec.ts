@@ -15,6 +15,17 @@ import { PERSONAS, ROUTES, type Route } from './routes';
 
 const OUT = process.env.QA_GALLERY_OUT || join(RUN_DIR, 'gallery');
 const STATE = (process.env.QA_GALLERY_STATE || 'filled') as 'filled' | 'empty' | 'error' | 'door';
+// A preview of an unmerged PR (QA_GALLERY_PASS=pr123, QA_GALLERY_PASS_TITLE=…) is stored beside main's pictures under its
+// own pass; QA_GALLERY_ROUTES and QA_GALLERY_PERSONAS (comma lists of ids) narrow the filled pass to what it changes.
+const PASS = process.env.QA_GALLERY_PASS || STATE;
+const PASS_TITLE = process.env.QA_GALLERY_PASS_TITLE || '';
+const list = (v: string | undefined) =>
+  (v || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+const ONLY_ROUTES = list(process.env.QA_GALLERY_ROUTES);
+const ONLY_PERSONAS = list(process.env.QA_GALLERY_PERSONAS);
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 
@@ -27,6 +38,7 @@ type Line = {
   persona: string;
   state: string;
   pass: string;
+  passTitle?: string;
   file: string;
   desktop: { state: string; url: string; errors: number };
   phone: { state: string; url: string; errors: number };
@@ -170,7 +182,8 @@ async function shoot(browser: Browser, key: string, routes: Route[], down = fals
           path,
           persona: key,
           state,
-          pass: STATE,
+          pass: PASS,
+          ...(PASS_TITLE ? { passTitle: PASS_TITLE } : {}),
           desktop: { state: d.state, url: d.url, errors: d.errors },
           phone: { state: p.state, url: p.url, errors: p.errors },
         },
@@ -187,10 +200,11 @@ async function shoot(browser: Browser, key: string, routes: Route[], down = fals
 test.describe.configure({ mode: 'parallel' });
 
 if (STATE === 'filled') {
-  for (const persona of PERSONAS) {
+  const routes = ONLY_ROUTES.length ? ROUTES.filter((r) => ONLY_ROUTES.includes(r.id)) : ROUTES;
+  for (const persona of PERSONAS.filter((p) => !ONLY_PERSONAS.length || ONLY_PERSONAS.includes(p.key))) {
     test(`gallery · ${persona.key}`, async ({ browser }) => {
       test.setTimeout(900_000);
-      await shoot(browser, persona.key, ROUTES);
+      await shoot(browser, persona.key, routes);
     });
   }
 }

@@ -33,6 +33,9 @@ const personas = [
 ];
 const data = { sha, when, note, personas, shots: lines };
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
+// The oversight's review items, each with its retake pictures and fixed / not fixed (review.json beside the manifest).
+const reviewFile = join(OUT, 'review.json');
+const review = existsSync(reviewFile) ? readFileSync(reviewFile, 'utf8').replace(/</g, '\\u003c') : 'null';
 const sweepFile = join(OUT, 'sweep.json');
 const sweep = existsSync(sweepFile) ? readFileSync(sweepFile, 'utf8').replace(/</g, '\\u003c') : 'null';
 
@@ -93,6 +96,26 @@ section.page h2 { font: 600 20px/1.2 var(--display); margin: 0; }
 .st.error-page { background: var(--badbg); color: var(--bad); }
 .err { font: 11.5px var(--mono); color: var(--bad); }
 .empty-note { color: var(--muted); font-style: italic; }
+#review { margin-top: 18px; }
+#review h2 { font: 600 22px/1.2 var(--display); margin: 0 0 4px; }
+#review .sub { color: var(--muted); margin: 0 0 10px; max-width: 75ch; }
+.item { display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 4px 10px; padding: 10px 0;
+  border-top: 1px solid var(--line); }
+.item .n { font: 600 15px var(--mono); color: var(--muted); }
+.item .t { font-weight: 600; }
+.item .lane { color: var(--muted); font-size: 13px; }
+.item .note { color: var(--muted); font-size: 14px; }
+.item .row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.item .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.item .thumbs button { all: unset; cursor: zoom-in; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  background: var(--sheet); }
+.item .thumbs img { display: block; width: 220px; max-width: 42vw; height: 120px; object-fit: cover; object-position: top left; }
+.item .thumbs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rs { border-radius: 4px; padding: 1px 7px; font: 600 12px var(--body); }
+.rs.fixed { background: var(--okbg); color: var(--ok); }
+.rs.not-fixed { background: var(--badbg); color: var(--bad); }
+.rs.partly { background: var(--warnbg); color: var(--warn); }
+.rs.on-pr { background: var(--infobg); color: var(--info); }
 #viewer { position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 94%, transparent);
   overflow: auto; padding: calc(env(safe-area-inset-top, 0px) + 56px) 16px 32px; }
 #viewer img { max-width: none; display: block; margin: 0 auto; }
@@ -121,6 +144,7 @@ section.page h2 { font: 600 20px/1.2 var(--display); margin: 0; }
     <label><select id="jump" aria-label="Go to a page"></select></label>
     <span class="count" id="count"></span>
   </div>
+  <section id="review" hidden></section>
   <main id="pages"></main>
 </div>
 <div id="viewer" hidden><div class="top"><button class="chip" id="prev">Previous</button><button class="chip" id="next">Next</button>
@@ -129,6 +153,7 @@ section.page h2 { font: 600 20px/1.2 var(--display); margin: 0; }
 <script>
 const DATA = ${json};
 const SWEEP = ${sweep};
+const REVIEW = ${review};
 const STATE_WORDS = { 'renders': 'shows', 'no-access': 'no access', 'not-found': 'not found', 'crash': 'crashed', 'error-page': 'error page',
   'failed-read': 'failed read', 'empty': 'empty', 'sign-in': 'sent to sign-in', 'set-password': 'choose a password' };
 const PASS_TITLE = { empty: 'Before any record exists (an admin)', error: 'When the data does not answer (an admin)',
@@ -179,12 +204,12 @@ function render() {
     seen.get(key).items.push(s);
   }
   const passRank = { door: 0, filled: 1, empty: 2, error: 3 };
-  bands.sort((a, b) => (passRank[a.s.pass] - passRank[b.s.pass]));
+  bands.sort((a, b) => (passRank[a.s.pass] ?? 4) - (passRank[b.s.pass] ?? 4));
   list = [];
   let html = '', group = '', jump = '';
   for (const band of bands) {
     const items = band.items.filter(keep).sort((a, b) => order.indexOf(a.persona) - order.indexOf(b.persona));
-    const g = band.s.pass === 'filled' ? band.s.group : PASS_TITLE[band.s.pass];
+    const g = band.s.pass === 'filled' ? band.s.group : band.s.passTitle || PASS_TITLE[band.s.pass] || band.s.pass;
     if (!items.length) continue;
     const id = 'p-' + band.key.replace(/[^a-z0-9-]/gi, '-');
     if (g !== group) { html += '<div class="group">' + g + '</div>'; group = g; jump += '<optgroup label="' + g + '">'; }
@@ -209,6 +234,26 @@ function render() {
   document.querySelectorAll('.frame button').forEach((b) => b.addEventListener('click', () => open(+b.dataset.i)));
 }
 const viewer = document.getElementById('viewer'), vimg = document.getElementById('vimg');
+const RS_WORDS = { 'fixed': 'Fixed', 'not-fixed': 'Not fixed', 'partly': 'Partly fixed', 'on-pr': 'Fixed on a PR, not merged' };
+function openFile(file, cap) {
+  const i = list.findIndex((s) => s.file === file);
+  if (i >= 0) return open(i);
+  vimg.src = file; document.getElementById('vcap').textContent = cap;
+  viewer.hidden = false; viewer.scrollTop = 0; document.getElementById('close').focus();
+}
+if (REVIEW && REVIEW.items && REVIEW.items.length) {
+  const el = document.getElementById('review');
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  el.innerHTML = '<h2>Review items</h2><p class="sub">' + esc(REVIEW.intro || '') + '</p>' + REVIEW.items.map((it) =>
+    '<div class="item"><span class="n">' + esc(it.n) + '</span><div><div class="row"><span class="t">' + esc(it.title) +
+    '</span><span class="rs ' + it.status + '">' + (RS_WORDS[it.status] || it.status) + '</span><span class="lane">' +
+    esc(it.lane || '') + '</span></div><div class="note">' + esc(it.note || '') + '</div><div class="thumbs">' +
+    (it.shots || []).map((f) => '<button data-f="' + esc(f) + '" data-c="' + esc(it.n + ' · ' + it.title) +
+      '" aria-label="Open the retake for item ' + esc(it.n) + '"><img loading="lazy" src="' + esc(f) + '" alt=""></button>').join('') +
+    '</div></div></div>').join('');
+  el.hidden = false;
+  el.querySelectorAll('button[data-f]').forEach((b) => b.addEventListener('click', () => openFile(b.dataset.f, b.dataset.c)));
+}
 function open(i) {
   at = (i + list.length) % list.length; const s = list[at];
   vimg.src = s.file;
