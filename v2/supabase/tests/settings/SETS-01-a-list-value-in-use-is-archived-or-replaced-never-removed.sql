@@ -7,9 +7,9 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.corporate', (select id::text from partner.side_type where side = 'client' and key = 'corporate'), true);
 select set_config('t.supplier', (select id::text from partner.side_type where side = 'supplier_partner' and key = 'supplier'), true);
-select set_config('t.meeting', (select id::text from partner.call_outcome where key = 'meeting_set'), true);
-select set_config('t.mv', (select version::text from partner.call_outcome where key = 'meeting_set'), true);
-select set_config('t.answered', (select id::text from partner.call_outcome where key = 'answered'), true);
+select set_config('t.meeting', (select id::text from partner.activity_outcome where key = 'meeting_set'), true);
+select set_config('t.mv', (select version::text from partner.activity_outcome where key = 'meeting_set'), true);
+select set_config('t.answered', (select id::text from partner.activity_outcome where key = 'answered'), true);
 
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.s', api.list_save('side_type', null,
@@ -52,14 +52,14 @@ select api.restore('side_type', current_setting('t.spare')::uuid, 'made up: need
 select test.ok(exists (select 1 from jsonb_array_elements(api.list('side_type')) x where x ->> 'id' = current_setting('t.spare')),
   'from where it is restored');
 
-select test.eq((api.list_save('call_outcome', current_setting('t.meeting')::uuid, '{"name_en": "Meeting booked"}',
+select test.eq((api.list_save('activity_outcome', current_setting('t.meeting')::uuid, '{"name_en": "Meeting booked"}',
                 current_setting('t.mv')::int) ->> 'version')::int, current_setting('t.mv')::int + 1,
   'a value with a locked meaning is renamed');
-select test.raises(format('select api.list_save(%L, %L, %L)', 'call_outcome', current_setting('t.meeting'),
+select test.raises(format('select api.list_save(%L, %L, %L)', 'activity_outcome', current_setting('t.meeting'),
   '{"meaning": "demo_set"}'), 'P0001', 'but its meaning never changes', 'list.meaning_locked');
-select test.raises(format('select api.list_remove(%L, %L)', 'call_outcome', current_setting('t.meeting')), 'P0001',
+select test.raises(format('select api.list_remove(%L, %L)', 'activity_outcome', current_setting('t.meeting')), 'P0001',
   'nor is it removed', 'list.meaning_locked');
-select test.raises(format('select api.list_retire(%L, %L, %L, %L)', 'call_outcome', current_setting('t.meeting'),
+select test.raises(format('select api.list_retire(%L, %L, %L, %L)', 'activity_outcome', current_setting('t.meeting'),
   current_setting('t.answered'), 'made up'), 'P0001', 'nor retired', 'list.meaning_locked');
 
 select test.as_person(current_setting('t.head')::uuid);
