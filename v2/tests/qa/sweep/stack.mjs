@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // @ts-check
 // The QA sweep's own LOCAL Supabase stack (never a cloud project). It is v2/supabase copied into the run folder with
-// the QA lane's ports (9600–9699) and its own project id, so it never collides with a builder's stack on 54321/54322
-// in the same container. The migrations are copied as they are: the database is built from zero by `supabase start`
+// the QA lane's ports (9600–9699; QA_STACK_PORT_BASE picks the ten) and its own project id (QA_STACK_PROJECT), so it
+// never collides with a builder's stack on 54321/54322, or with a second sweep's stack, in the same container. The migrations are copied as they are: the database is built from zero by `supabase start`
 // (or by `supabase db reset --local` when the branch's migrations changed — run.sh decides).
 //
 //   node tests/qa/sweep/stack.mjs prepare   (re)write <run>/stack/supabase from v2/supabase
@@ -13,11 +13,13 @@
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { APP_PORT, STACK_DIR, V2_DIR } from './paths.mjs';
+import { APP_PORT, STACK_DIR, STACK_PORT_BASE, STACK_PROJECT, V2_DIR } from './paths.mjs';
 
-const PORTS = { api: 9621, db: 9622, shadow: 9620, pooler: 9629, studio: 9623, smtp: 9624, analytics: 9627 };
-const INSPECTOR_PORT = 9683;
-const PROJECT_ID = 'direct-commercial-qa';
+// QA_STACK_PORT_BASE moves the whole stack (a second sweep beside the first: see paths.mjs); unset, 9620–9629.
+const B = STACK_PORT_BASE;
+const PORTS = { api: B + 1, db: B + 2, shadow: B, pooler: B + 9, studio: B + 3, smtp: B + 4, analytics: B + 7 };
+const INSPECTOR_PORT = B === 9620 ? 9683 : B + 8;
+const PROJECT_ID = STACK_PROJECT;
 
 /** @param {string[]} args */
 function supabase(args) {

@@ -23,6 +23,8 @@ export type Fixtures = {
   notes: { alpha: string; beta: string };
   views: { member: string };
   settingReason: string;
+  /** The scenario catalogue's own data (07-catalogue.spec.ts); absent in the gallery's staged seed. */
+  catalogue?: { dash: { email: string; authUserId: string; password: string } };
 };
 
 let loaded: Fixtures | null = null;

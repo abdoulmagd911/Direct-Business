@@ -60,6 +60,42 @@ const PEOPLE = {
   noemail: { role: 'member', label: 'Test NoEmail', listed: false },
 };
 
+/**
+ * The scenario catalogue's own people (07-catalogue.spec.ts), one or two per scenario so no two tests share a person's
+ * password, profile, role or log; made in the sweep's full seed only (not in the gallery's people/data stages, whose
+ * screens stay as they were). `levels` are person overrides set through api.access_set_person_level.
+ * @type {Record<string, { role: string | null; label: string; canSignIn?: boolean; listed?: boolean; levels?: Record<string, string> }>}
+ */
+const CATALOGUE_PEOPLE = {
+  c_rate: { role: 'member', label: 'Test Cat RateLimit' },
+  c_pwtarget: { role: 'member', label: 'Test Cat PwTarget' },
+  c_reset: { role: 'member', label: 'Test Cat Reset' },
+  c_dash: { role: 'member', label: 'Test Cat DashboardUser', listed: false },
+  c_nofin: {
+    role: 'member',
+    label: 'Test Cat NoFinance',
+    levels: { finance: 'none', kpis: 'none', reports: 'none', overview: 'none', appraisal: 'none' },
+  },
+  c_notasks: { role: 'member', label: 'Test Cat NoTasks', levels: { tasks: 'none' } },
+  c_demote: { role: 'admin', label: 'Test Cat Demoted Admin' },
+  c_target: { role: 'member', label: 'Test Cat Edit Target' },
+  c_refocus: { role: 'admin', label: 'Test Cat Refocus Admin' },
+  c_refocusoff: { role: 'member', label: 'Test Cat Refocus SwitchOff' },
+  c_slow: { role: 'admin', label: 'Test Cat SlowLevels' },
+  c_refuse: { role: 'member', label: 'Test Cat Refused Save' },
+  c_untouched: { role: 'admin', label: 'Test Cat Untouched Save' },
+  c_offline: { role: 'admin', label: 'Test Cat Offline Save' },
+  c_walkmember: { role: 'member', label: 'Test Cat Walk Member' },
+  c_walkadmin: { role: 'admin', label: 'Test Cat Walk Admin' },
+  c_theme: { role: 'member', label: 'Test Cat Theme' },
+  c_twomail: { role: 'member', label: 'Test Cat TwoEmails' },
+  c_rmmail: { role: 'member', label: 'Test Cat RemoveEmail' },
+  c_admin: { role: 'admin', label: 'Test Cat Admin' },
+  c_colleague: { role: 'member', label: 'Test Cat Colleague' },
+};
+/** Made-up, typed "in the dashboard" for the auth user ACC-031 makes outside the app; never a real password. */
+const DASHBOARD_PASSWORD = 'Test-QA-Dashboard-2026-Jeddah';
+
 async function ensureBase() {
   await sql(`insert into core.department (code, name_en, name_ar) values ('commercial', 'Commercial', 'التجاري')
              on conflict (code) do nothing`);
@@ -67,7 +103,7 @@ async function ensureBase() {
 
 /** @param {string} key @returns {Promise<Person>} */
 async function makePerson(key) {
-  const def = PEOPLE[key];
+  const def = PEOPLE[key] ?? CATALOGUE_PEOPLE[key];
   if (!def) throw new Error(`no fixture ${key}`);
   const id = randomUUID();
   const email = `test.qa.${key}.${tag}@example.test`;
@@ -120,6 +156,7 @@ async function main() {
     tag = before.tag;
   } else {
     for (const key of Object.keys(PEOPLE)) users[key] = await makePerson(key);
+    if (STAGE === 'all') for (const key of Object.keys(CATALOGUE_PEOPLE)) users[key] = await makePerson(key);
   }
   if (STAGE === 'people') {
     mkdirSync(RUN_DIR, { recursive: true });
@@ -276,6 +313,20 @@ async function main() {
     }
   }
 
+  /** @type {Record<string, unknown> | undefined} */
+  let catalogue;
+  if (STAGE === 'all') {
+    for (const [key, def] of Object.entries(CATALOGUE_PEOPLE))
+      for (const [page, level] of Object.entries(def.levels ?? {}))
+        await admin('access_set_person_level', { p_person: u(key).id, p_page: page, p_level: level, p_reason: why });
+    // ACC-031: an auth user made outside the app (as the owner did in the Supabase dashboard — V451), for an email no
+    // person is allowed yet; the scenario's admin then allows it on Test Cat DashboardUser.
+    const dashEmail = `test.qa.dashboard.${tag}@example.test`;
+    const dash = await authAdmin.createUser({ email: dashEmail, email_confirm: true, password: DASHBOARD_PASSWORD });
+    if (!dash.data.user) throw new Error(`could not make the dashboard auth user: ${dash.error?.message}`);
+    catalogue = { dash: { email: dashEmail, authUserId: dash.data.user.id, password: DASHBOARD_PASSWORD } };
+  }
+
   const settingReason = `QA sweep seed setting ${tag}`;
   await admin('setting_set', { p_key: 'work.no_update_days', p_department: null, p_value: 8, p_reason: settingReason });
 
@@ -294,6 +345,7 @@ async function main() {
     views: { member: memberView.id ?? memberView },
     settingReason,
     extra,
+    catalogue,
   };
   mkdirSync(RUN_DIR, { recursive: true });
   writeFileSync(FIXTURES_FILE, JSON.stringify(fixtures, null, 2));
