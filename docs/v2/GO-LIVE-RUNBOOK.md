@@ -48,12 +48,15 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 | The test account removed (soft removal, logged) | oversight | Settings → People | no `test_account` row is live | V445 |
 | View as switched off (`auth.view_as_enabled` false) | admin | Settings → App | the View as action is gone; a start request is refused | V442 |
 | Nobody but the admin role holds any level on a Settings page | admin | Settings → Organization & access | ACC-05 green on the live database (read-only) | V97, V138 |
+| An admin can grant Head and Manager on the live database (the 29 Sep bug: head and manager rows still granted retired keys, so every grant was refused — fixed by V176, #124) | the QA session | Settings → Organization & access | a grant of Head succeeds once, then is undone; V176's test green on the merged commit | V97, V138, V176 |
 
 ## 4. Data and the reset
 
 | Check | Who | Where | Verified by | Rule |
 |---|---|---|---|---|
 | Staging reset to production state, backup first, only on the owner's word | builder A | `golive_reset` (v2) | the backup stamp recorded in the go-live PR; `app.go_live_on` set | D9, V400, P6-5 |
+| Settings typed by an admin: the Supplier & partner types Flight content provider and Accreditation body; the escalation matrix SOP link; the challenge root causes, streams and outside roles; the code channels; the company sizes; a live owner on each seeded task template; the strategy team's words for the KPI statuses; profile photos on or off (V493) | admin | Settings | each list shows its values; no template without a live owner; the KPI sheet prints the words | V486, V474, V485, V471, V472, V479, V473 |
+| The past-work loop (V491): January 2026 registered by hand the normal way — task, achievement, KPI reading, report draft, generate, compare with the old issued PDF, edit, issue; February to September through the Past work grid; every backfilled item owned or listed under Needs an owner | owner, then the managers | the app; Reports → Compare | the January report issued after its comparison; the Needs an owner filter empty or being worked | V491, V57, P5-2c |
 | The plan typed in (objectives, KPIs, targets, leads); the appraisal templates seeded | admin and the KPI leads | the app | the KPIs page shows the year's plan; no "not measured" tile that should measure | P6-8 |
 | The 2026 invoices typed by the team from the pilot on; the DPIN uniqueness verified on real Payments data before P4-1 shipped | team; oversight | Finance → New invoice | monthly revenue compared with Payments by the owner and the oversight | owner decision 4, V417 |
 | Every list exports its exact count; a missing cost is empty, never 0; printed parts reconcile to the printed total | the QA session | every list; a monthly report | `export-count` green; OA4 and OA5 checks | V426, V428 |
