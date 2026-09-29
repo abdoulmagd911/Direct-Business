@@ -51,16 +51,51 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stri
 const shown = (f: ConflictField, v: unknown) =>
   f.show ? f.show(v) : v === null || v === undefined || v === '' ? '—' : String(v);
 
+const arabic = () => typeof document !== 'undefined' && document.documentElement.lang === 'ar';
+
 async function whoIs(id: string | undefined, nameOf?: (id: string) => string | undefined): Promise<string> {
   if (!id) return '';
   const known = nameOf?.(id);
   if (known) return known;
   try {
-    const p = (await rpc('hover_person', { p_id: id })) as { display_name_en?: string; full_name_en?: string } | null;
-    return p?.display_name_en ?? p?.full_name_en ?? '';
+    const p = (await rpc('hover_person', { p_id: id })) as {
+      display_name_en?: string;
+      display_name_ar?: string | null;
+      full_name_en?: string;
+      full_name_ar?: string | null;
+    } | null;
+    // the name in the language on screen (QA-65, V76), the English one when there is no Arabic
+    const ar = arabic() ? (p?.display_name_ar ?? p?.full_name_ar) : null;
+    return ar || p?.display_name_en || p?.full_name_en || '';
   } catch {
     return '';
   }
+}
+
+/**
+ * Undo from the toast (QA-64, V144): an admin's undo goes through /auth/admin/undo, which undoes and then keeps
+ * Supabase Auth in step (an undone allowed e-mail, sign-in link or switch re-syncs the bans of the people it touched);
+ * anyone else, or a build without the route, undoes through api.undo. Either way the database decides who may (V128).
+ */
+async function undoRequest(requestId: string): Promise<void> {
+  try {
+    const r = await fetch('/auth/admin/undo', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ request_id: requestId }),
+    });
+    if (r.ok) return;
+    if (r.status !== 403 && r.status !== 404) throw await refusalOf(r);
+  } catch (e) {
+    if (e instanceof DbError) throw e;
+    // the route could not be reached or refused this person: the database's own undo decides
+  }
+  await rpc('undo', { p_request: requestId });
+}
+
+async function refusalOf(r: Response): Promise<DbError> {
+  const body = (await r.json().catch(() => null)) as { kind?: string; key?: string; detail?: string } | null;
+  return new DbError((body?.kind as DbError['kind']) ?? 'Unavailable', body?.key ?? 'common.unavailable', body?.detail);
 }
 
 /**
@@ -81,7 +116,14 @@ export async function command<T extends Written>(
     return result;
   } catch (e) {
     if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
-      const again = await resolveConflict(e, opts.conflict, opts.nameOf);
+      let again: Awaited<ReturnType<typeof resolveConflict>>;
+      try {
+        again = await resolveConflict(e, opts.conflict, opts.nameOf);
+      } catch (e3) {
+        // the fresh read for the dialog failed: said in words, and the caller's busy state is released (QA-74)
+        refuse(words, e3);
+        return undefined;
+      }
       if (again === 'cancelled') return undefined;
       try {
         const result = (await again()) as T;
@@ -114,7 +156,7 @@ async function done<T extends Written>(words: CommandWords, result: T, after?: (
           label: words.undo,
           onUndo: async () => {
             try {
-              await rpc('undo', { p_request: requestId });
+              await undoRequest(requestId);
               toast.done(words.undone);
               refetchAll();
               await after?.(result);

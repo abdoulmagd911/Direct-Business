@@ -48,6 +48,8 @@ export type PersonRecordData = {
   history: HistoryRow[] | null;
   devices: Device[] | null;
   signIns: { id: string; at: string; email: string; result: string; user_agent: string | null }[] | null;
+  /** The reads that failed for a reason other than access (`people`, `access`, `history`, `devices`, `signIns`). */
+  failed: string[];
 };
 
 const TABS = ['overview', 'activity', 'related', 'appraisal'] as const;
@@ -62,7 +64,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
-  const { me, org, person, row, access, history, devices, signIns } = data;
+  const { me, org, person, row, access, history, devices, signIns, failed } = data;
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const admin = me.person.role?.is_admin === true;
   const self = me.person.id === person.id;
@@ -84,15 +86,28 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     failed: (k: string, d: string) => t(k, { detail: d }),
   });
   const refresh = () => router.refresh();
+  /** A read that failed (not a refusal) is said in words with Try again — never drawn as empty or as no access. */
+  const failedRead = (name: string, what: string) =>
+    failed.includes(name) ? (
+      <DataState kind="failed" what={what} onRetry={refresh} retryLabel={t('common.tryAgain')} />
+    ) : null;
 
   const [editing, setEditing] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [temporary, setTemporary] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
   const [roleChange, setRoleChange] = useState<string | null>(null);
-  const [f, setF] = useState({
+  /**
+   * The edit form shows the stored values and sends only what changed (the old app's lesson): it is filled from the
+   * record every time Edit opens — so a refresh, an Undo or a change by someone else is what the form starts from,
+   * never a copy taken at mount — and the version it was filled from is the one the write is checked against.
+   */
+  const stored = {
     full_name_en: person.full_name_en,
     job_title_en: person.job_title_en ?? '',
     department_id: person.department_id,
@@ -100,39 +115,43 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     manager_id: person.manager_id ?? '',
     joined_on: row?.joined_on ?? '',
     left_on: row?.left_on ?? '',
-  });
+  };
+  const [f, setF] = useState(stored);
+  const [formVersion, setFormVersion] = useState<number | null>(null);
+  const openEdit = () => {
+    setF(stored);
+    setFormVersion(row?.version ?? null);
+    setEditing(true);
+  };
   const [busy, setBusy] = useState(false);
+
+  const changedFields = () => {
+    const out: Record<string, string | null> = {};
+    const norm = (k: keyof typeof stored) => (k === 'full_name_en' || k === 'job_title_en' ? f[k].trim() : f[k]);
+    for (const k of Object.keys(stored) as (keyof typeof stored)[]) {
+      const next = norm(k);
+      if (next === stored[k]) continue;
+      out[k] = k === 'full_name_en' || k === 'department_id' ? next : next || null;
+    }
+    return out;
+  };
 
   const saveEdit = async () => {
     if (!row) return;
-    setBusy(true);
-    const typed: Record<string, unknown> = {
-      full_name_en: f.full_name_en.trim(),
-      job_title_en: f.job_title_en.trim() || null,
-      department_id: f.department_id,
-      team_id: f.team_id || null,
-      manager_id: f.manager_id || null,
-      joined_on: f.joined_on || null,
-      left_on: f.left_on || null,
-    };
-    // Only what changed is written: the database checks the version per field it is asked to write, so two people
-    // changing different fields both keep (FLOW-08), and an untouched field never raises a conflict.
-    const was = row as unknown as Record<string, unknown>;
-    const changes: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(typed))
-      if (JSON.stringify(v) !== JSON.stringify(was[k] ?? null)) changes[k] = v;
+    const changes = changedFields();
     if (!Object.keys(changes).length) {
       setEditing(false);
-      setBusy(false);
       return;
     }
+    setBusy(true);
     const write = (values: Record<string, unknown>, version: number) =>
       rpc('person_update', {
         p_id: person.id,
         p_changes: values as never,
         p_version: version,
       } as never) as Promise<{ request_id?: string | null } | null>;
-    // FLOW-08: the fields this form writes, what it read, and how each reads in words — for the conflict dialog.
+    // FLOW-08: the fields this form writes, what it read when Edit opened, and how each reads in words — for the
+    // conflict dialog (QA-69: the form starts from the record as it was when Edit opened, and that version is checked).
     const nameOfPerson = (id: unknown) => (typeof id === 'string' ? (byId(id)?.full_name_en ?? '—') : '—');
     const every: ConflictField[] = [
       { key: 'full_name_en', label: t('profile.fullNameEn'), mine: changes.full_name_en, read: row.full_name_en },
@@ -167,23 +186,30 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       { key: 'left_on', label: t('settings.people.leftOn'), mine: changes.left_on, read: row.left_on },
     ];
     const fields = every.filter((x) => x.key in changes);
-    await command(words(t('settings.people.updated', { name: f.full_name_en })), () => write(changes, row.version), {
-      after: () => {
-        setEditing(false);
-        refresh();
-      },
-      nameOf: (id) => byId(id)?.full_name_en,
-      conflict: {
-        fields,
-        theirs: async () => {
-          const rows = (await rpc('people', {} as never)) as unknown as PersonRow[];
-          const now = rows.find((p) => p.id === person.id);
-          if (!now) throw new Error('common.not_found');
-          return { version: now.version, values: now as unknown as Record<string, unknown> };
+    await command(
+      words(t('settings.people.updated', { name: f.full_name_en.trim() })),
+      () => write(changes, formVersion ?? row.version),
+      {
+        after: () => {
+          setEditing(false);
+          refresh();
         },
-        retry: write,
+        nameOf: (id) => {
+          const p = byId(id);
+          return p ? nameOf(p, locale) : undefined;
+        },
+        conflict: {
+          fields,
+          theirs: async () => {
+            const rows = (await rpc('people', {} as never)) as unknown as PersonRow[];
+            const now = rows.find((p) => p.id === person.id);
+            if (!now) throw new Error('common.not_found');
+            return { version: now.version, values: now as unknown as Record<string, unknown> };
+          },
+          retry: write,
+        },
       },
-    });
+    );
     setBusy(false);
   };
   const doSwitch = async (reason: string) => {
@@ -211,6 +237,28 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         refresh();
       },
     );
+  };
+  // Generate temporary password (V441): admins only, with a reason; random, shown once here with Copy, never typed,
+  // never mailed. The person chooses their own at their next sign-in.
+  const generatePassword = async (reason: string) => {
+    await run(words(t('settings.people.password.generated')), async () => {
+      const res = await fetch('/auth/admin/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ person_id: person.id, reason }),
+      });
+      const body = (await res.json()) as { ok: boolean; error?: { key: string }; temporary_password?: string };
+      if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
+      setGenerating(false);
+      setCopied(false);
+      if (body.temporary_password) setTemporary(body.temporary_password);
+      return null;
+    });
+  };
+  const copyTemporary = async () => {
+    if (!temporary) return;
+    await navigator.clipboard.writeText(temporary);
+    setCopied(true);
   };
   const signOutEverywhere = async (reason: string) => {
     await run(
@@ -341,7 +389,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           empty={!team}
           add={
             admin ? (
-              <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
+              <Button size="xs" variant="ghost" onClick={openEdit}>
                 {t('common.addNew')}
               </Button>
             ) : (
@@ -356,7 +404,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           empty={!manager}
           add={
             admin ? (
-              <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
+              <Button size="xs" variant="ghost" onClick={openEdit}>
                 {t('common.addNew')}
               </Button>
             ) : (
@@ -373,7 +421,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               empty={!row.joined_on}
               add={
                 admin ? (
-                  <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
+                  <Button size="xs" variant="ghost" onClick={openEdit}>
                     {t('common.addNew')}
                   </Button>
                 ) : (
@@ -444,7 +492,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const actions =
     admin && !self ? (
       <>
-        <Button variant="primary" onClick={() => setEditing(true)} data-person-edit>
+        <Button variant="primary" onClick={openEdit} data-person-edit>
           {t('common.edit')}
         </Button>
         {follow}
@@ -453,9 +501,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         </Button>
         <Menu>
           <MenuTrigger asChild>
-            <Button aria-label={t('common.more')}>⋯</Button>
+            <Button aria-label={t('common.more')} data-person-more>
+              ⋯
+            </Button>
           </MenuTrigger>
           <MenuContent>
+            <MenuItem onSelect={() => setGenerating(true)} data-password-generate>
+              {t('settings.people.password.generate')}
+            </MenuItem>
             <MenuItem onSelect={() => setSigningOut(true)}>{t('settings.people.signOutEverywhere')}</MenuItem>
           </MenuContent>
         </Menu>
@@ -503,6 +556,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     >
       {tab === 'overview' ? (
         <>
+          {failedRead('people', t('settings.tabs.people'))}
+          {failedRead('access', t('settings.people.access'))}
           {devices ? (
             <Card title={t('settings.people.devices')}>
               {devices.length ? (
@@ -543,14 +598,16 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               </ul>
             </Card>
           ) : null}
-          {!devices && !signIns ? <DataState kind="empty" message={t('state.empty')} /> : null}
+          {failedRead('devices', t('settings.people.devices'))}
+          {failedRead('signIns', t('settings.people.signInLog'))}
+          {!devices && !signIns && !failed.length ? <DataState kind="empty" message={t('state.empty')} /> : null}
         </>
       ) : null}
       {tab === 'activity' ? (
         history ? (
           <ActivityTimeline rows={history} people={people} onChanged={refresh} />
         ) : (
-          <DataState kind="no-access" what={t('record.activity')} />
+          (failedRead('history', t('record.activity')) ?? <DataState kind="no-access" what={t('record.activity')} />)
         )
       ) : null}
       {tab === 'related' ? (
@@ -700,6 +757,46 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           reasonRequired: t('settings.form.reasonRequired'),
         }}
       />
+      <ReasonDialog
+        open={generating}
+        onOpenChange={setGenerating}
+        title={`${t('settings.people.password.generate')} · ${person.full_name_en}`}
+        body={t('settings.people.password.body')}
+        onSave={generatePassword}
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.password.generate'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <Dialog
+        open={temporary !== null}
+        onOpenChange={(o) => !o && setTemporary(null)}
+        title={t('settings.people.password.temporaryTitle', { name: person.full_name_en })}
+        size="sm"
+        closeLabel={t('common.close')}
+        footer={
+          <>
+            <Button onClick={() => void copyTemporary()} data-password-copy>
+              {copied ? t('settings.people.password.copied') : t('settings.people.password.copy')}
+            </Button>
+            <Button variant="primary" onClick={() => setTemporary(null)}>
+              {t('common.close')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted">{t('settings.people.password.temporaryBody')}</p>
+          <p
+            className="select-all rounded-md border border-border bg-surface px-3 py-2 font-data text-lg"
+            data-temporary-password
+          >
+            {temporary}
+          </p>
+        </div>
+      </Dialog>
       <ReasonDialog
         open={signingOut}
         onOpenChange={setSigningOut}

@@ -1,10 +1,9 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Me } from '@/core/auth/me';
-import { command, run } from '@/core/commands/run';
+import { run } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -12,7 +11,6 @@ import { avatarOf, nameOf, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
-import { entityRoute } from '@/ui/entity-route';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
@@ -23,6 +21,7 @@ import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { Tabs } from '@/ui/Tabs';
 import type { SettingsAnswer } from '../schema';
+import { RecentlyDeleted, type DeletedRow } from './RecentlyDeleted';
 
 export type SignInRow = {
   id: string;
@@ -35,15 +34,7 @@ export type SignInRow = {
 
 const TABS = ['changes', 'settings', 'signIns', 'deleted'] as const;
 
-/** One row of api.recently_deleted (V401): a removed record the viewer may see, inside the restore window. */
-export type DeletedRow = {
-  entity: string;
-  id: string;
-  label: string | null;
-  deleted_at: string;
-  deleted_by: string | null;
-  reason: string | null;
-};
+export type { DeletedRow } from './RecentlyDeleted';
 
 /**
  * Activity (V97: its own page): the whole change log with filters (who, what, since) and Undo; the settings log with
@@ -133,24 +124,6 @@ export function ActivityScreen({
     );
   };
   const settingRows = rows.filter((r) => r.changes.some((c) => c.entity === 'setting'));
-  // Recently deleted (V401): Restore brings the record back as one logged request (api.restore), with Undo.
-  const restore = (d: DeletedRow) =>
-    command(
-      {
-        done: t('activity.deleted.restored', { what: whatOf(d) }),
-        undo: t('common.undo'),
-        undone: t('activity.undone'),
-        has: (k) => t.has(k),
-        failed: (k, detail) => t(k, { detail }),
-      },
-      () => rpc('restore', { p_entity: d.entity, p_id: d.id }) as Promise<{ request_id?: string | null } | null>,
-      { after: () => router.refresh() },
-    );
-  const whatOf = (d: DeletedRow) => {
-    const kind = t.has(`entity.${d.entity}`) ? t(`entity.${d.entity}`) : d.entity;
-    return d.label ? `${kind} · ${d.label}` : kind;
-  };
-
   return (
     <PageFrame className="[&>*]:max-w-[1100px]">
       <PageHeader title={t('nav.activity')} />
@@ -301,50 +274,7 @@ export function ActivityScreen({
           )}
         </section>
       ) : null}
-      {current === 'deleted' ? (
-        <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
-          {deleted.length ? (
-            <ul className="divide-y divide-border">
-              {deleted.map((d) => {
-                const href = entityRoute(d.entity, d.id);
-                return (
-                  <li
-                    key={`${d.entity}:${d.id}`}
-                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
-                    data-deleted-row={d.id}
-                  >
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="font-medium">
-                        {href ? (
-                          <Link href={href} className="hover:underline">
-                            {whatOf(d)}
-                          </Link>
-                        ) : (
-                          whatOf(d)
-                        )}
-                      </span>
-                      <span className="text-xs text-muted">
-                        {[
-                          d.deleted_by && people[d.deleted_by] ? people[d.deleted_by]!.displayName : null,
-                          formatDate(new Date(d.deleted_at), locale, { dateStyle: 'medium', timeStyle: 'short' }),
-                          d.reason,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    </span>
-                    <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
-                      {t('activity.deleted.restore')}
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <DataState kind="empty" message={t('activity.deleted.none')} />
-          )}
-        </section>
-      ) : null}
+      {current === 'deleted' ? <RecentlyDeleted rows={deleted} people={people} /> : null}
       <ReasonDialog
         open={reverting !== null}
         onOpenChange={(o) => !o && setReverting(null)}

@@ -2,6 +2,8 @@
 import { Check, MoreHorizontal, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useMe } from '@/core/auth/me-context';
+import { isAdmin } from './shell/nav';
 import type { CommandWords } from '@/core/commands/command';
 import { useSavedViews, type SavedView } from '@/core/views/useSavedViews';
 import { Button } from './Button';
@@ -40,6 +42,7 @@ export function SavedViewsBar({
   canShare: boolean;
   className?: string;
 }) {
+  const admin = isAdmin(useMe());
   const t = useTranslations();
   const words: CommandWords = {
     done: t('views.saved'),
@@ -117,7 +120,7 @@ export function SavedViewsBar({
                   {t('views.setDefault')}
                 </MenuItem>
               ) : null}
-              {v.mine || canShare ? (
+              {v.mine || admin ? (
                 <MenuItem onSelect={() => setRemoving(v)} data-view-remove>
                   {t('common.remove')}
                 </MenuItem>

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { command, type CommandWords } from '@/core/commands/command';
 import { onRefetch } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
+import { errorKey } from '@/core/db/words';
+import { toast } from '@/ui/Toast';
 
 /** One saved view of a page (api.views — §3.3, V61, V78): personal, or shared with everyone who can open the page. */
 export type SavedView = {
@@ -55,10 +57,17 @@ export function useSavedViews(page: string, words: CommandWords) {
   );
   const setDefault = useCallback(
     async (id: string) => {
-      await rpc('view_default_set', { p_page: page, p_view: id });
+      try {
+        await rpc('view_default_set', { p_page: page, p_view: id });
+      } catch (e) {
+        // a failed "open this view first" is said, never silent (QA-74)
+        const { key, detail } = errorKey(e, words.has);
+        toast.failed(words.failed(key, detail));
+        return;
+      }
       await load();
     },
-    [page, load],
+    [page, load, words],
   );
   const remove = useCallback(
     (ids: string[], done: string) =>

@@ -1,7 +1,7 @@
 'use client';
 import { Command } from 'cmdk';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
 import { Building2, Search, UserRound } from 'lucide-react';
@@ -27,6 +27,7 @@ const groupClass =
  */
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
+  const locale = useLocale();
   const me = useMe();
   const router = useRouter();
   const [q, setQ] = useState('');
@@ -77,8 +78,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     close(false);
     router.push(route);
   };
-  const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
-  const actions = paletteActions().filter((a) => canSee(me, a.page));
+  // cmdk's own filter is off (QA-72): a person the server found by a nickname or a folded Arabic spelling stays; the
+  // pages and actions are filtered here, on the words as shown
+  const matches = (label: string) => !term || label.toLowerCase().includes(term.toLowerCase());
+  const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])].filter((p) => matches(t(p.label)));
+  const actions = paletteActions().filter((a) => canSee(me, a.page) && matches(t(a.label)));
+  const createActions = CREATE_ACTIONS.filter(
+    (a) => canSee(me, a.page) && matches(`${t('top.create')} ${t(`create.${a.key}`)}`),
+  );
+  const personName = (p: Hit) => (locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en);
 
   return (
     <RD.Root open={open} onOpenChange={close}>
@@ -90,7 +98,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           data-command-palette
         >
           <RD.Title className="sr-only">{t('top.searchLabel')}</RD.Title>
-          <Command label={t('top.searchLabel')} loop>
+          <Command label={t('top.searchLabel')} loop shouldFilter={false}>
             <div className="flex items-center gap-2.5 border-b border-border px-4">
               <Search className="size-4 shrink-0 text-muted" aria-hidden="true" />
               <Command.Input
@@ -141,14 +149,14 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       data-palette-person={p.id}
                     >
                       <UserRound className="size-4 text-muted" aria-hidden="true" />
-                      <span className="truncate">{p.full_name_en}</span>
+                      <span className="truncate">{personName(p)}</span>
                       {p.job_title_en ? <span className="truncate text-sm text-muted">{p.job_title_en}</span> : null}
                     </Command.Item>
                   ))}
                 </Command.Group>
               ) : null}
               <Command.Group heading={t('palette.actions')} className={groupClass}>
-                {CREATE_ACTIONS.filter((a) => canSee(me, a.page)).map((a) => {
+                {createActions.map((a) => {
                   const Icon = a.icon;
                   return (
                     <Command.Item

@@ -133,7 +133,7 @@ export function Drawer() {
         )}
       >
         <Link
-          href="/settings/profile"
+          href="/profile"
           data-entity="person"
           className={cn(
             'flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-nav-text focus-visible:outline-2 focus-visible:outline-focus',

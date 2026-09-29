@@ -8,9 +8,10 @@ import { Hydrated } from '@/core/auth/Hydrated';
 import { fontClassNames } from '@/ui/fonts';
 import '@/ui/globals.css';
 
+// The tab icon is the orange mark on a slate rounded square: src/app/icon.svg (32), favicon.ico (16 + 32) and
+// apple-icon.png (180) — Next serves them at /icon.svg, /favicon.ico and /apple-icon.png and lists them in <head>.
 export const metadata: Metadata = {
   title: { default: 'Commercial', template: '%s · Commercial' },
-  icons: { icon: '/brand/direct-logo.svg' },
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };

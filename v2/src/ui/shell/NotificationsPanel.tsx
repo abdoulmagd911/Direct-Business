@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useMe } from '@/core/auth/me-context';
 import { errorKey } from '@/core/db/words';
 import { formatDate } from '@/core/i18n/format';
 import { NOTIFICATION_TABS, type Notification, type NotificationTab } from '@/core/notify/useNotifications';
@@ -22,20 +23,18 @@ import { toast } from '../Toast';
 
 type Group = 'today' | 'yesterday' | 'earlier';
 
+const DAY_MS = 86_400_000;
 const riyadhDay = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
-const groupOf = (at: string): Group => {
+/** Today, yesterday and tomorrow are Riyadh days counted from the SERVER's clock (V40, QA-74): the browser's clock and zone decide nothing. */
+const groupOf = (at: string, now: Date): Group => {
   const day = riyadhDay(new Date(at));
-  const today = riyadhDay(new Date());
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  return day === today ? 'today' : day === riyadhDay(y) ? 'yesterday' : 'earlier';
+  const today = riyadhDay(now);
+  const yesterday = riyadhDay(new Date(now.getTime() - DAY_MS));
+  return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';
 };
 /** Tomorrow 08:00 Riyadh, as an instant. */
-const tomorrowMorning = () => {
-  const d = new Date(`${riyadhDay(new Date())}T08:00:00+03:00`);
-  d.setDate(d.getDate() + 1);
-  return d;
-};
+const tomorrowMorning = (now: Date) => new Date(new Date(`${riyadhDay(now)}T08:00:00+03:00`).getTime() + DAY_MS);
+const plusDays = (now: Date, n: number) => riyadhDay(new Date(now.getTime() + n * DAY_MS));
 
 /**
  * The notification centre (§3.3, V61, artboard 8): a sheet at the inline end, 480 px (full screen on a phone), tabs
@@ -95,11 +94,14 @@ export function NotificationsPanel({
     onOpenChange(false);
     router.push(href);
   };
+  // the server's clock, as the gate read it for this page load: the day groups and the snooze days come from it
+  const now = new Date(useMe().session.last_seen_at);
   const groups = (['today', 'yesterday', 'earlier'] as const).map((g) => ({
     key: g,
-    rows: (items ?? []).filter((n) => groupOf(n.created_at) === g),
+    rows: (items ?? []).filter((n) => groupOf(n.created_at, now) === g),
   }));
-  const unreadHere = (items ?? []).some((n) => !n.read_at);
+  const unreadShown = (items ?? []).filter((n) => !n.read_at).map((n) => n.id);
+  const unreadHere = unreadShown.length > 0;
 
   return (
     <>
@@ -130,7 +132,7 @@ export function NotificationsPanel({
               <Button
                 size="sm"
                 disabled={!unreadHere}
-                onClick={() => void act(() => markRead())}
+                onClick={() => void act(() => markRead(unreadShown))}
                 data-notifications-mark-all
               >
                 {t('notifications.markAllRead')}
@@ -215,12 +217,12 @@ export function NotificationsPanel({
                                   />
                                 </MenuTrigger>
                                 <MenuContent>
-                                  <MenuItem onSelect={() => void act(() => snooze([n.id], tomorrowMorning()))}>
+                                  <MenuItem onSelect={() => void act(() => snooze([n.id], tomorrowMorning(now)))}>
                                     {t('notifications.snoozeTomorrow')}
                                   </MenuItem>
                                   <MenuItem
                                     onSelect={() => {
-                                      const d = tomorrowMorning();
+                                      const d = tomorrowMorning(now);
                                       d.setDate(d.getDate() + 6);
                                       void act(() => snooze([n.id], d));
                                     }}
@@ -283,7 +285,8 @@ export function NotificationsPanel({
               {...p}
               type="date"
               value={day}
-              min={riyadhDay(new Date())}
+              min={plusDays(now, 1)}
+              max={plusDays(now, 30)}
               onChange={(e) => setDay(e.target.value)}
               autoFocus
             />
