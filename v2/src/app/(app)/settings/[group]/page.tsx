@@ -25,6 +25,8 @@ export default async function SettingsGroupPage({
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const [{ group }, { tab }, me] = await Promise.all([params, searchParams, requireMe()]);
+  // Riyadh's date on the server: the day a setting change applies from is never the browser's clock (PRF-139)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
   const def = settingsGroups().find((g) => g.slug === group);
   if (!def) notFound();
   const t = await getTranslations();
@@ -63,13 +65,20 @@ export default async function SettingsGroupPage({
           matrix={matrix as MatrixAnswer}
           settings={answer.settings}
           canEdit={answer.can_edit}
+          today={today}
         />
       </SettingsShell>
     );
   }
   return (
     <SettingsShell current={group} title={t(def.label)}>
-      <SettingsGroup settings={answer.settings} canEdit={answer.can_edit} departments={departments} lists={lists} />
+      <SettingsGroup
+        settings={answer.settings}
+        canEdit={answer.can_edit}
+        departments={departments}
+        lists={lists}
+        today={today}
+      />
     </SettingsShell>
   );
 }

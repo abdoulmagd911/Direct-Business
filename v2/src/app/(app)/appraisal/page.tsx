@@ -6,7 +6,7 @@ import { Page } from '@/ui/shell/Page';
 export default async function AreaPage() {
   const t = await getTranslations();
   return (
-    <Page>
+    <Page page="appraisal" title={t('nav.appraisal')}>
       <PageHeader title={t('nav.appraisal')} />
       <DataState kind="empty" message={t('state.empty')} />
     </Page>
