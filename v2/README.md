@@ -111,3 +111,15 @@ the activity timeline with Undo); `src/modules/settings/` holds the settings fra
 the database's own preview, the list editor with the Arabic name required and Used in N before an archive, Activity
 with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
 record. `core/commands/run.ts` runs one write with its toast and Undo.
+
+The password door (V212): `core/auth/password-actions.ts` signs a person in with their work email and password, sends a
+person whose password must change to `/set-password` first, and changes a password from My profile; an admin generates a
+temporary one from the person's record (`/auth/admin/password`, V441). The emailed-code door stays behind
+`SIGN_IN_METHOD=code`.
+
+The door, as drawn (V213): `modules/org/screens/DoorFrame.tsx` and `ui/door.css` frame the pages outside the shell — a flat
+slate panel with the logo alone at 1,024 px and wider, a slate bar on a phone, a light 400 px column whatever the theme
+(`--door-*` tokens in `ui/tokens.css`); `PasswordDoor.tsx` is the form (show/hide, Caps Lock, the app's own validation,
+the four refusals in words). The tab icon is `app/icon.svg`, `app/favicon.ico` and `app/apple-icon.png`. Proof:
+`tests/e2e/door.spec.ts`; sabotages `door-offline-reads-as-wrong-password`, `door-eye-shows-nothing`,
+`door-panel-grows-a-tagline`.

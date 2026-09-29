@@ -38,7 +38,7 @@ test('sign-in mirrors under dir=rtl', async ({ page, context }) => {
   await open(page, '/sign-in');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   const panel = (await page.locator('[data-brand-panel]').boundingBox())!;
-  const form = (await page.locator('[data-step="email"]').boundingBox())!;
+  const form = (await page.locator('[data-step]').first().boundingBox())!;
   expect(form.x + form.width, 'the form is at the inline end (left of the brand panel)').toBeLessThan(panel.x + 1);
   await expect(page.getByRole('group', { name: 'Language' }), 'no EN | ع switch until Arabic is on (V122)').toHaveCount(
     0,
