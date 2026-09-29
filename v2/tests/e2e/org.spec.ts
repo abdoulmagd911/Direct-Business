@@ -190,8 +190,10 @@ test('an admin edits one field of a person: only that field is sent, and the for
     [member.id, `te_${tag}`, `Test Team Edit ${tag}`, `فريق اختبار ${tag}`],
   );
   await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
-  await page.reload();
-  await hydrated(page);
+  // the page reads again without a reload (a tab and back is a client-side navigation: the screen stays mounted)
+  await page.getByRole('main').getByRole('link', { name: 'Activity' }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Overview' }).click();
+  await expect(page.locator('[data-record-rail]')).toContainText(team!.name);
   await page.locator('[data-person-edit]').click();
   await expect(page.getByRole('dialog').getByLabel('Team'), 'the form shows the stored value').toContainText(
     team!.name,
