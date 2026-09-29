@@ -231,6 +231,19 @@ Vercel (V13, V21, V84).
 63. **The Supplier & partner side keeps the portal link and the username**, never passwords (V409).
 64. **Two more lanes**: builder C (Arabic, exports, the Past work grid; V300–V399) and the QA session (no V range)
     (V410). No Leads module in v1; a Leads inbox may come later if volume needs it (V99).
+65. **The Scout's old-app review** (oversight rulings V411–V425; the owner may reverse any): a closed client ID keeps its
+    past rows; name exclusions and aliases only where there is no client ID; a VAT/CR exclusion catches the whole
+    organisation; Loss flagged and counted; the invoice's own due date first; split receipts; DPIN uniqueness checked
+    on real data; MF10 read as "only paid units count"; no "profit with estimates"; and, pending the owner: an unknown
+    client ID stops in Needs a decision, names only suggest, one open prepaid and one open postpaid ID, credit notes
+    never count, the "Not yet invoiced: Ready / Pending" line, the at-risk band at 0.85.
+66. **The old app's lessons as house rules** (V426–V430): forms show the stored value and send only changes; a network
+    failure never says "saved"; nothing on screen is invented; every period slot drawn; one bad record costs one row;
+    exports never drop a column; reads write nothing; every deployed function's source in its PR; nothing in the cloud
+    but by migration; an outsider check in every audit; the build ID confirms every merge; a backup is never restored
+    over live tables; every read pages to the end; imports never revive a deleted row; a check that could not run says
+    so; a missing cost is empty; printed parts reconcile; every old door closed and one restore drill before go-live;
+    a test reads its setup back.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
