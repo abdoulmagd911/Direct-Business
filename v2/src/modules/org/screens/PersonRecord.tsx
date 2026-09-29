@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
+import { MIN_PASSWORD } from '@/core/auth/password-rules';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -87,6 +88,10 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const [editing, setEditing] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [temporary, setTemporary] = useState<string | null>(null);
   const [addingEmail, setAddingEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
@@ -153,6 +158,30 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         refresh();
       },
     );
+  };
+  // Set or Reset password (owner, 29 Sep 13:50): admins only, with a reason; the person sets their own on their next
+  // sign-in. A reset's temporary password is shown once, here, to be handed over — no e-mail is sent.
+  const passwordAction = async (mode: 'set' | 'reset', reason: string) => {
+    const done = mode === 'set' ? t('settings.people.password.setDone') : t('settings.people.password.resetDone');
+    await run(words(done), async () => {
+      const res = await fetch('/auth/admin/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          person_id: person.id,
+          mode,
+          reason,
+          ...(mode === 'set' ? { password: newPassword } : {}),
+        }),
+      });
+      const body = (await res.json()) as { ok: boolean; error?: { key: string }; temporary_password?: string };
+      if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
+      setSettingPassword(false);
+      setResettingPassword(false);
+      setNewPassword('');
+      if (body.temporary_password) setTemporary(body.temporary_password);
+      return null;
+    });
   };
   const signOutEverywhere = async (reason: string) => {
     await run(
@@ -393,9 +422,17 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         </Button>
         <Menu>
           <MenuTrigger asChild>
-            <Button aria-label={t('common.more')}>⋯</Button>
+            <Button aria-label={t('common.more')} data-person-more>
+              ⋯
+            </Button>
           </MenuTrigger>
           <MenuContent>
+            <MenuItem onSelect={() => setSettingPassword(true)} data-password-set>
+              {t('settings.people.password.set')}
+            </MenuItem>
+            <MenuItem onSelect={() => setResettingPassword(true)} data-password-reset>
+              {t('settings.people.password.reset')}
+            </MenuItem>
             <MenuItem onSelect={() => setSigningOut(true)}>{t('settings.people.signOutEverywhere')}</MenuItem>
           </MenuContent>
         </Menu>
@@ -638,6 +675,71 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           reasonRequired: t('settings.form.reasonRequired'),
         }}
       />
+      <ReasonDialog
+        open={settingPassword}
+        onOpenChange={(o) => {
+          setSettingPassword(o);
+          if (!o) setNewPassword('');
+        }}
+        title={`${t('settings.people.password.set')} · ${person.full_name_en}`}
+        body={t('sign_in.password.rule', { min: MIN_PASSWORD })}
+        saveDisabled={newPassword.length < MIN_PASSWORD}
+        onSave={(reason) => passwordAction('set', reason)}
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.password.set'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      >
+        <Field label={t('sign_in.password.new')}>
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              data-password-value
+            />
+          )}
+        </Field>
+      </ReasonDialog>
+      <ReasonDialog
+        open={resettingPassword}
+        onOpenChange={setResettingPassword}
+        title={`${t('settings.people.password.reset')} · ${person.full_name_en}`}
+        body={t('settings.people.password.resetBody')}
+        onSave={(reason) => passwordAction('reset', reason)}
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.password.reset'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <Dialog
+        open={temporary !== null}
+        onOpenChange={(o) => !o && setTemporary(null)}
+        title={t('settings.people.password.temporaryTitle', { name: person.full_name_en })}
+        size="sm"
+        closeLabel={t('common.close')}
+        footer={
+          <Button variant="primary" onClick={() => setTemporary(null)}>
+            {t('common.close')}
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted">{t('settings.people.password.temporaryBody')}</p>
+          <p
+            className="select-all rounded-md border border-border bg-surface px-3 py-2 font-data text-lg"
+            data-temporary-password
+          >
+            {temporary}
+          </p>
+        </div>
+      </Dialog>
       <ReasonDialog
         open={signingOut}
         onOpenChange={setSigningOut}
