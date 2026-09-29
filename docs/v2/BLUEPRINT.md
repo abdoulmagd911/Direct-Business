@@ -222,6 +222,15 @@ Vercel (V13, V21, V84).
 57. **The industry-benchmark v1 package**, each item placed in the plan (V401).
 58. **Working rules**: the database guard, the bulletproof and landmine checks around every merge, the oversight's
     read-only QA audit (V402).
+59. **Reports print in Arabic by default**, with an English copy on request; staff write in either language (V403).
+60. **Banned words cover data labels too**: the segment is "Government" (V404).
+61. **"Responsible" / «المسؤول»** is the KPI lead's name on screen, a wording setting (V405).
+62. **From the manager's calls, round 7**: "demo set" creates the demo task on its date with the manager as helper
+    (V406); an integration achievement carries the Direct ticket number as its evidence (V407); pilot training is one
+    live session, then a short video every three or four updates (V408).
+63. **The Supplier & partner side keeps the portal link and the username**, never passwords (V409).
+64. **Two more lanes**: builder C (Arabic, exports, the Past work grid; V300–V399) and the QA session (no V range)
+    (V410). No Leads module in v1; a Leads inbox may come later if volume needs it (V99).
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
