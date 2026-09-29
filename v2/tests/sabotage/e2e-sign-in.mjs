@@ -247,6 +247,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'e2e-a-prefetch-signs-the-browser-out',
+    breaks: [e2e('a-background-request-never-loses-the-reason-for-a-refusal')],
+    expect: 'the real visit is still told why',
+    edits: [
+      {
+        file: 'src/app/auth/sign-out/route.ts',
+        find: '  if (isBackground(request)) return NextResponse.redirect(new URL(`/sign-in?${params}`, request.url));\n',
+        replace: '',
+      },
+    ],
+  },
+  {
     name: 'e2e-everyone-gets-nothing',
     breaks: [e2e('generate-for-everyone-without-a-password.alone')],
     expect: 'everyone without a password gets one',
