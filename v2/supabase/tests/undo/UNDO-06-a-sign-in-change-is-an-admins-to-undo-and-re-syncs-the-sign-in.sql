@@ -28,6 +28,19 @@ select test.as_owner();
 select test.eq((select count(*)::int from core.person_email where email = 'made.up.undo@example.test'
                 and deleted_at is null), 0, 'the e-mail is no longer allowed');
 
+-- a removal, undone: the e-mail is allowed again, and the person named for the re-sync
+select test.as_person(current_setting('t.admin')::uuid);
+select set_config('t.e2', api.person_email_add(current_setting('t.am1')::uuid, 'made.up.second@example.test', false,
+  'made up') ->> 'id', true);
+select set_config('t.r3', api.person_email_remove(current_setting('t.e2')::uuid, 'made up: removed by mistake')
+  ->> 'request_id', true);
+select set_config('t.u3', api.undo(current_setting('t.r3')::uuid)::text, true);
+select test.eq(current_setting('t.u3')::jsonb -> 'auth_resync', jsonb_build_array(current_setting('t.am1')),
+  'undoing a removal names the person too');
+select test.as_owner();
+select test.eq((select count(*)::int from core.person_email where email = 'made.up.second@example.test'
+                and deleted_at is null), 1, 'whose e-mail is allowed again');
+
 -- a switch-off, undone: the person is back on, and named for the re-sync
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.r2', api.person_switch(current_setting('t.am1')::uuid, false, 'made up: left') ->> 'request_id',
