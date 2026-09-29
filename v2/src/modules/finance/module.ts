@@ -17,7 +17,8 @@ export default defineModule({
       route: '/settings/finance',
       label: 'nav.settings.finance',
       nav: { group: 'settings', order: 50 },
-      defaults: { admin: 'full', head: 'full', manager: 'view', member: 'view' },
+      levels: ['none', 'full'],
+      defaults: { admin: 'full' },
     },
   ],
   capabilities: [

@@ -1,14 +1,14 @@
--- Sabotage: view-changes-a-list
+-- Sabotage: anyone-changes-a-list
 -- Breaks: sql:LIST-01
--- Expect: a manager with View on Settings → Partners cannot change a list
--- Changing a list asks only for View on its settings page.
+-- Expect: a manager cannot change a list
+-- Changing a setting list asks only that someone is signed in.
 create or replace function core.list_save(p_list text, p_id uuid, p_values jsonb, p_version int default null,
                                p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   e core.entity := core.list_entity(p_list);
-  me uuid := authz.require(e.page_key, 'view');
+  me uuid := authz.me();
   t regclass := pg_catalog.to_regclass(e.table_name);
   cols text[];
   k text;

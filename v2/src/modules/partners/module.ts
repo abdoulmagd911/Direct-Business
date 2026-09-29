@@ -18,7 +18,8 @@ export default defineModule({
       route: '/settings/partners',
       label: 'nav.settings.partners',
       nav: { group: 'settings', order: 30 },
-      defaults: { admin: 'full', head: 'full', manager: 'view' },
+      levels: ['none', 'full'],
+      defaults: { admin: 'full' },
     },
   ],
   entities: [

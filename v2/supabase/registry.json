@@ -10,9 +10,9 @@
     {
       "key": "activity",
       "module": "settings",
-      "route": "/settings/activity",
-      "nav_group": "settings",
-      "nav_order": 80,
+      "route": "/activity",
+      "nav_group": "main",
+      "nav_order": 110,
       "levels": ["none", "view", "own", "full"]
     },
     {
@@ -93,7 +93,7 @@
       "route": "/settings/app",
       "nav_group": "settings",
       "nav_order": 70,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "settings.finance",
@@ -101,7 +101,7 @@
       "route": "/settings/finance",
       "nav_group": "settings",
       "nav_order": 50,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "settings.org",
@@ -109,7 +109,7 @@
       "route": "/settings/org",
       "nav_group": "settings",
       "nav_order": 20,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "settings.partners",
@@ -117,7 +117,7 @@
       "route": "/settings/partners",
       "nav_group": "settings",
       "nav_order": 30,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "settings.performance",
@@ -125,7 +125,7 @@
       "route": "/settings/performance",
       "nav_group": "settings",
       "nav_order": 40,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "settings.profile",
@@ -141,7 +141,7 @@
       "route": "/settings/work",
       "nav_group": "settings",
       "nav_order": 60,
-      "levels": ["none", "view", "own", "full"]
+      "levels": ["none", "full"]
     },
     {
       "key": "tasks",
@@ -586,13 +586,13 @@
     { "role": "head", "page": "pipeline", "level": "full" },
     { "role": "head", "page": "projects", "level": "full" },
     { "role": "head", "page": "reports", "level": "full" },
-    { "role": "head", "page": "settings.app", "level": "view" },
-    { "role": "head", "page": "settings.finance", "level": "full" },
-    { "role": "head", "page": "settings.org", "level": "view" },
-    { "role": "head", "page": "settings.partners", "level": "full" },
-    { "role": "head", "page": "settings.performance", "level": "full" },
+    { "role": "head", "page": "settings.app", "level": "none" },
+    { "role": "head", "page": "settings.finance", "level": "none" },
+    { "role": "head", "page": "settings.org", "level": "none" },
+    { "role": "head", "page": "settings.partners", "level": "none" },
+    { "role": "head", "page": "settings.performance", "level": "none" },
     { "role": "head", "page": "settings.profile", "level": "own" },
-    { "role": "head", "page": "settings.work", "level": "full" },
+    { "role": "head", "page": "settings.work", "level": "none" },
     { "role": "head", "page": "tasks", "level": "full" },
     { "role": "manager", "page": "activity", "level": "view" },
     { "role": "manager", "page": "appraisal", "level": "own" },
@@ -605,12 +605,12 @@
     { "role": "manager", "page": "projects", "level": "full" },
     { "role": "manager", "page": "reports", "level": "view" },
     { "role": "manager", "page": "settings.app", "level": "none" },
-    { "role": "manager", "page": "settings.finance", "level": "view" },
+    { "role": "manager", "page": "settings.finance", "level": "none" },
     { "role": "manager", "page": "settings.org", "level": "none" },
-    { "role": "manager", "page": "settings.partners", "level": "view" },
-    { "role": "manager", "page": "settings.performance", "level": "view" },
+    { "role": "manager", "page": "settings.partners", "level": "none" },
+    { "role": "manager", "page": "settings.performance", "level": "none" },
     { "role": "manager", "page": "settings.profile", "level": "own" },
-    { "role": "manager", "page": "settings.work", "level": "view" },
+    { "role": "manager", "page": "settings.work", "level": "none" },
     { "role": "manager", "page": "tasks", "level": "full" },
     { "role": "member", "page": "activity", "level": "none" },
     { "role": "member", "page": "appraisal", "level": "own" },
@@ -623,10 +623,10 @@
     { "role": "member", "page": "projects", "level": "own" },
     { "role": "member", "page": "reports", "level": "view" },
     { "role": "member", "page": "settings.app", "level": "none" },
-    { "role": "member", "page": "settings.finance", "level": "view" },
+    { "role": "member", "page": "settings.finance", "level": "none" },
     { "role": "member", "page": "settings.org", "level": "none" },
     { "role": "member", "page": "settings.partners", "level": "none" },
-    { "role": "member", "page": "settings.performance", "level": "view" },
+    { "role": "member", "page": "settings.performance", "level": "none" },
     { "role": "member", "page": "settings.profile", "level": "own" },
     { "role": "member", "page": "settings.work", "level": "none" },
     { "role": "member", "page": "tasks", "level": "own" },
@@ -644,7 +644,7 @@
     { "role": "viewer", "page": "settings.finance", "level": "none" },
     { "role": "viewer", "page": "settings.org", "level": "none" },
     { "role": "viewer", "page": "settings.partners", "level": "none" },
-    { "role": "viewer", "page": "settings.performance", "level": "view" },
+    { "role": "viewer", "page": "settings.performance", "level": "none" },
     { "role": "viewer", "page": "settings.profile", "level": "own" },
     { "role": "viewer", "page": "settings.work", "level": "none" },
     { "role": "viewer", "page": "tasks", "level": "view" }

@@ -1,13 +1,13 @@
--- Sabotage: a-head-renames-the-admin-role
+-- Sabotage: anyone-saves-a-role
 -- Breaks: sql:ROLE-01
--- Expect: only an admin renames the admin role
--- The roles door forgets that the admin role is an admin's to rename.
+-- Expect: a head makes no role
+-- The roles door asks only that someone is signed in.
 create or replace function core.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text default null, p_sort int default 0,
                                p_version int default null, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  me uuid := authz.require('settings.org', 'full');
+  me uuid := authz.me();
   r core.role;
   v jsonb := pg_catalog.jsonb_build_object('name_en', pg_catalog.btrim(p_name_en), 'name_ar', p_name_ar,
                                            'sort', coalesce(p_sort, 0));
@@ -27,6 +27,9 @@ begin
     end if;
     if p_key is distinct from r.key then
       raise exception using errcode = 'P0001', message = 'role.key_fixed';
+    end if;
+    if r.is_admin and not authz.is_admin() then
+      raise exception using errcode = '42501', message = 'access.admins_only';
     end if;
     perform core.check_version('core.role', p_id, p_version,
       (select pg_catalog.array_agg(k) from pg_catalog.jsonb_object_keys(v) k

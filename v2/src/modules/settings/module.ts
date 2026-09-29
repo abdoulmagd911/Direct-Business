@@ -19,8 +19,8 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_checkin',
 ] as const;
 
-// Settings: My profile (every person's own — it cannot be switched off), App, and Activity (the change log).
-// Levels: TECH-SPEC §8.
+// Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like
+// every Settings page (V97); and Activity (the change log), its own page. Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'settings',
   pages: [
@@ -37,13 +37,15 @@ export default defineModule({
       route: '/settings/app',
       label: 'nav.settings.app',
       nav: { group: 'settings', order: 70 },
-      defaults: { admin: 'full', head: 'view' },
+      levels: ['none', 'full'],
+      defaults: { admin: 'full' },
     },
     {
+      // Activity is its own page, out of the Settings group (V97).
       key: 'activity',
-      route: '/settings/activity',
+      route: '/activity',
       label: 'nav.activity',
-      nav: { group: 'settings', order: 80 },
+      nav: { group: 'main', order: 110 },
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],
