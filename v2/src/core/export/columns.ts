@@ -1,4 +1,5 @@
 import { TIME_ZONE } from '@/core/i18n/format';
+import { ExportPhotoRefused, isPicture } from './photo';
 
 /**
  * What a list exports: its columns, in the list's order, each with the header the person sees and the kind of value it
@@ -102,6 +103,8 @@ export function cellOf(column: Pick<ExportColumn<unknown>, 'key' | 'kind' | 'wor
   switch (column.kind) {
     case 'text': {
       const word = (v: string) => (column.words && Object.hasOwn(column.words, v) ? column.words[v]! : v);
+      // A picture as data never reaches a file (V493).
+      if (typeof raw === 'string' && isPicture(raw)) throw new ExportPhotoRefused(column.key);
       if (typeof raw === 'string') return { t: 'text', v: word(raw) };
       if (typeof raw === 'number' && Number.isFinite(raw)) return { t: 'text', v: String(raw) };
       if (typeof raw === 'boolean') return { t: 'text', v: String(raw) };

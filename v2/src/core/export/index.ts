@@ -16,6 +16,7 @@ export {
 } from './exportList';
 export { fetchAll, ExportRefused, PAGE_SIZE, type PageFetcher, type PageResult } from './fetchAll';
 export { csvGuard } from './csvGuard';
+export { ExportPhotoRefused } from './photo';
 export { cellOf, ExportColumnError, type Cell, type ExportColumn, type ExportKind } from './columns';
 export { toCsv, BOM } from './csv';
 export { toXlsx, XlsxCellTooLong, XLSX_TEXT_LIMIT } from './xlsx';

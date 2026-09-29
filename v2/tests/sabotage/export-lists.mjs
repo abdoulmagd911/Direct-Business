@@ -12,6 +12,7 @@ const ROLES =
 const ZONES = 'tests/unit/export/an-export-is-the-same-file-in-every-time-zone-and-at-every-riyadh-midnight.test.ts';
 const OLD =
   'tests/unit/export/an-export-leaves-money-to-finance-writes-list-values-in-the-readers-language-and-needs-columns.test.tsx';
+const PHOTO = 'tests/unit/export/no-export-carries-a-profile-photo.test.ts';
 
 const GUARD = 'src/core/export/csvGuard.ts';
 const CSVW = 'src/core/export/csv.ts';
@@ -389,5 +390,36 @@ export const sabotages = [
     breaks: [`unit:${OLD}`],
     expect: 'no columns',
     edits: [{ file: BTN, find: '  if (nothing) return null;', replace: '' }],
+  },
+  // ---------------------------------------------------------------- V493: no profile photo in any export
+  {
+    name: 'export-writes-a-photo-column',
+    breaks: [`unit:${PHOTO}`],
+    expect: 'a photo column is refused (V493)',
+    edits: [{ file: EXPORT, find: '  if (photo) throw new ExportPhotoRefused(photo.key);\n', replace: '' }],
+  },
+  {
+    name: 'export-writes-a-picture',
+    breaks: [`unit:${PHOTO}`],
+    expect: 'a picture is refused (V493)',
+    edits: [
+      {
+        file: COLS,
+        find: "      if (typeof raw === 'string' && isPicture(raw)) throw new ExportPhotoRefused(column.key);\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'export-code-reads-a-photo',
+    breaks: [`unit:${PHOTO}`],
+    expect: 'no export code reads a photo (V493)',
+    edits: [
+      {
+        file: CSVW,
+        find: "import { csvGuard } from './csvGuard';\n",
+        replace: "import { csvGuard } from './csvGuard';\n// the row's avatar_url\n",
+      },
+    ],
   },
 ];

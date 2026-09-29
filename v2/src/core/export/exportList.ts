@@ -2,6 +2,7 @@ import type { ExportColumn } from './columns';
 import { toCsv } from './csv';
 import { exportFileName } from './fileName';
 import { fetchAll, type FetchAllOptions, type PageFetcher } from './fetchAll';
+import { ExportPhotoRefused, isPhotoColumn } from './photo';
 import { toXlsx } from './xlsx';
 
 export type ExportFormat = 'csv' | 'xlsx';
@@ -85,12 +86,16 @@ export function fileColumns<T>(
 
 /**
  * What the file will hold, before anything is read: the visible columns (OA23), less every money column when the
- * session may not see Finance (OLD-037) — each left-out column named with its reason. Throws `ExportColumnMissing`.
+ * session may not see Finance (OLD-037) — each left-out column named with its reason. Throws `ExportColumnMissing`,
+ * and `ExportPhotoRefused` for a profile-photo column (V493).
  */
 export function plannedColumns<T>(
   input: Pick<ExportListInput<T>, 'columns' | 'visible' | 'omit' | 'seesFinance' | 'financeOnly'>,
 ): { columns: ExportColumn<T>[]; omitted: ExportResult['omitted'] } {
   const planned = fileColumns(input.columns, input.visible, input.omit);
+  // No profile photo in any export (V493): a photo column is refused by name, never written.
+  const photo = planned.columns.find((c) => isPhotoColumn(c.key));
+  if (photo) throw new ExportPhotoRefused(photo.key);
   if (input.seesFinance) return planned;
   const money = planned.columns.filter((c) => c.kind === 'money');
   return {
