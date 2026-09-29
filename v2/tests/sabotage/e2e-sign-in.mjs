@@ -174,7 +174,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/auth/password-actions.ts',
-        find: "  if (check !== 'ok') return { ok: false, error: check };\n",
+        find: "  if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };\n",
         replace: '  void check;\n',
       },
     ],
