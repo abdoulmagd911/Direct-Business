@@ -86,9 +86,9 @@ export default defineModule({
     {
       // People sign in with their e-mail and a password (V166); the emailed 6-digit code stays built, off unless an
       // admin switches it on.
-      key: 'auth.code_sign_in',
+      key: 'auth.code_door_enabled',
       group: 'settings.org',
-      label: 'setting.auth.code_sign_in',
+      label: 'setting.auth.code_door_enabled',
       schema: z.boolean(),
       default: false,
     },

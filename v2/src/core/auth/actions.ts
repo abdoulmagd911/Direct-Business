@@ -1,22 +1,18 @@
 'use server';
 
-// The sign-in doors, run on the server (TECH-SPEC §4; V59 as amended by V166 — e-mail and password, no e-mail sent):
-//   signInWithPassword — is this email allowed? (api.sign_in_password_check, with the secret key; a refusal is logged)
-//                then Supabase checks the password and sets the session cookie; api.sign_in_complete, as the new
-//                session, logs the sign-in and registers this device (V74), or refuses and the session is ended. A
-//                password an admin set must be changed first: the sign-in goes to CHANGE_PASSWORD_PATH.
-//   changePassword — the signed-in person's new password: checked here (10 characters at least), taken by Auth, then
-//                recorded by the server (api.password_changed, secret key only — the browser never clears its flag).
-//   sendCode / verifyCode — the emailed-code door, off unless an admin switches auth.code_sign_in on: Supabase emails a
-//                6-digit code (never creating a user; sign-ups are off), then checks it.
-//   signInMethods — which doors the sign-in page offers.
+// The emailed-code door, run on the server (TECH-SPEC §4; V59 as amended by V166 — the door is e-mail and password,
+// password-actions.ts; this one is off unless an admin switches auth.code_door_enabled on, and no e-mail is sent):
+//   sendCode / verifyCode — Supabase emails a 6-digit code (never creating a user; sign-ups are off), then checks it;
+//                the database completes the sign-in (api.sign_in_complete), refusing a code session while the door is
+//                off. A password an admin set must be changed first: the sign-in goes to CHANGE_PASSWORD_PATH.
+//   signInMethods — which doors the database offers (the password always; the code only when switched on).
 // Refusals come back as keys of the catalog's sign_in.error.*; nothing here trusts the browser to decide access.
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { deviceLabel } from './device-label';
-import { CHANGE_PASSWORD_PATH, passwordProblem, type PasswordProblem } from './password';
+import { CHANGE_PASSWORD_PATH } from './password';
 import { safeNext } from './safe-next';
 
 export type SignInError =
@@ -27,14 +23,10 @@ export type SignInError =
   | 'code_expired'
   | 'code_invalid'
   | 'code_off'
-  | 'wrong_password'
   | 'unavailable';
 
 export type SendCodeResult = { ok: true; email: string } | { ok: false; error: SignInError };
 export type VerifyCodeResult = { ok: false; error: SignInError };
-export type PasswordSignInResult = { ok: false; error: SignInError };
-export type ChangePasswordError = PasswordProblem | 'same_password' | 'not_signed_in' | 'unavailable';
-export type ChangePasswordResult = { ok: false; error: ChangePasswordError };
 
 /** How long a code lives (seconds) — the same as [auth.email] otp_expiry in supabase/config.toml and on the project. */
 const CODE_LIFETIME_S = 600;
@@ -70,69 +62,6 @@ async function complete(next: string | null, ua: string | null): Promise<{ ok: f
         : 'unavailable';
     return { ok: false, error: refused };
   }
-  redirect(safeNext(next));
-}
-
-export async function signInWithPassword(
-  rawEmail: string,
-  rawPassword: string,
-  next: string | null,
-): Promise<PasswordSignInResult> {
-  const email = String(rawEmail ?? '')
-    .trim()
-    .toLowerCase();
-  const password = String(rawPassword ?? '');
-  if (!EMAIL.test(email) || email.length > 254) return { ok: false, error: 'invalid_email' };
-  if (!password) return { ok: false, error: 'wrong_password' };
-  const ua = await userAgent();
-
-  const check = await serviceDb().rpc('sign_in_password_check', { p_email: email, p_user_agent: ua ?? undefined });
-  if (check.error) return { ok: false, error: 'unavailable' };
-  if (check.data !== 'allowed')
-    return {
-      ok: false,
-      error: check.data === 'not_listed' || check.data === 'switched_off' ? check.data : 'unavailable',
-    };
-
-  const db = await serverDb();
-  const signed = await db.auth.signInWithPassword({ email, password });
-  if (signed.error || !signed.data.session) {
-    const code = signed.error?.code ?? '';
-    await serviceDb().rpc('sign_in_password_refused', {
-      p_email: email,
-      p_detail: code || signed.error?.message || 'no_session',
-      p_user_agent: ua ?? undefined,
-    });
-    if (signed.error?.status === 429 || /rate_limit/.test(code)) return { ok: false, error: 'rate_limited' };
-    if (code === 'invalid_credentials') return { ok: false, error: 'wrong_password' };
-    if (code === 'user_banned') return { ok: false, error: 'switched_off' };
-    return { ok: false, error: 'unavailable' };
-  }
-  return complete(next, ua);
-}
-
-export async function changePassword(rawPassword: string, next: string | null): Promise<ChangePasswordResult> {
-  const db = await serverDb();
-  const {
-    data: { user },
-  } = await db.auth.getUser();
-  if (!user) return { ok: false, error: 'not_signed_in' };
-  const me = await db.rpc('me');
-  const status = (me.data as { status?: string } | null)?.status;
-  if (me.error || (status !== 'ok' && status !== 'must_change_password')) return { ok: false, error: 'not_signed_in' };
-
-  const password = String(rawPassword ?? '');
-  const problem = passwordProblem(password, user.email);
-  if (problem) return { ok: false, error: problem };
-  const updated = await db.auth.updateUser({ password });
-  if (updated.error) {
-    const code = updated.error.code ?? '';
-    if (code === 'same_password') return { ok: false, error: 'same_password' };
-    if (code === 'weak_password') return { ok: false, error: 'too_short' };
-    return { ok: false, error: 'unavailable' };
-  }
-  const recorded = await serviceDb().rpc('password_changed', { p_auth_user: user.id });
-  if (recorded.error) return { ok: false, error: 'unavailable' };
   redirect(safeNext(next));
 }
 

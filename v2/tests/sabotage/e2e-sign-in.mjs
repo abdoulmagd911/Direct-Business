@@ -19,10 +19,15 @@ export const sabotages = [
   {
     name: 'e2e-sign-in-forgets-the-device',
     breaks: [e2e('an-allowed-email-signs-in-with-the-emailed-code')],
-    expect: 'the code signs in',
+    expect: 'signs in',
     edits: [
       {
         file: 'src/core/auth/actions.ts',
+        find: "const done = await db.rpc('sign_in_complete', {",
+        replace: "const done = await serviceDb().rpc('sign_in_complete', {",
+      },
+      {
+        file: 'src/core/auth/password-actions.ts',
         find: "const done = await db.rpc('sign_in_complete', {",
         replace: "const done = await serviceDb().rpc('sign_in_complete', {",
       },
@@ -30,7 +35,8 @@ export const sabotages = [
   },
   {
     name: 'e2e-codes-for-anyone',
-    breaks: [e2e('an-unlisted-email-is-refused'), e2e('a-switched-off-person-is-refused-at-once-with-the-message')],
+    // Both doors: the code door's spec runs under SIGN_IN_METHOD=code; password.spec.ts holds the same promise.
+    breaks: [e2e('password'), e2e('a-switched-off-person-is-refused-at-once-with-the-message')],
     expect: REFUSAL_LINE,
     edits: [
       {
@@ -42,6 +48,41 @@ export const sabotages = [
         file: 'src/core/auth/actions.ts',
         find: "if (check.data !== 'allowed') return { ok: false, error: 'unavailable' };",
         replace: "if (!check.data) return { ok: false, error: 'unavailable' };",
+      },
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "if (check.data === 'not_listed' || check.data === 'switched_off') return { ok: false, error: check.data };",
+        replace: '',
+      },
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "if (check.data !== 'allowed') return { ok: false, error: 'unavailable' };",
+        replace: "if (!check.data) return { ok: false, error: 'unavailable' };",
+      },
+    ],
+  },
+  // ---- the password door (owner, 29 Sep 13:50)
+  {
+    name: 'password-too-short-accepted',
+    breaks: [e2e('password')],
+    expect: 'the server refuses a short password',
+    edits: [
+      {
+        file: 'src/core/auth/password-rules.ts',
+        find: '[...password].length < MIN_PASSWORD',
+        replace: '[...password].length < 1',
+      },
+    ],
+  },
+  {
+    name: 'must-change-not-enforced',
+    breaks: [e2e('password')],
+    expect: 'set-password',
+    edits: [
+      {
+        file: 'src/core/auth/require-me.ts',
+        find: "if (me.status === 'must_change_password') redirect(`${CHANGE_PASSWORD_PATH}?next=${encodeURIComponent(here)}`);",
+        replace: "if (me.status === 'must_change_password') return me as never;",
       },
     ],
   },
@@ -127,15 +168,27 @@ export const sabotages = [
     ],
   },
   {
-    // V166: the database decides and logs, but only the server's secret key puts the password into Auth.
+    // V166, V441: the database decides and logs, but only the server's secret key puts the password into Auth.
     name: 'e2e-password-never-reaches-auth',
-    breaks: [e2e('an-admin-sets-a-starting-password-that-must-be-changed-first')],
-    expect: 'Auth took the starting password',
+    breaks: [e2e('an-admin-generates-a-temporary-password-that-must-be-changed-first')],
+    expect: 'Auth took the generated password',
     edits: [
       {
         file: 'src/core/auth/allow-list.ts',
-        find: 'await serviceDb().auth.admin.updateUserById(set.auth_user_id, { password, email_confirm: true });',
-        replace: '{ error: null } as { error: null | { code?: string; message: string } }; void password;',
+        find: 'await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });',
+        replace: '{ error: null } as { error: null | { message: string } }; void authUserId;',
+      },
+    ],
+  },
+  {
+    name: 'change-password-skips-the-current',
+    breaks: [e2e('password')],
+    expect: 'the current password is checked',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "  if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };\n",
+        replace: '  void check;\n',
       },
     ],
   },

@@ -1,12 +1,13 @@
-import { adminRoute, setPassword, textArg, uuidArg } from '@/core/auth/allow-list';
+import { adminRoute, generatePassword, textArg, uuidArg } from '@/core/auth/allow-list';
 
-// Settings → Organization & access → the person → Emails → Set password (V166): an admin gives the sign-in of an
-// allowed e-mail its starting password, or resets it. The database decides who may and logs it; the person changes it
-// at the next sign-in. Body: email_id (the person_email id), password, reason. The password is never logged.
+// Settings → People → a person → Generate temporary password (V441): admins only, with a reason. The server links every
+// allowed e-mail of the person to its existing auth user (never a second), makes the password (16 characters), sets it
+// on every sign-in with "must change password", and answers it once as `temporary_password` — the screen shows it
+// with Copy. A person who already holds a password keeps it (person_password.has_one) unless the admin asks for a
+// Reset: `replace: true`. Body: person_id, reason, replace?. Nothing is mailed; the generate is logged, never the
+// password.
 export async function POST(request: Request) {
-  return adminRoute(request, async (body) => {
-    const password = typeof body.password === 'string' ? body.password : '';
-    const reason = textArg(body, 'reason') ?? '';
-    return setPassword(uuidArg(body, 'email_id') as string, password, reason);
-  });
+  return adminRoute(request, async (body) =>
+    generatePassword(uuidArg(body, 'person_id') as string, textArg(body, 'reason') ?? '', body.replace === true),
+  );
 }

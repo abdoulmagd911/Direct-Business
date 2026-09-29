@@ -11,7 +11,7 @@ import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { getMe } from './get-me';
 import type { Level, Me } from './me';
-import { passwordProblem } from './password';
+import { temporaryPassword } from './password';
 
 /** Banned for a century: Supabase has no "forever"; unbanning is `none`. */
 const BANNED = '876000h';
@@ -82,14 +82,26 @@ export function textArg(body: Record<string, unknown>, name: string): string | u
   return typeof v === 'string' && v.trim() ? v.trim() : undefined;
 }
 
-/** The auth user for an allowed email: created confirmed (a door never makes a person — the person exists first). */
-async function ensureAuthUser(email: string): Promise<string> {
+/**
+ * The auth user for an allowed email: created confirmed (a door never makes a person — the person exists first), or the
+ * one already there for that email, found and never made twice (`existed`: made outside the app — the owner's accounts,
+ * made in the dashboard with the passwords he typed himself, V166).
+ */
+async function ensureAuthUser(email: string): Promise<{ id: string; existed: boolean }> {
   const admin = serviceDb().auth.admin;
   const created = await admin.createUser({ email, email_confirm: true });
-  if (created.data.user) return created.data.user.id;
+  if (created.data.user) return { id: created.data.user.id, existed: false };
   const existing = unwrap(await serviceDb().rpc('auth_user_of', { p_email: email }));
   if (!existing) throw new DbError('Unavailable', 'common.unavailable', created.error?.message);
-  return existing;
+  return { id: existing, existed: true };
+}
+
+/** Links an allowed email to its auth user; one found already there keeps its own password (core.person_auth_found). */
+async function linkAuthUser(db: Awaited<ReturnType<typeof serverDb>>, email: string): Promise<string> {
+  const user = await ensureAuthUser(email);
+  unwrap(await db.rpc('person_auth_link', { p_email: email, p_auth_user_id: user.id }));
+  if (user.existed) unwrap(await db.rpc('person_auth_found', { p_auth_user: user.id }));
+  return user.id;
 }
 
 async function setBanned(authUserId: string, banned: boolean) {
@@ -97,62 +109,75 @@ async function setBanned(authUserId: string, banned: boolean) {
   if (error) throw new DbError('Unavailable', 'common.unavailable', error.message);
 }
 
-/**
- * Allow an email: the database row (logged), then its auth user, then the link — and the person's state re-synced. With
- * a `password`, the sign-in is created with it as its starting password (setPassword), in the same call.
- */
-export async function addEmail(personId: string, email: string, primary: boolean, reason?: string, password?: string) {
-  if (password !== undefined) checkPassword(password, email, reason);
+/** Allow an email: the database row (logged), then its auth user, then the link — and the person's state re-synced. */
+export async function addEmail(personId: string, email: string, primary: boolean, reason?: string) {
   const db = await serverDb();
   const added = unwrap(
     await db.rpc('person_email_add', { p_person: personId, p_email: email, p_primary: primary, p_reason: reason }),
   ) as { id: string; version: number; request_id: string };
-  const authUserId = await ensureAuthUser(email);
-  unwrap(await db.rpc('person_auth_link', { p_email: email, p_auth_user_id: authUserId }));
+  const authUserId = await linkAuthUser(db, email);
   await syncPerson(personId);
-  const set = password !== undefined ? await setPassword(added.id, password, reason as string) : undefined;
-  return { ...added, auth_user_id: authUserId, ...(set ? { password_set: true } : {}) };
+  return { ...added, auth_user_id: authUserId };
 }
 
-/** The server's password rules (V166), refused as a key before anything is written; a set needs its reason. */
-function checkPassword(password: string, email: string | null, reason: string | undefined) {
-  const problem = passwordProblem(password, email);
-  if (problem) throw new DbError('RuleBroken', `password.${problem}`);
-  if (!reason?.trim()) throw new DbError('RuleBroken', 'common.reason_required');
+type Generated = { person_id: string; auth_user_ids: string[]; signed_out: number; request_id: string };
+
+/**
+ * An admin generates a person's temporary password (V441 — nobody types a password for someone else). First every
+ * allowed e-mail of the person is linked to its auth user — the one that already exists for that e-mail (one the owner
+ * made in the dashboard, say), found by e-mail and never made twice. The database then decides (admins only), logs it
+ * with its reason, marks every sign-in of the person "must change password" and signs the person's devices out; a
+ * person who already holds a password — one the owner typed himself (V166), or one generated before — keeps it unless
+ * `replace` says otherwise (the screen's Reset, asked explicitly). Then the secret key sets the one generated password on
+ * each of those sign-ins, confirmed. The password goes back to the admin once, in this answer (`temporary_password`) —
+ * never stored or logged.
+ */
+export async function generatePassword(personId: string, reason: string, replace = false) {
+  if (!reason.trim()) throw new DbError('RuleBroken', 'common.reason_required');
+  const db = await serverDb();
+  const unlinked = unwrap(await db.rpc('person_emails_unlinked', { p_person: personId })) as string[];
+  for (const email of unlinked) await linkAuthUser(db, email);
+  const set = unwrap(
+    await db.rpc('person_password_set', { p_person: personId, p_reason: reason, p_replace: replace }),
+  ) as Generated;
+  const password = temporaryPassword();
+  for (const authUserId of set.auth_user_ids) {
+    const { error } = await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });
+    if (error) throw new DbError('Unavailable', 'common.unavailable', error.message);
+  }
+  return { ...set, temporary_password: password };
 }
 
 /**
- * An admin gives an allowed e-mail's sign-in a starting password, or resets it (V166). The database decides (admins
- * only), logs it with its reason, marks the sign-in "must change password" and signs the person's devices out; then
- * the secret key sets the password in Auth, confirmed. A listed e-mail without its auth user yet gets one first.
- * The password itself is never stored or logged by the app.
+ * "Generate for everyone without a password" (V441): one temporary password for each allowed, switched-on person who
+ * holds none in Auth (so never the accounts whose passwords the owner typed himself — V166), each its own logged
+ * request; the list goes back to the admin once. Anyone who changed in between (an e-mail removed, a password given)
+ * is skipped, named.
  */
-export async function setPassword(emailId: string, password: string, reason: string) {
-  checkPassword(password, null, reason);
+export async function generateForEveryoneWithout(reason: string) {
+  if (!reason.trim()) throw new DbError('RuleBroken', 'common.reason_required');
   const db = await serverDb();
-  const ask = async () =>
-    unwrap(await db.rpc('person_password_set', { p_email: emailId, p_reason: reason })) as {
-      auth_user_id: string;
-      email: string;
-      person_id: string;
-      signed_out: number;
-      request_id: string;
-    };
-  let set;
-  try {
-    set = await ask();
-  } catch (e) {
-    // Only an admin gets this far (the database asks first): the e-mail is listed, its sign-in not made yet.
-    if (!(e instanceof DbError) || e.key !== 'person_password.no_sign_in' || !e.detail) throw e;
-    unwrap(await db.rpc('person_auth_link', { p_email: e.detail, p_auth_user_id: await ensureAuthUser(e.detail) }));
-    set = await ask();
+  const people = unwrap(await db.rpc('people_without_password', {})) as {
+    person_id: string;
+    full_name_en: string;
+    full_name_ar: string | null;
+  }[];
+  const out = [];
+  const skipped = [];
+  for (const p of people) {
+    try {
+      const { temporary_password } = await generatePassword(p.person_id, reason);
+      out.push({ ...p, temporary_password });
+    } catch (e) {
+      if (
+        !(e instanceof DbError) ||
+        !['person_password.no_sign_in', 'person_password.has_one', 'common.not_found'].includes(e.key)
+      )
+        throw e;
+      skipped.push({ ...p, key: e.key });
+    }
   }
-  const { error } = await serviceDb().auth.admin.updateUserById(set.auth_user_id, { password, email_confirm: true });
-  if (error) {
-    if (error.code === 'weak_password') throw new DbError('RuleBroken', 'password.too_short');
-    throw new DbError('Unavailable', 'common.unavailable', error.message);
-  }
-  return set;
+  return { people: out, skipped };
 }
 
 /** Remove an allowed email (soft, logged): its sign-in is refused at once, and its auth user is banned. */

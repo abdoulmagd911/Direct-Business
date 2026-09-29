@@ -259,9 +259,9 @@
       "effective_dated": false
     },
     {
-      "key": "auth.code_sign_in",
+      "key": "auth.code_door_enabled",
       "group": "settings.org",
-      "label": "setting.auth.code_sign_in",
+      "label": "setting.auth.code_door_enabled",
       "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
       "default": false,
       "effective_dated": false
