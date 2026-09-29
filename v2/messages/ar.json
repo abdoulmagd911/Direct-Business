@@ -20,7 +20,7 @@
     "resend": "أعد إرسال الرمز",
     "resend_in": "أعد إرسال الرمز ({time})",
     "error": {
-      "not_listed": "هذا البريد ليس في القائمة — راجع أحد المسؤولين",
+      "not_listed": "هذا البريد ليس في القائمة — راجع مدير النظام",
       "switched_off": "حسابك موقوف",
       "code_expired": "انتهت صلاحية الرمز — اطلب رمزًا جديدًا",
       "code_invalid": "الرمز غير صحيح — تحقّق منه أو اطلب رمزًا جديدًا",
@@ -29,7 +29,7 @@
       "unavailable": "تسجيل الدخول غير متاح الآن — حاول مجددًا",
       "inactive": "لم يُستخدم هذا الجهاز منذ 30 يومًا — اطلب رمزًا جديدًا",
       "signed_out_elsewhere": "سُجّل خروج هذا الجهاز — اطلب رمزًا جديدًا",
-      "signed_out_by_admin": "سجّل أحد المسؤولين خروج هذا الجهاز — اطلب رمزًا جديدًا"
+      "signed_out_by_admin": "سجّل مدير النظام خروج هذا الجهاز — اطلب رمزًا جديدًا"
     },
     "language": "اللغة"
   },
@@ -68,7 +68,8 @@
     },
     "settings_home": "الإعدادات",
     "clients": "العملاء",
-    "suppliers_partners": "الموردون والشركاء"
+    "suppliers_partners": "الموردون والشركاء",
+    "profile": "ملفي"
   },
   "top": {
     "search": "ابحث في الشركاء والمهام والفواتير…",
@@ -130,15 +131,35 @@
     "clearAll": "مسح الكل",
     "more": "المزيد",
     "back": "رجوع",
-    "notMeasured": "غير مقاس",
+    "notMeasured": "غير مقيس",
     "loading": "جارٍ التحميل",
-    "sar": "ريال"
+    "sar": "ريال",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "addNew": "+ إضافة",
+    "apply": "تطبيق",
+    "all": "الكل",
+    "today": "اليوم",
+    "name": "الاسم",
+    "actions": "الإجراءات",
+    "yes": "نعم",
+    "no": "لا",
+    "none": "لا شيء",
+    "search": "بحث",
+    "required": "مطلوب",
+    "saveChanges": "حفظ التغييرات",
+    "reason": "السبب",
+    "optional": "اختياري",
+    "showAll": "عرض الكل",
+    "by": "بواسطة",
+    "on": "في",
+    "of": "من"
   },
   "state": {
     "failed": "تعذّر تحميل {what}",
     "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
     "empty": "لا شيء هنا بعد",
-    "notMeasured": "غير مقاس"
+    "notMeasured": "غير مقيس"
   },
   "confirm": {
     "title": "إزالة {item}؟",
@@ -165,19 +186,19 @@
     "project": "مشروع",
     "report": "تقرير",
     "file": "ملف",
-    "department": "قسم",
+    "department": "إدارة",
     "team": "فريق",
     "role": "دور",
     "person_team": "فريق مساعد",
-    "person_department": "قسم مرئي",
+    "person_department": "إدارة يطّلع عليها",
     "person_email": "بريد مسموح",
     "person_auth": "تسجيل دخول",
     "person_level": "مستوى الصفحة",
-    "person_capability": "صلاحية",
+    "person_capability": "إذن",
     "role_level": "مستوى الدور في الصفحة",
-    "role_capability": "صلاحية الدور",
+    "role_capability": "إذن الدور",
     "page": "صفحة",
-    "capability": "تعريف صلاحية",
+    "capability": "تعريف إذن",
     "entity": "نوع السجل",
     "profile": "الملف الشخصي",
     "setting": "إعداد",
@@ -196,7 +217,7 @@
     "priority": "الأولوية",
     "partner_side": "الجانب",
     "side_status": "حالة الجانب",
-    "side_owner": "مسؤول الجانب",
+    "side_owner": "مالك الجانب",
     "side_field": "حقل الجانب",
     "side_type": "نوع الجانب",
     "side_tier": "مستوى الجانب",
@@ -225,7 +246,7 @@
   "table": {
     "selectRow": "تحديد الصف",
     "selectAll": "تحديد الكل",
-    "selected": "{count} محدد",
+    "selected": "{count, plural, one {عنصر واحد محدد} two {عنصران محددان} few {# عناصر محددة} many {# عنصرًا محددًا} other {# عنصر محدد}}",
     "clearSelection": "إلغاء التحديد",
     "sortedAsc": "ترتيب تصاعدي",
     "sortedDesc": "ترتيب تنازلي"
@@ -241,12 +262,12 @@
     "clients": {
       "identify": "تغيير معرّفات العملاء وحسم المطابقات",
       "merge": "دمج الجهات",
-      "assign": "تحديد حالة جانب العميل ومسؤوله وأولويته"
+      "assign": "تحديد حالة جانب العميل ومالكه وأولويته"
     },
     "suppliers_partners": {
       "identify": "تغيير المعرّفات وحسم المطابقات",
       "merge": "دمج الجهات",
-      "assign": "تحديد حالة جانب المورد والشريك ومسؤوله وأولويته"
+      "assign": "تحديد حالة جانب المورد والشريك ومالكه وأولويته"
     },
     "finance": {
       "credit_control": "حدود الائتمان والإحالة إلى الشؤون القانونية",
@@ -265,7 +286,7 @@
   },
   "setting": {
     "work": {
-      "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة متأخرة",
+      "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة راكدة",
       "week_starts_on": "بداية الأسبوع",
       "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
       "reminder_days_before_due": "التذكير قبل موعد الاستحقاق بأيام",
@@ -306,6 +327,440 @@
     "core": {
       "file_download_display_name": "التنزيل باسم العرض للملف",
       "file_keep_original_name": "إظهار الاسم الأصلي للملف في تفاصيله"
+    }
+  },
+  "levels": {
+    "none": "لا وصول",
+    "view": "عرض",
+    "own": "الخاص به",
+    "full": "كامل"
+  },
+  "record": {
+    "overview": "نظرة عامة",
+    "activity": "النشاط",
+    "related": "ذات صلة",
+    "showAll": "عرض الكل ({count})",
+    "showLess": "عرض أقل",
+    "tabs": "أقسام السجل",
+    "back": "رجوع",
+    "details": "التفاصيل",
+    "noActivity": "لا تغييرات بعد"
+  },
+  "activity": {
+    "title": "سجل النشاط",
+    "tabs": {
+      "changes": "التغييرات",
+      "settings": "سجل الإعدادات",
+      "signIns": "عمليات الدخول"
+    },
+    "filters": {
+      "who": "من",
+      "what": "ماذا",
+      "since": "منذ",
+      "anyone": "أي شخص",
+      "anything": "أي شيء"
+    },
+    "none": "لا تغييرات بعد",
+    "undone": "تم التراجع",
+    "undoneChip": "تم التراجع",
+    "revert": "استرجاع",
+    "reverted": "تم استرجاع الإعداد",
+    "revertTitle": "استرجاع {setting}؟",
+    "revertBody": "يعود {setting} إلى قيمته السابقة اعتبارًا من اليوم، كإدخال جديد في سجل الإعدادات.",
+    "kinds": {
+      "ui": "داخل التطبيق",
+      "import": "استيراد",
+      "job": "عملية مجدولة",
+      "system": "النظام",
+      "undo": "تراجع"
+    },
+    "actions": {
+      "insert": "إضافة {what}",
+      "update": "تعديل {what}: {fields}",
+      "remove": "إزالة {what}",
+      "restore": "استعادة {what}",
+      "request": "تغيير"
+    },
+    "labels": {
+      "profile": {
+        "updated": "تحديث الملف الشخصي"
+      },
+      "registry": {
+        "synced": "مزامنة سجل الوحدات"
+      },
+      "person": {
+        "created": "إضافة شخص",
+        "updated": "تعديل شخص",
+        "switched": "تغيير إذن الدخول"
+      },
+      "team": {
+        "retired": "إيقاف فريق",
+        "saved": "حفظ فريق"
+      },
+      "setting": {
+        "changed": "تغيير إعداد",
+        "cleared": "مسح إعداد"
+      },
+      "list": {
+        "saved": "حفظ بند في قائمة"
+      },
+      "access": {
+        "changed": "تغيير الصلاحيات"
+      },
+      "department": {
+        "saved": "حفظ إدارة"
+      },
+      "role": {
+        "saved": "حفظ دور"
+      }
+    },
+    "signIn": {
+      "at": "الوقت",
+      "email": "البريد الإلكتروني",
+      "result": "النتيجة",
+      "device": "الجهاز",
+      "results": {
+        "code_sent": "أُرسل الرمز",
+        "ok": "تم الدخول",
+        "not_listed": "ليس في القائمة",
+        "switched_off": "موقوف",
+        "code_invalid": "رمز خاطئ",
+        "code_expired": "انتهت صلاحية الرمز",
+        "provider_error": "تعذّر الإرسال",
+        "signed_out": "تم تسجيل الخروج",
+        "rate_limited": "رموز كثيرة"
+      }
+    },
+    "loadMore": "عرض الأقدم"
+  },
+  "profile": {
+    "title": "ملفي",
+    "sections": {
+      "profile": "الملف الشخصي",
+      "appearance": "العرض",
+      "notifications": "الإشعارات",
+      "devices": "الأجهزة"
+    },
+    "fullNameEn": "الاسم الكامل (بالإنجليزية)",
+    "fullNameAr": "الاسم الكامل (بالعربية)",
+    "nicknameEn": "اسم الشهرة (بالإنجليزية)",
+    "nicknameAr": "اسم الشهرة (بالعربية)",
+    "displayNameEn": "اسم العرض (بالإنجليزية)",
+    "displayNameAr": "اسم العرض (بالعربية)",
+    "colour": "اللون",
+    "badge": "الشارة",
+    "badgeKind": {
+      "none": "بلا شارة",
+      "icon": "أيقونة",
+      "zodiac": "البرج"
+    },
+    "badgeValue": "الاختيار",
+    "theme": "المظهر",
+    "density": "الكثافة",
+    "language": "اللغة",
+    "startPage": "صفحة البداية",
+    "drawer": "القائمة الجانبية",
+    "drawerPinned": "مثبّتة",
+    "drawerCollapsed": "مطويّة",
+    "notifyIntro": "داخل التطبيق",
+    "notify": {
+      "assigned": "أُسند إليّ",
+      "helper_added": "أُضفت مساعدًا",
+      "mentioned": "أُشير إليّ",
+      "changed_by_other": "غيّر شخص آخر سجلًا لي",
+      "followed_change": "تغيّر سجل أتابعه",
+      "decision_needed": "مطلوب قرار",
+      "report_issued": "صدر تقرير",
+      "report_for_review": "تقرير ينتظر مراجعتي",
+      "appraisal_step": "خطوة في تقييم الأداء",
+      "import_done": "اكتمل استيراد",
+      "alert_contract_expiring": "عقد يقترب من الانتهاء",
+      "alert_kpi_behind": "مؤشر متأخر عن وتيرته",
+      "alert_invoice_unpaid": "فاتورة غير مدفوعة",
+      "alert_kpi_checkin": "يوم تحديث المؤشرات"
+    },
+    "devices": {
+      "label": "الجهاز",
+      "signedIn": "وقت الدخول",
+      "lastSeen": "آخر استخدام",
+      "thisDevice": "هذا الجهاز",
+      "signOut": "تسجيل الخروج",
+      "signOutOthers": "تسجيل الخروج من كل الأجهزة الأخرى",
+      "signedOut": "تم تسجيل خروج الجهاز",
+      "othersSignedOut": "{count, plural, one {سُجّل خروج جهاز واحد} two {سُجّل خروج جهازين} few {سُجّل خروج # أجهزة} many {سُجّل خروج # جهازًا} other {سُجّل خروج # جهاز}}",
+      "unknown": "متصفح"
+    },
+    "saved": "تم حفظ الملف",
+    "colours": {
+      "c1": "برتقالي",
+      "c2": "ذهبي",
+      "c3": "أردوازي",
+      "c4": "أزرق",
+      "c5": "أخضر",
+      "c6": "رمادي"
+    }
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "tabs": {
+      "people": "الأشخاص",
+      "teams": "الفرق",
+      "roles": "الأدوار",
+      "access": "الصلاحيات",
+      "settings": "الإعدادات",
+      "lists": "القوائم"
+    },
+    "noAccess": "الإعدادات لمديري النظام فقط",
+    "setting": {
+      "companyWide": "كل الإدارات",
+      "department": "الإدارة",
+      "current": "القيمة الحالية",
+      "newValue": "القيمة الجديدة",
+      "appliesFrom": "يسري من",
+      "reason": "السبب",
+      "rows": "أين ضُبط",
+      "by": "ضبطه",
+      "preview": {
+        "title": "ما الذي يتغيّر",
+        "from": "من",
+        "to": "إلى",
+        "departments": "{count, plural, one {إدارة واحدة تحتفظ بقيمتها الخاصة} two {إدارتان تحتفظان بقيمتيهما الخاصتين} few {# إدارات تحتفظ بقيمها الخاصة} many {# إدارة تحتفظ بقيمها الخاصة} other {# إدارة تحتفظ بقيمها الخاصة}}",
+        "fromToday": "يسري من اليوم",
+        "fromDate": "يسري من {date}",
+        "replacesSameDay": "يحلّ محل تغيير سابق اليوم"
+      },
+      "save": "حفظ الإعداد",
+      "saved": "تم حفظ الإعداد",
+      "change": "تغيير",
+      "clear": "العودة إلى القيمة العامة لكل الإدارات",
+      "cleared": "تم مسح قيمة الإدارة",
+      "default": "الافتراضي",
+      "edit": "تغيير {setting}",
+      "values": {
+        "true": "مفعّل",
+        "false": "غير مفعّل"
+      }
+    },
+    "list": {
+      "add": "إضافة بند",
+      "key": "المفتاح",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "sort": "الترتيب",
+      "active": "فعّال",
+      "archived": "مؤرشف",
+      "archive": "أرشفة",
+      "restore": "استعادة",
+      "usedIn": "مستخدم في {count}",
+      "usage": "السجلات التي تستخدمه",
+      "replaceWith": "انقل سجلاته إلى",
+      "retireTitle": "أرشفة {name}؟",
+      "retireBody": "تخرج البنود المؤرشفة من قوائم الاختيار وتبقى على السجلات التي تحملها.",
+      "retireBodyUsed": "{count, plural, one {سجل واحد يحمل {name}.} two {سجلان يحملان {name}.} few {# سجلات تحمل {name}.} many {# سجلًا يحمل {name}.} other {# سجل يحمل {name}.}} تنتقل إلى البند الذي تختاره، في تغيير واحد يُتراجع عنه مرة واحدة.",
+      "saved": "تم حفظ البند",
+      "archivedDone": "تمت أرشفة {name}",
+      "restored": "تمت استعادة {name}",
+      "edit": "تعديل {name}",
+      "new": "بند جديد",
+      "arabicRequired": "الاسم العربي مطلوب",
+      "showArchived": "عرض المؤرشف",
+      "entries": "{count, plural, one {بند واحد} two {بندان} few {# بنود} many {# بندًا} other {# بند}}",
+      "banned": "التطبيق لا يستخدم كلمة {word} أبدًا"
+    },
+    "people": {
+      "add": "إضافة شخص",
+      "name": "الاسم",
+      "role": "الدور",
+      "team": "الفريق",
+      "department": "الإدارة",
+      "manager": "المدير المباشر",
+      "emails": "البريد المسموح",
+      "lastSignIn": "آخر دخول",
+      "canSignIn": "يمكنه الدخول",
+      "signInOn": "مسموح",
+      "signInOff": "موقوف",
+      "status": "الحالة",
+      "active": "نشط",
+      "left": "غادر",
+      "jobTitleEn": "المسمى الوظيفي (بالإنجليزية)",
+      "jobTitleAr": "المسمى الوظيفي (بالعربية)",
+      "joinedOn": "تاريخ الالتحاق",
+      "leftOn": "تاريخ المغادرة",
+      "allowSignIn": "السماح بالدخول",
+      "email": "البريد الإلكتروني للعمل",
+      "addEmail": "إضافة بريد",
+      "removeEmail": "إزالة البريد",
+      "primary": "الأساسي",
+      "switchOff": "إيقاف",
+      "switchOn": "تفعيل",
+      "switchOffTitle": "إيقاف {name}؟",
+      "switchOffBody": "سيُسجَّل خروج {name} من كل الأجهزة، ولن يتمكّن من الدخول حتى يُعاد تفعيله.",
+      "signOutEverywhere": "تسجيل الخروج من كل الأجهزة",
+      "signedOutEverywhere": "تم تسجيل خروج {name} من كل الأجهزة",
+      "added": "تمت إضافة {name}",
+      "updated": "تم تحديث {name}",
+      "switched": "{name}: {state}",
+      "noEmails": "لا بريد مسموح",
+      "devices": "الأجهزة",
+      "signInLog": "سجل الدخول",
+      "access": "الصلاحيات",
+      "overrides": "الاستثناءات",
+      "overrideLevel": "المستوى في {page}",
+      "noManager": "بلا مدير",
+      "noTeam": "بلا فريق",
+      "never": "لم يسبق",
+      "openRecord": "فتح",
+      "people": "{count, plural, one {شخص واحد} two {شخصان} few {# أشخاص} many {# شخصًا} other {# شخص}}",
+      "setRole": "تغيير الدور",
+      "emailAdded": "تم السماح بـ {email}",
+      "emailRemoved": "تمت إزالة {email}",
+      "kind": "النوع",
+      "staff": "موظف",
+      "system": "نظام",
+      "reports": "المرؤوسون المباشرون"
+    },
+    "teams": {
+      "add": "إضافة فريق",
+      "code": "الرمز",
+      "name": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "lead": "رئيس الفريق",
+      "members": "الأعضاء",
+      "retire": "إيقاف",
+      "retireTitle": "إيقاف {name}؟",
+      "retireBody": "{count, plural, one {في {name} شخص واحد.} two {في {name} شخصان.} few {في {name} # أشخاص.} many {في {name} # شخصًا.} other {في {name} # شخص.}} اختر الفريق الذي ينتقلون إليه، أو بلا فريق.",
+      "moveTo": "انقل أعضاءه إلى",
+      "noTeam": "بلا فريق",
+      "retired": "تم إيقاف {name}",
+      "saved": "تم حفظ الفريق",
+      "edit": "تعديل {name}",
+      "retiredChip": "متوقف",
+      "department": "الإدارة",
+      "noLead": "بلا رئيس"
+    },
+    "departments": {
+      "add": "إضافة إدارة",
+      "head": "مدير الإدارة",
+      "saved": "تم حفظ الإدارة",
+      "edit": "تعديل {name}",
+      "noHead": "بلا مدير"
+    },
+    "roles": {
+      "name": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "key": "المفتاح",
+      "admin": "دور مدير النظام",
+      "saved": "تم حفظ الدور",
+      "edit": "تعديل {name}",
+      "people": "الأشخاص"
+    },
+    "access": {
+      "matrix": "الأدوار × الصفحات",
+      "page": "الصفحة",
+      "capability": "الإذن",
+      "level": "المستوى",
+      "granted": "ممنوح",
+      "changed": "تم تغيير الصلاحيات",
+      "changeTitle": "ضبط {what} لـ {who}",
+      "personLevel": "مستوى {name} في {page}",
+      "clearOverride": "العودة إلى مستوى الدور",
+      "roleOverride": "الدور",
+      "override": "استثناء",
+      "effective": "الفعلي",
+      "capabilities": "الأذونات",
+      "pages": "الصفحات",
+      "reasonBody": "يُسجَّل كل تغيير في الصلاحيات مع سببه."
+    },
+    "form": {
+      "reasonRequired": "السبب مطلوب"
+    },
+    "values": {
+      "work": {
+        "week_starts_on": {
+          "saturday": "السبت",
+          "sunday": "الأحد",
+          "monday": "الإثنين"
+        }
+      },
+      "app": {
+        "export_formats": {
+          "csv": "CSV",
+          "xlsx": "Excel"
+        }
+      }
+    }
+  },
+  "errors": {
+    "kind": {
+      "PermissionDenied": "ليس لديك صلاحية لهذا الإجراء",
+      "Conflict": "غيّر أحدهم هذا منذ أن فتحته. أعد التحميل ثم حاول مجددًا.",
+      "RuleBroken": "رُفض هذا التغيير: {detail}",
+      "NotFound": "لم يُعثر على هذا السجل",
+      "Unavailable": "لم يستجب الخادم. حاول مجددًا."
+    },
+    "access": {
+      "needs_level": "تحتاج إلى صلاحية أعلى في هذه الصفحة",
+      "needs_capability": "ليس لديك هذا الإذن",
+      "not_your_own": "لا أحد يغيّر صلاحياته بنفسه",
+      "admins_only": "هذا الإجراء لمديري النظام فقط",
+      "above_your_level": "لا يمكنك منح أكثر مما لديك",
+      "denied": "ليس لديك صلاحية لهذا الإجراء"
+    },
+    "common": {
+      "conflict": "غيّر أحدهم هذا منذ أن فتحته. أعد التحميل ثم حاول مجددًا.",
+      "not_found": "لم يُعثر على هذا السجل",
+      "unavailable": "لم يستجب الخادم. حاول مجددًا."
+    },
+    "person": {
+      "full_name_required": "الاسم الكامل مطلوب",
+      "department_required": "الإدارة مطلوبة",
+      "manager_cycle": "لا يتبع شخصٌ شخصًا يتبعه",
+      "team_outside_department": "الفريق في إدارة أخرى",
+      "not_yourself": "لا أحد يوقف حسابه بنفسه"
+    },
+    "person_email": {
+      "taken": "هذا البريد مسجّل لشخص آخر"
+    },
+    "list": {
+      "key_taken": "هذا المفتاح مستخدم",
+      "key_fixed": "المفتاح لا يتغيّر أبدًا",
+      "nothing_to_change": "لا شيء لتغييره",
+      "invalid": "هذه القيمة غير مسموح بها: {detail}",
+      "unknown_field": "حقل غير معروف: {detail}"
+    },
+    "profile": {
+      "invalid": "هذه القيمة غير مسموح بها: {detail}",
+      "arabic_not_enabled": "العربية غير مفعّلة بعد",
+      "unknown_field": "حقل غير معروف: {detail}",
+      "nothing_to_change": "لا شيء لتغييره"
+    },
+    "setting": {
+      "invalid": "هذه القيمة غير مسموح بها: {detail}",
+      "unknown": "إعداد غير معروف",
+      "reason_required": "السبب مطلوب"
+    },
+    "undo": {
+      "changed_since": "غيّر أحدهم هذا بعد ذلك؛ لا يمكن التراجع عنه",
+      "not_allowed": "لا يمكنك التراجع عن هذا",
+      "already_undone": "تم التراجع عنه مسبقًا",
+      "blocked_by_duplicate": "سجل آخر يحمل هذه القيمة الآن: {detail}",
+      "not_undoable": "لا يمكن التراجع عمّا كتبه النظام",
+      "nothing_to_undo": "لا شيء للتراجع عنه",
+      "cannot_remove": "لا يمكن إزالة هذا السجل"
+    },
+    "auth": {
+      "no_active_person": "لم تسجّل الدخول"
+    },
+    "team": {
+      "other_department": "يبقى الفريق في إدارته",
+      "code_taken": "هذا الرمز مستخدم"
+    },
+    "role": {
+      "key_fixed": "مفتاح الدور لا يتغيّر أبدًا",
+      "admins_only": "لا يغيّر اسم دور مدير النظام إلا مدير النظام"
+    },
+    "org": {
+      "name_ar_required": "الاسم العربي مطلوب"
     }
   }
 }
