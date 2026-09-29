@@ -98,7 +98,6 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
 
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {
   const admin = await makePerson({ admin: true });
-  const other = await makePerson();
   const t = tag();
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/clients');
@@ -116,8 +115,15 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
   const bulk = page.locator('[data-bulk-bar]');
   await expect(bulk.locator('[data-bulk-count]')).toHaveText('20 selected');
   await bulk.locator('[data-bulk-action="assign"]').click();
+  // the first person offered becomes the owner (the list holds every person; a far option sits off the viewport)
   await page.getByRole('combobox', { name: 'Owner' }).click();
-  await page.getByRole('option', { name: other.name }).click();
+  const first = page.getByRole('option').first();
+  const ownerName = (await first.textContent())!.trim();
+  await first.click();
+  await expect(page.getByRole('combobox', { name: 'Owner' })).toHaveText(ownerName);
+  const owner = (
+    await sql<{ id: string }>(`select id from core.person where full_name_en = $1 limit 1`, [ownerName])
+  )[0]!.id;
   await page.locator('[data-assign-save]').click();
   await expect(toast(page, '20 assigned')).toBeVisible();
   await expect(bulk).toHaveCount(0);
@@ -127,7 +133,7 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
       `select count(*)::text as n from partner.side_owner o
         where o.partner_id = any($1::uuid[]) and o.side = 'client' and o.person_id = $2
           and o.effective_to is null and o.deleted_at is null`,
-      [ids, other.id],
+      [ids, owner],
     ).then((r) => Number(r[0]!.n));
   await expect.poll(owned, { message: 'every selected organisation is owned by the new owner' }).toBe(20);
   const [req] = await sql<{ n: string }>(
