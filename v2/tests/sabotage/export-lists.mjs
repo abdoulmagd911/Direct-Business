@@ -7,6 +7,7 @@ const FORMS = 'tests/unit/export/dates-numbers-and-ids-keep-their-form-in-csv-an
 const XLSX = 'tests/unit/export/an-excel-export-opens-as-typed-with-riyadh-dates-and-text-ids.test.ts';
 const LIST = 'tests/unit/export/an-export-holds-exactly-the-lists-rows-and-is-named-with-the-list-and-time.test.ts';
 const BUTTON = 'tests/unit/export/the-export-button-downloads-the-list-and-says-why-when-it-cannot.test.tsx';
+const ZONES = 'tests/unit/export/an-export-is-the-same-file-in-every-time-zone-and-at-every-riyadh-midnight.test.ts';
 
 const GUARD = 'src/core/export/csvGuard.ts';
 const CSVW = 'src/core/export/csv.ts';
@@ -287,5 +288,30 @@ export const sabotages = [
     breaks: [`unit:${BUTTON}`],
     expect: 'offers CSV and Excel from a menu',
     edits: [{ file: BTN, find: "formats = ['csv', 'xlsx'],", replace: "formats = ['csv']," }],
+  },
+  {
+    name: 'moment-without-offset-read-as-local',
+    breaks: [`unit:${ZONES}`],
+    expect: "is refused, not read in the computer's zone",
+    edits: [
+      {
+        file: COLS,
+        find: "typeof v === 'string' && MOMENT.test(v)",
+        replace: "typeof v === 'string' && /^\\d{4}-\\d{2}-\\d{2}T/.test(v)",
+      },
+    ],
+  },
+  {
+    name: 'file-name-in-the-computers-zone',
+    breaks: [`unit:${ZONES}`],
+    expect: 'named with the Riyadh clock in every zone',
+    edits: [
+      {
+        file: NAME,
+        find: 'clockText(riyadhClock(at))',
+        replace:
+          'clockText({ y: at.getFullYear(), m: at.getMonth() + 1, d: at.getDate(), h: at.getHours(), mi: at.getMinutes(), s: at.getSeconds() })',
+      },
+    ],
   },
 ];

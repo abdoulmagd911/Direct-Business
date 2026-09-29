@@ -65,10 +65,14 @@ export function riyadhClock(at: Date): { y: number; m: number; d: number; h: num
   return { y: p.year!, m: p.month!, d: p.day!, h: p.hour!, mi: p.minute!, s: p.second! };
 }
 
+/** A moment with its offset: `2026-09-29T21:30:00Z`, `…+00:00`, `…+0300`. */
+const MOMENT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
+
 function moment(v: unknown): Date | null {
   if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
-  // A moment carries a time; a bare date here would be read as UTC midnight and could land on the wrong Riyadh day.
-  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
+  // A moment carries a time and its offset. A bare date would be read as UTC midnight, and a time without an offset
+  // in the computer's own zone (PRF-139) — either could land on the wrong Riyadh day, so both are refused.
+  if (typeof v === 'string' && MOMENT.test(v)) {
     const d = new Date(v);
     return Number.isNaN(d.getTime()) ? null : d;
   }
