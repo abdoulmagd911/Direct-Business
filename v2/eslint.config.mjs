@@ -53,6 +53,15 @@ const config = [
       ],
     },
   },
+  {
+    files: ['src/**/*.tsx'],
+    rules: {
+      // The logo is an SVG file and avatars are short-lived signed URLs (M21): next/image adds nothing to either.
+      '@next/next/no-img-element': 'off',
+      // react-hook-form is the spec's form library (§1); the React Compiler skips it and says so as a warning.
+      'react-hooks/incompatible-library': 'off',
+    },
+  },
 ];
 
 export default config;

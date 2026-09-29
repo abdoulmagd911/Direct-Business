@@ -7,3 +7,5 @@ test-results/
 playwright-report/
 tests/sabotage/*.patch
 supabase/migrations/
+public/
+tests/e2e/screenshots/

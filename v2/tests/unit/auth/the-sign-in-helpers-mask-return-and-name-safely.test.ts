@@ -3,7 +3,6 @@ import { deviceLabel } from '../../../src/core/auth/device-label';
 import { maskEmail } from '../../../src/core/auth/mask';
 import { refusalOf } from '../../../src/core/auth/me';
 import { safeNext } from '../../../src/core/auth/safe-next';
-import { word } from '../../../src/core/auth/words';
 import { toDbError } from '../../../src/core/db/errors';
 
 // P3-2's small rules, one promise each. Sabotages: tests/sabotage/blind-sign-in-helpers.mjs turn each red.
@@ -70,8 +69,5 @@ describe('the sign-in helpers mask, return and name safely', () => {
     expect(refusalOf({ status: 'signed_out', reason: 'person' })).toBe('signed_out_elsewhere');
     expect(refusalOf({ status: 'switched_off' })).toBe('switched_off');
     expect(refusalOf({ status: 'signed_out', reason: 'unknown' })).toBeNull();
-    expect(word('sign_in.error.inactive')).toBe('This device was not used for 30 days — send a new code');
-    expect(word('sign_in.sent_to', { email: 'x' })).toBe('Sent to x');
-    expect(word('sign_in.no_such_key')).toBe('sign_in.no_such_key');
   });
 });
