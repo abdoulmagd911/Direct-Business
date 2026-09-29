@@ -24,7 +24,7 @@ test('a device idle for 31 days asks for a new code while one used yesterday doe
   await idlePage.reload();
   await expect(idlePage, 'the idle device asks for a new code').toHaveURL(/\/sign-in\?/);
   await expect(idlePage.getByRole('main').getByRole('alert')).toHaveText(
-    'This device was not used for 30 days — send a new code',
+    'This device was not used for 30 days — sign in again',
   );
 
   await recentPage.reload();

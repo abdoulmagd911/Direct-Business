@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { PATH_HEADER } from '@/core/db/proxy-session';
 import { getMe } from './get-me';
 import type { Me } from './me';
+import { mustChangePassword } from './must-change';
 
 /**
  * The gate (A5, TECH-SPEC §4 step 7): api.me() is answered before anything inside the app is drawn. No session → the
@@ -17,5 +18,7 @@ export async function requireMe(): Promise<Me> {
   const here = h.get(PATH_HEADER) ?? '/';
   if (!me) redirect(`/sign-in?next=${encodeURIComponent(here)}`);
   if (me.status !== 'ok') redirect(`/auth/sign-out?next=${encodeURIComponent(here)}`);
+  // A password that must change (first sign-in, an admin's reset) is set before anything else is drawn.
+  if (await mustChangePassword()) redirect(`/set-password?next=${encodeURIComponent(here)}`);
   return me;
 }
