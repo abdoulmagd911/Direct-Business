@@ -1,0 +1,251 @@
+#!/usr/bin/env node
+// @ts-check
+// The QA sweep's fixtures, on the LOCAL QA stack only (the settings come from `stack.mjs env`; a cloud address is
+// refused below). People are made the way the E2E fixtures make them (tests/e2e/support/stack.ts: SQL as the stack's
+// owner, and the auth user through the secret key's admin API); everything after that is done by the made-up admin
+// through the app's own api.* doors, as a person would. Every name, email and value is made up (rule 7); each run gets
+// a fresh tag so runs never share a person.
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
+import pg from 'pg';
+import { FIXTURES_FILE, RUN_DIR } from './paths.mjs';
+
+/** @param {string} name */
+function setting(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`${name} is not set — run through tests/qa/sweep/run.sh (it reads the QA stack's settings)`);
+  return v;
+}
+const URL = setting('NEXT_PUBLIC_SUPABASE_URL');
+const PUBLISHABLE = setting('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+const SECRET = setting('SUPABASE_SECRET_KEY');
+const DB_URL = setting('V2_DB_URL');
+if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(URL) || !/@(127\.0\.0\.1|localhost):\d+\//.test(DB_URL)) {
+  throw new Error(`the sweep seeds only a local stack, not ${URL}`);
+}
+
+const tag = Date.now().toString(36).slice(-5);
+/** Made-up, the same for every fixture person; never a real password (rule 7). */
+const PASSWORD = 'Test-QA-Sweep-2026-Riyadh';
+const pool = new pg.Pool({ connectionString: DB_URL, max: 2 });
+/** @param {string} text @param {unknown[]} [params] */
+const sql = async (text, params = []) => (await pool.query(text, params)).rows;
+const authAdmin = createClient(URL, SECRET, { auth: { persistSession: false, autoRefreshToken: false } }).auth.admin;
+
+/**
+ * @typedef {{ key: string; id: string; email: string; name: string; role: string | null }} Person
+ * @type {Record<string, { role: string | null; label: string; canSignIn?: boolean; listed?: boolean }>}
+ */
+const PEOPLE = {
+  admin: { role: 'admin', label: 'Test Admin' },
+  head: { role: 'head', label: 'Test Head' },
+  manager: { role: 'manager', label: 'Test Manager' },
+  member: { role: 'member', label: 'Test Member' },
+  member2: { role: 'member', label: 'Test Member Two' },
+  viewer: { role: 'viewer', label: 'Test Viewer' },
+  noclients: { role: 'member', label: 'Test Member NoClients' },
+  noclientscap: { role: 'manager', label: 'Test Manager NoClients' },
+  nolevels: { role: null, label: 'Test NoRole' },
+  switchoff: { role: 'member', label: 'Test Switched Off' },
+  mustchange: { role: 'member', label: 'Test MustChange' },
+  lockme: { role: 'member', label: 'Test Lockout' },
+  door: { role: 'member', label: 'Test Door' },
+  noemail: { role: 'member', label: 'Test NoEmail', listed: false },
+};
+
+async function ensureBase() {
+  await sql(`insert into core.department (code, name_en, name_ar) values ('commercial', 'Commercial', 'التجاري')
+             on conflict (code) do nothing`);
+}
+
+/** @param {string} key @returns {Promise<Person>} */
+async function makePerson(key) {
+  const def = PEOPLE[key];
+  if (!def) throw new Error(`no fixture ${key}`);
+  const id = randomUUID();
+  const email = `test.qa.${key}.${tag}@example.test`;
+  const name = `${def.label} ${tag}`;
+  await sql(
+    `insert into core.person (id, full_name_en, department_id, role_id, can_sign_in, kind)
+     values ($1, $2, (select id from core.department where code = 'commercial'),
+             (select id from core.role where key = $3), $4, 'staff')`,
+    [id, name, def.role, def.canSignIn ?? true],
+  );
+  if (def.listed === false) return { key, id, email: '', name, role: def.role };
+  await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [id, email]);
+  const created = await authAdmin.createUser({ email, email_confirm: true, password: PASSWORD });
+  if (!created.data.user) throw new Error(`could not create the auth user for ${key}: ${created.error?.message}`);
+  await sql(`insert into core.person_auth (auth_user_id, person_id, email) values ($1, $2, $3)`, [
+    created.data.user.id,
+    id,
+    email,
+  ]);
+  return { key, id, email, name, role: def.role };
+}
+
+/** A signed-in api.* client for a fixture person (the app's own door order: password, then sign_in_complete). */
+async function apiAs(/** @type {Person} */ p) {
+  const c = createClient(URL, PUBLISHABLE, {
+    db: { schema: 'api' },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const s = await c.auth.signInWithPassword({ email: p.email, password: PASSWORD });
+  if (s.error) throw new Error(`${p.key} could not sign in: ${s.error.message}`);
+  const done = await c.rpc('sign_in_complete', { p_provider: 'email', p_device_label: 'QA sweep seed' });
+  if (done.error || done.data !== 'ok')
+    throw new Error(`${p.key}: sign_in_complete ${done.error?.message ?? done.data}`);
+  /** @param {string} fn @param {Record<string, unknown>} args */
+  return async (fn, args) => {
+    const r = await c.rpc(fn, args);
+    if (r.error) throw new Error(`${p.key} ${fn}: ${r.error.code} ${r.error.message} ${r.error.details ?? ''}`);
+    return r.data;
+  };
+}
+
+async function main() {
+  await ensureBase();
+  /** @type {Record<string, Person>} */
+  const users = {};
+  for (const key of Object.keys(PEOPLE)) users[key] = await makePerson(key);
+  const u = (/** @type {string} */ k) => {
+    const p = users[k];
+    if (!p) throw new Error(`no fixture ${k}`);
+    return p;
+  };
+  const admin = await apiAs(u('admin'));
+  const why = `QA sweep fixture ${tag}`;
+
+  // shut out of Clients (V147): a member, and a manager who keeps the Clients capabilities of their role
+  for (const k of ['noclients', 'noclientscap'])
+    await admin('access_set_person_level', { p_person: u(k).id, p_page: 'clients', p_level: 'none', p_reason: why });
+
+  // Test Org Alpha: the Client side only, owned by the member. Test Org Beta: both sides — the Client side owned by the
+  // member, the Supplier & partner side by the admin.
+  const alpha = await admin('partner_create', {
+    p_partner: {
+      trade_name_en: `Test Org Alpha ${tag}`,
+      sides: [{ side: 'client', type: 'corporate', owner_id: u('member').id }],
+    },
+    p_reason: why,
+  });
+  const beta = await admin('partner_create', {
+    p_partner: {
+      trade_name_en: `Test Org Beta ${tag}`,
+      sides: [
+        { side: 'client', type: 'corporate', owner_id: u('member').id },
+        { side: 'supplier_partner', type: 'supplier', owner_id: u('admin').id },
+      ],
+    },
+    p_reason: why,
+  });
+  // The hover card and the card name "an owner" (partner.owners, first row). Make that first row the Client side's
+  // owner if any Supplier & partner owner allows it, so a leak of the Client side's owner is visible, not left to luck.
+  const firstOwner = async () =>
+    (await sql(`select x::text as id from partner.owners($1) x limit 1`, [beta.id]))[0]?.id ?? null;
+  let clientOwnerFirst = (await firstOwner()) === u('member').id;
+  for (const k of ['head', 'manager', 'viewer', 'member2']) {
+    if (clientOwnerFirst) break;
+    await admin('partner_owner_set', { p_id: beta.id, p_side: 'supplier_partner', p_person: u(k).id, p_reason: why });
+    clientOwnerFirst = (await firstOwner()) === u('member').id;
+  }
+  const supplierOwner = (
+    await sql(`select x::text as id from partner.side_owners($1, 'supplier_partner') x`, [beta.id])
+  )[0]?.id;
+
+  for (const org of [alpha, beta])
+    await admin('partner_status_set', { p_id: org.id, p_side: 'client', p_status: 'active', p_note: why });
+  await admin('partner_status_set', { p_id: beta.id, p_side: 'supplier_partner', p_status: 'active', p_note: why });
+
+  // Direct Payments client IDs are digits (their key keeps digits only): a made-up one, different each run
+  const clientId = `9${String(parseInt(tag, 36) % 1e8).padStart(8, '0')}`;
+  const cid = await admin('identifier_add', {
+    p_partner: beta.id,
+    p_kind: 'payments_client_id',
+    p_value: clientId,
+    p_reason: why,
+  });
+  // a made-up VAT number of the Saudi shape (15 digits, 3 … 3), different each run: identifiers are unique
+  const vatValue = `3${String(parseInt(tag, 36) % 1e13).padStart(13, '0')}3`;
+  const vat = await admin('identifier_add', {
+    p_partner: beta.id,
+    p_kind: 'vat',
+    p_value: vatValue,
+    p_reason: why,
+  });
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+  /** @param {string} org @param {string} side @param {string} title */
+  const contract = (org, side, title) =>
+    admin('contract_save', { p_partner: org, p_id: null, p_values: { side, title, start_on: today }, p_reason: why });
+  const alphaClient = await contract(alpha.id, 'client', `Test client contract Alpha ${tag}`);
+  const betaClient = await contract(beta.id, 'client', `Test client contract Beta ${tag}`);
+  const betaSupplier = await contract(beta.id, 'supplier_partner', `Test supplier contract Beta ${tag}`);
+
+  /** @type {Record<string, unknown>} */
+  const extra = {};
+  try {
+    extra.contact = await admin('contact_save', {
+      p_partner: beta.id,
+      p_id: null,
+      p_values: { name_en: `Test Contact ${tag}`, email: `test.qa.contact.${tag}@example.test` },
+    });
+  } catch (e) {
+    extra.contactError = String(e);
+  }
+
+  const alphaNote = await admin('note_add', {
+    p_entity: 'partner',
+    p_id: alpha.id,
+    p_kind: 'comment',
+    p_body: `Test note on Alpha ${tag} — client only`,
+    p_mentions: [u('member').id],
+  });
+  const betaNote = await admin('note_add', {
+    p_entity: 'partner',
+    p_id: beta.id,
+    p_kind: 'comment',
+    p_body: `Test note on Beta ${tag}`,
+    p_mentions: [u('member2').id],
+  });
+
+  const member = await apiAs(u('member'));
+  const memberView = await member('view_save', {
+    p_id: null,
+    p_page: 'clients',
+    p_name: `Test saved view ${tag}`,
+    p_query: { q: 'Test' },
+    p_shared: false,
+  });
+
+  const settingReason = `QA sweep seed setting ${tag}`;
+  await admin('setting_set', { p_key: 'work.no_update_days', p_department: null, p_value: 8, p_reason: settingReason });
+
+  const fixtures = {
+    tag,
+    password: PASSWORD,
+    today,
+    users,
+    orgs: {
+      alpha: { id: alpha.id, number: alpha.number, name: `Test Org Alpha ${tag}` },
+      beta: { id: beta.id, number: beta.number, name: `Test Org Beta ${tag}`, clientOwnerFirst, supplierOwner },
+    },
+    identifiers: { betaClientId: { id: cid.id, value: clientId }, betaVat: { id: vat.id, value: vatValue } },
+    contracts: { alphaClient: alphaClient.id, betaClient: betaClient.id, betaSupplier: betaSupplier.id },
+    notes: { alpha: alphaNote.id, beta: betaNote.id },
+    views: { member: memberView.id ?? memberView },
+    settingReason,
+    extra,
+  };
+  mkdirSync(RUN_DIR, { recursive: true });
+  writeFileSync(FIXTURES_FILE, JSON.stringify(fixtures, null, 2));
+  console.log(`seeded run ${tag}: ${Object.keys(users).length} people, 2 organisations (${FIXTURES_FILE})`);
+  if (!clientOwnerFirst) console.log('note: no owner order put the Client side owner first on Beta');
+  await pool.end();
+}
+
+main().catch(async (e) => {
+  console.error(e);
+  await pool.end();
+  process.exit(1);
+});
