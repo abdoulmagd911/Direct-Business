@@ -3,7 +3,7 @@ export const sabotages = [
   {
     name: 'shell-guard-lets-a-late-force-through',
     breaks: ['unit:tests/unit/guard/the-shell-guard-asks-before-force-and-production.test.ts'],
-    expect: 'asks: git push origin v2/main --force',
+    expect: 'asks: git push -f origin v2/b-x',
     edits: [
       {
         file: '../.claude/hooks/bash-guard.mjs',

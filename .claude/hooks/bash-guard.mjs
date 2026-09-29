@@ -30,6 +30,14 @@ export function decide(command) {
   const segs = segmentsOf(whole);
   if (!segs.length) return { decision: 'ask', reason: 'bash-guard: could not read the command' };
   for (const s of segs) {
+    /* ---- what the guard cannot read: asked, never waved through (QA-114) ---- */
+    if (/\$\(|`/.test(s)) return { decision: 'ask', reason: 'bash-guard: a command inside $( ) or backticks cannot be read — asking' };
+    if (/(^|\s)(node|nodejs|bun|deno)\s+(-e|-p|--eval|--print|-i)(\s|$)/.test(s) || /(^|\s)(python3?|ruby|perl|php)\s+-c(\s|$)/.test(s) || /(^|\s)(bash|sh|zsh|dash)\s+-c(\s|$)/.test(s) || /(^|\s)eval\s/.test(s))
+      return { decision: 'ask', reason: 'bash-guard: inline code handed to an interpreter cannot be read — asking' };
+    if (/(^|\s)python3?\s+-\s*(<<|$)/.test(s) || /(^|\s)(bash|sh)\s+-s(\s|$)/.test(s) || /(^|\s)(bash|sh|node|python3?)\s*<<\s*['"]?\w+/.test(s))
+      return { decision: 'ask', reason: 'bash-guard: a script fed to an interpreter on stdin cannot be read — asking' };
+    if (/(^|\s)find\s[^]*\s-(delete|exec\s+(sudo\s+)?rm|execdir\s+(sudo\s+)?rm)\b/.test(s)) return { decision: 'ask', reason: 'bash-guard: find deleting files' };
+    if (/(^|\s)xargs\s[^]*\brm\b/.test(s) || /(^|\s)xargs\s+(-[^\s]+\s+)*(sudo\s+)?rm(\s|$)/.test(s)) return { decision: 'ask', reason: 'bash-guard: xargs running rm' };
     /* ---- the hosted database: denied outright ---- */
     if (/^supabase\b/.test(s) || /(^|\s)supabase\s/.test(s)) {
       if (/\bdb\s+reset\b[^]*--linked/.test(s)) return { decision: 'deny', reason: 'bash-guard: supabase db reset --linked wipes the hosted database' };
@@ -43,10 +51,16 @@ export function decide(command) {
       if (/\s(--force|--force-with-lease|--force-if-includes)\b/.test(s) || /\s-[a-zA-Z]*f[a-zA-Z]*(\s|$)/.test(s))
         return { decision: 'ask', reason: 'bash-guard: a forcing flag on a git command (--force / -f) — never unprompted' };
       if (/\bpush\b/.test(s)) {
+        if (/\s--(mirror|prune|all|tags|delete-branch)\b/.test(s)) return { decision: 'ask', reason: 'bash-guard: git push --mirror / --prune / --all rewrites or removes remote branches' };
         if (/\s\+\S/.test(s)) return { decision: 'ask', reason: 'bash-guard: a +refspec on git push forces the branch' };
         if (/\s--delete\b|\s-d\b/.test(s)) return { decision: 'ask', reason: 'bash-guard: git push --delete removes a branch on the remote' };
         if (/\s:\S/.test(s) || /\s\S+:\S+(\s|$)/.test(s.replace(/\S+:\/\/\S+/g, ''))) return { decision: 'ask', reason: 'bash-guard: a refspec with a colon on git push (deletes or renames on the remote)' };
         if (/\bclaude\/new-session-9fhlp1\b/.test(s)) return { decision: 'ask', reason: 'bash-guard: a push to production (claude/new-session-9fhlp1) — the owner decides' };
+        // only this lane's own work branches go up unprompted: v2/main lands by PR merge, other lanes own theirs
+        const refs = s.replace(/\S+:\/\/\S+/g, '').split(/\s+/).filter((w) => /^(v2|claude)\//.test(w) || /^refs\//.test(w) || w === 'HEAD');
+        if (refs.some((r) => !/^v2\/b-[\w.-]+$/.test(r) && !/^claude\/(?!new-session-9fhlp1)[\w.-]+$/.test(r)))
+          return { decision: 'ask', reason: 'bash-guard: a push to v2/main, another lane\'s branch or a raw ref — the integration branch lands by PR' };
+        if (!refs.length && !/\s(-u|--set-upstream)\s/.test(s)) return { decision: 'ask', reason: 'bash-guard: a push naming no branch of this lane' };
       }
       if (/\bbranch\b[^]*\s-[a-zA-Z]*D/.test(s)) return { decision: 'ask', reason: 'bash-guard: git branch -D throws a branch away' };
       if (/\breset\b[^]*--hard/.test(s) || /\breset\s+--merge\b/.test(s)) return { decision: 'ask', reason: 'bash-guard: git reset --hard throws work away' };
