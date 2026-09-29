@@ -789,7 +789,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
   - a contract (`alert_contract_expiring`) fires for the tightest reminder day reached, never before the day the contract was saved.
   Each fires once per record and day key, whatever the run.
 - **PRF-143 · "logged late" is judged by the rule in force when it was logged.** `work.late_days` is effective-dated (`effectiveDated: true` in the tasks module), and `core.logged_late` reads it at the Riyadh day of the logging.
-- **PRF-002 · a page checks its level on the server.** `/finance`, `/kpis`, `/reports`, `/appraisal` and `/overview` read `me.levels` before drawing anything, and show the "no access" state for level none, reached by address too. (Builder B draws the pages; this is the gate.)
+- **PRF-002 · a page checks its level on the server.** `/finance`, `/kpis`, `/reports`, `/appraisal` and `/overview` show the "no access" state for level none, reached by address too. The check is Builder B's shared `<Page page=…>` (V214), asked on the server before anything is drawn; the area pages keep no second copy of it, and the E2E and its sabotage prove that one.
 - PRF-136 / ACC-086 (the banned list split into data and screen) was V156, #97.
 - Tests: ALR-02, AVAIL-01, PRIO-01, LATE-01; E2E `a-page-with-no-level-shows-no-access-by-address`. Sabotages: `a-missed-run-loses-the-alert`, `work-goes-to-a-switched-off-person`, `no-executive-directive`, `logged-late-by-todays-rule`, `e2e-a-page-forgets-its-level`.
 
