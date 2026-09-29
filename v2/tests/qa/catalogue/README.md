@@ -1,4 +1,4 @@
-# The scenario catalogue's Covered rows, checked (QA, 29 Sep 20:40 Riyadh)
+# The scenario catalogue's Covered rows, checked (QA, 29 Sep 20:03 Riyadh)
 
 `covered.csv` has one line per row that the oversight's catalogue (`scenarios.csv`) marks **Covered**: 128 rows. The
 Architect folds it into the catalogue; this folder only holds the evidence.
