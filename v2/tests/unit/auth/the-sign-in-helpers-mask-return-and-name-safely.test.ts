@@ -45,9 +45,9 @@ describe('the sign-in helpers mask, return and name safely', () => {
   });
 
   it('turns a database refusal into its typed error and key', () => {
-    expect(toDbError({ code: '42501', message: 'access.needs_admin' })).toMatchObject({
+    expect(toDbError({ code: '42501', message: 'access.needs_level' })).toMatchObject({
       kind: 'PermissionDenied',
-      key: 'access.needs_admin',
+      key: 'access.needs_level',
     });
     expect(toDbError({ code: 'P0001', message: 'person.manager_cycle' })).toMatchObject({
       kind: 'RuleBroken',

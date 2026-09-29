@@ -31,5 +31,69 @@
   "session": {
     "sign_out": "Sign out",
     "unknown_device": "A browser"
+  },
+  "nav": {
+    "my_day": "My day",
+    "overview": "Overview",
+    "partners": "Partners",
+    "pipeline": "Pipeline",
+    "projects": "Projects",
+    "tasks": "Tasks",
+    "finance": "Finance",
+    "kpis": "KPIs",
+    "reports": "Reports",
+    "appraisal": "Appraisal",
+    "activity": "Activity",
+    "settings": {
+      "profile": "My profile",
+      "org": "Organization & access",
+      "partners": "Partners",
+      "performance": "Plan & performance",
+      "finance": "Finance",
+      "work": "Work",
+      "app": "App"
+    }
+  },
+  "cap": {
+    "partners": {
+      "identify": "Change identifiers and decide matches",
+      "merge": "Merge partners",
+      "assign": "Set status, assign owner and priority"
+    },
+    "finance": {
+      "credit_control": "Credit limits and Sent to legal",
+      "import": "Import files",
+      "credit": "Split or reassign credit"
+    },
+    "tasks": {
+      "assign": "Assign tasks to others"
+    },
+    "org": {
+      "sign_out": "Sign a person out of every device"
+    }
+  },
+  "setting": {
+    "work": {
+      "no_update_days": "Days without an update before a task goes stale",
+      "week_starts_on": "The week starts on",
+      "meeting_note_on_time_days": "Days to write meeting notes on time",
+      "reminder_days_before_due": "Reminder, days before a due date",
+      "pipeline_weekly_target": "Pipeline updates expected each week"
+    },
+    "auth": {
+      "device_idle_days": "Days a device may go unused before it needs a new code"
+    },
+    "app": {
+      "arabic_enabled": "Arabic",
+      "default_theme": "Default theme",
+      "default_density": "Default density",
+      "export_formats": "Export formats"
+    },
+    "audit": {
+      "undo_window_hours": "Hours an action can still be undone"
+    },
+    "files": {
+      "max_mb": "Largest file, in MB"
+    }
   }
 }

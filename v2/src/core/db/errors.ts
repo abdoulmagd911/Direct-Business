@@ -6,7 +6,7 @@ export type DbErrorKind = 'PermissionDenied' | 'Conflict' | 'RuleBroken' | 'NotF
 export class DbError extends Error {
   constructor(
     readonly kind: DbErrorKind,
-    /** The wording key, e.g. `access.needs_admin` or `person_email.taken`. */
+    /** The wording key, e.g. `access.needs_level` or `person_email.taken`. */
     readonly key: string,
     readonly detail?: string,
   ) {

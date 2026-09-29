@@ -2,7 +2,7 @@
 -- Breaks: sql:SIGN-03
 -- Expect: now api.me() answers
 -- The completed sign-in is logged but its device is never registered, so the session is never recognised.
-create or replace function api.sign_in_complete(p_provider text default 'email', p_device_label text default null,
+create or replace function core.sign_in_complete(p_provider text default 'email', p_device_label text default null,
                                      p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
 as $$

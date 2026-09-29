@@ -191,6 +191,9 @@ $$;
 
 create table test.grants_expected (line text primary key);
 
+-- The registry as synced (supabase/registry.json, V123), loaded by the runner: REG-01 compares the database with it.
+create table test.registry_expected (doc jsonb not null);
+
 -- ---------------------------------------------------------------- made-up people (P3-1b on)
 -- Fixture makers for tests. Security definer, so a test may call them after switching to a request role. Every value
 -- is made up (rule 7); e-mails are at example.test.

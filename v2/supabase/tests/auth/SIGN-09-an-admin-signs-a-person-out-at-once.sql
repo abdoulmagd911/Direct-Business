@@ -10,7 +10,7 @@ select set_config('t.b', test.start_session(current_setting('t.uid')::uuid)::tex
 select set_config('t.a_id', (select id from core.device_session where auth_session_id = current_setting('t.a')::uuid)::text, true);
 select test.as_person(current_setting('t.am2')::uuid);
 select test.raises(format('select api.person_sign_out(%L)', current_setting('t.am1')), '42501',
-  'a team member cannot sign someone out', 'access.needs_admin');
+  'a team member cannot sign someone out', 'access.needs_capability');
 select test.as_person(current_setting('t.admin')::uuid);
 select test.eq((select count(*) from api.person_devices(current_setting('t.am1')::uuid))::int, 2, 'the admin sees two devices');
 select test.eq(api.person_sign_out(current_setting('t.am1')::uuid, current_setting('t.a_id')::uuid), 1, 'one device');

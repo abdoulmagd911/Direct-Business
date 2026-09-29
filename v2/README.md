@@ -33,6 +33,15 @@ pnpm build && pnpm test:e2e && node scripts/sabotage.mjs --kind e2e
 node scripts/db/gen-types.mjs            # after a migration changes the api schema: src/core/db/database.types.ts
 ```
 
+## The registry (V123)
+
+Pages, capabilities and settings are declared in `src/modules/<module>/module.ts`. After changing one:
+
+```sh
+pnpm registry:sync          # writes a new supabase/migrations/…_core_registry_sync.sql and supabase/registry.json
+pnpm registry:sync --check  # fails when a module changed without a sync (the unit test does the same)
+```
+
 ## The database (`supabase/`)
 
 Migrations are forward-only (`supabase/migrations/YYYYMMDDHHMMSS_<module>_<what>.sql`, V103). The SQL suite
