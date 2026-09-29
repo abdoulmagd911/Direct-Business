@@ -126,4 +126,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // V166: the database decides and logs, but only the server's secret key puts the password into Auth.
+    name: 'e2e-password-never-reaches-auth',
+    breaks: [e2e('an-admin-sets-a-starting-password-that-must-be-changed-first')],
+    expect: 'Auth took the starting password',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'await serviceDb().auth.admin.updateUserById(set.auth_user_id, { password, email_confirm: true });',
+        replace: '{ error: null } as { error: null | { code?: string; message: string } }; void password;',
+      },
+    ],
+  },
 ];

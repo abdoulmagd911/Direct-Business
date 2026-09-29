@@ -1,7 +1,10 @@
 -- SIGN-02 — before a code is sent, the server asks whether the e-mail may sign in: an unlisted e-mail, a switched-off
 -- person, a person not allowed to sign in, a removed person and a removed e-mail are refused with their reason; every
--- answer is in the sign-in log; only the server's secret key (service role) may ask (§4, V59).
+-- answer is in the sign-in log; only the server's secret key (service role) may ask (§4, V59). The code door is off
+-- unless an admin switches it on (V166 — SIGN-10): this test switches it on.
 -- Sabotage: supabase/tests/sabotage/switched-off-people-get-codes.sql.
+insert into core.setting (key, department_id, value, valid_from, reason)
+values ('auth.code_sign_in', null, 'true', core.riyadh_today(), 'made up: this test is the code door');
 select set_config('t.ok', test.person('Test Allowed', 'member')::text, true);
 select set_config('t.off', test.person('Test Off', 'member')::text, true);
 select set_config('t.nosign', test.person('Test Not Allowed', 'member', 'commercial', false)::text, true);

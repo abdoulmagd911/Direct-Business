@@ -83,5 +83,14 @@ export default defineModule({
       schema: z.number().int().min(1).max(365),
       default: 30,
     },
+    {
+      // People sign in with their e-mail and a password (V166); the emailed 6-digit code stays built, off unless an
+      // admin switches it on.
+      key: 'auth.code_sign_in',
+      group: 'settings.org',
+      label: 'setting.auth.code_sign_in',
+      schema: z.boolean(),
+      default: false,
+    },
   ],
 });

@@ -113,8 +113,25 @@ export async function codeFor(email: string, since: number): Promise<string> {
 // device of the same person waits that second out rather than being refused.
 const lastSent = new Map<string, number>();
 
+let codeDoor: Promise<unknown> | undefined;
+
+/**
+ * The emailed code is off unless an admin switches it on (V166); these specs sign in through it, so the stack's
+ * company-wide switch is turned on once (a dated row, as an admin's change would be), before any code is asked for.
+ */
+export function codeDoorOn(): Promise<unknown> {
+  codeDoor ??= sql(
+    `insert into core.setting (key, department_id, value, valid_from, reason)
+     select 'auth.code_sign_in', null, 'true'::jsonb, date '2020-01-01', 'Test: the specs sign in with the emailed code'
+     where not exists (select 1 from core.setting where key = 'auth.code_sign_in' and department_id is null
+                       and valid_from = date '2020-01-01' and deleted_at is null)`,
+  );
+  return codeDoor;
+}
+
 /** Asks for a code on the sign-in page (already open); returns when it was asked for. */
 export async function sendCode(page: Page, email: string): Promise<number> {
+  await codeDoorOn();
   const wait = (lastSent.get(email) ?? 0) + 1500 - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   const since = Date.now();

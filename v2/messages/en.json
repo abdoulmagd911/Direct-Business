@@ -24,6 +24,8 @@
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
+      "code_off": "Sign in with your password",
+      "wrong_password": "That email and password do not match",
       "invalid_email": "Enter your work email",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
@@ -294,7 +296,8 @@
       "late_days": "Days after which an entry is logged late"
     },
     "auth": {
-      "device_idle_days": "Days a device may go unused before it needs a new code"
+      "device_idle_days": "Days a device may go unused before it signs in again",
+      "code_sign_in": "Sign in with an emailed code as well as the password"
     },
     "app": {
       "arabic_enabled": "Arabic",

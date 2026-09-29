@@ -228,6 +228,7 @@ export type Database = {
       };
       partner_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       partners: { Args: { p_filters?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      password_changed: { Args: { p_auth_user: string }; Returns: Json };
       people: { Args: Record<PropertyKey, never>; Returns: Json };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
@@ -253,6 +254,7 @@ export type Database = {
         Returns: Json;
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      person_password_set: { Args: { p_email: string; p_reason: string }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
@@ -300,6 +302,12 @@ export type Database = {
         Returns: undefined;
       };
       sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
+      sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
+      sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
+      sign_in_password_refused: {
+        Args: { p_detail: string; p_email: string; p_user_agent?: string };
+        Returns: undefined;
+      };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {
