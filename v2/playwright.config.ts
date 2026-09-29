@@ -32,7 +32,7 @@ export default defineConfig<ClockOptions>({
     // already the next day in Riyadh.
     {
       name: 'utc-arabic-browser',
-      testMatch: /(p3-7|settings|org|profile|access|door)\.spec\.ts/,
+      testMatch: /(p3-7|settings|org|profile|access|door|partners)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], locale: 'ar-SA', timezoneId: 'UTC', movedClock: true },
     },
   ],
