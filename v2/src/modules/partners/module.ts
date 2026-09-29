@@ -10,7 +10,14 @@ export default defineModule({
       route: '/partners',
       label: 'nav.partners',
       icon: 'building-2',
-      nav: { group: 'main', order: 30 },
+      nav: {
+        group: 'main',
+        order: 30,
+        entries: [
+          { key: 'clients', label: 'nav.clients', route: '/partners?view=clients', icon: 'building-2' },
+          { key: 'suppliers', label: 'nav.suppliers_partners', route: '/partners?view=suppliers', icon: 'handshake' },
+        ],
+      },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
     {

@@ -3,7 +3,7 @@ import check from '../../../scripts/checks/forbidden-words.mjs';
 import { findings, fixture } from './helpers';
 
 // Sabotage: tests/sabotage/blind-checks.mjs "blind-forbidden-words" turns this red.
-describe('the words check refuses the names the app never says (V59)', () => {
+describe('the words check refuses the names the app never says (V59, V73, V74)', () => {
   it('refuses each name, however it is spaced or cased, in a catalog and in page text', async () => {
     const root = fixture({
       'messages/en.json': [
@@ -13,7 +13,11 @@ describe('the words check refuses the names the app never says (V59)', () => {
         '  "c": "Direct-Corporate travel",',
         '  "d": "our B2B desk",',
         '  "e": "MICE events",',
-        '  "f": "b 2 b"',
+        '  "f": "b 2 b",',
+        '  "g": "Continue with Google",',
+        '  "h": "Sign in with Zoom",',
+        '  "i": "Keep me  signed in on this device",',
+        '  "j": "Sales (GMV)"',
         '}',
         '',
       ].join('\n'),
@@ -30,7 +34,7 @@ describe('the words check refuses the names the app never says (V59)', () => {
         .filter((x) => x.file === f)
         .map((x) => x.line)
         .sort((a, b) => a - b);
-    expect(lines('messages/en.json')).toEqual([2, 3, 4, 5, 6, 7]);
+    expect(lines('messages/en.json')).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     expect(lines('src/app/page.tsx')).toEqual([1, 2, 3]);
   });
 
@@ -40,7 +44,7 @@ describe('the words check refuses the names the app never says (V59)', () => {
         '{ "app": { "name": "Commercial Workspace", "department": "Commercial", "copy": "© Direct" } }\n',
       'src/app/page.tsx': [
         `// never "Direct KSA" or B2B in the wording (V59) — a comment is not wording`,
-        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c</p>;`,
+        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c · zooming · googly · signed in</p>;`,
         `export const host = 'www.directksab2b.com';`,
         '',
       ].join('\n'),

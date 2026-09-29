@@ -13,6 +13,15 @@ export type Level = (typeof LEVELS)[number];
 export const ROLES = ['admin', 'head', 'manager', 'member', 'viewer'] as const;
 export type RoleKey = (typeof ROLES)[number];
 
+export interface NavEntryDef {
+  /** Distinct within the page, e.g. `clients`. */
+  key: string;
+  /** Catalog key of the entry's name, e.g. `nav.clients`. */
+  label: string;
+  route: string;
+  icon?: string;
+}
+
 export interface PageDef {
   /** Dotted lower-case key, e.g. `tasks`, `settings.org`. */
   key: string;
@@ -20,8 +29,12 @@ export interface PageDef {
   /** Catalog key of the page's name, e.g. `nav.tasks`. */
   label: string;
   icon?: string;
-  /** In the drawer (main pages) or in Settings' own list. */
-  nav?: { group: 'main' | 'settings'; order: number };
+  /**
+   * In the drawer (main pages) or in Settings' own list. A page may show as several drawer entries (`entries`), each
+   * its own label and route into the same page — the owner's Clients and Suppliers & partners (29 Sep) are two doors
+   * into Partners; access stays the page's. Without `entries`, the page is one entry with its own label and route.
+   */
+  nav?: { group: 'main' | 'settings'; order: number; entries?: NavEntryDef[] };
   /** The levels this page offers (default all four). */
   levels?: readonly Level[];
   /** Starting level per role; a role not named starts at `none`. The admin role is Full everywhere regardless. */

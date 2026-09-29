@@ -1,5 +1,6 @@
 // @ts-check
-// V59 — the app's wording never says "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE". The department
+// V59 — the app's wording never says "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE" — nor, since the
+// owner's list of 29 Sep, "Google", "Zoom", "Keep me signed in" or "GMV". The department
 // is "Commercial"; the product is "Commercial Workspace". Scanned: the message catalogs (messages/*.json) and every
 // piece of literal text in src/ (strings, template pieces, JSX text — the page templates). Comments are not wording.
 // Spacing, hyphens and case do not matter ("Direct-KSA", "b2b").
@@ -13,6 +14,12 @@ export const FORBIDDEN = [
   [/\bdirect[\s\-_.]*corporate\b/gi, 'Direct Corporate'],
   [/\bb[\s\-_.]*2[\s\-_.]*b\b/gi, 'B2B'],
   [/\bmice\b/gi, 'MICE'],
+  // The owner's additions (29 Sep): the door has no Google or Zoom (V59), no "keep me signed in" tick (V74), and the
+  // money words are Revenue · Cost · Profit (V73) — never GMV.
+  [/\bgoogle\b/gi, 'Google'],
+  [/\bzoom\b/gi, 'Zoom'],
+  [/\bkeep\s+me\s+signed\s+in\b/gi, 'Keep me signed in'],
+  [/\bgmv\b/gi, 'Sales (GMV)'],
 ];
 
 /** @param {string} text @returns {{ index: number, word: string, found: string }[]} */
@@ -27,7 +34,7 @@ export function forbiddenIn(text) {
 
 export default defineCheck({
   name: CHECK,
-  rule: 'V59: never "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE" in the catalogs or page text',
+  rule: 'V59/V73/V74: never "Direct KSA", "Direct Corporate", "B2B", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs or page text',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];

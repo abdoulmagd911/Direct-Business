@@ -76,3 +76,32 @@ In the builders' containers: `pg_ctlcluster 16 main start`, and give the `postgr
 
 ESLint adds: browser storage only through `src/core/prefs` (A13); no `setInterval` outside `src/core/` (A2).
 A true exception carries `check-allow: <check> — <reason>` on its line (V100).
+
+## The screens (builder B)
+
+```sh
+pnpm dev                      # the shell with a made-up development person signed in (src/core/auth/me.ts, V2_DEV_ME)
+open http://127.0.0.1:9300/kit  # every kit component, development and test builds only (V202)
+pnpm build && pnpm test:e2e   # 4 themes × 2 densities × 400/1,500 px screenshots into test-results/screenshots/, axe, RTL,
+                              # dialogs, the shell, sign-in; PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome here
+SCREENSHOT_DIR=tests/e2e/screenshots pnpm test:e2e   # refresh the committed screenshots the PR shows
+node scripts/dev/shot.mjs direct comfortable 1500 /kit   # one screenshot (theme density width path [dir] [name]) into $OUT
+```
+
+- `src/ui/tokens.css` is the only file with a colour value (V60; `tests/unit/tokens.test.ts` holds the table);
+  `src/ui/globals.css` maps Tailwind v4 to the tokens and removes the stock palette.
+- `src/ui/` is the kit — Button, IconButton, Input, Select, Checkbox, Switch, Field, Dialog (its own form state),
+  Confirm (D19), Toast with Undo, StatusChip and FilterChip, Tabs (one row), EntityLink, Avatar, PersonChip,
+  AvatarStack, Money, KpiTile, PageHeader, DataState (five states), DetailPanel (480 px), DataTable (virtualized,
+  48/32 px rows), BrandLogo — and `src/ui/shell/` (drawer 232/56, the phone's bottom bar, top bar, Ctrl K, Create,
+  profile menu; V207).
+- `src/core/prefs` is the only browser storage: theme, density, drawer, locale and a development direction override,
+  as cookies the server reads before the first paint (V201).
+- `messages/en.json` and `messages/ar.json` carry every string, the same keys in both (`i18n-catalogs`).
+
+The screen checks (in `scripts/checks/`, run with the rest): `ui-no-hints` (V11 — no banner, callout or hint anywhere),
+`accent-fill-only` (V60 — the accent is never text and never under a label), `i18n-catalogs` (catalogs in step, no
+hard-coded sentence in a screen), `screen-words` (V52/V73 — never Company or Margin on screen; V59's names, Google,
+Zoom, "Keep me signed in" and GMV are A's `forbidden-words`). Their sabotages: `tests/sabotage/screens.mjs`.
+The drawer, the bottom bar and Ctrl K read the module registry (`src/ui/shell/nav.ts`, V209): a page shows for a
+level above none, Settings for admins only, and a page may declare several drawer entries (`nav.entries`).
