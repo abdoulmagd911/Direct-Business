@@ -20,14 +20,30 @@ function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
 function authz.is_admin() execute authenticated
 function authz.me() execute authenticated
+function core.auth_user_of(p_email text) execute service_role
 function core.clock() execute authenticated
+function core.device_sign_out(p_device uuid) execute authenticated
+function core.device_sign_out_others() execute authenticated
+function core.device_touch() execute authenticated
 function core.format_number(prefix text, year integer, n integer, width integer) execute authenticated
+function core.me() execute authenticated
 function core.month_of(d date) execute authenticated
+function core.my_devices() execute authenticated
+function core.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
+function core.person_auth_state(p_person uuid) execute service_role
+function core.person_devices(p_person uuid) execute authenticated
+function core.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
+function core.person_email_remove(p_id uuid, p_reason text) execute authenticated
+function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function core.quarter_of(d date) execute authenticated
 function core.riyadh_day(t timestamp with time zone) execute authenticated
 function core.riyadh_today() execute authenticated
+function core.sign_in_check(p_email text, p_user_agent text) execute service_role
+function core.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
+function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
 schema api usage authenticated
 schema api usage service_role
 schema authz usage authenticated
 schema core usage authenticated
+schema core usage service_role
 type core.level usage public
