@@ -11,7 +11,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/SignIn.tsx',
-        find: `<h1 className="text-3xl">{t('app.name')}</h1>`,
+        find: `<h1 className="font-display text-2xl font-semibold leading-8 sm:text-[28px] sm:leading-9">{t('app.name')}</h1>`,
         replace: '{null}',
       },
     ],
