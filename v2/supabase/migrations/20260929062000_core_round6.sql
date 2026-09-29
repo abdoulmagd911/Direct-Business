@@ -770,8 +770,11 @@ begin
     raise exception using errcode = '23505', message = 'undo.blocked_by_duplicate', detail = holder;
   end;
   perform audit.undo_mark(q, req);
+  -- an update logs only the fields it changed, so the person comes from the row itself
   select pg_catalog.array_agg(distinct x.pid) into resync
-  from (select coalesce(c2.after ->> 'person_id', c2.before ->> 'person_id')::uuid as pid
+  from (select coalesce((c2.after ->> 'person_id')::uuid, (c2.before ->> 'person_id')::uuid,
+                        (select e.person_id from core.person_email e where e.id = c2.row_id),
+                        (select a.person_id from core.person_auth a where a.id = c2.row_id)) as pid
         from audit.change c2 where c2.request_id = q.id and c2.table_name in ('core.person_email', 'core.person_auth')
         union
         select c2.row_id from audit.change c2
