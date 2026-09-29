@@ -10,7 +10,7 @@ export default async function AreaPage() {
   const [me, t] = await Promise.all([requireMe(), getTranslations()]);
   const allowed = (me.levels['kpis'] ?? 'none') !== 'none';
   return (
-    <Page>
+    <Page page="kpis" title={t('nav.kpis')}>
       <PageHeader title={t('nav.kpis')} />
       {allowed ? (
         <DataState kind="empty" message={t('state.empty')} />

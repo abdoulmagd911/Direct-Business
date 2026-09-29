@@ -26,6 +26,9 @@ import { Switch } from '@/ui/Switch';
 import { Tabs } from '@/ui/Tabs';
 import { toast } from '@/ui/Toast';
 import { PageFrame } from '@/ui/shell/AppShell';
+import { BulkBar } from '@/ui/BulkBar';
+import { SavedViewsBar } from '@/ui/SavedViewsBar';
+import type { RowSelectionState } from '@tanstack/react-table';
 import { formatMoney } from '@/core/i18n/format';
 
 /* Made-up people and rows only (rule 7). */
@@ -107,6 +110,11 @@ export function KitGallery() {
   const [on, setOn] = useState(true);
   const [sel, setSel] = useState('b');
   const [removed, setRemoved] = useState(false);
+  // The list kit (P3-7): saved views read the real api.views of the Clients page; the bulk bar runs one made-up
+  // command for the whole selection (the count of calls proves "one request").
+  const [view, setView] = useState('all');
+  const [picked, setPicked] = useState<RowSelectionState>({});
+  const [bulkCalls, setBulkCalls] = useState<{ calls: number; ids: number }>({ calls: 0, ids: 0 });
 
   const columns = useMemo<ColumnDef<Row, unknown>[]>(
     () => [
@@ -431,6 +439,18 @@ export function KitGallery() {
         </Section>
 
         <Section title="Table">
+          <SavedViewsBar
+            page="clients"
+            fixed={[
+              { key: 'all', label: 'All' },
+              { key: 'government', label: 'Government' },
+              { key: 'corporate', label: 'Corporate' },
+            ]}
+            current={view}
+            query={{ status: 'open', view }}
+            onOpen={(v) => setView(v.key)}
+            canShare
+          />
           <DataTable
             columns={columns}
             data={rows}
@@ -438,9 +458,27 @@ export function KitGallery() {
             selectable
             selectedId={selected?.id ?? null}
             onRowClick={(r) => setSelected(r)}
+            rowSelection={picked}
+            onRowSelectionChange={setPicked}
             labels={{ selectRow: 'Select row', selectAll: 'Select all' }}
             maxHeight="440px"
           />
+          <BulkBar
+            ids={Object.keys(picked).filter((k) => picked[k])}
+            onClear={() => setPicked({})}
+            actions={[
+              {
+                key: 'assign',
+                label: 'Assign owner',
+                done: (n) => `${n} assigned`,
+                run: async (ids) => {
+                  setBulkCalls((c) => ({ calls: c.calls + 1, ids: c.ids + ids.length }));
+                  return { request_id: null };
+                },
+              },
+            ]}
+          />
+          <span className="sr-only" data-bulk-calls={bulkCalls.calls} data-bulk-ids={bulkCalls.ids} />
         </Section>
       </PageFrame>
 
