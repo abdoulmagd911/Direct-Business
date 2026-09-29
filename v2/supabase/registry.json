@@ -1,0 +1,694 @@
+{
+  "roles": [
+    { "key": "admin", "name_en": "Admin", "name_ar": "مسؤول النظام", "sort": 10, "is_admin": true },
+    { "key": "head", "name_en": "Head of department", "name_ar": "رئيس القسم", "sort": 20, "is_admin": false },
+    { "key": "manager", "name_en": "Manager", "name_ar": "مدير", "sort": 30, "is_admin": false },
+    { "key": "member", "name_en": "Team member", "name_ar": "عضو الفريق", "sort": 40, "is_admin": false },
+    { "key": "viewer", "name_en": "Viewer", "name_ar": "مشاهد", "sort": 50, "is_admin": false }
+  ],
+  "pages": [
+    {
+      "key": "activity",
+      "module": "settings",
+      "route": "/settings/activity",
+      "nav_group": "settings",
+      "nav_order": 80,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "appraisal",
+      "module": "appraisal",
+      "route": "/appraisal",
+      "nav_group": "main",
+      "nav_order": 100,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "finance",
+      "module": "finance",
+      "route": "/finance",
+      "nav_group": "main",
+      "nav_order": 70,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "kpis",
+      "module": "perf",
+      "route": "/kpis",
+      "nav_group": "main",
+      "nav_order": 80,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "my_day",
+      "module": "my_day",
+      "route": "/my-day",
+      "nav_group": "main",
+      "nav_order": 10,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "overview",
+      "module": "overview",
+      "route": "/overview",
+      "nav_group": "main",
+      "nav_order": 20,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "partners",
+      "module": "partners",
+      "route": "/partners",
+      "nav_group": "main",
+      "nav_order": 30,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "pipeline",
+      "module": "pipeline",
+      "route": "/pipeline",
+      "nav_group": "main",
+      "nav_order": 40,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "projects",
+      "module": "projects",
+      "route": "/projects",
+      "nav_group": "main",
+      "nav_order": 50,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "reports",
+      "module": "reports",
+      "route": "/reports",
+      "nav_group": "main",
+      "nav_order": 90,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.app",
+      "module": "settings",
+      "route": "/settings/app",
+      "nav_group": "settings",
+      "nav_order": 70,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.finance",
+      "module": "finance",
+      "route": "/settings/finance",
+      "nav_group": "settings",
+      "nav_order": 50,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.org",
+      "module": "org",
+      "route": "/settings/org",
+      "nav_group": "settings",
+      "nav_order": 20,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.partners",
+      "module": "partners",
+      "route": "/settings/partners",
+      "nav_group": "settings",
+      "nav_order": 30,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.performance",
+      "module": "perf",
+      "route": "/settings/performance",
+      "nav_group": "settings",
+      "nav_order": 40,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "settings.profile",
+      "module": "settings",
+      "route": "/settings/profile",
+      "nav_group": "settings",
+      "nav_order": 10,
+      "levels": ["own"]
+    },
+    {
+      "key": "settings.work",
+      "module": "tasks",
+      "route": "/settings/work",
+      "nav_group": "settings",
+      "nav_order": 60,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
+      "key": "tasks",
+      "module": "tasks",
+      "route": "/tasks",
+      "nav_group": "main",
+      "nav_order": 60,
+      "levels": ["none", "view", "own", "full"]
+    }
+  ],
+  "capabilities": [
+    { "key": "finance.credit", "page": "finance" },
+    { "key": "finance.credit_control", "page": "partners" },
+    { "key": "finance.import", "page": "finance" },
+    { "key": "org.sign_out", "page": "settings.org" },
+    { "key": "partners.assign", "page": "partners" },
+    { "key": "partners.identify", "page": "partners" },
+    { "key": "partners.merge", "page": "partners" },
+    { "key": "tasks.assign", "page": "tasks" }
+  ],
+  "settings": [
+    {
+      "key": "app.arabic_enabled",
+      "group": "settings.app",
+      "label": "setting.app.arabic_enabled",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": false,
+      "effective_dated": false
+    },
+    {
+      "key": "app.default_density",
+      "group": "settings.app",
+      "label": "setting.app.default_density",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["comfortable", "compact"]
+      },
+      "default": "comfortable",
+      "effective_dated": false
+    },
+    {
+      "key": "app.default_theme",
+      "group": "settings.app",
+      "label": "setting.app.default_theme",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["light", "dark", "colorful", "direct"]
+      },
+      "default": "direct",
+      "effective_dated": false
+    },
+    {
+      "key": "app.export_formats",
+      "group": "settings.app",
+      "label": "setting.app.export_formats",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "minItems": 1,
+        "type": "array",
+        "items": { "type": "string", "enum": ["csv", "xlsx"] }
+      },
+      "default": ["csv", "xlsx"],
+      "effective_dated": false
+    },
+    {
+      "key": "audit.undo_window_hours",
+      "group": "settings.app",
+      "label": "setting.audit.undo_window_hours",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 168
+      },
+      "default": 24,
+      "effective_dated": false
+    },
+    {
+      "key": "auth.device_idle_days",
+      "group": "settings.org",
+      "label": "setting.auth.device_idle_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 30,
+      "effective_dated": false
+    },
+    {
+      "key": "files.max_mb",
+      "group": "settings.app",
+      "label": "setting.files.max_mb",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50
+      },
+      "default": 20,
+      "effective_dated": false
+    },
+    {
+      "key": "notify.kinds_enabled",
+      "group": "settings.app",
+      "label": "setting.notify.kinds_enabled",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "assigned",
+            "helper_added",
+            "mentioned",
+            "changed_by_other",
+            "followed_change",
+            "decision_needed",
+            "report_issued",
+            "report_for_review",
+            "appraisal_step",
+            "import_done",
+            "alert_contract_expiring",
+            "alert_kpi_behind",
+            "alert_invoice_unpaid",
+            "alert_kpi_checkin"
+          ]
+        }
+      },
+      "default": [
+        "assigned",
+        "helper_added",
+        "mentioned",
+        "changed_by_other",
+        "followed_change",
+        "decision_needed",
+        "report_issued",
+        "report_for_review",
+        "appraisal_step",
+        "import_done",
+        "alert_contract_expiring",
+        "alert_kpi_behind",
+        "alert_invoice_unpaid",
+        "alert_kpi_checkin"
+      ],
+      "effective_dated": false
+    },
+    {
+      "key": "partner.id_format",
+      "group": "settings.partners",
+      "label": "setting.partner.id_format",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "prefix": { "type": "string", "pattern": "^[A-Z][A-Z0-9-]*$" },
+          "width": { "type": "integer", "minimum": 3, "maximum": 8 }
+        },
+        "required": ["prefix", "width"],
+        "additionalProperties": false
+      },
+      "default": { "prefix": "DK-P", "width": 4 },
+      "effective_dated": false
+    },
+    {
+      "key": "partner.name_stop_words",
+      "group": "settings.partners",
+      "label": "setting.partner.name_stop_words",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 }
+      },
+      "default": ["شركة", "مؤسسة", "company", "co", "corp", "corporation", "ltd", "limited", "llc", "inc", "est"],
+      "effective_dated": false
+    },
+    {
+      "key": "partner.one_code_per_partner",
+      "group": "settings.partners",
+      "label": "setting.partner.one_code_per_partner",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": false
+    },
+    {
+      "key": "work.meeting_note_on_time_days",
+      "group": "settings.work",
+      "label": "setting.work.meeting_note_on_time_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 14
+      },
+      "default": 1,
+      "effective_dated": false
+    },
+    {
+      "key": "work.no_update_days",
+      "group": "settings.work",
+      "label": "setting.work.no_update_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60
+      },
+      "default": 7,
+      "effective_dated": false
+    },
+    {
+      "key": "work.pipeline_weekly_target",
+      "group": "settings.work",
+      "label": "setting.work.pipeline_weekly_target",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "default": 1,
+      "effective_dated": true
+    },
+    {
+      "key": "work.reminder_days_before_due",
+      "group": "settings.work",
+      "label": "setting.work.reminder_days_before_due",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 30
+      },
+      "default": 1,
+      "effective_dated": false
+    },
+    {
+      "key": "work.week_starts_on",
+      "group": "settings.work",
+      "label": "setting.work.week_starts_on",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["saturday", "sunday", "monday"]
+      },
+      "default": "sunday",
+      "effective_dated": false
+    }
+  ],
+  "entities": [
+    {
+      "key": "account_manager",
+      "table": "partner.account_manager",
+      "page": "partners",
+      "owners": "partner.account_manager_owners",
+      "list": false
+    },
+    {
+      "key": "call_outcome",
+      "table": "partner.call_outcome",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true
+    },
+    {
+      "key": "campaign_code",
+      "table": "partner.campaign_code",
+      "page": "partners",
+      "owners": "owner_id",
+      "list": false
+    },
+    { "key": "capability", "table": "core.capability", "page": "settings.org", "owners": null, "list": false },
+    { "key": "code_terms", "table": "partner.code_terms", "page": "partners", "owners": null, "list": false },
+    {
+      "key": "contact",
+      "table": "partner.contact",
+      "page": "partners",
+      "owners": "partner.contact_owners",
+      "list": false
+    },
+    { "key": "contract_term", "table": "partner.term", "page": "settings.partners", "owners": null, "list": true },
+    {
+      "key": "credit_limit",
+      "table": "partner.credit_limit",
+      "page": "partners",
+      "owners": "partner.credit_limit_owners",
+      "list": false
+    },
+    {
+      "key": "department",
+      "table": "core.department",
+      "page": "settings.org",
+      "owners": "head_person_id",
+      "list": false
+    },
+    { "key": "entity", "table": "core.entity", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "identifier",
+      "table": "partner.identifier",
+      "page": "partners",
+      "owners": "partner.identifier_owners",
+      "list": false
+    },
+    {
+      "key": "identifier_block",
+      "table": "partner.identifier_block",
+      "page": "settings.partners",
+      "owners": null,
+      "list": false
+    },
+    { "key": "individual_name", "table": "partner.individual_name", "page": "partners", "owners": null, "list": false },
+    { "key": "page", "table": "core.page", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "partner",
+      "table": "partner.partner",
+      "page": "partners",
+      "owners": "partner.partner_owners",
+      "list": false
+    },
+    {
+      "key": "partner_category",
+      "table": "partner.category",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true
+    },
+    { "key": "partner_merge", "table": "partner.merge", "page": "partners", "owners": null, "list": false },
+    {
+      "key": "partner_role",
+      "table": "partner.partner_role",
+      "page": "partners",
+      "owners": "partner.partner_role_owners",
+      "list": false
+    },
+    { "key": "partner_role_def", "table": "partner.role", "page": "settings.partners", "owners": null, "list": true },
+    {
+      "key": "partner_status",
+      "table": "partner.status_change",
+      "page": "partners",
+      "owners": "partner.status_change_owners",
+      "list": false
+    },
+    { "key": "partner_tier", "table": "partner.tier", "page": "settings.partners", "owners": null, "list": true },
+    { "key": "person", "table": "core.person", "page": "settings.org", "owners": "id", "list": false },
+    { "key": "person_auth", "table": "core.person_auth", "page": "settings.org", "owners": "person_id", "list": false },
+    {
+      "key": "person_capability",
+      "table": "core.person_capability",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false
+    },
+    {
+      "key": "person_department",
+      "table": "core.person_department",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false
+    },
+    {
+      "key": "person_email",
+      "table": "core.person_email",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false
+    },
+    {
+      "key": "person_level",
+      "table": "core.person_page_level",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false
+    },
+    {
+      "key": "person_team",
+      "table": "core.person_team_assist",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false
+    },
+    { "key": "priority", "table": "work.priority", "page": "settings.work", "owners": null, "list": true },
+    {
+      "key": "profile",
+      "table": "core.person_profile",
+      "page": "settings.profile",
+      "owners": "person_id",
+      "list": false
+    },
+    { "key": "role", "table": "core.role", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "role_capability",
+      "table": "core.role_capability",
+      "page": "settings.org",
+      "owners": null,
+      "list": false
+    },
+    { "key": "role_field", "table": "partner.role_field", "page": "settings.partners", "owners": null, "list": false },
+    { "key": "role_level", "table": "core.role_page_level", "page": "settings.org", "owners": null, "list": false },
+    { "key": "saved_view", "table": "core.saved_view", "page": null, "owners": "owner_id", "list": false },
+    { "key": "segment", "table": "partner.segment", "page": "settings.partners", "owners": null, "list": true },
+    { "key": "setting", "table": "core.setting", "page": "settings.app", "owners": null, "list": false },
+    { "key": "setting_def", "table": "core.setting_def", "page": "settings.app", "owners": null, "list": false },
+    {
+      "key": "status_reason",
+      "table": "partner.status_reason",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true
+    },
+    { "key": "team", "table": "core.team", "page": "settings.org", "owners": "lead_person_id", "list": false },
+    { "key": "wording", "table": "core.wording", "page": "settings.app", "owners": null, "list": false }
+  ],
+  "role_levels": [
+    { "role": "admin", "page": "activity", "level": "full" },
+    { "role": "admin", "page": "appraisal", "level": "full" },
+    { "role": "admin", "page": "finance", "level": "full" },
+    { "role": "admin", "page": "kpis", "level": "full" },
+    { "role": "admin", "page": "my_day", "level": "full" },
+    { "role": "admin", "page": "overview", "level": "full" },
+    { "role": "admin", "page": "partners", "level": "full" },
+    { "role": "admin", "page": "pipeline", "level": "full" },
+    { "role": "admin", "page": "projects", "level": "full" },
+    { "role": "admin", "page": "reports", "level": "full" },
+    { "role": "admin", "page": "settings.app", "level": "full" },
+    { "role": "admin", "page": "settings.finance", "level": "full" },
+    { "role": "admin", "page": "settings.org", "level": "full" },
+    { "role": "admin", "page": "settings.partners", "level": "full" },
+    { "role": "admin", "page": "settings.performance", "level": "full" },
+    { "role": "admin", "page": "settings.profile", "level": "own" },
+    { "role": "admin", "page": "settings.work", "level": "full" },
+    { "role": "admin", "page": "tasks", "level": "full" },
+    { "role": "head", "page": "activity", "level": "view" },
+    { "role": "head", "page": "appraisal", "level": "own" },
+    { "role": "head", "page": "finance", "level": "full" },
+    { "role": "head", "page": "kpis", "level": "full" },
+    { "role": "head", "page": "my_day", "level": "full" },
+    { "role": "head", "page": "overview", "level": "full" },
+    { "role": "head", "page": "partners", "level": "full" },
+    { "role": "head", "page": "pipeline", "level": "full" },
+    { "role": "head", "page": "projects", "level": "full" },
+    { "role": "head", "page": "reports", "level": "full" },
+    { "role": "head", "page": "settings.app", "level": "view" },
+    { "role": "head", "page": "settings.finance", "level": "full" },
+    { "role": "head", "page": "settings.org", "level": "view" },
+    { "role": "head", "page": "settings.partners", "level": "full" },
+    { "role": "head", "page": "settings.performance", "level": "full" },
+    { "role": "head", "page": "settings.profile", "level": "own" },
+    { "role": "head", "page": "settings.work", "level": "full" },
+    { "role": "head", "page": "tasks", "level": "full" },
+    { "role": "manager", "page": "activity", "level": "view" },
+    { "role": "manager", "page": "appraisal", "level": "own" },
+    { "role": "manager", "page": "finance", "level": "full" },
+    { "role": "manager", "page": "kpis", "level": "full" },
+    { "role": "manager", "page": "my_day", "level": "full" },
+    { "role": "manager", "page": "overview", "level": "view" },
+    { "role": "manager", "page": "partners", "level": "full" },
+    { "role": "manager", "page": "pipeline", "level": "full" },
+    { "role": "manager", "page": "projects", "level": "full" },
+    { "role": "manager", "page": "reports", "level": "view" },
+    { "role": "manager", "page": "settings.app", "level": "none" },
+    { "role": "manager", "page": "settings.finance", "level": "view" },
+    { "role": "manager", "page": "settings.org", "level": "none" },
+    { "role": "manager", "page": "settings.partners", "level": "view" },
+    { "role": "manager", "page": "settings.performance", "level": "view" },
+    { "role": "manager", "page": "settings.profile", "level": "own" },
+    { "role": "manager", "page": "settings.work", "level": "view" },
+    { "role": "manager", "page": "tasks", "level": "full" },
+    { "role": "member", "page": "activity", "level": "none" },
+    { "role": "member", "page": "appraisal", "level": "own" },
+    { "role": "member", "page": "finance", "level": "own" },
+    { "role": "member", "page": "kpis", "level": "own" },
+    { "role": "member", "page": "my_day", "level": "own" },
+    { "role": "member", "page": "overview", "level": "none" },
+    { "role": "member", "page": "partners", "level": "full" },
+    { "role": "member", "page": "pipeline", "level": "own" },
+    { "role": "member", "page": "projects", "level": "own" },
+    { "role": "member", "page": "reports", "level": "view" },
+    { "role": "member", "page": "settings.app", "level": "none" },
+    { "role": "member", "page": "settings.finance", "level": "view" },
+    { "role": "member", "page": "settings.org", "level": "none" },
+    { "role": "member", "page": "settings.partners", "level": "none" },
+    { "role": "member", "page": "settings.performance", "level": "view" },
+    { "role": "member", "page": "settings.profile", "level": "own" },
+    { "role": "member", "page": "settings.work", "level": "none" },
+    { "role": "member", "page": "tasks", "level": "own" },
+    { "role": "viewer", "page": "activity", "level": "none" },
+    { "role": "viewer", "page": "appraisal", "level": "none" },
+    { "role": "viewer", "page": "finance", "level": "view" },
+    { "role": "viewer", "page": "kpis", "level": "view" },
+    { "role": "viewer", "page": "my_day", "level": "view" },
+    { "role": "viewer", "page": "overview", "level": "view" },
+    { "role": "viewer", "page": "partners", "level": "view" },
+    { "role": "viewer", "page": "pipeline", "level": "view" },
+    { "role": "viewer", "page": "projects", "level": "view" },
+    { "role": "viewer", "page": "reports", "level": "view" },
+    { "role": "viewer", "page": "settings.app", "level": "none" },
+    { "role": "viewer", "page": "settings.finance", "level": "none" },
+    { "role": "viewer", "page": "settings.org", "level": "none" },
+    { "role": "viewer", "page": "settings.partners", "level": "none" },
+    { "role": "viewer", "page": "settings.performance", "level": "view" },
+    { "role": "viewer", "page": "settings.profile", "level": "own" },
+    { "role": "viewer", "page": "settings.work", "level": "none" },
+    { "role": "viewer", "page": "tasks", "level": "view" }
+  ],
+  "role_capabilities": [
+    { "role": "admin", "capability": "finance.credit", "granted": true },
+    { "role": "admin", "capability": "finance.credit_control", "granted": true },
+    { "role": "admin", "capability": "finance.import", "granted": true },
+    { "role": "admin", "capability": "org.sign_out", "granted": true },
+    { "role": "admin", "capability": "partners.assign", "granted": true },
+    { "role": "admin", "capability": "partners.identify", "granted": true },
+    { "role": "admin", "capability": "partners.merge", "granted": true },
+    { "role": "admin", "capability": "tasks.assign", "granted": true },
+    { "role": "head", "capability": "finance.credit", "granted": true },
+    { "role": "head", "capability": "finance.credit_control", "granted": true },
+    { "role": "head", "capability": "finance.import", "granted": true },
+    { "role": "head", "capability": "org.sign_out", "granted": false },
+    { "role": "head", "capability": "partners.assign", "granted": true },
+    { "role": "head", "capability": "partners.identify", "granted": true },
+    { "role": "head", "capability": "partners.merge", "granted": true },
+    { "role": "head", "capability": "tasks.assign", "granted": true },
+    { "role": "manager", "capability": "finance.credit", "granted": true },
+    { "role": "manager", "capability": "finance.credit_control", "granted": false },
+    { "role": "manager", "capability": "finance.import", "granted": false },
+    { "role": "manager", "capability": "org.sign_out", "granted": false },
+    { "role": "manager", "capability": "partners.assign", "granted": true },
+    { "role": "manager", "capability": "partners.identify", "granted": true },
+    { "role": "manager", "capability": "partners.merge", "granted": false },
+    { "role": "manager", "capability": "tasks.assign", "granted": true },
+    { "role": "member", "capability": "finance.credit", "granted": false },
+    { "role": "member", "capability": "finance.credit_control", "granted": false },
+    { "role": "member", "capability": "finance.import", "granted": false },
+    { "role": "member", "capability": "org.sign_out", "granted": false },
+    { "role": "member", "capability": "partners.assign", "granted": false },
+    { "role": "member", "capability": "partners.identify", "granted": false },
+    { "role": "member", "capability": "partners.merge", "granted": false },
+    { "role": "member", "capability": "tasks.assign", "granted": false },
+    { "role": "viewer", "capability": "finance.credit", "granted": false },
+    { "role": "viewer", "capability": "finance.credit_control", "granted": false },
+    { "role": "viewer", "capability": "finance.import", "granted": false },
+    { "role": "viewer", "capability": "org.sign_out", "granted": false },
+    { "role": "viewer", "capability": "partners.assign", "granted": false },
+    { "role": "viewer", "capability": "partners.identify", "granted": false },
+    { "role": "viewer", "capability": "partners.merge", "granted": false },
+    { "role": "viewer", "capability": "tasks.assign", "granted": false }
+  ]
+}

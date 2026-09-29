@@ -12,10 +12,117 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      access_clear_person_capability: {
+        Args: { p_capability: string; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_clear_person_level: { Args: { p_page: string; p_person: string; p_reason: string }; Returns: Json };
+      access_matrix: { Args: Record<PropertyKey, never>; Returns: Json };
+      access_of_person: { Args: { p_person: string }; Returns: Json };
+      access_set_person_capability: {
+        Args: { p_capability: string; p_granted: boolean; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_set_person_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_person: string; p_reason: string };
+        Returns: Json;
+      };
+      access_set_person_role: { Args: { p_person: string; p_reason: string; p_role: string }; Returns: Json };
+      access_set_role_capability: {
+        Args: { p_capability: string; p_granted: boolean; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      access_set_role_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      activity: {
+        Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
+        Returns: Json;
+      };
       auth_user_of: { Args: { p_email: string }; Returns: string };
+      campaign_code_add: {
+        Args: {
+          p_code: string;
+          p_name: string;
+          p_owner: string;
+          p_reason: string;
+          p_valid_from: string;
+          p_valid_to: string;
+        };
+        Returns: Json;
+      };
+      code_terms_add: {
+        Args: {
+          p_approved_by: string;
+          p_approved_on: string;
+          p_campaign: string;
+          p_countries?: string[];
+          p_effective_from: string;
+          p_fee_percent: number;
+          p_identifier: string;
+          p_review_on?: string;
+          p_services?: string[];
+          p_tiers?: Json;
+        };
+        Returns: Json;
+      };
+      contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
+      contacts_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      credit_limit_set: {
+        Args: {
+          p_amount: number;
+          p_approved_by: string;
+          p_effective_from: string;
+          p_partner: string;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
+      department_save: {
+        Args: {
+          p_code: string;
+          p_head?: string;
+          p_id: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
       device_touch: { Args: Record<PropertyKey, never>; Returns: string };
+      follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
+      following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      hover_partner: { Args: { p_id: string }; Returns: Json };
+      hover_person: { Args: { p_id: string }; Returns: Json };
+      identifier_add: {
+        Args: {
+          p_kind: string;
+          p_note?: string;
+          p_partner: string;
+          p_reason: string;
+          p_second_code?: boolean;
+          p_subkind?: string;
+          p_valid_from?: string;
+          p_valid_to?: string;
+          p_value: string;
+        };
+        Returns: Json;
+      };
+      identifier_block_add: {
+        Args: { p_kind: string; p_match: string; p_reason: string; p_value: string };
+        Returns: Json;
+      };
+      identifier_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
+      list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };
+      list_save: {
+        Args: { p_id: string; p_list: string; p_reason?: string; p_values: Json; p_version?: number };
+        Returns: Json;
+      };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_devices: {
         Args: Record<PropertyKey, never>;
@@ -27,6 +134,31 @@ export type Database = {
           this_device: boolean;
         }[];
       };
+      notifications: { Args: { p_before?: string; p_limit?: number; p_tab?: string }; Returns: Json };
+      notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
+      notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
+      notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      org: { Args: Record<PropertyKey, never>; Returns: Json };
+      page_seen: { Args: { p_page: string }; Returns: string };
+      partner: { Args: { p_id: string }; Returns: Json };
+      partner_bulk_assign: {
+        Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string };
+        Returns: Json;
+      };
+      partner_create: { Args: { p_partner: Json; p_reason?: string }; Returns: Json };
+      partner_manager_set: {
+        Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string };
+        Returns: Json;
+      };
+      partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
+      partner_roles_set: { Args: { p_id: string; p_reason?: string; p_roles: Json }; Returns: Json };
+      partner_status_set: {
+        Args: { p_effective_on?: string; p_id: string; p_note?: string; p_reason_id?: string; p_status: string };
+        Returns: Json;
+      };
+      partner_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      partners: { Args: { p_filters?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      people: { Args: Record<PropertyKey, never>; Returns: Json };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
         Args: { p_person: string };
@@ -36,6 +168,7 @@ export type Database = {
           email: string;
         }[];
       };
+      person_create: { Args: { p_person: Json; p_reason?: string }; Returns: Json };
       person_devices: {
         Args: { p_person: string };
         Returns: {
@@ -51,6 +184,29 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
+      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
+      person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
+      record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      role_save: {
+        Args: {
+          p_id: string;
+          p_key: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_sort?: number;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      search: { Args: { p_limit?: number; p_q: string }; Returns: Json };
+      setting_clear: { Args: { p_department: string; p_key: string; p_reason: string }; Returns: Json };
+      setting_set: {
+        Args: { p_department: string; p_key: string; p_reason?: string; p_valid_from?: string; p_value: Json };
+        Returns: Json;
+      };
+      settings: { Args: { p_group: string }; Returns: Json };
       sign_in_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_complete: {
         Args: { p_device_label?: string; p_provider?: string; p_user_agent?: string };
@@ -60,6 +216,37 @@ export type Database = {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
       };
+      sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
+      team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
+      team_save: {
+        Args: {
+          p_code: string;
+          p_department: string;
+          p_id: string;
+          p_lead?: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      undo: { Args: { p_request: string }; Returns: Json };
+      view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
+      view_save: {
+        Args: {
+          p_id: string;
+          p_name: string;
+          p_page: string;
+          p_query: Json;
+          p_shared?: boolean;
+          p_sort?: number;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      views: { Args: { p_page: string }; Returns: Json };
+      views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;

@@ -1,37 +1,110 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  BarChart3,
-  Briefcase,
-  CalendarCheck2,
+  Building2,
   CheckSquare,
+  Circle,
   ClipboardCheck,
   FileText,
-  KanbanSquare,
+  FolderKanban,
+  GitBranch,
+  Handshake,
   LayoutDashboard,
   Settings,
   Sun,
+  Target,
   Wallet,
 } from 'lucide-react';
+import type { Me } from '@/core/auth/me';
+import { modules } from '@/core/registry';
+import { canSee } from '../person';
 
 /**
- * The drawer's page list. In P3-4 builder A's registry (`core/registry`) becomes the one source of
- * pages, access and Ctrl K; this file then reads from it instead of declaring them (V203). Keys equal
- * the registry page keys already, so nothing else changes. Order (oversight, 29 Sep): My day, Overview,
- * Partners, Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal; Settings at the foot (V80 adds
- * Overview and Pipeline).
+ * The drawer, the bottom bar and Ctrl K read the module registry (TECH-SPEC §2.3, V123): every page with
+ * `nav.group === 'main'`, in `nav.order`, as one entry — or as the entries the page declares (Partners shows as
+ * Clients and Suppliers & partners). A person sees an entry only with a level above none on its page (V125); a page
+ * the database does not know is hidden, never guessed. Settings is the admin's door (owner, 29 Sep); everyone reaches
+ * My profile from the profile chip.
  */
-export type NavPage = { key: string; route: string; icon: LucideIcon; group: 'main' | 'foot' };
+export type NavEntry = {
+  /** `<page>` or `<page>:<entry>` — the drawer's own key. */
+  key: string;
+  page: string;
+  route: string;
+  label: string;
+  icon: LucideIcon;
+};
 
-export const NAV_PAGES: NavPage[] = [
-  { key: 'my-day', route: '/my-day', icon: Sun, group: 'main' },
-  { key: 'overview', route: '/overview', icon: LayoutDashboard, group: 'main' },
-  { key: 'partners', route: '/partners', icon: Briefcase, group: 'main' },
-  { key: 'pipeline', route: '/pipeline', icon: KanbanSquare, group: 'main' },
-  { key: 'projects', route: '/projects', icon: CalendarCheck2, group: 'main' },
-  { key: 'tasks', route: '/tasks', icon: CheckSquare, group: 'main' },
-  { key: 'finance', route: '/finance', icon: Wallet, group: 'main' },
-  { key: 'kpis', route: '/kpis', icon: BarChart3, group: 'main' },
-  { key: 'reports', route: '/reports', icon: FileText, group: 'main' },
-  { key: 'appraisal', route: '/appraisal', icon: ClipboardCheck, group: 'main' },
-  { key: 'settings', route: '/settings', icon: Settings, group: 'foot' },
-];
+/** Icon names the modules use (lucide names) → components. An unknown name draws a plain circle, never nothing. */
+const ICONS: Record<string, LucideIcon> = {
+  sun: Sun,
+  'layout-dashboard': LayoutDashboard,
+  'building-2': Building2,
+  handshake: Handshake,
+  'git-branch': GitBranch,
+  'folder-kanban': FolderKanban,
+  'check-square': CheckSquare,
+  wallet: Wallet,
+  target: Target,
+  'file-text': FileText,
+  'clipboard-check': ClipboardCheck,
+  settings: Settings,
+};
+
+const iconOf = (name?: string) => (name && ICONS[name]) || Circle;
+
+function build(): NavEntry[] {
+  const out: { order: number; entry: NavEntry }[] = [];
+  for (const m of modules)
+    for (const p of m.pages ?? []) {
+      if (p.nav?.group !== 'main') continue;
+      const entries = p.nav.entries?.length
+        ? p.nav.entries.map((e, i) => ({
+            order: p.nav!.order + i / 100,
+            entry: {
+              key: `${p.key}:${e.key}`,
+              page: p.key,
+              route: e.route,
+              label: e.label,
+              icon: iconOf(e.icon ?? p.icon),
+            },
+          }))
+        : [
+            {
+              order: p.nav.order,
+              entry: { key: p.key, page: p.key, route: p.route, label: p.label, icon: iconOf(p.icon) },
+            },
+          ];
+      out.push(...entries);
+    }
+  return out.sort((a, b) => a.order - b.order).map((x) => x.entry);
+}
+
+/** Every main entry the registry declares, in drawer order. */
+export const NAV_ENTRIES: readonly NavEntry[] = build();
+
+export const SETTINGS_ENTRY: NavEntry = {
+  key: 'settings',
+  page: 'settings',
+  route: '/settings',
+  label: 'nav.settings_home',
+  icon: Settings,
+};
+
+/** The entries this person may open. */
+export function navFor(me: Me): NavEntry[] {
+  return NAV_ENTRIES.filter((e) => canSee(me, e.page));
+}
+
+/** Settings shows for admins only (owner, 29 Sep); My profile is reached from the profile chip. */
+export function isAdmin(me: Me): boolean {
+  return me.person.role?.is_admin === true;
+}
+
+/** Whether an entry is the one on screen: its path, and its `?view=` when it names one. */
+export function isActiveEntry(entry: NavEntry, pathname: string, view: string | null): boolean {
+  const [path, query] = entry.route.split('?');
+  const onPath = pathname === path || pathname.startsWith(path + '/');
+  if (!onPath) return false;
+  const wanted = query ? new URLSearchParams(query).get('view') : null;
+  return wanted ? view === wanted : true;
+}

@@ -1,7 +1,7 @@
 'use client';
 import { PanelLeftClose, PanelLeftOpen, Pin, PinOff } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
@@ -10,22 +10,24 @@ import { Avatar } from '../Avatar';
 import { BrandLogo } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
-import { canSee, personOf } from '../person';
+import { personOf } from '../person';
 import { Tooltip } from '../Tooltip';
-import { NAV_PAGES } from './nav';
+import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 
 /**
  * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it
  * opens as an overlay on hover or focus and closes on Escape; below 640 px the bottom bar replaces it (V85)
- * (oversight, 29 Sep). Order: My day … Appraisal; Settings at the foot above the profile.
+ * (oversight, 29 Sep). The entries come from the module registry (nav.ts); Settings at the foot for admins, above
+ * the profile.
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
  * (Direct) and dark drawers, the slate variant on light ones.
  */
 export function Drawer() {
-  const t = useTranslations('nav');
+  const t = useTranslations();
   const me = useMe();
   const { prefs, set } = usePrefs();
   const pathname = usePathname();
+  const view = useSearchParams().get('view');
   const pinned = prefs.drawer === 'pinned';
   const [peek, setPeek] = useState(false);
   const expanded = pinned || peek;
@@ -47,12 +49,11 @@ export function Drawer() {
   }
 
   const person = personOf(me);
-  const visible = (key: string) => canSee(me, key);
-  const main = NAV_PAGES.filter((p) => p.group === 'main' && visible(p.key));
-  const foot = NAV_PAGES.filter((p) => p.group === 'foot' && visible(p.key));
+  const main = navFor(me);
+  const foot = isAdmin(me) ? [SETTINGS_ENTRY] : [];
 
-  const item = (p: (typeof NAV_PAGES)[number]) => {
-    const active = pathname === p.route || pathname.startsWith(p.route + '/');
+  const item = (p: NavEntry) => {
+    const active = isActiveEntry(p, pathname, view);
     const Icon = p.icon;
     const link = (
       <Link
@@ -67,13 +68,13 @@ export function Drawer() {
         )}
       >
         <Icon className="size-[18px] shrink-0" aria-hidden="true" />
-        <span className={cn(!expanded && 'sr-only')}>{t(p.key)}</span>
+        <span className={cn(!expanded && 'sr-only')}>{t(p.label)}</span>
       </Link>
     );
     return expanded ? (
       link
     ) : (
-      <Tooltip key={p.key} content={t(p.key)} side="right">
+      <Tooltip key={p.key} content={t(p.label)} side="right">
         {link}
       </Tooltip>
     );
@@ -83,7 +84,7 @@ export function Drawer() {
 
   const content = (
     <nav
-      aria-label={t('main')}
+      aria-label={t('nav.main')}
       data-drawer
       data-expanded={expanded}
       className={cn(
@@ -100,7 +101,7 @@ export function Drawer() {
       <div className={cn('flex flex-col gap-2.5 pb-5', expanded ? 'px-2.5' : 'items-center px-0')}>
         <Link
           href="/my-day"
-          aria-label={t('my-day')}
+          aria-label={t('nav.my_day')}
           className="rounded-sm focus-visible:outline-2 focus-visible:outline-focus"
         >
           {expanded ? (
@@ -153,7 +154,7 @@ export function Drawer() {
         <div className={cn('flex', expanded ? 'gap-0.5' : 'flex-col gap-0.5')}>
           <IconButton
             size="sm"
-            label={pinned ? t('unpin') : t('pin')}
+            label={pinned ? t('nav.unpin') : t('nav.pin')}
             pressed={pinned}
             icon={pinned ? <Pin /> : <PinOff />}
             onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
@@ -161,7 +162,7 @@ export function Drawer() {
           />
           <IconButton
             size="sm"
-            label={pinned ? t('collapse') : t('expand')}
+            label={pinned ? t('nav.collapse') : t('nav.expand')}
             icon={<CollapseIcon className="flip-rtl" />}
             onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
             data-drawer-collapse

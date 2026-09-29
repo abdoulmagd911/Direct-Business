@@ -16,7 +16,7 @@ begin
       where c.relkind in ('r', 'p') and n2.nspname = any (test.v2_schemas())
       order by 1, 2
     loop
-      select attname into first_col from pg_attribute where attrelid = r.oid and attnum > 0 and not attisdropped
+      select attname into first_col from pg_attribute where attrelid = r.oid and attnum > 0 and not attisdropped and attidentity = '' and attgenerated = ''
         order by attnum limit 1;
       if who = 'anon' then perform test.as_anon(); else perform test.as_auth(gen_random_uuid()); end if;
       perform test.raises(format('insert into %I.%I default values', r.nspname, r.relname), '42501',

@@ -223,8 +223,8 @@ export function KitGallery() {
             <Field label="Notes">{(p) => <Textarea {...p} defaultValue="Made-up note text." />}</Field>
             <div className="flex flex-col gap-3 pt-6">
               <label className="flex items-center gap-2.5">
-                <Checkbox checked={checked} onCheckedChange={setChecked} label="Keep me signed in" />
-                Keep me signed in
+                <Checkbox checked={checked} onCheckedChange={setChecked} label="Follow this record" />
+                Follow this record
               </label>
               <label className="flex items-center gap-2.5">
                 <Switch checked={on} onCheckedChange={setOn} label="Email notifications" />

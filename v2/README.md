@@ -33,6 +33,15 @@ pnpm build && pnpm test:e2e && node scripts/sabotage.mjs --kind e2e
 node scripts/db/gen-types.mjs            # after a migration changes the api schema: src/core/db/database.types.ts
 ```
 
+## The registry (V123)
+
+Pages, capabilities and settings are declared in `src/modules/<module>/module.ts`. After changing one:
+
+```sh
+pnpm registry:sync          # writes a new supabase/migrations/…_core_registry_sync.sql and supabase/registry.json
+pnpm registry:sync --check  # fails when a module changed without a sync (the unit test does the same)
+```
+
 ## The database (`supabase/`)
 
 Migrations are forward-only (`supabase/migrations/YYYYMMDDHHMMSS_<module>_<what>.sql`, V103). The SQL suite
@@ -92,5 +101,7 @@ node scripts/dev/shot.mjs direct comfortable 1500 /kit   # one screenshot (theme
 
 The screen checks (in `scripts/checks/`, run with the rest): `ui-no-hints` (V11 — no banner, callout or hint anywhere),
 `accent-fill-only` (V60 — the accent is never text and never under a label), `i18n-catalogs` (catalogs in step, no
-hard-coded sentence in a screen), `screen-words` (V52/V73 — never Company or Margin on screen; V59's names are A's
-`forbidden-words`). Their sabotages: `tests/sabotage/screens.mjs`.
+hard-coded sentence in a screen), `screen-words` (V52/V73 — never Company or Margin on screen; V59's names, Google,
+Zoom, "Keep me signed in" and GMV are A's `forbidden-words`). Their sabotages: `tests/sabotage/screens.mjs`.
+The drawer, the bottom bar and Ctrl K read the module registry (`src/ui/shell/nav.ts`, V209): a page shows for a
+level above none, Settings for admins only, and a page may declare several drawer entries (`nav.entries`).

@@ -20,10 +20,7 @@ export function personOf(me: Me): AvatarPerson & { jobTitle: string | null } {
   };
 }
 
-/**
- * Whether a page shows in the navigation: a level of `none` hides it (§2.3). Until P3-4's registry sync gives every
- * page its row, a page the database does not know yet is shown — the database still refuses its data (A12).
- */
+/** Whether a page shows: a level above none (§2.3, V125). A page the database does not know is hidden, not guessed. */
 export function canSee(me: Me, pageKey: string): boolean {
-  return (me.levels[pageKey] ?? 'view') !== 'none';
+  return (me.levels[pageKey] ?? 'none') !== 'none';
 }

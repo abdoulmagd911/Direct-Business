@@ -2,46 +2,45 @@
 import * as RD from '@radix-ui/react-dialog';
 import { MoreHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { Avatar } from '../Avatar';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
-import { canSee, personOf } from '../person';
+import { personOf } from '../person';
 import { CreateMenu } from './CreateMenu';
-import { NAV_PAGES } from './nav';
+import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 
-/** The phone's five (< 640 px, V85): My day · Tasks · Partners · KPIs · More; More opens a sheet with the rest. */
-const PRIMARY = ['my-day', 'tasks', 'partners', 'kpis'];
+/** The phone's five (< 640 px, V85; owner, 29 Sep): My day · Tasks · Clients · KPIs · More; More opens a sheet with the rest. */
+const PRIMARY = ['my_day', 'tasks', 'partners:clients', 'kpis'];
 
 export function BottomBar() {
-  const t = useTranslations('nav');
+  const t = useTranslations();
   const me = useMe();
   const pathname = usePathname();
+  const view = useSearchParams().get('view');
   const [more, setMore] = useState(false);
   // The More button is the sheet's Radix trigger, so Escape returns focus to it (M93).
   const person = personOf(me);
-  const visible = NAV_PAGES.filter((p) => canSee(me, p.key));
-  const primary = PRIMARY.map((k) => visible.find((p) => p.key === k)).filter(
-    (p): p is (typeof NAV_PAGES)[number] => !!p,
-  );
+  const visible = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
+  const primary = PRIMARY.map((k) => visible.find((p) => p.key === k)).filter((p): p is NavEntry => !!p);
   const rest = visible.filter((p) => !PRIMARY.includes(p.key));
-  const isActive = (route: string) => pathname === route || pathname.startsWith(route + '/');
-  const restActive = rest.some((p) => isActive(p.route));
+  const isActive = (p: NavEntry) => isActiveEntry(p, pathname, view);
+  const restActive = rest.some(isActive);
 
   return (
     <RD.Root open={more} onOpenChange={setMore}>
       <CreateMenu floating />
       <nav
-        aria-label={t('main')}
+        aria-label={t('nav.main')}
         data-bottom-bar
         className="flex h-[60px] shrink-0 items-stretch border-t border-nav-border bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text sm:hidden"
       >
         {primary.map((p) => {
           const Icon = p.icon;
-          const active = isActive(p.route);
+          const active = isActive(p);
           return (
             <Link
               key={p.key}
@@ -55,7 +54,7 @@ export function BottomBar() {
               <span className={cn('inline-grid h-7 w-12 place-items-center rounded-pill', active && 'bg-nav-active')}>
                 <Icon className="size-5" aria-hidden="true" />
               </span>
-              <span className="truncate">{t(p.key)}</span>
+              <span className="truncate">{t(p.label)}</span>
             </Link>
           );
         })}
@@ -71,7 +70,7 @@ export function BottomBar() {
             <span className={cn('inline-grid h-7 w-12 place-items-center rounded-pill', restActive && 'bg-nav-active')}>
               <MoreHorizontal className="size-5" aria-hidden="true" />
             </span>
-            <span className="truncate">{t('more')}</span>
+            <span className="truncate">{t('nav.more')}</span>
           </button>
         </RD.Trigger>
       </nav>
@@ -84,15 +83,15 @@ export function BottomBar() {
           className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-lg bg-nav-bg pb-[env(safe-area-inset-bottom)] text-nav-text shadow-2 focus:outline-none sm:hidden"
         >
           <header className="flex items-center gap-3 px-4 pb-1 pt-3">
-            <RD.Title className="flex-1 font-display text-lg font-semibold">{t('more')}</RD.Title>
+            <RD.Title className="flex-1 font-display text-lg font-semibold">{t('nav.more')}</RD.Title>
             <RD.Close asChild>
-              <IconButton label={t('close')} icon={<X />} size="sm" />
+              <IconButton label={t('nav.close')} icon={<X />} size="sm" />
             </RD.Close>
           </header>
           <div className="flex flex-col gap-0.5 overflow-y-auto px-2 pb-3">
             {rest.map((p) => {
               const Icon = p.icon;
-              const active = isActive(p.route);
+              const active = isActive(p);
               return (
                 <Link
                   key={p.key}
@@ -105,7 +104,7 @@ export function BottomBar() {
                   )}
                 >
                   <Icon className="size-[18px]" aria-hidden="true" />
-                  {t(p.key)}
+                  {t(p.label)}
                 </Link>
               );
             })}

@@ -20,7 +20,8 @@
     "checks": "node scripts/checks/run.mjs",
     "sabotage": "node scripts/sabotage.mjs",
     "db:test": "node scripts/db/test.mjs",
-    "db:grants": "node scripts/db/test.mjs --write-grants"
+    "db:grants": "node scripts/db/test.mjs --write-grants",
+    "registry:sync": "tsx scripts/registry/sync.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -79,6 +80,7 @@
     "pg": "8.23.0",
     "prettier": "3.9.9",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0",
     "vitest": "5.0.2"

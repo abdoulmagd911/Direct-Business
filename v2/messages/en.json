@@ -38,7 +38,15 @@
     "unknown_device": "A browser"
   },
   "nav": {
-    "my-day": "My day",
+    "main": "Main",
+    "pin": "Pin drawer",
+    "unpin": "Unpin drawer",
+    "collapse": "Collapse drawer",
+    "expand": "Expand drawer",
+    "open": "Open menu",
+    "close": "Close menu",
+    "more": "More",
+    "my_day": "My day",
     "overview": "Overview",
     "partners": "Partners",
     "pipeline": "Pipeline",
@@ -48,15 +56,19 @@
     "kpis": "KPIs",
     "reports": "Reports",
     "appraisal": "Appraisal",
-    "settings": "Settings",
-    "main": "Main",
-    "pin": "Pin drawer",
-    "unpin": "Unpin drawer",
-    "collapse": "Collapse drawer",
-    "expand": "Expand drawer",
-    "open": "Open menu",
-    "close": "Close menu",
-    "more": "More"
+    "activity": "Activity",
+    "settings": {
+      "profile": "My profile",
+      "org": "Organization & access",
+      "partners": "Partners",
+      "performance": "Plan & performance",
+      "finance": "Finance",
+      "work": "Work",
+      "app": "App"
+    },
+    "settings_home": "Settings",
+    "clients": "Clients",
+    "suppliers_partners": "Suppliers & partners"
   },
   "top": {
     "search": "Search partners, tasks, INV-, DRS-",
@@ -152,7 +164,46 @@
     "person": "Person",
     "project": "Project",
     "report": "Report",
-    "file": "File"
+    "file": "File",
+    "department": "Department",
+    "team": "Team",
+    "role": "Role",
+    "person_team": "Team helped",
+    "person_department": "Department seen",
+    "person_email": "Allowed email",
+    "person_auth": "Sign-in",
+    "person_level": "Page level",
+    "person_capability": "Capability",
+    "role_level": "Role's page level",
+    "role_capability": "Role's capability",
+    "page": "Page",
+    "capability": "Capability definition",
+    "entity": "Record type",
+    "profile": "Profile",
+    "setting": "Setting",
+    "setting_def": "Setting definition",
+    "wording": "Wording",
+    "saved_view": "Saved view",
+    "partner_role": "Partner role",
+    "partner_status": "Partner status",
+    "credit_limit": "Credit limit",
+    "identifier": "Identifier",
+    "account_manager": "Account manager",
+    "contact": "Contact",
+    "partner_merge": "Partner merge",
+    "code_terms": "Code terms",
+    "campaign_code": "Campaign code",
+    "individual_name": "Individual",
+    "identifier_block": "Blocked value",
+    "partner_role_def": "Partner role (list)",
+    "role_field": "Role field",
+    "partner_category": "Partner category",
+    "partner_tier": "Partner tier",
+    "segment": "Segment",
+    "status_reason": "Status reason",
+    "call_outcome": "Call outcome",
+    "contract_term": "Contract term",
+    "priority": "Priority"
   },
   "status": {
     "done": "Done",
@@ -177,5 +228,55 @@
   "chips": {
     "add": "Add filter: {field}",
     "remove": "Remove filter {field}: {value}"
+  },
+  "cap": {
+    "partners": {
+      "identify": "Change identifiers and decide matches",
+      "merge": "Merge partners",
+      "assign": "Set status, assign owner and priority"
+    },
+    "finance": {
+      "credit_control": "Credit limits and Sent to legal",
+      "import": "Import files",
+      "credit": "Split or reassign credit"
+    },
+    "tasks": {
+      "assign": "Assign tasks to others"
+    },
+    "org": {
+      "sign_out": "Sign a person out of every device"
+    }
+  },
+  "setting": {
+    "work": {
+      "no_update_days": "Days without an update before a task goes stale",
+      "week_starts_on": "The week starts on",
+      "meeting_note_on_time_days": "Days to write meeting notes on time",
+      "reminder_days_before_due": "Reminder, days before a due date",
+      "pipeline_weekly_target": "Pipeline updates expected each week"
+    },
+    "auth": {
+      "device_idle_days": "Days a device may go unused before it needs a new code"
+    },
+    "app": {
+      "arabic_enabled": "Arabic",
+      "default_theme": "Default theme",
+      "default_density": "Default density",
+      "export_formats": "Export formats"
+    },
+    "audit": {
+      "undo_window_hours": "Hours an action can still be undone"
+    },
+    "files": {
+      "max_mb": "Largest file, in MB"
+    },
+    "notify": {
+      "kinds_enabled": "Notifications sent"
+    },
+    "partner": {
+      "id_format": "Partner number format",
+      "name_stop_words": "Words left out when matching names",
+      "one_code_per_partner": "One live discount code per partner"
+    }
   }
 }

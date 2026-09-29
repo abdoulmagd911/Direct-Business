@@ -38,17 +38,6 @@
     "unknown_device": "متصفح"
   },
   "nav": {
-    "my-day": "يومي",
-    "overview": "نظرة عامة",
-    "partners": "الشركاء",
-    "pipeline": "خط الفرص",
-    "projects": "المشاريع",
-    "tasks": "المهام",
-    "finance": "المالية",
-    "kpis": "المؤشرات",
-    "reports": "التقارير",
-    "appraisal": "التقييم",
-    "settings": "الإعدادات",
     "main": "الرئيسية",
     "pin": "تثبيت القائمة",
     "unpin": "إلغاء تثبيت القائمة",
@@ -56,7 +45,30 @@
     "expand": "توسيع القائمة",
     "open": "فتح القائمة",
     "close": "إغلاق القائمة",
-    "more": "المزيد"
+    "more": "المزيد",
+    "my_day": "يومي",
+    "overview": "نظرة عامة",
+    "partners": "الشركاء",
+    "pipeline": "الفرص",
+    "projects": "المشاريع",
+    "tasks": "المهام",
+    "finance": "المالية",
+    "kpis": "مؤشرات الأداء",
+    "reports": "التقارير",
+    "appraisal": "تقييم الأداء",
+    "activity": "سجل النشاط",
+    "settings": {
+      "profile": "ملفي",
+      "org": "المنظمة والصلاحيات",
+      "partners": "الشركاء",
+      "performance": "الخطة والأداء",
+      "finance": "المالية",
+      "work": "العمل",
+      "app": "التطبيق"
+    },
+    "settings_home": "الإعدادات",
+    "clients": "العملاء",
+    "suppliers_partners": "الموردون والشركاء"
   },
   "top": {
     "search": "ابحث في الشركاء والمهام والفواتير…",
@@ -152,7 +164,46 @@
     "person": "شخص",
     "project": "مشروع",
     "report": "تقرير",
-    "file": "ملف"
+    "file": "ملف",
+    "department": "قسم",
+    "team": "فريق",
+    "role": "دور",
+    "person_team": "فريق مساعد",
+    "person_department": "قسم مرئي",
+    "person_email": "بريد مسموح",
+    "person_auth": "تسجيل دخول",
+    "person_level": "مستوى الصفحة",
+    "person_capability": "صلاحية",
+    "role_level": "مستوى الدور في الصفحة",
+    "role_capability": "صلاحية الدور",
+    "page": "صفحة",
+    "capability": "تعريف صلاحية",
+    "entity": "نوع السجل",
+    "profile": "الملف الشخصي",
+    "setting": "إعداد",
+    "setting_def": "تعريف إعداد",
+    "wording": "الصياغة",
+    "saved_view": "عرض محفوظ",
+    "partner_role": "دور الشريك",
+    "partner_status": "حالة الشريك",
+    "credit_limit": "الحد الائتماني",
+    "identifier": "معرّف",
+    "account_manager": "مدير الحساب",
+    "contact": "جهة اتصال",
+    "partner_merge": "دمج شريكين",
+    "code_terms": "شروط الرمز",
+    "campaign_code": "رمز حملة",
+    "individual_name": "فرد",
+    "identifier_block": "قيمة محظورة",
+    "partner_role_def": "دور الشريك (قائمة)",
+    "role_field": "حقل الدور",
+    "partner_category": "فئة الشريك",
+    "partner_tier": "مستوى الشريك",
+    "segment": "القطاع",
+    "status_reason": "سبب الحالة",
+    "call_outcome": "نتيجة الاتصال",
+    "contract_term": "شرط العقد",
+    "priority": "الأولوية"
   },
   "status": {
     "done": "منجزة",
@@ -177,5 +228,55 @@
   "chips": {
     "add": "إضافة تصفية: {field}",
     "remove": "إزالة التصفية {field}: {value}"
+  },
+  "cap": {
+    "partners": {
+      "identify": "تغيير المعرّفات وحسم المطابقات",
+      "merge": "دمج الشركاء",
+      "assign": "تحديد الحالة وتعيين المسؤول والأولوية"
+    },
+    "finance": {
+      "credit_control": "حدود الائتمان والإحالة إلى الشؤون القانونية",
+      "import": "استيراد الملفات",
+      "credit": "تقسيم الإيراد أو نقله"
+    },
+    "tasks": {
+      "assign": "إسناد المهام للآخرين"
+    },
+    "org": {
+      "sign_out": "تسجيل خروج شخص من كل أجهزته"
+    }
+  },
+  "setting": {
+    "work": {
+      "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة متأخرة",
+      "week_starts_on": "بداية الأسبوع",
+      "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
+      "reminder_days_before_due": "التذكير قبل موعد الاستحقاق بأيام",
+      "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا"
+    },
+    "auth": {
+      "device_idle_days": "أيام عدم استخدام الجهاز قبل طلب رمز جديد"
+    },
+    "app": {
+      "arabic_enabled": "العربية",
+      "default_theme": "المظهر الافتراضي",
+      "default_density": "الكثافة الافتراضية",
+      "export_formats": "صيغ التصدير"
+    },
+    "audit": {
+      "undo_window_hours": "ساعات إمكان التراجع عن إجراء"
+    },
+    "files": {
+      "max_mb": "أكبر حجم للملف بالميغابايت"
+    },
+    "notify": {
+      "kinds_enabled": "الإشعارات المرسلة"
+    },
+    "partner": {
+      "id_format": "صيغة رقم الشريك",
+      "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
+      "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك"
+    }
   }
 }

@@ -52,7 +52,7 @@ export const sabotages = [
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
     expect: '"Companies" on screen',
-    edits: [{ file: 'messages/en.json', find: '"partners": "Partners"', replace: '"partners": "Companies"' }],
+    edits: [{ file: 'messages/en.json', find: '"clients": "Clients"', replace: '"clients": "Companies"' }],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
   {
@@ -142,6 +142,18 @@ export const sabotages = [
         file: 'src/app/(app)/kit/KitGallery.tsx',
         find: '<Section title="Buttons">',
         replace: '<Section title="Buttons">\n          <span className="bg-accent px-2">Label on orange</span>',
+      },
+    ],
+  },
+  {
+    name: 'nav-shows-every-page',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'a team member sees no Settings and no page at level none',
+    edits: [
+      {
+        file: 'src/ui/person.ts',
+        find: "return (me.levels[pageKey] ?? 'none') !== 'none';",
+        replace: 'return me.levels[pageKey] !== undefined || true;',
       },
     ],
   },

@@ -8,3 +8,8 @@ core.setting_def.default_value — a setting's default value, of any shape its s
 core.setting.value — a setting's value, of any shape its schema allows — §3.2
 core.person_profile.notify — per notification kind, in-app and e-mail switches; kinds grow with the modules — §3.1
 core.person_profile.seen — what the person has seen per page ("Since your last visit") — §3.1
+notify.notification.label_args — the arguments of the notification's label key, as its request's — §3.3
+core.saved_view.query — a list's filters, columns, sort and grouping; each list has its own — §3.3, V78
+partner.role_field.options — a select field's options, each {key, en, ar} (V76) — §3.4
+partner.partner_role.field_values — a partner's values for its role's own fields; the fields are a setting (V62) — §3.4
+partner.code_terms.tiers — volume tiers [{from_bookings, fee_percent}] of a code's terms (V65) — §3.4

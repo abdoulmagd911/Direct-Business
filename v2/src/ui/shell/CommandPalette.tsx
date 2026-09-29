@@ -7,7 +7,7 @@ import * as RD from '@radix-ui/react-dialog';
 import { Search } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
 import { canSee } from '../person';
-import { NAV_PAGES } from './nav';
+import { SETTINGS_ENTRY, isAdmin, navFor } from './nav';
 import { CREATE_ACTIONS } from './CreateMenu';
 
 /**
@@ -39,7 +39,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     close(false);
     router.push(route);
   };
-  const pages = NAV_PAGES.filter((p) => canSee(me, p.key));
+  const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
 
   return (
     <RD.Root open={open} onOpenChange={close}>
@@ -72,12 +72,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   return (
                     <Command.Item
                       key={p.key}
-                      value={t(`nav.${p.key}`)}
+                      value={t(p.label)}
                       onSelect={() => go(p.route)}
                       className="flex h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft"
                     >
                       <Icon className="size-4 text-muted" aria-hidden="true" />
-                      {t(`nav.${p.key}`)}
+                      {t(p.label)}
                     </Command.Item>
                   );
                 })}
