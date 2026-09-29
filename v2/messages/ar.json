@@ -95,5 +95,26 @@
     "files": {
       "max_mb": "أكبر حجم للملف بالميغابايت"
     }
+  },
+  "entity": {
+    "department": "قسم",
+    "team": "فريق",
+    "role": "دور",
+    "person": "شخص",
+    "person_team": "فريق مساعد",
+    "person_department": "قسم مرئي",
+    "person_email": "بريد مسموح",
+    "person_auth": "تسجيل دخول",
+    "person_level": "مستوى الصفحة",
+    "person_capability": "صلاحية",
+    "role_level": "مستوى الدور في الصفحة",
+    "role_capability": "صلاحية الدور",
+    "page": "صفحة",
+    "capability": "تعريف صلاحية",
+    "entity": "نوع السجل",
+    "profile": "الملف الشخصي",
+    "setting": "إعداد",
+    "setting_def": "تعريف إعداد",
+    "wording": "الصياغة"
   }
 }

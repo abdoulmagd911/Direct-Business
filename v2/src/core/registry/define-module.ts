@@ -50,11 +50,27 @@ export interface SettingDef {
   effectiveDated?: boolean;
 }
 
+export interface EntityDef {
+  /** Short key for record links (`/r/<key>/<id>`) and history, e.g. `person`. */
+  key: string;
+  /** The table, schema-qualified. Every change-logged table is an entity (ENT-01). */
+  table: string;
+  /** The page whose Full lets a manager undo any change to it (§3.3); null: only its author or an admin. */
+  page: string | null;
+  label: string;
+  /**
+   * Who is told when someone else changes the record (§3.3): a column of the row holding a person's id
+   * (`person_id`, `head_person_id`), or a schema-qualified SQL function `(uuid) → setof uuid` (`work.task_owners`).
+   */
+  owners?: string;
+}
+
 export interface ModuleDef {
   key: string;
   pages?: PageDef[];
   capabilities?: CapabilityDef[];
   settings?: SettingDef[];
+  entities?: EntityDef[];
 }
 
 export function defineModule(def: ModuleDef): ModuleDef {

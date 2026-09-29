@@ -95,5 +95,26 @@
     "files": {
       "max_mb": "Largest file, in MB"
     }
+  },
+  "entity": {
+    "department": "Department",
+    "team": "Team",
+    "role": "Role",
+    "person": "Person",
+    "person_team": "Team helped",
+    "person_department": "Department seen",
+    "person_email": "Allowed email",
+    "person_auth": "Sign-in",
+    "person_level": "Page level",
+    "person_capability": "Capability",
+    "role_level": "Role's page level",
+    "role_capability": "Role's capability",
+    "page": "Page",
+    "capability": "Capability definition",
+    "entity": "Record type",
+    "profile": "Profile",
+    "setting": "Setting",
+    "setting_def": "Setting definition",
+    "wording": "Wording"
   }
 }

@@ -12,6 +12,7 @@ function api.access_set_person_level(p_person uuid, p_page text, p_level core.le
 function api.access_set_person_role(p_person uuid, p_role uuid, p_reason text) execute authenticated
 function api.access_set_role_capability(p_role uuid, p_capability text, p_granted boolean, p_reason text) execute authenticated
 function api.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
+function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.auth_user_of(p_email text) execute service_role
 function api.device_sign_out(p_device uuid) execute authenticated
 function api.device_sign_out_others() execute authenticated
@@ -24,9 +25,14 @@ function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
+function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function api.undo(p_request uuid) execute authenticated
+function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
+function audit.record_history(p_entity text, p_id uuid) execute authenticated
+function audit.undo(p_request uuid) execute authenticated
 function authz.can(p_capability text) execute authenticated
 function authz.in_my_departments(p_department uuid) execute authenticated
 function authz.is_admin() execute authenticated
@@ -65,6 +71,7 @@ function core.sign_in_complete(p_provider text, p_device_label text, p_user_agen
 function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
 schema api usage authenticated
 schema api usage service_role
+schema audit usage authenticated
 schema authz usage authenticated
 schema core usage authenticated
 schema core usage service_role

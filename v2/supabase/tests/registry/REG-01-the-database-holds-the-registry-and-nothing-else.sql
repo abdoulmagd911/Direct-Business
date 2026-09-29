@@ -1,9 +1,9 @@
 -- REG-01 — the database holds the registry and nothing else (TECH-SPEC §2.3, V123): on a database built from zero, the
--- active pages, capabilities and setting definitions are exactly supabase/registry.json's, the five roles exist, each
--- role starts at the registry's level on every page and with its capabilities, and every setting has its default as
--- a dated company-wide row. The old app registered a page in three places and a finance page sat unreachable for two
--- days; here a module.ts changed without `pnpm registry:sync` fails the unit test, and a sync that lost something
--- fails this. Sabotage: supabase/tests/sabotage/a-page-left-out-of-the-sync.sql.
+-- active pages, capabilities, setting definitions and record types (V127) are exactly supabase/registry.json's, the
+-- five roles exist, each role starts at the registry's level on every page and with its capabilities, and every
+-- setting has its default as a dated company-wide row. The old app registered a page in three places and a finance
+-- page sat unreachable for two days; here a module.ts changed without `pnpm registry:sync` fails the unit test, and a
+-- sync that lost something fails this. Sabotage: supabase/tests/sabotage/a-page-left-out-of-the-sync.sql.
 do $$
 declare
   reg jsonb := (select doc from test.registry_expected);
@@ -26,6 +26,11 @@ begin
                       order by key collate "C") from core.setting_def where active),
     (select jsonb_agg(s order by s ->> 'key' collate "C") from jsonb_array_elements(reg -> 'settings') s),
     'the setting definitions are the registry''s');
+  perform test.eq(
+    (select jsonb_agg(jsonb_build_object('key', key, 'table', table_name, 'page', page_key, 'owners', owners)
+                      order by key collate "C") from core.entity where active),
+    (select jsonb_agg(e order by e ->> 'key' collate "C") from jsonb_array_elements(reg -> 'entities') e),
+    'the record types are the registry''s');
   perform test.eq(
     (select jsonb_agg(jsonb_build_object('key', key, 'name_en', name_en, 'name_ar', name_ar, 'sort', sort,
                                          'is_admin', is_admin) order by key collate "C") from core.role),

@@ -110,6 +110,18 @@ function migrationOf(s: Snapshot, day: string): string {
       `update core.setting_def set active = false where active and key not in (${list(s.settings.map((x) => x.key))});`,
     );
   else out.push('update core.setting_def set active = false where active;');
+  out.push('', '-- entities: the tables whose records are logged, undone and followed (V127)');
+  if (s.entities.length)
+    out.push(
+      'insert into core.entity (key, table_name, page_key, owners, active) values',
+      s.entities
+        .map((e) => `  (${text(e.key)}, ${text(e.table)}, ${text(e.page)}, ${text(e.owners)}, true)`)
+        .join(',\n'),
+      'on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,',
+      '  owners = excluded.owners, active = true;',
+      `update core.entity set active = false where active and key not in (${list(s.entities.map((e) => e.key))});`,
+    );
+  else out.push('update core.entity set active = false where active;');
   out.push(
     '',
     "-- each role's starting level on each page, where it has none",

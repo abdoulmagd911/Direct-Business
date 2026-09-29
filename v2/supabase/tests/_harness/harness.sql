@@ -62,6 +62,20 @@ begin
 end
 $$;
 
+-- Runs `sql` and requires it to run: an error fails the test with `what`, so the report names the rule, not only the
+-- error (a sabotage that makes a step raise is then seen by its expected text).
+create function test.runs(sql text, what text) returns void
+language plpgsql as $$
+begin
+  execute sql;
+exception when others then
+  if sqlstate = 'TF001' then
+    raise;
+  end if;
+  perform test.fail(format('%s — %s: %s', what, sqlstate, sqlerrm));
+end
+$$;
+
 -- ---------------------------------------------------------------- who is asking
 -- As on Supabase: PostgREST switches to the request's role and puts the JWT claims in request.jwt.claims; auth.uid()
 -- reads `sub` from them. These last until the test's transaction ends.
@@ -322,4 +336,21 @@ $$;
 create function test.last_change(p_table text, p_row uuid) returns audit.change
 language sql security definer as $$
   select * from audit.change where table_name = p_table and row_id = p_row order by id desc limit 1
+$$;
+
+-- Opens a request as that person's own action, as an api.* function would (their claims, the owner's role): the
+-- writes that follow are theirs until test.done(). Returns the request id (P3-6's undo tests).
+create function test.act(p_person uuid, p_label text default 'test.edit') returns uuid
+language plpgsql as $$
+begin
+  perform test.claims_of(p_person);
+  return audit.begin('ui', p_label);
+end
+$$;
+
+create function test.done() returns uuid
+language plpgsql as $$
+begin
+  return audit.end();
+end
 $$;
