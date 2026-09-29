@@ -76,11 +76,20 @@ export interface PastWorkGridProps {
   today?: string;
 }
 
-/** Riyadh's calendar day (D20). */
+const riyadhDay = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TIME_ZONE,
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Riyadh's calendar day (D20), from its parts — never from one locale's layout of a date, which browsers change. */
 export function riyadhToday(now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
-    .format(now)
-    .slice(0, 10);
+  const p: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const part of riyadhDay.formatToParts(now)) p[part.type] = part.value;
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
 const letter = (i: number) => (i < 26 ? String.fromCharCode(65 + i) : `C${i + 1}`);

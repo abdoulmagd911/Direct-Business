@@ -4,6 +4,7 @@ const unit = (/** @type {string} */ f) => `unit:tests/unit/grid/${f}`;
 const BLOCK = unit('a-pasted-block-of-20-rows-maps-to-20-rows-and-one-request.test.ts');
 const PREVIEW = unit('the-preview-refuses-a-future-date-a-missing-title-and-an-unknown-organisation-by-name.test.ts');
 const PASTE = unit('pastes-from-excel-and-google-sheets-read-the-same.test.ts');
+const ZONES = unit('a-pasted-date-and-riyadhs-today-read-the-same-in-every-time-zone-and-from-an-arabic-sheet.test.ts');
 const GRID = unit('the-grid-previews-every-row-and-saves-the-ready-ones-as-one-request-with-one-undo.test.tsx');
 const ROWS = 'src/ui/grid/rows.ts';
 const DATES = 'src/ui/grid/dates.ts';
@@ -108,5 +109,30 @@ export const sabotages = [
           'for (const one of request.rows.slice(1)) await props.save({ ...request, rows: [one] });\n      const { requestId } = await props.save({ ...request, rows: request.rows.slice(0, 1) });',
       },
     ],
+  },
+  {
+    name: 'grid-today-in-the-computers-zone',
+    breaks: [ZONES],
+    expect: "Riyadh's day",
+    edits: [
+      {
+        file: COMPONENT,
+        find: 'for (const part of riyadhDay.formatToParts(now)) p[part.type] = part.value;',
+        replace:
+          "Object.assign(p, { year: String(now.getFullYear()), month: String(now.getMonth() + 1).padStart(2, '0'), day: String(now.getDate()).padStart(2, '0') });",
+      },
+    ],
+  },
+  {
+    name: 'grid-keeps-direction-marks',
+    breaks: [ZONES],
+    expect: 'an Arabic sheet date is read',
+    edits: [{ file: DATES, find: "    .replace(DIRECTION_MARKS, '')\n", replace: '' }],
+  },
+  {
+    name: 'grid-reads-no-arabic-month',
+    breaks: [ZONES],
+    expect: 'is read as 2026-01-07',
+    edits: [{ file: DATES, find: 'AR_MONTHS.indexOf(m[2]!) + 1', replace: '0' }],
   },
 ];
