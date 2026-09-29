@@ -13,6 +13,8 @@ select test.eq(norm.fold('کتاب'), 'كتاب', 'Persian ک folds to ك');
 select test.eq(norm.fold('فارسی'), 'فارسي', 'Persian ی folds to ي');
 select test.eq(norm.fold('مُعَلَّم'), 'معلم', 'harakat are removed');
 select test.eq(norm.fold('تجـــارة'), 'تجاره', 'tatweel is removed');
+select test.eq(norm.fold('a' || chr(1631) || chr(1648) || 'b'), 'ab', 'the last harakah and the superscript alef are removed');
+select test.eq(norm.fold('a' || chr(1646) || chr(1642) || 'b'), 'a b', 'but not the letters and signs after them (V137)');
 select test.eq(norm.fold('٩٨٧٦٥ ٤٣٢١٠'), '98765 43210', 'Arabic-Indic digits fold to 0–9');
 select test.eq(norm.fold('۹۸۷۶۵ ۴۳۲۱۰'), '98765 43210', 'Extended digits fold to 0–9');
 select test.eq(norm.fold('  Made-Up   Travel, L.L.C.  '), 'made up travel llc', 'dots removed, punctuation is space');
