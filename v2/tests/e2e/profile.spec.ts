@@ -9,7 +9,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
-const toast = (page: Page, text: string) => page.locator('[data-sonner-toast]', { hasText: text }).last();
+// the newest toast is the front of the stack (older ones sit behind it, not clickable until hovered)
+const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
 const cookie = (page: Page, name: string) =>
   page.evaluate((n) => document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]*)'))?.[1] ?? null, name);
 
@@ -105,11 +106,11 @@ test('the profile chip opens My profile; an Undo puts the stored value and the t
   expect(row!.nickname).toBeNull();
 
   // a saved theme, undone: the page and its cookie go back to the stored theme (Direct), not the undone one
-  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 20_000 });
   await page.getByLabel('Theme').click();
   await page.getByRole('option', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await cookie(page, 'v2.theme')).toBe('dark');
+  await expect(toast(page, 'Profile saved')).toBeVisible();
   await toast(page, 'Profile saved').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(page, 'Undone')).toBeVisible();
   await expect(page.locator('html'), 'the undone theme is gone from the page').toHaveAttribute('data-theme', 'direct');
