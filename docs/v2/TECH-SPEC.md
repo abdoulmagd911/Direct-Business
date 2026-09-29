@@ -1,16 +1,18 @@
 # v2 Commercial app — technical specification
 
-Written on 28 Sep 2026 by the architect session from the owner-approved
-blueprint (`BLUEPRINT.md`, v0.7), the old app's rules (`docs/DECISIONS.md`, `docs/LANDMINES.md`), the second builder's
-handover (`docs/REBUILD-HANDOVER-2.md` on `claude/clever-franklin-vukl22`) and the code on the production branch. The main
-builder's handover was never written (V48); that builder's work was read from the production branch's code.
+Written on 28 Sep 2026 by the architect session from the owner-approved blueprint (`BLUEPRINT.md`, v0.7), the old app's
+rules (`docs/DECISIONS.md`, `docs/LANDMINES.md`), the second builder's handover (`docs/REBUILD-HANDOVER-2.md` on
+`claude/clever-franklin-vukl22`) and the code on the production branch. The main builder's handover was never written
+(V48); that builder's work was read from the production branch's code.
 
 Kept in step with `DECISIONS.md` (V1 to the current decision): where the two differ, the decision wins and this file is
-fixed in the next docs PR. Who reads what: builders A and B build from this file; `BUILD-PLAN.md` says in which order; `OPEN-QUESTIONS.md` holds
-what the owner still has to decide, each with a recommended answer that this spec assumes until he answers.
+fixed in the next docs PR. Who reads what: builders A and B build from this file; `BUILD-PLAN.md` says in which order;
+`OPEN-QUESTIONS.md` holds what the owner still has to decide, each with a recommended answer that this spec assumes
+until he answers.
 
 Words used here: **must** = required; **should** = the default unless a written reason says otherwise. "§n" points to
-the blueprint's sections. Old-app rules are cited by their IDs (D21, M1 …) — they stay binding where this spec ports them.
+the blueprint's sections. Old-app rules are cited by their IDs (D21, M1 …) — they stay binding where this spec ports
+them.
 
 **Rule 7 holds here too.** This repository is public. No real company, client, person-contact, amount, invoice number or
 VAT number is ever committed — not in fixtures, tests, seeds, docs or comments. Tests use made-up values (`Test Co A`,
@@ -46,11 +48,11 @@ them, and each is enforced by something that runs, not by good intentions (P5).
 | A19 | Screens full of explanations, notes and warnings (the owner's biggest complaint about the old app) | Screens carry data and controls only; every entity is a link (§2.5) | UI kit without banner/callout/hint components; `ui-no-hints` check; `UI-entity-links` walk |
 | A20 | Names typed into records went stale when a person or partner was renamed | Every person and partner reference is an ID rendered with the current name — frozen reports keep entity tokens (V58) | FLOW-10; a check that no table stores a person or partner name as text outside the person and partner tables |
 
-Standing product rules that shape every section below: nothing stores a copy of a figure (§1a) — the only stored
-figures are **frozen snapshots** (issued reports, locked appraisals) and they say so; nothing is hard-deleted by the app;
-every change is logged and undoable (§0); every remove asks first in the app's own box, naming the item, Cancel focused
-(D19); dates are Riyadh's calendar (D20); money is never typed where Finance has it (D1, §10); VAT amounts are never
-stored or shown (M1); a failed read is never drawn as an empty result (M27); "not measured" is never 0 (M60).
+Standing product rules that shape every section below: nothing stores a copy of a figure (§1a) — the only stored figures
+are **frozen snapshots** (issued reports, locked appraisals) and they say so; nothing is hard-deleted by the app; every
+change is logged and undoable (§0); every remove asks first in the app's own box, naming the item, Cancel focused (D19);
+dates are Riyadh's calendar (D20); money is never typed where Finance has it (D1, §10); VAT amounts are never stored or
+shown (M1); a failed read is never drawn as an empty result (M27); "not measured" is never 0 (M60).
 
 ---
 
@@ -64,7 +66,7 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 | How Next.js is used | Server components **only** for the shell and the auth gate. All record data is fetched in the browser through one data layer (TanStack Query + the Supabase client with the person's session). `dynamic = 'force-dynamic'` on app routes; no Next data cache for app data | One data path and one invalidation rule ("after any write, refetch what is on screen") make "a change shows everywhere at once" true by construction. Mixing server-cached and client-cached data is how stale screens happen | Server actions for data: two caches to keep coherent |
 | Database | **Supabase Postgres 17** (same major as today), RLS on every table, versioned migrations with the Supabase CLI | Proven here; RLS keeps the database the judge (A12) | — |
 | API surface | PostgREST exposes **one schema, `api`**: read views (`security_invoker = on`) and write functions. Business tables live in private schemas (`core`, `partner`, `finance`, …) | A6, A8: a single, testable door | Exposing tables directly (the old app's silent-refusal problem) |
-| Auth | Supabase Auth: **the emailed 6-digit code is the door** (a device stays signed in until sign-out; 30 idle days → a new code — V74); Google (`.com`) and Zoom (`.net`) OAuth as later shortcuts; **no password provider**; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision | Passwords (owner ruled out); email-only (impersonation, §10) |
+| Auth | Supabase Auth: **email + password is the door for now** (V431 — an admin generates each temporary password, V441; a device stays signed in until sign-out; 30 idle days → the password again — V74); the emailed 6-digit code kept in the code behind `auth.code_door_enabled` (off); Google (`.com`) and Zoom (`.net`) OAuth as later shortcuts; sign-ups off; allow-list of emails per person (`core.person_email`) | §0 sign-in decision, V431 | Email-only (impersonation, §10) |
 | Files | Supabase Storage, one private bucket `files`, signed URLs of 600 s (M21) | Proven | Public buckets |
 | Jobs | `pg_cron` (in Supabase free) for the two scheduled things: recurring tasks at 00:05 Riyadh, and nightly consistency checks | No extra service, no cost | Vercel cron (Hobby: once a day, no retries) |
 | Styling | **Tailwind CSS v4** driven by CSS variables (design tokens), switched by a `data-theme` attribute on `<html>` (light, dark, colorful or direct) and a `data-density` attribute (comfortable or compact); components from **shadcn/ui** (Radix primitives, copied into the repo) | Tokens → four themes from one set (§0 design, V60); Radix gives focus, Escape and ARIA right (M93) | CSS-in-JS: runtime cost, harder RTL |
@@ -87,8 +89,9 @@ The oversight's suggestion is confirmed, with the guardrails that make it safe f
 ### 2.1 Where v2 lives
 
 - **Same repository, folder `v2/`** (V47). The old app stays untouched at the root. v2's integration branch is
-  **`v2/main`** (created from the default branch on 28 Sep — V12; v2 never merges into the default branch); feature PRs go into `v2/main`; the new Vercel project builds `v2/` only and its
-  production branch is `v2/main`. Nothing in `v2/` imports anything from the old app.
+**`v2/main`** (created from the default branch on 28 Sep — V12; v2 never merges into the default branch); feature PRs go
+into `v2/main`; the new Vercel project builds `v2/` only and its production branch is `v2/main`. Nothing in `v2/`
+imports anything from the old app.
 - The old app's checks (`scripts/qa/*`, `check-structure`) do not scan `v2/`. v2 has its own checks under `v2/scripts/`.
 - **Ownership by folder** (P4, the handover's lesson; V410): builder A owns `v2/supabase/**` (except `tests/qa/`),
   `v2/src/server/**`, `v2/src/modules/*/data.ts`, `v2/src/modules/*/module.ts`, `v2/tests/db/**`; builder B owns
@@ -187,11 +190,11 @@ What reads the registry:
    function — screens never add up rows they fetched (A7). Every read pages to the end, and a probe with 1,001 made-up
    rows fails any read that stops at 1,000 (OA8, V428).
 2. **Writes** go through `command(fn, args)` in `core/db/command.ts`, which calls one `api.*` function and returns
-   `{ id, version, requestId }` or throws a typed error (`PermissionDenied`, `Conflict`, `RuleBroken(key)`, `NotFound`,
-   `Unavailable`). A command that returns no id is treated as a failure (A6).
-3. After any successful command: show the toast (with Undo when the command is undoable), then **invalidate every query**
-   (`queryClient.invalidateQueries()`); open screens refetch. At this app's scale (tens of people, one screen at a time)
-   this costs little and removes "one screen forgot to refresh" as a class of bug. Window focus also refetches.
+`{ id, version, requestId }` or throws a typed error (`PermissionDenied`, `Conflict`, `RuleBroken(key)`, `NotFound`,
+`Unavailable`). A command that returns no id is treated as a failure (A6). 3. After any successful command: show the
+toast (with Undo when the command is undoable), then **invalidate every query** (`queryClient.invalidateQueries()`);
+open screens refetch. At this app's scale (tens of people, one screen at a time) this costs little and removes "one
+screen forgot to refresh" as a class of bug. Window focus also refetches.
 4. Other people's changes: the bell (Realtime subscription to the person's own notifications) and focus-refetch. A
    Realtime "something changed" signal for open lists is an optional later step (P6), not a correctness need.
 5. Every read renders through `<DataState>`, which has five distinct states: **loading**, **failed** (says which read
@@ -209,15 +212,15 @@ values as ruled. Where this section and the design source differ, the design sou
 behaviour.
 
 - **Shell.** Side drawer **232 px pinned / 56 px collapsed** (V85 — what the owner was told; the artboards' 248 px is
-  not used): collapsed, it is an icon rail with tooltips, and the content **reflows into the freed width**; unpinned it
-  opens as an overlay on hover or focus and closes on Esc. Order: My day, Overview, **Clients**, **Suppliers & partners** (V98), Pipeline, Projects, Tasks, Finance, KPIs,
-  Reports, Appraisal, Activity (V97); **Settings only for admins** (V97) at the foot above the person's profile (avatar,
-  nickname, badge). Top bar
-  60 px: search (Ctrl K), Create, bell, the profile chip (avatar and nickname) — no page titles in it. Page header:
-  breadcrumb, title, one primary button, at most two secondary, the rest in a ⋯ menu. Each area is one page: list on
-  the start side, **detail panel 480 px** on the end side (full page under 900 px); every record has its own URL; at
-  most one tab row, its state in the URL; filters are chips above the list (dashed = available, solid = applied with
-  "field: value" and ✕; a chip keeps or drops rows and shows its count — M102/M89).
+not used): collapsed, it is an icon rail with tooltips, and the content **reflows into the freed width**; unpinned it
+opens as an overlay on hover or focus and closes on Esc. Order: My day, Overview, **Clients**, **Suppliers & partners**
+(V98), Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Activity (V97); **Settings only for admins** (V97)
+at the foot above the person's profile (avatar, nickname, badge). Top bar 60 px: search (Ctrl K), Create, bell, the
+profile chip (avatar and nickname) — no page titles in it. Page header: breadcrumb, title, one primary button, at most
+two secondary, the rest in a ⋯ menu. Each area is one page: list on the start side, **detail panel 480 px** on the end
+side (full page under 900 px); every record has its own URL; at most one tab row, its state in the URL; filters are
+chips above the list (dashed = available, solid = applied with "field: value" and ✕; a chip keeps or drops rows and
+shows its count — M102/M89).
 - **Layout rules** (V85). Breakpoints and page margins (the gutter on each side of the content): **phone** < 640 px —
   16 px; **tablet** 640–1,023 px — 24 px; **desktop** 1,024–1,439 px — 32 px; **wide** ≥ 1,440 px — 40 px. Content
   max-widths: lists, boards and tables use the full width up to **1,600 px**; a full-page record's main column up to
@@ -307,10 +310,11 @@ nothing except the person's own bookkeeping, and an E2E walk counts the writes (
 | A new kind of **computed** KPI source (a new measure) | One SQL function `measure.<module>_<name>` (e.g. `measure.finance_revenue` for the key `finance.revenue`) + its registry line + its tests | Yes — a small PR |
 | A module (Leads, Suppliers, Events …) | New `modules/<key>/` with its `module.ts`, migrations and screens; the registry wires nav, access and search | Yes — its own PRs; nothing existing is rewritten |
 
-Every business table carries `department_id` from day one (a person's own department, plus any extra department an
-admin grants in `core.person_department (person_id, department_id)` for cross-department visibility; partners are the exception: one partner record serves the
-whole firm. Row-level visibility is "rows of the departments I belong to" — with one department in v1 that is
-everyone in Commercial, and a second department later is separated without a migration of old rows.
+Every business table carries `department_id` from day one (a person's own department, plus any extra department an admin
+grants in `core.person_department (person_id, department_id)` for cross-department visibility; partners are the
+exception: one partner record serves the whole firm. Row-level visibility is "rows of the departments I belong to" —
+with one department in v1 that is everyone in Commercial, and a second department later is separated without a migration
+of old rows.
 
 ---
 
@@ -318,10 +322,11 @@ everyone in Commercial, and a second department later is separated without a mig
 
 ### 3.0 Conventions
 
-- **Schemas.** `core` (organization, people, access, settings, files, notes, numbering), `audit`, `notify`, `partner` (organisations: clients, suppliers, strategic partners),
-  `finance`, `pipeline` (tenders, partnership opportunities — V80), `work` (projects, tasks), `perf` (plans, KPIs, achievements, challenges, period targets), `report`,
-  `appraisal`, `io` (imports), `norm` (pure folding functions), `measure` (KPI sources), `authz` (access helpers), and
-  **`api`** — the only schema PostgREST exposes. `test` exists only in test databases.
+- **Schemas.** `core` (organization, people, access, settings, files, notes, numbering), `audit`, `notify`, `partner`
+  (organisations: clients, suppliers, strategic partners), `finance`, `pipeline` (tenders, partnership opportunities —
+  V80), `work` (projects, tasks), `perf` (plans, KPIs, achievements, challenges, period targets), `report`, `appraisal`,
+  `io` (imports), `norm` (pure folding functions), `measure` (KPI sources), `authz` (access helpers), and **`api`** —
+  the only schema PostgREST exposes. `test` exists only in test databases.
 - **Keys.** `id uuid primary key default gen_random_uuid()`. People-facing numbers are separate columns
   (`TSK-2026-0042`, `PRJ-2026-007`) from `core.next_number(kind, year)` (a locked counter row per kind and year).
 - **Standard columns** (written `STD` below): `id`, `created_at timestamptz not null default now()`,
@@ -339,9 +344,10 @@ everyone in Commercial, and a second department later is separated without a mig
   later step's migration with `alter table … add constraint`, so every migration applies in order on a database built
   from zero.
 - **Setting lists** (`LIST`): `key text unique` (stable code), `name_en text not null`, **`name_ar text not null`**
-  (V76: every list — categories, KPI names, segments, statuses, roles, stages, reasons, outcomes — carries its Arabic
-  label, so reports can be written in Arabic), `sort int`, `active bool default true`. The same holds for every other
-  label a report prints: objective and KPI titles, category and role field labels, select options (`{key, en, ar}`). A list entry is retired, never deleted, and stays readable where a record holds it (M40).
+(V76: every list — categories, KPI names, segments, statuses, roles, stages, reasons, outcomes — carries its Arabic
+label, so reports can be written in Arabic), `sort int`, `active bool default true`. The same holds for every other
+label a report prints: objective and KPI titles, category and role field labels, select options (`{key, en, ar}`). A
+list entry is retired, never deleted, and stays readable where a record holds it (M40).
 - **Money** `numeric(14,2)`, SAR. **Counts** `int`. **Ratios** `numeric` as fractions (1.00 = 100 %).
   **Calendar dates** `date`; **instants** `timestamptz` (stored UTC, shown in Riyadh — D20). Riyadh helpers:
   `core.riyadh_today()`, `core.riyadh_day(timestamptz)`, `core.month_of(date)`, `core.quarter_of(date)`; weeks start on
@@ -376,8 +382,12 @@ core.person       STD SOFT; full_name_en not null; full_name_ar; nickname_en; ni
                   -- attributed to a real login (replaces the old QA-account attribution, D13)
                   -- V444, V445: 'admin_account' (the owner's separate admin account) and 'test_account' (the oversight's
                   -- test account, removed before go-live) sign in but are never team members — every team list, KPI,
-                  -- leaderboard, appraisal and reports-to picker excludes every kind but 'staff' (one predicate,
+                  -- ranking ("leaderboard": any per-person ranking on the KPIs scorecard or the Commercial overview), appraisal and
+                  -- reports-to picker excludes every kind but 'staff' (one predicate,
                   -- `core.is_team_member(person_id)`, used everywhere)
+                  -- V452: `api.person_leave(id, left_on, reassign_to {...}, reason)` = switch off + reassign the person's
+                  -- tasks, action items, owned sides, recurring templates and KPI lead/contributor rows in one request, with
+                  -- a count and one Undo; a switched-off or left person is refused as owner, helper or mention everywhere
 core.person_team_assist (person_id, team_id) pk         -- teams a person helps besides their home team
 core.page         key text pk; module; route; nav_group; nav_order; levels_allowed text[]; active      -- synced from the registry
 core.capability   key text pk; page_key → core.page; active                                            -- synced
@@ -399,7 +409,8 @@ core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); 
 
 `core.level` is the ordered enum `none < view < own < full` (D2). Effective level = person override, else role
 default, else `none`; an admin role is `full` everywhere. Rules carried over: only an admin makes an admin (D13); nobody
-changes their own access; a manager can grant at most their own level (M72; the dialog asks first).
+changes their own access; **only admins change access** (V97, V138 — the old M72 "a manager grants at most their own
+level" is retired).
 
 The **sign-in allow-list** is the live `core.person_email` rows of persons with `can_sign_in and active and kind =
 'staff'`; a person may hold several allowed emails (a `.com` and a `.net`), each Supabase identity links to exactly
@@ -452,20 +463,24 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
     one that exists;
   - **an Arabic label is required** (V76).
 - Starting scalar settings: `audit.undo_window_hours` 24
-  (D7) · `work.no_update_days` 7 · `work.week_starts_on` sunday · `work.meeting_note_on_time_days` 1 ·
-  `partner.match_order` [client_id, vat_cr, discount_code, email, phone, name] · `partner.name_stop_words` (the form
-  words list of §3.5) · `partner.credit_date` revenue_date (which date decides whose credit an invoice is — V27) ·
-  `finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 · `finance.unpaid_alert_days` 45 · `partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days` 30 · `partner.contract_notify` (account manager ✓, followers ✓, commercial manager ✗) · `partner.contract_renewal_task` ✓ · `partner.id_format` DK-P-0000 · `partner.logo_fallback` monogram · `core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ · `finance.unbilled_after_days` 30 (a transaction with no billing invoice after
-  that is flagged) ·
-  `finance.cost_estimate` on (D23) · `perf.pace_bands` {on_track 0.90, at_risk 0.70} (a plan setting — V401, V449) ·
-  `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
-  `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
-  `finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) ·
-  `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
-  `files.max_mb` 20 · `partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27"
-  (the default from the cycle's years) · `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93) · `work.late_days` 14 and `app.go_live_on` (V400) ·
-  `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days` 14 ·
-  `core.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95).
+(D7) · `work.no_update_days` 7 · `work.week_starts_on` sunday · `work.meeting_note_on_time_days` 1 ·
+`partner.match_order` [client_id, vat_cr, discount_code, email, phone, name] · `partner.name_stop_words` (the form words
+list of §3.5) · `partner.credit_date` revenue_date (which date decides whose credit an invoice is — V27) ·
+`finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 · `finance.unpaid_alert_days` 45 ·
+`partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days` 30 · `partner.contract_notify`
+(account manager ✓, followers ✓, commercial manager ✗) · `partner.contract_renewal_task` ✓ · `partner.id_format`
+DK-P-0000 · `partner.logo_fallback` monogram · `core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ ·
+`finance.unbilled_after_days` 30 (a transaction with no billing invoice after that is flagged) · `finance.cost_estimate`
+on (D23) · `perf.pace_bands` {on_track 0.90, at_risk 0.70} (a plan setting — V401, V449) · `report.due_day` 5 ·
+`app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable ·
+`auth.device_idle_days` 30 · `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) ·
+`auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
+`finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) · `work.reminder_days_before_due` 1 ·
+`notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 ·
+`partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27" (the default from
+the cycle's years) · `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93) · `work.late_days` 14 and
+`app.go_live_on` (V400) · `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days` 14
+· `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95).
 
 ### 3.3 Change log, undo and notifications
 
@@ -477,6 +492,8 @@ audit.change   id bigserial pk; request_id not null; at; table_name; row_id uuid
                fields text[]; before jsonb; after jsonb; version_after int
                index (table_name, row_id, id desc); index (request_id)
 notify.notification  id; person_id; kind ('assigned','helper_added','mentioned','changed_by_other','followed_change',
+               -- V456: 'assigned' and 'helper_added' are always sent, even for a back-dated item (V400 spares only flags
+               -- and overdue notices); every other past-dated change sends none; a new side owner gets 'assigned'
                'decision_needed','report_issued','report_for_review','appraisal_step','import_done',
                'alert_contract_expiring','alert_kpi_behind','alert_invoice_unpaid','alert_kpi_checkin',
                'escalated','alert_quiet_client','alert_project_no_update','alert_activity_stale','alert_file_review',
@@ -501,25 +518,27 @@ core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view
 - **Reading history.** `api.record_history(entity, id)` gives the change list of a record the caller can see (money
   fields' values only with Finance view); the whole log (Settings → Activity) is for admins and managers (D13, M25).
 - **Undo** — `api.undo(request_id)`:
-  - Who: the person who made the change, within `audit.undo_window_hours`; the owner of a changed record within the
-    same window (D7); admins and managers with Full on the page, any time.
-  - How: in reverse order, per field — an update is reverted only where the field still holds the `after` value; an
-    insert (including a link) is soft-removed; a removal is restored. **All or nothing**: if any field was changed again later, nothing is
-    undone and the answer names the field, who changed it and when (A16). A restore that a uniqueness rule now blocks
-    (an identifier another partner holds) is refused and names the holder.
-  - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The toast's Undo button calls this with
-    the request id the command returned.
-  - An import is undone as one request: facts it inserted are removed, fields it changed are restored — refused if a
-    later import changed the same rows (it names them: "undo the later import first").
+- Who: the person who made the change, within `audit.undo_window_hours`; the owner of a changed record within the same
+window (D7); admins and managers with Full on the page, any time. - How: in reverse order, per field — an update is
+reverted only where the field still holds the `after` value; an insert (including a link) is soft-removed; a removal is
+restored. **All or nothing**: if any field was changed again later, nothing is undone and the answer names the field,
+who changed it and when (A16). A restore that a uniqueness rule now blocks (an identifier another partner holds) is
+refused and names the holder. - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The toast's
+Undo button calls this with the request id the command returned. - An import is undone as one request: facts it inserted
+are removed, fields it changed are restored — refused if a later import changed the same rows (it names them: "undo the
+later import first").
 - **Notifications.** Assignment, helper, mention, report issued and appraisal steps are pushed by the API function
   that caused them. "Changed by someone else" is fanned out by `audit.end()` to the owners of every record the request
   touched (the entity's `owners` function in the registry), one notification per person per request, never to the
   actor, and to everyone who **follows** the record. Due and overdue items are **computed live** (bell count and My
   day), not stored. In-app only in v1 (email once the mail sender exists — V45).
 - **Alerts are notifications** (V61), made by a daily `pg_cron` job (`notify.generate_alerts()`, 06:00 Riyadh =
-  `0 3 * * *` UTC), idempotent by `alert_key`: a contract inside its notice days; a KPI whose pace is Behind (to its leads — V401); a
-  counted invoice unpaid for more than `finance.unpaid_alert_days` (to the client's account manager, with its follow-up
-  task); a quiet client; a project without a health update; an organisation gone stale; a file past its review date. Each threshold is a setting; each alert links to its record.
+`0 3 * * *` UTC — V455: a daily alert fires on the **first run on or after its day**, never twice; a second, small job
+every **5 minutes** sends `core.reminder` rows whose time has come), idempotent by `alert_key`: a contract inside its
+notice days; a KPI whose pace is Behind (to its leads — V401); a counted invoice unpaid for more than
+`finance.unpaid_alert_days` (to the client's account manager, with its follow-up task); a quiet client; a project
+without a health update; an organisation gone stale; a file past its review date. Each threshold is a setting; each
+alert links to its record.
 - **The notification centre** (the bell): tabs **All · Mentions · Assigned to me**, grouped by day, **Mark all read**,
   **Snooze until** (a date or "tomorrow 08:00"), each item a link; the canvas's NotificationsPanel is the layout.
 - **Names are always live** (owner rule — V58). Every reference to a person or a partner is stored as its **ID** and
@@ -529,13 +548,13 @@ core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view
 - **Activity timeline per record** (the record's detail): the record's changes, newest first, each with who, when, what
   changed, and **Undo** where allowed (§ above).
 - **Bulk actions**: lists allow multi-select; a bulk action (assign, change status, add a follower, link, remove) is
-  **one** API call and one request, so one Undo reverts all of it.
-- **Recently deleted** (V401): `api.recently_deleted()` lists the records removed in the last `core.recently_deleted_days`
-  (30) that the caller could see, each with **Restore** — the removal's undo, allowed past the 24-hour window for this
-  one action; after 30 days a removed record stays in the change log but leaves the list.
-- **Escalate** (V401) on a task, a challenge or an organisation: `api.escalate(entity, id, to_person, note)` notifies the
-  person (`escalated`), makes them a follower, and writes the note to the timeline and the change log in one request;
-  a challenge also records `escalated_to` / `escalated_on` (V69).
+**one** API call and one request, so one Undo reverts all of it. - **Recently deleted** (V401): `api.recently_deleted()`
+lists the records removed in the last `audit.recently_deleted_days` (30) that the caller could see, each with
+**Restore** — the removal's undo, allowed past the 24-hour window for this one
+action; after 30 days a removed record stays in the change log but leaves the list. - **Escalate** (V401) on a task, a
+challenge or an organisation: `api.escalate(entity, id, to_person, note)` notifies the person (`escalated`), makes them
+a follower, and writes the note to the timeline and the change log in one request; a challenge also records
+`escalated_to` / `escalated_on` (V69).
 - **A follow-up task from an alert** (V401): when the 45-day unpaid-invoice alert fires, the job also creates one task
   for the client's account manager (origin `alert`, linked to the invoice), once per invoice.
 
@@ -558,21 +577,22 @@ my.note_link      STD; note_id → my.note; entity_table; entity_id; kind ('turn
                   -- removes the link and never the other record
 my.note_mention   (note_id, person_id) pk                          -- the mentioned person is told ('note_mention')
 core.reminder     STD SOFT; person_id; note_id → my.note; remind_at timestamptz not null; text; sent_at
-                  -- a 'reminder' notification at its time, sent by the alerts job; once
+                  -- a 'reminder' notification at its time, sent by the five-minute reminder job (V455); once
 ```
 
 - **Doors** (`api.note_capture`, `api.note_update`, `api.note_turn_into(note, kind, …)`, `api.note_finish_meeting`,
-  `api.note_wrap_up(day)`): every conversion is **one request** — the new record through its own door (`api.task_create`,
-  `api.action_item_add`, `api.achievement_log`, `api.activity_log`, a `core.reminder` row) plus the `my.note_link` row,
-  the mentions copied as the record's mentions or helpers; one Undo reverts both. Each Turn into arrives with its door:
-  a logged meeting or call and a reminder in P3-13; a task and an action item with P5-1; an achievement with P5-4.
+`api.note_wrap_up(day)`): every conversion is **one request** — the new record through its own door (`api.task_create`,
+`api.action_item_add`, `api.achievement_log`, `api.activity_log`, a `core.reminder` row) plus the `my.note_link` row,
+the mentions copied as the record's mentions or helpers; one Undo reverts both. Each Turn into arrives with its door: a
+logged meeting or call and a reminder in P3-13; a task and an action item with P5-1; an achievement with P5-4.
 - **Finish meeting** turns a meeting note's points into action items (each with its owner and date) on the task it
   names, or a new task, and logs the meeting as an activity on the organisation (`api.activity_log`, type meeting).
 - **Wrap up today** walks the day's open captures: convert, **carry over** (to tomorrow, keeping `happened_on`) or
   **done**; nothing is deleted.
-- **Visibility** is the note's own rule (V143): a private note is invisible to everyone else — in search, exports,
-  notifications and history too; team = the author's team; workspace = everyone. The record made from a note follows
-  its own type's rule, never the note's.
+- **Visibility** is the note's own rule (V143): a private note is readable by its **author alone — admins included**
+(V454, the one exception to "admins see everything"; viewers may keep their own notes) — invisible to everyone else in
+search, exports, notifications, history and View as; team = the author's team; workspace = everyone. The record made
+from a note follows its own type's rule, never the note's.
 - **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares) · **Workspace** (what everyone
   shares); each block shows **5–7 rows** and a "more" link; Comfortable, never cramped (V85).
 
@@ -649,7 +669,8 @@ partner.credit_limit  STD SOFT; partner_id (Client side on — trigger); amount_
                   approved_by → core.person; reason
                   -- V70: the limit Payments already enforces, mirrored with its history; current = latest ≤ today
                   -- V92: a refused credit is a row with amount 0 — shown as "Prepaid only" — whose approver and reason
-                  -- are required like any other limit
+                  -- are required like any other limit; the approver is a switched-on person of kind staff or
+                  -- admin_account — never System, Import, the test account or someone switched off (V444, V445, V452)
 partner.identifier_block  STD SOFT; kind; match ('exact','domain'); value; reason
                   -- values that can never be identifiers: staff email domains, the Payments test VAT, test customers
 partner.individual_name   STD SOFT; name_raw; name_key unique      -- "Individual (not an organisation)" (D25)
@@ -706,29 +727,31 @@ core.mention      (note_id, person_id) pk
   channel", "Technology" and "Strategic partner" (V448) are **types on the Supplier & partner side**; on the Client side
   the type **is** the segment (V64), so every money view splits by it.
 - **Status with history, per side** (V62 kept, V98): on the Client side **Prospect · Active · At risk · Lost**, on the
-  Supplier & partner side **Prospect · Active · On hold · Ended** (V450; both lists admin-editable), each change with an
-  effective date and, for at risk, lost, on hold and ended, a reason from the settings list; the history is on the
-  Activity tab. The **last feedback date** (the latest feedback note or feedback task done) shows beside it. Who sets
-  it: the side's owner and managers. An organisation with both sides has two statuses; the row chip shows the worse one.
+Supplier & partner side **Prospect · Active · On hold · Ended** (V450; both lists admin-editable), each change with an
+effective date and, for at risk, lost, on hold and ended, a reason from the settings list; the history is on the
+Activity tab. The **last feedback date** (the latest feedback note or feedback task done) shows beside it. Who sets it:
+the side's owner and managers. An organisation with both sides has two statuses; a list shows the status of the side it
+is about (Clients → the Client side; Suppliers & partners → that side), and search results and hover cards show both
+sides' chips.
 - **One status chip per row**: **At risk** or **Lost** when so; else the most urgent computed flag — **Stale** (no
-  activity and no open next step for `partner.stale_after_days`, 21 — V401), **Contract expiring**, **Collection due**
-  (an unpaid invoice past `finance.collection_due_days`), **Quiet** (no Fully Paid invoice in `finance.quiet_client_days`,
-  60 — V401, clients only), **Sent to legal**, **Tender open**; else the side's status (Prospect, Active).
+activity and no open next step for `partner.stale_after_days`, 21 — V401), **Contract expiring**, **Collection due** (an
+unpaid invoice past `finance.collection_due_days`), **Quiet** (no Fully Paid invoice in `finance.quiet_client_days`, 60
+— V401, clients only), **Sent to legal**, **Tender open**; else the side's status (Prospect, Active).
 - **Log activity** (V401, replacing "Log call"): one click on the record, the row and the hover card — pick the **type**
-  (call · meeting · demo · visit · note — a settings list), its **outcome** (a settings list per type), `happened_on`
-  (today by default), an optional line, and an optional **next step** with a date, which becomes a **task** on the
-  person's My day (origin `next_step`, linked to the organisation and the activity) in the same request. The outcome
-  **demo set** (V406) asks for the demo's date and creates the **demo task** on that date in the same request — assigned
-  to the person logging it, their manager as helper, origin `next_step`, linked to the organisation and the activity;
-  one Undo reverts both, and **demo held** logged later on the same organisation offers to close that task. It needs no
-  open task: the activity lands on the organisation's Activity tab (`api.activity_log`). Activities, calls and demos per
-  person per week feed the appraisal items (measures `work.pipeline_updates`, `partner.calls`, `partner.demos`).
-- **Light prospecting, no Leads module in v1** (V63, V99). A prospect is an organisation whose side has status Prospect. A
-  manager selects a list and assigns **owner and priority in one action** (`api.partner_bulk_assign`, one request, one
-  Undo; a side with no status becomes Prospect). Owner here is the side's owner: a manager may assign one where no
-  revenue is counted; changing the Client side's owner where revenue exists stays with the head and admins (V26, V27).
-  Leads from the corporate landing form stay in Direct's ticket system and are referenced by ticket number only (a
-  Direct reference on the organisation or the opportunity — V99); a Leads inbox may come later if volume needs it.
+(call · meeting · demo · visit · note — a settings list), its **outcome** (a settings list per type), `happened_on`
+(today by default), an optional line, and an optional **next step** with a date, which becomes a **task** on the
+person's My day (origin `next_step`, linked to the organisation and the activity) in the same request. The outcome
+**demo set** (V406) asks for the demo's date and creates the **demo task** on that date in the same request — assigned
+to the person logging it, their manager as helper, origin `next_step`, linked to the organisation and the activity; one
+Undo reverts both, and **demo held** logged later on the same organisation offers to close that task. It needs no open
+task: the activity lands on the organisation's Activity tab (`api.activity_log`). Activities, calls and demos per person
+per week feed the appraisal items (measures `work.pipeline_updates`, `partner.calls`, `partner.demos`). - **Light
+prospecting, no Leads module in v1** (V63, V99). A prospect is an organisation whose side has status Prospect. A manager
+selects a list and assigns **owner and priority in one action** (`api.partner_bulk_assign`, one request, one Undo; a
+side with no status becomes Prospect). Owner here is the side's owner: a manager may assign one where no revenue is
+counted; changing the Client side's owner where revenue exists stays with the head and admins (V26, V27). Leads from the
+corporate landing form stay in Direct's ticket system and are referenced by ticket number only (a Direct reference on
+the organisation or the opportunity — V99); a Leads inbox may come later if volume needs it.
 - **Segment** (V64): each partner has a default segment; a project and an invoice may override it. A unit's segment =
   the invoice's own, else its project's (one linked project), else the partner's; an individual's is Individuals; else
   "No segment". Revenue, margin and every computed KPI can split by segment (a measure parameter).
@@ -765,12 +788,12 @@ core.mention      (note_id, person_id) pk
   Q1–Q4 strip, this year against last; **Open in Finance** deep-links to the Finance list with the partner, period and
   kind in the URL. Finance keeps its full filters and **saved views** (§6).
 - **Contracts** (V56). Status is computed, never stored: **Active**, **Expires in N days** (from
-  `partner.contract_expiring_from_days`, 30), **Expired**, or **Not started**. On each reminder day (60 · 30 · 7 before
-  the end, the contract's own days if set, none when its switch is off) the alerts job (§3.3) notifies the account
-  manager, the partner's followers and, when the setting says so, the commercial manager; at the first reminder it makes
-  the **renewal task** (owner: the account manager; due: the end date; linked to the contract) when
-  `partner.contract_renewal_task` is on, and the card and the notification offer **Create renewal task** and **Log renewal achievement**
-  (prefilled, a person presses it). Contracts appear on the partner card and in the evidence picker.
+`partner.contract_expiring_from_days`, 30), **Expired**, or **Not started**. On each reminder day (60 · 30 · 7 before
+the end, the contract's own days if set, none when its switch is off) the alerts job (§3.3) notifies the account
+manager, the partner's followers and, when the setting says so, the commercial manager; at the first reminder it makes
+the **renewal task** (owner: the account manager; due: the end date; linked to the contract) when
+`partner.contract_renewal_task` is on, and the card and the notification offer **Create renewal task** and **Log renewal
+achievement** (prefilled, a person presses it). Contracts appear on the partner card and in the evidence picker.
 - **File names are computed, live** (V55). A file keeps its `original_name`; its display and download name comes from
   its kind's pattern and the records it is linked to, at the moment it is shown — e.g. `INV-T-0001 · {partner} ·
   {amount} SAR · {date}.pdf`, `Contract · {partner official} · {title} · {start} to {end}.pdf` (`{partner}` is the trade
@@ -784,11 +807,11 @@ core.mention      (note_id, person_id) pk
   HoverCards artboard shows).
 - The two date-range rules above need the `btree_gist` extension (enabled in the first migration).
 - A **contact's** email is not automatically an identifier (a shared or personal address would mis-match invoices);
-  the contact form offers "also use as identifier", which goes through the identifier rules.
-- **Merging** (`api.partner_merge(kept, merged, reason)`): the merged organisation's identifiers are removed and re-added
-  to the kept one (`source 'merge'`), its sides (a side the kept one lacks is added; one it has keeps the kept one's
-  status and owner), contacts, contracts, files, notes, tasks, projects and achievements are re-pointed, its account-manager history is kept on record, and it is archived with `merged_into_id`. One request, so
-  one undo.
+the contact form offers "also use as identifier", which goes through the identifier rules. - **Merging**
+(`api.partner_merge(kept, merged, reason)`): the merged organisation's identifiers are removed and re-added to the kept
+one (`source 'merge'`), its sides (a side the kept one lacks is added; one it has keeps the kept one's status and
+owner), contacts, contracts, files, notes, tasks, projects and achievements are re-pointed, its account-manager history
+is kept on record, and it is archived with `merged_into_id`. One request, so one undo.
 - **Pictures** (avatars, partner logos) go to a second private bucket, `images`: images only, at most 2 MB,
   resized in the browser to 256 px before upload, read through 24-hour signed URLs cached by the browser (they appear on
   every chip, so the 600 s rule for money documents does not fit them). Any signed-in person may see them.
@@ -831,21 +854,20 @@ discount code (with the row's **booking date** — see V28), email, phone, both 
 **The match — `partner.match` view** (one row per source row):
 
 1. **Pin** (level 0): `partner.match_pin (source_table, source_id, partner_id, kind, reason)`, shown with a pin mark,
-   logged and undoable, of two kinds:
-   - `entry` — the partner a person picked while typing an invoice whose clues matched nothing. Anyone who may type
-     the invoice may set it; the clue itself goes to **Needs a decision** as a *suggested identifier*, because adding an
-     identifier moves money between people and needs `partners.identify`. Once someone accepts it, the invoice
-     matches by itself and the pin is cleared in the same request;
-   - `decision` — a manager's last resort for a true conflict.
-   A pin whose invoice would now match a **different** partner without it is listed in `finance.health`.
+logged and undoable, of two kinds: - `entry` — the partner a person picked while typing an invoice whose clues matched
+nothing. Anyone who may type the invoice may set it; the clue itself goes to **Needs a decision** as a *suggested
+identifier*, because adding an identifier moves money between people and needs the side's identify capability
+(`clients.identify` for client IDs and codes — V147). Once someone accepts it, the invoice matches by itself and the pin
+is cleared in the same request; - `decision` — a manager's last resort for a true conflict. A pin whose invoice would
+now match a **different** partner without it is listed in `finance.health`.
 2. **Unknown client ID** (V420): a row carrying a Payments client ID that no organisation holds stops here — state
    `unknown_client_id`, in Needs a decision; it never falls through to VAT, code, email, phone or name. A **closed**
    client ID (`closed_on`, V411) still matches rows whose booking date is on or before its close date.
 3. For each level in `partner.match_order` (setting; default client ID → VAT/CR → discount code within its dates →
-   email → phone → typed alias), find the partners holding a matching live identifier. Values under
-   `partner.identifier_block` are ignored. An organisation's **official and trade names are never matching
-   identifiers** (V421): they only *suggest* a match in Needs a decision; a name matches only as an alias a person typed,
-   and an alias or a name exclusion acts only on a row with no client ID (V412).
+email → phone → typed alias), find the partners holding a matching live identifier. Values under
+`partner.identifier_block` are ignored. An organisation's **official and trade names are never matching identifiers**
+(V421): they only *suggest* a match in Needs a decision; a name matches only as an alias a person typed, and an alias or
+a name exclusion acts only on a row with no client ID (V412).
 4. **The first level that finds anything decides.** One partner → `matched`. Two or more → `conflict`, listing every
    candidate; nothing is guessed. At the discount-code level a live **campaign code** (V65) gives `campaign` — credited
    to nobody, listed apart. None at any level → `individual` if a name key is on the individuals list, else `none`.
@@ -863,14 +885,14 @@ the row's (a suggestion, never a match — V421). A person decides once per cust
 | "This is client X" | adds the chosen clues from the group (default: the strongest — client ID, else VAT/CR, else email, else the name as a typed alias) as identifiers of X; every future row with those clues matches by itself |
 | "New client" | creates the organisation with its Client side on and those identifiers |
 | "Individual (not an organisation)" | adds the name to `partner.individual_name` (D25) |
-| "Exclude" | opens the Finance exclusion rule form (reason required) |
+| "Exclude" | opens the Finance exclusion rule form (reason required) — **admins only** (V458: it writes a Finance rule) |
 | Conflict: "move identifier" / "merge A and B" / "pin these rows to A" | remove-and-add the identifier; merge; or pin with a reason (last resort) |
 
 Staff emails and test rows never become identifiers: the block list refuses them at write time, and the queue never
-proposes them. From P7, the Payments **corporate clients** import adds a matched client's IDs, names, VAT/CR, emails and phones
-to its partner (source `import`, one request, undoable) and proposes a new partner for an unmatched one — it never
-creates partners by itself (D17). The **promo codes** import only suggests a partner from its client name; a person
-links the code.
+proposes them. From P7, the Payments **corporate clients** import adds a matched client's IDs, names, VAT/CR, emails and
+phones to its partner (source `import`, one request, undoable) and proposes a new partner for an unmatched one — it
+never creates partners by itself (D17). The **promo codes** import only suggests a partner from its client name; a
+person links the code.
 
 ### 3.6 Finance — the money model
 
@@ -921,6 +943,7 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        name_key; name2_key; email_key; phone_key; client_id_key; tax_key; code_key; norm_version;   -- match keys (§3.5)
                        status_raw (Invoice Status); status_id → finance.status_map; consolidation_status_raw (B2B transaction
                        status, e.g. consolidation_invoiced — never read as payment); created_on; generated_on; paid_on; status_at;
+                       -- V461: no date in the future — refused at write; a future date on an import holds the row
                        total_sar (as Payments records it); product (main product); branch; salesman_raw;
                        due_on date (V415: the invoice's own due date when typed or imported; null = the setting's fallback);
                        segment_id (V64: an override; null = the project's, else the partner's);
@@ -998,11 +1021,12 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner or with an unknown client ID (V420), cost missing, estimates in use, Provisional units, **Losses** (V414), failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
-default — or margin), which services, which partner categories, whether commissions count. The structure is built
-now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it. The KPI source
-`finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI, report draft
-and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording setting, `core.wording`); code keeps
-`revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy sheet does.
+default — or margin), which services, which partner categories, whether commissions count. The structure is built now;
+**its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it. The KPI source
+`finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI, report draft and
+appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording
+setting, `core.wording`); code keeps `revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy
+sheet does.
 
 **Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read
 as "only paid units count", V418) · credit notes never count and never reduce revenue (V423) · wallet top-ups never
@@ -1059,13 +1083,13 @@ work.project_health  STD; project_id; health ('on_track','at_risk','off_track');
 ```
 
 - The **timeline** is `core.note` on the task: `update`, `meeting_note` (with its meeting date) and `comment`, each with
-  @mentions and its own `happened_on` (V400). `api.task_add_meeting(task, date, body, items[])` adds the note and its **assigned action items** in one
-  request.
+@mentions and its own `happened_on` (V400). `api.task_add_meeting(task, date, body, items[])` adds the note and its
+**assigned action items** in one request.
 - **Views.** `work.task_view` adds last activity (the latest `happened_on` of a note, action item or status change),
-  `stale` (in progress and no activity for `work.no_update_days`, judged on `happened_on`), `overdue` (due before Riyadh
-  today and not done) and open action item counts — **flags are judged today only**: an entry dated in the past
-  raises no notice and no overdue or no-update flag for the past (V400). `work.my_work(person)` = tasks I own ∪ tasks where I own an action item ∪ tasks and action items
-  I help on — the blueprint's "My work". Board and calendar read the same view.
+`stale` (in progress and no activity for `work.no_update_days`, judged on `happened_on`), `overdue` (due before Riyadh
+today and not done) and open action item counts — **flags are judged today only**: an entry dated in the past raises no
+notice and no overdue or no-update flag for the past (V400). `work.my_work(person)` = tasks I own ∪ tasks where I own an
+action item ∪ tasks and action items I help on — the blueprint's "My work". Board and calendar read the same view.
 - **The dates rule** (V400). Every task, status change, action item, note and activity carries **`happened_on`** (the
   day it happened — default Riyadh today, any past date allowed, never after the day it is logged) and **`logged_at`**
   (set by the database). Weeks, months, quarters, task time (raised → done), the on-time measures and the appraisal read
@@ -1082,17 +1106,17 @@ work.project_health  STD; project_id; health ('on_track','at_risk','off_track');
   latest row is the project's chip; a project with no health update for `work.project_update_days` (14) gets the
   `alert_project_no_update` reminder to its owner (the alerts job, judged on `happened_on`).
 - **Who does what.** Anyone with Own on Tasks creates their own tasks and adds helpers; assigning to someone else needs
-  the capability `tasks.assign` (managers, admins — §3 "managers/admins assign"); helpers add notes and tick their
-  own action items.
-- **Recurring tasks.** `pg_cron` at 00:05 Riyadh (the schedule is in UTC: `5 21 * * *`) runs `work.generate_recurring(core.riyadh_today())`; each occurrence
-  is created once (`task_occurrence`), attributed to the template's creator with a `job` request naming the template —
-  a record made on a person's standing instruction (D17's spirit). The starting template **Partner feedback** runs
-  monthly for each key partner (V72); closing it asks for the feedback note, which sets the partner's last feedback
-  date. The starting one-off template **Corporate onboarding** (V89) is a checklist owned by the account manager —
-  agreement signed and stamped · account set up · travel policy received · Operations briefed · first request — offered
-  (a person presses it) when an organisation's Client side is switched on or its partnership opportunity reaches
-  Signed (V99). The starting recurring template **Quarterly business review** (V401) runs each quarter for each key
-  client, owned by the account manager, with a checklist (figures reviewed · issues · next quarter's plan).
+the capability `tasks.assign` (managers, admins — §3 "managers/admins assign"); helpers add notes and tick their own
+action items. - **Recurring tasks.** `pg_cron` at 00:05 Riyadh (the schedule is in UTC: `5 21 * * *`) runs
+`work.generate_recurring(core.riyadh_today())`; each occurrence is created once (`task_occurrence`), attributed to the
+template's creator with a `job` request naming the template — a record made on a person's standing instruction (D17's
+spirit). The starting template **Client feedback** (V72, named for the Client side since V98) runs monthly for each key
+partner (V72); closing it asks for the feedback note, which sets the partner's last feedback date. The starting one-off
+template **Corporate onboarding** (V89) is a checklist owned by the account manager — agreement signed and stamped ·
+account set up · travel policy received · Operations briefed · first request — offered (a person presses it) when an
+organisation's Client side is switched on or its partnership opportunity reaches Signed (V99). The starting recurring
+template **Quarterly business review** (V401) runs each quarter for each key client, owned by the account manager, with
+a checklist (figures reviewed · issues · next quarter's plan).
 - **Team load** (V91): `work.team_load` — per person: open tasks, overdue, open action items, partners owned (account
   manager) and prospects assigned. It shows beside the person picker in every assign dialog (a task, an action item,
   the partners' bulk assign) and as a **Team load** view on Tasks for managers.
@@ -1108,7 +1132,8 @@ Added to v1 (owner, 29 Sep). One **Pipeline** page with two boards — **Tenders
 pipeline.stage        LIST per kind ('tender','partnership'); meaning — locked, editable names (V97, V99); optional bool; sort
                       -- tender meanings: identified · preparing · submitted · awarded · lost · cancelled
                       --   (seed: Identified → Preparing → Submitted → Awarded / Lost / Cancelled — V80)
-                      -- partnership meanings: open · signed · onboarded · lost (seed, V99: Contacted → Demo → Proposal
+                      -- partnership meanings: open · signed · onboarded · handed_over · lost (V457: a locked "Handed to
+                      -- Product" stage that needs the Direct ticket before a card enters it) (seed, V99: Contacted → Demo → Proposal
                       --   (optional) → Signed → Onboarded; Lost). A skipped optional stage is never recorded as passed
 pipeline.source       LIST (V99: an admin list — referral · event · inbound ticket · outbound · tender portal …)
 pipeline.lost_reason  LIST per kind
@@ -1137,10 +1162,11 @@ pipeline.stage_change STD; entity_table; entity_id; from_stage_id; to_stage_id; 
   lead from the corporate landing form is a ticket in Direct's ticket system; an opportunity carries its ticket number,
   nothing more.
 - **Measures** (§3.8): `pipeline.tenders_submitted` — tenders whose history reached Submitted with an effective date in
-  the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in the
-  period (by `awarded_on`); `pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and
-  value per stage, as of a date); `pipeline.partnerships_signed` and `pipeline.partnerships_onboarded` (V99). Government entity contracts is the Contract signed
-  category with a Government-segment partner (§3.8). Every measure takes the `segment` parameter (V64).
+the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in the
+period (by `awarded_on`); `pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and
+value per stage, as of a date); `pipeline.partnerships_signed` and `pipeline.partnerships_onboarded` (V99). Government
+entity contracts is the Contract signed category with a Government-segment partner (§3.8). Every measure takes the
+`segment` parameter (V64).
 - **The Commercial overview** (`/overview`, executive): Revenue · Cost · Profit, collections, new clients, tenders
   submitted, awarded value, partnerships signed, government entity contracts — for a period (MTD · QTD · YTD · Custom)
   against last year — then **both funnels**, and a **segment switch** (All · Government · Corporate · Agencies ·
@@ -1170,12 +1196,15 @@ perf.kpi_target      id; kpi_id; period_kind ('month','quarter','year'); period_
 perf.kpi_lead        (kpi_id, person_id) pk
 perf.kpi_contributor id; kpi_id; scope ('department','team','person'); scope_id
 perf.kpi_reading     STD SOFT; kpi_id; period_kind; period_start; value numeric; passed bool (checklist);
-                     happened_on date not null (V400: the reading's date — it decides the period); logged_at timestamptz not null; note
+                     happened_on date not null (V400: the reading's date); logged_at timestamptz not null; note
+                     -- V459: the reading belongs to the period of period_start, never of happened_on
                      -- V93: written by the KPI's leads (and managers with Full on KPIs); on `perf.kpi_checkin_day`
                      -- (default the 15th) each lead of a manual KPI with no reading for the month gets 'alert_kpi_checkin'
                      -- manual and percentage/score KPIs; evidence via core.file_link. Also last year's monthly figures of a
                      -- computed KPI, typed once and used only for months its source has no data for, shown as "typed" (V31)
-perf.kpi_status_note STD; kpi_id; quarter_start; status ('on_track','slightly_behind','at_risk','critical','exceeded','pending');
+perf.kpi_status_note STD; kpi_id; quarter_start; status ('on_track','at_risk','behind','exceeded','not_measured');
+                     -- one pace vocabulary (V401, V449): the declared status uses the bands' words; a project's health
+                     -- (on_track · at_risk · off_track) is a different thing and keeps its own three
                      note; noted_on                                          -- the status a person declares for the strategy sheet
 perf.measure_def     key pk; unit_kind; params_schema jsonb; scopes text[]; label_key           -- synced from the registry
 perf.achievement_category  STD SOFT; plan_id; parent_id (sub-category); code; name_en; name_ar; is_money_link bool;
@@ -1191,7 +1220,9 @@ perf.category_kpi    id; category_id; kpi_id; contribution ('count','field_sum')
                      -- how "a promo-code-only partnership is not a technical-integration KPI" (§3) is kept without code
 perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id; source_task_id; service_id → finance.service;
                      title (the person's short words); count int default 1; before_value; after_value; field_values jsonb;
-                     happened_on date not null (V400: the date on the evidence — e.g. the signing date on the agreement;
+                     draft bool default false (V68: a self-registered item with no date or evidence is a flagged draft that
+                     never counts; happened_on may be null only while draft);
+                     happened_on date (not null unless draft — V400: the date on the evidence — e.g. the signing date on the agreement;
                      it decides the month and quarter; never after the logged day); logged_at timestamptz not null;
                      period_moved_from date; period_move_reason; period_moved_by (V400: a manager or admin moved it into the
                      previous period — the "moved" mark); owner_id not null; use_as_example bool (V67: a report "Case");
@@ -1212,10 +1243,10 @@ perf.period_target   STD SOFT DEPT; period_kind ('month','quarter'); period_star
 **Plans (§5a).** A plan belongs to a department and a calendar year. `api.plan_copy(from, year, what)` copies
 objectives, KPIs (keeping `copied_from_kpi_id`), their latest revisions (effective 1 January), leads, contributors,
 categories, fields and mappings — targets optionally. Everything is then renamed, renumbered, regrouped or removed in
-the browser. An achievement belongs to the plan of its `happened_on` year (V400) (trigger; no plan for that year → refused
-with "no 2027 plan yet"). Old years keep their structure: a 2026 report or appraisal reads the 2026 plan and the
-revisions in force then. Carrying a 2026 achievement to a 2027 KPI is an `achievement_kpi_adjust` of mode include,
-with a reason — a logged person action.
+the browser. An achievement belongs to the plan of its `happened_on` year (V400) (trigger; no plan for that year →
+refused with "no 2027 plan yet"). Old years keep their structure: a 2026 report or appraisal reads the 2026 plan and the
+revisions in force then. Carrying a 2026 achievement to a 2027 KPI is an `achievement_kpi_adjust` of mode include, with
+a reason — a logged person action.
 
 **KPI values** (never stored):
 
@@ -1233,12 +1264,12 @@ with a reason — a logged person action.
 4. Target for a period **as of a date** = the latest `kpi_target` for that period with `effective_from ≤` the date;
    a year target is explicit, else the sum of the quarter targets (`sum` KPIs).
 5. **Pace** (ported from the d27 plan): what is due = the targets of past quarters in full plus the current quarter's
-   target pro-rated by Riyadh days passed; ratio = year-to-date ÷ due (inverted for lower-is-better). Status: **Exceeded** (year target
-   reached) · the **pace bands** (V401) **On track** (ratio ≥ on_track) · **At risk** (≥ at_risk) · **Behind** (below) ·
-   **Not measured** (no target, not started, or nothing measured). A non-cumulative KPI is judged per quarter; a `latest`
-   KPI compares its latest figure with the current quarter's target (the d27 rule). The bands' thresholds are a **plan
-   setting** (`perf.pace_bands`, default on_track 0.90 · at_risk 0.70 — V449), overridable per KPI revision; the KPI-behind
-   alert fires on Behind.
+target pro-rated by Riyadh days passed; ratio = year-to-date ÷ due (inverted for lower-is-better). Status: **Exceeded**
+(year target reached) · the **pace bands** (V401) **On track** (ratio ≥ on_track) · **At risk** (≥ at_risk) · **Behind**
+(below) · **Not measured** (no target, not started, or nothing measured). A non-cumulative KPI is judged per quarter; a
+`latest` KPI compares its latest figure with the current quarter's target (the d27 rule). The bands' thresholds are a
+**plan setting** (`perf.pace_bands`, default on_track 0.90 · at_risk 0.70 — V449), overridable per KPI revision; the
+KPI-behind alert fires on Behind.
 6. **Not measured ≠ 0.** A manual KPI with no reading, or a ratio with nothing to divide (no action items were due),
    returns `measured = false` and is shown as "—, not measured", never 0. A count of achievements is a real 0 once the
    period has started.
@@ -1248,34 +1279,34 @@ contribution to each KPI by quarter, for the partner card); function `perf.kpi_t
 achievements or invoices behind a figure with their partner and evidence file (the KPI page's drill-down, §1).
 
 **Measures in v1** (each a SQL function `measure.<module>_<name>(params, scope_kind, scope_id, from, to)` — the registry
-maps the dotted key to it — returning
-`(value, measured, n)` plus a `_items` twin for drill-down; scopes are department, team, person, partner):
-`finance.revenue` · `finance.commercial_revenue` (the setting) · `finance.margin` (says how much of the revenue had a cost)
-· `finance.new_client_revenue` (partners whose first counted unit falls in the period and whose `client_since`, if
-typed, is not earlier) · `finance.collected` ·
-`partner.new_clients` · `perf.achievements` (categories as parameters; person scope = owner, or owner and participants)
-· `perf.kpi_attainment` (params: a KPI **code**; value = the KPI's figure over the period ÷ its targets over the same
-period as of the evaluation date — quarter targets pro-rated by the months inside the period; each month read from the
-plan of its own year, the KPI matched by code; for appraisal items tied to a department KPI) ·
-`work.tasks_on_time` · `work.action_items_on_time` · `work.weekly_updates` · `work.meeting_notes_on_time` ·
-`report.on_time` · `work.pipeline_updates` (V63: per person per week, task updates + logged calls; a week counts when it
-reaches the appraisal item's weekly target, default 1) · `partner.calls` (by outcome) · `partner.demos` (V88: calls with outcome demo set or demo held, per person per
-week) · `partner.at_risk` (partners
-turned at risk or lost, by reason) · `perf.escalations` (V69) · `pipeline.tenders_submitted`, `pipeline.awarded_value`, `pipeline.tenders_by_stage`,
-`pipeline.opportunities_by_stage`, `pipeline.partnerships_signed` (V80, §3.7a). Every finance, pipeline and achievement
-measure takes an optional `segment`
-parameter (V64). Person scope on finance measures uses `finance.credit_row` shares. Measures name achievement
-categories by their **code**, which plan copies keep, so an April–March appraisal cycle counts the same category in
-both calendar years' plans.
+maps the dotted key to it — returning `(value, measured, n)` plus a `_items` twin for drill-down; scopes are department,
+team, person, partner): `finance.revenue` · `finance.commercial_revenue` (the setting) · `finance.margin` (says how much
+of the revenue had a cost) · `finance.new_client_revenue` (partners whose first counted unit falls in the period and
+whose `client_since`, if typed, is not earlier) · `finance.collected` · `partner.new_clients` · `perf.achievements`
+(categories as parameters; person scope = owner, or owner and participants) · `perf.kpi_attainment` (params: a KPI
+**code**; value = the KPI's figure over the period ÷ its targets over the same period as of the evaluation date —
+quarter targets pro-rated by the months inside the period; each month read from the plan of its own year, the KPI
+matched by code; for appraisal items tied to a department KPI) · `work.tasks_on_time` · `work.action_items_on_time` ·
+`work.weekly_updates` · `work.meeting_notes_on_time` · `report.on_time` · `work.pipeline_updates` (V63: per person per
+week, task updates + logged calls; a week counts when it reaches the appraisal item's weekly target, default 1) ·
+`partner.calls` (by outcome) · `partner.demos` (V88: calls with outcome demo set or demo held, per person per week) ·
+`partner.at_risk` (partners turned at risk or lost, by reason) · `perf.escalations` (V69) ·
+`pipeline.tenders_submitted`, `pipeline.awarded_value`, `pipeline.tenders_by_stage`, `pipeline.opportunities_by_stage`,
+`pipeline.partnerships_signed` (V80, §3.7a). Every finance, pipeline and achievement measure takes an optional `segment`
+parameter (V64). Person scope on finance measures uses `finance.credit_row` shares. Measures name achievement categories
+by their **code**, which plan copies keep, so an April–March appraisal cycle counts the same category in both calendar
+years' plans.
 
 **Achievements.** Stored as fields and rendered as one line by **one** function, `perf.achievement_line(id, locale)`,
-from the category's line template — the list, the KPI drill-down, the report suggestions and the exports all call it.
-A money-link category ("revenue and bookings") has no amount field: its amount is the sum of the linked invoices' revenue
-from `finance.money_row`, counted once per invoice however many achievements cite it; money KPIs never read
-achievements (a check refuses a `field_sum` mapping of a money or amount field onto a money KPI). No approval step: the owner and
-participants edit their own; a manager (Full on KPIs) corrects, moves or removes anyone's with a required reason. **Moving into the previous period** (V400): a manager or
-admin may set an achievement's `happened_on` back into the previous month or quarter, with a reason; the achievement
-carries a "moved" mark (from, by, why) and the KPIs of both periods update. **Evidence** (V33, V68, V99) is a file or a
+from the category's line template — the list, the KPI drill-down, the report suggestions and the exports all call it. A
+money-link category ("revenue and bookings") has no amount field: its amount is the sum of the linked invoices' revenue
+from `finance.money_row`, counted once per invoice however many achievements cite it; money KPIs never read achievements
+(a check refuses a `field_sum` mapping of a money or amount field onto a money KPI). No approval step: the owner and
+participants edit their own; a manager (Full on KPIs) corrects, moves or removes anyone's with a required reason.
+**Moving into the previous period** (V400): a manager or admin may set an achievement's `happened_on` back into the
+previous month or quarter, with a reason; the achievement carries a "moved" mark (from, by, why) and the KPIs of both
+periods update; re-dating any entry into a month whose report is issued needs a reason and gets the same mark (V459).
+One cut-off decides "on time" for every report: `report.due_day` (V459). **Evidence** (V33, V68, V99) is a file or a
 Direct reference with its link; an achievement with neither is "no evidence yet".
 
 **Starting categories with their own fields** (V66; all settings, as the canvas's KPI artboard; example values in
@@ -1285,24 +1316,27 @@ tests are made up):
   exposure − actual loss), counter-party (partner, or text), story (one line). Typed amounts, never Finance money,
   never feeding a money KPI.
 - **MoU / strategic signing**: counter-party (partner), their signatory and title, our signatory (person), event,
-  signing date, announced (yes / no), government or private. It **never counts as a new client** (`partner.new_clients`
-  reads Finance only); logging it sets the partner to **Prospect** from the signing date unless it is already Active
-  (one request, reason "MoU signed").
+signing date, announced (yes / no), government or private. It **never counts as a new client** (`partner.new_clients`
+reads Finance only); logging it sets the side to **Prospect** from the signing date **only when the side has no status
+yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request, reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
-- **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct ticket
-  number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without it the
-  achievement is not saved), `happened_on` = the **handover to Product** (the ticket raised), which is when it counts;
-  `go_live_on` recorded later on the same achievement and never counted again; a tracked-only KPI follows go-lives.
-- **Supplier cashback** (V90): the supplier (an organisation with the Supplier & partner side on), the amount received (amount — never
-  Finance money, never on a money KPI), the date received (the evidence date: dated by receipt), a reference.
+- **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
+  ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
+it the
+achievement is not saved), `happened_on` = the **handover to Product** (the ticket raised), which is when it counts;
+`go_live_on` recorded later on the same achievement and never counted again; a tracked-only KPI follows go-lives. -
+**Supplier cashback** (V90): the supplier (an organisation with the Supplier & partner side on), the amount received
+(amount — never Finance money, never on a money KPI), the date received (the evidence date: dated by receipt), a
+reference.
 - **Contract signed** (V80): counter-party (partner), the contract (link), signing date, value (amount, optional — not
   revenue), the tender it came from (link, optional). "Government entity contracts" counts these with a
   Government-segment partner, tender or not (`perf.achievements` with the `segment` parameter).
 
-**Challenges** stay open until resolved; their age is computed; a report lists every challenge open at its period's
-end — so they carry over without retyping (§10). A challenge has its own record page (V95, V401: header figures — age,
-escalations, linked tasks; type tab Resolution) and the Escalate action (§3.3). A **critical** challenge records who it was escalated to and when
-(V69); `perf.escalations` counts them for the appraisal item "documenting and escalating critical client feedback".
+**Challenges** stay open until resolved; their age is computed; a report lists every challenge open at its period's end
+— so they carry over without retyping (§10). A challenge has its own record page (V95, V401: header figures — age,
+escalations, linked tasks; type tab Resolution) and the Escalate action (§3.3). A **critical** challenge records who it
+was escalated to and when (V69); `perf.escalations` counts them for the appraisal item "documenting and escalating
+critical client feedback".
 
 **Next-month (and next-quarter) targets.** Writing a target in a report creates a `perf.period_target` **and its task**
 (owner named, due the period's last day, origin `period_target`) in one request. The next report shows each as
@@ -1338,10 +1372,10 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
 ```
 
 - **A draft is live.** Every section is computed when opened: **each KPI's addition this month to its quarter**
-  (`kpi_month_additions` — §3 "the monthly report shows each month's addition"), tiles (the chosen KPIs or measures for the period and
-  the same period last year — "not measured" when last year has no data), achievements by category, challenges open at
-  period end, period targets done/carried, the operational-plan indicators (checklist KPIs: done / carried over),
-  revenue by service. `report.draft_suggestions` lists achievements of the period that no line cites yet.
+(`kpi_month_additions` — §3 "the monthly report shows each month's addition"), tiles (the chosen KPIs or measures for
+the period and the same period last year — "not measured" when last year has no data), achievements by category,
+challenges open at period end, period targets done/carried, the operational-plan indicators (checklist KPIs: done /
+carried over), revenue by service. `report.draft_suggestions` lists achievements of the period that no line cites yet.
 - **The two report kinds** (one tab row on the Reports page: Monthly · Quarterly). The **monthly** template's sections:
   cover · each KPI's addition this month · this month vs the same month last year (tiles) · achievements by category ·
   challenges · next-month targets. The **quarterly** template's: cover · quarter vs the same quarter last year (tiles) ·
@@ -1383,7 +1417,9 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
   `issued_at` (`report.added_since_issue(id)`, each a link) — and the next report's template has the section **"Added
   to earlier periods"** listing them under their real period. The V36 correction stays available when a figure was
   wrong, not merely late.
-- **Live names in frozen reports** (V58). The snapshot freezes figures and wording, but every person or partner in it is
+- **Masked money for readers without Finance** (V458): an issued report's money tiles and money lines are hidden in the
+render for a reader with no View on Finance — the snapshot keeps them; the KPI figures and achievement lines show.
+**Live names in frozen reports** (V58). The snapshot freezes figures and wording, but every person or partner in it is
   an **entity token** (`{{partner:<id>}}`, `{{person:<id>}}`), never a typed name; the line editor inserts tokens when
   an editor picks a partner or a person. On screen, and in a PDF or PPTX rendered at download, tokens show the current
   name. The hash covers the tokens, so a rename never changes it. A test renames a partner and a helper and checks an
@@ -1393,9 +1429,9 @@ report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha
   (a person uploads each PDF with its kind and period; the record has status `legacy`, no snapshot, and is marked
   **Legacy PDF**). The PDFs hold real figures: they live in Storage, never in the repository (rule 7).
 - **Compare** any two periods side by side (V57): tiles and sections aligned by section key, differences highlighted
-  (the delta beside each figure, lines present on one side only marked); a legacy side shows its typed tiles and, per section,
-  "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V73), Bookings, Collections; a
-  **Differences only** switch and **Swap**. The canvas's ReportsArchive artboard is the layout.
+(the delta beside each figure, lines present on one side only marked); a legacy side shows its typed tiles and, per
+section, "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V73), Bookings, Collections; a
+**Differences only** switch and **Swap**. The canvas's ReportsArchive artboard is the layout.
 - **New sections** (V62, V67). **Partners at risk / lost — top reasons** (monthly and quarterly): partners whose status
   turned at risk or lost in the period, grouped by reason with counts, each partner a live-name link. **Cases**
   (quarterly): the achievements flagged "use as example" — one per quarter by default (`report.cases_per_quarter`) —
@@ -1458,8 +1494,9 @@ appraisals (P6-3). Only gaps are filled from the Excel form. After seeding, ever
   `rating` = value ÷ scale max; `pass_fail` = 100 % or 0. The threshold columns (80/90/100/110 %) are shown from the
   target (reversed when lower is better).
 - **Roll-up**: a node's % = Σ(child % × child weight) ÷ Σ child weights, so the form's two ways of writing weights
-  (items summing to their group's weight, or to 100 %) both work; the template editor warns when weights do not add up.
-  Final % = the sections weighted (70/25/5 as seeded from the online tool — whatever the template holds); grade from the cycle's scale.
+(items summing to their group's weight, or to 100 %) both work; the template editor warns when weights do not add up.
+Final % = the sections weighted (70/25/5 as seeded from the online tool — whatever the template holds); grade from the
+cycle's scale.
 - **Self-registration** (V68), before the manager's review: each person sees **my achievements in this cycle** (owned or
   taken part in, evidence date inside the cycle), completes them, and the page flags any without a date or an evidence
   file. For appraisal figures an achievement **without a date or evidence never counts** (stricter than the KPI page,
@@ -1470,6 +1507,10 @@ appraisals (P6-3). Only gaps are filled from the Excel form. After seeding, ever
   → **Locked**. Each step change is logged and notifies the other party (`appraisal_step`).
 - **Lock** (admin, at or after `lock_on`): every actual and % is copied into `locked_*`, final and grade stored — the
   appraisal equivalent of an issued report. Reopening is an admin action with a reason.
+- **Computed for all** (V458): an appraisal's items are computed whatever the reader's level — a person sees their own
+  figures even with no Finance access. **Manager changes and leavers** (V460): a manager change mid-cycle hands the
+  open appraisal to the new manager and drafts move with the person; a leaver's appraisal locks as it is on the
+  leaving date (V452); everyone always sees their own.
 - **Visibility** (RLS, V96): **the person, their direct manager (`core.person.manager_id`) and admins. Nobody else**,
   whatever their page level — and the same three in search, exports, notifications, My day and the change log
   (`api.record_history` and `api.search` apply `authz.can_see_appraisal`). The appraisal lives on the person's record
@@ -1596,12 +1637,12 @@ add up to the total shown; a difference of 1 SAR or more is named as a differenc
 ### 3.13 Indexes and the performance budget
 
 - Match keys: `partner.identifier (kind, value_key) where removed_at is null`; `finance.invoice` on each key column;
-  `finance.expense_line (invoice_id)`; `finance.invoice_line (invoice_id)`; `finance.receipt (invoice_id)`;
-  `finance.billing_link (billing_invoice_id)`; `finance.tax_invoice (parent_invoice_id)`;
-  `partner.side_owner (partner_id, side, effective_from)`; `perf.achievement (plan_id, happened_on)`,
-  `(category_id)`, `(partner_id)`; `work.task (owner_id) where closed_at is null`, `(due_on)`, `(partner_id)`,
-  `(project_id)`; `work.action_item (owner_id) where done_at is null`; `core.note (entity_table, entity_id, created_at)`;
-  `audit.change (table_name, row_id, id desc)`; trigram indexes on `norm.fold(name)` for search.
+`finance.expense_line (invoice_id)`; `finance.invoice_line (invoice_id)`; `finance.receipt (invoice_id)`;
+`finance.billing_link (billing_invoice_id)`; `finance.tax_invoice (parent_invoice_id)`; `partner.side_owner (partner_id,
+side, effective_from)`; `perf.achievement (plan_id, happened_on)`, `(category_id)`, `(partner_id)`; `work.task
+(owner_id) where closed_at is null`, `(due_on)`, `(partner_id)`, `(project_id)`; `work.action_item (owner_id) where
+done_at is null`; `core.note (entity_table, entity_id, created_at)`; `audit.change (table_name, row_id, id desc)`;
+trigram indexes on `norm.fold(name)` for search.
 - RLS helpers are `stable` and called as `(select authz.level('x'))` so they run once per statement.
 - **Budget, measured on the stress fixture** (made-up: 2,000 partners, 10,000 identifiers, 60,000 invoices, 150,000
   invoice lines, 180,000 expense lines, 5,000 tasks, 3,000 achievements): partner card ≤ 300 ms, KPI page ≤ 500 ms,
@@ -1644,18 +1685,19 @@ email sender ever exists (V24, deferred). Google (`@directksa.com`) and Zoom (`@
 shortcuts for later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person record**; a
 door never creates a person.
 
-**The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a
-**brand panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo
-and, under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق
-السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the Design lead session (V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
-التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — "Work email", "Password", **Sign in**,
-and under the form **"Forgot your password? Ask your admin."** (plain text, never a link). With the code door switched on,
-the form is V59's instead: "Work email", **Send code**; "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change",
-six digit boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59).
-Every refusal is one plain line in red: "Wrong email or password" (one line for both — the page never says which),
-"This email is not on the list — ask an admin", "Your account is switched off", "The code has expired — send a new
-one". **A first sign-in, or the first after a reset, goes to "Choose a new password"** before anything else: the new
-password twice, at least 10 characters, **Save** — the shell is not drawn until it is saved.
+**The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a **brand
+panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo and,
+under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق السفر
+الشامل». On a phone the panel collapses to a top band. The artwork comes from the Design lead session (V82). **The page
+says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل التجارية**; an **EN | ع** language
+toggle; **© Direct**; and the form's own words — "Work email", "Password", **Sign in**, and under the form **"Forgot
+your password? Ask your admin."** (plain text, never a link). With the code door switched on, the form is V59's instead:
+"Work email", **Send code**; "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change", six digit boxes, **Verify**,
+"Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59). Every refusal is one plain line
+in red: "Wrong email or password" (one line for both — the page never says which), "This email is not on the list — ask
+an admin", "Your account is switched off", "The code has expired — send a new one". **A first sign-in, or the first
+after a reset, goes to "Choose a new password"** before anything else: the new password twice, at least 10 characters,
+**Save** — the shell is not drawn until it is saved.
 
 **Keeping people signed in** (V74):
 
@@ -1675,8 +1717,8 @@ core.device_session  id; person_id; auth_session_id uuid unique (the Supabase se
   `authz.me()` refuses at once, before the short-lived access token expires. (Supabase's refresh tokens do not expire
   on the free plan; the idle rule is the app's.)
 
-**No mail is sent** (V431). The mail sender (V24) is needed only if the code door is ever switched on; until then nothing
-in the app sends email, and staging needs no sender at all.
+**No mail is sent** (V431). The mail sender (V24) is needed only if the code door is ever switched on; until then
+nothing in the app sends email, and staging needs no sender at all.
 
 **View as** (V442 — the oversight's proposal, recorded; the owner may veto). An admin can preview the app **as any
 person, read-only**: a server route (`/auth/view-as/start`, admins only, while `auth.view_as_enabled` is on) mints a
@@ -1685,17 +1727,19 @@ short-lived **signed claim** — `view_as` = the person, `view_as_by` = the admi
 V96, V143), so the admin sees exactly what they see; **every write door refuses** while the claim is present
 (`auth.view_as_read_only`, checked once in `authz`, so no door can forget it); a clear banner **"Viewing as X —
 read-only"** with **Exit** on every page; every start and stop is logged (`view_as_start`, `view_as_stop`) in the
-settings/access log; the claim dies with Exit or the admin's session. The setting `auth.view_as_enabled` is on until
-go-live and **off at go-live**. Builder A: the claim, the refusal, tests and sabotages (P3-15); builder B: the banner,
-the View as action on a person's record, Exit (P3-16).
+settings/access log; the claim dies with Exit or the admin's session. While viewing as, **nothing is written at all** —
+not even the viewed person's bookkeeping (last seen, read marks); only **switched-on staff and the test account** can be
+viewed — never an admin, never the admin account — and the viewed person's **private My day notes stay hidden** (V453,
+V454). The setting `auth.view_as_enabled` is on until go-live and **off at go-live**. Builder A: the claim, the refusal,
+tests and sabotages (P3-15); builder B: the banner, the View as action on a person's record, Exit (P3-16).
 
-**Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's chrome or
-wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" (a check scans the message catalogs and the
-page templates). **The banned words cover data labels too** (V404): seed lists, settings defaults and the values admins
-type into a list — the segment is **Government**, with no abbreviation after it; the check scans the seeds and the
-defaults, and the list editor refuses a value carrying a banned word, naming it. Codes are IDs, not labels (a KPI code
-copied from the strategy sheet stays as the sheet writes it). The logo is the official file (slate wordmark on light,
-white wordmark on dark or slate), never recoloured.
+**Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's chrome
+or wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" (a check scans the message catalogs and
+the page templates). **The banned words cover data labels too** (V404): seed lists, settings defaults and the values
+admins type into a list — the segment is **Government**, with no abbreviation after it; the check scans the seeds and
+the defaults, and the list editor refuses a value carrying a banned word, naming it. Codes are IDs, not labels (a KPI
+code copied from the strategy sheet stays as the sheet writes it). The logo is the official file (slate wordmark on
+light, white wordmark on dark or slate), never recoloured.
 
 **One person, several emails.**
 
@@ -1721,19 +1765,19 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
    door's `signInWithOtp` path stays in the code behind `auth.code_door_enabled`. An auth user can exist only because an
    admin created the person.
 2. **Generating a temporary password** (Settings → People — admins only, V97, V138; V441): **nobody types a password
-   for someone else**. **Generate temporary password** on a person: a server-only route handler, after checking through
-   `api.me()` that the caller is an admin, makes a random password of 14 characters or more, creates the auth user for
-   the allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) **only
-   when no auth user holds that email**; when one exists (V451: the owner's three accounts were made in the Supabase
-   dashboard), it **links** `core.person_auth` to it and never creates a second. **Replacing** an existing auth user's
-   password (`auth.admin.updateUserById`) is a separate **Reset** that names the person and asks the admin to confirm —
-   never silent, never part of a bulk run; it sets `must_change_password`, signs **every device out** (V74) and logs
-   `password_generated`. Every generate returns the password **once** — shown with a **Copy** button, never stored by
-   the app, never mailed, never logged. **Generate for everyone without a password**: the same, for every allowed
-   person **with no auth user yet**, in one request — one list shown once to copy, one log line per person; an
-   account that already has a password is skipped and listed as such. The dashboard-made accounts keep
-   `must_change_password` off until the pre-go-live change (V446, V451). One auth user per allowed email; all of a
-   person's auth users point to the same person.
+for someone else**. **Generate temporary password** on a person: a server-only route handler, after checking through
+`api.me()` that the caller is an admin, makes a random password of 14 characters or more, creates the auth user for the
+allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) **only when none
+holds that email**; when one exists (V451: the owner's three accounts were made in the Supabase dashboard), it **links**
+`core.person_auth` to it and never creates a second. **Replacing** an existing auth user's password
+(`auth.admin.updateUserById`) is a separate **Reset** that names the person and asks the admin to confirm — never
+silent, never part of a bulk run; it sets `must_change_password`, signs **every device out** (V74) and logs
+`password_generated`. Every generate returns the password **once** — shown with a **Copy** button, never stored by the
+app, never mailed, never logged. **Generate for everyone without a password**: the same, for every allowed person
+**without a password** (an auth user with no password set yet — `password_set_at` null), in one request — one list shown
+once to copy, one log line per person; an account that already has a password is skipped and listed as such. The
+dashboard-made accounts keep `must_change_password` off until the pre-go-live change (V446, V451). One auth user per
+allowed email; all of a person's auth users point to the same person.
 3. **Password — the door**: `api.sign_in_check` first (allowed / not_listed / switched_off — a refusal is logged and
    shown before any password is checked; V116), then `signInWithPassword({ email, password })`, then
    `api.sign_in_complete` as the new session (device registered, `ok` logged) — or the session is ended at once. A
@@ -1782,8 +1826,9 @@ optional: the Google and Zoom keys (steps 1–2, V23) and, only if the code door
 (step 3, V24):
 
 1. **Google** (Workspace admin): Google Cloud console → a project → OAuth consent screen *Internal* → Credentials →
-   OAuth client ID, type *Web application* → authorised redirect URI `https://<new-project-ref>.supabase.co/auth/v1/callback`
-   → hand over the client ID and secret privately (they go into Supabase → Authentication → Providers → Google).
+OAuth client ID, type *Web application* → authorised redirect URI
+`https://<new-project-ref>.supabase.co/auth/v1/callback` → hand over the client ID and secret privately (they go into
+Supabase → Authentication → Providers → Google).
 2. **Zoom** (Zoom account admin): marketplace.zoom.us → Develop → Build App → *General app* (OAuth), not published
    (only Direct's Zoom account can use it) → redirect URL and allow-list the same callback address → scope
    `user:read` → hand over the client ID and secret privately (Supabase → Providers → Zoom).
@@ -1851,8 +1896,8 @@ Common to every area: list + 480 px detail panel, own URL per record, chips with
 row at most inside a detail, `<DataState>` everywhere, Undo on every toast, removal through the D19 box. Every record
 page is the one template of V95 — header with up to five figures and the main actions, tabs Overview · Activity ·
 Related · one type tab, a details rail — with empty fields behind "+ Add", "Show all" on long histories, and every
-record opening full page (V81). Exports are unchanged for now — a data export on every list, the designed monthly and quarterly
-reports — and revisited later (V83).
+record opening full page (V81). Exports are unchanged for now — a data export on every list, the designed monthly and
+quarterly reports — and revisited later (V83).
 
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
@@ -1895,7 +1940,7 @@ first-class, fast screen, built for someone copying from a Payments page:
   Payments reference, status, created and paid dates, total; the **customer as Payments shows it** (client ID, name,
   email) with the **partner match shown live** beside it (§3.5). No match → the typist **may** pick the partner
   (an entry pin, §3.5) or leave it for **Needs a decision**; either way the clue is suggested as an identifier, and
-  once someone with `partners.identify` accepts it, the next invoice matches by itself.
+  once someone with the side's identify capability (V147) accepts it, the next invoice matches by itself.
 - **Lines** grid (product from the product list, item name, quantity, price, total) — keyboard-first, and a block
   pasted from Payments (tab-separated) fills it.
 - **Expenses** grid on transactions and standalone invoices (type, amount, status, merchant, reference, dates).
@@ -1909,11 +1954,12 @@ first-class, fast screen, built for someone copying from a Payments page:
   `source = 'manual'`.
 
 **Later phase (P7): imports.** The framework of §3.11 with the Payments exports (all-invoices, Transaction Expense,
-Expense Invoice, Revenue Report, corporate clients, promo codes) and, where the export lacks the consolidation link,
-a reader for the Payments page data (the invoice view's JSON, in `history.state.page`, carries the expenses, the child
+Expense Invoice, Revenue Report, corporate clients, promo codes) and, where the export lacks the consolidation link, a
+reader for the Payments page data (the invoice view's JSON, in `history.state.page`, carries the expenses, the child
 DPIN, `consolidated_proforma_id` and `b2b_transaction_status`; the expense report filters by `invoice_id`) — captured
 in-page by a person, 10–25 rows a page, never the sync export (DP1, DP2). Imports fill blanks and never touch a
-hand-entered row (D21); differences are listed for a person, who may adopt the row so imports keep it current (§3.6, V50).
+hand-entered row (D21); differences are listed for a person, who may adopt the row so imports keep it current (§3.6,
+V50).
 
 ---
 
@@ -1925,11 +1971,11 @@ Roles only set starting levels (D2); every cell can be changed per person. "✓"
 |---|---|---|---|---|---|
 | My day | Full | Full | Full | Own | View |
 | Clients, and Suppliers & partners (details, contacts, notes, files — D7 "helpers, not locks"; V26, V98) | Full | Full | Full | Full | View |
-| · change identifiers, decide matches (`partners.identify`) | ✓ | ✓ | ✓ | – | – |
-| · merge organisations (`partners.merge`) | ✓ | ✓ | – | – | – |
-| · set a side's status, bulk-assign owner and priority where no revenue is counted (`partners.assign` — V63) | ✓ | ✓ | ✓ | – | – |
+| · change identifiers, decide matches (`clients.identify` for client IDs and codes; otherwise the identify capability of a side that is on — V147) | ✓ | ✓ | ✓ | – | – |
+| · merge organisations (the merge capability of a side the kept organisation has on: `clients.merge` / `suppliers_partners.merge` — V147) | ✓ | ✓ | – | – | – |
+| · set a side's status, bulk-assign owner and priority where no revenue is counted (`clients.assign` / `suppliers_partners.assign` — V63, V147; where revenue exists the owner change stays with the head and admins — V26) | ✓ | ✓ | ✓ | – | – |
 | · credit limits and Sent to legal (`finance.credit_control` — V70) | ✓ | ✓ | – | – | – |
-| · sign a person out of every device (`org.sign_out` — V74) | ✓ | – | – | – | – |
+| · sign a person out of every device (admins only by role — V74, V138; no capability) | ✓ | – | – | – | – |
 | Finance (Own = enter invoices and edit your own entries — owner decision 4) | Full | Full | Full | Own | View |
 | · import files (`finance.import`, from P7) | ✓ | ✓ | – | – | – |
 | · split or reassign credit (`finance.credit`) | ✓ | ✓ | ✓ | – | – |
@@ -2011,54 +2057,63 @@ changed it and when, and chooses).
 
 ### 9.3 Other suites (IDs are prefixes; each has its sabotage)
 
-`ACC-*` access attacks (§5) · `GRANTS-*` · `CONC-*` optimistic concurrency · `UNDO-*` (per field, all-or-nothing,
-redo, import undo) · `NORM-*` (folding table: every Arabic form, digits, stop words, phones with `00966`/`0966`/`+966`,
-L.L.C.) and `NORM-DRIFT` · `IDN-*` (ported IDN-01…14, now against the live view; V411 a closed client ID keeps its past rows; V422 one open prepaid and one open postpaid) · `MATCH-*` (V420: an unknown client ID stops in Needs a decision and never falls through; V421: a name never matches by itself) · `FIN-*` (ported D1/D21 tests: statuses, top-ups, billing invoices never revenue, collections on billing invoices, expenses refused on billing invoices, exclusions win, credit notes never count nor reduce revenue, a split receipt adds up, Loss flagged, VAT never stored) · `CHK-*` (the reconciliation and cost status of §3.6) · `COST-*` (ported
-COST-01…11, P7) · `CP-*` (ported clients/promo, P7) · `D24-*` (income by service adds up to the revenue tile) · `IMP-*` (P7: any
-order, newer wins per field, blank never wipes, same file twice, resume after a stopped chunk, held rows listed) ·
-`KPI-*` (sources, aggregation, cumulative pace, not measured ≠ 0, effective-dated targets and mappings) · `RPT-*`
-(snapshot frozen, drift, correction numbering, legacy PDFs in the archive, compare aligns sections and marks
-differences, entity tokens render live) · `PRT-*` (sides — V98: the Finance tab only with the Client side on; each side's status; the one status chip picks the most urgent flag; period switch totals equal Finance for the same filters; the Finance deep link
-reproduces the card's figures) · `CTR-*` (contract status Active / Expires in N days / Expired / Not started at the
-boundaries, from 30 days; a reminder on each of 60 · 30 · 7 days, none when the contract's switch is off, its own
-days when set; the first reminder makes one renewal task; terms before → after compute their difference and link their
-achievement) · `ALR-*` (each alert fires once per day per person, links to its record,
-respects its setting; snooze hides until the time) · `FILE-*` (the display name follows the pattern and the linked
-records live; a rename renames; the download carries it; unsafe characters replaced) · `VIEW-*` (saved views personal
-and shared, restored from the URL) · `BULK-*` (one request, one Undo) · `DEV-*` (V74: idle 30 days → new code; per-device and admin sign-out refuse the next request) · `NAME-*` (V77: the
-trade name shows everywhere; the official name on a contract file and a tender; editing a name re-points its identifier in
-one request) · `ARB-*` (V76: a list entry without its Arabic label is refused; a category's Arabic template drafts the
-line; the Translate button is absent when the browser has no Translator API) · `RLINE-*` (V79: an achievement typed in a
-report exists once, marked added from report, and counts once; a note line with a money figure is refused and never
-counts) · `PVIEW-*` (V78: the KPI chip keeps exactly the partners in the KPI's drill-down for the period; a saved
-combination reopens from its URL; each person's default view) · `PAY-*` (V87: an invoice with a postpaid client ID shows postpaid, one with only a code shows code; the chip's counts add
-up to the list) · `CALL-*` (V88: demo set and demo held counted once per person per week) · `CRL-*` (V92: a limit of 0
-shows Prepaid only and needs its approver) · `LOAD-*` (V91: team load equals the person's open tasks and partners) ·
-`KRD-*` (V93: only a lead or a manager writes a reading; the check-in alert fires once on the day for a lead with no
-reading) · `PIPE-*` (V80, V99: stage history; a Source required; reasons for Lost;
-Onboarded switches the side on and sets Active with one Undo; a skipped optional Proposal is not recorded; the measures
-by period and segment) · `SIDE-*` (V98: a client ID or code refused on an organisation without the Client side; both
-sides on, two statuses, the worse chip; a supplier gaining the Client side keeps its history; the conversion of P3-8a's
-roles loses no organisation, identifier, owner or status) · `DATE-*` (V400: `happened_on` never after the logged day;
-periods, task time and the on-time measures read `happened_on`; a past-dated entry raises no notice or flag; "logged late"
-only after `app.go_live_on` and only past `work.late_days`; a backfill entry is never late) · `ACT-*` (V401: an activity
-with a next step makes one task; stale after 21 days without either; demo outcomes counted) · `STEP-*` (V401: the four
-appraisal steps in order; the manager's draft invisible to the person until Shared) · `VIS-*` (V96: an appraisal absent
-from search, exports, notifications, My day and history for everyone but the three) · `SETS-*` (V97: a value in use
-cannot be hard-deleted; retire-and-replace re-points every record in one request with the count; the impact preview
-changes nothing; a seed never overwrites an edit; Revert works past the Undo window; a non-admin has no Settings page) · `PST-*` (V62: status history read as of a date; at risk and lost need a reason; the at-risk chip; the report section's
-counts by reason) · `PROS-*` (V63: bulk assign is one request and one Undo; a manager cannot reassign a partner with
-revenue; Log activity on an organisation with no task lands on its Activity tab; the week's pipeline count feeds the appraisal item) ·
-`SEG-*` (V64: invoice → project → partner resolution; revenue by segment adds up to the revenue tile) · `CODE-*` (V65:
-terms with history; a second live code refused without a reason; a campaign code's invoices credited to nobody and
-listed apart; sales by code adds up) · `ACH-*` (V66: avoided = exposure − actual loss; an amount field mapped onto a
-money KPI is refused; an MoU never counts as a new client and sets the partner to Prospect unless Active) · `CHL-*`
-(V69: an escalated critical challenge is counted once) · `PFN-*` (V70: the limit in force as of a date; wallet balance =
-top-ups − consumption; Sent to legal stays in outstanding) · `SRCH-*` (V67: a word in an issued line is found; a
-partner renamed after issue is found by its new name) · `APR-*` (self-registration flags; an undated or evidence-less
-achievement never counts in appraisal while counting flagged on the KPI page — V68; scoring against a hand-computed copy of the official form's
-maths, weights both ways, cap, lock) · `PERF-*` · `UI-*` (every page in Light/Dark/Colorful/Direct, both densities, at 400 px / 1,500 px; no hint or banner component; every entity a link;
-`dir="rtl"` with pseudo-Arabic has no physical-direction leaks; every string comes from the catalog).
+`ACC-*` access attacks (§5) · `GRANTS-*` · `CONC-*` optimistic concurrency · `UNDO-*` (per field, all-or-nothing, redo,
+import undo) · `NORM-*` (folding table: every Arabic form, digits, stop words, phones with `00966`/`0966`/`+966`,
+L.L.C.) and `NORM-DRIFT` · `IDN-*` (ported IDN-01…14, now against the live view; V411 a closed client ID keeps its past
+rows; V422 one open prepaid and one open postpaid) · `MATCH-*` (V420: an unknown client ID stops in Needs a decision and
+never falls through; V421: a name never matches by itself) · `FIN-*` (ported D1/D21 tests: statuses, top-ups, billing
+invoices never revenue, collections on billing invoices, expenses refused on billing invoices, exclusions win, credit
+notes never count nor reduce revenue, a split receipt adds up, Loss flagged, VAT never stored) · `CHK-*` (the
+reconciliation and cost status of §3.6) · `COST-*` (ported COST-01…11, P7) · `CP-*` (ported clients/promo, P7) · `D24-*`
+(income by service adds up to the revenue tile) · `IMP-*` (P7: any order, newer wins per field, blank never wipes, same
+file twice, resume after a stopped chunk, held rows listed) · `KPI-*` (sources, aggregation, cumulative pace, not
+measured ≠ 0, effective-dated targets and mappings) · `RPT-*` (snapshot frozen, drift, correction numbering, legacy PDFs
+in the archive, compare aligns sections and marks differences, entity tokens render live) · `PRT-*` (sides — V98: the
+Finance tab only with the Client side on; each side's status; the one status chip picks the most urgent flag; period
+switch totals equal Finance for the same filters; the Finance deep link reproduces the card's figures) · `CTR-*`
+(contract status Active / Expires in N days / Expired / Not started at the boundaries, from 30 days; a reminder on each
+of 60 · 30 · 7 days, none when the contract's switch is off, its own days when set; the first reminder makes one renewal
+task; terms before → after compute their difference and link their achievement) · `ALR-*` (each alert fires once per day
+per person, links to its record, respects its setting; snooze hides until the time) · `FILE-*` (the display name follows
+the pattern and the linked records live; a rename renames; the download carries it; unsafe characters replaced) ·
+`VIEW-*` (saved views personal and shared, restored from the URL) · `BULK-*` (one request, one Undo) · `DEV-*` (V74:
+idle 30 days → new code; per-device and admin sign-out refuse the next request) · `NAME-*` (V77: the trade name shows
+everywhere; the official name on a contract file and a tender; editing a name re-points its identifier in one request) ·
+`ARB-*` (V76: a list entry without its Arabic label is refused; a category's Arabic template drafts the line; the
+Translate button is absent when the browser has no Translator API) · `RLINE-*` (V79: an achievement typed in a report
+exists once, marked added from report, and counts once; a note line with a money figure is refused and never counts) ·
+`PVIEW-*` (V78: the KPI chip keeps exactly the partners in the KPI's drill-down for the period; a saved combination
+reopens from its URL; each person's default view) · `PAY-*` (V87: an invoice with a postpaid client ID shows postpaid,
+one with only a code shows code; the chip's counts add up to the list) · `CALL-*` (V88: demo set and demo held counted
+once per person per week) · `CRL-*` (V92: a limit of 0 shows Prepaid only and needs its approver) · `LOAD-*` (V91: team
+load equals the person's open tasks and partners) · `KRD-*` (V93: only a lead or a manager writes a reading; the
+check-in alert fires once on the day for a lead with no reading) · `PIPE-*` (V80, V99: stage history; a Source required;
+reasons for Lost; Onboarded switches the side on and sets Active with one Undo; a skipped optional Proposal is not
+recorded; the measures by period and segment) · `SIDE-*` (V98: a client ID or code refused on an organisation without
+the Client side; both sides on, two statuses, the worse chip; a supplier gaining the Client side keeps its history; the
+conversion of P3-8a's roles loses no organisation, identifier, owner or status) · `DATE-*` (V400: `happened_on` never
+after the logged day; periods, task time and the on-time measures read `happened_on`; a past-dated entry raises no
+notice or flag; "logged late" only after `app.go_live_on` and only past `work.late_days`; a backfill entry is never
+late) · `ACT-*` (V401: an activity with a next step makes one task; stale after 21 days without either; demo outcomes
+counted) · `STEP-*` (V401: the four appraisal steps in order; the manager's draft invisible to the person until Shared)
+· `VIS-*` (V96: an appraisal absent from search, exports, notifications, My day and history for everyone but the three)
+· `SETS-*` (V97: a value in use cannot be hard-deleted; retire-and-replace re-points every record in one request with
+the count; the impact preview changes nothing; a seed never overwrites an edit; Revert works past the Undo window; a
+non-admin has no Settings page) · `PST-*` (V62: status history read as of a date; at risk and lost need a reason; the
+at-risk chip; the report section's counts by reason) · `PROS-*` (V63: bulk assign is one request and one Undo; a manager
+cannot reassign a partner with revenue; Log activity on an organisation with no task lands on its Activity tab; the
+week's pipeline count feeds the appraisal item) · `SEG-*` (V64: invoice → project → partner resolution; revenue by
+segment adds up to the revenue tile) · `CODE-*` (V65: terms with history; a second live code refused without a reason; a
+campaign code's invoices credited to nobody and listed apart; sales by code adds up) · `ACH-*` (V66: avoided = exposure
+− actual loss; an amount field mapped onto a money KPI is refused; an MoU never counts as a new client and sets the
+partner to Prospect unless Active) · `CHL-*` (V69: an escalated critical challenge is counted once) · `PFN-*` (V70: the
+limit in force as of a date; wallet balance = top-ups − consumption; Sent to legal stays in outstanding) · `SRCH-*`
+(V67: a word in an issued line is found; a partner renamed after issue is found by its new name) · `APR-*`
+(self-registration flags; an undated or evidence-less achievement never counts in appraisal while counting flagged on
+the KPI page — V68; scoring against a hand-computed copy of the official form's maths, weights both ways, cap, lock) ·
+`PERF-*` · `UI-*` (every page in Light/Dark/Colorful/Direct, both densities, at 400 px / 1,500 px; no hint or banner
+component; every entity a link; `dir="rtl"` with pseudo-Arabic has no physical-direction leaks; every string comes from
+the catalog).
 
 ### 9.4 Definition of done for any PR
 
@@ -2105,10 +2160,10 @@ harmless and costs nothing (until the free plan's daily quota); disconnecting or
 call (V427: Vercel settings are the owner's).
 
 **Order of steps:** (1) done 28 Sep — `direct-business` paused, `direct-commercial` created in Supabase and Vercel
-(V84); (2) the owner pastes the keys into Vercel; (3) builder A applies the first migrations (P3-1) and ships the sign-in
-page (P3-2) to `v2/main`; (4) **done 29 Sep 13:52** — the domain moved to `direct-commercial` and the Auth site URL /
-redirect URLs list it (V432); (5) no mail sender while the door is a password (V431); later the Google and Zoom keys;
-(6) at go-live: backups (V22), the reset, the staged pilot.
+(V84); (2) the owner pastes the keys into Vercel; (3) builder A applies the first migrations (P3-1) and ships the
+sign-in page (P3-2) to `v2/main`; (4) **done 29 Sep 13:52** — the domain moved to `direct-commercial` and the Auth site
+URL / redirect URLs list it (V432); (5) no mail sender while the door is a password (V431); later the Google and Zoom
+keys; (6) at go-live: backups (V22), the reset, the staged pilot.
 
 Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
 pastes keys into Vercel** (V84); builders never see the service key. **The Vercel project's settings are changed by the
@@ -2143,7 +2198,7 @@ invoices in the browser; imports follow later. All data in the old app is test d
 
 | What | How | Proof |
 |---|---|---|
-| People, teams, roles, allowed emails | Typed in Settings | every person signs in with the emailed code (V59) |
+| People, teams, roles, allowed emails | Typed in Settings → People by the oversight (V440) | every person signs in with email + password (V431) |
 | Plan 2026 (objectives, KPIs, targets, categories) | Typed in Settings from the Departmental KPIs sheet | the KPI sheet export matches the strategy team's sheet cell for cell |
 | Appraisal templates, grade scale, points tables | Seeded **from the online appraisal tool** (it wins over the Excel form; gaps filled from the form — owner decision 2) from an export of its data the owner hands over (rule 8), kept out of the repo (rule 7) and loaded by a person through the importer; then edited as settings | every template's weights, bands and items equal the tool's |
 | Past appraisals | the same export, imported as `appraisal.legacy` (read-only, labelled legacy — 08 A14) | row count per person and cycle |
@@ -2189,9 +2244,9 @@ Supabase allows.
 | `csvGuard`, one search haystack, Arabic/phone search folding | CP5, M38, M64 | `core/export`, `api.search`, `norm.*` | — |
 
 **Old rules that stay binding in v2** (cite them in code as today): P1, P5, P6 · D7 (undo, owner told) · D9 (test data,
-reset only on the owner's word) · D16 · D17 · D19 · D20 · D21 · D23 · D24 · D25 · D26 · M1 · MF1, MF5, MF7–MF11 ·
-M27, M39, M48, M52, M53, M60 · CP5 · DP4 (rule 7). **Not carried** (they describe the old code): the `js/NN` layer rules,
+reset only on the owner's word) · D16 · D17 · D19 · D20 · D21 · D23 · D24 · D25 · D26 · M1 · MF1, MF5, MF7–MF11 · M27,
+M39, M48, M52, M53, M60 · CP5 · DP4 (rule 7). **Not carried** (they describe the old code): the `js/NN` layer rules,
 `app_state`, the mock, the js/21 dictionary, passwords (D15, CP6), DirectFont (D4 — replaced by the v2 design), the
-Finance role floors (replaced by capabilities). v2's own decisions start a new file, `docs/v2/DECISIONS.md`, with the
-ID ranges of A18. **MF10 is read in v2 as "only paid units count"** (V418): the unit is the transaction (V1), and MF10's
+Finance role floors (replaced by capabilities). v2's own decisions start a new file, `docs/v2/DECISIONS.md`, with the ID
+ranges of A18. **MF10 is read in v2 as "only paid units count"** (V418): the unit is the transaction (V1), and MF10's
 done-but-uninvoiced split is the Finance overview's "Not yet invoiced: Ready / Pending" line (V424), never in revenue.
