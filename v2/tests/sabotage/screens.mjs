@@ -331,4 +331,77 @@ export const sabotages = [
       },
     ],
   },
+  // ---- the QA fixes on #92 (My profile reachable, failed reads named, only changed fields sent, Undo resyncs)
+  {
+    name: 'profile-chip-leads-nowhere',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the chip opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/ProfileMenu.tsx',
+        find: '<Link href="/profile">',
+        replace: '<Link href="/settings/profile">',
+      },
+    ],
+  },
+  {
+    name: 'profile-keeps-the-undone-value',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the undone value is gone from the screen',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '  if (me !== seenMe) {\n    setSeenMe(me);\n    setState(stateOf(me));\n  }\n',
+        replace: '  void seenMe;\n  void setSeenMe;\n',
+      },
+    ],
+  },
+  {
+    name: 'profile-keeps-the-undone-theme',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the undone theme is gone from the page',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'person-edit-sends-every-field',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'only the changed fields are sent',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '      if (next === stored[k]) continue;\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'person-edit-starts-from-a-stale-copy',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'the form shows the stored value',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '    setF(stored);\n    setFormVersion(row?.version ?? null);\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'failed-read-drawn-as-no-access',
+    breaks: ['unit:tests/unit/org/a-failed-read-is-named-never-drawn-empty.test.ts'],
+    expect: 'names a read that failed',
+    edits: [
+      {
+        file: 'src/modules/org/read-or-fail.ts',
+        find: "    if (kind !== 'PermissionDenied') failed.push(name);\n",
+        replace: '',
+      },
+    ],
+  },
 ];

@@ -506,7 +506,9 @@
       "alert_contract_expiring": "A contract is expiring",
       "alert_kpi_behind": "A KPI is behind pace",
       "alert_invoice_unpaid": "An invoice is unpaid",
-      "alert_kpi_checkin": "KPI check-in day"
+      "alert_kpi_checkin": "KPI check-in day",
+      "alert_activity_stale": "A partner has gone quiet",
+      "alert_file_review": "A file waits for review"
     },
     "devices": {
       "label": "Device",

@@ -137,6 +137,18 @@ identical before and after); the QA login is `test@directksa.com`; staff passwor
 - Multi-step work lives in committed scripts (`scripts/…`, `v2/scripts/…`) and is run by path.
 - `.claude/settings.json` holds the allow list; builder B keeps it and this section in step with the plan's
   "Working rules".
+- **The shell guard** (`.claude/hooks/bash-guard.mjs`, QA on #110, 29 Sep 17:20) reads the WHOLE of every Bash command,
+  whatever the allow list matched at its start: it **denies** `supabase db reset --linked`, `db push`, `link` and
+  `projects delete`; it **asks** before `--force`/`-f`, a `+refspec`, `--delete` or a `:branch` refspec on a push,
+  `branch -D`, `reset --hard`, `clean`, `checkout -- <path>`, `restore`, `worktree remove`, `stash drop`, `rm -r`
+  outside /tmp, `find … -delete` / `-exec rm`, `xargs rm`, `npx`, `pnpm dlx/add/install <pkg>`, `docker run/pull`,
+  `curl`/`wget` piped anywhere, `git push --mirror/--prune/--all`, and any push naming `v2/main`, another lane's branch
+  or a raw ref — with or without `-C <dir>`, first flag or last. What it cannot read it asks too (QA-114): a command
+  inside `$( )` or backticks, inline code for an interpreter (`node -e`, `python3 -c`, `bash -c`, `sh -c`) and a script
+  fed on stdin (`python3 - <<EOF`). Pushes are allowed only as explicit, non-forced `git push [-q] [-u] origin v2/b-…`
+  (this lane's own branches; the old app's `claude/…` work branches likewise); `node`/`python3` only on scripts in the
+  repo; `pnpm`, `supabase`, `docker` and `find` only in their named forms. Proof:
+  `v2/tests/unit/guard/the-shell-guard-asks-before-force-and-production.test.ts` (every string the QA named).
 
 ## What this project is
 

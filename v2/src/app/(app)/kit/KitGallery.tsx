@@ -152,7 +152,7 @@ export function KitGallery() {
         accessorKey: 'owner',
         header: 'Owner',
         enableSorting: false,
-        cell: ({ row }) => <PersonChip person={row.original.owner} href="/settings/profile" />,
+        cell: ({ row }) => <PersonChip person={row.original.owner} href="/profile" />,
       },
       {
         accessorKey: 'amount',
@@ -299,7 +299,7 @@ export function KitGallery() {
               INV-T-0204
             </EntityLink>
             , chased by{' '}
-            <EntityLink kind="person" href="/settings/profile">
+            <EntityLink kind="person" href="/profile">
               Test Person
             </EntityLink>{' '}
             in{' '}
@@ -347,10 +347,10 @@ export function KitGallery() {
             <Avatar person={people[2]!} size="lg" />
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <PersonChip person={people[0]!} href="/settings/profile" />
-            <PersonChip person={people[1]!} href="/settings/profile" size="md" />
-            <AvatarStack owner={people[0]!} helpers={people.slice(1)} hrefOf={() => '/settings/profile'} />
-            <AvatarStack owner={people[1]!} helpers={[people[2]!]} hrefOf={() => '/settings/profile'} size="xs" />
+            <PersonChip person={people[0]!} href="/profile" />
+            <PersonChip person={people[1]!} href="/profile" size="md" />
+            <AvatarStack owner={people[0]!} helpers={people.slice(1)} hrefOf={() => '/profile'} />
+            <AvatarStack owner={people[1]!} helpers={[people[2]!]} hrefOf={() => '/profile'} size="xs" />
           </div>
         </Section>
 
@@ -506,7 +506,7 @@ export function KitGallery() {
             </dd>
             <dt>Owner</dt>
             <dd>
-              <PersonChip person={selected.owner} href="/settings/profile" />
+              <PersonChip person={selected.owner} href="/profile" />
             </dd>
           </dl>
         ) : null}
