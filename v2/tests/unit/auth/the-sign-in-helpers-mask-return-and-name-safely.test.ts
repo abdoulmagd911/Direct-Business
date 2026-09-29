@@ -52,7 +52,7 @@ describe('the sign-in helpers mask, return and name safely', () => {
       kind: 'RuleBroken',
       key: 'person.manager_cycle',
     });
-    expect(toDbError({ code: '23505', message: 'person_email.taken' })).toMatchObject({ kind: 'RuleBroken' });
+    expect(toDbError({ code: '23505', message: 'people.email_taken' })).toMatchObject({ kind: 'RuleBroken' });
     expect(toDbError({ code: 'P0002', message: 'common.not_found' })).toMatchObject({ kind: 'NotFound' });
     expect(toDbError({ code: '42501', message: 'permission denied for schema api' })).toMatchObject({
       kind: 'PermissionDenied',

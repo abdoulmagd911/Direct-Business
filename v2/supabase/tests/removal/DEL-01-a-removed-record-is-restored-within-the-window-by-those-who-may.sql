@@ -84,8 +84,19 @@ insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.am1')::uuid, 'pipeline', 'view', 'made up: a level to remove');
 select set_config('t.lvl', (select id::text from core.person_page_level
                             where person_id = current_setting('t.am1')::uuid and page_key = 'pipeline'), true);
+-- removed as a person's action (a 'ui' request): what the system removes is never restored (DEL-02)
+do $$
+declare
+  r uuid;
+begin
+  insert into audit.request (actor_id, kind, label_key, reason)
+  values (current_setting('t.head')::uuid, 'ui', 'made.up_removed', 'made up: removed') returning id into r;
+  perform set_config('app.request_id', r::text, true);
+end
+$$;
 update core.person_page_level set deleted_at = core.clock(), deleted_by = current_setting('t.head')::uuid,
   delete_reason = 'made up: removed' where id = current_setting('t.lvl')::uuid;
+select audit.end();
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.restore(%L, %L)', 'person_level', current_setting('t.lvl')), '42501',
   'Full on the page restores no access row, not even one they removed', 'restore.not_allowed');

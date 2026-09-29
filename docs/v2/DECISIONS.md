@@ -841,6 +841,20 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
   A second run finds its people and stops. Unit test: `the-fixture-seed-runs-on-this-machine-only`. Sabotages: `fixtures-seed-the-cloud`, `fixtures-over-real-addresses`.
 - Every value is made up (rule 7). No phone number is seeded, because a made-up one can still be someone's.
 
+**V177 — What the system removed is not a person's to restore** ACTIVE · 2026-09-29 (the production finding W10, the oversight's walk of 23:57 Riyadh). Activity → Recently deleted listed rows a migration had removed — V97's Settings levels of non-admin roles, V155's replaced setting defaults — each with Restore. (V97's own guard refused the Settings ones, so nothing reopened; the button was still wrong.)
+- A removal made by the system (a migration, the registry sync) or a job is how the app is built, not a person's action. `core.removed_by_system(table, id)` asks the change log: the row's last removal belongs to a `system` or `job` request, or none was logged.
+- `core.recently_deleted` does not list such a row, even to an admin.
+- Restore refuses it (`restore.system_removal`, asked in `core.restore_needs`, which every restore asks). Undo already refused a system or job request (`undo.not_undoable`).
+- A row a person restored and removed again is theirs: the last removal decides.
+- DEL-01 made its "removed by a head" row with a bare update, which the log attributes to the system (AUD-03); it now opens the head's request first.
+- Test DEL-02. Sabotages `the-system-removals-listed`, `the-system-removals-restored`, `a-job-removal-counts-as-a-persons`.
+
+**V178 — An e-mail already held is refused by name, and nothing is saved** ACTIVE · 2026-09-29 (the production finding W24). Adding a person with an e-mail another person holds (in other capitals) created the person without the e-mail, and the screen said "The server did not answer".
+- The Add person dialog now sends the person, the e-mail, the role and the sign-in switch as one request (`/auth/admin/people` → `api.person_create`, ACC-093, V171): a refusal saves nothing.
+- `core.person_email_add` compares the e-mail trimmed and without regard to capitals, and refuses as `people.email_taken`, the holder's name as its detail ("That email already belongs to {detail}").
+- The admin routes now pass a refusal's detail to the screen; the dialog turns the route's refusal into words (`DbError`), never "The server did not answer".
+- Test PPL-04. Sabotages `a-taken-email-said-without-its-holder`, `an-email-compared-by-its-capitals`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
