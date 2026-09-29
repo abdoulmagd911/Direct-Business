@@ -184,7 +184,8 @@ What reads the registry:
 
 1. **Reads** go to `api.*` views or read functions through `core/db`. Lists use `fetchAll()` (pages of 1,000, stable
    order, stops on a short page); detail uses one row. Every total shown on a screen comes from a database view or
-   function — screens never add up rows they fetched (A7).
+   function — screens never add up rows they fetched (A7). Every read pages to the end, and a probe with 1,001 made-up
+   rows fails any read that stops at 1,000 (OA8, V428).
 2. **Writes** go through `command(fn, args)` in `core/db/command.ts`, which calls one `api.*` function and returns
    `{ id, version, requestId }` or throws a typed error (`PermissionDenied`, `Conflict`, `RuleBroken(key)`, `NotFound`,
    `Unavailable`). A command that returns no id is treated as a failure (A6).
@@ -286,6 +287,14 @@ behaviour.
 - **Right-to-left.** Only logical CSS (`ms-/me-/ps-/pe-/start-/end-`, `text-start`); lint refuses physical left/right
   utilities; direction-bearing icons flip under `dir="rtl"` (never logos, check marks, time axes or numbers); digits
   stay Latin in both languages (`ar-SA-u-nu-latn`, Gregorian — V40).
+
+**Screen house rules from the old app** (V426): a form always shows the stored value — a retired or unknown value as it
+is — and sends only the fields that changed, so an untouched Save changes nothing (OA15); a network failure keeps the
+typed values and says "not saved, retry", and nothing says "saved" unless the server confirmed it (OA17); nothing on
+screen is invented, and a failed read is never drawn as empty or as 0 — `DataState` shows its failed state (OA18); every
+period slot is drawn, and a chart's parts sum to its tile (OA19); one bad record costs one row, and the list says how
+many were skipped (OA21); printing or exporting never drops a column silently (OA23); opening or reading a page writes
+nothing except the person's own bookkeeping, and an E2E walk counts the writes (OA16).
 
 ### 2.6 Growth without rebuilding
 
@@ -922,7 +931,7 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | View | What it says |
 |---|---|
 | `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
-| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
+| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1; on screen and in every export too, OA4 — V428); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
 | `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart and flagged — **no "profit with estimates" figure exists**, V419), margin = revenue − cost where cost is known, as recorded (V51; **negative when cost is above revenue, and the unit is flagged Loss** — V414) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units; a credit note never reduces revenue in v1** (V423) |
 | `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
 | `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the revenue date** (V27), else nobody ("uncredited", shown) |
@@ -1485,7 +1494,11 @@ A file the old app exported itself (its own revenue/profit columns) is refused.
 **Export** (builder C's `core/export`, P3-12 — V410). Every list has Export (CSV with BOM, or Excel). It runs the list's
 own query with the chips applied, paging through `fetchAll`, writes numbers as numbers, dates as Riyadh dates, IDs as
 text, and passes every text cell through `csvGuard` (CP5). An E2E test proves the exported row count equals the list's
-count.
+count. An export never drops a column silently — every visible column is in the file, or the export says which is
+missing and why (OA23); an empty cost is an empty cell, never 0 (OA4) (V426, V428).
+
+**An import never writes to, or revives, a deleted row** (OA12, V428): a row soft-removed in the app is skipped by
+every later import and listed as skipped, never updated and never restored by a file.
 
 ### 3.12 Where every figure comes from (nothing stores a copy)
 
@@ -1522,6 +1535,9 @@ count.
 | Partners that contributed to a KPI | `perf.kpi_partner_contribution` | Never |
 | Tenders submitted, awarded value, funnels | `pipeline.*` measures over `pipeline.stage_change` | Never |
 | Import counts | `io.batch.counts` | Yes — a record of what an import did, not a business figure |
+
+**Printed parts reconcile to the printed total** (OA5, V428): on every tile, report page and export the parts shown
+add up to the total shown; a difference of 1 SAR or more is named as a difference, never called rounding.
 
 ### 3.13 Indexes and the performance budget
 
@@ -1835,7 +1851,10 @@ Roles only set starting levels (D2); every cell can be changed per person. "✓"
 
 House rules ported from the old suite: one promise per test file, named as a sentence; assert on what the person sees
 (the printed figure), never on a word the fix might use; no fixed waits (web-first `expect`); test as a team member,
-not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37).
+not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37). **From the old app's lessons**
+(V430): a test reads its setup back before acting on it (OA34); E2E runs vary the time zone, the locale and the clock
+(OA20); an E2E walk of read-only pages counts the writes and expects none but the person's own bookkeeping (OA16); a
+check or a test that could not run is red, never green (OA13).
 
 ### 9.2 The propagation flows — the six of §1a, and five more
 
@@ -1977,7 +1996,8 @@ page (P3-2) to `v2/main`; (4) **as soon as that deployment renders the sign-in p
 the Google and Zoom keys; (6) at go-live: backups (V22), the reset, the staged pilot.
 
 Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
-pastes keys into Vercel** (V84); builders never see the service key. No deploy secret is
+pastes keys into Vercel** (V84); builders never see the service key. **The Vercel project's settings are changed by the
+owner in Vercel, never from the repository** (V427). No deploy secret is
 stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
 after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
 once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
@@ -1985,6 +2005,12 @@ file (rule 7, D17).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.
+
+**Cloud and audit house rules from the old app** (V427): every deployed function's source is committed in the PR that
+deploys it (OA29); nothing is created in the cloud except by a migration, and each audit runs an **outsider check** —
+the publishable key, no sign-in — against every table and bucket (OA30); after every merge the live site is confirmed
+to serve the merged commit through a **build ID the app shows** (the commit in the page's footer and at `/api/build`;
+OA31); a live audit runs as a named QA person and cleans up after itself (OA35).
 
 ---
 
@@ -2010,6 +2036,12 @@ owner signs in first — including Finance colleagues with View on Finance — a
 owner says so, **everyone** is switched on (each person's `can_sign_in`; no code change). **Training** (V408): the pilot
 group gets one live session; after it, every third or fourth update ships with a short video (minutes long, recorded
 in the app on made-up data) instead of another session.
+
+**Go-live house rules from the old app** (V428, V429): before go-live, every door that can still serve or write is
+listed and closed — old hosting projects and their aliases, storage copies, edge functions, schedules, old domains
+(OA28); the backup mode is confirmed and **one restore drill** is run (OA36); a backup is **never restored over live
+tables** — it is restored into a separate schema, compared, and only what a person approves is applied, on the owner's
+word (OA3).
 
 **Out of v1** (recorded, not built — V70): guarantees (promissory notes), supplier payables and statements, referral
 terms.
