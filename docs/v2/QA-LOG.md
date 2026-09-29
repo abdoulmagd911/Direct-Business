@@ -270,3 +270,17 @@ main and goes red under the mutant that survived before; each failure names the 
 | QA-146 | 2026-09-29 20:12 | WRK-090 | — | Builder A | **Test: a same-day handover ends the earlier owner's time that day, and every day has exactly one owner.** Red under m41 (it ended the day before). | Guards |
 | QA-147 | 2026-09-29 20:12 | WRK-078 | — | Builder A | **Test: after `partner.id_format` changes, new numbers follow it and earlier ones keep theirs.** Red under m65 (`DK-P-0002` instead of `QA-ORG-000002`). | Guards |
 
+## Round 10 — 2026-09-29 21:24 (v2/main d908d40: #99 merged; #121 at 8381163; #117 at 7d37c9e)
+
+The QA suite on v2/main d908d40 matches before: 117 passed; the 11 "fail until built" tests fail, nothing new. On #121
+(it carries Builder A's earlier branches): 135 passed, 5 failed. QA-47, QA-56, QA-57, QA-58, QA-59, QA-120 and QA-118
+turn green there. QA-118 now accepts `person.unavailable`, #121's key for "switched off or left", as well as a
+`switched_off` key; it still fails on main, where the refusal is `note.mention_cannot_see`. **QA-121 stays red on #121:**
+the owner, helper and mention doors refuse a switched-off person, but the approver doors (`credit_limit_set`,
+`code_terms_add`) still accept one (V465). **QA-122 is not fixed on #117 at 7d37c9e:** `own_password_set` still
+updates one `person_auth` row, and the password is still set on the signed-in auth user only.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-148 | 2026-09-29 21:24 | WRK-092, WRK-145 | Low | Builder A (the key) · Builder B/C (the words) | **A refused person is named by their ID.** `person.unavailable` (#121) has no line in `messages/en.json` or `ar.json`, so `errorKey()` (`core/db/words.ts`) falls back to `errors.kind.RuleBroken`: "This change was refused: 3f2a…". The person's ID appears, and nothing says they're switched off or have left. More broadly, 116 of the 159 refusal keys the database raises on v2/main have no words; screens reach `list.in_use`, `identifier.held`, `note.mention_cannot_see` and `credit.approver_required` among them. **Fix:** words for `errors.person.unavailable`, with the person's name as the detail, and words for every refusal a screen can reach. | Open — posted on #121 |
+
