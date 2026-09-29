@@ -412,8 +412,10 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   `app.default_notifications`) and a person's profile overrides them. Managers act **inside records**: KPI targets on
   the KPI page (Full on KPIs), appraisals on the person's page (V96). Only admins change access or people's emails.
 - **Safety rules for every setting and list** (V97):
-  - **archive, never delete, a value in use** — `api.list_usage(key, id)` counts where it is used; a hard delete is
-    offered only at 0, else Archive (retired: hidden from pickers, kept on records — M40);
+  - **archive, never delete, a value in use** — `api.list_usage(key, id)` counts where it is used; at 0 the entry may
+    be **removed** — a soft removal (`deleted_at`), shown in Recently deleted and restorable, **never a physical DELETE
+    through the API** (Undo could not reverse one — V128; QA-31); else Archive (retired: hidden from pickers, kept on
+    records — M40);
   - **retiring a value in use = replacing it** — `api.list_retire(key, id, replace_with, reason)` re-points every
     record in **one logged bulk change** that names the count and offers Undo;
   - **IDs, not text** — records hold the entry's id; renaming an entry renames it everywhere at once;
