@@ -118,7 +118,8 @@
     "pages": "الصفحات",
     "actions": "الإجراءات",
     "empty": "لا نتائج",
-    "openInSettings": "فتح الإعدادات"
+    "openInSettings": "فتح الإعدادات",
+    "people": "الأشخاص"
   },
   "profileMenu": {
     "theme": "المظهر",
@@ -126,7 +127,8 @@
     "language": "اللغة",
     "direction": "الاتجاه (للتطوير)",
     "signOut": "تسجيل الخروج",
-    "myProfile": "ملفي"
+    "myProfile": "ملفي",
+    "recentlyDeleted": "المحذوفة مؤخرًا"
   },
   "theme": {
     "light": "فاتح",
@@ -385,7 +387,8 @@
     "tabs": {
       "changes": "التغييرات",
       "settings": "سجل الإعدادات",
-      "signIns": "عمليات الدخول"
+      "signIns": "عمليات الدخول",
+      "deleted": "المحذوفة مؤخرًا"
     },
     "filters": {
       "who": "من",
@@ -436,7 +439,9 @@
         "cleared": "مسح إعداد"
       },
       "list": {
-        "saved": "حفظ بند في قائمة"
+        "saved": "حفظ بند في قائمة",
+        "removed": "إزالة بند من قائمة",
+        "retired": "أرشفة بند في قائمة"
       },
       "access": {
         "changed": "تغيير الصلاحيات"
@@ -446,6 +451,13 @@
       },
       "role": {
         "saved": "حفظ دور"
+      },
+      "view": {
+        "removed": "إزالة عرض",
+        "saved": "حفظ عرض"
+      },
+      "record": {
+        "restored": "استعادة سجل"
       }
     },
     "signIn": {
@@ -465,7 +477,12 @@
         "rate_limited": "رموز كثيرة"
       }
     },
-    "loadMore": "عرض الأقدم"
+    "loadMore": "عرض الأقدم",
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "none": "لم يُحذف شيء مؤخرًا"
+    }
   },
   "profile": {
     "title": "ملفي",
@@ -760,6 +777,7 @@
       "conflict": "غيّر أحدهم هذا منذ أن فتحته. أعد التحميل ثم حاول مجددًا.",
       "not_found": "لم يُعثر على هذا السجل",
       "unavailable": "لم يستجب الخادم. حاول مجددًا.",
+      "nothing_selected": "لم يُحدَّد شيء",
       "reason_required": "السبب مطلوب",
       "bad_request": "تعذّر فهم الطلب: {detail}"
     },
@@ -814,9 +832,100 @@
     "org": {
       "name_ar_required": "الاسم العربي مطلوب"
     },
+    "view": {
+      "not_yours": "لا يزيل العرض المحفوظ إلا مالكه",
+      "shared_needs_full": "مشاركة العرض تتطلب مستوى «كامل» في هذه الصفحة",
+      "name_taken": "يوجد عرض بهذا الاسم في هذه الصفحة"
+    },
+    "restore": {
+      "not_removable": "سجلات {detail} لا تُحذف أبدًا، فلا شيء لاستعادته",
+      "not_removed": "هذا السجل غير محذوف",
+      "too_late": "انقضت مدة الاستعادة ({detail} يومًا) — راجع مدير النظام",
+      "not_allowed": "لا يستعيده إلا من حذفه أو مالكوه أو مدير النظام",
+      "blocked_by_duplicate": "سجل آخر يحمل الآن القيمة نفسها: {detail}"
+    },
+    "notify": {
+      "unknown_tab": "تبويب إشعارات غير معروف",
+      "snooze_in_the_past": "اختر وقتًا في المستقبل",
+      "snooze_too_far": "اختر مدة تأجيل أقصر"
+    },
     "password": {
       "too_short": "10 أحرف على الأقل",
       "no_email": "لا يملك هذا الشخص بريدًا مسموحًا بعد"
     }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "mentions": "الإشارات",
+      "assigned": "أُسند إليّ"
+    },
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "earlier": "في وقت سابق"
+    },
+    "unread": "غير مقروءة",
+    "markAllRead": "تعليم الكل كمقروء",
+    "markRead": "تعليم كمقروء",
+    "snooze": "تأجيل",
+    "snoozeTomorrow": "حتى الغد 08:00",
+    "snoozeWeek": "لمدة أسبوع",
+    "snoozeDate": "حتى تاريخ…",
+    "snoozeUntil": "تأجيل حتى",
+    "kinds": {
+      "assigned": "أسند {actor} إليك {what}",
+      "helper_added": "أضافك {actor} مساعدًا في {what}",
+      "mentioned": "أشار إليك {actor} في {what}",
+      "changed_by_other": "عدّل {actor} أحد سجلاتك: {what}",
+      "followed_change": "عدّل {actor} سجلًا تتابعه: {what}",
+      "decision_needed": "{what} بانتظار قرارك",
+      "report_issued": "أصدر {actor} {what}",
+      "report_for_review": "أرسل {actor} {what} لمراجعتك",
+      "appraisal_step": "نقل {actor} تقييم أدائك إلى الخطوة التالية",
+      "import_done": "اكتمل الاستيراد",
+      "alert_contract_expiring": "عقد لدى {what} يقترب من الانتهاء",
+      "alert_kpi_behind": "{what} متأخر عن وتيرته",
+      "alert_invoice_unpaid": "{what} غير مدفوعة بعد انقضاء مهلتها",
+      "alert_kpi_checkin": "يوم تحديث المؤشرات: {what}",
+      "escalated": "صعّد {actor} إليك {what}",
+      "alert_quiet_client": "لا فواتير مدفوعة مؤخرًا من {what}",
+      "alert_project_no_update": "لا تحديث لحالة {what}",
+      "alert_activity_stale": "لا نشاط على {what} منذ مدة",
+      "alert_file_review": "حان موعد مراجعة ملف في {what}",
+      "other": "{actor} · {what}"
+    }
+  },
+  "follow": {
+    "follow": "متابعة",
+    "following": "قيد المتابعة",
+    "unfollowed": "أُلغيت المتابعة",
+    "failed": "المتابعة · حاول مجددًا"
+  },
+  "conflict": {
+    "title": "عدّل شخص آخر هذا منذ أن فتحته",
+    "titleBy": "عدّل {name} هذا منذ أن فتحته",
+    "description": "اختر لكل حقل القيمة التي تحتفظ بها.",
+    "when": "عُدّل {time}",
+    "theirs": "قيمة الطرف الآخر",
+    "theirsBy": "كتب {name}",
+    "mine": "قيمتي",
+    "save": "حفظ اختياري"
+  },
+  "views": {
+    "save": "حفظ العرض",
+    "saveTitle": "حفظ هذا العرض",
+    "name": "الاسم",
+    "shared": "مشترك مع كل من يمكنه فتح هذه الصفحة",
+    "saved": "تم حفظ العرض",
+    "removed": "تمت إزالة {name}",
+    "default": "العرض الافتراضي",
+    "setDefault": "فتح هذا العرض أولًا",
+    "menu": "{name}: المزيد",
+    "label": "العروض"
+  },
+  "recentlyDeleted": {
+    "title": "المحذوفة مؤخرًا"
   }
 }
