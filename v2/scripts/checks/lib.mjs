@@ -323,6 +323,42 @@ export function sqlCode(sql) {
 }
 
 /**
+ * The single-quoted string literals of SQL text, outside comments — in dollar-quoted bodies too — each with the offset
+ * of its opening quote. A doubled quote inside one is one quote.
+ * @param {string} sql
+ * @returns {{ text: string, offset: number }[]}
+ */
+export function sqlLiterals(sql) {
+  /** @type {{ text: string, offset: number }[]} */
+  const out = [];
+  let i = 0;
+  const n = sql.length;
+  while (i < n) {
+    const c = sql[i];
+    const d = sql[i + 1];
+    if (c === '-' && d === '-') {
+      const end = sql.indexOf('\n', i);
+      i = end === -1 ? n : end;
+    } else if (c === '/' && d === '*') {
+      const end = sql.indexOf('*/', i + 2);
+      i = end === -1 ? n : end + 2;
+    } else if (c === "'") {
+      let j = i + 1;
+      while (j < n) {
+        if (sql[j] === "'" && sql[j + 1] === "'") j += 2;
+        else if (sql[j] === "'") break;
+        else j++;
+      }
+      out.push({ text: sql.slice(i + 1, j).replace(/''/g, "'"), offset: i });
+      i = j + 1;
+    } else {
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
  * The top-level comma-separated parts of the parenthesised list that starts at `open` (the index of "(").
  * @param {string} text @param {number} open
  * @returns {{ parts: { text: string, offset: number }[], end: number }}
