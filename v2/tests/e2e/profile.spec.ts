@@ -5,7 +5,8 @@
  * Sabotage: tests/sabotage/screens.mjs "profile-saves-nothing", "settings-open-to-everyone", "profile-chip-leads-
  * nowhere", "profile-keeps-the-undone-value".
  */
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -125,4 +126,39 @@ test('the profile chip opens My profile; an Undo puts the stored value and the t
   await page.reload();
   await hydrated(page);
   await expect(page.getByLabel('Nickname')).toHaveValue('Elsewhere');
+});
+
+test("the profile menu's theme and density are saved to the profile, not only this browser (QA-126)", async ({
+  page,
+}) => {
+  const member = await makePerson();
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+  await page.locator('[data-profile-chip]').click();
+  await page.locator('[data-theme-option="dark"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(toast(page, 'Profile saved'), 'the menu saves to the profile').toBeVisible();
+  await page.locator('[data-profile-chip]').click();
+  await page.locator('[data-density-option="compact"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
+  await expect
+    .poll(
+      async () =>
+        (
+          await sql<{ theme: string | null; density: string | null }>(
+            `select theme, density from core.person_profile where person_id = $1`,
+            [member.id],
+          )
+        )[0] ?? null,
+      { message: 'the profile row holds both choices' },
+    )
+    .toEqual({ theme: 'dark', density: 'compact' });
+  // a browser with no choice of its own gets them from the profile, before the first paint
+  await page.context().clearCookies({ name: /^v2\./ });
+  const res = await page.reload();
+  expect(await res!.text(), 'the server renders the profile theme').toMatch(/<html[^>]*data-theme="dark"/);
+  await hydrated(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
 });
