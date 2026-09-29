@@ -11,7 +11,9 @@ test('an unlisted email is refused', async ({ page }) => {
   const email = unlistedEmail();
   await page.goto('/sign-in');
   await sendCode(page, email);
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    "This email isn't on the team list. Ask your admin to add you.",
+  );
   await expect(page.getByLabel('Digit 1 of 6')).toHaveCount(0);
   expect(await mailsTo(email)).toHaveLength(0);
   expect(await logOf(email)).toEqual(['not_listed']);

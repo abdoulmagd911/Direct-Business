@@ -34,10 +34,14 @@ test('an admin allows an email, and removing it refuses its sign-in', async ({ b
 
   await page.reload();
   await expect(page).toHaveURL(/\/sign-in\?/);
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    "This email isn't on the team list. Ask your admin to add you.",
+  );
   // The page already says so (the refused session); a new try is refused too — its log row is the proof.
   await attemptSignIn(page, newcomer.email);
-  await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    "This email isn't on the team list. Ask your admin to add you.",
+  );
   await expect
     .poll(async () => (await logOf(newcomer.email)).slice(-1), { message: 'the new code is refused' })
     .toEqual(['not_listed']);

@@ -1,0 +1,93 @@
+/*
+ * The door — the pages outside the shell (sign in, choose a new password), to the visual spec of 29 Sep (V213).
+ * Always light: its colours are the --door-* tokens (src/ui/tokens.css, one set for every theme), and it declares
+ * color-scheme: light so the browser's form controls agree. No hex here (check-no-hex); no physical sides.
+ */
+.door {
+  color-scheme: light;
+  background: var(--door-bg);
+  color: var(--door-text);
+  font-size: 15px;
+}
+.door-panel {
+  background: var(--door-panel);
+  color: var(--door-on-panel);
+}
+.door-rule {
+  background: var(--door-rule);
+}
+.door-page {
+  background: var(--door-bg);
+}
+.door-muted {
+  color: var(--door-muted);
+}
+.door-footer {
+  color: var(--door-muted);
+}
+.door-language {
+  color: inherit;
+}
+.door-page .door-language {
+  color: var(--door-text);
+}
+.door-field {
+  height: 48px;
+  width: 100%;
+  border-radius: var(--r-md);
+  border: 1px solid var(--door-border);
+  background: var(--door-field-bg);
+  color: var(--door-text);
+  font-size: 15px;
+  padding-inline: 12px;
+}
+.door-field[aria-invalid='true'] {
+  border-color: var(--door-danger);
+}
+.door-field:read-only {
+  background: var(--door-bg);
+}
+.door-field-error {
+  color: var(--door-danger);
+  font-size: 13px;
+}
+.door-caps {
+  color: var(--door-caps);
+  font-size: 13px;
+}
+.door-button {
+  height: 48px;
+  width: 100%;
+  border-radius: var(--r-md);
+  background: var(--door-button);
+  color: var(--door-on-button);
+  font-size: 15px;
+  font-weight: 600;
+}
+.door-button:hover:not(:disabled) {
+  background: var(--door-button-hover);
+}
+.door-button:disabled {
+  opacity: 0.7;
+}
+.door-alert {
+  border-radius: var(--r-md);
+  background: var(--door-danger-bg);
+  color: var(--door-danger);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.door-eye {
+  color: var(--door-muted);
+}
+.door-eye:hover {
+  color: var(--door-text);
+}
+.door :where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--door-focus);
+  outline-offset: 2px;
+}
+.door input:focus-visible {
+  outline-offset: 2px;
+}
