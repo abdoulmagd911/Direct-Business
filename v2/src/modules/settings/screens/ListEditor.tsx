@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { run } from '@/core/commands/run';
 import { rpc, rpcLoose } from '@/core/db/rpc';
+import { bannedIn } from '@/core/words/banned';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { Dialog } from '@/ui/Dialog';
@@ -64,7 +65,9 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     setReason('');
     setEditing(r);
   };
-  const draftOk = draft.key.trim().length > 0 && draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;
+  const banned = bannedIn(draft.name_en) ?? bannedIn(draft.name_ar);
+  const draftOk =
+    !banned && draft.key.trim().length > 0 && draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;
   const save = async () => {
     if (editing === null) return;
     setBusy(true);
@@ -254,7 +257,10 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               />
             )}
           </Field>
-          <Field label={t('settings.list.nameEn')}>
+          <Field
+            label={t('settings.list.nameEn')}
+            error={bannedIn(draft.name_en) ? t('settings.list.banned', { word: bannedIn(draft.name_en)! }) : undefined}
+          >
             {(p) => (
               <Input {...p} value={draft.name_en} onChange={(e) => setDraft({ ...draft, name_en: e.target.value })} />
             )}

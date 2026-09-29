@@ -13,6 +13,7 @@ export const FORBIDDEN = [
   [/\bdirect[\s\-_.]*ksa\b/gi, 'Direct KSA'],
   [/\bdirect[\s\-_.]*corporate\b/gi, 'Direct Corporate'],
   [/\bb[\s\-_.]*2[\s\-_.]*b\b/gi, 'B2B'],
+  [/\bb[\s\-_.]*2[\s\-_.]*g\b/gi, 'B2G'],
   [/\bmice\b/gi, 'MICE'],
   // The owner's additions (29 Sep): the door has no Google or Zoom (V59), no "keep me signed in" tick (V74), and the
   // money words are Revenue · Cost · Profit (V73) — never GMV.

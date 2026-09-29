@@ -516,7 +516,8 @@
       "new": "New entry",
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
-      "entries": "{count} entries"
+      "entries": "{count} entries",
+      "banned": "The app never says {word}"
     },
     "people": {
       "add": "Add person",

@@ -31,10 +31,16 @@ export const sabotages = [
     ],
   },
   {
-    name: 'plant-missing-ar-key',
+    name: 'plant-stray-ar-key',
     breaks: ['check:i18n-catalogs'],
-    expect: 'missing "nav.collapse"',
-    edits: [{ file: 'messages/ar.json', find: '    "collapse": "طي القائمة",\n', replace: '' }],
+    expect: 'missing "nav.collapse_stray"',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '    "collapse": "طي القائمة",\n',
+        replace: '    "collapse": "طي القائمة",\n    "collapse_stray": "طي",\n',
+      },
+    ],
   },
   {
     name: 'plant-hard-coded-sentence',
@@ -72,7 +78,7 @@ export const sabotages = [
   {
     name: 'blind-i18n-catalogs',
     breaks: [unit('the-catalog-check-refuses-a-missing-key-and-a-hard-coded-sentence')],
-    expect: 'refuses a key in one catalog only',
+    expect: 'refuses a key in ar.json only',
     edits: [
       { file: 'scripts/checks/i18n-catalogs.mjs', find: "if (lit.kind !== 'jsx') continue;", replace: 'continue;' },
     ],
