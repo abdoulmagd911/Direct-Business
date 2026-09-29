@@ -227,14 +227,14 @@ export const sabotages = [
   },
   {
     name: 'sign-in-grows-a-google-door',
-    breaks: ['e2e:tests/e2e/signin.spec.ts'],
-    expect: 'the only door is the emailed code (V59)',
+    breaks: ['e2e:tests/e2e/password.spec.ts'],
+    expect: 'the only door is email and password',
     edits: [
       {
         file: 'src/modules/org/screens/SignIn.tsx',
-        find: '<Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+        find: '<p className="text-center text-sm text-muted">{t(\'sign_in.password.forgot\')}</p>',
         replace:
-          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <p className="text-center text-sm text-muted">{t(\'sign_in.password.forgot\')}</p>',
       },
     ],
   },

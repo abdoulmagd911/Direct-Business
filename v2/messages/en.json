@@ -27,11 +27,34 @@
       "invalid_email": "Enter your work email",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
-      "inactive": "This device was not used for 30 days — send a new code",
-      "signed_out_elsewhere": "This device was signed out — send a new code",
-      "signed_out_by_admin": "An admin signed this device out — send a new code"
+      "inactive": "This device was not used for 30 days — sign in again",
+      "signed_out_elsewhere": "This device was signed out — sign in again",
+      "signed_out_by_admin": "An admin signed this device out — sign in again"
     },
-    "language": "Language"
+    "language": "Language",
+    "password": {
+      "label": "Password",
+      "signIn": "Sign in",
+      "forgot": "Forgot your password? Ask your admin.",
+      "setTitle": "Choose a new password",
+      "rule": "At least {min} characters.",
+      "current": "Current password",
+      "new": "New password",
+      "again": "New password again",
+      "setAndContinue": "Set password and continue",
+      "error": {
+        "wrong_password": "Wrong email or password",
+        "wrong_current": "The current password is wrong",
+        "too_short": "At least 10 characters",
+        "mismatch": "The two passwords are not the same",
+        "not_signed_in": "Sign in first",
+        "invalid_email": "Enter your work email",
+        "not_listed": "This email is not on the list — ask an admin",
+        "switched_off": "Your account is switched off",
+        "rate_limited": "Too many tries — wait a minute and try again",
+        "unavailable": "Sign-in is not available right now — try again"
+      }
+    }
   },
   "session": {
     "sign_out": "Sign out",
@@ -421,7 +444,8 @@
       "profile": "Profile",
       "appearance": "Appearance",
       "notifications": "Notifications",
-      "devices": "Devices"
+      "devices": "Devices",
+      "password": "Password"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -482,6 +506,10 @@
       "c4": "Blue",
       "c5": "Green",
       "c6": "Grey"
+    },
+    "password": {
+      "change": "Change password",
+      "changed": "Password changed"
     }
   },
   "settings": {
@@ -601,7 +629,16 @@
       "kind": "Kind",
       "staff": "Staff",
       "system": "System",
-      "reports": "Direct reports"
+      "reports": "Direct reports",
+      "password": {
+        "generate": "Generate temporary password",
+        "generated": "Temporary password generated",
+        "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
+        "temporaryTitle": "Temporary password for {name}",
+        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "copy": "Copy",
+        "copied": "Copied"
+      }
     },
     "teams": {
       "add": "Add team",
@@ -689,7 +726,9 @@
     "common": {
       "conflict": "Someone changed this since you opened it. Reload and try again.",
       "not_found": "This record was not found",
-      "unavailable": "The server did not answer. Try again."
+      "unavailable": "The server did not answer. Try again.",
+      "reason_required": "A reason is required",
+      "bad_request": "The request was not understood: {detail}"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -741,6 +780,10 @@
     },
     "org": {
       "name_ar_required": "An Arabic name is required"
+    },
+    "password": {
+      "too_short": "At least 10 characters",
+      "no_email": "This person has no allowed email yet"
     }
   }
 }

@@ -130,6 +130,14 @@ identical before and after); the QA login is `test@directksa.com`; staff passwor
     being asked. If a real amount of time passes with commits still stuck local, ask the owner
     what to do rather than deciding alone — don't let it go silently unmentioned either.
 
+## Shell rules for every session (V439, oversight 29 Sep — to stop approval prompts)
+
+- Never `cd` and then run git in the same command: use `git -C <path> …` (the allow list covers it).
+- No `$VAR` or `$(...)` inside one-off commands; no long inline scripts in a Bash call.
+- Multi-step work lives in committed scripts (`scripts/…`, `v2/scripts/…`) and is run by path.
+- `.claude/settings.json` holds the allow list; builder B keeps it and this section in step with the plan's
+  "Working rules".
+
 ## What this project is
 
 **Direct** (دايركت للسفر والسياحة) — a Saudi travel & tourism company. This is their

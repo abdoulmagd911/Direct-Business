@@ -5,7 +5,7 @@
  * Sabotage: tests/sabotage/screens.mjs "matrix-skips-the-reason".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { makePerson, signIn, sql } from './support/stack';
+import { givePassword, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast]', { hasText: text }).first();
@@ -32,7 +32,8 @@ test('an admin adds a person who then signs in; switching them off signs them ou
   await expect(page.getByRole('heading', { level: 1, name: `Test Person New ${tag}` })).toBeVisible();
   await expect(page.locator('[data-record-rail]')).toContainText(email);
 
-  // the new person signs in with the emailed code, on their own browser
+  // the new person signs in on their own browser (their password, as an admin's Set password gives it)
+  await givePassword(email);
   const theirs = await browser.newContext();
   const their = await theirs.newPage();
   await signIn(their, email, '/my-day');

@@ -2,6 +2,8 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, useTransition, type ClipboardEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { sendCode, verifyCode, type SignInError } from '@/core/auth/actions';
+import { signInWithPassword, type PasswordError } from '@/core/auth/password-actions';
+import type { SignInMethod } from '@/core/auth/password-rules';
 import { maskEmail } from '@/core/auth/mask';
 import { clock, useCountdown } from '@/core/auth/use-countdown';
 import { setPref } from '@/core/prefs';
@@ -13,10 +15,11 @@ import { BrandPanel } from './BrandPanel';
 
 /**
  * Sign-in (canvas artboards 1 and 1b, TECH-SPEC §4, V59, V74, V75, V204): the brand panel at the inline start, the
- * form at the inline end; on a phone the panel is a band on top. The only door is the emailed code: the work email
- * and "Send code", then the 6-digit step with Resend and Change; devices stay signed in until sign-out (V74). The
- * two steps run on the server (core/auth/actions.ts, P3-2); every refusal is one line in place (role="alert"). The
- * language switch waits for Arabic to be switched on (V122).
+ * form at the inline end; on a phone the panel is a band on top. The door is the work email and the **password**
+ * (owner, 29 Sep 13:50: no emails are sent; "Forgot your password? Ask an admin"), run on the server
+ * (core/auth/password-actions.ts). The emailed-code door (Send code, then the 6-digit step with Resend and Change;
+ * core/auth/actions.ts, P3-2) stays in the code behind SIGN_IN_METHOD=code. Devices stay signed in until sign-out
+ * (V74); every refusal is one line in place (role="alert"). The language switch waits for Arabic (V122).
  */
 const RESEND_AFTER_S = 60;
 const EMPTY = ['', '', '', '', '', ''];
@@ -25,18 +28,21 @@ export function SignIn({
   next,
   refusal,
   arabicEnabled = false,
+  method = 'password',
 }: {
   next: string | null;
   refusal: string | null;
   /** The EN | ع switch shows once the owner switches Arabic on (`app.arabic_enabled`, P6-7; V122). */
   arabicEnabled?: boolean;
+  method?: SignInMethod;
 }) {
   const t = useTranslations();
   const locale = useLocale();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [digits, setDigits] = useState<string[]>(EMPTY);
-  const [error, setError] = useState<SignInError | null>(null);
+  const [error, setError] = useState<SignInError | PasswordError | null>(null);
+  const [password, setPassword] = useState('');
   const [shownRefusal, setShownRefusal] = useState(refusal);
   const [sentAt, setSentAt] = useState<number | null>(null);
   const [pending, start] = useTransition();
@@ -69,6 +75,16 @@ export function SignIn({
     ask(() => requestAnimationFrame(() => boxes.current[0]?.focus()));
   };
 
+  const onPassword = (e: FormEvent) => {
+    e.preventDefault();
+    start(async () => {
+      setError(null);
+      setShownRefusal(null);
+      const r = await signInWithPassword(email, password, next);
+      if (r && !r.ok) setError(r.error);
+    });
+  };
+
   const onCode = (e: FormEvent) => {
     e.preventDefault();
     if (digits.every(Boolean)) verify(digits.join(''));
@@ -99,7 +115,11 @@ export function SignIn({
     if (e.key === 'Backspace' && !digits[i] && i > 0) boxes.current[i - 1]?.focus();
   };
 
-  const line = error ? t(`sign_in.error.${error}`) : (shownRefusal ?? undefined);
+  const line = error
+    ? t.has(`sign_in.error.${error}`)
+      ? t(`sign_in.error.${error}`)
+      : t(`sign_in.password.error.${error}`)
+    : (shownRefusal ?? undefined);
   const card = 'flex flex-col gap-5 rounded-lg border border-border bg-raised p-6 shadow-2 sm:p-8';
 
   return (
@@ -147,7 +167,49 @@ export function SignIn({
               </p>
             </div>
 
-            {step === 'email' ? (
+            {method === 'password' ? (
+              <form className={card} onSubmit={onPassword} noValidate data-step="password">
+                <Field label={t('sign_in.email_label')}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="email"
+                      name="email"
+                      autoComplete="username"
+                      inputMode="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 text-[15px]"
+                      autoFocus
+                    />
+                  )}
+                </Field>
+                <Field label={t('sign_in.password.label')} error={line}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="password"
+                      name="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 text-[15px]"
+                    />
+                  )}
+                </Field>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="h-12 text-[15px]"
+                  loading={pending}
+                  disabled={!email || !password}
+                  data-door="password"
+                >
+                  {t('sign_in.password.signIn')}
+                </Button>
+                <p className="text-center text-sm text-muted">{t('sign_in.password.forgot')}</p>
+              </form>
+            ) : step === 'email' ? (
               <form className={card} onSubmit={onEmail} noValidate data-step="email">
                 <Field label={t('sign_in.email_label')} error={line}>
                   {(p) => (

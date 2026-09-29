@@ -11,6 +11,8 @@ import { NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar, type AvatarColor } from '@/ui/Avatar';
 import { BADGE_ICONS, ZODIAC } from '@/ui/badges';
 import { Button } from '@/ui/Button';
+import { changePassword, type PasswordError } from '@/core/auth/password-actions';
+import { MIN_PASSWORD } from '@/core/auth/password-rules';
 import { StatusChip } from '@/ui/Chip';
 import { cn } from '@/ui/cn';
 import { Field } from '@/ui/Field';
@@ -19,6 +21,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { personOf } from '@/ui/person';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
+import { toast } from '@/ui/Toast';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { navFor } from '@/ui/shell/nav';
 
@@ -375,6 +378,8 @@ export function MyProfile({
         </ul>
       </Section>
 
+      <PasswordSection />
+
       <Section
         title={t('profile.sections.devices')}
         actions={
@@ -420,6 +425,90 @@ export function MyProfile({
         </table>
       </Section>
     </PageFrame>
+  );
+}
+
+/** Change password (owner, 29 Sep 13:50): the new password twice; the rule is one line — at least ten characters. */
+function PasswordSection() {
+  const t = useTranslations();
+  const [current, setCurrent] = useState('');
+  const [password, setPassword] = useState('');
+  const [again, setAgain] = useState('');
+  const [error, setError] = useState<PasswordError | null>(null);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await changePassword(current, password, again);
+    if (r.ok) {
+      toast.done(t('profile.password.changed'));
+      setCurrent('');
+      setPassword('');
+      setAgain('');
+    } else setError(r.error);
+    setBusy(false);
+  };
+  const onCurrent = error === 'wrong_current' || error === 'not_signed_in';
+  return (
+    <Section title={t('profile.sections.password')}>
+      <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label={t('sign_in.password.current')}
+          className="sm:col-span-2"
+          error={error && onCurrent ? t(`sign_in.password.error.${error}`) : undefined}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              data-password-current
+            />
+          )}
+        </Field>
+        <Field
+          label={t('sign_in.password.new')}
+          error={error && !onCurrent ? t(`sign_in.password.error.${error}`) : undefined}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              data-password-new
+            />
+          )}
+        </Field>
+        <Field label={t('sign_in.password.again')}>
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="new-password"
+              value={again}
+              onChange={(e) => setAgain(e.target.value)}
+              data-password-again
+            />
+          )}
+        </Field>
+      </div>
+      <div>
+        <Button
+          variant="primary"
+          disabled={!current || password.length < MIN_PASSWORD || again.length < MIN_PASSWORD}
+          loading={busy}
+          onClick={() => void save()}
+          data-password-save
+        >
+          {t('profile.password.change')}
+        </Button>
+      </div>
+    </Section>
   );
 }
 
