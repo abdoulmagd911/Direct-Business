@@ -184,7 +184,8 @@ What reads the registry:
 
 1. **Reads** go to `api.*` views or read functions through `core/db`. Lists use `fetchAll()` (pages of 1,000, stable
    order, stops on a short page); detail uses one row. Every total shown on a screen comes from a database view or
-   function — screens never add up rows they fetched (A7).
+   function — screens never add up rows they fetched (A7). Every read pages to the end, and a probe with 1,001 made-up
+   rows fails any read that stops at 1,000 (OA8, V428).
 2. **Writes** go through `command(fn, args)` in `core/db/command.ts`, which calls one `api.*` function and returns
    `{ id, version, requestId }` or throws a typed error (`PermissionDenied`, `Conflict`, `RuleBroken(key)`, `NotFound`,
    `Unavailable`). A command that returns no id is treated as a failure (A6).
@@ -286,6 +287,14 @@ behaviour.
 - **Right-to-left.** Only logical CSS (`ms-/me-/ps-/pe-/start-/end-`, `text-start`); lint refuses physical left/right
   utilities; direction-bearing icons flip under `dir="rtl"` (never logos, check marks, time axes or numbers); digits
   stay Latin in both languages (`ar-SA-u-nu-latn`, Gregorian — V40).
+
+**Screen house rules from the old app** (V426): a form always shows the stored value — a retired or unknown value as it
+is — and sends only the fields that changed, so an untouched Save changes nothing (OA15); a network failure keeps the
+typed values and says "not saved, retry", and nothing says "saved" unless the server confirmed it (OA17); nothing on
+screen is invented, and a failed read is never drawn as empty or as 0 — `DataState` shows its failed state (OA18); every
+period slot is drawn, and a chart's parts sum to its tile (OA19); one bad record costs one row, and the list says how
+many were skipped (OA21); printing or exporting never drops a column silently (OA23); opening or reading a page writes
+nothing except the person's own bookkeeping, and an E2E walk counts the writes (OA16).
 
 ### 2.6 Growth without rebuilding
 
@@ -446,6 +455,8 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   that is flagged) ·
   `finance.cost_estimate` on (D23) · `perf.pace_bands` {on_track 1.00, at_risk 0.85} (a plan setting — V401) ·
   `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
+  `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
+  `finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) ·
   `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] ·
   `files.max_mb` 20 · `partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27"
   (the default from the cycle's years) · `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93) · `work.late_days` 14 and `app.go_live_on` (V400) ·
@@ -464,7 +475,8 @@ audit.change   id bigserial pk; request_id not null; at; table_name; row_id uuid
 notify.notification  id; person_id; kind ('assigned','helper_added','mentioned','changed_by_other','followed_change',
                'decision_needed','report_issued','report_for_review','appraisal_step','import_done',
                'alert_contract_expiring','alert_kpi_behind','alert_invoice_unpaid','alert_kpi_checkin',
-               'escalated','alert_quiet_client','alert_project_no_update','alert_activity_stale','alert_file_review'); entity_table; entity_id; request_id;
+               'escalated','alert_quiet_client','alert_project_no_update','alert_activity_stale','alert_file_review',
+               'reminder','note_mention','alert_contact_reconfirm'); entity_table; entity_id; request_id;
                actor_id; alert_key (unique per person per day for alerts); created_at; read_at; snoozed_until
                index (person_id, read_at nulls first, created_at desc)
 notify.follow  (person_id, entity_table, entity_id) pk      -- Follow / Watch on any record (V61); owners follow their own
@@ -523,6 +535,43 @@ core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view
 - **A follow-up task from an alert** (V401): when the 45-day unpaid-invoice alert fires, the job also creates one task
   for the client's account manager (origin `alert`, linked to the invoice), once per invoice.
 
+### 3.3a My day — Capture, then Convert (V433)
+
+My day starts with **Capture**: one keystroke makes a **Note** — sticky, meeting or checklist — that belongs to the
+person and is **private by default**. Later the person **converts** it: **Turn into** a task, an action item, an
+achievement, a logged meeting or call, or a reminder. The new record and the note stay **linked both ways** and
+**deleting one never deletes the other**; @mentions and helpers carry over.
+
+```
+my.note           STD SOFT; person_id (the author); kind ('sticky','meeting','checklist'); title; body;
+                  items jsonb [{text, done, owner_id, due_on}]   -- the checklist's rows; a meeting's points
+                  visibility ('private','team','workspace') default 'private'   -- who may see it: only me; my team; everyone
+                  happened_on date not null; logged_at timestamptz not null default now();          -- V400
+                  meeting_partner_id → partner.partner; meeting_on date; finished_at (Finish meeting);
+                  carried_to date (Wrap up today: carried over); done_at (Wrap up today: done)
+my.note_link      STD; note_id → my.note; entity_table; entity_id; kind ('turned_into'); made_at; made_by
+                  -- the two-way link: the record shows "from note", the note "turned into"; removing either record
+                  -- removes the link and never the other record
+my.note_mention   (note_id, person_id) pk                          -- the mentioned person is told ('note_mention')
+core.reminder     STD SOFT; person_id; note_id → my.note; remind_at timestamptz not null; text; sent_at
+                  -- a 'reminder' notification at its time, sent by the alerts job; once
+```
+
+- **Doors** (`api.note_capture`, `api.note_update`, `api.note_turn_into(note, kind, …)`, `api.note_finish_meeting`,
+  `api.note_wrap_up(day)`): every conversion is **one request** — the new record through its own door (`api.task_create`,
+  `api.action_item_add`, `api.achievement_log`, `api.activity_log`, a `core.reminder` row) plus the `my.note_link` row,
+  the mentions copied as the record's mentions or helpers; one Undo reverts both. Each Turn into arrives with its door:
+  a logged meeting or call and a reminder in P3-13; a task and an action item with P5-1; an achievement with P5-4.
+- **Finish meeting** turns a meeting note's points into action items (each with its owner and date) on the task it
+  names, or a new task, and logs the meeting as an activity on the organisation (`api.activity_log`, type meeting).
+- **Wrap up today** walks the day's open captures: convert, **carry over** (to tomorrow, keeping `happened_on`) or
+  **done**; nothing is deleted.
+- **Visibility** is the note's own rule (V143): a private note is invisible to everyone else — in search, exports,
+  notifications and history too; team = the author's team; workspace = everyone. The record made from a note follows
+  its own type's rule, never the note's.
+- **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares) · **Workspace** (what everyone
+  shares); each block shows **5–7 rows** and a "more" link; Comfortable, never cramped (V85).
+
 ### 3.4 Organisations — Clients, and Suppliers & partners; identifiers, contacts, contracts, files
 
 **One record per organisation, with two sides fixed in code** (owner, 29 Sep — V98, replacing V52/V62/V78): the
@@ -572,8 +621,9 @@ partner.identifier  id; partner_id not null; kind ('payments_client_id','vat','c
                   closed_on date (client IDs — V411: a closed ID still matches rows whose booking date is on or before it;
                   later rows stop; nothing about the past changes);
                   note; created_at; created_by; deleted_at; deleted_by; delete_reason (V133)
-                  -- V422: at most one OPEN (closed_on null) prepaid and one open postpaid client ID per organisation
-                  -- (partial unique index); tender IDs unlimited, never collapsed
+                  -- V422: at most one OPEN (closed_on null) prepaid and one open postpaid client ID per organisation;
+                  -- tender IDs unlimited, never collapsed — the limits per kind are the setting `partner.open_client_ids`
+                  -- (V434), checked by a trigger
                   -- V421: the official and trade names are kept as identifiers for search and suggestion only — they never
                   -- match money; a name matches only as an 'alias' a person typed
                   unique (kind, value_key) where deleted_at is null and kind <> 'discount_code'
@@ -597,9 +647,13 @@ partner.credit_limit  STD SOFT; partner_id (Client side on — trigger); amount_
 partner.identifier_block  STD SOFT; kind; match ('exact','domain'); value; reason
                   -- values that can never be identifiers: staff email domains, the Payments test VAT, test customers
 partner.individual_name   STD SOFT; name_raw; name_key unique      -- "Individual (not an organisation)" (D25)
-partner.contact_role  LIST (V401: e.g. decision maker · travel coordinator · finance · operations · technical)
+partner.contact_role  LIST (V401: e.g. decision maker · travel coordinator · finance · operations · technical);
+                  reconfirm_every_days int (V436: the default re-confirm interval for contacts in this role)
+partner.contact_authority  LIST (V436: e.g. signs · approves · recommends · is informed)
 partner.contact   STD SOFT; partner_id; name_en; name_ar; job_title; role_id → partner.contact_role; email; phone; notes;
                   is_primary; sides text[] (which side(s) this contact belongs to; both by default)   -- shared (V98)
+                  authority_id → partner.contact_authority; reconfirm_on date   -- V436: past it the contact shows
+                  -- a Re-confirm chip and the side's owner is reminded ('alert_contact_reconfirm')
 partner.reference STD SOFT; partner_id; side (null = shared); system_id → work.ref_system; value not null; url
                   -- V98: references to Direct's systems only — client ID, ticket number, portal link; a value that
                   -- looks like a secret is refused. V409: a supplier's or partner's portal (Supplier & partner side)
@@ -903,7 +957,7 @@ finance.product        LIST: the Payments products (Direct Flights, Direct Hotel
                        commission flag; the manual entry form offers this list
 finance.wallet_rule    kind ('product','name_contains'); value            -- identifies wallet top-up lines (MF7)
 finance.commission_word  word                                              -- a line naming it makes the invoice a commission
-finance.service        LIST + counts_as_income bool                        -- D24 main services
+finance.service        LIST + counts_as_income bool                        -- D24 main services (Academies is one — V437)
 finance.item_service   item_head_key unique → service_id                   -- D24 override on the FIRST part of a line name
 finance.item_class     item_tail_key unique; class ('pass_through','fee')  -- D23, the LAST part — the fallback estimate only
 finance.exclusion_rule STD SOFT; kind ('client_id','name','tax_no','discount_code','invoice','product','partner'); value_raw;
@@ -922,7 +976,7 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | View | What it says |
 |---|---|
 | `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
-| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
+| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1; on screen and in every export too, OA4 — V428); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
 | `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart and flagged — **no "profit with estimates" figure exists**, V419), margin = revenue − cost where cost is known, as recorded (V51; **negative when cost is above revenue, and the unit is flagged Loss** — V414) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units; a credit note never reduces revenue in v1** (V423) |
 | `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
 | `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the revenue date** (V27), else nobody ("uncredited", shown) |
@@ -933,7 +987,7 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | `finance.partner_wallet` | V70: per partner, paid wallet top-ups − the wallet part of its counted invoices = the prepaid balance |
 | `finance.sales_by_code` | V65: discount or campaign code × month: counted units, revenue, profit, the partner or campaign, the terms in force |
 | `finance.quiet_client` | V401: organisations with the Client side Active and no Fully Paid invoice in `finance.quiet_client_days` (60) — the alert `alert_quiet_client` to the account manager, the row chip Quiet |
-| `finance.not_invoiced` | V424: the Overview line **Not yet invoiced: Ready / Pending** — units not yet paid, **never in revenue** (only paid units count — V418): Ready = status maps to `draft`, Pending = status maps to `pending`; the oversight may re-point the feed (a one-line change) |
+| `finance.not_invoiced` | V424: the Overview line **Not yet invoiced: Ready / Pending** — units not yet paid, **never in revenue** (only paid units count — V418): Ready = status maps to `draft`, Pending = status maps to `pending`; the oversight may re-point the feed (a one-line change); the line is switched by `finance.not_invoiced_line` (V434) |
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner or with an unknown client ID (V420), cost missing, estimates in use, Provisional units, **Losses** (V414), failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
@@ -975,7 +1029,9 @@ work.task            STD SOFT DEPT; number unique; title not null; notes; owner_
                      happened_on date not null (V400: the day the task was raised; default Riyadh today, any past date,
                      never after the logged day); logged_at timestamptz not null default now();
                      blocked_reason text (V401: set while In progress = Blocked; required); blocked_on date
+                     type_id → work.task_type (LIST — the task's category, with a default per template; V438)
                      -- trigger: a task's partner equals its project's partner when both are set
+                     -- V438: no subtask records — a task's action items are its checklist; dependencies are out of v1
 work.task_helper     (task_id, person_id) pk; added_by; added_at
 work.action_item     STD SOFT; task_id; text not null; owner_id not null; due_on; done_on date (V400: the happened_on of its
                      completion); done_by; happened_on date not null; logged_at timestamptz not null; sort; source_note_id → core.note
@@ -1485,7 +1541,11 @@ A file the old app exported itself (its own revenue/profit columns) is refused.
 **Export** (builder C's `core/export`, P3-12 — V410). Every list has Export (CSV with BOM, or Excel). It runs the list's
 own query with the chips applied, paging through `fetchAll`, writes numbers as numbers, dates as Riyadh dates, IDs as
 text, and passes every text cell through `csvGuard` (CP5). An E2E test proves the exported row count equals the list's
-count.
+count. An export never drops a column silently — every visible column is in the file, or the export says which is
+missing and why (OA23); an empty cost is an empty cell, never 0 (OA4) (V426, V428).
+
+**An import never writes to, or revives, a deleted row** (OA12, V428): a row soft-removed in the app is skipped by
+every later import and listed as skipped, never updated and never restored by a file.
 
 ### 3.12 Where every figure comes from (nothing stores a copy)
 
@@ -1523,6 +1583,9 @@ count.
 | Tenders submitted, awarded value, funnels | `pipeline.*` measures over `pipeline.stage_change` | Never |
 | Import counts | `io.batch.counts` | Yes — a record of what an import did, not a business figure |
 
+**Printed parts reconcile to the printed total** (OA5, V428): on every tile, report page and export the parts shown
+add up to the total shown; a difference of 1 SAR or more is named as a difference, never called rounding.
+
 ### 3.13 Indexes and the performance budget
 
 - Match keys: `partner.identifier (kind, value_key) where removed_at is null`; `finance.invoice` on each key column;
@@ -1558,23 +1621,33 @@ count.
 
 ---
 
-## 4. Sign-in (§0, §10; V2 as amended by V59, V74, V75)
+## 4. Sign-in (§0, §10; V2 as amended by V59, V74, V75 and V431)
 
-**The rule.** No passwords. **The emailed 6-digit code is the door** (owner, 28 Sep — V59): one field for the work
-email, then the code. **A device stays signed in until the person signs out; a device unused for 30 days asks for a
-new code** (owner, 29 Sep — V74). Google (`@directksa.com`) and Zoom (`@directksa.net`)
-become optional shortcuts later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person
-record**; a door never creates a person.
+**The rule (owner, 29 Sep 13:50 — V431).** For now the door is **email + password**. The app is internal to the team,
+and nothing sends email — no IT, no DNS, no outside mailbox. An **admin adds each person in Settings → People and
+generates a temporary password** for them (V441: random, 14 characters or more, shown once with Copy, never typed) and
+can generate a new one at any time; there are no emails and no "forgot password" link — the sign-in page says **"Forgot
+your password? Ask an admin"**. The person **must change the password at first sign-in** and can change it any time in
+**My profile → Change password**; **minimum 10 characters** (`auth.password_min_length`); sign-ups stay off; only
+allow-listed, switched-on people sign in. **A device stays signed in until the person signs out; a device unused for 30
+days asks for the password again** (owner, 29 Sep — V74), and "sign out everywhere" stays. The **emailed 6-digit code**
+(V59) stays in the code as a second door, **switched off by `auth.code_door_enabled`** (false), to turn on if a company
+email sender ever exists (V24, deferred). Google (`@directksa.com`) and Zoom (`@directksa.net`) remain optional
+shortcuts for later, when their keys exist (V23). Every sign-in — whatever the door — lands on **one person record**; a
+door never creates a person.
 
 **The page** (owner, 29 Sep — V75) is split: the **form on the right** (left-to-right; mirrored in Arabic) and a
 **brand panel on the left** — Direct slate, a subtle flight-path pattern drawn from the logo's plane, the official logo
 and, under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق
 السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the Design lead session (V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
-التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — step 1: "Work email", **Send code**;
-step 2: "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change" (the email masked; Change goes back), six digit
-boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59). Every
-refusal is one plain line in red: "This email is not on the list — ask an admin", "Your account is switched off", "The code has
-expired — send a new one".
+التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — "Work email", "Password", **Sign in**,
+and under the form **"Forgot your password? Ask an admin"** (plain text, never a link). With the code door switched on,
+the form is V59's instead: "Work email", **Send code**; "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change",
+six digit boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59).
+Every refusal is one plain line in red: "Wrong email or password" (one line for both — the page never says which),
+"This email is not on the list — ask an admin", "Your account is switched off", "The code has expired — send a new
+one". **A first sign-in, or the first after a reset, goes to "Choose a new password"** before anything else: the new
+password twice, at least 10 characters, **Save** — the shell is not drawn until it is saved.
 
 **Keeping people signed in** (V74):
 
@@ -1594,9 +1667,19 @@ core.device_session  id; person_id; auth_session_id uuid unique (the Supabase se
   `authz.me()` refuses at once, before the short-lived access token expires. (Supabase's refresh tokens do not expire
   on the free plan; the idle rule is the app's.)
 
-**The mail sender.** Codes need a real sender before real users: Resend's free tier with its DNS records (V24). Until
-then, staging uses Supabase's built-in sender, which reaches only the Supabase account's own team — enough for the owner
-to sign in to staging; CI reads codes from the stack's mail catcher.
+**No mail is sent** (V431). The mail sender (V24) is needed only if the code door is ever switched on; until then nothing
+in the app sends email, and staging needs no sender at all.
+
+**View as** (V442 — the oversight's proposal, recorded; the owner may veto). An admin can preview the app **as any
+person, read-only**: a server route (`/auth/view-as/start`, admins only, while `auth.view_as_enabled` is on) mints a
+short-lived **signed claim** — `view_as` = the person, `view_as_by` = the admin — that the proxy carries and
+`authz.me()` honours: reads are evaluated **as that person** (page levels, per-record visibility, appraisal privacy —
+V96, V143), so the admin sees exactly what they see; **every write door refuses** while the claim is present
+(`auth.view_as_read_only`, checked once in `authz`, so no door can forget it); a clear banner **"Viewing as X —
+read-only"** with **Exit** on every page; every start and stop is logged (`view_as_start`, `view_as_stop`) in the
+settings/access log; the claim dies with Exit or the admin's session. The setting `auth.view_as_enabled` is on until
+go-live and **off at go-live**. Builder A: the claim, the refusal, tests and sabotages (P3-15); builder B: the banner,
+the View as action on a person's record, Exit (P3-16).
 
 **Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's chrome or
 wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" (a check scans the message catalogs and the
@@ -1612,10 +1695,13 @@ white wordmark on dark or slate), never recoloured.
 core.person_email   STD SOFT; person_id → core.person; email citext unique (live) not null; is_primary bool
                     -- the admin allow-list: a person holds one or more allowed emails (e.g. their .com and their .net)
 core.person_auth    auth_user_id uuid pk → auth.users; person_id → core.person; email citext; providers text[] (every door
-                    this auth user has used: google, zoom, email);
-                    linked_at                                    -- every Supabase identity resolves to exactly one person
+                    this auth user has used: password, google, zoom, email);
+                    must_change_password bool not null default true (V431: on at creation and after every admin reset;
+                    cleared by the person's own change); password_set_at; linked_at
+                                                                 -- every Supabase identity resolves to exactly one person
 core.sign_in_log    id; at; person_id (null when refused); email; provider; result ('ok','not_listed','switched_off',
-                    'provider_error','code_expired'); detail; user_agent
+                    'provider_error','code_expired','bad_password','password_generated','password_changed');
+                    detail; user_agent                            -- never a password, never a hash
 ```
 
 `core.person` keeps `can_sign_in` and `active`; its email moves to `core.person_email` (the primary one is the display
@@ -1623,30 +1709,53 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
 
 **How it works.**
 
-1. **Sign-ups are off** in Supabase Auth; the password provider is never offered. An auth user can exist only because
-   an admin allowed that email.
-2. **Allowing an email** (Settings → Organization & access → the person → Emails): a server-only route handler, after
-   checking through `api.me()` that the caller is an admin, creates the auth user for that email with the service key
-   (`email_confirm: true`) and writes `core.person_auth`. One auth user per allowed email; all of a person's auth users
-   point to the same person.
-3. **Code — the door**: `signInWithOtp({ email, shouldCreateUser: false })` — only an allowed email gets a code; the
-   6-digit code is verified with `verifyOtp`; then `core.person_auth` → an active person with `can_sign_in` → signed in
-   and logged `ok`; anything else → signed out at once, logged with the reason, and the refusal is shown.
-4. **Google / Zoom — later shortcuts** (V23): the provider returns a verified email; Supabase links the identity to the
+1. **Sign-ups are off** in Supabase Auth. **Supabase's email provider with password is the door** (V431); the code
+   door's `signInWithOtp` path stays in the code behind `auth.code_door_enabled`. An auth user can exist only because an
+   admin created the person.
+2. **Generating a temporary password** (Settings → People — admins only, V97, V138; V441): **nobody types a password
+   for someone else**. **Generate temporary password** on a person: a server-only route handler, after checking through
+   `api.me()` that the caller is an admin, makes a random password of 14 characters or more, creates the auth user for
+   the allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) or, when
+   one exists, replaces its password (`auth.admin.updateUserById`), sets `must_change_password` on `core.person_auth`,
+   signs **every device out** on a replacement (V74), logs `password_generated` in the settings/access log, and
+   returns the password **once** — shown with a **Copy** button, never stored by the app, never mailed, never logged.
+   **Generate for everyone without a password**: the same, for every allowed person with no password yet, in one
+   request — one list shown once to copy, one log line per person. One auth user per allowed email; all of a
+   person's auth users point to the same person.
+3. **Password — the door**: `api.sign_in_check` first (allowed / not_listed / switched_off — a refusal is logged and
+   shown before any password is checked; V116), then `signInWithPassword({ email, password })`, then
+   `api.sign_in_complete` as the new session (device registered, `ok` logged) — or the session is ended at once. A
+   wrong password is logged `bad_password` and shown as the one line; Supabase's own rate limit on wrong tries stays
+   underneath.
+4. **Must change**: while `must_change_password` is on, the gate (V117) sends every request to **Choose a new
+   password**; the change runs server-side after the current session is verified, refuses fewer than 10 characters
+   and the password just replaced, clears the flag, logs `password_changed`, keeps this device signed in and signs the
+   others out (V74). **My profile → Change password**: the current password re-verified with `signInWithPassword`,
+   then the same change.
+5. **Code — the second door, off**: as V116 built it (`signInWithOtp({ shouldCreateUser: false })`, `verifyOtp`), shown
+   and served only while `auth.code_door_enabled` is on.
+6. **Google / Zoom — later shortcuts** (V23): the provider returns a verified email; Supabase links the identity to the
    existing auth user with that email; the same check and log follow.
-5. **Switching someone off** (a person, or one of their emails): RLS and every API function stop answering at once
+7. **Switching someone off** (a person, or one of their emails): RLS and every API function stop answering at once
    (no active person); the server bans the affected auth users so no new session starts; logged.
-6. **Defence in depth**: an auth user with no active person behind it can read and write nothing.
-7. **Sessions**: `@supabase/ssr`; the middleware refreshes the session cookie; the `(app)` layout calls `api.me()`
+8. **Defence in depth**: an auth user with no active person behind it can read and write nothing.
+9. **Sessions**: `@supabase/ssr`; the middleware refreshes the session cookie; the `(app)` layout calls `api.me()`
    **before rendering** (A5); one browser client (A4). A signed-out deep link returns to the same address.
-8. **Every sign-in is logged** in `core.sign_in_log` (successes and refusals), readable in Settings → Activity by admins.
-   Supabase's own auth audit log is kept as the second record.
-9. **Tested in CI** with the Supabase stack's mail catcher for codes, including the 30-day idle rule (a test clock), a
-   device signed out from another device, and an admin's sign-out taking effect on the next request. When the Google and Zoom keys arrive, each door is checked once on the cloud project
-   by a real `.com` and a real `.net` account, including "the Zoom email arrives verified and links to the existing
-   user" — the one behaviour the documentation does not settle.
+10. **Every sign-in is logged** in `core.sign_in_log` (successes and refusals), and every password set, reset and
+    change in the settings/access log — never the password itself — both readable in Settings → Activity by admins.
+    Supabase's own auth audit log is kept as the second record.
+11. **Tested in CI** with passwords: a person signs in with the generated temporary password and lands on Choose a new
+    password; generate-for-everyone skips people who already have one and logs each; fewer than 10 characters is
+    refused; an admin reset signs every device out and forces a change; a wrong password is one red line and
+    `bad_password` in the log; a switched-off person is refused before the password is checked; the 30-day idle rule (a
+    test clock); a device signed out from another device; an admin's sign-out taking effect on the next request; no
+    password or hash in any log or API answer (a sabotage plants one). **The code door's tests run only with the setting
+    on** (the stack's mail catcher). When the Google and Zoom keys arrive, each door is checked once on the cloud
+    project by a real `.com` and a real `.net` account, including "the Zoom email arrives verified and links to the
+    existing user" — the one behaviour the documentation does not settle.
 
-**Mail sender for codes — options** (only authentication mail; a few dozen messages a month):
+**Mail sender for codes — options** (kept for the day a company sender exists — V431; nothing is set up now; only
+authentication mail, a few dozen messages a month):
 
 | Option | Cost | What it needs | Verdict |
 |---|---|---|---|
@@ -1656,9 +1765,9 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
 | Amazon SES | about 0.10 USD per 1,000 mails | AWS account, sandbox approval, DNS records | More setup than needed |
 | Supabase's built-in sender | free | nothing | **Staging only**: it delivers only to the Supabase account's own team members and is rate-limited — enough for the owner on staging, not for staff (Supabase's documentation) |
 
-**What the owner must set up** (all free). First the mail sender (step 3) — needed before real users; the Google and
-Zoom keys (steps 1–2) are optional shortcuts, deferred (V23); CI tests the code door end to end and the Google/Zoom
-linking rules through identities made with the admin API:
+**What the owner must set up**: **nothing for sign-in now** (V431 — admins set passwords inside the app). Later and
+optional: the Google and Zoom keys (steps 1–2, V23) and, only if the code door is ever switched on, the mail sender
+(step 3, V24):
 
 1. **Google** (Workspace admin): Google Cloud console → a project → OAuth consent screen *Internal* → Credentials →
    OAuth client ID, type *Web application* → authorised redirect URI `https://<new-project-ref>.supabase.co/auth/v1/callback`
@@ -1676,7 +1785,9 @@ linking rules through identities made with the admin API:
 **Levels per page** (D2, unchanged in meaning): **No access** (page hidden, reads refused) · **View** (read what the
 page shows) · **Own work** (read everything; create; edit and remove your own) · **Full control** (edit and remove
 anyone's; managers). **Capabilities** are yes/no rows for actions that move money or people (assigning tasks, changing
-identifiers, merging, importing, splitting credit) — shown in the matrix under their page.
+identifiers, merging, importing, splitting credit) — shown in the matrix under their page. **View as** (V442): with the
+signed claim present, every level and visibility rule below is evaluated for the viewed person, and every write is
+refused in `authz` — the admin sees what that person sees, and changes nothing.
 
 **What "your own" means**, per record (the `authz.can_edit_*` functions, one per entity):
 
@@ -1733,7 +1844,7 @@ reports — and revisited later (V83).
 
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
-| **My day** `/my-day` | Four blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
+| **My day** `/my-day` | **Capture, then Convert** (V433, §3.3a): the Capture row (a Note in one keystroke — sticky · meeting · checklist; private by default), **Turn into** on every note, the from-note and turned-into chips, **Finish meeting**, **Wrap up today**; tabs **Me · My team · Workspace**; 5–7 rows per block. Then the blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
 | **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything and the **payment-type chip** (V87); each tile links to its list | — | Period; segment; export |
 | **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
 | **Clients** `/clients/[id]` and **Suppliers & partners** `/suppliers/[id]` (V98) | Two list pages over the one organisation table, each lean: **saved views across the top** (Clients: All · Government · Corporate · Agencies · Individuals; Suppliers & partners: All · Suppliers · Strategic partners · Sales channels · Integrations; a default per person); visible chips **Type · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; organisations that contributed); everything else under **More filters**; any combination saves as a view. Columns: logo or monogram, trade name (V77), the side's type, status chip, owner, last activity, and on Clients YTD revenue and outstanding | **The record page of V95**: header (trade name, side chips with type and status, up to five figures, New task · Log activity · Log achievement · New project); **Overview · Activity · Related · Finance** (Finance only with the Client side on: invoices, months, collections, credit limit and outstanding against it, prepaid balance, Sent to legal, codes with their terms, days to pay, **Open in Finance** carrying the filters); the details rail: both sides' fields, identifiers with add / remove / history, contacts with roles, Direct references, contracts | New client / New supplier & partner; **Log activity** (type, outcome, next step — V401); switch a side on or off; set a side's status (with reason); add identifier; upload logo; add contract; merge; set the side's owner; Escalate; Follow |
@@ -1752,10 +1863,14 @@ reports — and revisited later (V83).
 form with Commercial Workspace, EN | ع, email, code, © Direct). **My profile → Devices** lists signed-in devices with
 per-device sign-out (V74).
 
-Top bar: search and command palette (Ctrl K — pages, records through `api.search`, and the actions **New task · Log activity · New invoice · Go to** — V401), Create menu, bell (the notification centre: All · Mentions · Assigned to me, by day, mark all read, snooze — §3.3)
-(notifications; due items counted live), profile chip (avatar, nickname, badge) opening My profile (theme, density, language once Arabic is enabled,
-sign out). The drawer: My day, Overview, Clients, Suppliers & partners, Pipeline, Projects, Tasks, Finance, KPIs, Reports,
-Appraisal, Activity; Settings for admins (§2.5); on phones the bottom bar My day · Tasks · Clients · KPIs · More (V85).
+Top bar: search and command palette (Ctrl K — pages, records through `api.search`, and the actions **New task · Log
+activity · New invoice · Go to** — V401), Create menu, bell (the notification centre: All · Mentions · Assigned to me,
+by day, mark all read, snooze — §3.3) (notifications; due items counted live), profile chip (avatar, nickname, badge)
+opening My profile (theme, density, language once Arabic is enabled, change password — V431, sign out) and **Documents**
+(the SOP and SLA links to Drive — V435); while **View as** is on, a banner across the top of every page — "Viewing as X
+— read-only" with Exit (V442). The drawer: My day, Overview, Clients, Suppliers & partners, Pipeline, Projects, Tasks,
+Finance, KPIs, Reports, Appraisal, Activity; Settings for admins (§2.5); on phones the bottom bar My day · Tasks ·
+Clients · KPIs · More (V85).
 
 ---
 
@@ -1835,7 +1950,10 @@ Roles only set starting levels (D2); every cell can be changed per person. "✓"
 
 House rules ported from the old suite: one promise per test file, named as a sentence; assert on what the person sees
 (the printed figure), never on a word the fix might use; no fixed waits (web-first `expect`); test as a team member,
-not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37).
+not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37). **From the old app's lessons**
+(V430): a test reads its setup back before acting on it (OA34); E2E runs vary the time zone, the locale and the clock
+(OA20); an E2E walk of read-only pages counts the writes and expects none but the person's own bookkeeping (OA16); a
+check or a test that could not run is red, never green (OA13).
 
 ### 9.2 The propagation flows — the six of §1a, and five more
 
@@ -1954,37 +2072,49 @@ The appraisal tool (`directksa-performance`) stays live, so the two active free 
 
 | What | Exactly | Plan and cost | Who |
 |---|---|---|---|
-| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, email OTP; Google and Zoom providers added when their keys exist (V23, deferred); **site URL and redirect URLs list the project's `vercel.app` address and, from the domain move, `https://www.directksab2b.com` (and the bare domain)**; Storage buckets `files` and `images` (private); `pg_cron` on | **Free** | created by the oversight on 28 Sep (ref `kimadjvaxgiqzjaukuqg`); settings by builder A with the Supabase connector |
-| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, preview deployments on every PR, builds skipped when `v2/` is unchanged, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only) — **pasted into Vercel by the owner only** (V84). Until the domain moves it answers on its `vercel.app` address | **Free** (Hobby — V46) | created by the oversight on 28 Sep; keys by the owner |
-| **The domain** `directksab2b.com` | **the same domain** (owner, 28 Sep — V13). The old app no longer runs, so the domain moves **as soon as the first v2 deployment renders the sign-in page** (plan P3-2), not at go-live: removed from the old Vercel project, added to `direct-commercial` (Vercel → Domains), and the Supabase Auth site URL / redirect URLs list it. Until go-live only allow-listed people get past the sign-in page, and the database holds trial values only. The Google and Zoom OAuth settings need no change for the domain (their redirect is Supabase's own callback address), but Google's authorised JavaScript origins, if set, list both addresses | free | the owner or the oversight, when P3-2's sign-in page renders |
-| **Google OAuth client** · **Zoom OAuth app** | §4, steps 1–2 — **deferred** (V23): until they exist, sign-in on the cloud project is by emailed code only, which itself needs the mail sender | free | Direct's Workspace and Zoom admins, later |
-| **Mail sender** | §4, step 3 — Resend's free tier (V24); DNS records on `auth.directksa.com`. **Needed before real users** (the code is the door — V59); until then staging uses Supabase's built-in sender, which reaches the owner's own account only | free tier | whoever manages the DNS |
-| **CI** | GitHub Actions, `.github/workflows/v2.yml`, runs only when `v2/**` changes; the full test stack, including sign-in by emailed code through the stack's mail catcher | free for public repositories | builder A |
+| **Supabase project** `direct-commercial` | region eu-central-1 (Frankfurt, as today), Postgres 17; Auth: sign-ups off, **email + password** (V431; the code door off — `auth.code_door_enabled`); Google and Zoom providers added when their keys exist (V23, deferred); **site URL and redirect URLs list the project's `vercel.app` address and, from the domain move, `https://www.directksab2b.com` (and the bare domain)**; Storage buckets `files` and `images` (private); `pg_cron` on | **Free** | created by the oversight on 28 Sep (ref `kimadjvaxgiqzjaukuqg`); settings by builder A with the Supabase connector |
+| **Vercel project** `direct-commercial` | this repository, root directory `v2`, framework Next.js, production branch `v2/main`, **production builds only** (the Ignored Build Step cancels every non-production build — V432; no PR previews), builds skipped when `v2/` is unchanged, function region fra1; env vars: Supabase address and publishable key (public by design), service key (server-side only) — **pasted into Vercel by the owner only** (V84). It has served `https://www.directksab2b.com` since 29 Sep 13:52 Riyadh (V432) | **Free** (Hobby — V46) | created by the oversight on 28 Sep; keys by the owner |
+| **The domain** `directksab2b.com` | **the same domain** (owner, 28 Sep — V13). **Moved on 29 Sep 13:52 Riyadh** (V432): `www.directksab2b.com` serves v2, the apex redirects to www, and the Supabase Auth site URL / redirect URLs list it. Until go-live only allow-listed people get past the sign-in page, and the database holds trial values only. The Google and Zoom OAuth settings need no change for the domain (their redirect is Supabase's own callback address), but Google's authorised JavaScript origins, if set, list both addresses | free | done (the oversight, 29 Sep) |
+| **Google OAuth client** · **Zoom OAuth app** | §4, steps 1–2 — **deferred** (V23): until they exist, sign-in on the cloud project is by email + password (V431) | free | Direct's Workspace and Zoom admins, later |
+| **Mail sender** | §4, step 3 — Resend's free tier (V24); DNS records on `auth.directksa.com`. **Not needed** while the door is a password (V431); only if the code door is ever switched on | free tier | whoever manages the DNS, if ever |
+| **CI** | GitHub Actions, `.github/workflows/v2.yml`, runs only when `v2/**` changes; the full test stack, including sign-in by password (and by emailed code through the stack's mail catcher only when that door is on — V431) | free for public repositories | builder A |
 | **Backups for real data** | the paid plan at go-live (V22) | about 25 USD a month (the organisation's plan; with two active projects, compute for the second is extra, about 10 USD) | owner decides at go-live |
 
 **The builders' own containers**: plain Postgres (16, installed) for the SQL suite, Vitest, `next build`. No Docker
 daemon runs there and the cloud hosts are refused (measured), so the full Supabase stack and E2E run in CI, the cloud
-projects are reached through the connectors, and screens are looked at on each PR's Vercel preview. If an environment's
+projects are reached through the connectors, and screens are looked at from each PR's E2E screenshots and on
+production after the merge (no PR previews — V432). If an environment's
 network setting is widened (the owner's click — CLAUDE.md), builders may also run `next dev` against staging.
 
 The old Vercel project still builds a preview of the **old** app for every pushed branch, `v2/*` included. That is
-harmless and costs nothing; disconnecting or removing that project is the owner's call.
+harmless and costs nothing (until the free plan's daily quota); disconnecting or removing that project is the owner's
+call (V427: Vercel settings are the owner's).
 
 **Order of steps:** (1) done 28 Sep — `direct-business` paused, `direct-commercial` created in Supabase and Vercel
 (V84); (2) the owner pastes the keys into Vercel; (3) builder A applies the first migrations (P3-1) and ships the sign-in
-page (P3-2) to `v2/main`; (4) **as soon as that deployment renders the sign-in page**: the domain moves to
-`direct-commercial` and the Auth site URL / redirect URLs list it; (5) the mail sender before real users, then (later)
-the Google and Zoom keys; (6) at go-live: backups (V22), the reset, the staged pilot.
+page (P3-2) to `v2/main`; (4) **done 29 Sep 13:52** — the domain moved to `direct-commercial` and the Auth site URL /
+redirect URLs list it (V432); (5) no mail sender while the door is a password (V431); later the Google and Zoom keys;
+(6) at go-live: backups (V22), the reset, the staged pilot.
 
 Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
-pastes keys into Vercel** (V84); builders never see the service key. No deploy secret is
+pastes keys into Vercel** (V84); builders never see the service key. **The Vercel project's settings are changed by the
+owner in Vercel, never from the repository** (V427). No deploy secret is
 stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
 after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
 once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
-file (rule 7, D17).
+file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). **Every other person is added through
+Settings → People by the oversight in the browser, never seeded or hard-coded** (V440; the list lives in the owner's
+private knowledge base, never in this repository — rule 7); before go-live each gets a generated temporary password to
+change at first sign-in (V441).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.
+
+**Cloud and audit house rules from the old app** (V427): every deployed function's source is committed in the PR that
+deploys it (OA29); nothing is created in the cloud except by a migration, and each audit runs an **outsider check** —
+the publishable key, no sign-in — against every table and bucket (OA30); after every merge the live site is confirmed
+to serve the merged commit through a **build ID the app shows** (the commit in the page's footer and at `/api/build`;
+OA31); a live audit runs as a named QA person and cleans up after itself (OA35).
 
 ---
 
@@ -2010,6 +2140,12 @@ owner signs in first — including Finance colleagues with View on Finance — a
 owner says so, **everyone** is switched on (each person's `can_sign_in`; no code change). **Training** (V408): the pilot
 group gets one live session; after it, every third or fourth update ships with a short video (minutes long, recorded
 in the app on made-up data) instead of another session.
+
+**Go-live house rules from the old app** (V428, V429): before go-live, every door that can still serve or write is
+listed and closed — old hosting projects and their aliases, storage copies, edge functions, schedules, old domains
+(OA28); the backup mode is confirmed and **one restore drill** is run (OA36); a backup is **never restored over live
+tables** — it is restored into a separate schema, compared, and only what a person approves is applied, on the owner's
+word (OA3).
 
 **Out of v1** (recorded, not built — V70): guarantees (promissory notes), supplier payables and statements, referral
 terms.
