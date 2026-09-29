@@ -11,7 +11,9 @@ import { describe, expect, it } from 'vitest';
  * - read in Arabic, with Latin digits (V40), except the few values that are names in another script;
  * - never say the words the app never says (V59: "Direct KSA", "B2B", "MICE" …, and "B2G"), nor «شركة» (in any form) for a partner
  *   or «هامش» for profit (V52, V73);
- * - keep «المسؤول» for the KPI lead alone (V405) — an admin is «مدير النظام».
+ * - keep «المسؤول» for the KPI lead alone (V405) — an admin is «مسؤول النظام», never «مدير النظام» («مدير» is the
+ *   Manager role; the oversight's Arabic check, 29 Sep 23:40);
+ * - put the tanween fatha on the letter before the alif («متأخرًا»), never after it («متأخراً»).
  * A key still missing from ar.json is builder C's queue (the catalog check says so), not a failure here.
  * Sabotages: `ar-drops-a-placeholder`, `ar-breaks-a-plural`, `ar-prints-arabic-digits`, `ar-says-a-banned-word`,
  * `ar-calls-an-admin-al-masool`, `ar-says-company`, `ar-leaves-english` (tests/sabotage/arabic.mjs).
@@ -106,8 +108,18 @@ describe('the Arabic catalog', () => {
     expect(found).toEqual([]);
   });
 
-  it('keeps «المسؤول» for the KPI lead (V405); an admin is «مدير النظام»', () => {
+  it('keeps «المسؤول» for the KPI lead (V405); an admin is «مسؤول النظام»', () => {
     const found = [...ar].filter(([k, m]) => /المسؤول/.test(m) && !KPI_LEAD_KEY.test(k)).map(([k, m]) => `${k}: ${m}`);
     expect(found).toEqual([]);
+  });
+
+  it('never calls an admin «مدير النظام» — «مدير» is the Manager role', () => {
+    const found = [...ar].filter(([, m]) => /(ال|ل)?مدير(ي)? النظام/.test(m)).map(([k, m]) => `${k}: ${m}`);
+    expect(found, 'an admin is «مسؤول النظام»').toEqual([]);
+  });
+
+  it('puts the tanween fatha before the alif, as every other word does', () => {
+    const found = [...ar].filter(([, m]) => /اً/.test(m)).map(([k, m]) => `${k}: ${m}`);
+    expect(found, 'tanween sits before the alif').toEqual([]);
   });
 });

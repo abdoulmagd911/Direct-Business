@@ -33,7 +33,7 @@ export const sabotages = [
     edits: [
       {
         file: AR,
-        find: '"brand_line": "الذراع التجاري لتطبيق السفر الشامل"',
+        find: '"brand_line": "الذراع التجارية لتطبيق السفر الشامل"',
         replace: '"brand_line": "منصة B2B للسفر"',
       },
     ],
@@ -43,7 +43,7 @@ export const sabotages = [
     breaks: [CATALOG],
     expect: 'راجع أحد المسؤولين',
     edits: [
-      { file: AR, find: 'نسيت كلمة المرور؟ راجع مدير النظام.', replace: 'نسيت كلمة المرور؟ راجع أحد المسؤولين.' },
+      { file: AR, find: 'نسيت كلمة المرور؟ راجع مسؤول النظام.', replace: 'نسيت كلمة المرور؟ راجع أحد المسؤولين.' },
     ],
   },
   {
@@ -99,5 +99,17 @@ export const sabotages = [
         replace: '((await import(`../../../messages/${locale}.json`)).default as Messages)',
       },
     ],
+  },
+  {
+    name: 'ar-calls-an-admin-a-manager',
+    breaks: [CATALOG],
+    expect: 'an admin is «مسؤول النظام»',
+    edits: [{ file: AR, find: 'نسيت كلمة المرور؟ راجع مسؤول النظام.', replace: 'نسيت كلمة المرور؟ راجع مدير النظام.' }],
+  },
+  {
+    name: 'ar-puts-tanween-after-the-alif',
+    breaks: [CATALOG],
+    expect: 'tanween sits before the alif',
+    edits: [{ file: AR, find: 'الإدخال متأخرًا', replace: 'الإدخال متأخراً' }],
   },
 ];
