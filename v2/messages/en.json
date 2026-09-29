@@ -20,18 +20,52 @@
     "resend": "Resend code",
     "resend_in": "Resend code ({time})",
     "error": {
-      "not_listed": "This email is not on the list — ask an admin",
+      "not_listed": "This email isn't on the team list. Ask your admin to add you.",
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
-      "invalid_email": "Enter your work email",
+      "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
-      "inactive": "This device was not used for 30 days — send a new code",
-      "signed_out_elsewhere": "This device was signed out — send a new code",
-      "signed_out_by_admin": "An admin signed this device out — send a new code"
+      "inactive": "This device was not used for 30 days — sign in again",
+      "signed_out_elsewhere": "This device was signed out — sign in again",
+      "signed_out_by_admin": "An admin signed this device out — sign in again"
     },
-    "language": "Language"
+    "language": "Language",
+    "password": {
+      "label": "Password",
+      "signIn": "Sign in",
+      "forgot": "Forgot your password? Ask your admin.",
+      "setTitle": "Choose a new password",
+      "rule": "At least {min} characters.",
+      "current": "Current password",
+      "new": "New password",
+      "again": "New password again",
+      "setAndContinue": "Set password and continue",
+      "error": {
+        "wrong_password": "That email and password don't match. Try again or ask your admin to reset it.",
+        "wrong_current": "The current password is wrong",
+        "too_short": "At least 10 characters",
+        "mismatch": "The two passwords are not the same",
+        "not_signed_in": "Sign in first",
+        "invalid_email": "Enter your work email.",
+        "not_listed": "This email isn't on the team list. Ask your admin to add you.",
+        "switched_off": "Your account is switched off",
+        "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
+        "unavailable": "Can't reach the server. Check your connection and try again.",
+        "email_required": "Enter your work email.",
+        "password_required": "Enter your password."
+      },
+      "subtitle": "Sign in with your work email and password.",
+      "signingIn": "Signing in…",
+      "show": "Show password",
+      "hide": "Hide password",
+      "capsLock": "Caps Lock is on"
+    },
+    "footer": "© {year} Direct",
+    "tab_title": "Sign in · Commercial Workspace",
+    "switch_to_ar": "العربية",
+    "switch_to_en": "English"
   },
   "session": {
     "sign_out": "Sign out",
@@ -421,7 +455,8 @@
       "profile": "Profile",
       "appearance": "Appearance",
       "notifications": "Notifications",
-      "devices": "Devices"
+      "devices": "Devices",
+      "password": "Password"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -459,7 +494,9 @@
       "alert_contract_expiring": "A contract is expiring",
       "alert_kpi_behind": "A KPI is behind pace",
       "alert_invoice_unpaid": "An invoice is unpaid",
-      "alert_kpi_checkin": "KPI check-in day"
+      "alert_kpi_checkin": "KPI check-in day",
+      "alert_activity_stale": "A partner has gone quiet",
+      "alert_file_review": "A file waits for review"
     },
     "devices": {
       "label": "Device",
@@ -480,6 +517,10 @@
       "c4": "Blue",
       "c5": "Green",
       "c6": "Grey"
+    },
+    "password": {
+      "change": "Change password",
+      "changed": "Password changed"
     }
   },
   "settings": {
@@ -599,7 +640,16 @@
       "kind": "Kind",
       "staff": "Staff",
       "system": "System",
-      "reports": "Direct reports"
+      "reports": "Direct reports",
+      "password": {
+        "generate": "Generate temporary password",
+        "generated": "Temporary password generated",
+        "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
+        "temporaryTitle": "Temporary password for {name}",
+        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "copy": "Copy",
+        "copied": "Copied"
+      }
     },
     "teams": {
       "add": "Add team",
@@ -687,7 +737,9 @@
     "common": {
       "conflict": "Someone changed this since you opened it. Reload and try again.",
       "not_found": "This record was not found",
-      "unavailable": "The server did not answer. Try again."
+      "unavailable": "The server did not answer. Try again.",
+      "reason_required": "A reason is required",
+      "bad_request": "The request was not understood: {detail}"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -739,6 +791,10 @@
     },
     "org": {
       "name_ar_required": "An Arabic name is required"
+    },
+    "password": {
+      "too_short": "At least 10 characters",
+      "no_email": "This person has no allowed email yet"
     }
   }
 }

@@ -1,9 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import check from '../../../scripts/checks/forbidden-words.mjs';
+import check, { FORBIDDEN_IN_DATA, SEEDS_FROM } from '../../../scripts/checks/forbidden-words.mjs';
 import { findings, fixture } from './helpers';
 
-// Sabotage: tests/sabotage/blind-checks.mjs "blind-forbidden-words" turns this red.
-describe('the words check refuses the names the app never says (V59, V73, V74)', () => {
+// Sabotages: tests/sabotage/blind-checks.mjs "blind-forbidden-words" and "blind-seed-words", and
+// "words-lists-drift" (the database's copy of the list), turn this red.
+describe('the words check refuses the names the app never says (V59, V73, V74, V404)', () => {
   it('refuses each name, however it is spaced or cased, in a catalog and in page text', async () => {
     const root = fixture({
       'messages/en.json': [
@@ -52,5 +55,49 @@ describe('the words check refuses the names the app never says (V59, V73, V74)',
       ].join('\n'),
     });
     expect(await findings(check, root)).toEqual([]);
+  });
+
+  it('refuses the data words in the seeds of a migration from V404 on — not the chrome words, not in its comments, nor in the history before', async () => {
+    const root = fixture({
+      [`supabase/migrations/${SEEDS_FROM}_seeds.sql`]: [
+        '-- a comment may say B2G: comments are not wording',
+        "insert into partner.side_type (key, name_en) values ('government', 'Government (B2G)');",
+        "comment on table partner.side_type is 'Made up: a b-2-b desk';",
+        '-- check-allow: forbidden-words — a line waived with its reason',
+        "select 'Direct KSA';",
+        "select 'Government', 'it''s fine';",
+        "insert into partner.activity_type (key, name_en) values ('video', 'Zoom meeting'), ('drive', 'Google Drive');",
+        '',
+      ].join('\n'),
+      'supabase/migrations/20260929010000_history.sql': "insert into t (name) values ('Government (B2G)');\n",
+      'messages/en.json': '{ "a": "a b 2 g desk" }\n',
+    });
+    const got = (await findings(check, root)).map(
+      (f) => `${path.basename(f.file)}:${f.line} ${f.message.split(' — ')[0]}`,
+    );
+    expect(got.sort()).toEqual([
+      `${SEEDS_FROM}_seeds.sql:2 "B2G"`,
+      `${SEEDS_FROM}_seeds.sql:3 "b-2-b"`,
+      'en.json:1 "b 2 g"',
+    ]);
+  });
+
+  it('holds the same data list as the database (core.banned_word)', () => {
+    const dir = path.join(__dirname, '../../../supabase/migrations');
+    const latest = fs
+      .readdirSync(dir)
+      .filter(
+        (f) => f.endsWith('.sql') && fs.readFileSync(path.join(dir, f), 'utf8').includes('function core.banned_word('),
+      )
+      .sort()
+      .pop();
+    expect(latest).toBeDefined();
+    const sql = fs.readFileSync(path.join(dir, latest as string), 'utf8');
+    const body = sql.slice(
+      sql.indexOf('function core.banned_word('),
+      sql.indexOf('$$;', sql.indexOf('function core.banned_word(')),
+    );
+    const labels = [...body.matchAll(/\(\d+, '(?:[^']|'')*', '([^']*)'\)/g)].map((m) => m[1]);
+    expect(labels).toEqual(FORBIDDEN_IN_DATA.map(([, word]) => word));
   });
 });
