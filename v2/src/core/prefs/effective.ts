@@ -1,6 +1,6 @@
 import type { Me } from '@/core/auth/me';
 import type { AppSettings } from '@/core/settings/app';
-import type { Prefs } from './index';
+import { PREF_DEFS, prefsFrom, type Prefs } from './index';
 
 /**
  * What the screen should show for a signed-in person (ACC-090/091/139): their own profile choice first, then the
@@ -23,4 +23,24 @@ export function effectivePrefs(
 /** The language a request is answered in: the cookie's choice, unless Arabic is switched off (ACC-139). */
 export function effectiveLocale(cookieLocale: Prefs['locale'], app: AppSettings): Prefs['locale'] {
   return app.arabic_enabled ? cookieLocale : 'en';
+}
+
+/**
+ * The <html> attributes the server renders (theme, density, language, direction) — the same three sources in the same
+ * order as PrefsSync: this browser's own choice (a cookie), the person's saved profile, the admin's default. Rendered
+ * this way, a refresh that lands after PrefsSync has written the cookie never snaps the theme back (QA-126).
+ */
+export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string) => string | undefined): Prefs {
+  const raw = prefsFrom(get);
+  const own = (key: 'theme' | 'density') => {
+    const v = get(PREF_DEFS[key].cookie);
+    return v !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(v);
+  };
+  const eff = effectivePrefs(me, app, raw);
+  return {
+    ...raw,
+    theme: own('theme') ? raw.theme : eff.theme,
+    density: own('density') ? raw.density : eff.density,
+    locale: effectiveLocale(raw.locale, app),
+  };
 }

@@ -357,6 +357,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'menu-theme-stays-in-the-cookie',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the profile row holds both choices',
+    edits: [
+      {
+        file: 'src/ui/shell/ProfileMenu.tsx',
+        find: "onValueChange={(v) => choose('theme', v as typeof prefs.theme)}",
+        replace: "onValueChange={(v) => set('theme', v as typeof prefs.theme)}",
+      },
+    ],
+  },
+  {
     name: 'profile-keeps-the-undone-theme',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone theme is gone from the page',
