@@ -304,13 +304,11 @@ export type Database = {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
       };
+      sign_in_limited: { Args: { p_email: string }; Returns: string };
       sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
       sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
       sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
-      sign_in_password_refused: {
-        Args: { p_detail: string; p_email: string; p_user_agent?: string };
-        Returns: undefined;
-      };
+      sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {

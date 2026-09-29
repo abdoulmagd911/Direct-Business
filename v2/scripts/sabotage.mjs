@@ -104,7 +104,7 @@ function command(target) {
     case 'unit':
       return ['pnpm', ['exec', 'vitest', 'run', arg]];
     case 'e2e':
-      return ['sh', ['-c', `pnpm build >/dev/null && pnpm exec playwright test ${JSON.stringify(arg)}`]];
+      return ['sh', ['-c', `pnpm build >/dev/null && pnpm exec playwright test --no-deps ${JSON.stringify(arg)}`]];
     case 'sql':
       return ['node', ['scripts/db/test.mjs', '--only', arg]];
     default:

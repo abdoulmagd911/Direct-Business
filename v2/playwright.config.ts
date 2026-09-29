@@ -23,7 +23,18 @@ export default defineConfig({
     timezoneId: 'Asia/Riyadh',
     launchOptions: executablePath ? { executablePath } : {},
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // A spec whose action reaches every person (one "Generate for everyone without a password", say) runs alone, after
+  // all the others: in parallel it would change the people another spec is in the middle of using. Name it *.alone.spec.ts.
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /\.alone\.spec\.ts$/ },
+    {
+      name: 'alone',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /\.alone\.spec\.ts$/,
+      dependencies: ['chromium'],
+      fullyParallel: false,
+    },
+  ],
   webServer: {
     command: 'pnpm start',
     url: baseURL,

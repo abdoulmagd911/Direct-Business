@@ -59,7 +59,9 @@ async function complete(next: string | null, ua: string | null): Promise<{ ok: f
     const refused =
       done.data === 'not_listed' || done.data === 'switched_off' || done.data === 'code_off'
         ? done.data
-        : 'unavailable';
+        : done.data === 'locked'
+          ? 'rate_limited'
+          : 'unavailable';
     return { ok: false, error: refused };
   }
   redirect(safeNext(next));
@@ -75,6 +77,7 @@ export async function sendCode(rawEmail: string): Promise<SendCodeResult> {
   const check = await serviceDb().rpc('sign_in_check', { p_email: email, p_user_agent: ua ?? undefined });
   if (check.error) return { ok: false, error: 'unavailable' };
   if (check.data === 'code_off') return { ok: false, error: 'code_off' };
+  if (check.data === 'locked' || check.data === 'rate_limited') return { ok: false, error: 'rate_limited' };
   if (check.data === 'not_listed' || check.data === 'switched_off') return { ok: false, error: check.data };
   if (check.data !== 'allowed') return { ok: false, error: 'unavailable' };
 
@@ -103,6 +106,12 @@ export async function verifyCode(
     .toLowerCase();
   const code = String(rawCode ?? '').replace(/\D/g, '');
   if (!EMAIL.test(email)) return { ok: false, error: 'invalid_email' };
+  // The door is off unless an admin switched it on (ACC-011): no code is checked at all, whatever Auth would say.
+  if (!(await signInMethods()).code) return { ok: false, error: 'code_off' };
+  // Nor for an e-mail that is locked or tried too often (V172).
+  const limited = await serviceDb().rpc('sign_in_limited', { p_email: email });
+  if (limited.error) return { ok: false, error: 'unavailable' };
+  if (limited.data) return { ok: false, error: 'rate_limited' };
   const ua = await userAgent();
   const late = Number.isFinite(sentAt) && Date.now() - sentAt > CODE_LIFETIME_S * 1000;
   if (code.length !== 6) return { ok: false, error: 'code_invalid' };

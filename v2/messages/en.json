@@ -57,7 +57,8 @@
         "email_required": "Enter your work email.",
         "password_required": "Enter your password.",
         "too_long": "Too long — choose a shorter password",
-        "same_as_email": "Not your email address"
+        "same_as_email": "Not your email address",
+        "not_needed": "Your password doesn't need changing here — use My profile → Change password."
       },
       "subtitle": "Sign in with your work email and password.",
       "signingIn": "Signing in…",
@@ -448,7 +449,9 @@
         "code_expired": "Code expired",
         "provider_error": "Sending failed",
         "signed_out": "Signed out",
-        "rate_limited": "Too many codes"
+        "rate_limited": "Too many tries",
+        "wrong_password": "Wrong password",
+        "locked": "Locked — too many wrong passwords"
       }
     },
     "loadMore": "Show earlier"
@@ -650,7 +653,7 @@
         "generated": "Temporary password generated",
         "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "temporaryBody": "Hand it over in person or by phone — it is shown only now. It works until they choose their own password, which their next sign-in asks for before anything else.",
         "copy": "Copy",
         "copied": "Copied"
       }

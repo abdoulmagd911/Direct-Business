@@ -2,6 +2,7 @@
 // for moving a device's last use back in time; its mail catcher, for the emailed codes. Settings come from
 // scripts/e2e/stack-env.mjs. Every value here is made up (rule 7): people are "Test Person …" at example.test.
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { expect, type BrowserContext, type Page } from '@playwright/test';
 import pg from 'pg';
@@ -39,12 +40,14 @@ export interface TestPerson {
 
 /**
  * A made-up person in the Commercial department. `listed` (default) gives them an allowed email and its auth user, as
- * the admin's allow-list would; `canSignIn: false` is a listed person who is switched off.
+ * the admin's allow-list would; `canSignIn: false` is a listed person who is switched off. The auth user holds the
+ * test password, and the app knows it (`passwordRecorded`, default) — so no "Generate for everyone without a password"
+ * running in a parallel spec ever replaces it; `passwordRecorded: false` is a person the app thinks has none.
  */
 export async function makePerson(
-  opts: { admin?: boolean; canSignIn?: boolean; listed?: boolean } = {},
+  opts: { admin?: boolean; canSignIn?: boolean; listed?: boolean; passwordRecorded?: boolean } = {},
 ): Promise<TestPerson> {
-  const { admin: isAdmin = false, canSignIn = true, listed = true } = opts;
+  const { admin: isAdmin = false, canSignIn = true, listed = true, passwordRecorded = true } = opts;
   const id = randomUUID();
   const tag = id.slice(0, 8);
   const email = `test.e2e-${tag}@example.test`;
@@ -70,11 +73,11 @@ export async function makePerson(
   await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [id, email]);
   const created = await admin().createUser({ email, email_confirm: true, password: TEST_PASSWORD });
   if (!created.data.user) throw new Error(`could not create the auth user: ${created.error?.message}`);
-  await sql(`insert into core.person_auth (auth_user_id, person_id, email) values ($1, $2, $3)`, [
-    created.data.user.id,
-    id,
-    email,
-  ]);
+  await sql(
+    `insert into core.person_auth (auth_user_id, person_id, email, password_set_at)
+     values ($1, $2, $3, case when $4 then now() end)`,
+    [created.data.user.id, id, email, passwordRecorded],
+  );
   return { id, email, authUserId: created.data.user.id, name };
 }
 
@@ -170,13 +173,18 @@ export const DOOR_SENDS_MAIL = CODE_DOOR;
 
 /**
  * Gives an auth user made through the allow-list (an admin allowing an email) the test password, as an admin's
- * "Set password" would — without the must-change step, so a spec about the allow-list stays about the allow-list.
+ * "Set password" would — without the must-change step, so a spec about the allow-list stays about the allow-list —
+ * and records it, so a parallel "Generate for everyone without a password" leaves it alone.
  */
 export async function givePassword(email: string, password = TEST_PASSWORD): Promise<void> {
   const [row] = await sql<{ id: string }>(`select id from auth.users where email = $1`, [email]);
   if (!row) throw new Error(`no auth user for ${email}`);
   const { error } = await admin().updateUserById(row.id, { password });
   if (error) throw new Error(error.message);
+  await sql(
+    `update core.person_auth set password_set_at = now(), must_change_password = false where auth_user_id = $1`,
+    [row.id],
+  );
 }
 
 /** The whole door: open `from` signed out, land on the sign-in page, email + password (or the code) → back to `from`. */
@@ -242,4 +250,29 @@ export async function logOf(email: string): Promise<string[]> {
     email,
   ]);
   return rows.map((r) => r.result);
+}
+
+/**
+ * A server action called straight by its action ID, as anything holding the page's bundle could — never through the
+ * screen that normally calls it. The ID comes from the build's own manifest (file + exported name), the arguments are
+ * sent as the browser would, and the answer is the raw React Server Components text (the action's result is in it).
+ */
+export async function callServerAction(
+  page: Page,
+  path: string,
+  file: string,
+  exportedName: string,
+  args: unknown[],
+): Promise<string> {
+  const manifest = JSON.parse(readFileSync('.next/server/server-reference-manifest.json', 'utf8')) as {
+    node: Record<string, { filename?: string; exportedName?: string }>;
+  };
+  const id = Object.entries(manifest.node).find(([, a]) => a.filename === file && a.exportedName === exportedName)?.[0];
+  if (!id) throw new Error(`no server action ${exportedName} in ${file}`);
+  const res = await page.request.post(path, {
+    headers: { 'Next-Action': id, 'Content-Type': 'text/plain;charset=UTF-8', Accept: 'text/x-component' },
+    data: JSON.stringify(args),
+    maxRedirects: 0,
+  });
+  return res.text();
 }
