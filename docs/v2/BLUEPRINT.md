@@ -281,6 +281,14 @@ Vercel (V13, V21, V84).
     the default owner chain; an active check on every person picker; client work needs an organisation or a project; an
     achievement from a closed task is the owner's; the admin account creates no work; IBAN letters restricted; fail
     closed while levels load. The catalogue itself: `SCENARIOS.csv`, `SCENARIOS-OLD.csv`, `SCENARIOS.md`.
+82. **The oversight's call analysis** (V471–V490, each unless the owner says no; Q42–Q44 the owner's): one live
+    discount code per organisation per service with channels; the Leads-inbox trigger may be met; the KPI sheet's
+    status words through the wording map; challenges with root cause, stream, impact, tickets, repeats and a report
+    table; refunds owed as aged challenges; seeded reasons, activity types, task templates and contract terms; one
+    official client count; a tender clarification stage; public-reference consent; a service per invoice line; portal
+    references held by a department; escalations outside the app; two supplier types added in Settings; an individual
+    referrer's practice as an organisation; a 30-day follow after hand-over; stats-page readings with screenshots; one
+    Arabic word per term.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

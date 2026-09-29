@@ -48,12 +48,14 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 | The test account removed (soft removal, logged) | oversight | Settings → People | no `test_account` row is live | V445 |
 | View as switched off (`auth.view_as_enabled` false) | admin | Settings → App | the View as action is gone; a start request is refused | V442 |
 | Nobody but the admin role holds any level on a Settings page | admin | Settings → Organization & access | ACC-05 green on the live database (read-only) | V97, V138 |
+| An admin can grant Head and Manager; no role or person capability row names a retired capability (the 29 Sep bug: head and manager rows still granted the retired keys, so every grant was refused) | builder A, then the QA session | the registry sync; Settings → Organization & access | the sync report lists no retired key; a grant of Head succeeds (a test on a database built from zero; read-only on live) | V97, V138, P3-4 |
 
 ## 4. Data and the reset
 
 | Check | Who | Where | Verified by | Rule |
 |---|---|---|---|---|
 | Staging reset to production state, backup first, only on the owner's word | builder A | `golive_reset` (v2) | the backup stamp recorded in the go-live PR; `app.go_live_on` set | D9, V400, P6-5 |
+| Settings typed by an admin: the Supplier & partner types Flight content provider and Accreditation body; the escalation matrix SOP link; the challenge root causes, streams and outside roles; the code channels; the company sizes; a live owner on each seeded task template; the strategy team's words for the KPI statuses | admin | Settings | each list shows its values; no template without a live owner; the KPI sheet prints the words | V486, V474, V485, V471, V472, V479, V473 |
 | The plan typed in (objectives, KPIs, targets, leads); the appraisal templates seeded | admin and the KPI leads | the app | the KPIs page shows the year's plan; no "not measured" tile that should measure | P6-8 |
 | The 2026 invoices typed by the team from the pilot on; the DPIN uniqueness verified on real Payments data before P4-1 shipped | team; oversight | Finance → New invoice | monthly revenue compared with Payments by the owner and the oversight | owner decision 4, V417 |
 | Every list exports its exact count; a missing cost is empty, never 0; printed parts reconcile to the printed total | the QA session | every list; a monthly report | `export-count` green; OA4 and OA5 checks | V426, V428 |
