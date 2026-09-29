@@ -681,11 +681,12 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - `audit.undo_allowed` decides from the person's rights today:
   - an admin: always;
   - access (V128): admins only;
+  - My profile (V9, V97): a request of the person's own that changed only their own names (`full_name_*`, `nickname_*`) or their own profile row, within the window — whatever their level on the people pages, since `api.profile_update` let them make it. Nothing else of their own person record is theirs to undo. (Builder B's `profile.spec` Undo found it: #114 met this rule for the first time when v2/main was merged in.)
   - every record the request touched must be one the person may see now (V143);
   - Full on every record it touched: yes, at any time;
   - else, within the window, at least Own now on every record it touched (a record type with neither page nor level counts as Own), and, for someone else's request, being one of each record's owners.
 - `core.restore` the same way: an admin; Full on the record; or at least Own now, and either being the one who removed it or one of its owners. Access rows are an admin's alone, from one list (`audit.access_tables()`) that the undo rule reads too.
-- Tests: UNDO-05 (a demoted admin undoes neither a setting nor a manager line), DEL-01 (the one who removed it restores it with Own, not with View; Full on a page restores no access row). Sabotages: `undo-by-rights-then`, `restore-by-rights-then`, `restore-by-owners-and-full-only`, `access-restored-by-anyone`, and `access-undone-by-anyone` rewritten on the new rule.
+- Tests: UNDO-05 (a demoted admin undoes neither a setting nor a manager line; a team member undoes their own nickname and theme, not their job title, and not after the window), DEL-01 (the one who removed it restores it with Own, not with View; Full on a page restores no access row). Sabotages: `undo-by-rights-then`, `my-profile-cannot-be-undone`, `restore-by-rights-then`, `restore-by-owners-and-full-only`, `access-restored-by-anyone`, and `access-undone-by-anyone` rewritten on the new rule.
 
 **V162 — Undoing or restoring a sign-in record goes through the admin route** ACTIVE · 2026-09-29 (QA). Undoing or restoring an allowed e-mail, a sign-in link or a person switched on or off changes who may sign in, so Supabase Auth must follow in the same breath. Only the server can do that, with the secret key.
 - The server routes `/auth/admin/undo` and the new `/auth/admin/restore` first take a one-time ticket (`api.auth_ticket_issue`, service role only; `core.auth_ticket`, no grants). Then they call `api.undo` or `api.restore` as the person, and re-sync the people named in `auth_resync`.
