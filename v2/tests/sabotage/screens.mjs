@@ -227,14 +227,125 @@ export const sabotages = [
   },
   {
     name: 'sign-in-grows-a-google-door',
-    breaks: ['e2e:tests/e2e/signin.spec.ts'],
-    expect: 'the only door is the emailed code (V59)',
+    breaks: ['e2e:tests/e2e/password.spec.ts'],
+    expect: 'the only door is email and password',
     edits: [
       {
-        file: 'src/modules/org/screens/SignIn.tsx',
-        find: '<Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: '<p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
         replace:
-          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+          '<button type="button" className="door-button">Continue with Google</button>\n        <p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
+      },
+    ],
+  },
+  // ---- the door (the visual spec of 29 Sep, V213)
+  {
+    name: 'door-offline-reads-as-wrong-password',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'offline is said as offline',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: "        setError('unavailable');\n",
+        replace: "        setError('wrong_password');\n",
+      },
+    ],
+  },
+  {
+    name: 'door-eye-shows-nothing',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'the eye shows the password',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: 'onClick={() => setShown((s) => !s)}',
+        replace: 'onClick={() => setShown(false)}',
+      },
+    ],
+  },
+  {
+    name: 'door-panel-grows-a-tagline',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'no tagline, no copyright in the panel',
+    edits: [
+      {
+        file: 'src/modules/org/screens/DoorFrame.tsx',
+        find: '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />',
+        replace:
+          '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />\n          <p>{t(\'app.brand_line\')}</p>',
+      },
+    ],
+  },
+  // ---- the QA fixes on #92 (My profile reachable, failed reads named, only changed fields sent, Undo resyncs)
+  {
+    name: 'profile-chip-leads-nowhere',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the chip opens My profile',
+    edits: [
+      {
+        file: 'src/ui/shell/ProfileMenu.tsx',
+        find: '<Link href="/profile">',
+        replace: '<Link href="/settings/profile">',
+      },
+    ],
+  },
+  {
+    name: 'profile-keeps-the-undone-value',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the undone value is gone from the screen',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '  if (me !== seenMe) {\n    setSeenMe(me);\n    setState(stateOf(me));\n  }\n',
+        replace: '  void seenMe;\n  void setSeenMe;\n',
+      },
+    ],
+  },
+  {
+    name: 'profile-keeps-the-undone-theme',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'the undone theme is gone from the page',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'person-edit-sends-every-field',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'only the changed fields are sent',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '      if (next === stored[k]) continue;\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'person-edit-starts-from-a-stale-copy',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'the form shows the stored value',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '    setF(stored);\n    setFormVersion(row?.version ?? null);\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'failed-read-drawn-as-no-access',
+    breaks: ['unit:tests/unit/org/a-failed-read-is-named-never-drawn-empty.test.ts'],
+    expect: 'names a read that failed',
+    edits: [
+      {
+        file: 'src/modules/org/read-or-fail.ts',
+        find: "    if (kind !== 'PermissionDenied') failed.push(name);\n",
+        replace: '',
       },
     ],
   },

@@ -55,4 +55,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'plant-banned-seed',
+    breaks: ['check:forbidden-words'],
+    expect: j('20260929091000_core_banned_words.sql:28 [forbidden-words] "B2', 'G"'),
+    edits: [
+      {
+        file: 'supabase/migrations/20260929091000_core_banned_words.sql',
+        find: "is 'The first banned word in data (V59, V404) a text carries",
+        replace: j("is 'Segments: Government (B2", 'G) · The first banned word in data (V59, V404) a text carries'),
+      },
+    ],
+  },
 ];

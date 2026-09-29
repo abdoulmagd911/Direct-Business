@@ -109,7 +109,7 @@ export function BottomBar() {
               );
             })}
             <Link
-              href="/settings/profile"
+              href="/profile"
               data-entity="person"
               onClick={() => setMore(false)}
               className="mt-2 flex h-12 items-center gap-3 rounded-md border-t border-nav-border px-3 pt-2 text-base"
