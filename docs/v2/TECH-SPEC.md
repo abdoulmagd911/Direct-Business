@@ -371,9 +371,13 @@ core.role         LIST + is_admin bool                  -- roles only set defaul
 core.person       STD SOFT; full_name_en not null; full_name_ar; nickname_en; nickname_ar; job_title_en; job_title_ar;
                   department_id; team_id → core.team; manager_id → core.person (no cycles, trigger);
                   role_id → core.role; can_sign_in bool default false; active bool default true;
-                  joined_on; left_on; kind text check (kind in ('staff','system'))
+                  joined_on; left_on; kind text check (kind in ('staff','system','admin_account','test_account'))
                   -- 'system' persons ("Import", "System") are named non-login actors: imports and jobs are never
                   -- attributed to a real login (replaces the old QA-account attribution, D13)
+                  -- V444, V445: 'admin_account' (the owner's separate admin account) and 'test_account' (the oversight's
+                  -- test account, removed before go-live) sign in but are never team members — every team list, KPI,
+                  -- leaderboard, appraisal and reports-to picker excludes every kind but 'staff' (one predicate,
+                  -- `core.is_team_member(person_id)`, used everywhere)
 core.person_team_assist (person_id, team_id) pk         -- teams a person helps besides their home team
 core.page         key text pk; module; route; nav_group; nav_order; levels_allowed text[]; active      -- synced from the registry
 core.capability   key text pk; page_key → core.page; active                                            -- synced
@@ -453,7 +457,7 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   words list of §3.5) · `partner.credit_date` revenue_date (which date decides whose credit an invoice is — V27) ·
   `finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 · `finance.unpaid_alert_days` 45 · `partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days` 30 · `partner.contract_notify` (account manager ✓, followers ✓, commercial manager ✗) · `partner.contract_renewal_task` ✓ · `partner.id_format` DK-P-0000 · `partner.logo_fallback` monogram · `core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ · `finance.unbilled_after_days` 30 (a transaction with no billing invoice after
   that is flagged) ·
-  `finance.cost_estimate` on (D23) · `perf.pace_bands` {on_track 1.00, at_risk 0.85} (a plan setting — V401) ·
+  `finance.cost_estimate` on (D23) · `perf.pace_bands` {on_track 0.90, at_risk 0.70} (a plan setting — V401, V449) ·
   `report.due_day` 5 · `app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
   `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
   `finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) ·
@@ -595,8 +599,8 @@ partner.partner   STD SOFT; number unique (the organisation ID, e.g. DK-P-0142: 
 partner.side      fixed in code, never a table: 'client' | 'supplier_partner'   (V98)
 partner.side_type LIST per side (V98): CLIENT types = the segments of V64, one list (Government · Corporate ·
                   Agencies · Individuals … — the banned words apply to list values too, V404);
-                  SUPPLIER & PARTNER types: Supplier · Strategic partner · Sales channel ·
-                  Integration · Payment solution … — admins edit both lists
+                  SUPPLIER & PARTNER types (V448, the owner's seven): Hotel supplier · Airline · Visa/Embassy ·
+                  Payment provider · Sales channel · Technology · Strategic partner — admins edit both lists
 partner.side_tier LIST per side
 partner.side_field  STD SOFT; side; key; label_en; label_ar; type (as perf.category_field); required; options; sort
                   -- each side's own custom fields, shown in the record's details rail (V95); a field named like a
@@ -606,7 +610,9 @@ partner.partner_side  STD SOFT; partner_id; side; type_id → partner.side_type;
                   -- the side switch: a row = the side is on. Switching the Client side on offers the Corporate
                   -- onboarding checklist (V89)
 partner.side_status_reason  LIST per status (at risk and lost: e.g. price, service issue, competitor, no response)
-partner.side_status_change  STD; partner_id; side; status ('prospect','active','at_risk','lost'); effective_on date not null;
+partner.side_status_change  STD; partner_id; side; status ('prospect','active','at_risk','lost','on_hold','ended');
+                  -- V450: at_risk and lost on the Client side, on_hold and ended on the Supplier & partner side
+                  effective_on date not null;
                   reason_id → partner.side_status_reason (required for at_risk and lost); note; set_by
                   -- V62's history, now per side; never updated: a side's status on a day is the latest change on or
                   -- before it (view partner.side_status). Onboarded in the pipeline sets Active (V99)
@@ -696,13 +702,14 @@ core.mention      (note_id, person_id) pk
   share the header.
 - **Sides, in words.** Switching a side on adds its row (type required, owner required); switching it off ends the row
   with a date and keeps everything (nothing is removed). A supplier that becomes a client gets the Client side switched
-  on — one record, two sides, one history. "Strategic partner", "Sales channel", "Integration", "Payment solution" are
-  **types on the Supplier & partner side**; on the Client side the type **is** the segment (V64), so every money view
-  splits by it.
-- **Status with history, per side** (V62 kept, V98): **Prospect · Active · At risk · Lost**, each change with an effective
-  date and, for at risk and lost, a reason from the settings list; the history is on the Activity tab. The **last
-  feedback date** (the latest feedback note or feedback task done) shows beside it. Who sets it: the side's owner and
-  managers. An organisation with both sides has two statuses; the row chip shows the worse one.
+  on — one record, two sides, one history. "Hotel supplier", "Airline", "Visa/Embassy", "Payment provider", "Sales
+  channel", "Technology" and "Strategic partner" (V448) are **types on the Supplier & partner side**; on the Client side
+  the type **is** the segment (V64), so every money view splits by it.
+- **Status with history, per side** (V62 kept, V98): on the Client side **Prospect · Active · At risk · Lost**, on the
+  Supplier & partner side **Prospect · Active · On hold · Ended** (V450; both lists admin-editable), each change with an
+  effective date and, for at risk, lost, on hold and ended, a reason from the settings list; the history is on the
+  Activity tab. The **last feedback date** (the latest feedback note or feedback task done) shows beside it. Who sets
+  it: the side's owner and managers. An organisation with both sides has two statuses; the row chip shows the worse one.
 - **One status chip per row**: **At risk** or **Lost** when so; else the most urgent computed flag — **Stale** (no
   activity and no open next step for `partner.stale_after_days`, 21 — V401), **Contract expiring**, **Collection due**
   (an unpaid invoice past `finance.collection_due_days`), **Quiet** (no Fully Paid invoice in `finance.quiet_client_days`,
@@ -1230,7 +1237,7 @@ with a reason — a logged person action.
    reached) · the **pace bands** (V401) **On track** (ratio ≥ on_track) · **At risk** (≥ at_risk) · **Behind** (below) ·
    **Not measured** (no target, not started, or nothing measured). A non-cumulative KPI is judged per quarter; a `latest`
    KPI compares its latest figure with the current quarter's target (the d27 rule). The bands' thresholds are a **plan
-   setting** (`perf.pace_bands`, default on_track 1.00 · at_risk 0.85), overridable per KPI revision; the KPI-behind
+   setting** (`perf.pace_bands`, default on_track 0.90 · at_risk 0.70 — V449), overridable per KPI revision; the KPI-behind
    alert fires on Behind.
 6. **Not measured ≠ 0.** A manual KPI with no reading, or a ratio with nothing to divide (no action items were due),
    returns `measured = false` and is shown as "—, not measured", never 0. A count of achievements is a real 0 once the
@@ -1282,7 +1289,7 @@ tests are made up):
   reads Finance only); logging it sets the partner to **Prospect** from the signing date unless it is already Active
   (one request, reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
-- **Technical integration** (V99, V407): the partner (Supplier & partner side, type Integration), the **Direct ticket
+- **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct ticket
   number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without it the
   achievement is not saved), `happened_on` = the **handover to Product** (the ticket raised), which is when it counts;
   `go_live_on` recorded later on the same achievement and never counted again; a tracked-only KPI follows go-lives.
@@ -1953,7 +1960,9 @@ House rules ported from the old suite: one promise per test file, named as a sen
 not only as admin (CP10); a test that recorded a hole fails once it is fixed (M37). **From the old app's lessons**
 (V430): a test reads its setup back before acting on it (OA34); E2E runs vary the time zone, the locale and the clock
 (OA20); an E2E walk of read-only pages counts the writes and expects none but the person's own bookkeeping (OA16); a
-check or a test that could not run is red, never green (OA13).
+check or a test that could not run is red, never green (OA13). **Hard testing of every role** (V447): on production
+through the test account (V445) and View as (V442); on localhost by the QA session with fixture users of every role
+(made-up people — V101).
 
 ### 9.2 The propagation flows — the six of §1a, and five more
 
@@ -2102,10 +2111,13 @@ owner in Vercel, never from the repository** (V427). No deploy secret is
 stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
 after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
 once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
-file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). **Every other person is added through
-Settings → People by the oversight in the browser, never seeded or hard-coded** (V440; the list lives in the owner's
-private knowledge base, never in this repository — rule 7); before go-live each gets a generated temporary password to
-change at first sign-in (V441).
+file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). That first admin is **the owner's
+separate admin account** (`kind = 'admin_account'`, never a team member — V444); the owner's own work runs on his
+employee account. **Every other person is added through Settings → People by the oversight in the browser, never
+seeded or hard-coded** (V440; eleven people — V443; the list lives in the owner's private knowledge base, never in this
+repository — rule 7); before go-live each gets a generated temporary password, typed once by the owner himself, and
+changes it at first sign-in (V441, V446). One **test account** (`kind = 'test_account'`) serves the oversight's testing
+and is removed before go-live (V445).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.

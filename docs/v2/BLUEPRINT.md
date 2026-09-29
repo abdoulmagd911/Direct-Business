@@ -262,6 +262,12 @@ Vercel (V13, V21, V84).
     changed at first sign-in (V441).
 75. **View as** — an admin previews the app as any person, read-only, with a banner and Exit, every start and stop
     logged, writes refused server-side; off at go-live (V442, the oversight's proposal; the owner may veto).
+76. **Eleven people**, the owner's separate admin account and one test account, neither a team member; the owner types
+    each temporary password once; all changed before go-live (V443–V446).
+77. **Hard testing** on production through the test account and View as, on localhost with fixture users of every
+    role (V447).
+78. **The Supplier & partner types are the owner's seven** (V448); **pace bands 90 / 70** (V449); **Supplier & partner
+    statuses Prospect · Active · On hold · Ended** (V450) — all admin-editable.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
