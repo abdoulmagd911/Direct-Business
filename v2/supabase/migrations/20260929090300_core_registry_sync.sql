@@ -16,7 +16,7 @@ on conflict (key) do nothing;
 
 -- pages
 insert into core.page (key, module, route, nav_group, nav_order, levels_allowed, active) values
-  ('activity', 'settings', '/settings/activity', 'settings', 80, '{none,view,own,full}'::core.level[], true),
+  ('activity', 'settings', '/activity', 'main', 110, '{none,view,own,full}'::core.level[], true),
   ('appraisal', 'appraisal', '/appraisal', 'main', 100, '{none,view,own,full}'::core.level[], true),
   ('clients', 'partners', '/partners?view=clients', 'main', 30, '{none,view,own,full}'::core.level[], true),
   ('finance', 'finance', '/finance', 'main', 70, '{none,view,own,full}'::core.level[], true),
@@ -31,7 +31,7 @@ insert into core.page (key, module, route, nav_group, nav_order, levels_allowed,
   ('settings.org', 'org', '/settings/org', 'settings', 20, '{none,full}'::core.level[], true),
   ('settings.partners', 'partners', '/settings/partners', 'settings', 30, '{none,full}'::core.level[], true),
   ('settings.performance', 'perf', '/settings/performance', 'settings', 40, '{none,full}'::core.level[], true),
-  ('settings.profile', 'settings', '/settings/profile', 'settings', 10, '{own}'::core.level[], true),
+  ('settings.profile', 'settings', '/profile', null, null, '{own}'::core.level[], true),
   ('settings.work', 'tasks', '/settings/work', 'settings', 60, '{none,full}'::core.level[], true),
   ('suppliers_partners', 'partners', '/partners?view=suppliers', 'main', 31, '{none,view,own,full}'::core.level[], true),
   ('tasks', 'tasks', '/tasks', 'main', 60, '{none,view,own,full}'::core.level[], true)
