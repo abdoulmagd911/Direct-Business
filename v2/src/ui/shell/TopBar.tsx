@@ -16,15 +16,16 @@ export function TopBar({
   onOpenSearch,
   onOpenBell,
   bellOpen,
+  unread = 0,
 }: {
   onOpenSearch: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
+  /** api.notifications_unread, kept live by the shell (P3-7). */
+  unread?: number;
 }) {
   const t = useTranslations('top');
   const pathname = usePathname();
-  // The bell's count arrives with P3-7 (api.notifications_*); until then nothing is unread.
-  const unread = 0;
   return (
     <header
       className="flex h-[var(--topbar-h)] shrink-0 items-center gap-3 border-b border-top-border bg-top-bg px-4 text-top-text sm:px-6"
@@ -52,6 +53,7 @@ export function TopBar({
         pressed={bellOpen}
         onClick={onOpenBell}
         data-bell
+        data-unread={unread}
       >
         {unread > 0 ? (
           <span

@@ -4,21 +4,45 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Search } from 'lucide-react';
+import { Search, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
+import { paletteActions } from '@/core/commands/actions';
+import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
 import { SETTINGS_ENTRY, isAdmin, navFor } from './nav';
 import { CREATE_ACTIONS } from './CreateMenu';
 
+type Hit = { id: string; full_name_en: string; full_name_ar: string | null; job_title_en: string | null };
+
+const itemClass =
+  'flex h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft';
+const groupClass =
+  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted';
+
 /**
- * Ctrl K: pages and create actions now; records through api.search from P3-9 (search providers come
- * from the registry). Opens from the top-bar search or the shortcut; Escape closes and focus returns.
+ * Ctrl K (V401): Go to a page; people by name through api.search (organisations join when their record page lands,
+ * P3-9); the Create actions; and the actions each step registers (New task · Log activity · New invoice) — only the
+ * ones whose page the person may see. Opens from the top-bar search or the shortcut; Escape closes and focus returns.
  */
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
   const me = useMe();
   const router = useRouter();
   const [q, setQ] = useState('');
+  const [found, setFound] = useState<{ term: string; people: Hit[] }>({ term: '', people: [] });
+  // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
+  const term = q.trim();
+  useEffect(() => {
+    if (!open || term.length < 2) return;
+    let live = true;
+    rpc('search', { p_q: term, p_limit: 8 })
+      .then((a) => live && setFound({ term, people: ((a as { people?: Hit[] } | null)?.people ?? []).slice(0, 8) }))
+      .catch(() => live && setFound({ term, people: [] }));
+    return () => {
+      live = false;
+    };
+  }, [term, open]);
+  const people = open && term.length >= 2 && found.term === term ? found.people : [];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -40,6 +64,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     router.push(route);
   };
   const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
+  const actions = paletteActions().filter((a) => canSee(me, a.page));
 
   return (
     <RD.Root open={open} onOpenChange={close}>
@@ -63,29 +88,35 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </div>
             <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
               <Command.Empty className="px-3 py-6 text-center text-base text-muted">{t('palette.empty')}</Command.Empty>
-              <Command.Group
-                heading={t('palette.pages')}
-                className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted"
-              >
+              <Command.Group heading={t('palette.pages')} className={groupClass}>
                 {pages.map((p) => {
                   const Icon = p.icon;
                   return (
-                    <Command.Item
-                      key={p.key}
-                      value={t(p.label)}
-                      onSelect={() => go(p.route)}
-                      className="flex h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft"
-                    >
+                    <Command.Item key={p.key} value={t(p.label)} onSelect={() => go(p.route)} className={itemClass}>
                       <Icon className="size-4 text-muted" aria-hidden="true" />
                       {t(p.label)}
                     </Command.Item>
                   );
                 })}
               </Command.Group>
-              <Command.Group
-                heading={t('palette.actions')}
-                className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted"
-              >
+              {people.length ? (
+                <Command.Group heading={t('palette.people')} className={groupClass}>
+                  {people.map((p) => (
+                    <Command.Item
+                      key={p.id}
+                      value={`${p.full_name_en} ${p.full_name_ar ?? ''} ${p.id}`}
+                      onSelect={() => go(`/people/${p.id}`)}
+                      className={itemClass}
+                      data-palette-person={p.id}
+                    >
+                      <UserRound className="size-4 text-muted" aria-hidden="true" />
+                      <span className="truncate">{p.full_name_en}</span>
+                      {p.job_title_en ? <span className="truncate text-sm text-muted">{p.job_title_en}</span> : null}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              ) : null}
+              <Command.Group heading={t('palette.actions')} className={groupClass}>
                 {CREATE_ACTIONS.filter((a) => canSee(me, a.page)).map((a) => {
                   const Icon = a.icon;
                   return (
@@ -93,10 +124,25 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       key={a.key}
                       value={`${t('top.create')} ${t(`create.${a.key}`)}`}
                       onSelect={() => go(a.route)}
-                      className="flex h-10 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft"
+                      className={itemClass}
                     >
                       <Icon className="size-4 text-muted" aria-hidden="true" />
                       {t('top.create')} · {t(`create.${a.key}`)}
+                    </Command.Item>
+                  );
+                })}
+                {actions.map((a) => {
+                  const Icon = a.icon;
+                  return (
+                    <Command.Item
+                      key={a.key}
+                      value={t(a.label)}
+                      onSelect={() => go(a.route)}
+                      className={itemClass}
+                      data-palette-action={a.key}
+                    >
+                      <Icon className="size-4 text-muted" aria-hidden="true" />
+                      {t(a.label)}
                     </Command.Item>
                   );
                 })}

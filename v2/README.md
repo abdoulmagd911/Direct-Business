@@ -111,3 +111,8 @@ the activity timeline with Undo); `src/modules/settings/` holds the settings fra
 the database's own preview, the list editor with the Arabic name required and Used in N before an archive, Activity
 with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
 record. `core/commands/run.ts` runs one write with its toast and Undo.
+
+P3-7 (V211): `core/commands/command.ts` is the one way a screen writes — the toast with Undo, the global refetch
+(`RefetchBridge`), the conflict dialog when two people changed the same field (FLOW-08); the shell carries the bell
+(`useNotifications`, `NotificationsPanel`), `FollowButton`, `SavedViewsBar` and `BulkBar` for every list, Ctrl K with
+people search and the actions registry (`core/commands/actions.ts`), and Activity gains Recently deleted with Restore.

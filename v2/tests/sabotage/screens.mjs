@@ -177,6 +177,61 @@ export const sabotages = [
       },
     ],
   },
+  // ---- P3-7 (V401, FLOW-08): each promise of tests/e2e/p3-7.spec.ts seen red
+  {
+    name: 'conflict-silently-overwrites',
+    breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
+    expect: "locator('[data-conflict-dialog]')",
+    edits: [
+      {
+        file: 'src/core/commands/command.ts',
+        find: '.filter((f) => !same(theirs.values[f.key], f.read) && !same(theirs.values[f.key], f.mine))',
+        replace: '.filter(() => false)',
+      },
+    ],
+  },
+  {
+    name: 'bell-never-marks-read',
+    breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
+    expect: 'data-notification][data-unread',
+    edits: [
+      {
+        file: 'src/ui/shell/NotificationsPanel.tsx',
+        find: 'onClick={() => void act(() => markRead())}',
+        replace: 'onClick={() => undefined}',
+      },
+    ],
+  },
+  {
+    name: 'follow-does-nothing',
+    breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
+    expect: 'data-follow][data-following',
+    edits: [{ file: 'src/ui/FollowButton.tsx', find: 'p_on: !on }', replace: 'p_on: false }' }],
+  },
+  {
+    name: 'restore-never-restores',
+    breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
+    expect: 'data-deleted-row',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ActivityScreen.tsx',
+        find: "() => rpc('restore', { p_entity: d.entity, p_id: d.id }) as Promise<{ request_id?: string | null } | null>,",
+        replace: '() => Promise.resolve({ request_id: null }),',
+      },
+    ],
+  },
+  {
+    name: 'bulk-one-request-per-row',
+    breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
+    expect: "locator('[data-bulk-calls]')",
+    edits: [
+      {
+        file: 'src/ui/BulkBar.tsx',
+        find: '() => a.run(ids)',
+        replace: 'async () => { let r; for (const id of ids) r = await a.run([id]); return r; }',
+      },
+    ],
+  },
   {
     name: 'team-arabic-optional',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
