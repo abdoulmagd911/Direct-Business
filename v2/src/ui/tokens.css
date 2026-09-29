@@ -1,0 +1,272 @@
+/*
+ * Design tokens — the ONLY file in v2 that may hold a colour value (check-no-hex).
+ * Source: the design system page ("Commercial Design System") and BUILD-PLAN "Design tokens";
+ * the Direct column follows the official brand palette the oversight relayed on 28 Sep (V200).
+ * tests/unit/tokens.test.ts checks every value below against the table.
+ *
+ * Rules the checks enforce:
+ *  - --accent is a FILL only (marks, tabs, bars, selection). Text in the accent colour uses --link;
+ *    a filled button uses --primary with --on-primary. In Direct nothing white ever sits on --accent.
+ *  - colour never carries meaning alone: a status chip always shows its word.
+ */
+
+:root {
+  /* families (self-hosted, src/ui/fonts.ts sets the --font-* variables from next/font) */
+  --font-ui-stack: var(--font-ui), 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, 'Segoe UI', Tahoma, sans-serif;
+  --font-display-stack: var(--font-display), 'Readex Pro', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-data-stack: var(--font-data), 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  /* type scale, anchored at 14 px */
+  --t-xs: 11.5px;
+  --t-sm: 13px;
+  --t-base: 14px;
+  --t-md: 14px;
+  --t-lg: 16px;
+  --t-xl: 20px;
+  --t-2xl: 24px;
+  --t-3xl: 30px;
+
+  /* spacing, a 4 px grid */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+
+  /* radius */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  /* density — Comfortable is the default (V8); Compact tightens tables only */
+  --control-h: 40px;
+  --control-h-sm: 34px;
+  --control-h-xs: 30px;
+  --row-h: 48px;
+  --row-h-head: 44px;
+  --row-font: 14px;
+  --hit: 40px;
+  --section-gap: 28px;
+  --drawer-w: 232px;
+  --drawer-w-collapsed: 56px;
+  --topbar-h: 60px;
+  --panel-w: 480px;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 160ms;
+}
+
+[data-density='compact'] {
+  --row-h: 32px;
+  --row-h-head: 36px;
+  --row-font: 13px;
+}
+
+/* ---------- Light · Sea-glass ---------- */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f2f3ef;
+  --surface: #f9faf7;
+  --raised: #ffffff;
+  --border: #daddd5;
+  --border-strong: #858f88;
+  --text: #1a1f1c;
+  --muted: #566059;
+  --link: #0b6b66;
+  --accent: #0b6b66;
+  --accent-hover: #08524e;
+  --on-accent: #ffffff;
+  --accent-soft: #ddedea;
+  --primary: #0b6b66;
+  --primary-hover: #08524e;
+  --on-primary: #ffffff;
+  --focus: #2b63d9;
+  --success: #1d7543;
+  --warning: #8f5500;
+  --danger: #b42318;
+  --info: #1f5fad;
+  --success-soft: #e1f0e6;
+  --warning-soft: #f6ead6;
+  --danger-soft: #f8e1de;
+  --info-soft: #e0eaf6;
+  --nav-bg: #e8eae5;
+  --nav-text: #2a302d;
+  --nav-muted: #566059;
+  --nav-active: #ffffff;
+  --nav-active-text: #1a1f1c;
+  --nav-mark: #0b6b66;
+  --nav-border: #daddd5;
+  --top-bg: #f9faf7;
+  --top-text: #1a1f1c;
+  --top-border: #daddd5;
+  --search-bg: #ffffff;
+  --search-border: #daddd5;
+  --search-text: #566059;
+  --c1: #0b6b66;
+  --c2: #c8741e;
+  --c3: #5552c9;
+  --c4: #b8407a;
+  --c5: #3c8a3a;
+  --c6: #7a6a1e;
+  --shadow-1: 0 1px 2px rgba(26, 31, 28, 0.06), 0 0 0 1px rgba(26, 31, 28, 0.04);
+  --shadow-2: 0 8px 24px -8px rgba(26, 31, 28, 0.18), 0 0 0 1px rgba(26, 31, 28, 0.05);
+  --scrim: rgba(26, 31, 28, 0.34);
+}
+
+/* ---------- Dark · Night oasis ---------- */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #161b1b;
+  --surface: #1c2322;
+  --raised: #242c2b;
+  --border: #33403e;
+  --border-strong: #6b7a76;
+  --text: #e4eae7;
+  --muted: #9aa7a3;
+  --link: #3fc1b4;
+  --accent: #3fc1b4;
+  --accent-hover: #66d3c8;
+  --on-accent: #0d2422;
+  --accent-soft: #1d3836;
+  --primary: #3fc1b4;
+  --primary-hover: #66d3c8;
+  --on-primary: #0d2422;
+  --focus: #7fa8ff;
+  --success: #4cc38a;
+  --warning: #e6a94b;
+  --danger: #f27a6f;
+  --info: #6faaf2;
+  --success-soft: #193328;
+  --warning-soft: #3a2e17;
+  --danger-soft: #3d2220;
+  --info-soft: #1b2c40;
+  --nav-bg: #121717;
+  --nav-text: #c9d2cf;
+  --nav-muted: #7f8c88;
+  --nav-active: #242c2b;
+  --nav-active-text: #e4eae7;
+  --nav-mark: #3fc1b4;
+  --nav-border: #33403e;
+  --top-bg: #1c2322;
+  --top-text: #e4eae7;
+  --top-border: #33403e;
+  --search-bg: #242c2b;
+  --search-border: #33403e;
+  --search-text: #9aa7a3;
+  --c1: #3fc1b4;
+  --c2: #f0a35e;
+  --c3: #a3a1f7;
+  --c4: #ec80b3;
+  --c5: #86cf78;
+  --c6: #d9bc5c;
+  --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-2: 0 12px 28px -10px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --scrim: rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- Colorful · Red Sea ---------- */
+[data-theme='colorful'] {
+  color-scheme: light;
+  --bg: #edf4f6;
+  --surface: #f7fbfc;
+  --raised: #ffffff;
+  --border: #c9dde3;
+  --border-strong: #718f99;
+  --text: #0f2a33;
+  --muted: #46636d;
+  --link: #c4314a;
+  --accent: #c4314a;
+  --accent-hover: #a3243a;
+  --on-accent: #ffffff;
+  --accent-soft: #fbe3e6;
+  --primary: #c4314a;
+  --primary-hover: #a3243a;
+  --on-primary: #ffffff;
+  --focus: #6a4fd8;
+  --success: #17794a;
+  --warning: #935200;
+  --danger: #b3261e;
+  --info: #1d5fb8;
+  --success-soft: #ddf1e6;
+  --warning-soft: #fbebd3;
+  --danger-soft: #fadfdc;
+  --info-soft: #dde9f8;
+  --nav-bg: #0f4c5c;
+  --nav-text: #e8f4f6;
+  --nav-muted: #9cc3cc;
+  --nav-active: #1b6475;
+  --nav-active-text: #ffffff;
+  --nav-mark: #f2b544;
+  --nav-border: rgba(255, 255, 255, 0.14);
+  --top-bg: #f7fbfc;
+  --top-text: #0f2a33;
+  --top-border: #c9dde3;
+  --search-bg: #ffffff;
+  --search-border: #c9dde3;
+  --search-text: #46636d;
+  --c1: #c4314a;
+  --c2: #0e8a8c;
+  --c3: #b8740a;
+  --c4: #5b45c8;
+  --c5: #2a78d6;
+  --c6: #6e9a2e;
+  --shadow-1: 0 1px 2px rgba(15, 42, 51, 0.07), 0 0 0 1px rgba(15, 42, 51, 0.04);
+  --shadow-2: 0 10px 26px -10px rgba(15, 76, 92, 0.3), 0 0 0 1px rgba(15, 42, 51, 0.05);
+  --scrim: rgba(15, 42, 51, 0.34);
+}
+
+/* ---------- Direct · Official brand ---------- */
+[data-theme='direct'] {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --surface: #fafbfc;
+  --raised: #ffffff;
+  --border: #e6e8ec;
+  --border-strong: #858e99;
+  --text: #303848;
+  --muted: #646d79;
+  --link: #b5490e;
+  --accent: #f06820;
+  --accent-hover: #ff6b00;
+  --on-accent: #ffffff;
+  --accent-soft: #fff3ec;
+  --primary: #c94c14;
+  --primary-hover: #b5430f;
+  --on-primary: #ffffff;
+  --focus: #2563eb;
+  --success: #1f7a4d;
+  --warning: #7d6200;
+  --danger: #c0233f;
+  --info: #2563b0;
+  --success-soft: #e2f2ea;
+  --warning-soft: #fbf3d6;
+  --danger-soft: #fbe4e8;
+  --info-soft: #e3ecf8;
+  --nav-bg: #323e48;
+  --nav-text: #e6e8ec;
+  --nav-muted: #b3bac3;
+  --nav-active: #3e4b56;
+  --nav-active-text: #ffffff;
+  --nav-mark: #ff6b00;
+  --nav-border: #3e4b56;
+  --top-bg: #323e48;
+  --top-text: #ffffff;
+  --top-border: #323e48;
+  --search-bg: #3e4b56;
+  --search-border: #4b5864;
+  --search-text: #c3c9d0;
+  --c1: #f06820;
+  --c2: #fbae16;
+  --c3: #323e48;
+  --c4: #2563b0;
+  --c5: #1f7a4d;
+  --c6: #858e99;
+  --shadow-1: 0 1px 2px rgba(48, 56, 72, 0.06), 0 0 0 1px rgba(48, 56, 72, 0.04);
+  --shadow-2: 0 10px 26px -10px rgba(48, 56, 72, 0.22), 0 0 0 1px rgba(48, 56, 72, 0.05);
+  --scrim: rgba(48, 56, 72, 0.34);
+}

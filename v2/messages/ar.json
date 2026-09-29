@@ -3,7 +3,11 @@
     "name": "مساحة العمل التجارية",
     "brand_line": "الذراع التجاري لتطبيق السفر الشامل",
     "copyright": "© دايركت",
-    "department": "الإدارة التجارية"
+    "department": "الإدارة التجارية",
+    "workspace": "مساحة العمل التجارية",
+    "brand": "دايركت",
+    "name_other": "Commercial Workspace",
+    "brand_line_other": "The commercial arm of the all-in-one travel app"
   },
   "sign_in": {
     "email_label": "البريد الإلكتروني للعمل",
@@ -26,13 +30,22 @@
       "inactive": "لم يُستخدم هذا الجهاز منذ 30 يومًا — اطلب رمزًا جديدًا",
       "signed_out_elsewhere": "سُجّل خروج هذا الجهاز — اطلب رمزًا جديدًا",
       "signed_out_by_admin": "سجّل أحد المسؤولين خروج هذا الجهاز — اطلب رمزًا جديدًا"
-    }
+    },
+    "language": "اللغة"
   },
   "session": {
     "sign_out": "تسجيل الخروج",
     "unknown_device": "متصفح"
   },
   "nav": {
+    "main": "الرئيسية",
+    "pin": "تثبيت القائمة",
+    "unpin": "إلغاء تثبيت القائمة",
+    "collapse": "طي القائمة",
+    "expand": "توسيع القائمة",
+    "open": "فتح القائمة",
+    "close": "إغلاق القائمة",
+    "more": "المزيد",
     "my_day": "يومي",
     "overview": "نظرة عامة",
     "partners": "الشركاء",
@@ -52,7 +65,169 @@
       "finance": "المالية",
       "work": "العمل",
       "app": "التطبيق"
+    },
+    "settings_home": "الإعدادات",
+    "clients": "العملاء",
+    "suppliers_partners": "الموردون والشركاء"
+  },
+  "top": {
+    "search": "ابحث في الشركاء والمهام والفواتير…",
+    "searchLabel": "بحث",
+    "create": "إنشاء",
+    "notifications": "الإشعارات",
+    "notificationsUnread": "الإشعارات، {count} غير مقروءة",
+    "profile": "ملفي"
+  },
+  "palette": {
+    "placeholder": "انتقل إلى صفحة أو ابحث…",
+    "pages": "الصفحات",
+    "actions": "الإجراءات",
+    "empty": "لا نتائج",
+    "openInSettings": "فتح الإعدادات"
+  },
+  "profileMenu": {
+    "theme": "المظهر",
+    "density": "الكثافة",
+    "language": "اللغة",
+    "direction": "الاتجاه (للتطوير)",
+    "signOut": "تسجيل الخروج",
+    "myProfile": "ملفي"
+  },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "colorful": "ملوّن",
+    "direct": "دايركت"
+  },
+  "density": {
+    "comfortable": "مريح",
+    "compact": "مضغوط"
+  },
+  "locale": {
+    "en": "English",
+    "ar": "العربية"
+  },
+  "dir": {
+    "auto": "تلقائي",
+    "ltr": "من اليسار إلى اليمين",
+    "rtl": "من اليمين إلى اليسار"
+  },
+  "create": {
+    "task": "مهمة",
+    "partner": "شريك",
+    "invoice": "فاتورة",
+    "achievement": "إنجاز",
+    "project": "مشروع"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "close": "إغلاق",
+    "remove": "إزالة",
+    "undo": "تراجع",
+    "tryAgain": "أعد المحاولة",
+    "export": "تصدير",
+    "clearAll": "مسح الكل",
+    "more": "المزيد",
+    "back": "رجوع",
+    "notMeasured": "غير مقاس",
+    "loading": "جارٍ التحميل",
+    "sar": "ريال"
+  },
+  "state": {
+    "failed": "تعذّر تحميل {what}",
+    "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
+    "empty": "لا شيء هنا بعد",
+    "notMeasured": "غير مقاس"
+  },
+  "confirm": {
+    "title": "إزالة {item}؟",
+    "body": "ستتم إزالة {item}. يمكنك التراجع من التنبيه.",
+    "confirm": "إزالة"
+  },
+  "pages": {
+    "myDay": {
+      "greeting": "أهلًا {name}"
+    },
+    "settings": {
+      "myProfile": "ملفي",
+      "find": "ابحث عن إعداد"
     }
+  },
+  "entity": {
+    "partner": "شريك",
+    "invoice": "فاتورة",
+    "task": "مهمة",
+    "achievement": "إنجاز",
+    "kpi": "مؤشر",
+    "reportLine": "بند تقرير",
+    "person": "شخص",
+    "project": "مشروع",
+    "report": "تقرير",
+    "file": "ملف",
+    "department": "قسم",
+    "team": "فريق",
+    "role": "دور",
+    "person_team": "فريق مساعد",
+    "person_department": "قسم مرئي",
+    "person_email": "بريد مسموح",
+    "person_auth": "تسجيل دخول",
+    "person_level": "مستوى الصفحة",
+    "person_capability": "صلاحية",
+    "role_level": "مستوى الدور في الصفحة",
+    "role_capability": "صلاحية الدور",
+    "page": "صفحة",
+    "capability": "تعريف صلاحية",
+    "entity": "نوع السجل",
+    "profile": "الملف الشخصي",
+    "setting": "إعداد",
+    "setting_def": "تعريف إعداد",
+    "wording": "الصياغة",
+    "saved_view": "عرض محفوظ",
+    "partner_role": "دور الشريك",
+    "partner_status": "حالة الشريك",
+    "credit_limit": "الحد الائتماني",
+    "identifier": "معرّف",
+    "account_manager": "مدير الحساب",
+    "contact": "جهة اتصال",
+    "partner_merge": "دمج شريكين",
+    "code_terms": "شروط الرمز",
+    "campaign_code": "رمز حملة",
+    "individual_name": "فرد",
+    "identifier_block": "قيمة محظورة",
+    "partner_role_def": "دور الشريك (قائمة)",
+    "role_field": "حقل الدور",
+    "partner_category": "فئة الشريك",
+    "partner_tier": "مستوى الشريك",
+    "segment": "القطاع",
+    "status_reason": "سبب الحالة",
+    "call_outcome": "نتيجة الاتصال",
+    "contract_term": "شرط العقد",
+    "priority": "الأولوية"
+  },
+  "status": {
+    "done": "منجزة",
+    "inProgress": "قيد التنفيذ",
+    "waiting": "بانتظار العميل",
+    "overdue": "متأخرة",
+    "blocked": "متوقفة",
+    "draft": "مسودة",
+    "todo": "للتنفيذ"
+  },
+  "table": {
+    "selectRow": "تحديد الصف",
+    "selectAll": "تحديد الكل",
+    "selected": "{count} محدد",
+    "clearSelection": "إلغاء التحديد",
+    "sortedAsc": "ترتيب تصاعدي",
+    "sortedDesc": "ترتيب تنازلي"
+  },
+  "panel": {
+    "close": "إغلاق اللوحة"
+  },
+  "chips": {
+    "add": "إضافة تصفية: {field}",
+    "remove": "إزالة التصفية {field}: {value}"
   },
   "cap": {
     "partners": {
@@ -104,48 +279,5 @@
       "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
       "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك"
     }
-  },
-  "entity": {
-    "department": "قسم",
-    "team": "فريق",
-    "role": "دور",
-    "person": "شخص",
-    "person_team": "فريق مساعد",
-    "person_department": "قسم مرئي",
-    "person_email": "بريد مسموح",
-    "person_auth": "تسجيل دخول",
-    "person_level": "مستوى الصفحة",
-    "person_capability": "صلاحية",
-    "role_level": "مستوى الدور في الصفحة",
-    "role_capability": "صلاحية الدور",
-    "page": "صفحة",
-    "capability": "تعريف صلاحية",
-    "entity": "نوع السجل",
-    "profile": "الملف الشخصي",
-    "setting": "إعداد",
-    "setting_def": "تعريف إعداد",
-    "wording": "الصياغة",
-    "saved_view": "عرض محفوظ",
-    "partner": "شريك",
-    "partner_role": "دور الشريك",
-    "partner_status": "حالة الشريك",
-    "credit_limit": "الحد الائتماني",
-    "identifier": "معرّف",
-    "account_manager": "مدير الحساب",
-    "contact": "جهة اتصال",
-    "partner_merge": "دمج شريكين",
-    "code_terms": "شروط الرمز",
-    "campaign_code": "رمز حملة",
-    "individual_name": "فرد",
-    "identifier_block": "قيمة محظورة",
-    "partner_role_def": "دور الشريك (قائمة)",
-    "role_field": "حقل الدور",
-    "partner_category": "فئة الشريك",
-    "partner_tier": "مستوى الشريك",
-    "segment": "القطاع",
-    "status_reason": "سبب الحالة",
-    "call_outcome": "نتيجة الاتصال",
-    "contract_term": "شرط العقد",
-    "priority": "الأولوية"
   }
 }

@@ -10,9 +10,9 @@
     {
       "key": "activity",
       "module": "settings",
-      "route": "/activity",
-      "nav_group": "main",
-      "nav_order": 110,
+      "route": "/settings/activity",
+      "nav_group": "settings",
+      "nav_order": 80,
       "levels": ["none", "view", "own", "full"]
     },
     {

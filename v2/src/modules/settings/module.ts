@@ -20,7 +20,8 @@ export const NOTIFICATION_KINDS = [
 ] as const;
 
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like
-// every Settings page (V97); and Activity (the change log), its own page. Levels: TECH-SPEC §8.
+// every Settings page (V97) — and Activity (the change log), whose key is not a Settings key, so heads and managers keep
+// their View; where its entry sits is the screens' (V138). Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'settings',
   pages: [
@@ -41,11 +42,10 @@ export default defineModule({
       defaults: { admin: 'full' },
     },
     {
-      // Activity is its own page, out of the Settings group (V97).
       key: 'activity',
-      route: '/activity',
+      route: '/settings/activity',
       label: 'nav.activity',
-      nav: { group: 'main', order: 110 },
+      nav: { group: 'settings', order: 80 },
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],

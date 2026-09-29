@@ -16,7 +16,7 @@ on conflict (key) do nothing;
 
 -- pages
 insert into core.page (key, module, route, nav_group, nav_order, levels_allowed, active) values
-  ('activity', 'settings', '/activity', 'main', 110, '{none,view,own,full}'::core.level[], true),
+  ('activity', 'settings', '/settings/activity', 'settings', 80, '{none,view,own,full}'::core.level[], true),
   ('appraisal', 'appraisal', '/appraisal', 'main', 100, '{none,view,own,full}'::core.level[], true),
   ('finance', 'finance', '/finance', 'main', 70, '{none,view,own,full}'::core.level[], true),
   ('kpis', 'perf', '/kpis', 'main', 80, '{none,view,own,full}'::core.level[], true),
