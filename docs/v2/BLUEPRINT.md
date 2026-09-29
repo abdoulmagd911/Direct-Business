@@ -285,10 +285,15 @@ Vercel (V13, V21, V84).
     discount code per organisation per service with channels; the Leads-inbox trigger may be met; the KPI sheet's
     status words through the wording map; challenges with root cause, stream, impact, tickets, repeats and a report
     table; refunds owed as aged challenges; seeded reasons, activity types, task templates and contract terms; one
-    official client count; a tender clarification stage; public-reference consent; a service per invoice line; portal
+    official client count; a tender clarification stage; a service per invoice line; portal
     references held by a department; escalations outside the app; two supplier types added in Settings; an individual
     referrer's practice as an organisation; a 30-day follow after hand-over; stats-page readings with screenshots; one
     Arabic word per term.
+83. **Owner decisions of 30 Sep 2026, 00:34** (V491–V493): past work from 1 January 2026 — January by hand the normal
+    way and compared with the old report, February to September through the Past work grid, owner Unknown with a Needs
+    an owner filter, past work never on My day and never notified but counted in its month; "referred by",
+    public-reference consent and "Quote sent" dropped; no zodiac badge, optional profile photos with initials as the
+    fallback, an admin switch, never in exports.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

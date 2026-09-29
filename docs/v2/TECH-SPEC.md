@@ -398,8 +398,9 @@ core.role_capability    (role_id, capability_key) pk; granted bool
 core.person_page_level  (person_id, page_key) pk; level; set_by; set_at; reason        -- per-person overrides
 core.person_capability  (person_id, capability_key) pk; granted; set_by; set_at; reason
 core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); avatar_file_id → core.file; avatar_color
-                  (one of the chart colours); badge_kind ('none','icon'); badge_value (an icon key from a fixed set — Q44, assumed:
-                  the zodiac option is dropped, icons only); theme ('light','dark','colorful','direct'); density ('comfortable','compact');
+                  (one of the chart colours); badge_kind ('none','icon'); badge_value (an icon key from a fixed set — V493: no zodiac,
+                  icons only; the photo is optional, initials the fallback, `app.profile_photos_enabled` hides every
+                  photo at once, and no export ever carries one); theme ('light','dark','colorful','direct'); density ('comfortable','compact');
                   locale ('en','ar' — ar once enabled); start_page → core.page; drawer_pinned bool;
                   notify jsonb {kind: {in_app: bool, email: bool}} — kinds as the canvas lists them: mentions and comments, tasks and
                   action items assigned to me, due today and overdue, a report submitted for my review, invoices past N days on
@@ -484,7 +485,7 @@ on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 · `partner.one_cod
 `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93; 1–28 — OLD-PRF-010) · `work.late_days` 14 and
 `app.go_live_on` (V400) · `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days`
 14 · `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95) · `partner.active_client_days` 90
-(V477) · `work.handover_follow_days` 30 (V488).
+(V477) · `work.handover_follow_days` 30 (V488) · `app.profile_photos_enabled` ✓ (V493).
 
 ### 3.3 Change log, undo and notifications
 
@@ -623,9 +624,6 @@ partner.partner   STD SOFT; number unique (the organisation ID, e.g. DK-P-0142: 
                   website; city; country; address; notes; archived_at; merged_into_id → partner.partner;
                   logo_file_id → core.file (uploaded from the header; a monogram of the initials when none);
                   client_since date   -- typed; until Payments history is imported, marks a client as not new (V31)
-                  referred_by_partner_id → partner.partner; referred_by_contact_id → partner.contact   -- at most one (Q42,
-                  -- assumed): kept when the client later deals directly; never credits sales — the referrer counts for
-                  -- volume only (measure `partner.referred_volume`: invoices of the organisations it referred)
                   company_size_id → partner.company_size (LIST: micro · small · medium · large — V472, shown on the opportunity card)
                   -- SHARED by both sides (V98): names, logo, identifiers (below), contacts, notes, files of kind other
                   -- no VAT, CR, client ID, discount code or email columns: those live only in partner.identifier (one home)
@@ -713,9 +711,6 @@ partner.reference STD SOFT; partner_id; side (null = shared); system_id → work
                   held_by_department_id → core.department; code_mailbox text   -- V484: which department holds the access
                   -- and which mailbox its one-time codes reach; the Supplier onboarding template (V479) asks for both
 partner.merge     STD; kept_id; merged_id; reason not null; request_id; undone_at
-partner.reference_consent  STD SOFT; partner_id (Client side on — trigger); logo_use bool; testimonial bool;
-                  approved_by_contact_id → partner.contact; approved_on date; file_id → core.file; note   -- V482: public
-                  -- reference consent on the Client side; without a row the organisation is never cited publicly
 partner.contract  STD SOFT; partner_id; side not null; kind ('contract','agreement'); title; start_on date; end_on date
                   (null = open-ended); reminders_on bool default true; reminder_days int[] (null = the
                   `partner.contract_reminder_days` setting, 60 · 30 · 7); renewal_task_id → work.task; notes   -- V56, per side (V98)
@@ -726,8 +721,8 @@ partner.contract_term  STD SOFT; contract_id; term_id → partner.term (LIST: co
                   value_text (word terms: prepaid / postpaid, a risk status — V480);
                   achievement_id → perf.achievement (null = "Not logged")   -- the "Terms · before → after" block
                   -- its document(s) are core.file rows linked with purpose 'contract' / 'agreement'
-partner.activity_type  LIST (V401): call · meeting · demo · visit · note · quote sent · decision — admins add more
-                  -- V478: quote sent carries the quote file (kind 'quote'); decision records one taken with the organisation
+partner.activity_type  LIST (V401): call · meeting · demo · visit · note · decision — admins add more
+                  -- V478: decision records one taken with the organisation ("Quote sent" dropped by the owner — V492)
 partner.activity_outcome  LIST per activity type (V63, V88, V401): call — no answer · answered · meeting set · demo set ·
                   not interested · call back later · wrong number; demo — demo held · demo cancelled; meeting — held ·
                   postponed …; `counts_as_demo` on demo set and demo held
@@ -737,7 +732,7 @@ core.file         STD SOFT; bucket; path unique; original_name; kind → core.fi
                   -- capability sees "on file (n)" and never the file
                   review_on date (V401: a travel policy's review date; the alerts job raises 'alert_file_review')
 core.file_kind    LIST: invoice · contract · agreement · rate sheet · certificate · meeting note · travel policy (V401) ·
-                  tender document · evidence · report · legacy_report · logo · avatar · quote (V478) · other;
+                  tender document · evidence · report · legacy_report · logo · avatar · other;
                   name_pattern_en; name_pattern_ar                                    -- V55, a setting per kind
 core.file_link    STD SOFT; file_id; entity_table; entity_id; purpose ('evidence','contract','agreement','attachment',
                   'iban_letter','render','logo','avatar','travel_policy'); side (organisations only — V98)
@@ -850,9 +845,10 @@ model (prepaid / postpaid), the minimum monthly commitment and the cancellation 
   signed URL is created with `download: <display name>`, so the browser saves under that name (Content-Disposition).
   Characters a file system refuses are replaced; the original name stays visible in the file's details.
 - **Logos and avatars** (V53): logo files SVG or PNG, at least 256 px; without one, the monogram (or a blank tile —
-  `partner.logo_fallback`). A partner's logo (or its monogram) and a person's avatar, nickname and badge appear in
-  rows, chips, headers and **hover cards** (`api.hover_partner(id)`, `api.hover_person(id)`: the few facts the canvas's
-  HoverCards artboard shows).
+  `partner.logo_fallback`). A partner's logo (or its monogram) and a person's avatar (V493: an optional photo,
+  initials when none, every photo hidden by `app.profile_photos_enabled`, never in an export), nickname and badge
+  appear in rows, chips, headers and **hover cards** (`api.hover_partner(id)`, `api.hover_person(id)`: the few facts
+  the canvas's HoverCards artboard shows).
 - The two date-range rules above need the `btree_gist` extension (enabled in the first migration).
 - A **contact's** email is not automatically an identifier (a shared or personal address would mis-match invoices);
 the contact form offers "also use as identifier", which goes through the identifier rules. - **Merging**
@@ -1104,7 +1100,8 @@ work.task_status     LIST + meaning ('not_started','in_progress','done','cancell
                      (V401; the seed: Not started · In progress · Done · Cancelled); is_default
 work.priority        LIST + rank
 work.ref_system      LIST + url_template      -- Direct system references (booking, invoice, ticket); the URL pattern is a setting
-work.task            STD SOFT DEPT; number unique; title not null; notes; owner_id not null; team_id not null (active team, D11);
+work.task            STD SOFT DEPT; number unique; title not null; notes; owner_id (null = Unknown, allowed only on past work
+                     — V491); team_id not null (active team, D11);
                      priority_id; status_id; start_on; due_on; partner_id; project_id;
                      origin ('manual','template','period_target','meeting','next_step','alert','backfill'); template_id;
                      period_target_id; assigned_by (set when owner ≠ creator); closed_at; closed_by;
@@ -1162,6 +1159,12 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   day is more than `work.late_days` (14) after its `happened_on` is marked "logged late" (a computed flag, shown on the
   entry) and counts against the on-time appraisal items; entries with `happened_on` before go-live are never late, and
   `backfill` entries (the Past work grid, §3.11) are marked **Backfilled** and raise no notice.
+- **Past work** (V491): a task or achievement dated before `app.go_live_on` — January 2026 typed by hand the normal
+  way, February to September through the Past work grid — never shows on My day, raises no notification, overdue or
+  stale flag, and sits under the **Past work** filter on Tasks and Achievements; it counts toward the KPIs and the
+  report of the month it happened in. It may carry owner **Unknown** (a null owner, past work only): the **Needs an
+  owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7). The January report is
+  generated, compared with the old issued PDF in Compare (V57), edited and issued.
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1300,7 +1303,7 @@ perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id
                      happened_on date (not null unless draft — V400: the date on the evidence — e.g. the signing date on the agreement;
                      it decides the month and quarter; never after the logged day); logged_at timestamptz not null;
                      period_moved_from date; period_move_reason; period_moved_by (V400: a manager or admin moved it into the
-                     previous period — the "moved" mark); owner_id not null; use_as_example bool (V67: a report "Case"; one per quarter — a second is refused naming the first, OLD-PRF-032);
+                     previous period — the "moved" mark); owner_id (null = Unknown, only on past work — V491); use_as_example bool (V67: a report "Case"; one per quarter — a second is refused naming the first, OLD-PRF-032);
                      origin ('person','task','report','import','backfill'); origin_report_id (V79: "added from report"); remove_reason
 perf.achievement_ref  STD SOFT; achievement_id; system_id → work.ref_system; value not null; url   -- V99: a Direct ticket or
                      booking reference with its link is evidence, beside files
