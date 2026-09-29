@@ -18,7 +18,7 @@ const ALLOWED_TEXT = new Set(['Ctrl K']);
 
 export default defineCheck({
   name: 'i18n-catalogs',
-  rule: 'V410: every ar.json key exists in en.json (en is the source; builder C writes the Arabic); no hard-coded sentence in a screen',
+  rule: 'V410: en.json and ar.json carry the same keys (en is the source; builder C writes the Arabic); no hard-coded sentence in a screen',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];
@@ -26,8 +26,11 @@ export default defineCheck({
     if (ctx.exists('messages/en.json') && ctx.exists('messages/ar.json')) {
       const en = flat(JSON.parse(ctx.read('messages/en.json')));
       const ar = flat(JSON.parse(ctx.read('messages/ar.json')));
-      // en.json is the source: builder B adds keys there; builder C writes their Arabic (V410). A key in ar.json
-      // alone is a mistake (a typo, a removed key); a key still missing from ar.json is C's queue, not a finding.
+      // en.json is the source: builder B adds keys there; builder C writes their Arabic (V410). Both ways are findings
+      // (restored by the oversight on 29 Sep, once ar.json was complete): a key with no Arabic, and a key in ar.json
+      // alone (a typo, a removed key). The app still shows English for a key with no Arabic (core/i18n/messages.ts).
+      for (const k of en)
+        if (!ar.includes(k)) out.push({ check, file: 'messages/ar.json', line: 0, message: `missing "${k}"` });
       for (const k of ar)
         if (!en.includes(k)) out.push({ check, file: 'messages/en.json', line: 0, message: `missing "${k}"` });
     }

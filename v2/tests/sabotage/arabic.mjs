@@ -3,6 +3,7 @@
 const CATALOG =
   'unit:tests/unit/arabic/every-arabic-message-formats-in-arabic-with-latin-digits-and-the-owners-words.test.ts';
 const AR = 'messages/ar.json';
+const FALLBACK = 'unit:tests/unit/arabic/a-key-with-no-arabic-yet-shows-its-english.test.ts';
 
 /** @type {{ name: string, breaks: string[], expect: string, edits: { file: string, find: string, replace: string }[] }[]} */
 export const sabotages = [
@@ -53,5 +54,23 @@ export const sabotages = [
     breaks: [CATALOG],
     expect: 'common.saveChanges reads in Arabic',
     edits: [{ file: AR, find: '"saveChanges": "حفظ التغييرات"', replace: '"saveChanges": "Save changes"' }],
+  },
+  {
+    name: 'ar-fallback-shows-the-key',
+    breaks: [FALLBACK],
+    expect: 'a key with no Arabic shows its English',
+    edits: [
+      {
+        file: 'src/core/i18n/messages.ts',
+        find: 'const out: Messages = { ...fallback };',
+        replace: 'const out: Messages = {};',
+      },
+    ],
+  },
+  {
+    name: 'plant-missing-ar-key',
+    breaks: ['check:i18n-catalogs'],
+    expect: 'missing "nav.collapse"',
+    edits: [{ file: AR, find: '    "collapse": "طي القائمة",\n', replace: '' }],
   },
 ];
