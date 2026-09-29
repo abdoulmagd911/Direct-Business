@@ -194,7 +194,10 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           setEditing(false);
           refresh();
         },
-        nameOf: (id) => byId(id)?.full_name_en,
+        nameOf: (id) => {
+          const p = byId(id);
+          return p ? nameOf(p, locale) : undefined;
+        },
         conflict: {
           fields,
           theirs: async () => {

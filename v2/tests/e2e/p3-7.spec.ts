@@ -36,6 +36,23 @@ test('two people, one record: different fields both keep; the same field asks th
   // A changes the job title; B, on the same stale page, changes the name: both keep (the database checks per field)
   await editJobTitle(page, 'Title from A');
   await expect(toast(page, 'updated')).toBeVisible();
+  // Undo from the toast puts the record — and the screen — back (QA-74), then A writes it again
+  await toast(page, 'updated').getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(toast(page, 'Undone')).toBeVisible();
+  await expect(
+    page.getByRole('main').getByText(/^Title from A/),
+    'the undone title is gone from the screen',
+  ).toHaveCount(0);
+  await expect
+    .poll(async () => {
+      const [r] = await sql<{ job_title_en: string | null }>(`select job_title_en from core.person where id = $1`, [
+        target.id,
+      ]);
+      return r!.job_title_en;
+    })
+    .toBeNull();
+  await editJobTitle(page, 'Title from A');
+  await expect(toast(page, 'updated').first()).toBeVisible();
   await pageB.locator('[data-person-edit]').click();
   await pageB.getByRole('dialog').getByLabel('Full name', { exact: true }).fill(`${target.name} B`);
   await pageB.getByRole('dialog').locator('[data-person-save]').click();
@@ -224,4 +241,41 @@ test('Ctrl K finds a person by name and opens their record', async ({ page }) =>
   await expect(hit).toBeVisible();
   await hit.click();
   await expect(page).toHaveURL(new RegExp(`/people/${other.id}$`));
+});
+
+test('a member removes a saved view and restores it from Recently deleted in the profile menu (QA-71)', async ({
+  page,
+}) => {
+  const member = await makePerson();
+  const tag = Date.now().toString(36);
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, member.email, '/kit');
+  await hydrated(page);
+  const bar = page.locator('[data-saved-views]');
+  await bar.locator('[data-view-save]').click();
+  await page.getByRole('dialog').getByLabel('Name').fill(`Member view ${tag}`);
+  await page.getByRole('dialog').locator('[data-view-save-confirm]').click();
+  await expect(toast(page, 'View saved')).toBeVisible();
+  const pill = bar.locator('[data-saved-view]', { hasText: `Member view ${tag}` });
+  await pill.locator('[data-view-menu]').click();
+  await page.getByRole('menuitem', { name: 'Remove' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
+  await expect(toast(page, `Member view ${tag} removed`)).toBeVisible();
+  const [saved] = await sql<{ id: string }>(`select id from core.saved_view where name = $1`, [`Member view ${tag}`]);
+  // Activity is closed to a member; Recently deleted is theirs from the profile menu
+  await page.locator('[data-topbar] [data-profile-chip]').click();
+  await page.getByRole('menuitem', { name: 'Recently deleted' }).click();
+  await expect(page).toHaveURL(/\/recently-deleted$/);
+  await hydrated(page);
+  const row = page.locator(`[data-deleted-row="${saved!.id}"]`);
+  await expect(row, 'the member sees their own removed view').toBeVisible();
+  await row.locator('[data-deleted-restore]').click();
+  await expect(toast(page, 'restored')).toBeVisible();
+  await expect(row).toHaveCount(0);
+  const [back] = await sql<{ deleted: boolean }>(
+    `select deleted_at is not null as deleted from core.saved_view where id = $1`,
+    [saved!.id],
+  );
+  expect(back!.deleted).toBe(false);
+  await sql(`update core.saved_view set deleted_at = now() where id = $1`, [saved!.id]);
 });

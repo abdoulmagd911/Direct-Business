@@ -1,5 +1,5 @@
 'use client';
-import { LogOut, UserRound } from 'lucide-react';
+import { LogOut, UserRound, History } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMe } from '@/core/auth/me-context';
@@ -52,6 +52,12 @@ export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean
           <Link href="/profile">
             <UserRound />
             {t('profileMenu.myProfile')}
+          </Link>
+        </MenuItem>
+        <MenuItem asChild>
+          <Link href="/recently-deleted" data-menu-recently-deleted>
+            <History />
+            {t('profileMenu.recentlyDeleted')}
           </Link>
         </MenuItem>
         <MenuSeparator />

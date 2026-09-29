@@ -127,7 +127,8 @@
     "language": "Language",
     "direction": "Direction (development)",
     "signOut": "Sign out",
-    "myProfile": "My profile"
+    "myProfile": "My profile",
+    "recentlyDeleted": "Recently deleted"
   },
   "theme": {
     "light": "Light",
@@ -458,7 +459,7 @@
     "deleted": {
       "restore": "Restore",
       "restored": "{what} restored",
-      "none": "Nothing removed in the last 30 days"
+      "none": "Nothing removed recently"
     }
   },
   "profile": {
@@ -873,7 +874,8 @@
   "follow": {
     "follow": "Follow",
     "following": "Following",
-    "unfollowed": "No longer following"
+    "unfollowed": "No longer following",
+    "failed": "Follow · try again"
   },
   "conflict": {
     "title": "Someone changed this since you opened it",
@@ -896,5 +898,8 @@
     "setDefault": "Open this view first",
     "menu": "{name}: more",
     "label": "Views"
+  },
+  "recentlyDeleted": {
+    "title": "Recently deleted"
   }
 }

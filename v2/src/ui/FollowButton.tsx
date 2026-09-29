@@ -14,19 +14,31 @@ import { toast } from './Toast';
  */
 export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: string; size?: 'sm' | 'md' }) {
   const t = useTranslations();
-  // null: still reading; 'hidden': the record's own rule refuses this person (authz.can_see), so no button.
-  const [on, setOn] = useState<boolean | null | 'hidden'>(null);
+  // null: still reading; 'hidden': the record's own rule refuses this person (authz.can_see) or the record is gone,
+  // so no button; 'failed': the read did not answer (the network, the server) — said, with Try again (QA-74).
+  const [on, setOn] = useState<boolean | null | 'hidden' | 'failed'>(null);
   const [busy, setBusy] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
     rpc('following', { p_entity: entity, p_id: id })
       .then((v) => live && setOn(v === true))
-      .catch(() => live && setOn('hidden'));
+      .catch((e: unknown) => {
+        if (!live) return;
+        const kind = (e as { kind?: string }).kind;
+        setOn(kind === 'PermissionDenied' || kind === 'NotFound' ? 'hidden' : 'failed');
+      });
     return () => {
       live = false;
     };
-  }, [entity, id]);
+  }, [entity, id, attempt]);
   if (on === 'hidden') return null;
+  if (on === 'failed')
+    return (
+      <Button size={size} variant="ghost" onClick={() => setAttempt((a) => a + 1)} data-follow-failed>
+        {t('follow.failed')}
+      </Button>
+    );
   const flip = async () => {
     if (on === null) return;
     setBusy(true);
