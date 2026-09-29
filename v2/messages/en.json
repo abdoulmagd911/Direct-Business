@@ -807,9 +807,6 @@
       "cannot_remove": "This record cannot be removed",
       "via_admin_route": "A sign-in change is undone from Settings, so the sign-in follows at once — try Undo there"
     },
-    "restore": {
-      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there"
-    },
     "auth": {
       "no_active_person": "You are not signed in"
     },
@@ -834,7 +831,8 @@
       "not_removed": "This record is not removed",
       "too_late": "Removed more than {detail} days ago — ask an admin",
       "not_allowed": "Only who removed it, its owners or an admin restore it",
-      "blocked_by_duplicate": "Another record now holds the same value: {detail}"
+      "blocked_by_duplicate": "Another record now holds the same value: {detail}",
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there"
     },
     "notify": {
       "unknown_tab": "Unknown notifications tab",
