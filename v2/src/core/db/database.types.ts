@@ -41,6 +41,18 @@ export type Database = {
         Returns: Json;
       };
       auth_user_of: { Args: { p_email: string }; Returns: string };
+      department_save: {
+        Args: {
+          p_code: string;
+          p_head?: string;
+          p_id: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
       device_touch: { Args: Record<PropertyKey, never>; Returns: string };
@@ -61,7 +73,9 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      org: { Args: Record<PropertyKey, never>; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
+      people: { Args: Record<PropertyKey, never>; Returns: Json };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
         Args: { p_person: string };
@@ -71,6 +85,7 @@ export type Database = {
           email: string;
         }[];
       };
+      person_create: { Args: { p_person: Json; p_reason?: string }; Returns: Json };
       person_devices: {
         Args: { p_person: string };
         Returns: {
@@ -86,7 +101,28 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
+      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
+      person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
       record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      role_save: {
+        Args: {
+          p_id: string;
+          p_key: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_sort?: number;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      setting_clear: { Args: { p_department: string; p_key: string; p_reason: string }; Returns: Json };
+      setting_set: {
+        Args: { p_department: string; p_key: string; p_reason?: string; p_valid_from?: string; p_value: Json };
+        Returns: Json;
+      };
+      settings: { Args: { p_group: string }; Returns: Json };
       sign_in_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_complete: {
         Args: { p_device_label?: string; p_provider?: string; p_user_agent?: string };
@@ -95,6 +131,21 @@ export type Database = {
       sign_in_event: {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
+      };
+      sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
+      team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
+      team_save: {
+        Args: {
+          p_code: string;
+          p_department: string;
+          p_id: string;
+          p_lead?: string;
+          p_name_ar?: string;
+          p_name_en: string;
+          p_reason?: string;
+          p_version?: number;
+        };
+        Returns: Json;
       };
       undo: { Args: { p_request: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
