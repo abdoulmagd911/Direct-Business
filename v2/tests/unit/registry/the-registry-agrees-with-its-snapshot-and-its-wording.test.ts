@@ -18,11 +18,12 @@ describe('the registry agrees with its snapshot and its wording', () => {
     expect(JSON.parse(JSON.stringify(snapshotOf(modules)))).toEqual(synced);
   });
 
-  it('gives every page, capability and setting its wording in both catalogs', () => {
+  it('gives every page, capability, setting and entity its wording in both catalogs', () => {
     const labels = modules.flatMap((m) => [
       ...(m.pages ?? []).map((p) => p.label),
       ...(m.capabilities ?? []).map((c) => c.label),
       ...(m.settings ?? []).map((s) => s.label),
+      ...(m.entities ?? []).map((e) => e.label),
     ]);
     const missing = labels.flatMap((key) =>
       [

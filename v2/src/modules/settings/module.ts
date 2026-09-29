@@ -29,6 +29,18 @@ export default defineModule({
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],
+  entities: [
+    {
+      key: 'profile',
+      table: 'core.person_profile',
+      page: 'settings.profile',
+      label: 'entity.profile',
+      owners: 'person_id',
+    },
+    { key: 'setting', table: 'core.setting', page: 'settings.app', label: 'entity.setting' },
+    { key: 'setting_def', table: 'core.setting_def', page: 'settings.app', label: 'entity.setting_def' },
+    { key: 'wording', table: 'core.wording', page: 'settings.app', label: 'entity.wording' },
+  ],
   settings: [
     {
       key: 'app.arabic_enabled',

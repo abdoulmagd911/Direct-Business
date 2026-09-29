@@ -36,6 +36,10 @@ export type Database = {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
         Returns: Json;
       };
+      activity: {
+        Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
+        Returns: Json;
+      };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
@@ -75,6 +79,7 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
+      record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
       sign_in_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_complete: {
         Args: { p_device_label?: string; p_provider?: string; p_user_agent?: string };
@@ -84,6 +89,7 @@ export type Database = {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
       };
+      undo: { Args: { p_request: string }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;

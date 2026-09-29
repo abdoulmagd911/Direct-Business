@@ -25,6 +25,7 @@ export interface Snapshot {
     default: unknown;
     effective_dated: boolean;
   }[];
+  entities: { key: string; table: string; page: string | null; owners: string | null }[];
   role_levels: { role: string; page: string; level: Level }[];
   role_capabilities: { role: string; capability: string; granted: boolean }[];
 }
@@ -95,12 +96,29 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
       });
     }
 
+  const entities: Snapshot['entities'] = [];
+  const tables = new Set<string>();
+  for (const m of modules)
+    for (const e of m.entities ?? []) {
+      once('entity', e.key);
+      if (!/^[a-z][a-z0-9_]*$/.test(e.key)) problems.push(`entity "${e.key}": a key is lower case, digits and _`);
+      if (!/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(e.table))
+        problems.push(`entity "${e.key}": the table is schema.table`);
+      if (tables.has(e.table)) problems.push(`entity "${e.key}": ${e.table} is already an entity`);
+      tables.add(e.table);
+      if (e.page !== null && !pageKeys.has(e.page)) problems.push(`entity "${e.key}": no page "${e.page}"`);
+      if (e.owners !== undefined && !/^([a-z][a-z0-9_]*|[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*)$/.test(e.owners))
+        problems.push(`entity "${e.key}": owners is a column or schema.function`);
+      entities.push({ key: e.key, table: e.table, page: e.page, owners: e.owners ?? null });
+    }
+
   if (problems.length) throw new Error(`the registry cannot be synced:\n  ${problems.join('\n  ')}`);
   return {
     roles: ROLE_SEED.map((r) => ({ ...r })),
     pages: pages.sort(byKey),
     capabilities: capabilities.sort(byKey),
     settings: settings.sort(byKey),
+    entities: entities.sort(byKey),
     role_levels: roleLevels.sort((a, b) => `${a.role} ${a.page}`.localeCompare(`${b.role} ${b.page}`, 'en')),
     role_capabilities: roleCaps.sort((a, b) =>
       `${a.role} ${a.capability}`.localeCompare(`${b.role} ${b.capability}`, 'en'),

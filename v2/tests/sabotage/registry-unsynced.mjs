@@ -19,7 +19,7 @@ export const sabotages = [
   {
     name: 'registry-label-without-wording',
     breaks: [target],
-    expect: '> gives every page, capability and setting its wording in both catalogs',
+    expect: '> gives every page, capability, setting and entity its wording in both catalogs',
     edits: [
       {
         file: 'src/modules/tasks/module.ts',

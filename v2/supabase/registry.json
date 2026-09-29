@@ -312,6 +312,27 @@
       "effective_dated": false
     }
   ],
+  "entities": [
+    { "key": "capability", "table": "core.capability", "page": "settings.org", "owners": null },
+    { "key": "department", "table": "core.department", "page": "settings.org", "owners": "head_person_id" },
+    { "key": "entity", "table": "core.entity", "page": "settings.org", "owners": null },
+    { "key": "page", "table": "core.page", "page": "settings.org", "owners": null },
+    { "key": "person", "table": "core.person", "page": "settings.org", "owners": "id" },
+    { "key": "person_auth", "table": "core.person_auth", "page": "settings.org", "owners": "person_id" },
+    { "key": "person_capability", "table": "core.person_capability", "page": "settings.org", "owners": "person_id" },
+    { "key": "person_department", "table": "core.person_department", "page": "settings.org", "owners": "person_id" },
+    { "key": "person_email", "table": "core.person_email", "page": "settings.org", "owners": "person_id" },
+    { "key": "person_level", "table": "core.person_page_level", "page": "settings.org", "owners": "person_id" },
+    { "key": "person_team", "table": "core.person_team_assist", "page": "settings.org", "owners": "person_id" },
+    { "key": "profile", "table": "core.person_profile", "page": "settings.profile", "owners": "person_id" },
+    { "key": "role", "table": "core.role", "page": "settings.org", "owners": null },
+    { "key": "role_capability", "table": "core.role_capability", "page": "settings.org", "owners": null },
+    { "key": "role_level", "table": "core.role_page_level", "page": "settings.org", "owners": null },
+    { "key": "setting", "table": "core.setting", "page": "settings.app", "owners": null },
+    { "key": "setting_def", "table": "core.setting_def", "page": "settings.app", "owners": null },
+    { "key": "team", "table": "core.team", "page": "settings.org", "owners": "lead_person_id" },
+    { "key": "wording", "table": "core.wording", "page": "settings.app", "owners": null }
+  ],
   "role_levels": [
     { "role": "admin", "page": "activity", "level": "full" },
     { "role": "admin", "page": "appraisal", "level": "full" },
