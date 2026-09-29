@@ -8,6 +8,7 @@ import noPhysicalCss from './no-physical-css.mjs';
 import noTableWrites from './no-table-writes.mjs';
 import noVatColumns from './no-vat-columns.mjs';
 import normRebuildCalled from './norm-rebuild-called.mjs';
+import normalizedText from './normalized-text.mjs';
 import oneClient from './one-client.mjs';
 import oneCopy from './one-copy.mjs';
 import rule7 from './rule-7.mjs';
@@ -25,6 +26,7 @@ export const checks = [
   noVatColumns,
   noBlobTables,
   normRebuildCalled,
+  normalizedText,
   v2Ids,
   forbiddenWords,
 ];
