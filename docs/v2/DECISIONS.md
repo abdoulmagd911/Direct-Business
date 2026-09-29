@@ -425,6 +425,57 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 
 **V145 — Banned words in the e-mail templates too** ACTIVE · 2026-09-29. The `forbidden-words` check (V59, V209) also reads the e-mail templates (`supabase/templates/*.html`), which people read as much as any screen. Each of the owner's four additions (Sales (GMV), Google, Zoom, Keep me signed in) has its own planted sabotage, and "Keep me signed in" is planted in the sign-in code e-mail.
 
+**V146 — Clients, and Suppliers & partners: P3-8a's roles become the two sides** ACTIVE · 2026-09-29. V98 as built, in one forward migration (`20260929063100_partner_sides.sql`), before anything else lands on the roles.
+- **One record, two sides.** `partner.partner` keeps what both sides share: names, logo, identifiers, contacts, merge. `partner.partner_side` is the side switch, fixed in code as `client` or `supplier_partner`. It carries its type, tier, fields, `since` and `until`. Switching a side off ends it from a day and keeps everything; the last side stays on.
+- **Per side:** a status with history (`partner.side_status_change`), an owner from a date (`partner.side_owner`: the account manager on the Client side, the relationship owner on the other), and lists (`partner.side_type`, `partner.side_tier`, `partner.side_status_reason`).
+- **Client side only:** client IDs and discount codes (`partner.identifier`) and credit limits are refused while the Client side is off (`partner.client_side_only`), and kept when it is switched off.
+- **The data moves.**
+  - Role client → the Client side, typed by the old segment (else Corporate), with the old tier. An organisation with no role gets the Client side too, so none is left without a side.
+  - Roles supplier and strategic partner → one Supplier & partner side; strategic partner wins the type.
+  - Role fields → that side's fields.
+  - Statuses and account managers → the Client side, or the other side when only it is on.
+  - Levels and capability overrides on Partners → both pages; saved views, default views and "last seen" on Partners → Clients.
+- **Then the role tables are dropped:** `partner_role`, `role_field`, `role`, `status_change`, `account_manager`, `category`, `tier`, `segment`, and the partner's `category_id`, `tier_id` and `segment_id`. Their record types retire first; a retired record type may name a table that is gone.
+- **Checked:** a database built to P3-8a and filled the old way converts with the same organisations, identifiers, owners and statuses, and no organisation without a side.
+- **Proved by:** PRT-01, PST-01, PROS-01, MRG-01, SRCH-01 and SIDE-01, with their sabotages (`side-fields-go-unchecked`, `anyone-sets-a-status`, `bulk-assign-leaves-no-prospect`, `a-merge-leaves-the-identifiers`, `search-ignores-access`, `client-ids-on-any-side`).
+- Amends V134 and V136.
+
+**V147 — Each side has its own access and powers** ACTIVE · 2026-09-29.
+- **Pages.** The pages `clients` and `suppliers_partners` replace `partners`, with the same starting levels. Their routes stay builder B's `/partners?view=…` until P3-9, and record pages stay `/partners/[id]`. B's bottom bar and Create menu point at `clients`.
+- **Capabilities** per side: `clients.identify`, `clients.merge`, `clients.assign`, and the same three for `suppliers_partners`. `finance.credit_control` moves under Clients.
+- **Records.** A record type may name its level rule (`core.entity.level`, a function (table, id, person) → level; V98). `authz.record_level` asks it, and falls back to the type's page. Seeing, undoing and restoring a record (`authz.can_see_as`, `audit.undo_allowed`, `core.restore`) ask `authz.record_level`.
+- **Organisations** (`partner.row_level`, `partner.level_of`):
+  - a side's own rows, client IDs, codes and credit go by that side's page;
+  - the whole record goes by the best page among the sides it has on.
+
+  So a person shut out of Clients changes and reads the Supplier & partner side of an organisation, but not its Client side, that side's history or its client IDs.
+- **Who does what.**
+  - Changing the whole record takes Full on a side it has on. Changing a side takes Full on that side's page.
+  - A side's status is set by that side's owner or its assign capability. Its owner is set by the assign capability.
+  - Identifiers: client IDs and codes need `clients.identify`; the rest need the identify capability of a side that is on. Merging needs the merge capability of a side the kept organisation has on.
+- **Proved by:** SIDE-01, SRCH-01 and PST-01, with the sabotages `one-page-for-both-sides` and `record-level-ignores-the-sides`.
+
+**V148 — The sides' lists and fields** ACTIVE · 2026-09-29.
+- **Side types** (a list per side). Client: Government, Corporate, Agencies, Individuals — the segments of V64, "Government" as V404 says. Supplier & partner: Supplier, Strategic partner, Sales channel, Integration, Payment solution. Tiers are a list per side.
+- A side list's key is unique within its side, and its side never changes (`partner.side_fixed`). A side takes its type and tier from its own side's list (`partner.list_of_other_side`), and retiring a value replaces it only from that list.
+- **Side fields** (`partner.side_field`) are Settings → Clients and Suppliers & partners (admins; V97), saved with `api.side_field_save`, checked like the role fields were (required, typed, select options, no unknown ones). A field named like a password, a passcode, a secret, a token, a PIN or credentials is refused, in English or Arabic (`partner.no_secrets`; V98, V409). A passenger count is no password.
+- **Contact roles** (`partner.contact_role`, V401): decision maker, travel manager, booker, finance, operations, technical. A contact carries its role and the sides it belongs to (both by default).
+- Proved by LIST-01, PRT-01, SETS-01 and SIDE-01, with the sabotage `a-password-field`.
+
+**V149 — The organisation doors, reshaped** ACTIVE · 2026-09-29.
+- **Sides:**
+  - `api.partner_create` takes `sides` [{side, type, tier, fields, owner_id}], at least one; the owner is the caller unless named, and naming another needs that side's assign.
+  - `api.partner_side_set` switches a side on (type and owner required) or changes its type, tier, fields or start.
+  - `api.partner_side_off` switches a side off from a day.
+- **Status and owners:** `api.partner_status_set(id, side, …)`, `api.partner_owner_set(id, side, person, from)`, and `api.partner_bulk_assign(ids, side, owner, priority)`. Bulk assign refuses an organisation without that side on, and changes nothing.
+- **Reads:**
+  - `api.partners(filters)` takes `side`: the Clients or the Suppliers & partners list, filtered by the side's type, tier, owner and status, plus priority, text and key partner. Without a side, it lists every organisation the reader may see.
+  - `api.partner(id)` returns the sides the reader may see, each with its status history and owners.
+  - The hover card shows the sides as chips, with type and status.
+  - Ctrl K finds only the organisations the reader may see, and client IDs and codes only for those who see Clients.
+- **Merge:** each side the kept organisation lacks is switched on with the merged side's type, owner and current status.
+- **Retired doors:** `api.partner_roles_set` and `api.partner_manager_set`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.

@@ -8,7 +8,7 @@ select set_config('t.other', api.view_save(null, 'tasks', 'Not yours', '{}') ->>
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.a', api.view_save(null, 'tasks', 'View A', '{}') ->> 'id', true);
 select set_config('t.b', api.view_save(null, 'tasks', 'View B', '{}') ->> 'id', true);
-select set_config('t.c', api.view_save(null, 'partners', 'View C', '{}') ->> 'id', true);
+select set_config('t.c', api.view_save(null, 'clients', 'View C', '{}') ->> 'id', true);
 
 select test.raises(format('select api.views_remove(%L)', array[current_setting('t.a'), current_setting('t.other')]),
   '42501', 'a selection holding someone else''s view is refused', 'view.not_yours');

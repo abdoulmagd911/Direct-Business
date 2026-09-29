@@ -1,23 +1,27 @@
 import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
-// Partners — clients, suppliers, strategic partners (V52); helpers, not locks (D7, V26). Levels: TECH-SPEC §8.
+// Organisations — Clients, and Suppliers & partners: one record, two sides (V98); helpers, not locks (D7, V26).
+// Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'partners',
   pages: [
+    // One organisation record, two sides (V98): each side's list is its own page, with its own access and capabilities.
+    // The routes are builder B's list screen for now (/partners?view=…); record pages stay /partners/[id].
     {
-      key: 'partners',
-      route: '/partners',
-      label: 'nav.partners',
+      key: 'clients',
+      route: '/partners?view=clients',
+      label: 'nav.clients',
       icon: 'building-2',
-      nav: {
-        group: 'main',
-        order: 30,
-        entries: [
-          { key: 'clients', label: 'nav.clients', route: '/partners?view=clients', icon: 'building-2' },
-          { key: 'suppliers', label: 'nav.suppliers_partners', route: '/partners?view=suppliers', icon: 'handshake' },
-        ],
-      },
+      nav: { group: 'main', order: 30 },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
+    },
+    {
+      key: 'suppliers_partners',
+      route: '/partners?view=suppliers',
+      label: 'nav.suppliers_partners',
+      icon: 'handshake',
+      nav: { group: 'main', order: 31 },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
     {
@@ -30,109 +34,54 @@ export default defineModule({
     },
   ],
   entities: [
-    {
-      key: 'partner',
-      table: 'partner.partner',
-      page: 'partners',
-      label: 'entity.partner',
-      owners: 'partner.partner_owners',
-    },
-    {
-      key: 'partner_role',
-      table: 'partner.partner_role',
-      page: 'partners',
-      label: 'entity.partner_role',
-      owners: 'partner.partner_role_owners',
-    },
-    {
-      key: 'partner_status',
-      table: 'partner.status_change',
-      page: 'partners',
-      label: 'entity.partner_status',
-      owners: 'partner.status_change_owners',
-    },
-    {
-      key: 'credit_limit',
-      table: 'partner.credit_limit',
-      page: 'partners',
-      label: 'entity.credit_limit',
-      owners: 'partner.credit_limit_owners',
-    },
-    {
-      key: 'identifier',
-      table: 'partner.identifier',
-      page: 'partners',
-      label: 'entity.identifier',
-      owners: 'partner.identifier_owners',
-    },
-    {
-      key: 'account_manager',
-      table: 'partner.account_manager',
-      page: 'partners',
-      label: 'entity.account_manager',
-      owners: 'partner.account_manager_owners',
-    },
-    {
-      key: 'contact',
-      table: 'partner.contact',
-      page: 'partners',
-      label: 'entity.contact',
-      owners: 'partner.contact_owners',
-    },
-    { key: 'partner_merge', table: 'partner.merge', page: 'partners', label: 'entity.partner_merge' },
-    { key: 'code_terms', table: 'partner.code_terms', page: 'partners', label: 'entity.code_terms' },
+    // An organisation's records go by the pages of its sides (partner.row_level — V98): the whole record by the sides
+    // it has on, a side's own rows (and client IDs, codes, credit) by that side's page.
+    ...(
+      [
+        ['partner', 'partner.partner', 'partner.partner_owners'],
+        ['partner_side', 'partner.partner_side', 'partner.partner_side_owners'],
+        ['side_status', 'partner.side_status_change', 'partner.side_status_change_owners'],
+        ['side_owner', 'partner.side_owner', 'partner.side_owner_owners'],
+        ['credit_limit', 'partner.credit_limit', 'partner.credit_limit_owners'],
+        ['identifier', 'partner.identifier', 'partner.identifier_owners'],
+        ['contact', 'partner.contact', 'partner.contact_owners'],
+        ['partner_merge', 'partner.merge', undefined],
+      ] as const
+    ).map(([key, table, owners]) => ({
+      key,
+      table,
+      page: 'clients',
+      label: `entity.${key}`,
+      ...(owners ? { owners } : {}),
+      level: 'partner.row_level',
+    })),
+    // Client-side matters with no organisation of their own (V65, D25).
+    { key: 'code_terms', table: 'partner.code_terms', page: 'clients', label: 'entity.code_terms' },
     {
       key: 'campaign_code',
       table: 'partner.campaign_code',
-      page: 'partners',
+      page: 'clients',
       label: 'entity.campaign_code',
       owners: 'owner_id',
     },
-    { key: 'individual_name', table: 'partner.individual_name', page: 'partners', label: 'entity.individual_name' },
+    { key: 'individual_name', table: 'partner.individual_name', page: 'clients', label: 'entity.individual_name' },
     {
       key: 'identifier_block',
       table: 'partner.identifier_block',
       page: 'settings.partners',
       label: 'entity.identifier_block',
     },
-    {
-      key: 'partner_role_def',
-      table: 'partner.role',
-      page: 'settings.partners',
-      label: 'entity.partner_role_def',
-      list: true,
-    },
-    { key: 'role_field', table: 'partner.role_field', page: 'settings.partners', label: 'entity.role_field' },
-    {
-      key: 'partner_category',
-      table: 'partner.category',
-      page: 'settings.partners',
-      label: 'entity.partner_category',
-      list: true,
-    },
-    { key: 'partner_tier', table: 'partner.tier', page: 'settings.partners', label: 'entity.partner_tier', list: true },
-    { key: 'segment', table: 'partner.segment', page: 'settings.partners', label: 'entity.segment', list: true },
-    {
-      key: 'status_reason',
-      table: 'partner.status_reason',
-      page: 'settings.partners',
-      label: 'entity.status_reason',
-      list: true,
-    },
-    {
-      key: 'call_outcome',
-      table: 'partner.call_outcome',
-      page: 'settings.partners',
-      label: 'entity.call_outcome',
-      list: true,
-    },
-    {
-      key: 'contract_term',
-      table: 'partner.term',
-      page: 'settings.partners',
-      label: 'entity.contract_term',
-      list: true,
-    },
+    { key: 'side_field', table: 'partner.side_field', page: 'settings.partners', label: 'entity.side_field' },
+    ...(
+      [
+        ['side_type', 'partner.side_type'],
+        ['side_tier', 'partner.side_tier'],
+        ['side_status_reason', 'partner.side_status_reason'],
+        ['contact_role', 'partner.contact_role'],
+        ['call_outcome', 'partner.call_outcome'],
+        ['contract_term', 'partner.term'],
+      ] as const
+    ).map(([key, table]) => ({ key, table, page: 'settings.partners', label: `entity.${key}`, list: true })),
   ],
   settings: [
     {
@@ -160,17 +109,20 @@ export default defineModule({
     },
   ],
   capabilities: [
-    {
-      key: 'partners.identify',
-      page: 'partners',
-      label: 'cap.partners.identify',
-      defaults: { head: true, manager: true },
-    },
-    { key: 'partners.merge', page: 'partners', label: 'cap.partners.merge', defaults: { head: true } },
-    { key: 'partners.assign', page: 'partners', label: 'cap.partners.assign', defaults: { head: true, manager: true } },
+    // Per side (V98): the same three powers on the Client side and on the Supplier & partner side.
+    ...(['clients', 'suppliers_partners'] as const).flatMap((page) => [
+      {
+        key: `${page}.identify`,
+        page,
+        label: `cap.${page}.identify`,
+        defaults: { head: true, manager: true },
+      },
+      { key: `${page}.merge`, page, label: `cap.${page}.merge`, defaults: { head: true } },
+      { key: `${page}.assign`, page, label: `cap.${page}.assign`, defaults: { head: true, manager: true } },
+    ]),
     {
       key: 'finance.credit_control',
-      page: 'partners',
+      page: 'clients',
       label: 'cap.finance.credit_control',
       defaults: { head: true },
     },

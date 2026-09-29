@@ -146,18 +146,26 @@ export type Database = {
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
       partner_bulk_assign: {
-        Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string };
+        Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
       partner_create: { Args: { p_partner: Json; p_reason?: string }; Returns: Json };
-      partner_manager_set: {
-        Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string };
+      partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
+      partner_owner_set: {
+        Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
-      partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
-      partner_roles_set: { Args: { p_id: string; p_reason?: string; p_roles: Json }; Returns: Json };
+      partner_side_off: { Args: { p_id: string; p_reason?: string; p_side: string; p_until?: string }; Returns: Json };
+      partner_side_set: { Args: { p_id: string; p_reason?: string; p_side: string; p_values: Json }; Returns: Json };
       partner_status_set: {
-        Args: { p_effective_on?: string; p_id: string; p_note?: string; p_reason_id?: string; p_status: string };
+        Args: {
+          p_effective_on?: string;
+          p_id: string;
+          p_note?: string;
+          p_reason_id?: string;
+          p_side: string;
+          p_status: string;
+        };
         Returns: Json;
       };
       partner_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
@@ -218,6 +226,7 @@ export type Database = {
       };
       settings: { Args: { p_group: string }; Returns: Json };
       settings_log: { Args: { p_before?: string; p_limit?: number }; Returns: Json };
+      side_field_save: { Args: { p_id: string; p_reason?: string; p_values: Json; p_version?: number }; Returns: Json };
       sign_in_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_complete: {
         Args: { p_device_label?: string; p_provider?: string; p_user_agent?: string };

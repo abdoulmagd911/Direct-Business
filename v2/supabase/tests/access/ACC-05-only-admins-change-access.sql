@@ -21,7 +21,7 @@ select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.access_set_person_level(%L, %L, %L, %L)', current_setting('t.am1'), 'kpis', 'view',
   'made up'), '42501', 'a head changes nobody''s level', 'access.needs_level');
 select test.raises(format('select api.access_set_person_capability(%L, %L, %L, %L)', current_setting('t.am1'),
-  'partners.merge', true, 'made up'), '42501', 'nor capability', 'access.needs_level');
+  'clients.merge', true, 'made up'), '42501', 'nor capability', 'access.needs_level');
 select test.raises(format('select api.access_set_person_role(%L, %L, %L)', current_setting('t.am1'),
   current_setting('t.role_viewer'), 'made up'), '42501', 'nor role', 'access.needs_level');
 select test.raises(format('select api.access_set_role_level(%L, %L, %L, %L)', current_setting('t.role_viewer'), 'kpis',
@@ -36,12 +36,12 @@ select test.raises(format('select api.access_set_person_level(%L, %L, %L, %L)', 
 select test.raises(format('select api.access_set_person_level(%L, %L, %L, %L)', current_setting('t.am1'),
   'settings.profile', 'view', 'made up'), 'P0001', 'and only a level the page offers', 'access.level_not_offered');
 select api.access_set_person_level(current_setting('t.am1')::uuid, 'kpis', 'view', 'made up: views the KPIs');
-select api.access_set_person_capability(current_setting('t.am1')::uuid, 'partners.merge', true, 'made up: merges');
+select api.access_set_person_capability(current_setting('t.am1')::uuid, 'clients.merge', true, 'made up: merges');
 select api.access_set_person_role(current_setting('t.am1')::uuid, current_setting('t.role_viewer')::uuid,
   'made up: a viewer now');
 select test.as_owner();
 select test.eq(authz.level_of(current_setting('t.am1')::uuid, 'kpis'), 'view'::core.level, 'an admin''s change is made');
-select test.ok(authz.can_of(current_setting('t.am1')::uuid, 'partners.merge'), 'a capability given');
+select test.ok(authz.can_of(current_setting('t.am1')::uuid, 'clients.merge'), 'a capability given');
 select test.eq((select r.key from core.person p join core.role r on r.id = p.role_id
                 where p.id = current_setting('t.am1')::uuid), 'viewer', 'a role given');
 select test.eq((select q.actor_id from audit.request q where q.label_key = 'access.person_level_set'

@@ -1,9 +1,9 @@
 -- Sabotage: anyone-sets-a-credit-limit
 -- Breaks: sql:CRL-01
 -- Expect: a member without credit control cannot set a limit
--- Credit limits are set by anyone who can edit a partner.
-create or replace function partner.credit_limit_set(p_partner uuid, p_amount numeric, p_effective_from date, p_approved_by uuid,
-                                         p_reason text) returns jsonb
+-- Credit limits are set by anyone who can edit an organisation.
+create or replace function partner.credit_limit_set(p_partner uuid, p_amount numeric, p_effective_from date,
+                                                    p_approved_by uuid, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -13,6 +13,7 @@ declare
   req uuid;
   cid uuid;
 begin
+  perform partner.require_level(p_partner, 'client', 'full');
   if p_approved_by is null or not exists (select 1 from core.person x where x.id = p_approved_by and x.kind = 'staff') then
     raise exception using errcode = 'P0001', message = 'credit.approver_required';
   end if;

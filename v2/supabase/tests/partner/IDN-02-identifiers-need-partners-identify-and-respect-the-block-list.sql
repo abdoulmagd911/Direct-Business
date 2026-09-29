@@ -1,4 +1,4 @@
--- IDN-02 — who adds identifiers, and what can never be one (§3.5, V133): adding or removing needs partners.identify
+-- IDN-02 — who adds identifiers, and what can never be one (§3.5, V133): adding or removing needs clients.identify
 -- (moving money between people); the four names follow the partner's name fields — only an alias is added here;
 -- values on the block list (an exact value, or every email of a domain) are refused with the list's reason; a value
 -- with no key left is refused; individuals are listed apart and never hold a partner's name. Made up.
@@ -12,7 +12,7 @@ select api.identifier_block_add('vat', 'exact', '300000000000013', 'made up: the
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises($$select api.identifier_block_add('email', 'exact', 'someone@example.test', 'made up')$$, '42501',
   'the block list is Settings: a head adds nothing to it', 'access.needs_level');
-select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Gamma"}') ->> 'id', true);
+select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Gamma", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 
 select test.raises(format('select api.identifier_add(%L, %L, %L, %L)', current_setting('t.a'), 'email',
   'someone@STAFF.example.test', 'made up'), 'P0001', 'an email of a blocked domain is refused', 'identifier.blocked');
@@ -34,4 +34,4 @@ select test.ok((api.individual_add('Made Up Person Name', 'made up: a traveller'
 
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.identifier_add(%L, %L, %L, %L)', current_setting('t.a'), 'email', 'buyer@example.test',
-  'made up'), '42501', 'a member without partners.identify cannot add an identifier', 'access.needs_capability');
+  'made up'), '42501', 'a member without clients.identify cannot add an identifier', 'access.needs_capability');
