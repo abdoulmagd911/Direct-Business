@@ -40,8 +40,10 @@ async function stateOf(page: Page, status: number | null): Promise<string> {
     .locator('body')
     .innerText({ timeout: 5_000 })
     .catch(() => '');
-  if ((status ?? 200) >= 500 || /Application error|server-side exception|This page couldn.t load/i.test(body))
-    return 'crash';
+  // the app's own error page (its words and a Reload button) is a designed state; Next's bare error is a crash
+  if (/This page couldn.t load/i.test(body) && (await page.getByRole('button', { name: /reload/i }).count()))
+    return 'error-page';
+  if ((status ?? 200) >= 500 || /Application error|server-side exception/i.test(body)) return 'crash';
   if (status === 404 || /This page could not be found/.test(body)) return 'not-found';
   if (await page.locator('[data-state="no-access"]').count()) return 'no-access';
   if (await page.locator('[data-state="error"], [data-state="failed"]').count()) return 'failed-read';

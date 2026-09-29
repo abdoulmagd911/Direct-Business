@@ -90,6 +90,7 @@ section.page h2 { font: 600 20px/1.2 var(--display); margin: 0; }
 .st.no-access, .st.set-password { background: var(--infobg); color: var(--info); }
 .st.not-found, .st.failed-read, .st.sign-in, .st.empty { background: var(--warnbg); color: var(--warn); }
 .st.crash { background: var(--badbg); color: var(--bad); }
+.st.error-page { background: var(--badbg); color: var(--bad); }
 .err { font: 11.5px var(--mono); color: var(--bad); }
 .empty-note { color: var(--muted); font-style: italic; }
 #viewer { position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 94%, transparent);
@@ -128,11 +129,11 @@ section.page h2 { font: 600 20px/1.2 var(--display); margin: 0; }
 <script>
 const DATA = ${json};
 const SWEEP = ${sweep};
-const STATE_WORDS = { 'renders': 'shows', 'no-access': 'no access', 'not-found': 'not found', 'crash': 'error page',
+const STATE_WORDS = { 'renders': 'shows', 'no-access': 'no access', 'not-found': 'not found', 'crash': 'crashed', 'error-page': 'error page',
   'failed-read': 'failed read', 'empty': 'empty', 'sign-in': 'sent to sign-in', 'set-password': 'choose a password' };
 const PASS_TITLE = { empty: 'Before any record exists (an admin)', error: 'When the data does not answer (an admin)',
   door: 'Signing in' };
-const LOOK = ['crash', 'not-found', 'sign-in', 'failed-read'];
+const LOOK = ['crash', 'error-page', 'not-found', 'sign-in', 'failed-read'];
 const names = Object.fromEntries(DATA.personas.map((p) => [p[0], p[1]]));
 const notes = Object.fromEntries(DATA.personas.map((p) => [p[0], p[2]]));
 let role = 'all', only = 'all', list = [], at = 0;
