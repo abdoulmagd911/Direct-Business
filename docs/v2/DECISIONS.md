@@ -814,6 +814,20 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 
 **V173 — A retired capability grants nothing, and stops nothing** ACTIVE · 2026-09-29 (QA-56, the second QA round on #103). `partners.assign`, `partners.identify` and `partners.merge` gave way to each side's own (V98), but their old grants stayed on the admin, head and manager roles, and `core.access_set_person_role` asked `authz.can_of` of every granted row — which answers no for a retired capability, even for an admin — so no admin could make anyone a head or a manager (`access.above_your_level`). The role check now asks only the capabilities still in use (`core.capability.active`); the old grant rows stay, inert, as history. Test ACC-09; sabotage `a-retired-capability-blocks-a-role`.
 
+**V175 — A made-up world for this machine: the fixture seed** ACTIVE · 2026-09-29 (the oversight, 15:55 item 4: QA's preview gallery of every page for every role). `pnpm fixtures:local` (`scripts/fixtures/seed-local.mjs`), run from `v2/` on a freshly reset local stack, writes:
+- **people for every role and kind of account:** an admin, a head, a manager, two team members, a viewer, the admin account and the test account (V444, V445), someone switched off and someone who left ten days ago. They share one team, one manager line and one made-up password, printed at the end, and each has an allowed `fixture.<key>@example.test` address. People and their sign-ins go straight into the local database, as the E2E specs do.
+- **data for every module built so far, written through `api.*` as those people,** so every rule, log, history entry and notice is the real one:
+  - six organisations on both sides, with owners, contacts, identifiers, statuses and activities;
+  - notes that mention someone, contracts (three ending exactly on a reminder day, so their reminders are due today), portal references and follows;
+  - a discount code, a credit limit, a campaign code, and a personal and a shared saved view;
+  - then the daily alerts job, once.
+  Files are not seeded (Storage).
+- **The guard** (`scripts/fixtures/guard.mjs`) refuses:
+  - any API or database address that is not on this machine;
+  - any database that already allows an address outside `@example.test`.
+  A second run finds its people and stops. Unit test: `the-fixture-seed-runs-on-this-machine-only`. Sabotages: `fixtures-seed-the-cloud`, `fixtures-over-real-addresses`.
+- Every value is made up (rule 7). No phone number is seeded, because a made-up one can still be someone's.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
