@@ -118,6 +118,21 @@ describe('the Arabic catalog', () => {
     expect(found, 'an admin is «مسؤول النظام»').toEqual([]);
   });
 
+  it('never says a form V490 retired: each term has one Arabic word', () => {
+    // The old form, and the one word that replaced it (V490; the oversight's check of the whole catalog, 29 Sep).
+    const RETIRED: [RegExp, string][] = [
+      [/رئيس القسم|مدير الإدارة/, 'رئيس الإدارة'],
+      [/الإثنين/, 'الاثنين'],
+      [/غير مقيس/, 'غير متاح'],
+      [/الخاص به/, 'سجلاته فقط'],
+      [/الذراع التجاري(?!ة)/, 'الذراع التجارية'],
+    ];
+    const found = [...ar].flatMap(([k, m]) =>
+      RETIRED.filter(([old]) => old.test(m)).map(([, now]) => `${k}: ${m} (say «${now}»)`),
+    );
+    expect(found, 'one word for each term (V490)').toEqual([]);
+  });
+
   it('puts the tanween fatha before the alif, as every other word does', () => {
     const found = [...ar].filter(([, m]) => /اً/.test(m)).map(([k, m]) => `${k}: ${m}`);
     expect(found, 'tanween sits before the alif').toEqual([]);

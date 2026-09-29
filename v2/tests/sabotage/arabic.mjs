@@ -112,4 +112,10 @@ export const sabotages = [
     expect: 'tanween sits before the alif',
     edits: [{ file: AR, find: 'الإدخال متأخرًا', replace: 'الإدخال متأخراً' }],
   },
+  {
+    name: 'ar-says-a-retired-form',
+    breaks: [CATALOG],
+    expect: 'one word for each term (V490)',
+    edits: [{ file: AR, find: '"monday": "الاثنين"', replace: '"monday": "الإثنين"' }],
+  },
 ];
