@@ -150,6 +150,10 @@ test("one's own record shows real figures, never not measured; a member sees a c
   await page.goto(`/people/${colleague.id}`);
   await hydrated(page);
   await expect(page.locator('[data-key-figures]')).not.toContainText('not measured');
+  // the Arabic names are data: editable on My profile whatever the Arabic switch says (W22, QA-179)
+  await page.goto('/profile');
+  await hydrated(page);
+  await expect(page.getByLabel('Full name (Arabic)')).toBeVisible();
 });
 
 test('an unknown address is Not found; every area page says what goes there; a setting reads as a word; the greeting follows the clock; the empty bell says what it is for', async ({

@@ -239,28 +239,25 @@ export function MyProfile({
             value={state.profile?.display_name_en ?? ''}
             onSave={(v) => save({ display_name_en: v || null })}
           />
-          {arabicEnabled ? (
-            <>
-              <TextField
-                label={t('profile.fullNameAr')}
-                value={state.person.full_name_ar ?? ''}
-                onSave={(v) => save({ full_name_ar: v || null })}
-                dir="rtl"
-              />
-              <TextField
-                label={t('profile.nicknameAr')}
-                value={state.person.nickname_ar ?? ''}
-                onSave={(v) => save({ nickname_ar: v || null })}
-                dir="rtl"
-              />
-              <TextField
-                label={t('profile.displayNameAr')}
-                value={state.profile?.display_name_ar ?? ''}
-                onSave={(v) => save({ display_name_ar: v || null })}
-                dir="rtl"
-              />
-            </>
-          ) : null}
+          {/* the Arabic names are data, editable whatever app.arabic_enabled says (W22, QA-179) */}
+          <TextField
+            label={t('profile.fullNameAr')}
+            value={state.person.full_name_ar ?? ''}
+            onSave={(v) => save({ full_name_ar: v || null })}
+            dir="rtl"
+          />
+          <TextField
+            label={t('profile.nicknameAr')}
+            value={state.person.nickname_ar ?? ''}
+            onSave={(v) => save({ nickname_ar: v || null })}
+            dir="rtl"
+          />
+          <TextField
+            label={t('profile.displayNameAr')}
+            value={state.profile?.display_name_ar ?? ''}
+            onSave={(v) => save({ display_name_ar: v || null })}
+            dir="rtl"
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('profile.badge')}>
@@ -556,6 +553,7 @@ function TextField({
       {(p) => (
         <Input
           {...p}
+          autoComplete="off"
           dir={dir}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

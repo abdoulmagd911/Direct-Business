@@ -23,8 +23,8 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   await expect(page.getByRole('heading', { level: 1, name: 'My profile' })).toBeVisible();
 
-  await page.getByLabel('Nickname').fill('Nick');
-  await page.getByLabel('Nickname').press('Enter');
+  await page.getByLabel('Nickname', { exact: true }).fill('Nick');
+  await page.getByLabel('Nickname', { exact: true }).press('Enter');
   await expect(page.getByText('Profile saved').first()).toBeVisible();
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
   await expect(page.locator('[data-drawer] [data-entity="person"]')).toContainText('Nick');
@@ -48,7 +48,7 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   // the profile row holds it (a reload keeps every choice)
   await page.reload();
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
-  await expect(page.getByLabel('Nickname')).toHaveValue('Nick');
+  await expect(page.getByLabel('Nickname', { exact: true })).toHaveValue('Nick');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   const [row] = await sql<{ display: string | null; nickname: string | null; theme: string | null }>(
     `select pr.theme, p.nickname_en as nickname, pr.display_name_en as display
@@ -97,11 +97,13 @@ test('the profile chip opens My profile; an Undo puts the stored value and the t
   await hydrated(page);
 
   // a saved nickname, undone: the stored (empty) value is what the screen shows, and what a reload shows
-  await page.getByLabel('Nickname').fill('Undone Nick');
-  await page.getByLabel('Nickname').press('Enter');
+  await page.getByLabel('Nickname', { exact: true }).fill('Undone Nick');
+  await page.getByLabel('Nickname', { exact: true }).press('Enter');
   await toast(page, 'Profile saved').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(page, 'Undone')).toBeVisible();
-  await expect(page.getByLabel('Nickname'), 'the undone value is gone from the screen').toHaveValue('');
+  await expect(page.getByLabel('Nickname', { exact: true }), 'the undone value is gone from the screen').toHaveValue(
+    '',
+  );
   await expect(page.locator('[data-topbar] [data-profile-chip]')).not.toContainText('Undone Nick');
   const [row] = await sql<{ nickname: string | null }>(
     `select nickname_en as nickname from core.person where id = $1`,
@@ -122,13 +124,13 @@ test('the profile chip opens My profile; an Undo puts the stored value and the t
   await page.reload();
   await hydrated(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'direct');
-  await expect(page.getByLabel('Nickname')).toHaveValue('');
+  await expect(page.getByLabel('Nickname', { exact: true })).toHaveValue('');
 
   // a change made elsewhere (another device, an admin) shows after a reload without a stale copy in the way
   await sql(`update core.person set nickname_en = 'Elsewhere' where id = $1`, [member.id]);
   await page.reload();
   await hydrated(page);
-  await expect(page.getByLabel('Nickname')).toHaveValue('Elsewhere');
+  await expect(page.getByLabel('Nickname', { exact: true })).toHaveValue('Elsewhere');
 });
 
 test("the profile menu's theme and density are saved to the profile, not only this browser (QA-126)", async ({
