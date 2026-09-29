@@ -49,7 +49,7 @@ export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean
       </MenuTrigger>
       <MenuContent className="min-w-64">
         <MenuItem asChild>
-          <Link href="/settings/profile">
+          <Link href="/profile">
             <UserRound />
             {t('profileMenu.myProfile')}
           </Link>
