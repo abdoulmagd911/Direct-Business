@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { run } from '@/core/commands/run';
-import { rpc } from '@/core/db/rpc';
+import { undoRequest } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '../Button';
 import { StatusChip } from '../Chip';
@@ -56,7 +56,7 @@ export function ActivityTimeline({
         has: (k) => t.has(k),
         failed: (k, detail) => t(k, { detail }),
       },
-      () => rpc('undo', { p_request: r.request_id }) as Promise<{ request_id?: string | null } | null>,
+      () => undoRequest(r.request_id),
       () => {
         onChanged?.();
         router.refresh();
