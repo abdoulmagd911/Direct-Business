@@ -218,7 +218,7 @@ example uses made-up names.
 
 **V400 — The dates rule** ACTIVE · 2026-09-29. Every task, task update, action item, activity, achievement and KPI reading has **`happened_on`** (a date; default Riyadh today; any past date allowed; never after the day it was logged) and a system **`logged_at`**. `happened_on` decides the week, month and quarter, the KPIs, task time and the appraisal — **never `created_at`**. Entries dated in the past raise no notices and no overdue or no-update flags for the past. After go-live, an entry logged more than 14 days (a setting) after it happened is marked **"logged late"** and counts against the on-time appraisal items; entries dated before go-live are never late. An achievement's `happened_on` is the date on its evidence (the signing date on the agreement). A manager or admin may move an achievement into the previous period, with a reason; it gets a **"moved"** mark. KPIs stay live; **issued reports never change** — they show "N added since issue", and the next report has an **"Added to earlier periods"** section; the V36 correction is still available. A **"Past work" paste grid** backfills tasks and achievements with their real dates, marked **Backfilled**, with no notices (P5). A one-time import of the BD Daily Tasks sheet is allowed — its task tabs only. Spec §3.7, §3.8, §3.9, §3.11. <!-- check-allow: v2-ids — V400–V499 is the owner-decisions range set on 29 Sep (ID ranges above); builder A widens the check -->
 
-**V401 — The industry-benchmark v1 package** ACTIVE · 2026-09-29. Each item has its place in the plan: contacts with roles (P3-8b) · **Log activity** — call · meeting · demo · visit · note, types and outcomes as settings, an optional next step that becomes a task on My day, and a **stale** flag after 21 days with no activity and no next step (P3-8b, P5-1) · a quarterly business-review task template (P5-1) · a travel-policy file kind with a review date (P3-8b) · a **quiet-client alert** — no Fully Paid invoice in 60 days (P4-2) · task status **meanings fixed** — Not started · In progress · Done · Cancelled — with editable names, and **Blocked** inside In progress with a required reason (P5-1) · files on tasks (P5-1) · a **project health chip** with a one-line update and no-update reminders (P5-1, P5-3) · KPI **pace bands** On track · At risk · Behind, a plan setting (P5-4) · **Escalate** — notifies, follows, logs (P5-1) · a Challenge record page (P5-6) · appraisal steps **Self → Manager draft → Shared → Locked** (P6-3) · **Recently deleted**, 30 days with restore (P3-6) · a **"Payments · as of"** stamp on figures copied from Payments (P4-1) · **average days to pay** (P4-2) · a follow-up task when the 45-day alert fires (P5-1) · Ctrl K actions New task, Log activity, New invoice, Go to (P3-7, P5-2). Spec §3.3, §3.4, §3.6, §3.7, §3.8, §3.10. <!-- check-allow: v2-ids — V400–V499 is the owner-decisions range set on 29 Sep (ID ranges above); builder A widens the check -->
+**V401 — The industry-benchmark v1 package** ACTIVE · 2026-09-29. Each item has its place in the plan: contacts with roles (P3-8b) · **Log activity** — call · meeting · demo · visit · note, types and outcomes as settings, an optional next step that becomes a task on My day, and a **stale** flag after 21 days with no activity and no next step (P3-8b, P5-1) · a quarterly business-review task template (P5-1) · a travel-policy file kind with a review date (P3-8b) · a **quiet-client alert** — no Fully Paid invoice in 60 days (P4-2) · task status **meanings fixed** — Not started · In progress · Done · Cancelled — with editable names, and **Blocked** inside In progress with a required reason (P5-1) · files on tasks (P5-1) · a **project health chip** with a one-line update and no-update reminders (P5-1, P5-3) · KPI **pace bands** On track · At risk · Behind, a plan setting (P5-4) · **Escalate** — notifies, follows, logs (P5-1) · a Challenge record page (P5-6) · appraisal steps **Self → Manager draft → Shared → Locked** (P6-3) · **Recently deleted**, 30 days with restore (P3-6) · a **"Payments · as of"** stamp on figures copied from Payments (P4-1) · **average days to pay** (P4-2) · a follow-up task when the 45-day alert fires (P5-1) · Ctrl K actions New task, Log activity, New invoice, Go to (P3-7, P5-2). Spec §3.3, §3.4, §3.6, §3.7, §3.8, §3.10.
 
 **V402 — Working rules** ACTIVE · 2026-09-29. The repository's database guard asks only before destructive statements (builder A implements it). A bulletproof and landmine check runs before and after every merge. The oversight also runs an independent read-only QA audit every round. Plan "How the sessions work together". <!-- check-allow: v2-ids — V400–V499 is the owner-decisions range set on 29 Sep (ID ranges above); builder A widens the check -->
 
@@ -375,6 +375,55 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - On any other project it keeps the rules of 27 Sep.
 - It reads the SQL as code: comments and strings decide nothing and hide nothing, and DO blocks and function bodies are read too.
 - A v2 unit test feeds it sample calls; the sabotage `guard-lets-a-drop-through` (a DROP no longer asks) turns it red.
+
+**V140 — Settings are safe to change, as built** ACTIVE · 2026-09-29. V97's safety rules, for everything already built (P3-6d; the owner's item 4).
+- **Lists.** Every settings list can be soft-removed (`deleted_at`, `deleted_by`, `delete_reason`), and nothing is ever physically deleted.
+  - `api.list_usage(list, id)` counts the live records that use a value, table by table, from the foreign keys.
+  - `api.list_remove` removes a value only while nothing uses it (`list.in_use` gives the count). Recently deleted restores it (V141).
+  - A value in use is archived (`active` off, as before), or retired: `api.list_retire(list, id, replacement, reason)` moves every live use to the replacement and archives the value, in one logged request with the count and one Undo. History that is never rewritten (a partner's status changes) keeps the old value and is counted apart (`kept_in_history`).
+- **Locked meanings.** A value that feeds KPIs or logic carries a `meaning` fixed in code, one value per meaning. The first are the call outcomes `meeting_set`, `demo_set` and `demo_held`. Their names stay editable. The meaning never changes (`list.meaning_locked`), and the value is never removed or retired.
+- **Arabic names.** Departments, teams and roles need their Arabic name (`org.name_ar_required`), as list entries already did (V133).
+- **Effective dates.** The Work settings that change numbers are effective-dated (V126). A change takes a from-date, and the old value answers for the days before it.
+- **Preview.** `api.setting_preview` runs the same checks and the same write, then rolls it back. It returns the value before and after on its day, and whether it replaces a change already made for that day.
+- **Settings log.** `api.settings_log` (admins only) lists every request that changed a record behind a Settings page, newest first, kept forever. Revert is Undo (V128), which an admin may use at any time.
+- **Floor date.** Every setting's default starts at 2000-01-01, so every past day has a value. The registry sync writes a default only where the setting has none, so it never overwrites an admin's value.
+- Proved by SETS-01, SETS-02, ROLE-01 and TEAM-01, with the sabotages `a-list-value-in-use-is-removed`, `a-preview-that-saves` and `arabic-names-optional`.
+
+**V141 — Recently deleted** ACTIVE · 2026-09-29. V401's "Recently deleted, 30 days with restore", for every record type that can be removed.
+- `api.recently_deleted()` lists what was removed in the last `audit.recently_deleted_days` (30, a setting). Each person sees only the records they may see (V143), with the record's name, who removed it and why.
+- `api.restore(type, id, reason)` brings a record back within the window, in one request that Undo takes back.
+  - Who may restore: whoever removed it, its owner with Own on its page, anyone with Full on its page, or an admin. Access and sign-in records are an admin's only.
+  - A record is never restored over a live duplicate (`restore.blocked_by_duplicate`).
+  - After the window it is gone for good (`restore.too_late`).
+- Proved by DEL-01, with the sabotage `restore-ignores-the-window`.
+
+**V142 — The dates rule, for what is built** ACTIVE · 2026-09-29. V400 starts here (the owner's item 3). The records it names get their own `happened_on` as they are built: notes and activities in P3-8b, tasks (with `closed_on`), status changes and action items (`done_on`) in P5-1, achievements and KPI readings in P5–P6.
+- Every request carries `audit.request.happened_on`, the day its work happened. The default is Riyadh today, and the requests logged before this change were dated from their logged time. The logged time stays `audit.request.at`.
+- A command that takes a day calls `audit.happened(day)`. A later day is refused (`common.date_in_future`).
+- Work dated before today tells nobody. `notify.fan_out` skips such a request, and `notify.push` skips a mention inside one.
+- History and Activity show the day.
+- Proved by DATE-01, with the sabotage `past-work-rings-the-bell`.
+
+**V143 — Each record type may have its own visibility** ACTIVE · 2026-09-29. For V96's appraisals (P6-3), built now so that every reader already asks the same question (QA-05, QA-09).
+- `core.entity` gains `private` and `visible`. `visible` is a function (record id, person) → boolean that the type declares in the registry, and a name that is not such a function is refused (`entity.bad_visible`).
+- `authz.can_see_as(person, table, id)` answers in this order:
+  - an admin always sees the record;
+  - then the type's own rule;
+  - then the record's owners;
+  - then, unless the type is private, View or more on its page.
+
+  For a private type, Full or Own on the page never counts.
+- History, Follow, the notices (`notify.push`, `notify.fan_out`), Activity and Recently deleted all ask `can_see_as`, and `api.can_see(type, id)` asks it for the screens. A follower who can no longer see a record is not told of its changes, and a person already told by the request (a mention) is not told twice.
+- `authz.reports_to` means the direct manager only, never the whole chain (V96).
+- Proved by VIS-01 and ACC-06, with the sabotages `a-private-record-shown-by-the-page-level` and `reports-to-walks-the-whole-chain`.
+
+**V144 — Undoing a sign-in change** ACTIVE · 2026-09-29. From the QA audit.
+- Adding or removing an allowed e-mail, linking a sign-in, and switching a person off or on are all access. Only an admin undoes them (V128): not the person they belong to, and not whoever made the change once they are no longer an admin.
+- `audit.undo` names the people whose sign-ins it changed (`auth_resync`). The route `/auth/admin/undo` then re-syncs their Supabase Auth bans at once, so an undone removal lets the person sign in again and an undone adding bans them.
+- A sign-in link (`core.person_auth`) is never deleted, not even with its auth user (`person_auth.never_deleted`). Sign-ins end by being banned.
+- Proved by UNDO-06 and the E2E spec `undoing-an-email-removal-lifts-its-ban`, with the sabotages `an-email-undone-by-a-former-admin`, `a-sign-in-link-is-deleted` and `e2e-undo-leaves-the-ban`.
+
+**V145 — Banned words in the e-mail templates too** ACTIVE · 2026-09-29. The `forbidden-words` check (V59, V209) also reads the e-mail templates (`supabase/templates/*.html`), which people read as much as any screen. Each of the owner's four additions (Sales (GMV), Google, Zoom, Keep me signed in) has its own planted sabotage, and "Keep me signed in" is planted in the sign-in code e-mail.
 
 ## Builder B (V200–V299)
 

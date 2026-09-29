@@ -27,6 +27,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74)',
         'export const c = `the ${1} mice`;',
         '',
       ].join('\n'),
+      'supabase/templates/sign-in-code.html': '<p>Your code</p>\n<p>Keep me signed in</p>\n',
     });
     const got = await findings(check, root);
     const lines = (f: string) =>
@@ -35,6 +36,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74)',
         .map((x) => x.line)
         .sort((a, b) => a - b);
     expect(lines('messages/en.json')).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(lines('supabase/templates/sign-in-code.html')).toEqual([2]);
     expect(lines('src/app/page.tsx')).toEqual([1, 2, 3]);
   });
 
@@ -44,7 +46,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74)',
         '{ "app": { "name": "Commercial Workspace", "department": "Commercial", "copy": "© Direct" } }\n',
       'src/app/page.tsx': [
         `// never "Direct KSA" or B2B in the wording (V59) — a comment is not wording`,
-        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c · zooming · googly · signed in</p>;`,
+        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c · zooming · googly · signed in · sales</p>;`,
         `export const host = 'www.directksab2b.com';`,
         '',
       ].join('\n'),

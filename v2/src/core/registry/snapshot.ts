@@ -25,7 +25,15 @@ export interface Snapshot {
     default: unknown;
     effective_dated: boolean;
   }[];
-  entities: { key: string; table: string; page: string | null; owners: string | null; list: boolean }[];
+  entities: {
+    key: string;
+    table: string;
+    page: string | null;
+    owners: string | null;
+    list: boolean;
+    private: boolean;
+    visible: string | null;
+  }[];
   role_levels: { role: string; page: string; level: Level }[];
   role_capabilities: { role: string; capability: string; granted: boolean }[];
 }
@@ -111,7 +119,17 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
         problems.push(`entity "${e.key}": owners is a column or schema.function`);
       if (e.list && !(e.page ?? '').startsWith('settings.'))
         problems.push(`entity "${e.key}": a setting list is edited on a settings page`);
-      entities.push({ key: e.key, table: e.table, page: e.page, owners: e.owners ?? null, list: e.list ?? false });
+      if (e.visible !== undefined && !/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(e.visible))
+        problems.push(`entity "${e.key}": visible is a schema.function`);
+      entities.push({
+        key: e.key,
+        table: e.table,
+        page: e.page,
+        owners: e.owners ?? null,
+        list: e.list ?? false,
+        private: e.private ?? false,
+        visible: e.visible ?? null,
+      });
     }
 
   if (problems.length) throw new Error(`the registry cannot be synced:\n  ${problems.join('\n  ')}`);

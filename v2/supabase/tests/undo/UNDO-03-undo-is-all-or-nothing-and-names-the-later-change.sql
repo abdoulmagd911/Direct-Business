@@ -5,7 +5,7 @@
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.dep', test.department('undo_three')::text, true);
-insert into core.team (department_id, code, name_en) values (current_setting('t.dep')::uuid, 'desk', 'Desk');
+insert into core.team (department_id, code, name_en, name_ar) values (current_setting('t.dep')::uuid, 'desk', 'Desk', 'مكتب');
 select set_config('t.team', (select id::text from core.team where department_id = current_setting('t.dep')::uuid), true);
 
 select set_config('t.r1', test.act(current_setting('t.admin')::uuid)::text, true);

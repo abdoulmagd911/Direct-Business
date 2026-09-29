@@ -1,8 +1,9 @@
 // @ts-check
 // A18 — two builders once collided on decision numbers and file numbers. Decision IDs in docs/v2/DECISIONS.md are
-// unique and in range (V1–V99 architect and oversight, V100–V199 builder A, V200–V299 builder B); local ports used by
-// v2's scripts and configs are in the builders' blocks (A 9300–9399, B 9400–9499), or the Supabase stack's own
-// (5432, 54320–54329).
+// unique and in range (V1–V99 architect and oversight, V100–V199 builder A, V200–V299 builder B, V300–V399 builder C,
+// V400–V499 the owner's decisions relayed by the oversight — from 29 Sep; V410); local ports used by v2's scripts and
+// configs are in the sessions' blocks (A 9300–9399, B 9400–9499, C 9500–9599, QA 9600–9699), or the Supabase stack's
+// own (5432, 54320–54329).
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineCheck, lineOf, select } from './lib.mjs';
@@ -11,12 +12,12 @@ const CHECK = 'v2-ids';
 
 /** @param {number} p */
 function portAllowed(p) {
-  return (p >= 9300 && p <= 9499) || p === 5432 || (p >= 54320 && p <= 54329);
+  return (p >= 9300 && p <= 9699) || p === 5432 || (p >= 54320 && p <= 54329);
 }
 
 export default defineCheck({
   name: CHECK,
-  rule: 'A18: decision IDs unique and within V1–V299; local ports within 9300–9499 (or the Supabase stack)',
+  rule: 'A18: decision IDs unique and within V1–V499; local ports within 9300–9699 (or the Supabase stack)',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];
@@ -31,7 +32,7 @@ export default defineCheck({
       for (const m of text.matchAll(/^\*\*V(\d+)\s+—/gm)) {
         const id = Number(m[1]);
         const line = lineOf(text, m.index ?? 0);
-        if (id < 1 || id > 299) out.push({ check: CHECK, file: rel, line, message: `V${id} is outside V1–V299` });
+        if (!(id >= 1 && id <= 499)) out.push({ check: CHECK, file: rel, line, message: `V${id} is outside V1–V499` });
         if (seen.has(id))
           out.push({ check: CHECK, file: rel, line, message: `V${id} is used twice (first on line ${seen.get(id)})` });
         else seen.set(id, line);
@@ -61,7 +62,7 @@ export default defineCheck({
             check: CHECK,
             file,
             line: lineOf(text, m.index),
-            message: `port ${port} is outside the builders' blocks (A 9300–9399, B 9400–9499) and the Supabase stack's`,
+            message: `port ${port} is outside the sessions' blocks (A, B, C and QA: 9300–9699) and the Supabase stack's`,
           });
       }
     }

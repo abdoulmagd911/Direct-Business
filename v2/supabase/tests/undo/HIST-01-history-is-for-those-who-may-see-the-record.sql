@@ -49,10 +49,15 @@ select test.raises(format('select api.record_history(%L, %L)', 'made_up', curren
 
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises('select api.activity()', '42501', 'a member does not see the whole log', 'access.needs_level');
-select test.as_person(current_setting('t.head')::uuid);
+select test.as_person(current_setting('t.admin')::uuid);
 select test.ok(exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
                        where r ->> 'request_id' = current_setting('t.r1')),
-  'a head sees the log, by who');
+  'the log, by who');
+select test.as_person(current_setting('t.head')::uuid);
+select test.ok(not exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
+                           where r ->> 'request_id' = current_setting('t.r1')),
+  'a head sees no change to a record they may not see (a department — V97)');
+select test.as_person(current_setting('t.admin')::uuid);
 select test.ok(not exists (select 1 from jsonb_array_elements(api.activity(p_actor => current_setting('t.admin')::uuid)) r
                            where r ->> 'request_id' in (current_setting('t.r2'), current_setting('t.r3'))),
   'and only that person''s requests');

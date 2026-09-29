@@ -1,25 +1,30 @@
--- TEAM-01 — departments and teams (§3.1, D11): Full makes and renames them, naming the version read; a team stays in its
--- department; retiring a team moves its people to another active team of the same department (or none) and ends its
--- helpers, in one request that one Undo takes back; a retired team is not retired or changed again.
--- Sabotage: supabase/tests/sabotage/retiring-a-team-strands-its-people.sql.
+-- TEAM-01 — departments and teams (§3.1, D11, V97): an admin makes and renames them, naming the version read, never
+-- without the Arabic name; a team stays in its department; retiring a team moves its people to another active team of
+-- the same department (or none) and ends its helpers, in one request that one Undo takes back; a retired team is not
+-- retired or changed again.
+-- Sabotages: supabase/tests/sabotage/retiring-a-team-strands-its-people.sql, supabase/tests/sabotage/arabic-names-optional.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
 select set_config('t.helper', test.person('Test Helper', 'member')::text, true);
 
 select test.as_person(current_setting('t.admin')::uuid);
-select set_config('t.dep', api.department_save(null, 'teams_one', 'Teams One', null, current_setting('t.admin')::uuid,
+select test.raises($$select api.department_save(null, 'teams_nameless', 'Teams Nameless')$$, 'P0001',
+  'a department needs its Arabic name', 'org.name_ar_required');
+select set_config('t.dep', api.department_save(null, 'teams_one', 'Teams One', 'فرق أولى', current_setting('t.admin')::uuid,
   null, 'made up') ->> 'id', true);
-select test.raises($$select api.department_save(null, 'teams_one', 'Teams Again')$$, '23505',
+select test.raises($$select api.department_save(null, 'teams_one', 'Teams Again', 'فرق مكررة')$$, '23505',
   'a department code is used once', 'org.code_taken');
-select set_config('t.other_dep', api.department_save(null, 'teams_two', 'Teams Two') ->> 'id', true);
-select set_config('t.t1', api.team_save(null, current_setting('t.dep')::uuid, 'north', 'North') ->> 'id', true);
-select set_config('t.t2', api.team_save(null, current_setting('t.dep')::uuid, 'south', 'South') ->> 'id', true);
-select set_config('t.t3', api.team_save(null, current_setting('t.other_dep')::uuid, 'east', 'East') ->> 'id', true);
+select set_config('t.other_dep', api.department_save(null, 'teams_two', 'Teams Two', 'فرق ثانية') ->> 'id', true);
+select test.raises(format('select api.team_save(null, %L, %L, %L)', current_setting('t.dep'), 'west', 'West'), 'P0001',
+  'and so does a team', 'org.name_ar_required');
+select set_config('t.t1', api.team_save(null, current_setting('t.dep')::uuid, 'north', 'North', 'الشمال') ->> 'id', true);
+select set_config('t.t2', api.team_save(null, current_setting('t.dep')::uuid, 'south', 'South', 'الجنوب') ->> 'id', true);
+select set_config('t.t3', api.team_save(null, current_setting('t.other_dep')::uuid, 'east', 'East', 'الشرق') ->> 'id', true);
 select test.eq((api.team_save(current_setting('t.t1')::uuid, current_setting('t.dep')::uuid, 'north', 'North Desk',
-  null, null, 1) ->> 'version')::int, 2, 'a team is renamed naming the version read');
-select test.raises(format('select api.team_save(%L, %L, %L, %L, null, null, 2)', current_setting('t.t1'),
-  current_setting('t.other_dep'), 'north', 'North Desk'), 'P0001', 'a team stays in its department',
+  'مكتب الشمال', null, 1) ->> 'version')::int, 2, 'a team is renamed naming the version read');
+select test.raises(format('select api.team_save(%L, %L, %L, %L, %L, null, 2)', current_setting('t.t1'),
+  current_setting('t.other_dep'), 'north', 'North Desk', 'مكتب الشمال'), 'P0001', 'a team stays in its department',
   'team.department_fixed');
 
 select test.as_owner();

@@ -5,12 +5,12 @@ select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select test.claims_of(current_setting('t.head')::uuid);   -- as inside an api function called by them
 select set_config('t.req', audit.begin('ui', 'org.saved')::text, true);
 select test.eq(audit.begin('ui', 'nested.call'), current_setting('t.req')::uuid, 'a nested begin joins the open request');
-insert into core.department (code, name_en) values ('test_a', 'Test A');
-insert into core.team (department_id, code, name_en) select id, 'team_a', 'Team A' from core.department where code = 'test_a';
+insert into core.department (code, name_en, name_ar) values ('test_a', 'Test A', 'قسم أ');
+insert into core.team (department_id, code, name_en, name_ar) select id, 'team_a', 'Team A', 'فريق أ' from core.department where code = 'test_a';
 select audit.end();   -- closes the nested begin
-insert into core.team (department_id, code, name_en) select id, 'team_b', 'Team B' from core.department where code = 'test_a';
+insert into core.team (department_id, code, name_en, name_ar) select id, 'team_b', 'Team B', 'فريق ب' from core.department where code = 'test_a';
 select test.eq(audit.end(), current_setting('t.req')::uuid, 'the outer end closes the request');
-insert into core.team (department_id, code, name_en) select id, 'team_c', 'Team C' from core.department where code = 'test_a';
+insert into core.team (department_id, code, name_en, name_ar) select id, 'team_c', 'Team C', 'فريق ج' from core.department where code = 'test_a';
 do $$
 declare
   req uuid := current_setting('t.req')::uuid;

@@ -1,7 +1,8 @@
 -- ACC-06 — what write functions and row rules ask (§5, V110): authz.require() refuses with the key access.needs_level
 -- and names the page and level needed; authz.require_capability() names the capability; nobody signed in is refused;
 -- authz.in_my_departments() is my department, the ones I was let see, or every one for an admin; authz.reports_to()
--- follows the manager chain down from me. Sabotage: supabase/tests/sabotage/require-asks-nothing.sql.
+-- is my direct reports only, never further down the line (V96).
+-- Sabotages: supabase/tests/sabotage/require-asks-nothing.sql, supabase/tests/sabotage/reports-to-walks-the-whole-chain.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
@@ -43,7 +44,7 @@ select test.ok(not authz.reports_to(current_setting('t.am1')::uuid), 'nor do I')
 select test.claims_of(current_setting('t.head')::uuid);
 select test.ok(authz.reports_to(current_setting('t.am1')::uuid), 'my direct report');
 select test.claims_of(current_setting('t.admin')::uuid);
-select test.ok(authz.reports_to(current_setting('t.am1')::uuid), 'and further down the line');
+select test.ok(not authz.reports_to(current_setting('t.am1')::uuid), 'but nobody further down the line (V96)');
 select test.ok(authz.in_my_departments(test.department('third')), 'an admin sees every department');
 
 select set_config('request.jwt.claims', '', true);

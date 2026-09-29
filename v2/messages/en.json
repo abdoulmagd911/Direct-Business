@@ -265,7 +265,8 @@
       "export_formats": "Export formats"
     },
     "audit": {
-      "undo_window_hours": "Hours an action can still be undone"
+      "undo_window_hours": "Hours an action can still be undone",
+      "recently_deleted_days": "Days a removed record can be restored"
     },
     "files": {
       "max_mb": "Largest file, in MB"

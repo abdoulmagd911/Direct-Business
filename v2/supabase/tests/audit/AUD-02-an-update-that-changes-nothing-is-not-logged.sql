@@ -1,6 +1,6 @@
 -- AUD-02 — an update that changes nothing a person can see is not logged and does not bump the version (§3.3).
 -- Sabotage: supabase/tests/sabotage/capture-logs-no-op-updates.sql.
-insert into core.department (code, name_en) values ('test_ops', 'Test Ops');
+insert into core.department (code, name_en, name_ar) values ('test_ops', 'Test Ops', 'قسم للتجربة');
 update core.department set name_en = name_en, updated_at = now() + interval '1 day' where code = 'test_ops';
 do $$
 declare
