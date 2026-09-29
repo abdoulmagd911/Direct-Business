@@ -1634,7 +1634,8 @@ add up to the total shown; a difference of 1 SAR or more is named as a differenc
 and nothing sends email — no IT, no DNS, no outside mailbox. An **admin adds each person in Settings → People and
 generates a temporary password** for them (V441: random, 14 characters or more, shown once with Copy, never typed) and
 can generate a new one at any time; there are no emails and no "forgot password" link — the sign-in page says **"Forgot
-your password? Ask an admin"**. The person **must change the password at first sign-in** and can change it any time in
+your password? Ask your admin."**. The person **must change the password at first sign-in** and can change it any time
+in
 **My profile → Change password**; **minimum 10 characters** (`auth.password_min_length`); sign-ups stay off; only
 allow-listed, switched-on people sign in. **A device stays signed in until the person signs out; a device unused for 30
 days asks for the password again** (owner, 29 Sep — V74), and "sign out everywhere" stays. The **emailed 6-digit code**
@@ -2111,18 +2112,18 @@ redirect URLs list it (V432); (5) no mail sender while the door is a password (V
 
 Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
 pastes keys into Vercel** (V84); builders never see the service key. **The Vercel project's settings are changed by the
-owner in Vercel, never from the repository** (V427). No deploy secret is
-stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
-after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
-once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
-file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). That first admin is **the owner's
-separate admin account** (`kind = 'admin_account'`, never a team member — V444); the owner's own work runs on his
-employee account. The owner made these auth users — admin, employee and test — himself in the Supabase dashboard on
-29 Sep (V451), so the statement links the `core.person` rows to them and creates nothing in Auth. **Every other person is added through Settings → People by the oversight in the browser, never
-seeded or hard-coded** (V440; ten people — V443; the list lives in the owner's private knowledge base, never in this
-repository — rule 7); before go-live each gets a generated temporary password, typed once by the owner himself, and
-changes it at first sign-in (V441, V446). One **test account** (`kind = 'test_account'`) serves the oversight's testing
-and is removed before go-live (V445).
+owner in Vercel, never from the repository** (V427). No deploy secret is stored in GitHub: builder A applies migrations
+to the cloud project at merge from the merged commit (checksum-checked), after the SQL suite has passed on a database
+built from zero. The very first admin (the owner's account, D8) is created once by builder A with a one-off statement
+the owner approves, logged under the System person — never in a migration file (rule 7, D17) — asked on 29 Sep 14:10,
+with the Commercial department (V440). That first admin is **the owner's separate admin account** (`kind =
+'admin_account'`, never a team member — V444); the owner's own work runs on his employee account. The owner made these
+auth users — admin, employee and test — himself in the Supabase dashboard on 29 Sep (V451), so the statement links the
+`core.person` rows to them and creates nothing in Auth. **Every other person is added through Settings → People by the
+oversight in the browser, never seeded or hard-coded** (V440; ten people — V443; the list lives in the owner's private
+knowledge base, never in this repository — rule 7); before go-live each gets a generated temporary password, typed once
+by the owner himself, and changes it at first sign-in (V441, V446). One **test account** (`kind = 'test_account'`)
+serves the oversight's testing and is removed before go-live (V445).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.
