@@ -53,6 +53,7 @@ export async function fillPptxTemplate(template: Uint8Array, fill: TemplateFill,
 
   const newList: string[] = [];
   let rels = presRels;
+  let notesRemoved = 0;
   for (const [i, slide] of order.entries()) {
     const items = repeats.get(i + 1);
     const xml = joinSplitPlaceholders(await read(zip, slide.file));
@@ -88,6 +89,18 @@ export async function fillPptxTemplate(template: Uint8Array, fill: TemplateFill,
     types = types.replace(new RegExp(`<Override PartName="/${slide.file.replace(/[.]/g, '\\.')}"[^>]*/>`), '');
     zip.remove(slide.file);
     zip.remove(relsFile);
+    // Its notes page leaves with it — file, links and type — or PowerPoint may offer to repair the deck (QA-81).
+    const notesTag = [...(slideRels ?? '').matchAll(/<Relationship\b[^>]*\/>/g)]
+      .map((m) => m[0])
+      .find((t) => /notesSlide"/.test(attr(t, 'Type') ?? '') || /\/notesSlide$/.test(attr(t, 'Type') ?? ''));
+    const notesName = notesTag ? /notesSlides\/(notesSlide\d+\.xml)$/.exec(attr(notesTag, 'Target') ?? '')?.[1] : null;
+    if (notesName) {
+      const notesFile = `ppt/notesSlides/${notesName}`;
+      zip.remove(notesFile);
+      zip.remove(`ppt/notesSlides/_rels/${notesName}.rels`);
+      types = types.replace(new RegExp(`<Override PartName="/${notesFile.replace(/[.]/g, '\\.')}"[^>]*/>`), '');
+      notesRemoved++;
+    }
   }
   zip.file(
     'ppt/presentation.xml',
@@ -99,7 +112,9 @@ export async function fillPptxTemplate(template: Uint8Array, fill: TemplateFill,
   if (app)
     zip.file(
       'docProps/app.xml',
-      (await app.async('string')).replace(/<Slides>\d+<\/Slides>/, `<Slides>${newList.length}</Slides>`),
+      (await app.async('string'))
+        .replace(/<Slides>\d+<\/Slides>/, `<Slides>${newList.length}</Slides>`)
+        .replace(/<Notes>(\d+)<\/Notes>/, (_m, n: string) => `<Notes>${Number(n) - notesRemoved}</Notes>`),
     );
   return writePptx(zip, stamp);
 }

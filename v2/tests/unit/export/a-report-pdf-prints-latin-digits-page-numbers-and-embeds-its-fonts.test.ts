@@ -26,7 +26,7 @@ describe('a report PDF prints Latin digits and page numbers, and embeds its font
       expect(found, 'an Arabic-Indic digit or sign reached the page').toEqual([]);
       // The sample's line typed with "٣" and "١٢٫٥٪" is on the page with Latin digits.
       const text = docs[lang].pages.flatMap((p) => p.items.map((i) => i.str)).join(' ');
-      expect(text).toMatch(/12\.5%|%12\.5/);
+      expect(text).toMatch(/7\.5%|%7\.5/);
     });
 
     it(`numbers every page after the cover (${lang})`, () => {

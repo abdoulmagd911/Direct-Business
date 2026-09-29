@@ -11,43 +11,43 @@ ltr | COM-M-2026-09 · Commercial
 ltr | Page 2 of 7
 ltr | September 2026 · vs September 2025
 ltr | Revenue
-ltr | 606,500 SAR
-ltr | vs 512,000 SAR
-ltr | +18.5%
+ltr | 48,300 SAR
+ltr | vs 40,250 SAR
+ltr | +20%
 ltr | New clients
-ltr | 4
-ltr | vs 2
-ltr | +100%
-ltr | Contracts improved
 ltr | 3
 ltr | vs 1
 ltr | +200%
-ltr | Hotel and airline suppliers
-ltr | 30
-ltr | vs 19
-ltr | +57.9%
-ltr | Airlines
-ltr | 82
-ltr | vs 79
-ltr | +3.8%
-ltr | Payment methods
-ltr | 6
-ltr | vs 4
+ltr | Partner visits
+ltr | 9
+ltr | vs 6
 ltr | +50%
-ltr | Countries with car and driver
-ltr | 36
-ltr | vs 12
-ltr | +200%
-ltr | Payments on time
-ltr | 87.5%
-ltr | vs 91%
-ltr | −3.8%
-ltr | Complaints
+ltr | Proposals sent
+ltr | 14
+ltr | vs 11
+ltr | +27.3%
+ltr | Partner contacts added
+ltr | 137
+ltr | vs 120
+ltr | +14.2%
+ltr | Cities covered
 ltr | 7
-ltr | vs 12
-ltr | −41.7%
+ltr | vs 5
+ltr | +40%
+ltr | Workshops held
+ltr | 5
+ltr | vs 4
+ltr | +25%
+ltr | Replies on time
+ltr | 92.5%
+ltr | vs 90%
+ltr | +2.5 pts
+ltr | Complaints
+ltr | 4
+ltr | vs 6
+ltr | −33.3%
 ltr | Tenders submitted
-ltr | 2
+ltr | 1
 ltr | vs —
 == slide 3
 ltr | Each KPI's addition this month
@@ -62,39 +62,39 @@ ltr | Quarter to date
 ltr | Status
 ltr | K-REV
 ltr | Department revenue (SAR)
-ltr | 100,000
-ltr | 11,500
-ltr | 11,500
+ltr | 90,000
+ltr | 7,250
+ltr | 7,250
 ltr | Behind
 ltr | K-NEW
 ltr | New clients
-ltr | 3
+ltr | 4
 ltr | 1
-ltr | 1
+ltr | 2
 ltr | At risk
 ltr | K-TND
 ltr | Tenders submitted
-ltr | 2
+ltr | 3
 ltr | 1
-ltr | 2
+ltr | 1
 ltr | On track
 ltr | K-AWD
 ltr | Awarded value (SAR)
-ltr | 500,000
+ltr | 300,000
 ltr | 0
-ltr | 250,000
+ltr | 120,000
 ltr | At risk
 ltr | K-CTR
 ltr | Contracts improved
-ltr | 6
-ltr | 2
 ltr | 5
+ltr | 1
+ltr | 3
 ltr | On track
 ltr | K-SUP
 ltr | New suppliers
-ltr | 4
-ltr | 1
-ltr | 4
+ltr | 6
+ltr | 2
+ltr | 6
 ltr | Done
 ltr | K-INT
 ltr | Integrations handed to Product
@@ -104,19 +104,19 @@ ltr | 0
 ltr | Behind
 ltr | K-MOU
 ltr | MoU signings
+ltr | 2
 ltr | 1
-ltr | 1
-ltr | 1
+ltr | 2
 ltr | Done
 ltr | K-CSV
 ltr | Cost savings (SAR, not revenue)
-ltr | 50,000
-ltr | 42,000
-ltr | 42,000
+ltr | 30,000
+ltr | 18,500
+ltr | 18,500
 ltr | On track
 ltr | K-CSAT
 ltr | Client satisfaction (%)
-ltr | 90
+ltr | 85
 ltr | —
 ltr | —
 ltr | Not measured
@@ -133,27 +133,27 @@ ltr | Quarter to date
 ltr | Status
 ltr | K-EVT
 ltr | Events and exhibitions attended
-ltr | 3
+ltr | 4
 ltr | 1
 ltr | 2
 ltr | On track
 ltr | K-TRN
 ltr | Operations trainings delivered
+ltr | 3
+ltr | 1
 ltr | 2
-ltr | 1
-ltr | 1
 ltr | At risk
 ltr | K-PAY
 ltr | Average days to pay
-ltr | 30
-ltr | 32
-ltr | 34
+ltr | 25
+ltr | 27
+ltr | 29
 ltr | Behind
 ltr | K-OPS
 ltr | Operational plan items
-ltr | 5
-ltr | 1
-ltr | 3
+ltr | 6
+ltr | 2
+ltr | 4
 ltr | Carried over
 == slide 5
 ltr | Key achievements
@@ -161,31 +161,31 @@ ltr | Monthly report · September 2026
 ltr | COM-M-2026-09 · Commercial
 ltr | Page 5 of 7
 ltr | Contracts and agreements
-ltr | •  Signed a cooperation agreement with Sample Travel LLC giving a 5% discount on package prices.
-ltr | •  Renewed the Test Co A contract (DK-P-0001) and raised its credit line to 50,000 SAR.
-ltr | •  Madeup Airlines agreed to a fixed net fare for groups of 10 or more, reviewed on 14/08/2026.
+ltr | •  Signed a three-month pilot with Sample Travel LLC giving a 3% discount on made-up package prices.
+ltr | •  Renewed the Test Co A test contract (DK-P-0001) and set its credit line to 20,000 SAR.
+ltr | •  Madeup Airlines agreed to a fixed test fare for groups of 8 or more, reviewed on 12/07/2026.
 ltr | Revenue and collections
-ltr | •  Invoice INV-T-0001 for Test Co A was paid in full; bookings rose from 1,200 to 3,450 in Q1–Q2, up 187.5%.
-ltr | 11,500 SAR
-ltr | •  Received a commission from Fake Institute for 2025, recorded under DPIN-T-0001.
-ltr | 26,231 SAR
+ltr | •  Invoice INV-T-0001 for Test Co A was paid in full; requests rose from 240 to 310 in Q1–Q2, up 29.2%.
+ltr | 7,250 SAR
+ltr | •  Recorded a made-up referral fee from Sample Holding under DPIN-T-0001.
+ltr | 3,140 SAR
 ltr | Problem solving
-ltr | •  Resolved late ticket delivery for Madeup Airlines bookings: exposure 50,000, actual loss -8,000 avoided.
-ltr | 42,000 SAR
+ltr | •  Fixed duplicate confirmations on Madeup Airlines test bookings: exposure 20,000, actual loss -1,500 avoided.
+ltr | 18,500 SAR
 ltr | avoided · not revenue
-ltr | •  Arabic digits typed by a person print as Latin digits: 3 contracts, 12.5% saving.
+ltr | •  Arabic digits typed by a person print as Latin digits: 4 contracts, 7.5% saving.
 == slide 6
 ltr | Challenges
 ltr | Monthly report · September 2026
 ltr | COM-M-2026-09 · Commercial
 ltr | Page 6 of 7
-ltr | •  No reply yet from Fake University on the renewal, open since 3 August 2026 (57 days).
-ltr | •  Payment through the Sample Pay gateway is still pending the provider’s review.
-rtl | •  تأخر رد السفارة على طلب التأشيرة لمجموعة الطلاب (المرجع T-0042).
+ltr | •  No reply yet from Test Co D on the pilot, open since 10 August 2026 (50 days).
+ltr | •  The shared calendar sync with Sample Pay is still waiting for the provider’s review.
+rtl | •  لم يؤكد العميل التجريبي موعد الاجتماع بعد (المرجع T-0042).
 == slide 7
 ltr | Next month’s targets
 ltr | Monthly report · September 2026
 ltr | COM-M-2026-09 · Commercial
 ltr | Page 7 of 7
-ltr | •  Receive the commission from Sample Travel LLC.
-ltr | •  Meet the five largest airlines to agree 2027 targets and discount codes.
+ltr | •  Follow up the pilot results with Sample Travel LLC.
+ltr | •  Hold two partner visits and send the made-up price list for the next quarter.

@@ -71,7 +71,10 @@ describe('the document palette and logo come from the design files', () => {
   });
 
   it('refuses a logo it cannot draw faithfully', () => {
-    expect(() => parseLogoSvg('<svg viewBox="0 0 10 10"><rect width="5" height="5"/></svg>')).toThrow(/only paths/);
+    expect(
+      () => parseLogoSvg('<svg viewBox="0 0 10 10"><rect width="5" height="5"/></svg>'),
+      'a logo holding a shape other than a path is refused',
+    ).toThrow(/only paths/);
     expect(() => parseLogoSvg('<svg><path d="M0 0" fill="none"/></svg>')).toThrow(/viewBox/);
   });
 

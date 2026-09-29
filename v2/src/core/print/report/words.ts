@@ -15,6 +15,7 @@ export const DOC_WORDS = {
   not_measured: { en: 'not measured', ar: 'غير مقاس' },
   vs: { en: 'vs {label}', ar: 'مقابل {label}' },
   sar: { en: 'SAR', ar: 'ريال' },
+  points: { en: '{n} pts', ar: '{n} نقطة' },
   quarter: { en: 'Q{q} {year}', ar: 'الربع {q} {year}' },
   status_on_track: { en: 'On track', ar: 'على المسار' },
   status_at_risk: { en: 'At risk', ar: 'مهدد بالتأخر' },

@@ -251,7 +251,7 @@ function TileBox({ tile, width }: { tile: Tile; width: number }) {
   const { lang, d, p } = useDoc();
   const now = figureParts(tile.current, lang);
   const was = tile.previous ? figureParts(tile.previous, lang) : null;
-  const delta = change(tile.current, tile.previous);
+  const delta = change(tile.current, tile.previous, lang);
   const better = tile.better ?? 'up';
   const good = delta && (better === 'up' ? delta.percent > 0 : delta.percent < 0);
   const bad = delta && (better === 'up' ? delta.percent < 0 : delta.percent > 0);
@@ -285,7 +285,8 @@ function TileBox({ tile, width }: { tile: Tile; width: number }) {
         </T>
         {delta ? (
           <Chip
-            text={delta.text}
+            text={delta.figure}
+            unit={delta.unit}
             fg={good ? p.success : bad ? p.danger : p.muted}
             bg={good ? p['success-soft'] : bad ? p['danger-soft'] : p.bg}
             dir="ltr"
@@ -296,11 +297,54 @@ function TileBox({ tile, width }: { tile: Tile; width: number }) {
   );
 }
 
-/** A small pill. `dir` is the text's own direction: a figure is always left to right, a word follows the language. */
-function Chip({ text, fg, bg, dir }: { text: string; fg: string; bg: string; dir: 'rtl' | 'ltr' }) {
+/**
+ * A small pill. `dir` is the text's own direction: a figure is always left to right, a word follows the language.
+ * A `unit` («نقطة» / "pts") is drawn as its own word after the figure in reading order — no direction mark, which the
+ * document fonts have no glyph for (a built-in font would be pulled in for it).
+ */
+function Chip({
+  text,
+  unit,
+  fg,
+  bg,
+  dir,
+}: {
+  text: string;
+  unit?: string | null;
+  fg: string;
+  bg: string;
+  dir: 'rtl' | 'ltr';
+}) {
+  const { d } = useDoc();
+  const style = { fontSize: 9, fontWeight: 600, color: fg, fontFamily: FONT.body } as const;
+  const figure = (
+    <Text key="figure" style={{ ...style, direction: dir }}>
+      {text}
+    </Text>
+  );
+  // The unit follows the figure in reading order: on its left in Arabic, on its right in English — a plain row with
+  // the children ordered by language. Both pieces are laid out left to right: one word shapes the same either way,
+  // and react-pdf placed a right-to-left piece outside the pill.
+  const parts = unit
+    ? [
+        figure,
+        <View key="gap" style={{ width: 3 }} />,
+        <Text key="unit" style={{ ...style, direction: 'ltr' }}>
+          {unit}
+        </Text>,
+      ]
+    : [figure];
   return (
-    <View style={{ backgroundColor: bg, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 }}>
-      <Text style={{ fontSize: 9, fontWeight: 600, color: fg, fontFamily: FONT.body, direction: dir }}>{text}</Text>
+    <View
+      style={{
+        backgroundColor: bg,
+        borderRadius: 999,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        flexDirection: 'row',
+      }}
+    >
+      {d.rtl ? parts.reverse() : parts}
     </View>
   );
 }

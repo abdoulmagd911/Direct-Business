@@ -357,7 +357,7 @@ function addTiles(
         text({ x: vx, w: vw, y: y + th - pt(28), h: pt(14), fontSize: 9.5, color: hex(p.muted) }),
       );
     }
-    const delta = change(tile.current, tile.previous);
+    const delta = change(tile.current, tile.previous, lang);
     if (delta) {
       const better = tile.better ?? 'up';
       const good = better === 'up' ? delta.percent > 0 : delta.percent < 0;
@@ -381,7 +381,8 @@ function addTiles(
         valign: 'middle',
         margin: 0,
         rtlMode: d.rtl,
-        lang: 'en-GB',
+        // A points chip holds a word («نقطة»): it is Arabic text in the Arabic deck.
+        lang: delta.unit ? d.lang : 'en-GB',
       });
     }
   });

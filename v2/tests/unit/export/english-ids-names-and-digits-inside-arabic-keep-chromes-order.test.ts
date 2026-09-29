@@ -20,44 +20,36 @@ type Part = string | { t: string };
 /** `order` names each token by its first word: pdf.js may split a run at its spaces. */
 const PROBES: { lang: Lang; parts: Part[]; order: string[] }[] = [
   {
-    // Logical order INV → DK → 11,500: in Arabic the first is the rightmost.
+    // Logical order INV → DK → 7,250: in Arabic the first is the rightmost.
     lang: 'ar',
-    parts: [
-      'رقم الفاتورة ',
-      { t: 'INV-T-0001' },
-      ' والعميل ',
-      { t: 'DK-P-0001' },
-      ' بقيمة ',
-      { t: '11,500' },
-      ' ريال.',
-    ],
-    order: ['INV-T-0001', 'DK-P-0001', '11,500'],
+    parts: ['رقم الفاتورة ', { t: 'INV-T-0001' }, ' والعميل ', { t: 'DK-P-0001' }, ' بقيمة ', { t: '7,250' }, ' ريال.'],
+    order: ['INV-T-0001', 'DK-P-0001', '7,250'],
   },
   {
     // An Arabic line that opens with an English name still reads from the right: the name is at the right edge.
     lang: 'ar',
-    parts: [{ t: 'Test Co A' }, ' وقّعت اتفاقية بقيمة ', { t: 'SAR 11,500' }, ' بتاريخ ', { t: '14/08/2026' }, '.'],
-    order: ['Test', 'SAR', '14/08/2026'],
+    parts: [{ t: 'Test Co A' }, ' وقّعت اتفاقية بقيمة ', { t: 'SAR 7,250' }, ' بتاريخ ', { t: '12/07/2026' }, '.'],
+    order: ['Test', 'SAR', '12/07/2026'],
   },
   {
     lang: 'ar',
-    parts: ['مع ', { t: 'Sample Travel LLC' }, ' خلال ', { t: 'Q1–Q2' }, ' والعدد ', { t: '3,450' }, '.'],
-    order: ['Sample', 'Q1–Q2', '3,450'],
+    parts: ['مع ', { t: 'Sample Travel LLC' }, ' خلال ', { t: 'Q1–Q2' }, ' والعدد ', { t: '310' }, '.'],
+    order: ['Sample', 'Q1–Q2', '310'],
   },
   {
     // The English report keeps left-to-right order around an Arabic name.
     lang: 'en',
-    parts: ['Signed with ', 'شركة تيست', ' on ', { t: '14/08/2026' }, ' as ', { t: 'DK-P-0001' }, '.'],
-    order: ['14/08/2026', 'DK-P-0001'],
+    parts: ['Signed with ', 'شركة تيست', ' on ', { t: '12/07/2026' }, ' as ', { t: 'DK-P-0001' }, '.'],
+    order: ['12/07/2026', 'DK-P-0001'],
   },
 ];
 
 /**
- * Negative numbers. A person who types "-8,000" in Arabic text gets what Chrome shows for it: the bidi algorithm
- * sets the minus on the reading side of the digits (drawn "8,000-"). A figure the app formats carries a
+ * Negative numbers. A person who types "-1,500" in Arabic text gets what Chrome shows for it: the bidi algorithm
+ * sets the minus on the reading side of the digits (drawn "1,500-"). A figure the app formats carries a
  * left-to-right mark (Intl's Arabic format), so the minus stays on the digits' left — both read back from the PDF.
  */
-const MINUS: Part[] = ['خسارة ', { t: '-8,000' }, ' ومبلغ ', { t: formatNumber(-2500, 'ar') }, ' فقط.'];
+const MINUS: Part[] = ['خسارة ', { t: '-1,500' }, ' ومبلغ ', { t: formatNumber(-2500, 'ar') }, ' فقط.'];
 
 let pages: PdfPage[];
 beforeAll(async () => {
@@ -103,7 +95,7 @@ describe("English IDs, names and digits inside Arabic keep Chrome's order", () =
   it('keeps a typed minus where Chrome puts it and a formatted one on the digits', () => {
     const page = pages[PROBES.length] as PdfPage;
     const strs = page.items.map((i) => i.str.replace(/\u200e/g, ''));
-    expect(strs, 'a typed "-8,000" is drawn "8,000-" (the bidi algorithm, as on screen)').toContain('8,000-');
+    expect(strs, 'a typed "-1,500" is drawn "1,500-" (the bidi algorithm, as on screen)').toContain('1,500-');
     expect(strs, 'a formatted −2,500 keeps its minus on the left').toContain('-2,500');
   });
 });

@@ -39,6 +39,16 @@ export async function writePptx(zip: JSZip, stamp: Date, opts: { rtl?: boolean }
     if (opts.rtl) fixed = fixed.replace(/(<a:bodyPr\b[^>]*?)\srtlCol="0"/g, '$1 rtlCol="1"');
     if (fixed !== xml) zip.file(name, fixed);
   }
+  // The package lists only parts it holds: pptxgenjs lists slide masters it never writes, and a template slide can
+  // leave with its notes page (QA-81).
+  const typesFile = zip.file('[Content_Types].xml');
+  if (typesFile) {
+    const types = await typesFile.async('string');
+    const kept = types.replace(/<Override PartName="\/([^"]+)"[^>]*\/>/g, (tag: string, part: string) =>
+      zip.file(part) ? tag : '',
+    );
+    if (kept !== types) zip.file('[Content_Types].xml', kept);
+  }
   const core = zip.file('docProps/core.xml');
   if (core) {
     const iso = stamp.toISOString().replace(/\.\d{3}Z$/, 'Z');

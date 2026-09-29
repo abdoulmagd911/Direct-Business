@@ -19,6 +19,19 @@ const TRANSLATE = `unit:tests/unit/export/the-translate-button-shows-only-where-
 export const sabotages = [
   // ---- the PDF
   {
+    // QA-80: one zero-width non-joiner inside one body word («مراجعة») breaks one Arabic join — the golden must see it.
+    name: 'pdf-breaks-an-arabic-join',
+    breaks: [PDF_GOLDEN],
+    expect: 'pixels differ from its golden',
+    edits: [
+      {
+        file: 'src/core/print/text.ts',
+        find: "  return latinDigits(s.normalize('NFC'));",
+        replace: "  return latinDigits(s.normalize('NFC')).replace('مراجعة', 'مراج\u{200C}عة');",
+      },
+    ],
+  },
+  {
     name: 'pdf-tile-grows',
     breaks: [PDF_GOLDEN],
     expect: 'pixels differ from its golden',
@@ -59,7 +72,7 @@ export const sabotages = [
   {
     name: 'latin-digits-keep-arabic-ones',
     breaks: [TEXT],
-    expect: 'turns Arabic-Indic digits and signs into Latin ones',
+    expect: 'Arabic-Indic digits become Latin',
     edits: [
       {
         file: 'src/core/print/text.ts',
@@ -87,8 +100,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/print/report/pdf/ReportPdf.tsx',
-        find: 'fontFamily: FONT.body, direction: dir }}>{text}',
-        replace: "fontFamily: 'Helvetica', direction: dir }}>{text}",
+        find: 'const style = { fontSize: 9, fontWeight: 600, color: fg, fontFamily: FONT.body } as const;',
+        replace: "const style = { fontSize: 9, fontWeight: 600, color: fg, fontFamily: 'Helvetica' } as const;",
       },
     ],
   },
@@ -156,7 +169,7 @@ export const sabotages = [
   {
     name: 'template-leaves-placeholders',
     breaks: [TEMPLATE],
-    expect: 'refuses a placeholder that has no value',
+    expect: 'a placeholder with no value refuses the fill',
     edits: [
       { file: 'src/core/print/report/pptx/template.ts', find: '  if (missing.size)\n', replace: '  if (false)\n' },
     ],
@@ -164,7 +177,7 @@ export const sabotages = [
   {
     name: 'template-loses-a-copy',
     breaks: [TEMPLATE],
-    expect: 'copies the repeating slide once per item',
+    expect: 'one copy per item, in order',
     edits: [
       {
         file: 'src/core/print/report/pptx/template.ts',
@@ -190,7 +203,7 @@ export const sabotages = [
   {
     name: 'names-keep-their-tokens',
     breaks: [TEXT],
-    expect: 'puts current names into every text of a report',
+    expect: 'no partner token is left in any text',
     edits: [
       {
         file: 'src/core/print/report/names.ts',
@@ -202,12 +215,12 @@ export const sabotages = [
   {
     name: 'figures-say-a-change-from-nothing',
     breaks: [TEXT],
-    expect: 'says a change from last year only when',
+    expect: 'a change from 0 has no percentage',
     edits: [
       {
         file: 'src/core/print/report/format.ts',
-        find: ' || previous.value === 0) return null;',
-        replace: ') return null;',
+        find: '  if (previous.value === 0) return null;',
+        replace: '  if (false) return null;',
       },
     ],
   },
@@ -236,9 +249,35 @@ export const sabotages = [
     ],
   },
   {
+    name: 'figures-say-percent-of-a-percent',
+    breaks: [TEXT],
+    expect: '90% to 92.5% is +2.5 points',
+    edits: [
+      {
+        file: 'src/core/print/report/format.ts',
+        find: "  if (current.unit === 'percent' && previous.unit === 'percent') {",
+        replace: '  if (false) {',
+      },
+    ],
+  },
+  {
+    name: 'template-keeps-an-orphaned-notes-page',
+    breaks: [TEMPLATE],
+    expect: 'no orphaned notes page',
+    edits: [
+      { file: 'src/core/print/report/pptx/template.ts', find: '    if (notesName) {', replace: '    if (false) {' },
+    ],
+  },
+  {
+    name: 'pptx-lists-missing-parts',
+    breaks: [TEMPLATE],
+    expect: 'every listed part exists',
+    edits: [{ file: 'src/core/print/report/pptx/zip.ts', find: "zip.file(part) ? tag : ''", replace: 'tag' }],
+  },
+  {
     name: 'logo-draws-what-it-cannot',
     breaks: [DESIGN],
-    expect: 'refuses a logo it cannot draw faithfully',
+    expect: 'a logo holding a shape other than a path is refused',
     edits: [
       { file: 'src/core/print/logo.ts', find: "if (!tag.startsWith('<path')) throw", replace: 'if (false) throw' },
     ],
@@ -380,8 +419,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/print/report/pptx/reportPptx.ts',
-        find: "        margin: 0,\n        rtlMode: d.rtl,\n        lang: 'en-GB',",
-        replace: "        margin: 0,\n        lang: 'en-GB',",
+        find: '        margin: 0,\n        rtlMode: d.rtl,\n',
+        replace: '        margin: 0,\n',
       },
     ],
   },

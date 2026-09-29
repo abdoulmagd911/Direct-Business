@@ -14,7 +14,7 @@ describe('the English copy prints a line with no English in Arabic', () => {
     const line = pages.flatMap((p) => p.items).find((i) => i.str.includes('T-0042'));
     expect(line?.str, 'the Arabic-only line is on the English copy').toMatch(ARABIC_LETTER);
     expect(
-      pages.flatMap((p) => p.items).some((i) => i.str.includes('Fake University')),
+      pages.flatMap((p) => p.items).some((i) => i.str.includes('Test Co D')),
       'English lines stay English',
     ).toBe(true);
   });

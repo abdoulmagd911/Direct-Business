@@ -91,7 +91,9 @@ export async function compareWithGolden(
     fs.mkdirSync(GOLDEN_DIR, { recursive: true });
     fs.writeFileSync(golden, page.png);
   }
-  const budget = Math.floor(page.width * page.height * 0.0002);
+  // Ten pixels a page: a clean run differs by none, and one broken Arabic join in a body word by about 40 (QA-80,
+  // measured) — the old share (0.02 %, about 100 px) let that through.
+  const budget = 10;
   if (!fs.existsSync(golden)) return { differing: Number.POSITIVE_INFINITY, budget, golden };
   const img = await loadImage(fs.readFileSync(golden));
   if (img.width !== page.width || img.height !== page.height)

@@ -97,15 +97,30 @@ export function figureText(f: Figure, lang: Lang): string {
 }
 
 /**
- * The change from last year's figure to this one, in percent, or null when it cannot be said: either side not
- * measured, or last year was 0 (a change from nothing has no percentage).
+ * The change from last year's figure to this one, or null when it cannot be said: either side not measured, or last
+ * year was 0 (a change from nothing has no percentage). Between two percentages the change is in **points**
+ * ("+2.5 pts" / «+2.5 نقطة»): 90% to 92.5% is 2.5 points, not a 2.8% rise (QA-81). `percent` carries the signed
+ * size either way, for the chip's colour.
  */
-export function change(current: Figure, previous: Figure | null): { percent: number; text: string } | null {
-  if (!previous || current.kind !== 'number' || previous.kind !== 'number' || previous.value === 0) return null;
+export function change(
+  current: Figure,
+  previous: Figure | null,
+  lang: Lang = 'en',
+): { percent: number; text: string; figure: string; unit: string | null } | null {
+  if (!previous || current.kind !== 'number' || previous.kind !== 'number') return null;
+  if (current.unit === 'percent' && previous.unit === 'percent') {
+    const points = Math.round((current.value - previous.value) * 10) / 10;
+    const sign = points > 0 ? '+' : points < 0 ? '−' : '';
+    const n = `${sign}${formatNumber(Math.abs(points), 'en', { maximumFractionDigits: 1 })}`;
+    const unit = word('points', lang, { n: '' }).trim();
+    return { percent: points, text: word('points', lang, { n }), figure: n, unit };
+  }
+  if (previous.value === 0) return null;
   const percent = ((current.value - previous.value) / Math.abs(previous.value)) * 100;
   const rounded = Math.round(percent * 10) / 10;
   const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
-  return { percent: rounded, text: `${sign}${formatNumber(Math.abs(rounded), 'en', { maximumFractionDigits: 1 })}%` };
+  const text = `${sign}${formatNumber(Math.abs(rounded), 'en', { maximumFractionDigits: 1 })}%`;
+  return { percent: rounded, text, figure: text, unit: null };
 }
 
 /** A table cell's text in one language. Numbers follow the column; a status prints its word (never colour alone). */

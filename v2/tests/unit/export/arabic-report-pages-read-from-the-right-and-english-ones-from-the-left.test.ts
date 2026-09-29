@@ -33,14 +33,14 @@ describe('Arabic report pages read from the right, English ones from the left', 
 
   it('lays the tiles out from the reading start', () => {
     // Revenue is the first tile: rightmost in Arabic, leftmost in English.
-    expect(one(page(ar, 2), '606,500').x).toBeGreaterThan(one(page(ar, 2), '82').x);
-    expect(one(page(en, 2), '606,500').x).toBeLessThan(one(page(en, 2), '82').x);
+    expect(one(page(ar, 2), '48,300').x).toBeGreaterThan(one(page(ar, 2), '137').x);
+    expect(one(page(en, 2), '48,300').x).toBeLessThan(one(page(en, 2), '137').x);
   });
 
   it('orders table columns from the reading start and repeats the header on the next page', () => {
     const t = page(ar, 3);
-    expect(one(t, 'K-REV').x, 'the code column is the rightmost in Arabic').toBeGreaterThan(one(t, '100,000').x);
-    expect(one(page(en, 3), 'K-REV').x, 'and the leftmost in English').toBeLessThan(one(page(en, 3), '100,000').x);
+    expect(one(t, 'K-REV').x, 'the code column is the rightmost in Arabic').toBeGreaterThan(one(t, '90,000').x);
+    expect(one(page(en, 3), 'K-REV').x, 'and the leftmost in English').toBeLessThan(one(page(en, 3), '90,000').x);
     expect(one(page(ar, 4), 'الرمز').x, 'the header row repeats on the second table page').toBeGreaterThan(MID);
     expect(one(page(ar, 4), 'K-EVT').x).toBeGreaterThan(MID);
   });

@@ -16,9 +16,9 @@ let template: Uint8Array;
 let deck: Deck;
 const stamp = new Date('2026-10-05T12:00:00Z');
 const items = [
-  { text: 'توقيع اتفاقية مع Test Co A', amount: '11,500' },
-  { text: 'تجديد عقد DK-P-0001', amount: '٢٦٬٢٣١' },
-  { text: 'حل مشكلة <تأخر> & غيرها', amount: '42,000' },
+  { text: 'توقيع اتفاقية مع Test Co A', amount: '7,250' },
+  { text: 'تجديد عقد DK-P-0001', amount: '٣٬١٤٠' },
+  { text: 'حل مشكلة <تأخر> & غيرها', amount: '18,500' },
 ];
 
 beforeAll(async () => {
@@ -60,11 +60,11 @@ describe('a filled PPTX template keeps its settings and repeats its slides', () 
         .map((p) => p.text)
         .filter(Boolean),
     );
-    expect(texts).toEqual([
+    expect(texts, 'one copy per item, in order').toEqual([
       ['التقرير الشهري', 'سبتمبر 2026'],
-      ['توقيع اتفاقية مع Test Co A', '11,500 ريال'],
-      ['تجديد عقد DK-P-0001', '26,231 ريال'],
-      ['حل مشكلة <تأخر> & غيرها', '42,000 ريال'],
+      ['توقيع اتفاقية مع Test Co A', '7,250 ريال'],
+      ['تجديد عقد DK-P-0001', '3,140 ريال'],
+      ['حل مشكلة <تأخر> & غيرها', '18,500 ريال'],
       ['COM-M-2026-09'],
     ]);
   });
@@ -86,12 +86,29 @@ describe('a filled PPTX template keeps its settings and repeats its slides', () 
       for (const m of (await deck.zip.file(n)!.async('string')).matchAll(/Target="([^"]*notesSlide[^"]*)"/g))
         notesTargets.push(m[1] as string);
     expect(new Set(notesTargets).size, 'no two slides share a notes page').toBe(notesTargets.length);
-    expect(await deck.zip.file('docProps/app.xml')!.async('string')).toContain('<Slides>5</Slides>');
+    const app = await deck.zip.file('docProps/app.xml')!.async('string');
+    expect(app).toContain('<Slides>5</Slides>');
+    // The template slide's notes page left with it: every part the deck lists exists, and every notes page is some
+    // slide's, counted right (QA-81).
+    const parts = [...types.matchAll(/PartName="\/([^"]+)"/g)].map((m) => m[1] as string);
+    expect(
+      parts.filter((p) => !deck.zip.file(p)),
+      'every listed part exists',
+    ).toEqual([]);
+    const notesFiles = Object.keys(deck.zip.files).filter((n) => /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(n));
+    const owned = new Set(notesTargets.map((t) => `ppt/notesSlides/${t.split('/').pop()}`));
+    expect(
+      notesFiles.filter((f) => !owned.has(f)),
+      'no orphaned notes page',
+    ).toEqual([]);
+    const notesCount = /<Notes>(\d+)<\/Notes>/.exec(app)?.[1];
+    if (notesCount !== undefined) expect(Number(notesCount), 'app.xml counts the notes pages').toBe(notesFiles.length);
   });
 
   it('refuses a placeholder that has no value, naming it', async () => {
     await expect(
       fillPptxTemplate(template, { values: { title: 'x', number: 'y' }, repeat: [{ slide: 2, items }] }, stamp),
+      'a placeholder with no value refuses the fill',
     ).rejects.toThrow(/\{\{period\}\}/);
   });
 

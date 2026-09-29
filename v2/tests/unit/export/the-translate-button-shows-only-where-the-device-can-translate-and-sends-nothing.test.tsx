@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 /** A stand-in for Chrome's Translator: availability as given, translation into a fixed Arabic sentence. */
-function fakeTranslator(availability: string | Error, output = 'تم توقيع ١٢ عقداً بقيمة ١٬٢٠٠ ريال') {
+function fakeTranslator(availability: string | Error, output = 'تم توقيع ١٤ عقداً تجريبياً بقيمة ٢٬٤٠٠ ريال') {
   const translate = vi.fn(async (text: string) => (text ? output : ''));
   const create = vi.fn(async (opts: { monitor?: (m: EventTarget) => void }) => {
     const m = new EventTarget();
@@ -50,7 +50,7 @@ function fakeTranslator(availability: string | Error, output = 'تم توقيع 
 
 async function draw(
   scope: object,
-  source = 'Signed 12 contracts worth 1,200 SAR',
+  source = 'Signed 14 test contracts worth 2,400 SAR',
   onDraft = vi.fn(),
   dir: { from: 'en' | 'ar'; to: 'en' | 'ar' } = { from: 'en', to: 'ar' },
 ) {
@@ -89,18 +89,18 @@ describe('the Translate to Arabic button', () => {
       expect(t.api.create).toHaveBeenCalledWith(
         expect.objectContaining({ sourceLanguage: 'en', targetLanguage: 'ar' }),
       );
-      expect(t.translate).toHaveBeenCalledWith('Signed 12 contracts worth 1,200 SAR', expect.anything());
-      expect(onDraft).toHaveBeenCalledWith('تم توقيع 12 عقداً بقيمة 1,200 ريال');
+      expect(t.translate).toHaveBeenCalledWith('Signed 14 test contracts worth 2,400 SAR', expect.anything());
+      expect(onDraft).toHaveBeenCalledWith('تم توقيع 14 عقداً تجريبياً بقيمة 2,400 ريال');
     }
   });
 
   it('drafts English from Arabic too, asking the Translator for that direction', async () => {
-    const t = fakeTranslator('available', 'Signed 12 contracts worth 1,200 SAR');
-    const { button, onDraft } = await draw(t.scope, 'تم توقيع 12 عقداً', vi.fn(), { from: 'ar', to: 'en' });
+    const t = fakeTranslator('available', 'Signed 14 test contracts worth 2,400 SAR');
+    const { button, onDraft } = await draw(t.scope, 'تم توقيع 14 عقداً تجريبياً', vi.fn(), { from: 'ar', to: 'en' });
     await act(async () => button?.click());
     expect(t.api.availability).toHaveBeenCalledWith({ sourceLanguage: 'ar', targetLanguage: 'en' });
     expect(t.api.create).toHaveBeenCalledWith(expect.objectContaining({ sourceLanguage: 'ar', targetLanguage: 'en' }));
-    expect(onDraft).toHaveBeenCalledWith('Signed 12 contracts worth 1,200 SAR');
+    expect(onDraft).toHaveBeenCalledWith('Signed 14 test contracts worth 2,400 SAR');
   });
 
   it('sends nothing anywhere while it translates', async () => {
