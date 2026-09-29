@@ -48,7 +48,7 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 | The test account removed (soft removal, logged) | oversight | Settings → People | no `test_account` row is live | V445 |
 | View as switched off (`auth.view_as_enabled` false) | admin | Settings → App | the View as action is gone; a start request is refused | V442 |
 | Nobody but the admin role holds any level on a Settings page | admin | Settings → Organization & access | ACC-05 green on the live database (read-only) | V97, V138 |
-| An admin can grant Head and Manager; no role or person capability row names a retired capability (the 29 Sep bug: head and manager rows still granted the retired keys, so every grant was refused) | builder A, then the QA session | the registry sync; Settings → Organization & access | the sync report lists no retired key; a grant of Head succeeds (a test on a database built from zero; read-only on live) | V97, V138, P3-4 |
+| An admin can grant Head and Manager on the live database (the 29 Sep bug: head and manager rows still granted retired keys, so every grant was refused — fixed by V176, #124) | the QA session | Settings → Organization & access | a grant of Head succeeds once, then is undone; V176's test green on the merged commit | V97, V138, V176 |
 
 ## 4. Data and the reset
 
