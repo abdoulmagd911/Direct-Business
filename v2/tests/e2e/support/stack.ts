@@ -122,8 +122,8 @@ let codeDoor: Promise<unknown> | undefined;
 export function codeDoorOn(): Promise<unknown> {
   codeDoor ??= sql(
     `insert into core.setting (key, department_id, value, valid_from, reason)
-     select 'auth.code_sign_in', null, 'true'::jsonb, date '2020-01-01', 'Test: the specs sign in with the emailed code'
-     where not exists (select 1 from core.setting where key = 'auth.code_sign_in' and department_id is null
+     select 'auth.code_door_enabled', null, 'true'::jsonb, date '2020-01-01', 'Test: the specs sign in with the emailed code'
+     where not exists (select 1 from core.setting where key = 'auth.code_door_enabled' and department_id is null
                        and valid_from = date '2020-01-01' and deleted_at is null)`,
   );
   return codeDoor;

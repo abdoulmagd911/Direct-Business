@@ -297,7 +297,7 @@
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
-      "code_sign_in": "Sign in with an emailed code as well as the password"
+      "code_door_enabled": "Sign in with an emailed code as well as the password"
     },
     "app": {
       "arabic_enabled": "Arabic",

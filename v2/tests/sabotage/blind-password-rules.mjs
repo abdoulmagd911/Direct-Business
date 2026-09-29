@@ -15,6 +15,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'a-guessable-temporary-password',
+    breaks: [target],
+    expect: '> generates a temporary password of fourteen characters or more, different every time',
+    edits: [
+      {
+        file: 'src/core/auth/password.ts',
+        find: 'out += ALPHABET[randomInt(ALPHABET.length)];',
+        replace: 'out += ALPHABET[i % ALPHABET.length];',
+      },
+    ],
+  },
+  {
     name: 'a-password-cut-by-auth',
     breaks: [target],
     expect: '> refuses what Auth would cut and the email itself',

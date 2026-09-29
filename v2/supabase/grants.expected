@@ -73,13 +73,16 @@ function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.password_changed(p_auth_user uuid) execute service_role
 function api.people() execute authenticated
+function api.people_without_password() execute authenticated
+function api.person_auth_found(p_auth_user uuid) execute authenticated
 function api.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function api.person_auth_state(p_person uuid) execute service_role
 function api.person_create(p_person jsonb, p_reason text) execute authenticated
 function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
-function api.person_password_set(p_email uuid, p_reason text) execute authenticated
+function api.person_emails_unlinked(p_person uuid) execute authenticated
+function api.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
@@ -164,13 +167,16 @@ function core.org() execute authenticated
 function core.page_seen(p_page text) execute authenticated
 function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated
+function core.people_without_password() execute authenticated
+function core.person_auth_found(p_auth_user uuid) execute authenticated
 function core.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function core.person_auth_state(p_person uuid) execute service_role
 function core.person_create(p_person jsonb, p_reason text) execute authenticated
 function core.person_devices(p_person uuid) execute authenticated
 function core.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function core.person_email_remove(p_id uuid, p_reason text) execute authenticated
-function core.person_password_set(p_email uuid, p_reason text) execute authenticated
+function core.person_emails_unlinked(p_person uuid) execute authenticated
+function core.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function core.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated

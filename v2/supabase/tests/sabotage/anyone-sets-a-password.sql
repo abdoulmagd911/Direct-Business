@@ -1,34 +1,39 @@
 -- Sabotage: anyone-sets-a-password
 -- Breaks: sql:SIGN-10
--- Expect: a team member sets no password, not even their own
--- Setting a password forgets that it is an admin's (V166): any signed-in person resets anyone's sign-in.
-create or replace function core.person_password_set(p_email uuid, p_reason text) returns jsonb
+-- Expect: a team member generates no password, not even their own
+-- Generating a password forgets that it is an admin's (V441): any signed-in person resets anyone's sign-in.
+create or replace function core.person_password_set(p_person uuid, p_reason text, p_replace boolean default false) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   me uuid := authz.me();
-  e core.person_email;
-  a core.person_auth;
+  users uuid[];
   req uuid;
   n int;
 begin
   if p_reason is null or pg_catalog.btrim(p_reason) = '' then
     raise exception using errcode = 'P0001', message = 'common.reason_required';
   end if;
-  select * into e from core.person_email where id = p_email and deleted_at is null;
-  if e.id is null then
+  if not exists (select 1 from core.person p where p.id = p_person and p.deleted_at is null) then
     raise exception using errcode = 'P0002', message = 'common.not_found';
   end if;
-  select * into a from core.person_auth x where x.email operator(extensions.=) e.email::extensions.citext;
-  if a.id is null then
-    raise exception using errcode = 'P0001', message = 'person_password.no_sign_in', detail = e.email::text;
+  select pg_catalog.array_agg(a.auth_user_id order by a.email) into users
+  from core.person_auth a
+  where a.person_id = p_person
+    and exists (select 1 from core.person_email e where e.person_id = a.person_id
+                and e.email operator(extensions.=) a.email and e.deleted_at is null);
+  if users is null then
+    raise exception using errcode = 'P0001', message = 'person_password.no_sign_in';
   end if;
-  req := audit.begin('ui', 'person_auth.password_set', pg_catalog.jsonb_build_object('email', e.email), p_reason);
+  if not coalesce(p_replace, false) and core.has_password(p_person) then
+    raise exception using errcode = 'P0001', message = 'person_password.has_one';
+  end if;
+  req := audit.begin('ui', 'person_auth.password_generated', null, p_reason);
   update core.person_auth set must_change_password = true, password_set_at = core.clock(), password_set_by = me
-  where id = a.id;
-  n := core.end_devices(a.person_id, null, null, 'admin', me);
+  where auth_user_id = any (users);
+  n := core.end_devices(p_person, null, null, 'admin', me);
   perform audit.end();
-  return pg_catalog.jsonb_build_object('auth_user_id', a.auth_user_id, 'email', e.email, 'person_id', a.person_id,
+  return pg_catalog.jsonb_build_object('person_id', p_person, 'auth_user_ids', pg_catalog.to_jsonb(users),
                                        'signed_out', n, 'request_id', req);
 end
 $$;

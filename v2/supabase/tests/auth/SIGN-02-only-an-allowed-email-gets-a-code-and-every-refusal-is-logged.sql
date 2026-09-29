@@ -4,7 +4,7 @@
 -- unless an admin switches it on (V166 — SIGN-10): this test switches it on.
 -- Sabotage: supabase/tests/sabotage/switched-off-people-get-codes.sql.
 insert into core.setting (key, department_id, value, valid_from, reason)
-values ('auth.code_sign_in', null, 'true', core.riyadh_today(), 'made up: this test is the code door');
+values ('auth.code_door_enabled', null, 'true', core.riyadh_today(), 'made up: this test is the code door');
 select set_config('t.ok', test.person('Test Allowed', 'member')::text, true);
 select set_config('t.off', test.person('Test Off', 'member')::text, true);
 select set_config('t.nosign', test.person('Test Not Allowed', 'member', 'commercial', false)::text, true);

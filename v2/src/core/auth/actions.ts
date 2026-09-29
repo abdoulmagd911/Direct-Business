@@ -7,7 +7,7 @@
 //                password an admin set must be changed first: the sign-in goes to CHANGE_PASSWORD_PATH.
 //   changePassword — the signed-in person's new password: checked here (10 characters at least), taken by Auth, then
 //                recorded by the server (api.password_changed, secret key only — the browser never clears its flag).
-//   sendCode / verifyCode — the emailed-code door, off unless an admin switches auth.code_sign_in on: Supabase emails a
+//   sendCode / verifyCode — the emailed-code door, off unless an admin switches auth.code_door_enabled on: Supabase emails a
 //                6-digit code (never creating a user; sign-ups are off), then checks it.
 //   signInMethods — which doors the sign-in page offers.
 // Refusals come back as keys of the catalog's sign_in.error.*; nothing here trusts the browser to decide access.

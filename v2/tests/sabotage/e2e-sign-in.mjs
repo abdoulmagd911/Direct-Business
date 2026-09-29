@@ -127,15 +127,15 @@ export const sabotages = [
     ],
   },
   {
-    // V166: the database decides and logs, but only the server's secret key puts the password into Auth.
+    // V166, V441: the database decides and logs, but only the server's secret key puts the password into Auth.
     name: 'e2e-password-never-reaches-auth',
-    breaks: [e2e('an-admin-sets-a-starting-password-that-must-be-changed-first')],
-    expect: 'Auth took the starting password',
+    breaks: [e2e('an-admin-generates-a-temporary-password-that-must-be-changed-first')],
+    expect: 'Auth took the generated password',
     edits: [
       {
         file: 'src/core/auth/allow-list.ts',
-        find: 'await serviceDb().auth.admin.updateUserById(set.auth_user_id, { password, email_confirm: true });',
-        replace: '{ error: null } as { error: null | { code?: string; message: string } }; void password;',
+        find: 'await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });',
+        replace: '{ error: null } as { error: null | { message: string } }; void authUserId;',
       },
     ],
   },

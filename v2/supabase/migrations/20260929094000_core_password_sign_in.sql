@@ -1,11 +1,12 @@
--- v2 sign-in by e-mail and password (the owner, 29 Sep 13:50; V166). No e-mail is sent at all:
---  · an admin gives a person's sign-in a starting password, and resets it — the server sets it in Supabase Auth with
---    the secret key (/auth/admin/password); the database decides who may, logs it with its reason, and marks the
---    sign-in "must change password";
+-- v2 sign-in by e-mail and password (the owner, 29 Sep 13:50 and 14:10 — V431, V441; V166). No e-mail is sent at all:
+--  · an admin generates a person's temporary password (never typed — the server makes it, shows it once and sets it in
+--    Supabase Auth with the secret key, /auth/admin/password); a reset is a new generate; the database decides who may,
+--    logs it with its reason, and marks every sign-in of the person "must change password"; it also answers who has
+--    no password yet, for "Generate for everyone without a password";
 --  · until the person changes it, the sign-in reaches nothing but the change: authz.me() is null, api.me() answers
 --    must_change_password, and a reset signs every device of the person out;
 --  · the person's change is recorded by the server, never by the browser (api.password_changed, service role only);
---  · the emailed code stays built, switched off by a setting (auth.code_sign_in, off): its pre-check answers code_off,
+--  · the emailed code stays built, switched off by a setting (auth.code_door_enabled, off): its pre-check answers code_off,
 --    and a session a code opened while it is off is never a sign-in;
 --  · sign-ups stay off; only allowed, switched-on people get in; the device rules are unchanged (V74).
 -- The minimum length (10) is the server's rule and the Auth project's (supabase/config.toml). Forward-only (V103).
@@ -34,11 +35,11 @@ as $$
   limit 1
 $$;
 
--- Whether the emailed code is a door today (auth.code_sign_in, off unless an admin switches it on).
-create function core.code_sign_in_on() returns boolean
+-- Whether the emailed code is a door today (auth.code_door_enabled, off unless an admin switches it on).
+create function core.code_door_on() returns boolean
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce((core.setting_at('auth.code_sign_in', null, core.riyadh_today()) #>> '{}')::boolean, false)
+  select coalesce((core.setting_at('auth.code_door_enabled', null, core.riyadh_today()) #>> '{}')::boolean, false)
 $$;
 
 -- ================================================================ a request on someone's behalf
@@ -159,7 +160,7 @@ $$;
 -- Which doors the sign-in page offers (the server reads it before drawing the page).
 create function core.sign_in_methods() returns jsonb
 language sql stable security definer set search_path = ''
-as $$ select pg_catalog.jsonb_build_object('password', true, 'code', core.code_sign_in_on()) $$;
+as $$ select pg_catalog.jsonb_build_object('password', true, 'code', core.code_door_on()) $$;
 
 -- The code door's pre-check as P3-2 wrote it — answering code_off, and logging nothing, while the door is off.
 create or replace function core.sign_in_check(p_email text, p_user_agent text default null) returns text
@@ -168,7 +169,7 @@ as $$
 declare
   st text;
 begin
-  if not core.code_sign_in_on() then
+  if not core.code_door_on() then
     return 'code_off';
   end if;
   st := core.sign_in_state(p_email);
@@ -229,10 +230,10 @@ begin
     raise exception using errcode = 'P0001', message = 'sign_in.unknown_provider', detail = p_provider;
   end if;
   select * into a from core.person_auth where auth_user_id = uid;
-  if m = 'code' and not core.code_sign_in_on() then
+  if m = 'code' and not core.code_door_on() then
     insert into core.sign_in_log (person_id, auth_user_id, auth_session_id, email, provider, result, detail, user_agent,
                                   method)
-    values (a.person_id, uid, sid, a.email, p_provider, 'provider_error', 'code_sign_in_off', p_user_agent, m);
+    values (a.person_id, uid, sid, a.email, p_provider, 'provider_error', 'code_door_off', p_user_agent, m);
     return 'code_off';
   end if;
   st := case when a.id is null then 'not_listed' else core.sign_in_state(a.email::text) end;
@@ -252,40 +253,109 @@ begin
 end
 $$;
 
--- ================================================================ the password, set by an admin
--- An admin gives an allowed e-mail's sign-in a starting password, or resets it (Settings → Organization & access). The
--- database decides and logs (with the reason); the server then sets the password in Auth. The sign-in must change it
--- at the next sign-in, and every device of the person is signed out (a reset may be for a lost device).
--- `p_email`: the person_email id. Answers the auth user the server sets the password on.
-create function core.person_password_set(p_email uuid, p_reason text) returns jsonb
+-- ================================================================ who has a password
+-- Whether any live sign-in of a person holds a password — one generated here, one the person chose, or one the sign-in
+-- brought with it: an auth user the app found already there (made in the dashboard by the owner, who typed its password
+-- himself — V166) is marked when it is linked (core.person_auth_found). The app's own record: Auth keeps a hash even
+-- for a user made without a password, so it cannot tell.
+create function core.has_password(p_person uuid) returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from core.person_auth a
+    where a.person_id = p_person and a.password_set_at is not null
+      and exists (select 1 from core.person_email e where e.person_id = a.person_id
+                  and e.email operator(extensions.=) a.email and e.deleted_at is null))
+$$;
+
+-- The server linked an auth user it found already there, not one it made: it brings its own password (V166) — marked
+-- as set, by nobody in the app, so no generate replaces it unless an admin asks. Admins only; logged.
+create function core.person_auth_found(p_auth_user uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   me uuid := authz.require_admin();
-  e core.person_email;
-  a core.person_auth;
+  req uuid;
+  n int;
+begin
+  req := audit.begin('ui', 'person_auth.found_existing', null, null);
+  update core.person_auth set password_set_at = core.clock()
+  where auth_user_id = p_auth_user and password_set_at is null;
+  get diagnostics n = row_count;
+  perform audit.end();
+  return pg_catalog.jsonb_build_object('marked', n, 'request_id', req);
+end
+$$;
+
+-- A person's allowed e-mails with no sign-in linked yet — the server links each to its auth user (the existing one,
+-- found by e-mail, never a second) before a password is generated. Admins only.
+create function core.person_emails_unlinked(p_person uuid) returns text[]
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(pg_catalog.array_agg(e.email::text order by e.email), '{}')
+  from core.person_email e
+  where authz.require_admin() is not null and e.person_id = p_person and e.deleted_at is null
+    and not exists (select 1 from core.person_auth a where a.email operator(extensions.=) e.email)
+$$;
+
+-- ================================================================ the temporary password, generated for an admin
+-- An admin generates a person's temporary password (V441; Settings → the person → Generate temporary password; a reset
+-- is a new generate). The database decides and logs (with the reason); the server makes the password, sets it on every
+-- sign-in the answer names and shows it once. Every sign-in of the person (each allowed e-mail's auth user) must change
+-- it at the next sign-in, and every device of the person is signed out (a reset may be for a lost device).
+-- A password someone already has — one the owner typed for himself in the dashboard (V166), or one already generated —
+-- is replaced only when the admin says so (`p_replace`, the screen's Reset): otherwise refused as person_password.has_one.
+create function core.person_password_set(p_person uuid, p_reason text, p_replace boolean default false) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.require_admin();
+  users uuid[];
   req uuid;
   n int;
 begin
   if p_reason is null or pg_catalog.btrim(p_reason) = '' then
     raise exception using errcode = 'P0001', message = 'common.reason_required';
   end if;
-  select * into e from core.person_email where id = p_email and deleted_at is null;
-  if e.id is null then
+  if not exists (select 1 from core.person p where p.id = p_person and p.deleted_at is null) then
     raise exception using errcode = 'P0002', message = 'common.not_found';
   end if;
-  select * into a from core.person_auth x where x.email operator(extensions.=) e.email::extensions.citext;
-  if a.id is null then
-    raise exception using errcode = 'P0001', message = 'person_password.no_sign_in', detail = e.email::text;
+  select pg_catalog.array_agg(a.auth_user_id order by a.email) into users
+  from core.person_auth a
+  where a.person_id = p_person
+    and exists (select 1 from core.person_email e where e.person_id = a.person_id
+                and e.email operator(extensions.=) a.email and e.deleted_at is null);
+  if users is null then
+    raise exception using errcode = 'P0001', message = 'person_password.no_sign_in';
   end if;
-  req := audit.begin('ui', 'person_auth.password_set', pg_catalog.jsonb_build_object('email', e.email), p_reason);
+  if not coalesce(p_replace, false) and core.has_password(p_person) then
+    raise exception using errcode = 'P0001', message = 'person_password.has_one';
+  end if;
+  req := audit.begin('ui', 'person_auth.password_generated', null, p_reason);
   update core.person_auth set must_change_password = true, password_set_at = core.clock(), password_set_by = me
-  where id = a.id;
-  n := core.end_devices(a.person_id, null, null, 'admin', me);
+  where auth_user_id = any (users);
+  n := core.end_devices(p_person, null, null, 'admin', me);
   perform audit.end();
-  return pg_catalog.jsonb_build_object('auth_user_id', a.auth_user_id, 'email', e.email, 'person_id', a.person_id,
+  return pg_catalog.jsonb_build_object('person_id', p_person, 'auth_user_ids', pg_catalog.to_jsonb(users),
                                        'signed_out', n, 'request_id', req);
 end
+$$;
+
+-- Who has no password yet (V441 — "Generate for everyone without a password"): each allowed, switched-on person with a
+-- live allowed e-mail none of whose sign-ins holds a password in Auth — so an account whose password the owner typed
+-- himself is never in it (V166) — the admin asking aside (a generate signs its person out everywhere, so an admin
+-- generates their own on its own). Admins only.
+create function core.people_without_password() returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('person_id', p.id, 'full_name_en', p.full_name_en,
+                                                                     'full_name_ar', p.full_name_ar)
+                                       order by p.full_name_en), '[]'::jsonb)
+  from core.person p
+  where p.id is distinct from authz.require_admin()
+    and p.kind = 'staff' and p.active and p.can_sign_in and p.deleted_at is null
+    and exists (select 1 from core.person_email e where e.person_id = p.id and e.deleted_at is null)
+    and not core.has_password(p.id)
 $$;
 
 -- ================================================================ the password, changed by the person
@@ -318,20 +388,31 @@ language sql volatile security invoker set search_path = '' as $$ select core.si
 create function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text default null) returns void
 language sql volatile security invoker set search_path = ''
 as $$ select core.sign_in_password_refused(p_email, p_detail, p_user_agent) $$;
-create function api.person_password_set(p_email uuid, p_reason text) returns jsonb
-language sql volatile security invoker set search_path = '' as $$ select core.person_password_set(p_email, p_reason) $$;
+create function api.person_password_set(p_person uuid, p_reason text, p_replace boolean default false) returns jsonb
+language sql volatile security invoker set search_path = ''
+as $$ select core.person_password_set(p_person, p_reason, p_replace) $$;
+create function api.people_without_password() returns jsonb
+language sql stable security invoker set search_path = '' as $$ select core.people_without_password() $$;
+create function api.person_emails_unlinked(p_person uuid) returns text[]
+language sql stable security invoker set search_path = '' as $$ select core.person_emails_unlinked(p_person) $$;
+create function api.person_auth_found(p_auth_user uuid) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select core.person_auth_found(p_auth_user) $$;
 create function api.password_changed(p_auth_user uuid) returns jsonb
 language sql volatile security invoker set search_path = '' as $$ select core.password_changed(p_auth_user) $$;
 comment on function api.sign_in_complete(text, text, text) is
   'The signed-in person, after the password or the code: ok / must_change_password (device registered) / not_listed / switched_off / code_off.';
 comment on function api.sign_in_check(text, text) is 'Service role only: the code door''s pre-check — allowed / not_listed / switched_off, logged; code_off while the door is off.';
 
-revoke all on function core.jwt_method(), core.code_sign_in_on(), core.sign_in_methods(),
+revoke all on function core.jwt_method(), core.code_door_on(), core.sign_in_methods(),
   core.sign_in_password_check(text, text), core.sign_in_password_refused(text, text, text),
-  core.person_password_set(uuid, text), core.password_changed(uuid), api.sign_in_methods(),
+  core.person_password_set(uuid, text, boolean), core.password_changed(uuid), api.sign_in_methods(),
   api.sign_in_password_check(text, text), api.sign_in_password_refused(text, text, text),
-  api.person_password_set(uuid, text), api.password_changed(uuid) from public;
-grant execute on function core.person_password_set(uuid, text), api.person_password_set(uuid, text) to authenticated;
+  api.person_password_set(uuid, text, boolean), api.password_changed(uuid), core.people_without_password(),
+  api.people_without_password(), core.has_password(uuid), core.person_emails_unlinked(uuid),
+  api.person_emails_unlinked(uuid), core.person_auth_found(uuid), api.person_auth_found(uuid) from public;
+grant execute on function core.person_password_set(uuid, text, boolean), api.person_password_set(uuid, text, boolean),
+  core.people_without_password(), api.people_without_password(), core.person_emails_unlinked(uuid),
+  api.person_emails_unlinked(uuid), core.person_auth_found(uuid), api.person_auth_found(uuid) to authenticated;
 grant execute on function core.sign_in_methods(), core.sign_in_password_check(text, text),
   core.sign_in_password_refused(text, text, text), core.password_changed(uuid), api.sign_in_methods(),
   api.sign_in_password_check(text, text), api.sign_in_password_refused(text, text, text), api.password_changed(uuid)
