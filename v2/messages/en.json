@@ -38,11 +38,13 @@
       "forgot": "Forgot your password? Ask your admin.",
       "setTitle": "Choose a new password",
       "rule": "At least {min} characters.",
+      "current": "Current password",
       "new": "New password",
       "again": "New password again",
       "setAndContinue": "Set password and continue",
       "error": {
         "wrong_password": "Wrong email or password",
+        "wrong_current": "The current password is wrong",
         "too_short": "At least 10 characters",
         "mismatch": "The two passwords are not the same",
         "not_signed_in": "Sign in first",

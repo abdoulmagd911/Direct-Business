@@ -147,6 +147,13 @@ test('a generated password opens "Choose a new password"; My profile changes it 
   const changed = `Changed-${Date.now().toString(36)}-pass`;
   await their.locator('[data-password-new]').fill(changed);
   await their.locator('[data-password-again]').fill(changed);
+  await expect(their.locator('[data-password-save]'), 'the current password is asked for').toBeDisabled();
+  await their.locator('[data-password-current]').fill(`${own}-not`);
+  await their.locator('[data-password-save]').click();
+  await expect(their.getByRole('main').getByRole('alert'), 'the current password is checked').toHaveText(
+    'The current password is wrong',
+  );
+  await their.locator('[data-password-current]').fill(own);
   await their.locator('[data-password-save]').click();
   await expect(toast(their, 'Password changed')).toBeVisible();
   await signOut(their);

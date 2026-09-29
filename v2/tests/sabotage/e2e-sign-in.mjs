@@ -167,4 +167,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'change-password-skips-the-current',
+    breaks: [e2e('password')],
+    expect: 'the current password is checked',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "  if (check !== 'ok') return { ok: false, error: check };\n",
+        replace: '  void check;\n',
+      },
+    ],
+  },
 ];

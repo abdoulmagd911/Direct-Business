@@ -406,6 +406,7 @@ export function MyProfile({
 /** Change password (owner, 29 Sep 13:50): the new password twice; the rule is one line — at least ten characters. */
 function PasswordSection() {
   const t = useTranslations();
+  const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
   const [error, setError] = useState<PasswordError | null>(null);
@@ -413,19 +414,40 @@ function PasswordSection() {
   const save = async () => {
     setBusy(true);
     setError(null);
-    const r = await changePassword(password, again);
+    const r = await changePassword(current, password, again);
     if (r.ok) {
       toast.done(t('profile.password.changed'));
+      setCurrent('');
       setPassword('');
       setAgain('');
     } else setError(r.error);
     setBusy(false);
   };
+  const onCurrent = error === 'wrong_current' || error === 'not_signed_in';
   return (
     <Section title={t('profile.sections.password')}>
       <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t('sign_in.password.new')} error={error ? t(`sign_in.password.error.${error}`) : undefined}>
+        <Field
+          label={t('sign_in.password.current')}
+          className="sm:col-span-2"
+          error={error && onCurrent ? t(`sign_in.password.error.${error}`) : undefined}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="password"
+              autoComplete="current-password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              data-password-current
+            />
+          )}
+        </Field>
+        <Field
+          label={t('sign_in.password.new')}
+          error={error && !onCurrent ? t(`sign_in.password.error.${error}`) : undefined}
+        >
           {(p) => (
             <Input
               {...p}
@@ -453,7 +475,7 @@ function PasswordSection() {
       <div>
         <Button
           variant="primary"
-          disabled={password.length < MIN_PASSWORD || again.length < MIN_PASSWORD}
+          disabled={!current || password.length < MIN_PASSWORD || again.length < MIN_PASSWORD}
           loading={busy}
           onClick={() => void save()}
           data-password-save
