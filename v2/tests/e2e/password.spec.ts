@@ -38,12 +38,14 @@ test('email and password sign in on the deep link; an unlisted email and a wrong
 
   const stranger = unlistedEmail();
   await tryPassword(page, stranger, TEST_PASSWORD);
-  await expect(refusal(page)).toHaveText('This email is not on the list — ask an admin');
+  await expect(refusal(page)).toHaveText("This email isn't on the team list. Ask your admin to add you.");
   expect(await logOf(stranger)).toEqual(['not_listed']);
 
   const person = await makePerson();
   await tryPassword(page, person.email, 'not-the-password');
-  await expect(refusal(page)).toHaveText('Wrong email or password');
+  await expect(refusal(page)).toHaveText(
+    "That email and password don't match. Try again or ask your admin to reset it.",
+  );
   await expect(page).toHaveURL(/\/sign-in/);
 
   await tryPassword(page, person.email, TEST_PASSWORD);
@@ -57,7 +59,7 @@ test('an admin generates a temporary password with a reason; the person signs in
 }) => {
   test.slow();
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
@@ -79,7 +81,9 @@ test('an admin generates a temporary password with a reason; the person signs in
   const their = await ctx.newPage();
   await their.goto('/sign-in?next=%2Fmy-day');
   await tryPassword(their, person.email, TEST_PASSWORD);
-  await expect(refusal(their)).toHaveText('Wrong email or password');
+  await expect(refusal(their)).toHaveText(
+    "That email and password don't match. Try again or ask your admin to reset it.",
+  );
   await tryPassword(their, person.email, temporary);
   await expect(their).toHaveURL(/\/set-password\?next=%2Fmy-day/, { timeout: 15_000 });
   // any other address inside the app comes back here until the password is set
@@ -119,7 +123,7 @@ test('a generated password opens "Choose a new password"; My profile changes it 
 }) => {
   test.slow();
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
@@ -159,7 +163,9 @@ test('a generated password opens "Choose a new password"; My profile changes it 
   await signOut(their);
   await their.goto('/sign-in');
   await tryPassword(their, person.email, own);
-  await expect(refusal(their)).toHaveText('Wrong email or password');
+  await expect(refusal(their)).toHaveText(
+    "That email and password don't match. Try again or ask your admin to reset it.",
+  );
   await tryPassword(their, person.email, changed);
   await expect(their).not.toHaveURL(/\/sign-in/, { timeout: 15_000 });
   await ctx.close();
@@ -188,7 +194,7 @@ test('axe · the password door and set your own password', async ({ page, contex
   expect(serious(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())).toEqual([]);
   // set-password: reached by a person whose admin reset it
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
   await page.locator('[data-person-more]').click();

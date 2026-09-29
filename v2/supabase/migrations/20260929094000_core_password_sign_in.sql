@@ -8,7 +8,10 @@
 --  · the person's change is recorded by the server, never by the browser (api.password_changed, service role only);
 --  · the emailed code stays built, switched off by a setting (auth.code_door_enabled, off): its pre-check answers code_off,
 --    and a session a code opened while it is off is never a sign-in;
---  · sign-ups stay off; only allowed, switched-on people get in; the device rules are unchanged (V74).
+--  · sign-ups stay off; only allowed, switched-on people get in; the device rules are unchanged (V74);
+--  · too many tries lock the e-mail (V172): five wrong passwords within fifteen minutes lock it for fifteen minutes, and
+--    no e-mail is checked more than twenty times in fifteen minutes — counted here, per e-mail, because Supabase's own
+--    limits see the app server's address, not the person's.
 -- The minimum length (10) is the server's rule and the Auth project's (supabase/config.toml). Forward-only (V103).
 
 -- ================================================================ the sign-in's password state
@@ -24,6 +27,11 @@ comment on column core.person_auth.password_set_by is 'Who last set the password
 -- How a sign-in was made. The log's provider stays Supabase's "email" for both doors.
 alter table core.sign_in_log add column method text check (method in ('code', 'password'));
 comment on column core.sign_in_log.method is 'The door: the emailed code or the password (V166); null before it existed.';
+-- The password door's own results (V172): a wrong password, a refusal while the e-mail is locked, and too many tries.
+alter table core.sign_in_log drop constraint sign_in_log_result_check;
+alter table core.sign_in_log add constraint sign_in_log_result_check check (result in (
+  'code_sent', 'ok', 'not_listed', 'switched_off', 'code_expired', 'code_invalid', 'provider_error', 'signed_out',
+  'wrong_password', 'locked', 'rate_limited'));
 
 -- ================================================================ which door a session came through
 -- Supabase's access token names how the session was made (amr): a password, or a one-time code (otp / magic link).
@@ -156,13 +164,46 @@ begin
 end
 $$;
 
+-- ================================================================ too many tries (V172)
+-- Whether an e-mail may try now: 'locked' fifteen minutes from its fifth wrong password within fifteen minutes — the
+-- right password included —, 'rate_limited' once it was tried twenty times in fifteen minutes (any door, any result
+-- but a sign-in), else null. A successful sign-in, or a password an admin sets or the person changes, starts the count
+-- again ("Try again in 15 minutes or ask your admin"); a refusal while locked is logged, and is not a wrong password.
+-- Fixed here, as the sign-in page says it. Supabase's own limits see the app server's address, not the person's.
+create function core.sign_in_limited(p_email text) returns text
+language sql stable security definer set search_path = ''
+as $$
+  with since as (
+    select greatest(
+      core.clock() - interval '30 minutes',
+      (select pg_catalog.max(a.password_set_at) from core.person_auth a
+       where a.email operator(extensions.=) p_email::extensions.citext),
+      (select pg_catalog.max(o.at) from core.sign_in_log o
+       where o.email operator(extensions.=) p_email::extensions.citext and o.result = 'ok'
+         and o.at > core.clock() - interval '30 minutes')) as t),
+  recent as (
+    select l.at, l.result
+    from core.sign_in_log l, since s
+    where l.email operator(extensions.=) p_email::extensions.citext and l.at > s.t
+      and l.result not in ('ok', 'signed_out')),
+  tries as (select r.at from recent r where r.result = 'wrong_password' order by r.at desc limit 5)
+  select case
+    when (select pg_catalog.count(*) from tries) = 5
+         and (select pg_catalog.max(t.at) - pg_catalog.min(t.at) from tries t) <= interval '15 minutes'
+         and core.clock() < (select pg_catalog.max(t.at) from tries t) + interval '15 minutes' then 'locked'
+    when (select pg_catalog.count(*) from recent r where r.at > core.clock() - interval '15 minutes') >= 20
+      then 'rate_limited'
+  end
+$$;
+
 -- ================================================================ the doors
 -- Which doors the sign-in page offers (the server reads it before drawing the page).
 create function core.sign_in_methods() returns jsonb
 language sql stable security definer set search_path = ''
 as $$ select pg_catalog.jsonb_build_object('password', true, 'code', core.code_door_on()) $$;
 
--- The code door's pre-check as P3-2 wrote it — answering code_off, and logging nothing, while the door is off.
+-- The code door's pre-check as P3-2 wrote it — answering code_off, and logging nothing, while the door is off; a locked
+-- or too-often-tried e-mail is refused and logged (V172).
 create or replace function core.sign_in_check(p_email text, p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -172,7 +213,7 @@ begin
   if not core.code_door_on() then
     return 'code_off';
   end if;
-  st := core.sign_in_state(p_email);
+  st := coalesce(core.sign_in_limited(p_email), core.sign_in_state(p_email));
   insert into core.sign_in_log (person_id, email, provider, result, user_agent, method)
   values ((select e.person_id from core.person_email e
            where e.email operator(extensions.=) p_email::extensions.citext and e.deleted_at is null),
@@ -181,13 +222,14 @@ begin
 end
 $$;
 
--- The password door's pre-check (the server, with the secret key): is this e-mail allowed? A refusal is logged; an
--- allowed e-mail logs nothing yet — the sign-in itself is logged when it completes, a wrong password when Auth refuses.
+-- The password door's pre-check (the server, with the secret key): is this e-mail allowed, and may it try now (V172)?
+-- A refusal is logged; an allowed e-mail logs nothing yet — the sign-in itself is logged when it completes, a wrong
+-- password when Auth refuses.
 create function core.sign_in_password_check(p_email text, p_user_agent text default null) returns text
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  st text := core.sign_in_state(p_email);
+  st text := coalesce(core.sign_in_limited(p_email), core.sign_in_state(p_email));
 begin
   if st <> 'allowed' then
     insert into core.sign_in_log (person_id, email, provider, result, user_agent, method)
@@ -199,18 +241,29 @@ begin
 end
 $$;
 
--- Auth refused the password (or the service failed): logged with Supabase's own reason.
-create function core.sign_in_password_refused(p_email text, p_detail text, p_user_agent text default null) returns void
-language sql volatile security definer set search_path = ''
+-- Auth refused the password (or the service failed): logged with Supabase's own reason — a wrong password as one
+-- (V172). The answer: 'locked' when this wrong password was the fifth, else 'wrong_password' or 'provider_error'.
+create function core.sign_in_password_refused(p_email text, p_detail text, p_user_agent text default null) returns text
+language plpgsql volatile security definer set search_path = ''
 as $$
+declare
+  wrong boolean := coalesce(p_detail in ('invalid_credentials', 'invalid_grant', 'Invalid login credentials'), false);
+begin
   insert into core.sign_in_log (person_id, email, provider, result, detail, user_agent, method)
   values ((select e.person_id from core.person_email e
            where e.email operator(extensions.=) p_email::extensions.citext and e.deleted_at is null),
-          lower(p_email), 'email', 'provider_error', pg_catalog.left(p_detail, 200), p_user_agent, 'password')
+          lower(p_email), 'email', case when wrong then 'wrong_password' else 'provider_error' end,
+          pg_catalog.left(p_detail, 200), p_user_agent, 'password');
+  if not wrong then
+    return 'provider_error';
+  end if;
+  return case when core.sign_in_limited(p_email) = 'locked' then 'locked' else 'wrong_password' end;
+end
 $$;
 
 -- api.sign_in_complete as P3-2 wrote it, now knowing its door: a session a code opened while the code door is off is
--- refused (code_off) and registers no device; a sign-in that must change its password registers its device and
+-- refused (code_off) and registers no device; so is a session made while its e-mail is locked (V172) — straight
+-- through Supabase, say, past the server's check; a sign-in that must change its password registers its device and
 -- answers must_change_password.
 create or replace function core.sign_in_complete(p_provider text default 'email', p_device_label text default null,
                                                  p_user_agent text default null) returns text
@@ -235,6 +288,11 @@ begin
                                   method)
     values (a.person_id, uid, sid, a.email, p_provider, 'provider_error', 'code_door_off', p_user_agent, m);
     return 'code_off';
+  end if;
+  if a.id is not null and core.sign_in_limited(a.email::text) = 'locked' then
+    insert into core.sign_in_log (person_id, auth_user_id, auth_session_id, email, provider, result, user_agent, method)
+    values (a.person_id, uid, sid, a.email, p_provider, 'locked', p_user_agent, m);
+    return 'locked';
   end if;
   st := case when a.id is null then 'not_listed' else core.sign_in_state(a.email::text) end;
   insert into core.sign_in_log (person_id, auth_user_id, auth_session_id, email, provider, result, user_agent, method)
@@ -385,9 +443,11 @@ create function api.sign_in_methods() returns jsonb
 language sql stable security invoker set search_path = '' as $$ select core.sign_in_methods() $$;
 create function api.sign_in_password_check(p_email text, p_user_agent text default null) returns text
 language sql volatile security invoker set search_path = '' as $$ select core.sign_in_password_check(p_email, p_user_agent) $$;
-create function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text default null) returns void
+create function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text default null) returns text
 language sql volatile security invoker set search_path = ''
 as $$ select core.sign_in_password_refused(p_email, p_detail, p_user_agent) $$;
+create function api.sign_in_limited(p_email text) returns text
+language sql stable security invoker set search_path = '' as $$ select core.sign_in_limited(p_email) $$;
 create function api.person_password_set(p_person uuid, p_reason text, p_replace boolean default false) returns jsonb
 language sql volatile security invoker set search_path = ''
 as $$ select core.person_password_set(p_person, p_reason, p_replace) $$;
@@ -400,8 +460,9 @@ language sql volatile security invoker set search_path = '' as $$ select core.pe
 create function api.password_changed(p_auth_user uuid) returns jsonb
 language sql volatile security invoker set search_path = '' as $$ select core.password_changed(p_auth_user) $$;
 comment on function api.sign_in_complete(text, text, text) is
-  'The signed-in person, after the password or the code: ok / must_change_password (device registered) / not_listed / switched_off / code_off.';
-comment on function api.sign_in_check(text, text) is 'Service role only: the code door''s pre-check — allowed / not_listed / switched_off, logged; code_off while the door is off.';
+  'The signed-in person, after the password or the code: ok / must_change_password (device registered) / not_listed / switched_off / code_off / locked.';
+comment on function api.sign_in_check(text, text) is 'Service role only: the code door''s pre-check — allowed / not_listed / switched_off / locked / rate_limited, logged; code_off while the door is off.';
+comment on function api.sign_in_limited(text) is 'Service role only: locked / rate_limited, or null when the e-mail may try now (V172).';
 
 revoke all on function core.jwt_method(), core.code_door_on(), core.sign_in_methods(),
   core.sign_in_password_check(text, text), core.sign_in_password_refused(text, text, text),
@@ -409,11 +470,13 @@ revoke all on function core.jwt_method(), core.code_door_on(), core.sign_in_meth
   api.sign_in_password_check(text, text), api.sign_in_password_refused(text, text, text),
   api.person_password_set(uuid, text, boolean), api.password_changed(uuid), core.people_without_password(),
   api.people_without_password(), core.has_password(uuid), core.person_emails_unlinked(uuid),
-  api.person_emails_unlinked(uuid), core.person_auth_found(uuid), api.person_auth_found(uuid) from public;
+  api.person_emails_unlinked(uuid), core.person_auth_found(uuid), api.person_auth_found(uuid),
+  core.sign_in_limited(text), api.sign_in_limited(text) from public;
 grant execute on function core.person_password_set(uuid, text, boolean), api.person_password_set(uuid, text, boolean),
   core.people_without_password(), api.people_without_password(), core.person_emails_unlinked(uuid),
   api.person_emails_unlinked(uuid), core.person_auth_found(uuid), api.person_auth_found(uuid) to authenticated;
 grant execute on function core.sign_in_methods(), core.sign_in_password_check(text, text),
   core.sign_in_password_refused(text, text, text), core.password_changed(uuid), api.sign_in_methods(),
-  api.sign_in_password_check(text, text), api.sign_in_password_refused(text, text, text), api.password_changed(uuid)
+  api.sign_in_password_check(text, text), api.sign_in_password_refused(text, text, text), api.password_changed(uuid),
+  core.sign_in_limited(text), api.sign_in_limited(text)
   to service_role;
