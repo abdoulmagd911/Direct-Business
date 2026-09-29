@@ -31,7 +31,7 @@ select test.raises($$select api.role_save(null, 'made_up_role', 'Made up')$$, '4
   'access.needs_level');
 select test.raises(format('select api.access_set_person_level(%L, %L, %L, %L)', current_setting('t.am1'), 'kpis', 'full',
   'made up'), '42501', 'nor changes anyone''s access', 'access.needs_level');
-select test.raises($$select api.list_save('segment', null, '{"key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
+select test.raises($$select api.list_save('side_type', null, '{"side": "client", "key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
   '42501', 'nor a list', 'access.needs_level');
 select test.raises($$select api.identifier_block_add('email', 'domain', 'made.up', 'made up')$$, '42501',
   'nor the block list', 'access.needs_level');

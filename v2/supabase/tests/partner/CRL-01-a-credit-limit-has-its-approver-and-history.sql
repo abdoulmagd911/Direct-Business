@@ -8,7 +8,7 @@ select set_config('t.am2', test.person('Test Second Manager', 'member')::text, t
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.am2')::uuid, 'finance', 'none', 'made up: no finance');
 select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Zeta"}') ->> 'id', true);
+select set_config('t.a', api.partner_create('{"trade_name_en": "Made Up Zeta", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.credit_limit_set(%L, 50000, null, %L, %L)', current_setting('t.a'),

@@ -5,7 +5,8 @@
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.pid', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Tours', 'trade_name_ar', 'جولات متخيلة',
-  'official_name_en', 'Made Up Tourism Holding LLC', 'official_name_ar', 'شركة جولات متخيلة')) ->> 'id', true);
+  'official_name_en', 'Made Up Tourism Holding LLC', 'official_name_ar', 'شركة جولات متخيلة',
+  'sides', '[{"side": "client", "type": "corporate"}]'::jsonb)) ->> 'id', true);
 select test.as_owner();
 select test.eq((select array_agg(subkind order by subkind) from partner.identifier
                 where partner_id = current_setting('t.pid')::uuid and kind = 'name' and deleted_at is null),
@@ -13,13 +14,13 @@ select test.eq((select array_agg(subkind order by subkind) from partner.identifi
   'one name identifier per distinct key: the Arabic official name folds to the Arabic trade name');
 
 select test.as_person(current_setting('t.admin')::uuid);
-select test.raises($$select api.partner_create('{"trade_name_en": "Made-Up Tours Co."}')$$, '23505',
+select test.raises($$select api.partner_create('{"trade_name_en": "Made-Up Tours Co.", "sides": [{"side": "client", "type": "corporate"}]}')$$, '23505',
   'a partner whose name another holds is refused', 'identifier.held');
 do $$
 declare
   d text;
 begin
-  perform api.partner_create('{"trade_name_en": "MADE UP TOURS"}');
+  perform api.partner_create('{"trade_name_en": "MADE UP TOURS", "sides": [{"side": "client", "type": "corporate"}]}');
 exception when unique_violation then
   get stacked diagnostics d = pg_exception_detail;
   perform set_config('t.detail', d, true);

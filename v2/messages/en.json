@@ -205,26 +205,25 @@
     "setting_def": "Setting definition",
     "wording": "Wording",
     "saved_view": "Saved view",
-    "partner_role": "Partner role",
-    "partner_status": "Partner status",
     "credit_limit": "Credit limit",
     "identifier": "Identifier",
-    "account_manager": "Account manager",
     "contact": "Contact",
     "partner_merge": "Partner merge",
     "code_terms": "Code terms",
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
     "identifier_block": "Blocked value",
-    "partner_role_def": "Partner role (list)",
-    "role_field": "Role field",
-    "partner_category": "Partner category",
-    "partner_tier": "Partner tier",
-    "segment": "Segment",
-    "status_reason": "Status reason",
     "call_outcome": "Call outcome",
     "contract_term": "Contract term",
-    "priority": "Priority"
+    "priority": "Priority",
+    "partner_side": "Side",
+    "side_status": "Side status",
+    "side_owner": "Side owner",
+    "side_field": "Side field",
+    "side_type": "Side type",
+    "side_tier": "Side tier",
+    "side_status_reason": "Status reason",
+    "contact_role": "Contact role"
   },
   "status": {
     "done": "Done",
@@ -251,10 +250,15 @@
     "remove": "Remove filter {field}: {value}"
   },
   "cap": {
-    "partners": {
+    "clients": {
+      "identify": "Change client identifiers and decide matches",
+      "merge": "Merge organisations",
+      "assign": "Set the Client side's status, owner and priority"
+    },
+    "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
-      "merge": "Merge partners",
-      "assign": "Set status, assign owner and priority"
+      "merge": "Merge organisations",
+      "assign": "Set the Supplier & partner side's status, owner and priority"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
