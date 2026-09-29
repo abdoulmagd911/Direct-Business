@@ -7,20 +7,21 @@ select set_config('t.am1', test.person('Test Account Manager', 'member')::text, 
 select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
 select set_config('v2.test_now', '2027-03-10 09:00:00+03', true);
 
--- two made-up alert kinds, and one that fails (they vanish with the test's rollback)
-create function notify.alert_kpi_behind() returns setof notify.alert
+-- two made-up alert kinds, and one that fails — standing in for the real ones, which come back with the test's
+-- rollback
+create or replace function notify.alert_kpi_behind() returns setof notify.alert
 language sql stable set search_path = '' as $$
   select current_setting('t.am1')::uuid, 'kpi:made-up-one', null::text, null::uuid, 'alert.kpi_behind', null::jsonb
   union all
   select current_setting('t.am2')::uuid, 'kpi:made-up-one', null, null, 'alert.kpi_behind', null
 $$;
-create function notify.alert_contract_expiring() returns setof notify.alert
+create or replace function notify.alert_contract_expiring() returns setof notify.alert
 language plpgsql stable set search_path = '' as $$
 begin
   raise exception 'a made-up failure';
 end
 $$;
-create function notify.alert_invoice_unpaid() returns setof notify.alert
+create or replace function notify.alert_invoice_unpaid() returns setof notify.alert
 language sql stable set search_path = '' as $$
   select current_setting('t.am1')::uuid, 'invoice:made-up-two', null::text, null::uuid, 'alert.invoice_unpaid',
          null::jsonb

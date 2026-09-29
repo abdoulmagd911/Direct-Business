@@ -476,6 +476,57 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - **Merge:** each side the kept organisation lacks is switched on with the merged side's type, owner and current status.
 - **Retired doors:** `api.partner_roles_set` and `api.partner_manager_set`.
 
+**V150 — Notes and Log activity, as built** ACTIVE · 2026-09-29. Rebuilds #88's V138 on the sides, with V400 and V401. `core.note` is the timeline of any record: comments, updates, meeting notes, escalations and activities.
+- **Dates (V400).** Each note has `happened_on` (default Riyadh today, any past day) and `logged_at`. The database refuses a `happened_on` after the day it was logged. The command dates its request too (`audit.happened`), so a note or an activity dated in the past tells nobody, mentions included. `core.logged_late(happened_on, logged_at)` is true after go-live (`app.go_live_on`, empty until the owner sets it) when an entry was logged more than `work.late_days` (14) after it happened. The timeline shows it and sorts newest day first.
+- **Log activity** (`api.activity_log(organisation, type, outcome, happened_on, line, next_step, next_step_on, mentions)`). The type comes from `partner.activity_type` (call · meeting · demo · visit · note). The outcome comes from that type's own list and is required where the type has one. P3-8a's `partner.call_outcome` becomes `partner.activity_outcome` (renamed, not dropped), each outcome tied to its type. Its locked meanings (meeting set, demo set, demo held) are kept, and "demo held" moves to the demo type. A foreign key on (outcome, type) makes an outcome of another type impossible.
+  - A next step needs its day, which is never before the activity.
+  - "Demo set" needs the demo's day (V406). The answer carries `demo_on`, `offer_task` (meeting set) and `offer_close_demo_task` (demo held).
+  - The tasks themselves (the next step on My day, the demo task) join with tasks in P5-1, through `next_step_task_id`.
+- **Who.** Anyone who sees the record reads its notes; its author, or anyone Full on it, removes one (Undo brings it back). To add one takes Full on the record, or Own and being one of its owners. On an organisation, that means the best level among the sides it has on (`core.may_write` asks `authz.record_level`). Only the author edits a note: its words, its day, and an activity's outcome and next step. Mentions are told once, and only people who can see the record may be mentioned.
+- A note has no page of its own. It is seen as its record is (`core.note_visible`), and undone or restored as its record allows (`core.note_level`).
+- Not done: the partner's "last feedback date" waits for the feedback task (P5-1). #88's `feedback` note kind is not in the spec's list.
+
+**V151 — An organisation gone stale** ACTIVE · 2026-09-29 (V401). `partner.stale_on(organisation)` is the day it goes stale: `partner.stale_after_days` (21) after its latest activity, by the day the activity happened, not the day it was logged. With no activity yet, the count starts when its sides came on (their `since`). Never before the day after its latest next step: an open next step keeps it fresh.
+- It has no stale day while archived, or when every side it has on is Lost.
+- The card answers `last_activity_on`, `stale_on`, the open `next_step` and `flags`; list rows carry `last_activity_on` and `flags`, and the list filters on `stale`.
+- `flags` is most urgent first: `stale`, then `contract_expiring` (a contract the reader may see, in its expiring days). Collection due, Quiet, Sent to legal and Tender open join with their steps.
+- `notify.alert_activity_stale()` tells the owners of its live sides, once, on the day it goes stale.
+- Until tasks exist (P5-1), a next step counts as open until its day has passed. After P5-1 it counts as open while its task is not done.
+
+**V152 — Files, on the sides, as built** ACTIVE · 2026-09-29. Rebuilds #88's V139 with V98 and V401: `core.file`, `core.file_link`, `core.file_kind`, the private buckets `files` and `images`, and the Storage rules, as V139 described them.
+- **Sides.** A file on an organisation belongs to one side, or to both (side left empty). A logo always belongs to both. A side's file is added by whoever may change that side (Full on its page, or Own and its owner), and only while the side is on.
+  - It is seen only by those who see that side, or its owner, in the app and in Storage alike (`core.file_visible_as`).
+  - A file is seen by its uploader always, by anyone else once stored. Pictures are for all staff; restricted files need `files.restricted`, which heads and managers hold by default.
+- **Travel policy (V401).** The file kind `travel_policy` needs a review date (`core.file_kind.review_required`). Its purpose, `travel_policy`, puts it on the Client side. `api.file_review_set` moves the date, but never clears it on a kind that needs one. `notify.alert_file_review()` tells the uploader and the owners of what the file belongs to (for a side, that side's owner), once, on the review day.
+- **Doors:**
+  - `api.file_begin(entity, id, kind, purpose, name, size, mime, sensitivity, side, review_on)`, `api.file_finish`, `api.file_download`;
+  - `api.files(entity, id, side)`: one side's files plus the shared ones, when a side is named;
+  - `api.file_review_set`;
+  - `api.files_remove`: the uploader, an admin, or whoever may add to a record the file belongs to; a person's photo only its uploader or an admin.
+  - A photo is always the person's own, checked before anything else.
+- **Kinds.** Seeded as the spec lists them: invoice · contract · agreement · rate sheet · certificate · meeting note · travel policy · tender document · evidence · report · legacy report · logo · photo · other.
+- **Notification kinds.** `notify.notification.kind` now accepts every kind the spec names (escalated, quiet client, project without update, stale organisation, file review). Later steps then add their kind to `NOTIFICATION_KINDS` without changing the table. This step's cloud migration holds one DROP (the old list's check), so it waits for the owner's approval like the sides migration (V402).
+
+**V153 — Contracts, per side** ACTIVE · 2026-09-29. Rebuilds #88's V140 with V98. `partner.contract` has a `side`, named when it is added and never changed. It starts only while that side is on, and belongs to it: added, changed and removed by whoever may change that side, and seen by whoever sees it (`partner.sees_side`).
+- `api.contract_save(organisation, id, values, version, reason)` needs `side` on adding. `api.contracts(organisation, side)` lists the contracts the reader may see; `api.contracts_remove(ids, reason)`.
+- The status is computed from the dates, as V140 said.
+- `notify.alert_contract_expiring()` works as V140 said, but tells the contract's side owner, not every owner: the account manager on the Client side, the relationship owner on the other. The commercial manager is the head of that owner's department, when `partner.contract_notify` says so. A side switched off raises no alert.
+
+**V154 — References to Direct's systems** ACTIVE · 2026-09-29 (V98, V409). `work.ref_system` is a list on Settings → Work: ticket, booking, invoice and portal. Each has a URL pattern with `{value}`, https only and blank until an admin fills it.
+- `partner.reference` holds an organisation's reference to one system, shared or on one side: a ticket number, or a supplier's portal (the link in `url`, the username in `value`).
+- `core.looks_secret` refuses anything that looks like a password, on the table itself (constraint `reference_no_secrets`), as `partner.no_secrets`. It catches:
+  - a secret word in English (password, passcode, pwd, pass, secret, token, pin, otp, credentials) or in Arabic (كلمة المرور / السر, الرقم السري, رمز الدخول);
+  - a password before the host of a link;
+  - a key or token in a link's query.
+- `api.reference_save(organisation, id, {side, system, value, url})`: a side is fixed once set. `api.references_remove(ids, reason)`. `api.partner_references(organisation)` returns the ones the reader may see, each with its `link` (its own URL, else the system's pattern); the card carries them as `references`.
+- **Merge** (V141 carried on): `api.partner_merge` also moves notes and activities, contracts, references and files, and the logo when the kept organisation has none. Still one request, one Undo.
+
+**V155 — A changed setting default takes effect** ACTIVE · 2026-09-29. Setting rows never change in place, and the registry sync used to write a default only for a new setting. So a default changed in a module never took effect: a notice kind added to `notify.kinds_enabled` stayed off everywhere.
+- Now, when the registry's default differs from the company-wide default in force, and no admin value is in force after it, the sync adds a new company-wide default row from today. The earlier rows keep the past as it was.
+- A default changed twice in one day keeps the later one.
+- REG-01 now checks that every setting has its floor row and answers the registry's default today. Sabotage: `a-changed-default-never-lands`.
+- A department's own value, or an admin's company-wide one, is left alone. A kind added to `notify.kinds_enabled` is therefore off where an admin set the list; the Settings screen shows it.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.

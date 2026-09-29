@@ -46,6 +46,9 @@ export default defineModule({
         ['identifier', 'partner.identifier', 'partner.identifier_owners'],
         ['contact', 'partner.contact', 'partner.contact_owners'],
         ['partner_merge', 'partner.merge', undefined],
+        ['contract', 'partner.contract', 'partner.contract_owners'],
+        ['contract_terms', 'partner.contract_term', 'partner.contract_term_owners'],
+        ['reference', 'partner.reference', 'partner.reference_owners'],
       ] as const
     ).map(([key, table, owners]) => ({
       key,
@@ -78,7 +81,8 @@ export default defineModule({
         ['side_tier', 'partner.side_tier'],
         ['side_status_reason', 'partner.side_status_reason'],
         ['contact_role', 'partner.contact_role'],
-        ['call_outcome', 'partner.call_outcome'],
+        ['activity_type', 'partner.activity_type'],
+        ['activity_outcome', 'partner.activity_outcome'],
         ['contract_term', 'partner.term'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.partners', label: `entity.${key}`, list: true })),
@@ -99,6 +103,45 @@ export default defineModule({
       label: 'setting.partner.name_stop_words',
       schema: z.array(z.string().min(1)),
       default: ['شركة', 'مؤسسة', 'company', 'co', 'corp', 'corporation', 'ltd', 'limited', 'llc', 'inc', 'est'],
+    },
+    {
+      key: 'partner.contract_reminder_days',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_reminder_days',
+      schema: z.array(z.number().int().min(1).max(365)).min(1).max(6),
+      default: [60, 30, 7],
+    },
+    {
+      key: 'partner.contract_expiring_from_days',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_expiring_from_days',
+      schema: z.number().int().min(1).max(365),
+      default: 30,
+    },
+    {
+      // Who hears that a contract is expiring: the side's owner (account manager, relationship owner), the followers,
+      // and the head of the owner's department (the commercial manager).
+      key: 'partner.contract_notify',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_notify',
+      schema: z
+        .object({ account_manager: z.boolean(), followers: z.boolean(), commercial_manager: z.boolean() })
+        .strict(),
+      default: { account_manager: true, followers: true, commercial_manager: false },
+    },
+    {
+      key: 'partner.logo_fallback',
+      group: 'settings.partners',
+      label: 'setting.partner.logo_fallback',
+      schema: z.enum(['monogram', 'blank']),
+      default: 'monogram',
+    },
+    {
+      key: 'partner.stale_after_days',
+      group: 'settings.partners',
+      label: 'setting.partner.stale_after_days',
+      schema: z.number().int().min(1).max(365),
+      default: 21,
     },
     {
       key: 'partner.one_code_per_partner',
