@@ -219,7 +219,8 @@ declare
 begin
   select id into d from core.department where code = p_code;
   if d is null then
-    insert into core.department (code, name_en) values (p_code, initcap(replace(p_code, '_', ' '))) returning id into d;
+    insert into core.department (code, name_en, name_ar) values (p_code, initcap(replace(p_code, '_', ' ')), 'قسم ' || p_code)
+      returning id into d;
   end if;
   return d;
 end
@@ -232,7 +233,7 @@ declare
 begin
   select id into r from core.role where key = p_key;
   if r is null then
-    insert into core.role (key, name_en, is_admin) values (p_key, initcap(replace(p_key, '_', ' ')), p_admin)
+    insert into core.role (key, name_en, name_ar, is_admin) values (p_key, initcap(replace(p_key, '_', ' ')), 'دور ' || p_key, p_admin)
     returning id into r;
   end if;
   return r;

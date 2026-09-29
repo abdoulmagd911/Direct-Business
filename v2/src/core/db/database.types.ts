@@ -52,6 +52,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      can_see: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       code_terms_add: {
         Args: {
           p_approved_by: string;
@@ -119,10 +120,13 @@ export type Database = {
       identifier_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };
+      list_remove: { Args: { p_id: string; p_list: string; p_reason?: string }; Returns: Json };
+      list_retire: { Args: { p_id: string; p_list: string; p_reason: string; p_replacement: string }; Returns: Json };
       list_save: {
         Args: { p_id: string; p_list: string; p_reason?: string; p_values: Json; p_version?: number };
         Returns: Json;
       };
+      list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_devices: {
         Args: Record<PropertyKey, never>;
@@ -187,7 +191,9 @@ export type Database = {
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
+      recently_deleted: { Args: { p_limit?: number }; Returns: Json };
       record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       role_save: {
         Args: {
           p_id: string;
@@ -202,11 +208,16 @@ export type Database = {
       };
       search: { Args: { p_limit?: number; p_q: string }; Returns: Json };
       setting_clear: { Args: { p_department: string; p_key: string; p_reason: string }; Returns: Json };
+      setting_preview: {
+        Args: { p_department: string; p_key: string; p_valid_from?: string; p_value: Json };
+        Returns: Json;
+      };
       setting_set: {
         Args: { p_department: string; p_key: string; p_reason?: string; p_valid_from?: string; p_value: Json };
         Returns: Json;
       };
       settings: { Args: { p_group: string }; Returns: Json };
+      settings_log: { Args: { p_before?: string; p_limit?: number }; Returns: Json };
       sign_in_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_complete: {
         Args: { p_device_label?: string; p_provider?: string; p_user_agent?: string };

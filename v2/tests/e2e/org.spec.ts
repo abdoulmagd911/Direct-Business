@@ -119,6 +119,8 @@ test('a team retires with its people moved, in one change with one Undo', async 
     const d = page.getByRole('dialog');
     await d.getByLabel('Name', { exact: true }).fill(`Test team ${code}`);
     await d.getByLabel('Code').fill(code);
+    await expect(d.locator('[data-team-save]'), 'the Arabic name is required (V97)').toBeDisabled();
+    await d.getByLabel('Name (Arabic)').fill(`فريق تجريبي ${code}`);
     await d.locator('[data-team-save]').click();
     await expect(toast(page, 'Team saved')).toBeVisible();
     await expect(page.locator(`[data-team-row="${code}"]`)).toBeVisible();

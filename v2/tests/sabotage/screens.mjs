@@ -178,6 +178,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'team-arabic-optional',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'the Arabic name is required (V97)',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: 'disabled={!f.name_en.trim() || !f.name_ar.trim() || !f.code.trim() || !f.department_id}',
+        replace: 'disabled={!f.name_en.trim() || !f.code.trim() || !f.department_id}',
+      },
+    ],
+  },
+  {
     name: 'list-arabic-optional',
     breaks: ['e2e:tests/e2e/settings.spec.ts'],
     expect: 'the Arabic name is required (V76)',

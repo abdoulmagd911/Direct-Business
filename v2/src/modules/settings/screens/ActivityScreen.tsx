@@ -16,7 +16,7 @@ import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
-import type { HistoryRow, RecordChange } from '@/ui/record/history';
+import type { HistoryRow } from '@/ui/record/history';
 import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { Tabs } from '@/ui/Tabs';
@@ -82,37 +82,29 @@ export function ActivityScreen({
         failed: (k, d) => t(k, { detail: d }),
       },
       async () => {
-        // The row this request wrote, then the value that stood before it for the same key and department.
-        const hist = (await rpc('record_history', {
-          p_entity: 'setting',
-          p_id: change.id!,
-        } as never)) as unknown as RecordChange[];
-        const insert = hist.find((c) => c.action === 'insert');
-        const written = (insert?.after ?? {}) as { key?: string; department_id?: string | null; valid_from?: string };
+        // The row this request wrote (api.settings_log carries each change's before and after — V97), then the value
+        // that stood before it for the same key and department: a same-day change replaced the row that stood before
+        // it (soft-removed in the same request — V131), and that row's value is what Revert brings back; else the
+        // earlier dated row; else the default.
+        const written = (change.after ?? {}) as { key?: string; department_id?: string | null; valid_from?: string };
         if (!written.key) throw new Error('common.not_found');
-        const group = modules.flatMap((m) => m.settings ?? []).find((s) => s.key === written.key)?.group;
-        if (!group) throw new Error('setting.unknown');
-        const answer = (await rpc('settings', { p_group: group } as never)) as unknown as SettingsAnswer;
-        const def = answer.settings.find((s) => s.key === written.key)!;
-        const earlier = def.rows
-          .filter(
-            (r) =>
-              (r.department_id ?? null) === (written.department_id ?? null) &&
-              r.valid_from < (written.valid_from ?? ''),
-          )
-          .sort((a, b) => (a.valid_from < b.valid_from ? 1 : -1))[0];
-        // A same-day change replaced the row that stood before it (soft-removed in the same request — V131): that
-        // row's value is what Revert brings back; else the earlier dated row; else the default.
         const removed = reverting.changes.find((c) => c.entity === 'setting' && c.action === 'remove');
-        let replaced: unknown;
-        if (removed?.id) {
-          const gone = (await rpc('record_history', {
-            p_entity: 'setting',
-            p_id: removed.id,
-          } as never)) as unknown as RecordChange[];
-          replaced = (gone.find((c) => c.action === 'remove')?.before as { value?: unknown } | undefined)?.value;
+        const replaced = (removed?.before as { value?: unknown } | undefined)?.value;
+        let previous: unknown = replaced;
+        if (previous === undefined) {
+          const group = modules.flatMap((m) => m.settings ?? []).find((s) => s.key === written.key)?.group;
+          if (!group) throw new Error('setting.unknown');
+          const answer = (await rpc('settings', { p_group: group } as never)) as unknown as SettingsAnswer;
+          const def = answer.settings.find((s) => s.key === written.key)!;
+          const earlier = def.rows
+            .filter(
+              (r) =>
+                (r.department_id ?? null) === (written.department_id ?? null) &&
+                r.valid_from < (written.valid_from ?? ''),
+            )
+            .sort((a, b) => (a.valid_from < b.valid_from ? 1 : -1))[0];
+          previous = earlier ? earlier.value : def.default;
         }
-        const previous = replaced !== undefined ? replaced : earlier ? earlier.value : def.default;
         return (await rpc('setting_set', {
           p_key: written.key,
           p_department: (written.department_id ?? null) as unknown as string,

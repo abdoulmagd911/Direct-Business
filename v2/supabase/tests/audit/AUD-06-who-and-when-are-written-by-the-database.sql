@@ -5,7 +5,7 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.other', test.person('Test Other', 'member')::text, true);
 select test.claims_of(current_setting('t.admin')::uuid);   -- as inside an api function called by them
 select audit.begin('ui', 'role.saved');
-insert into core.role (key, name_en, created_by, version) values ('test_role', 'Test Role', current_setting('t.other')::uuid, 7);
+insert into core.role (key, name_en, name_ar, created_by, version) values ('test_role', 'Test Role', 'دور للتجربة', current_setting('t.other')::uuid, 7);
 update core.role set name_en = 'Test Role Two', created_by = current_setting('t.other')::uuid, version = 99 where key = 'test_role';
 do $$
 declare

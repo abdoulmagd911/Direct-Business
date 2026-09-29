@@ -1,9 +1,9 @@
 // @ts-check
 // V59 — the app's wording never says "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE" — nor, since the
-// owner's list of 29 Sep, "Google", "Zoom", "Keep me signed in" or "GMV". The department
-// is "Commercial"; the product is "Commercial Workspace". Scanned: the message catalogs (messages/*.json) and every
-// piece of literal text in src/ (strings, template pieces, JSX text — the page templates). Comments are not wording.
-// Spacing, hyphens and case do not matter ("Direct-KSA", "b2b").
+// owner's list of 29 Sep, "Google", "Zoom", "Keep me signed in" or "GMV". The department is "Commercial"; the product
+// is "Commercial Workspace". Scanned: the message catalogs (messages/*.json), the e-mail templates
+// (supabase/templates/*.html — V145) and every piece of literal text in src/ (strings, template pieces, JSX text — the
+// page templates). Comments are not wording. Spacing, hyphens and case do not matter ("Direct-KSA", "b2b").
 import { defineCheck, lineOf, literals, parseSource, select } from './lib.mjs';
 
 const CHECK = 'forbidden-words';
@@ -19,7 +19,7 @@ export const FORBIDDEN = [
   // money words are Revenue · Cost · Profit (V73) — never GMV.
   [/\bgoogle\b/gi, 'Google'],
   [/\bzoom\b/gi, 'Zoom'],
-  [/\bkeep\s+me\s+signed\s+in\b/gi, 'Keep me signed in'],
+  [/\bkeep[\s\-_.]+me[\s\-_.]+signed[\s\-_.]+in\b/gi, 'Keep me signed in'],
   [/\bgmv\b/gi, 'Sales (GMV)'],
 ];
 
@@ -35,13 +35,13 @@ export function forbiddenIn(text) {
 
 export default defineCheck({
   name: CHECK,
-  rule: 'V59/V73/V74: never "Direct KSA", "Direct Corporate", "B2B", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs or page text',
+  rule: 'V59/V73/V74: never "Direct KSA", "Direct Corporate", "B2B", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs, the e-mail templates or page text',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];
     const say = (/** @type {string} */ word, /** @type {string} */ found) =>
       `"${found}" — the app never says ${word} (V59); the department is Commercial`;
-    for (const file of select(ctx, ['messages/*.json'])) {
+    for (const file of select(ctx, ['messages/*.json', 'supabase/templates/*.html'])) {
       const text = ctx.read(file);
       for (const f of forbiddenIn(text))
         out.push({ check: CHECK, file, line: lineOf(text, f.index), message: say(f.word, f.found) });

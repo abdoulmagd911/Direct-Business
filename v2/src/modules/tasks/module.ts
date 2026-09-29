@@ -33,6 +33,7 @@ export default defineModule({
       label: 'setting.work.no_update_days',
       schema: z.number().int().min(1).max(60),
       default: 7,
+      effectiveDated: true,
     },
     {
       key: 'work.week_starts_on',
@@ -40,6 +41,7 @@ export default defineModule({
       label: 'setting.work.week_starts_on',
       schema: z.enum(['saturday', 'sunday', 'monday']),
       default: 'sunday',
+      effectiveDated: true,
     },
     {
       key: 'work.meeting_note_on_time_days',
@@ -47,6 +49,7 @@ export default defineModule({
       label: 'setting.work.meeting_note_on_time_days',
       schema: z.number().int().min(0).max(14),
       default: 1,
+      effectiveDated: true,
     },
     {
       key: 'work.reminder_days_before_due',
@@ -54,6 +57,7 @@ export default defineModule({
       label: 'setting.work.reminder_days_before_due',
       schema: z.number().int().min(0).max(30),
       default: 1,
+      effectiveDated: true,
     },
     {
       key: 'work.pipeline_weekly_target',

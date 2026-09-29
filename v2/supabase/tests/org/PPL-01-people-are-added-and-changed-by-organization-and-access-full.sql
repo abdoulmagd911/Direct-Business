@@ -8,7 +8,7 @@ select set_config('t.admin2', test.person('Test Second Admin', 'admin')::text, t
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.dep', test.department('commercial')::text, true);
 select set_config('t.other_dep', test.department('people_other')::text, true);
-insert into core.team (department_id, code, name_en) values (current_setting('t.other_dep')::uuid, 'far', 'Far Team');
+insert into core.team (department_id, code, name_en, name_ar) values (current_setting('t.other_dep')::uuid, 'far', 'Far Team', 'فريق بعيد');
 select set_config('t.far_team', (select id::text from core.team where code = 'far'), true);
 select set_config('t.role_member', (select id::text from core.role where key = 'member'), true);
 select set_config('t.role_admin', (select id::text from core.role where key = 'admin'), true);

@@ -57,6 +57,7 @@ insert into core.setting_def (key, group_page, schema, default_value, effective_
   ('app.default_density', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","enum":["comfortable","compact"]}'::jsonb, '"comfortable"'::jsonb, false, 'setting.app.default_density', true),
   ('app.default_theme', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","enum":["light","dark","colorful","direct"]}'::jsonb, '"direct"'::jsonb, false, 'setting.app.default_theme', true),
   ('app.export_formats', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","minItems":1,"type":"array","items":{"type":"string","enum":["csv","xlsx"]}}'::jsonb, '["csv","xlsx"]'::jsonb, false, 'setting.app.export_formats', true),
+  ('audit.recently_deleted_days', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":365}'::jsonb, '30'::jsonb, false, 'setting.audit.recently_deleted_days', true),
   ('audit.undo_window_hours', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":168}'::jsonb, '24'::jsonb, false, 'setting.audit.undo_window_hours', true),
   ('auth.device_idle_days', 'settings.org', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":365}'::jsonb, '30'::jsonb, false, 'setting.auth.device_idle_days', true),
   ('files.max_mb', 'settings.app', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":50}'::jsonb, '20'::jsonb, false, 'setting.files.max_mb', true),
@@ -64,61 +65,62 @@ insert into core.setting_def (key, group_page, schema, default_value, effective_
   ('partner.id_format', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"prefix":{"type":"string","pattern":"^[A-Z][A-Z0-9-]*$"},"width":{"type":"integer","minimum":3,"maximum":8}},"required":["prefix","width"],"additionalProperties":false}'::jsonb, '{"prefix":"DK-P","width":4}'::jsonb, false, 'setting.partner.id_format', true),
   ('partner.name_stop_words', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"array","items":{"type":"string","minLength":1}}'::jsonb, '["شركة","مؤسسة","company","co","corp","corporation","ltd","limited","llc","inc","est"]'::jsonb, false, 'setting.partner.name_stop_words', true),
   ('partner.one_code_per_partner', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"boolean"}'::jsonb, 'true'::jsonb, false, 'setting.partner.one_code_per_partner', true),
-  ('work.meeting_note_on_time_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":14}'::jsonb, '1'::jsonb, false, 'setting.work.meeting_note_on_time_days', true),
-  ('work.no_update_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":60}'::jsonb, '7'::jsonb, false, 'setting.work.no_update_days', true),
+  ('work.meeting_note_on_time_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":14}'::jsonb, '1'::jsonb, true, 'setting.work.meeting_note_on_time_days', true),
+  ('work.no_update_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":60}'::jsonb, '7'::jsonb, true, 'setting.work.no_update_days', true),
   ('work.pipeline_weekly_target', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":100}'::jsonb, '1'::jsonb, true, 'setting.work.pipeline_weekly_target', true),
-  ('work.reminder_days_before_due', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":30}'::jsonb, '1'::jsonb, false, 'setting.work.reminder_days_before_due', true),
-  ('work.week_starts_on', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","enum":["saturday","sunday","monday"]}'::jsonb, '"sunday"'::jsonb, false, 'setting.work.week_starts_on', true)
+  ('work.reminder_days_before_due', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":30}'::jsonb, '1'::jsonb, true, 'setting.work.reminder_days_before_due', true),
+  ('work.week_starts_on', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","enum":["saturday","sunday","monday"]}'::jsonb, '"sunday"'::jsonb, true, 'setting.work.week_starts_on', true)
 on conflict (key) do update set group_page = excluded.group_page, schema = excluded.schema,
   default_value = excluded.default_value, effective_dated = excluded.effective_dated,
   label_key = excluded.label_key, active = true;
-update core.setting_def set active = false where active and key not in ('app.arabic_enabled', 'app.default_density', 'app.default_theme', 'app.export_formats', 'audit.undo_window_hours', 'auth.device_idle_days', 'files.max_mb', 'notify.kinds_enabled', 'partner.id_format', 'partner.name_stop_words', 'partner.one_code_per_partner', 'work.meeting_note_on_time_days', 'work.no_update_days', 'work.pipeline_weekly_target', 'work.reminder_days_before_due', 'work.week_starts_on');
+update core.setting_def set active = false where active and key not in ('app.arabic_enabled', 'app.default_density', 'app.default_theme', 'app.export_formats', 'audit.recently_deleted_days', 'audit.undo_window_hours', 'auth.device_idle_days', 'files.max_mb', 'notify.kinds_enabled', 'partner.id_format', 'partner.name_stop_words', 'partner.one_code_per_partner', 'work.meeting_note_on_time_days', 'work.no_update_days', 'work.pipeline_weekly_target', 'work.reminder_days_before_due', 'work.week_starts_on');
 
 -- entities: the tables whose records are logged, undone and followed (V127)
-insert into core.entity (key, table_name, page_key, owners, is_list, active) values
-  ('account_manager', 'partner.account_manager', 'partners', 'partner.account_manager_owners', false, true),
-  ('call_outcome', 'partner.call_outcome', 'settings.partners', null, true, true),
-  ('campaign_code', 'partner.campaign_code', 'partners', 'owner_id', false, true),
-  ('capability', 'core.capability', 'settings.org', null, false, true),
-  ('code_terms', 'partner.code_terms', 'partners', null, false, true),
-  ('contact', 'partner.contact', 'partners', 'partner.contact_owners', false, true),
-  ('contract_term', 'partner.term', 'settings.partners', null, true, true),
-  ('credit_limit', 'partner.credit_limit', 'partners', 'partner.credit_limit_owners', false, true),
-  ('department', 'core.department', 'settings.org', 'head_person_id', false, true),
-  ('entity', 'core.entity', 'settings.org', null, false, true),
-  ('identifier', 'partner.identifier', 'partners', 'partner.identifier_owners', false, true),
-  ('identifier_block', 'partner.identifier_block', 'settings.partners', null, false, true),
-  ('individual_name', 'partner.individual_name', 'partners', null, false, true),
-  ('page', 'core.page', 'settings.org', null, false, true),
-  ('partner', 'partner.partner', 'partners', 'partner.partner_owners', false, true),
-  ('partner_category', 'partner.category', 'settings.partners', null, true, true),
-  ('partner_merge', 'partner.merge', 'partners', null, false, true),
-  ('partner_role', 'partner.partner_role', 'partners', 'partner.partner_role_owners', false, true),
-  ('partner_role_def', 'partner.role', 'settings.partners', null, true, true),
-  ('partner_status', 'partner.status_change', 'partners', 'partner.status_change_owners', false, true),
-  ('partner_tier', 'partner.tier', 'settings.partners', null, true, true),
-  ('person', 'core.person', 'settings.org', 'id', false, true),
-  ('person_auth', 'core.person_auth', 'settings.org', 'person_id', false, true),
-  ('person_capability', 'core.person_capability', 'settings.org', 'person_id', false, true),
-  ('person_department', 'core.person_department', 'settings.org', 'person_id', false, true),
-  ('person_email', 'core.person_email', 'settings.org', 'person_id', false, true),
-  ('person_level', 'core.person_page_level', 'settings.org', 'person_id', false, true),
-  ('person_team', 'core.person_team_assist', 'settings.org', 'person_id', false, true),
-  ('priority', 'work.priority', 'settings.work', null, true, true),
-  ('profile', 'core.person_profile', 'settings.profile', 'person_id', false, true),
-  ('role', 'core.role', 'settings.org', null, false, true),
-  ('role_capability', 'core.role_capability', 'settings.org', null, false, true),
-  ('role_field', 'partner.role_field', 'settings.partners', null, false, true),
-  ('role_level', 'core.role_page_level', 'settings.org', null, false, true),
-  ('saved_view', 'core.saved_view', null, 'owner_id', false, true),
-  ('segment', 'partner.segment', 'settings.partners', null, true, true),
-  ('setting', 'core.setting', 'settings.app', null, false, true),
-  ('setting_def', 'core.setting_def', 'settings.app', null, false, true),
-  ('status_reason', 'partner.status_reason', 'settings.partners', null, true, true),
-  ('team', 'core.team', 'settings.org', 'lead_person_id', false, true),
-  ('wording', 'core.wording', 'settings.app', null, false, true)
+insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, active) values
+  ('account_manager', 'partner.account_manager', 'partners', 'partner.account_manager_owners', false, false, null, true),
+  ('call_outcome', 'partner.call_outcome', 'settings.partners', null, true, false, null, true),
+  ('campaign_code', 'partner.campaign_code', 'partners', 'owner_id', false, false, null, true),
+  ('capability', 'core.capability', 'settings.org', null, false, false, null, true),
+  ('code_terms', 'partner.code_terms', 'partners', null, false, false, null, true),
+  ('contact', 'partner.contact', 'partners', 'partner.contact_owners', false, false, null, true),
+  ('contract_term', 'partner.term', 'settings.partners', null, true, false, null, true),
+  ('credit_limit', 'partner.credit_limit', 'partners', 'partner.credit_limit_owners', false, false, null, true),
+  ('department', 'core.department', 'settings.org', 'head_person_id', false, false, null, true),
+  ('entity', 'core.entity', 'settings.org', null, false, false, null, true),
+  ('identifier', 'partner.identifier', 'partners', 'partner.identifier_owners', false, false, null, true),
+  ('identifier_block', 'partner.identifier_block', 'settings.partners', null, false, false, null, true),
+  ('individual_name', 'partner.individual_name', 'partners', null, false, false, null, true),
+  ('page', 'core.page', 'settings.org', null, false, false, null, true),
+  ('partner', 'partner.partner', 'partners', 'partner.partner_owners', false, false, null, true),
+  ('partner_category', 'partner.category', 'settings.partners', null, true, false, null, true),
+  ('partner_merge', 'partner.merge', 'partners', null, false, false, null, true),
+  ('partner_role', 'partner.partner_role', 'partners', 'partner.partner_role_owners', false, false, null, true),
+  ('partner_role_def', 'partner.role', 'settings.partners', null, true, false, null, true),
+  ('partner_status', 'partner.status_change', 'partners', 'partner.status_change_owners', false, false, null, true),
+  ('partner_tier', 'partner.tier', 'settings.partners', null, true, false, null, true),
+  ('person', 'core.person', 'settings.org', 'id', false, false, null, true),
+  ('person_auth', 'core.person_auth', 'settings.org', 'person_id', false, false, null, true),
+  ('person_capability', 'core.person_capability', 'settings.org', 'person_id', false, false, null, true),
+  ('person_department', 'core.person_department', 'settings.org', 'person_id', false, false, null, true),
+  ('person_email', 'core.person_email', 'settings.org', 'person_id', false, false, null, true),
+  ('person_level', 'core.person_page_level', 'settings.org', 'person_id', false, false, null, true),
+  ('person_team', 'core.person_team_assist', 'settings.org', 'person_id', false, false, null, true),
+  ('priority', 'work.priority', 'settings.work', null, true, false, null, true),
+  ('profile', 'core.person_profile', 'settings.profile', 'person_id', false, false, null, true),
+  ('role', 'core.role', 'settings.org', null, false, false, null, true),
+  ('role_capability', 'core.role_capability', 'settings.org', null, false, false, null, true),
+  ('role_field', 'partner.role_field', 'settings.partners', null, false, false, null, true),
+  ('role_level', 'core.role_page_level', 'settings.org', null, false, false, null, true),
+  ('saved_view', 'core.saved_view', null, 'owner_id', false, false, null, true),
+  ('segment', 'partner.segment', 'settings.partners', null, true, false, null, true),
+  ('setting', 'core.setting', 'settings.app', null, false, false, null, true),
+  ('setting_def', 'core.setting_def', 'settings.app', null, false, false, null, true),
+  ('status_reason', 'partner.status_reason', 'settings.partners', null, true, false, null, true),
+  ('team', 'core.team', 'settings.org', 'lead_person_id', false, false, null, true),
+  ('wording', 'core.wording', 'settings.app', null, false, false, null, true)
 on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,
-  owners = excluded.owners, is_list = excluded.is_list, active = true;
+  owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,
+  active = true;
 update core.entity set active = false where active and key not in ('account_manager', 'call_outcome', 'campaign_code', 'capability', 'code_terms', 'contact', 'contract_term', 'credit_limit', 'department', 'entity', 'identifier', 'identifier_block', 'individual_name', 'page', 'partner', 'partner_category', 'partner_merge', 'partner_role', 'partner_role_def', 'partner_status', 'partner_tier', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'priority', 'profile', 'role', 'role_capability', 'role_field', 'role_level', 'saved_view', 'segment', 'setting', 'setting_def', 'status_reason', 'team', 'wording');
 
 -- each role's starting level on each page, where it has none
@@ -269,14 +271,16 @@ join core.role r on r.key = v.role_key
 where not exists (select 1 from core.role_capability x
                   where x.role_id = r.id and x.capability_key = v.capability_key and x.deleted_at is null);
 
--- a new setting's default, written once as a dated company-wide row (§3.2)
+-- a new setting's default, written once as a company-wide row from the floor date (§3.2, V97): it answers for every
+-- past day, and never overwrites a value an admin has set
 insert into core.setting (key, department_id, value, valid_from, reason)
-select v.key, null, v.value, date '2026-09-29', 'default'
+select v.key, null, v.value, date '2000-01-01', 'default'
 from (values
   ('app.arabic_enabled', 'false'::jsonb),
   ('app.default_density', '"comfortable"'::jsonb),
   ('app.default_theme', '"direct"'::jsonb),
   ('app.export_formats', '["csv","xlsx"]'::jsonb),
+  ('audit.recently_deleted_days', '30'::jsonb),
   ('audit.undo_window_hours', '24'::jsonb),
   ('auth.device_idle_days', '30'::jsonb),
   ('files.max_mb', '20'::jsonb),

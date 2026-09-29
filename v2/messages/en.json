@@ -286,7 +286,8 @@
       "export_formats": "Export formats"
     },
     "audit": {
-      "undo_window_hours": "Hours an action can still be undone"
+      "undo_window_hours": "Hours an action can still be undone",
+      "recently_deleted_days": "Days a removed record can be restored"
     },
     "files": {
       "max_mb": "Largest file, in MB"
@@ -479,7 +480,8 @@
         "to": "To",
         "departments": "{count} departments keep their own value",
         "fromToday": "Applies from today",
-        "fromDate": "Applies from {date}"
+        "fromDate": "Applies from {date}",
+        "replacesSameDay": "replaces today's earlier change"
       },
       "save": "Save setting",
       "saved": "Setting saved",
@@ -706,6 +708,9 @@
     "role": {
       "key_fixed": "A role's key never changes",
       "admins_only": "Only an admin renames the admin role"
+    },
+    "org": {
+      "name_ar_required": "An Arabic name is required"
     }
   }
 }

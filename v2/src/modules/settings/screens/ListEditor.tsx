@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { run } from '@/core/commands/run';
-import { rpc, rpcLoose } from '@/core/db/rpc';
+import { rpc } from '@/core/db/rpc';
 import { bannedIn } from '@/core/words/banned';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -101,8 +101,8 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     setReplaceWith('');
     setReason('');
     try {
-      const n = await rpcLoose<number | { count: number }>('list_usage', { p_list: entity, p_id: r.id });
-      setUsage(typeof n === 'number' ? n : (n?.count ?? null));
+      const n = (await rpc('list_usage', { p_list: entity, p_id: r.id })) as { total?: number } | null;
+      setUsage(n?.total ?? 0);
     } catch {
       setUsage(null);
     }
@@ -116,10 +116,10 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
       { ...words, done: t('settings.list.archivedDone', { name: name(target) }) },
       () =>
         (replaced
-          ? rpcLoose('list_retire', {
+          ? rpc('list_retire', {
               p_list: entity,
               p_id: target.id,
-              p_replace_with: replaceWith,
+              p_replacement: replaceWith,
               p_reason: reason.trim(),
             })
           : rpc('list_save', {
@@ -306,7 +306,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
             <Button
               variant="primary"
               loading={busy}
-              disabled={(usage ?? 0) > 0 && !replaceWith}
+              disabled={usage === null || ((usage ?? 0) > 0 && (!replaceWith || !reason.trim()))}
               onClick={() => void archive()}
               data-list-archive-confirm
             >
@@ -341,7 +341,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                 )}
               </Field>
             ) : null}
-            <Field label={`${t('common.reason')} (${t('common.optional')})`}>
+            <Field label={(usage ?? 0) > 0 ? t('common.reason') : `${t('common.reason')} (${t('common.optional')})`}>
               {(p) => <Textarea {...p} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}
             </Field>
           </div>

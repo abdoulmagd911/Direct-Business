@@ -1,7 +1,7 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { run } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
@@ -17,6 +17,15 @@ import { SchemaEditor, SchemaValue } from './SchemaEditor';
 export type Department = { id: string; name_en: string; name_ar: string | null };
 
 const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+
+/** api.setting_preview's answer (V97): a rolled-back dry run of the change. */
+type ServerPreview = {
+  valid_from: string;
+  value_before: unknown;
+  value_after: unknown;
+  replaces_same_day: boolean;
+  previewed: boolean;
+};
 
 /**
  * One setting (V97, V131): today's value for all departments, the departments that keep their own, and Change — a
@@ -42,6 +51,7 @@ export function SettingCard({
   const [from, setFrom] = useState(today());
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [answered, setAnswered] = useState<(ServerPreview & { of: string }) | null>(null);
   const label = t.has(def.label_key) ? t(def.label_key) : def.key;
   const deptName = (id: string | null) => {
     const d = departments.find((x) => x.id === id);
@@ -66,6 +76,29 @@ export function SettingCard({
   const fromValue = scope === 'all' ? def.value : (deptRows.find((r) => r.department_id === scope)?.value ?? def.value);
   const changed = JSON.stringify(fromValue) !== JSON.stringify(value);
   const ok = changed && valid(def.schema, value) && reason.trim().length > 0 && (!def.effective_dated || !!from);
+  // The preview is the database's own dry run (api.setting_preview — V97): it applies the change and rolls it back,
+  // answering with the value that stands before and after on the day it would apply, and whether a same-day change
+  // is replaced. Until it answers (or when it refuses), the dialog shows what the screen already knows.
+  const previewable = open && changed && valid(def.schema, value) && (!def.effective_dated || !!from);
+  const valueJson = JSON.stringify(value);
+  const asked = `${scope}|${from}|${valueJson}`;
+  useEffect(() => {
+    if (!previewable) return;
+    let live = true;
+    rpc('setting_preview', {
+      p_key: def.key,
+      p_department: (scope === 'all' ? null : scope) as unknown as string,
+      p_value: JSON.parse(valueJson) as never,
+      p_valid_from: def.effective_dated ? from : undefined,
+    })
+      .then((answer) => live && setAnswered({ ...(answer as unknown as ServerPreview), of: asked }))
+      .catch(() => live && setAnswered(null));
+    return () => {
+      live = false;
+    };
+  }, [previewable, asked, def.key, def.effective_dated, scope, valueJson, from]);
+  // Only the answer to the change as it stands now is shown; an older answer, or none yet, leaves the screen's own.
+  const previewed = previewable && answered?.of === asked ? answered : null;
   const save = async () => {
     setBusy(true);
     await run(
@@ -210,22 +243,32 @@ export function SettingCard({
           <dl
             className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-md bg-surface p-3 text-sm"
             data-setting-preview
+            data-previewed={previewed?.previewed ? 'server' : undefined}
           >
             <dt className="text-muted">{t('settings.setting.preview.from')}</dt>
             <dd className="font-medium">
-              <SchemaValue settingKey={def.key} value={fromValue} />
+              <SchemaValue settingKey={def.key} value={previewed ? previewed.value_before : fromValue} />
             </dd>
             <dt className="text-muted">{t('settings.setting.preview.to')}</dt>
             <dd className="font-medium">
-              {valid(def.schema, value) ? <SchemaValue settingKey={def.key} value={value} /> : '—'}
+              {previewed ? (
+                <SchemaValue settingKey={def.key} value={previewed.value_after} />
+              ) : valid(def.schema, value) ? (
+                <SchemaValue settingKey={def.key} value={value} />
+              ) : (
+                '—'
+              )}
             </dd>
             <dt className="text-muted">{t('settings.setting.appliesFrom')}</dt>
             <dd>
-              {def.effective_dated && from !== today()
+              {(previewed ? previewed.valid_from : def.effective_dated ? from : today()) !== today()
                 ? t('settings.setting.preview.fromDate', {
-                    date: formatDate(new Date(from), locale, { dateStyle: 'medium' }),
+                    date: formatDate(new Date(previewed ? previewed.valid_from : from), locale, {
+                      dateStyle: 'medium',
+                    }),
                   })
                 : t('settings.setting.preview.fromToday')}
+              {previewed?.replaces_same_day ? ` · ${t('settings.setting.preview.replacesSameDay')}` : ''}
             </dd>
             {scope === 'all' && deptRows.length ? (
               <>

@@ -108,5 +108,6 @@ level above none, Settings for admins only, and a page may declare several drawe
 
 P3-5 (V210): `src/ui/record/` is the one record-page template (header with key figures, one tab row, the details rail,
 the activity timeline with Undo); `src/modules/settings/` holds the settings framework (schema-drawn setting cards with
-the preview, the list editor with the Arabic name required, Activity with Undo and Revert) and `src/modules/org/` My
-profile, Organization & access and the Person record. `core/commands/run.ts` runs one write with its toast and Undo.
+the database's own preview, the list editor with the Arabic name required and Used in N before an archive, Activity
+with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
+record. `core/commands/run.ts` runs one write with its toast and Undo.

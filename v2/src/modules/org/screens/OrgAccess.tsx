@@ -421,7 +421,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           p_department: f.department_id,
           p_code: f.code.trim(),
           p_name_en: f.name_en.trim(),
-          p_name_ar: f.name_ar.trim() || undefined,
+          p_name_ar: f.name_ar.trim(),
           p_lead: f.lead_person_id || undefined,
           p_version: editing === 'new' ? undefined : editing.version,
         }) as Promise<{ request_id?: string | null } | null>,
@@ -450,7 +450,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           p_id: (dept === 'new' ? null : dept.id) as unknown as string,
           p_code: d.code.trim(),
           p_name_en: d.name_en.trim(),
-          p_name_ar: d.name_ar.trim() || undefined,
+          p_name_ar: d.name_ar.trim(),
           p_head: d.head_person_id || undefined,
           p_version: dept === 'new' ? undefined : dept.version,
         }) as Promise<{ request_id?: string | null } | null>,
@@ -483,7 +483,10 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
       <Field label={t('settings.teams.name')}>
         {(p) => <Input {...p} value={f.name_en} onChange={(e) => setF({ ...f, name_en: e.target.value })} autoFocus />}
       </Field>
-      <Field label={t('settings.teams.nameAr')}>
+      <Field
+        label={t('settings.teams.nameAr')}
+        error={f.name_en && !f.name_ar.trim() ? t('settings.list.arabicRequired') : undefined}
+      >
         {(p) => (
           <Input
             {...p}
@@ -639,7 +642,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
             <Button onClick={() => setEditing(null)}>{t('common.cancel')}</Button>
             <Button
               variant="primary"
-              disabled={!f.name_en.trim() || !f.code.trim() || !f.department_id}
+              disabled={!f.name_en.trim() || !f.name_ar.trim() || !f.code.trim() || !f.department_id}
               loading={busy}
               onClick={() => void saveTeam()}
               data-team-save
@@ -665,7 +668,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
             <Button onClick={() => setDept(null)}>{t('common.cancel')}</Button>
             <Button
               variant="primary"
-              disabled={!d.name_en.trim() || !d.code.trim()}
+              disabled={!d.name_en.trim() || !d.name_ar.trim() || !d.code.trim()}
               loading={busy}
               onClick={() => void saveDept()}
             >
@@ -680,7 +683,10 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
               <Input {...p} value={d.name_en} onChange={(e) => setD({ ...d, name_en: e.target.value })} autoFocus />
             )}
           </Field>
-          <Field label={t('settings.teams.nameAr')}>
+          <Field
+            label={t('settings.teams.nameAr')}
+            error={d.name_en && !d.name_ar.trim() ? t('settings.list.arabicRequired') : undefined}
+          >
             {(p) => (
               <Input
                 {...p}

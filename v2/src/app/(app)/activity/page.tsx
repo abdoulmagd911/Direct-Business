@@ -7,6 +7,7 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
+import { isAdmin } from '@/ui/shell/nav';
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 
@@ -36,6 +37,14 @@ export default async function ActivityPage({
         p_person: filters.person || me.person.id,
         p_limit: 100,
       } as never)) as unknown as SignInRow[]) ?? [];
+  } else if (tab === 'settings' && isAdmin(me)) {
+    // The settings log (api.settings_log — V97, P3-6d): every request that touched a settings page, with each change's
+    // before and after, so Revert knows the value that stood before without another read.
+    const log =
+      ((await serverRpc('settings_log', { p_limit: 100 })) as unknown as (Omit<HistoryRow, 'undone'> & {
+        undone_by: string | null;
+      })[]) ?? [];
+    rows = log.map(({ undone_by, ...r }) => ({ ...r, undone: undone_by !== null }));
   } else {
     rows =
       ((await serverRpc('activity', {

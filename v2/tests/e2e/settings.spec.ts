@@ -29,6 +29,8 @@ test('an admin changes a setting with a reason, sees the preview and the new val
   await dialog.getByLabel('Reason').fill(reason);
   await expect(dialog.locator('[data-setting-preview]')).toContainText(before);
   await expect(dialog.locator('[data-setting-preview]')).toContainText(next);
+  // the preview is the database's rolled-back dry run (api.setting_preview — V97), not the screen's guess
+  await expect(dialog.locator('[data-setting-preview]')).toHaveAttribute('data-previewed', 'server');
   await dialog.locator('[data-setting-save]').click();
   await expect(toast(page, 'Setting saved')).toBeVisible();
   await expect(card.locator('[data-setting-value]')).toHaveText(next);
@@ -72,6 +74,8 @@ test('a list entry needs its Arabic name, archives with the count shown, and one
   await expect(row).toBeVisible();
 
   await row.locator('[data-list-archive]').click();
+  // Used in N comes from the database (api.list_usage — V97); a fresh entry is used nowhere
+  await expect(page.getByRole('dialog').locator('[data-list-usage]')).toHaveText('Used in 0');
   await expect(page.getByRole('dialog')).toContainText('Made-up priority');
   await page.getByRole('dialog').locator('[data-list-archive-confirm]').click();
   await expect(toast(page, 'archived')).toBeVisible();

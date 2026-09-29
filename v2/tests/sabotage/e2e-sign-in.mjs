@@ -114,4 +114,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'e2e-undo-leaves-the-ban',
+    breaks: [e2e('undoing-an-email-removal-lifts-its-ban')],
+    expect: 'the undone removal lifts the ban',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;',
+        replace: 'for (const personId of done.auth_resync ?? []) void personId;',
+      },
+    ],
+  },
 ];
