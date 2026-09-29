@@ -1,14 +1,13 @@
--- Sabotage: retire-rewrites-history
+-- Sabotage: anyone-retires-a-list-value
 -- Breaks: sql:SETS-01
--- Expect: partner.status_never_rewritten
--- Retiring a list value tries to rewrite history: a side's status changes would take the replacement (V161). The
--- status table's own lock refuses that, so the retire fails outright instead of keeping the old reason.
+-- Expect: only an admin retires a list value (QA-96)
+-- Retiring a list value forgets the page level: anyone signed in replaces a value everywhere.
 create or replace function core.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   e core.entity := core.list_entity(p_list);
-  me uuid := authz.require(e.page_key, 'full');
+  me uuid := authz.me();
   why text := core.access_reason(p_reason);
   rep jsonb;
   r record;
@@ -37,7 +36,7 @@ begin
       where c.contype = 'f' and c.confrelid = pg_catalog.to_regclass(e.table_name) and pg_catalog.cardinality(c.conkey) = 1
       order by 1, 2
     loop
-      if false and exists (select 1 from core.entity x where x.table_name = r.tbl and x.active and x.is_list) then
+      if core.is_history(r.tbl) or exists (select 1 from core.entity x where x.table_name = r.tbl and x.active and x.is_list) then
         execute pg_catalog.format('select pg_catalog.count(*) from %s t where t.%I = $1%s', r.tbl, r.col,
                                   case when r.soft then ' and t.deleted_at is null' else '' end)
           into n using p_id;
