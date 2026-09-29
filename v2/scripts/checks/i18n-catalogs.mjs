@@ -18,7 +18,7 @@ const ALLOWED_TEXT = new Set(['Ctrl K']);
 
 export default defineCheck({
   name: 'i18n-catalogs',
-  rule: 'BUILD-PLAN: en.json and ar.json carry the same keys; no hard-coded sentence in a screen',
+  rule: 'V410: every ar.json key exists in en.json (en is the source; builder C writes the Arabic); no hard-coded sentence in a screen',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];
@@ -26,8 +26,8 @@ export default defineCheck({
     if (ctx.exists('messages/en.json') && ctx.exists('messages/ar.json')) {
       const en = flat(JSON.parse(ctx.read('messages/en.json')));
       const ar = flat(JSON.parse(ctx.read('messages/ar.json')));
-      for (const k of en)
-        if (!ar.includes(k)) out.push({ check, file: 'messages/ar.json', line: 0, message: `missing "${k}"` });
+      // en.json is the source: builder B adds keys there; builder C writes their Arabic (V410). A key in ar.json
+      // alone is a mistake (a typo, a removed key); a key still missing from ar.json is C's queue, not a finding.
       for (const k of ar)
         if (!en.includes(k)) out.push({ check, file: 'messages/en.json', line: 0, message: `missing "${k}"` });
     }
