@@ -369,6 +369,13 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 - P3-4's "a head grants at most their own level" (ACC-05) is retired: only admins change access now. ACC-05 proves that instead, and ADM-01 proves a non-admin can put no e-mail on an admin, link no sign-in, and change no person, setting, role, list, access or block-list entry. Both are turned red by one sabotage that restores the world before this fix.
 - SEC-02 now calls every definer function a request can reach, with empty arguments, rather than reading its code. A sign-in with no person behind it must be refused or answered nothing; a viewer may read, but neither may change any table. Sign-in itself, `me`, the device heartbeat and signing one's own devices out are named, with reasons. Two sabotages cover it: a function that answers without asking, and one that writes for anyone.
 
+**V139 — The database guard, as built** ACTIVE · 2026-09-29. Implements V402 in `.claude/hooks/sql-guard.mjs`, which runs before every `execute_sql` and `apply_migration` a session makes.
+- On the v2 project (`kimadjvaxgiqzjaukuqg`) it asks only before destructive statements: any DROP (ALTER … DROP included), TRUNCATE, DELETE or UPDATE without WHERE, turning row-level security off, and disabling a trigger. An upsert's `do update set` is not an UPDATE without WHERE.
+- On the old app's project (`vkxoeeoauexyfpzqufqd`) it asks before every call.
+- On any other project it keeps the rules of 27 Sep.
+- It reads the SQL as code: comments and strings decide nothing and hide nothing, and DO blocks and function bodies are read too.
+- A v2 unit test feeds it sample calls; the sabotage `guard-lets-a-drop-through` (a DROP no longer asks) turns it red.
+
 **V140 — Settings are safe to change, as built** ACTIVE · 2026-09-29. V97's safety rules, for everything already built (P3-6d; the owner's item 4).
 - **Lists.** Every settings list can be soft-removed (`deleted_at`, `deleted_by`, `delete_reason`), and nothing is ever physically deleted.
   - `api.list_usage(list, id)` counts the live records that use a value, table by table, from the foreign keys.
