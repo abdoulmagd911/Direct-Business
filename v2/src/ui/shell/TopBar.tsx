@@ -16,11 +16,14 @@ export function TopBar({
   onOpenSearch,
   onOpenBell,
   bellOpen,
+  arabicEnabled = false,
   unread = 0,
 }: {
   onOpenSearch: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
+  /** The language switch shows once Arabic is on (`app.arabic_enabled`, V122). */
+  arabicEnabled?: boolean;
   /** api.notifications_unread, kept live by the shell (P3-7). */
   unread?: number;
 }) {
@@ -64,7 +67,7 @@ export function TopBar({
           </span>
         ) : null}
       </IconButton>
-      <ProfileMenu />
+      <ProfileMenu arabicEnabled={arabicEnabled} />
       <span data-testid="address" className="sr-only">
         {pathname}
       </span>
