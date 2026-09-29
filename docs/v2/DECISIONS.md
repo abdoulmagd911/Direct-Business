@@ -644,6 +644,26 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - `node scripts/e2e/local.mjs [--no-build] [specs]` runs the E2E specs against the local stack in one command. The installed Chromium goes in `PW_CHROMIUM_PATH` when Playwright's own is missing.
 - **The cloud project's own settings are the owner's:** Auth → minimum password length 10, and "Secure password change" left off. Until the code door is switched on there, nothing needs the e-mail sender.
 
+**V167 — A side's records need that side's own page, owner or not** ACTIVE · 2026-09-29 (the QA review of #94 and #96, H1 and M2; V147 made whole).
+- **Writes.** Setting a side's status or owner, and adding or removing a client ID or a discount code, need the side itself writable by the caller (`partner.side_writable`: Full on that side's page, or Own and that side's owner). A capability (`clients.assign`, `clients.identify`) only ever adds to that; it never stands in for the page. Every manager holds the Clients capabilities by default, so before this a manager shut out of Clients could still set Client status and IDs.
+- **Owners.** A side's owners are those named for it *who hold at least View on its page* (`partner.side_owners`). Named the owner without it, a person owns nothing of that side: no record of it, no alert of it (`notify.alert_contract_expiring` goes to side owners), no Own writes.
+- **Reads.** `partner.sees_side` and a side's files (`core.file_visible_as`) need View on the side's page, whoever you are.
+- **The card and the hover card** name the owner of the first side the reader sees (`partner.owner_seen_by`), never another side's.
+- M1 (the contract alert asking who may see) was closed by P3-6e's alerts job (V163). SIDE-02 proves both.
+- Tests: SIDE-02 (new; a manager holding the Clients capabilities without the Clients page, so the page rule is the only thing refusing). SIDE-01's two refusals now name the page (`access.needs_level`).
+- Sabotages: `side-writes-by-capability-alone`, `a-side-owner-without-its-page`, `owners-see-their-side-without-the-page`, `owners-of-unseen-sides-shown`.
+
+**V168 — Agreements restricted by the table; a removed mention kept; "logged late" proven** ACTIVE · 2026-09-29 (the same review, its Lows).
+- **Agreements (D10).** A file of the kind `agreement`, or one attached for the purpose `agreement` or `iban_letter`, is restricted whatever the upload asked, by triggers on `core.file` and `core.file_link`, whichever door writes them. Sabotage `agreements-uploaded-as-normal`.
+- **Mentions (V401).** A mention taken off a note is marked removed (`core.mention.deleted_at`), never deleted. The timeline shows live mentions, and a person mentioned again is told again. NOTE-01; sabotage `a-removed-mention-is-deleted`.
+- **Logged late (V400).** ACT-01 now sets `app.go_live_on` and shows the rule: 20 days after the day is late, 10 is not, before go-live never is. Sabotage `nothing-is-ever-late`.
+- `scripts/db/sabotage-from.mjs` writes a SQL sabotage from a migration's own function with one rule taken out, so sabotages never drift from the code they test.
+- **H2 (the roles-to-sides conversion, 063100) is not changed here.** Migration 063100 drops the old tables and columns, so no later migration can bring their data back, and 063100 is merged history (V103). No environment holds rows in the old shape:
+  - the cloud counted 0 partners, 0 roles and 0 status changes before 063100 was applied (29 Sep, read-only);
+  - CI and local builds start empty.
+  - The old app's data will enter through the P7 importer, in the sides shape.
+  - OPEN for the oversight: accept that the conversion runs on empty tables (recommended), or allow a one-time correction of 063100 before its first cloud apply.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
