@@ -874,7 +874,8 @@
       "happened_in_future": "A note cannot happen after today",
       "next_step_before": "A next step is never before the activity",
       "outcome_required": "This type needs an outcome",
-      "outcome_of_other_type": "The outcome belongs to another type",
+      "outcome_of_other_type": "The outcome belongs to another type"
+    },
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
@@ -1178,7 +1179,8 @@
     "since": "Since",
     "stale": "Stale since {date}",
     "nextStepDue": "Next step {date}",
-    "noAccess": "You do not have access to this organisation",
+    "noAccess": "You do not have access to this organisation"
+  },
   "recentlyDeleted": {
     "title": "Recently deleted"
   }
