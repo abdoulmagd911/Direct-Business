@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getMe } from '@/core/auth/get-me';
 import { mustChangePassword } from '@/core/auth/must-change';
 import { safeNext } from '@/core/auth/safe-next';
+import { getAppSettings } from '@/core/settings/app';
 import { SetPassword } from '@/modules/org/screens/SetPassword';
 
 /**
@@ -19,5 +20,5 @@ export default async function SetPasswordPage({
   if (!me) redirect(`/sign-in?next=${encodeURIComponent('/set-password')}`);
   if (me.status !== 'ok') redirect('/auth/sign-out');
   if (!(await mustChangePassword())) redirect(target);
-  return <SetPassword next={target} />;
+  return <SetPassword next={target} arabicEnabled={(await getAppSettings()).arabic_enabled} />;
 }

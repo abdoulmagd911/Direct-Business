@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { OrgAnswer } from '@/modules/org/types';
-import { ActivityScreen, type SignInRow } from '@/modules/settings/screens/ActivityScreen';
+import { ActivityScreen, type DeletedRow, type SignInRow } from '@/modules/settings/screens/ActivityScreen';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
@@ -31,7 +31,11 @@ export default async function ActivityPage({
   const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;
   let rows: HistoryRow[] = [];
   let signIns: SignInRow[] = [];
-  if (tab === 'signIns') {
+  let deleted: DeletedRow[] = [];
+  if (tab === 'deleted') {
+    // Recently deleted (V401): what the viewer may see, inside audit.recently_deleted_days.
+    deleted = ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [];
+  } else if (tab === 'signIns') {
     signIns =
       ((await serverRpc('sign_in_log', {
         p_person: filters.person || me.person.id,
@@ -56,7 +60,7 @@ export default async function ActivityPage({
   }
   return (
     <Page bare>
-      <ActivityScreen me={me} tab={tab} org={org} rows={rows} signIns={signIns} filters={filters} />
+      <ActivityScreen me={me} tab={tab} org={org} rows={rows} signIns={signIns} deleted={deleted} filters={filters} />
     </Page>
   );
 }

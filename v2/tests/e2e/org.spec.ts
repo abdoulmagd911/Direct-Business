@@ -4,7 +4,8 @@
  * the member's drawer after a reload; every change is in Activity and undoes; a team retires with its people moved.
  * Sabotage: tests/sabotage/screens.mjs "matrix-skips-the-reason".
  */
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 import { givePassword, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -93,7 +94,7 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await adminPage.setViewportSize({ width: 1500, height: 1000 });
   await signIn(adminPage, admin.email, '/settings/org?tab=access');
   await hydrated(adminPage);
-  const cell = adminPage.locator('[data-access-page="overview"] td').nth(3); // admin · head · manager · member
+  const cell = adminPage.locator('[data-access-page="overview"] [data-access-role="member"]');
   await cell.getByRole('combobox').click();
   await adminPage.getByRole('option', { name: 'View' }).click();
   await adminPage.getByRole('dialog').getByLabel('Reason').fill('Made-up reason');
