@@ -677,6 +677,18 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 
 Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-scanned-for-chrome-words`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`, `an-org-name-takes-a-banned-word`.
 
+**V176 — A retired capability grants nothing, and stops nothing** ACTIVE · 2026-09-29 (a production bug, found by the oversight while adding the team: Settings → People refused to make anyone a head of department or a manager, "You cannot grant more than you have").
+- **The cause.** `partners.assign`, `partners.identify` and `partners.merge` gave way to each side's own (V98). The registry sync made them inactive, but their grants stayed live on the admin, head and manager roles. `authz.can_of` answers no for an inactive capability, even for an admin, so `core.access_set_person_role` found a grant "above" the admin and refused.
+- **The fix** (migration `20260929092000_core_retired_capabilities`, a hotfix onto v2/main):
+  - the grants of every inactive capability, on roles (`core.role_capability`) and on people (`core.person_capability`), are soft-deleted in one logged system request, with the reason "V176: the capability is retired" — kept as history;
+  - `core.access_can_grant` lets an inactive capability pass: it grants nothing, so it is above no one (clearing an old override works);
+  - `core.access_set_person_role` asks only the capabilities still in use (`core.capability.active`), so one retired later stops nothing even before its grants are cleared.
+  A capability the registry brings back starts again from the registry's grants (the sync writes them where none is live).
+- **The seeds' Arabic** (the same message): the screens call a department إدارة, so the head role is رئيس الإدارة (was رئيس القسم — `roles.ts`, `registry.json`); "call back later" is معاودة الاتصال لاحقًا (was لاحقاً). Only a name still as seeded changes; one an admin has renamed stays theirs.
+- Tests: ACC-09 (admin makes a head and a manager; no live grant of a retired capability; one retired later stops neither a role change nor clearing an override); WORDS-02 (the two words).
+- Sabotages: `a-retired-capability-blocks-a-role`, `a-retired-capability-blocks-a-grant`, `the-retired-grants-stay-live`, `the-old-seed-words`.
+- #103's V173 (the role check alone) is folded into this one.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
