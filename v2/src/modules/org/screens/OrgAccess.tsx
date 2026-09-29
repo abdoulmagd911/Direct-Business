@@ -64,6 +64,7 @@ export function OrgAccess({
   matrix,
   settings,
   canEdit,
+  today,
 }: {
   me: Me;
   tab: string;
@@ -72,6 +73,8 @@ export function OrgAccess({
   matrix: MatrixAnswer;
   settings: SettingDefRow[];
   canEdit: boolean;
+  /** Riyadh's date on the server, for the day a setting change applies from (PRF-139). */
+  today: string;
 }) {
   const t = useTranslations();
   const current = (TABS as readonly string[]).includes(tab) ? tab : 'people';
@@ -99,7 +102,9 @@ export function OrgAccess({
       {current === 'roles' ? <RolesTab org={org} people={people} /> : null}
       {current === 'access' ? <AccessTab matrix={matrix} /> : null}
       {current === 'settings'
-        ? settings.map((def) => <SettingCard key={def.key} def={def} departments={org.departments} canEdit={canEdit} />)
+        ? settings.map((def) => (
+            <SettingCard key={def.key} def={def} departments={org.departments} canEdit={canEdit} today={today} />
+          ))
         : null}
     </>
   );
@@ -993,7 +998,7 @@ function AccessTab({ matrix }: { matrix: MatrixAnswer }) {
                   const top = p.levels[p.levels.length - 1] ?? 'full';
                   const value = r.is_admin ? top : levelOf(r.id, p.key);
                   return (
-                    <td key={r.id} className="px-3 py-1.5">
+                    <td key={r.id} className="px-3 py-1.5" data-access-role={r.key}>
                       <Select
                         value={value}
                         disabled={r.is_admin}
