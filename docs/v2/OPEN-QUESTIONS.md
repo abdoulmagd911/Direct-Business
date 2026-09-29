@@ -7,3 +7,6 @@ Every question so far has been answered and now lives in `docs/v2/DECISIONS.md`:
 
 **No question is open** (29 Sep 2026). A new one is written here with its recommended answer, and the spec assumes that
 answer until the owner or the oversight rules.
+
+No default is pending: the Scout's money rulings V420–V425 were made ACTIVE by the owner on 29 Sep 12:55 (V434), their
+numbers and switches now admin settings.

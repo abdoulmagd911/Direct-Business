@@ -88,6 +88,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const [editing, setEditing] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [temporary, setTemporary] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
@@ -211,6 +214,28 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         refresh();
       },
     );
+  };
+  // Generate temporary password (V441): admins only, with a reason; random, shown once here with Copy, never typed,
+  // never mailed. The person chooses their own at their next sign-in.
+  const generatePassword = async (reason: string) => {
+    await run(words(t('settings.people.password.generated')), async () => {
+      const res = await fetch('/auth/admin/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ person_id: person.id, reason }),
+      });
+      const body = (await res.json()) as { ok: boolean; error?: { key: string }; temporary_password?: string };
+      if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
+      setGenerating(false);
+      setCopied(false);
+      if (body.temporary_password) setTemporary(body.temporary_password);
+      return null;
+    });
+  };
+  const copyTemporary = async () => {
+    if (!temporary) return;
+    await navigator.clipboard.writeText(temporary);
+    setCopied(true);
   };
   const signOutEverywhere = async (reason: string) => {
     await run(
@@ -453,9 +478,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         </Button>
         <Menu>
           <MenuTrigger asChild>
-            <Button aria-label={t('common.more')}>⋯</Button>
+            <Button aria-label={t('common.more')} data-person-more>
+              ⋯
+            </Button>
           </MenuTrigger>
           <MenuContent>
+            <MenuItem onSelect={() => setGenerating(true)} data-password-generate>
+              {t('settings.people.password.generate')}
+            </MenuItem>
             <MenuItem onSelect={() => setSigningOut(true)}>{t('settings.people.signOutEverywhere')}</MenuItem>
           </MenuContent>
         </Menu>
@@ -700,6 +730,46 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           reasonRequired: t('settings.form.reasonRequired'),
         }}
       />
+      <ReasonDialog
+        open={generating}
+        onOpenChange={setGenerating}
+        title={`${t('settings.people.password.generate')} · ${person.full_name_en}`}
+        body={t('settings.people.password.body')}
+        onSave={generatePassword}
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.password.generate'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <Dialog
+        open={temporary !== null}
+        onOpenChange={(o) => !o && setTemporary(null)}
+        title={t('settings.people.password.temporaryTitle', { name: person.full_name_en })}
+        size="sm"
+        closeLabel={t('common.close')}
+        footer={
+          <>
+            <Button onClick={() => void copyTemporary()} data-password-copy>
+              {copied ? t('settings.people.password.copied') : t('settings.people.password.copy')}
+            </Button>
+            <Button variant="primary" onClick={() => setTemporary(null)}>
+              {t('common.close')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted">{t('settings.people.password.temporaryBody')}</p>
+          <p
+            className="select-all rounded-md border border-border bg-surface px-3 py-2 font-data text-lg"
+            data-temporary-password
+          >
+            {temporary}
+          </p>
+        </div>
+      </Dialog>
       <ReasonDialog
         open={signingOut}
         onOpenChange={setSigningOut}

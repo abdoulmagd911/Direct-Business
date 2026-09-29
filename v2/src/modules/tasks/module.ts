@@ -25,8 +25,20 @@ export default defineModule({
   capabilities: [
     { key: 'tasks.assign', page: 'tasks', label: 'cap.tasks.assign', defaults: { head: true, manager: true } },
   ],
-  entities: [{ key: 'priority', table: 'work.priority', page: 'settings.work', label: 'entity.priority', list: true }],
+  entities: [
+    { key: 'priority', table: 'work.priority', page: 'settings.work', label: 'entity.priority', list: true },
+    // Direct's systems a reference points into, with each one's URL pattern (V98, V99, V154).
+    { key: 'ref_system', table: 'work.ref_system', page: 'settings.work', label: 'entity.ref_system', list: true },
+  ],
   settings: [
+    {
+      // V400: an entry logged more than this many days after it happened is "logged late" (after go-live).
+      key: 'work.late_days',
+      group: 'settings.work',
+      label: 'setting.work.late_days',
+      schema: z.number().int().min(1).max(90),
+      default: 14,
+    },
     {
       key: 'work.no_update_days',
       group: 'settings.work',

@@ -282,14 +282,52 @@ export const sabotages = [
   },
   {
     name: 'sign-in-grows-a-google-door',
-    breaks: ['e2e:tests/e2e/signin.spec.ts'],
-    expect: 'the only door is the emailed code (V59)',
+    breaks: ['e2e:tests/e2e/password.spec.ts'],
+    expect: 'the only door is email and password',
     edits: [
       {
-        file: 'src/modules/org/screens/SignIn.tsx',
-        find: '<Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: '<p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
         replace:
-          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
+          '<button type="button" className="door-button">Continue with Google</button>\n        <p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
+      },
+    ],
+  },
+  // ---- the door (the visual spec of 29 Sep, V213)
+  {
+    name: 'door-offline-reads-as-wrong-password',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'offline is said as offline',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: "        setError('unavailable');\n",
+        replace: "        setError('wrong_password');\n",
+      },
+    ],
+  },
+  {
+    name: 'door-eye-shows-nothing',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'the eye shows the password',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: 'onClick={() => setShown((s) => !s)}',
+        replace: 'onClick={() => setShown(false)}',
+      },
+    ],
+  },
+  {
+    name: 'door-panel-grows-a-tagline',
+    breaks: ['e2e:tests/e2e/door.spec.ts'],
+    expect: 'no tagline, no copyright in the panel',
+    edits: [
+      {
+        file: 'src/modules/org/screens/DoorFrame.tsx',
+        find: '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />',
+        replace:
+          '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />\n          <p>{t(\'app.brand_line\')}</p>',
       },
     ],
   },

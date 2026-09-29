@@ -20,18 +20,52 @@
     "resend": "Resend code",
     "resend_in": "Resend code ({time})",
     "error": {
-      "not_listed": "This email is not on the list — ask an admin",
+      "not_listed": "This email isn't on the team list. Ask your admin to add you.",
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
-      "invalid_email": "Enter your work email",
+      "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
-      "inactive": "This device was not used for 30 days — send a new code",
-      "signed_out_elsewhere": "This device was signed out — send a new code",
-      "signed_out_by_admin": "An admin signed this device out — send a new code"
+      "inactive": "This device was not used for 30 days — sign in again",
+      "signed_out_elsewhere": "This device was signed out — sign in again",
+      "signed_out_by_admin": "An admin signed this device out — sign in again"
     },
-    "language": "Language"
+    "language": "Language",
+    "password": {
+      "label": "Password",
+      "signIn": "Sign in",
+      "forgot": "Forgot your password? Ask your admin.",
+      "setTitle": "Choose a new password",
+      "rule": "At least {min} characters.",
+      "current": "Current password",
+      "new": "New password",
+      "again": "New password again",
+      "setAndContinue": "Set password and continue",
+      "error": {
+        "wrong_password": "That email and password don't match. Try again or ask your admin to reset it.",
+        "wrong_current": "The current password is wrong",
+        "too_short": "At least 10 characters",
+        "mismatch": "The two passwords are not the same",
+        "not_signed_in": "Sign in first",
+        "invalid_email": "Enter your work email.",
+        "not_listed": "This email isn't on the team list. Ask your admin to add you.",
+        "switched_off": "Your account is switched off",
+        "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
+        "unavailable": "Can't reach the server. Check your connection and try again.",
+        "email_required": "Enter your work email.",
+        "password_required": "Enter your password."
+      },
+      "subtitle": "Sign in with your work email and password.",
+      "signingIn": "Signing in…",
+      "show": "Show password",
+      "hide": "Hide password",
+      "capsLock": "Caps Lock is on"
+    },
+    "footer": "© {year} Direct",
+    "tab_title": "Sign in · Commercial Workspace",
+    "switch_to_ar": "العربية",
+    "switch_to_en": "English"
   },
   "session": {
     "sign_out": "Sign out",
@@ -214,7 +248,6 @@
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
     "identifier_block": "Blocked value",
-    "call_outcome": "Call outcome",
     "contract_term": "Contract term",
     "priority": "Priority",
     "partner_side": "Side",
@@ -224,7 +257,17 @@
     "side_type": "Side type",
     "side_tier": "Side tier",
     "side_status_reason": "Status reason",
-    "contact_role": "Contact role"
+    "contact_role": "Contact role",
+    "activity_type": "Activity type",
+    "activity_outcome": "Activity outcome",
+    "contract": "Contract",
+    "contract_terms": "Contract terms",
+    "reference": "Reference",
+    "ref_system": "System",
+    "file_kind": "File kind",
+    "file_link": "File attached",
+    "note": "Note",
+    "mention": "Mention"
   },
   "status": {
     "done": "Done",
@@ -271,6 +314,9 @@
     },
     "org": {
       "sign_out": "Sign a person out of every device"
+    },
+    "files": {
+      "restricted": "See restricted files"
     }
   },
   "setting": {
@@ -279,7 +325,8 @@
       "week_starts_on": "The week starts on",
       "meeting_note_on_time_days": "Days to write meeting notes on time",
       "reminder_days_before_due": "Reminder, days before a due date",
-      "pipeline_weekly_target": "Pipeline updates expected each week"
+      "pipeline_weekly_target": "Pipeline updates expected each week",
+      "late_days": "Days after which an entry is logged late"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it needs a new code"
@@ -288,14 +335,16 @@
       "arabic_enabled": "Arabic",
       "default_theme": "Default theme",
       "default_density": "Default density",
-      "export_formats": "Export formats"
+      "export_formats": "Export formats",
+      "go_live_on": "The day the app went live"
     },
     "audit": {
       "undo_window_hours": "Hours an action can still be undone",
       "recently_deleted_days": "Days a removed record can be restored"
     },
     "files": {
-      "max_mb": "Largest file, in MB"
+      "max_mb": "Largest file, in MB",
+      "allowed_types": "File types that may be uploaded"
     },
     "notify": {
       "kinds_enabled": "Notifications sent"
@@ -303,7 +352,16 @@
     "partner": {
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
-      "one_code_per_partner": "One live discount code per partner"
+      "one_code_per_partner": "One live discount code per partner",
+      "contract_reminder_days": "Contract reminders, days before the end",
+      "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
+      "contract_notify": "Who is told a contract is expiring",
+      "logo_fallback": "An organisation with no logo shows",
+      "stale_after_days": "Days without activity before an organisation is stale"
+    },
+    "core": {
+      "file_download_display_name": "Downloads use the file's display name",
+      "file_keep_original_name": "Show a file's original name in its details"
     }
   },
   "levels": {
@@ -409,7 +467,8 @@
       "profile": "Profile",
       "appearance": "Appearance",
       "notifications": "Notifications",
-      "devices": "Devices"
+      "devices": "Devices",
+      "password": "Password"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -468,6 +527,10 @@
       "c4": "Blue",
       "c5": "Green",
       "c6": "Grey"
+    },
+    "password": {
+      "change": "Change password",
+      "changed": "Password changed"
     }
   },
   "settings": {
@@ -587,7 +650,16 @@
       "kind": "Kind",
       "staff": "Staff",
       "system": "System",
-      "reports": "Direct reports"
+      "reports": "Direct reports",
+      "password": {
+        "generate": "Generate temporary password",
+        "generated": "Temporary password generated",
+        "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
+        "temporaryTitle": "Temporary password for {name}",
+        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "copy": "Copy",
+        "copied": "Copied"
+      }
     },
     "teams": {
       "add": "Add team",
@@ -676,7 +748,9 @@
       "conflict": "Someone changed this since you opened it. Reload and try again.",
       "not_found": "This record was not found",
       "unavailable": "The server did not answer. Try again.",
-      "nothing_selected": "Nothing is selected"
+      "nothing_selected": "Nothing is selected",
+      "reason_required": "A reason is required",
+      "bad_request": "The request was not understood: {detail}"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -744,7 +818,10 @@
     "notify": {
       "unknown_tab": "Unknown notifications tab",
       "snooze_in_the_past": "Pick a time that is still to come",
-      "snooze_too_far": "Snooze for a shorter time"
+      "snooze_too_far": "Snooze for a shorter time",
+    "password": {
+      "too_short": "At least 10 characters",
+      "no_email": "This person has no allowed email yet"
     }
   },
   "notifications": {
