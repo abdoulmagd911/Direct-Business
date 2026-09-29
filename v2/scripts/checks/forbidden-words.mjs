@@ -12,7 +12,7 @@ import { defineCheck, lineOf, literals, parseSource, select, sqlLiterals } from 
 const CHECK = 'forbidden-words';
 
 /** The first migration whose seeds this check reads (V404). */
-export const SEEDS_FROM = '20260929065000';
+export const SEEDS_FROM = '20260929091000';
 
 /** @type {[RegExp, string][]} */
 export const FORBIDDEN = [

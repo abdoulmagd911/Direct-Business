@@ -8,6 +8,7 @@ import {
   FolderKanban,
   GitBranch,
   Handshake,
+  History,
   LayoutDashboard,
   Settings,
   Sun,
@@ -47,6 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   target: Target,
   'file-text': FileText,
   'clipboard-check': ClipboardCheck,
+  history: History,
   settings: Settings,
 };
 

@@ -14,13 +14,14 @@ export function formatDate(
   opts: Intl.DateTimeFormatOptions = {},
 ): string {
   const date = typeof d === 'string' ? new Date(d) : d;
+  // A dateStyle/timeStyle cannot be mixed with the day/month/year parts (Intl refuses); the parts are the default only.
+  const parts: Intl.DateTimeFormatOptions =
+    opts.dateStyle || opts.timeStyle ? {} : { day: 'numeric', month: 'short', year: 'numeric' };
   return new Intl.DateTimeFormat(intlLocale(locale), {
     timeZone: TIME_ZONE,
     calendar: 'gregory',
     numberingSystem: 'latn',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+    ...parts,
     ...opts,
   }).format(date);
 }

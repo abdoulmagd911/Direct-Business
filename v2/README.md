@@ -105,3 +105,9 @@ hard-coded sentence in a screen), `screen-words` (V52/V73 — never Company or M
 Zoom, "Keep me signed in" and GMV are A's `forbidden-words`). Their sabotages: `tests/sabotage/screens.mjs`.
 The drawer, the bottom bar and Ctrl K read the module registry (`src/ui/shell/nav.ts`, V209): a page shows for a
 level above none, Settings for admins only, and a page may declare several drawer entries (`nav.entries`).
+
+P3-5 (V210): `src/ui/record/` is the one record-page template (header with key figures, one tab row, the details rail,
+the activity timeline with Undo); `src/modules/settings/` holds the settings framework (schema-drawn setting cards with
+the database's own preview, the list editor with the Arabic name required and Used in N before an archive, Activity
+with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
+record. `core/commands/run.ts` runs one write with its toast and Undo.
