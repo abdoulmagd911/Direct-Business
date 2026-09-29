@@ -2,24 +2,24 @@
 export const sabotages = [
   {
     name: 'shell-guard-lets-a-late-force-through',
-    breaks: ['unit:tests/unit/guard/the-shell-guard-asks-before-force-and-production.test.ts'],
-    expect: 'asks: git push -f origin v2/b-x',
+    breaks: ['unit:tests/unit/guard/the-shell-guard-refuses-force-and-production.test.ts'],
+    expect: 'refuses: git push -f origin v2/b-x',
     edits: [
       {
         file: '../.claude/hooks/bash-guard.mjs',
-        find: '      if (/\\s(--force|--force-with-lease|--force-if-includes)\\b/.test(s) || /\\s-[a-zA-Z]*f[a-zA-Z]*(\\s|$)/.test(s))\n',
-        replace: '      if (false)\n',
+        find: '        if (/\\s(--force|--force-with-lease|--force-if-includes)\\b/.test(s) || /\\s-[a-zA-Z]*f[a-zA-Z]*(\\s|$)/.test(s))\n',
+        replace: '        if (false)\n',
       },
     ],
   },
   {
     name: 'shell-guard-lets-a-linked-reset-through',
-    breaks: ['unit:tests/unit/guard/the-shell-guard-asks-before-force-and-production.test.ts'],
+    breaks: ['unit:tests/unit/guard/the-shell-guard-refuses-force-and-production.test.ts'],
     expect: 'denies: supabase db reset --linked',
     edits: [
       {
         file: '../.claude/hooks/bash-guard.mjs',
-        find: "      if (/\\bdb\\s+reset\\b[^]*--linked/.test(s)) return { decision: 'deny', reason: 'bash-guard: supabase db reset --linked wipes the hosted database' };\n",
+        find: "      if (/\\bdb\\s+reset\\b[^]*--linked/.test(s)) return deny('supabase db reset --linked wipes the hosted database');\n",
         replace: '',
       },
     ],
