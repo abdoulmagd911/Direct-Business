@@ -1634,7 +1634,8 @@ add up to the total shown; a difference of 1 SAR or more is named as a differenc
 and nothing sends email — no IT, no DNS, no outside mailbox. An **admin adds each person in Settings → People and
 generates a temporary password** for them (V441: random, 14 characters or more, shown once with Copy, never typed) and
 can generate a new one at any time; there are no emails and no "forgot password" link — the sign-in page says **"Forgot
-your password? Ask an admin"**. The person **must change the password at first sign-in** and can change it any time in
+your password? Ask your admin."**. The person **must change the password at first sign-in** and can change it any time
+in
 **My profile → Change password**; **minimum 10 characters** (`auth.password_min_length`); sign-ups stay off; only
 allow-listed, switched-on people sign in. **A device stays signed in until the person signs out; a device unused for 30
 days asks for the password again** (owner, 29 Sep — V74), and "sign out everywhere" stays. The **emailed 6-digit code**
@@ -1648,7 +1649,7 @@ door never creates a person.
 and, under it, the **brand line**: EN "The commercial arm of the all-in-one travel app" / AR «الذراع التجاري لتطبيق
 السفر الشامل». On a phone the panel collapses to a top band. The artwork comes from the Design lead session (V82). **The page says only this:** the logo and brand line; **Commercial Workspace** / **مساحة العمل
 التجارية**; an **EN | ع** language toggle; **© Direct**; and the form's own words — "Work email", "Password", **Sign in**,
-and under the form **"Forgot your password? Ask an admin"** (plain text, never a link). With the code door switched on,
+and under the form **"Forgot your password? Ask your admin."** (plain text, never a link). With the code door switched on,
 the form is V59's instead: "Work email", **Send code**; "Enter the 6-digit code", "Sent to o•••••@d•••.com · Change",
 six digit boxes, **Verify**, "Resend code" with its countdown. Nothing else — no legal line, no hint text (V11, V59).
 Every refusal is one plain line in red: "Wrong email or password" (one line for both — the page never says which),
@@ -1722,12 +1723,16 @@ email). `authz.me()` = the active person joined through `core.person_auth` on `a
 2. **Generating a temporary password** (Settings → People — admins only, V97, V138; V441): **nobody types a password
    for someone else**. **Generate temporary password** on a person: a server-only route handler, after checking through
    `api.me()` that the caller is an admin, makes a random password of 14 characters or more, creates the auth user for
-   the allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) or, when
-   one exists, replaces its password (`auth.admin.updateUserById`), sets `must_change_password` on `core.person_auth`,
-   signs **every device out** on a replacement (V74), logs `password_generated` in the settings/access log, and
-   returns the password **once** — shown with a **Copy** button, never stored by the app, never mailed, never logged.
-   **Generate for everyone without a password**: the same, for every allowed person with no password yet, in one
-   request — one list shown once to copy, one log line per person. One auth user per allowed email; all of a
+   the allowed email with the secret key (`auth.admin.createUser({ email, password, email_confirm: true })`) **only
+   when no auth user holds that email**; when one exists (V451: the owner's three accounts were made in the Supabase
+   dashboard), it **links** `core.person_auth` to it and never creates a second. **Replacing** an existing auth user's
+   password (`auth.admin.updateUserById`) is a separate **Reset** that names the person and asks the admin to confirm —
+   never silent, never part of a bulk run; it sets `must_change_password`, signs **every device out** (V74) and logs
+   `password_generated`. Every generate returns the password **once** — shown with a **Copy** button, never stored by
+   the app, never mailed, never logged. **Generate for everyone without a password**: the same, for every allowed
+   person **with no auth user yet**, in one request — one list shown once to copy, one log line per person; an
+   account that already has a password is skipped and listed as such. The dashboard-made accounts keep
+   `must_change_password` off until the pre-go-live change (V446, V451). One auth user per allowed email; all of a
    person's auth users point to the same person.
 3. **Password — the door**: `api.sign_in_check` first (allowed / not_listed / switched_off — a refusal is logged and
    shown before any password is checked; V116), then `signInWithPassword({ email, password })`, then
@@ -2107,17 +2112,18 @@ redirect URLs list it (V432); (5) no mail sender while the door is a password (V
 
 Secrets live only in Vercel's server environment and Supabase's settings — never in the repo, and **only the owner
 pastes keys into Vercel** (V84); builders never see the service key. **The Vercel project's settings are changed by the
-owner in Vercel, never from the repository** (V427). No deploy secret is
-stored in GitHub: builder A applies migrations to the cloud project at merge from the merged commit (checksum-checked),
-after the SQL suite has passed on a database built from zero. The very first admin (the owner's account, D8) is created
-once by builder A with a one-off statement the owner approves, logged under the System person — never in a migration
-file (rule 7, D17) — asked on 29 Sep 14:10, with the Commercial department (V440). That first admin is **the owner's
-separate admin account** (`kind = 'admin_account'`, never a team member — V444); the owner's own work runs on his
-employee account. **Every other person is added through Settings → People by the oversight in the browser, never
-seeded or hard-coded** (V440; eleven people — V443; the list lives in the owner's private knowledge base, never in this
-repository — rule 7); before go-live each gets a generated temporary password, typed once by the owner himself, and
-changes it at first sign-in (V441, V446). One **test account** (`kind = 'test_account'`) serves the oversight's testing
-and is removed before go-live (V445).
+owner in Vercel, never from the repository** (V427). No deploy secret is stored in GitHub: builder A applies migrations
+to the cloud project at merge from the merged commit (checksum-checked), after the SQL suite has passed on a database
+built from zero. The very first admin (the owner's account, D8) is created once by builder A with a one-off statement
+the owner approves, logged under the System person — never in a migration file (rule 7, D17) — asked on 29 Sep 14:10,
+with the Commercial department (V440). That first admin is **the owner's separate admin account** (`kind =
+'admin_account'`, never a team member — V444); the owner's own work runs on his employee account. The owner made these
+auth users — admin, employee and test — himself in the Supabase dashboard on 29 Sep (V451), so the statement links the
+`core.person` rows to them and creates nothing in Auth. **Every other person is added through Settings → People by the
+oversight in the browser, never seeded or hard-coded** (V440; ten people — V443; the list lives in the owner's private
+knowledge base, never in this repository — rule 7); before go-live each gets a generated temporary password, typed once
+by the owner himself, and changes it at first sign-in (V441, V446). One **test account** (`kind = 'test_account'`)
+serves the oversight's testing and is removed before go-live (V445).
 
 Free-plan limits to watch: database 500 MB, file storage 1 GB, 5 GB egress, a project pauses after 7 days without any
 request, no downloadable backups. The stress fixture never goes to the cloud project; only trial values do.
