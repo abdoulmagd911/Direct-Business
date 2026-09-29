@@ -180,3 +180,19 @@ deleted as a screen, Tasks, the organisation page, hover card, record search and
 | QA-104 | 2026-09-29 16:15 | #107 | Low | Builder A · Builder B | **The sign-in log records password attempts as `code_sent`**, with no failure row for a wrong password (QA-91). The code door's server actions don't check `SIGN_IN_METHOD`; the door is hidden in the UI only. | Open |
 | QA-105 | 2026-09-29 16:15 | #92 | Low | Builder B · Builder C | **Arabic can be reached while it is off.** With Arabic switched off, an `ar` cookie still renders Arabic, with 179 missing-message errors on `/activity`. Rule: V122. | Open |
 | QA-106 | 2026-09-29 16:15 | #94, #96 | Medium | Builder A | **Following an organisation tells you nothing.** No notice comes for its status changes (on either side), notes or files: the fan-out looks for followers of the changed row (`side_status_change`, `core.note`, `core.file`), never of the organisation it belongs to. Extends QA-45. Rule: V61. | Open |
+
+## Round 6 — 2026-09-29 16:00 (the oversight's scenario catalogue: gaps named at 15:59)
+
+The oversight's 440-row scenario catalogue (role × page; Covered / Partly / Gap / Unbuilt / Open question) names these
+gaps. Each row keeps its catalogue ID; the finding's words, lane and test come from the catalogue when its link
+arrives. Every Covered row there will name its test ID, and every Partly row gets a new QA test.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-107 | 2026-09-29 16:00 | ACC-039 | — | — | Gap named by the oversight (access); details from the catalogue. | Open — waiting for the catalogue |
+| QA-108 | 2026-09-29 16:00 | ACC-100 | — | — | Gap named by the oversight (access); details from the catalogue. | Open — waiting for the catalogue |
+| QA-109 | 2026-09-29 16:00 | ACC-011 | — | — | Gap named by the oversight (access); details from the catalogue. | Open — waiting for the catalogue |
+| QA-110 | 2026-09-29 16:00 | ACC-027, ACC-028 | — | — | Gaps named by the oversight (access); details from the catalogue. | Open — waiting for the catalogue |
+| QA-111 | 2026-09-29 16:00 | WRK-092 | — | — | Gap named by the oversight (work); details from the catalogue. | Open — waiting for the catalogue |
+| QA-112 | 2026-09-29 16:00 | PRF-002 | — | — | Gap named by the oversight (profile); details from the catalogue. | Open — waiting for the catalogue |
+| QA-113 | 2026-09-29 16:00 | PRF-143 | — | — | Gap named by the oversight (profile); details from the catalogue. | Open — waiting for the catalogue |
