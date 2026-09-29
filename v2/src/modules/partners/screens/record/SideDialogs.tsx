@@ -250,7 +250,8 @@ export function StatusDialog({
   const [f, setF] = useState({ status: '' as Status | '', on: today(), reason: '', note: '' });
   const [busy, setBusy] = useState(false);
   const needsReason = f.status === 'at_risk' || f.status === 'lost';
-  const own = reasons.filter((r) => r.side === side && (!r.status || r.status === f.status));
+  // the reasons are per status, not per side (partner.side_status_reason)
+  const own = reasons.filter((r) => (!r.side || r.side === side) && (!r.status || r.status === f.status));
   const ok = !!f.status && !!f.on && (!needsReason || !!f.reason);
   const save = async () => {
     setBusy(true);

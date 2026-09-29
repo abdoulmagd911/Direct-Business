@@ -90,6 +90,7 @@ export async function PartnersListPage({
         failed={failed}
         org={org}
         types={types.filter((x) => x.side === side)}
+        sideTypes={types}
         tiers={tiers.filter((x) => x.side === side)}
         priorities={priorities}
       />

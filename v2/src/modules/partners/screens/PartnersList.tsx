@@ -88,6 +88,7 @@ export function PartnersList({
   failed,
   org,
   types,
+  sideTypes,
   tiers,
   priorities,
 }: {
@@ -99,6 +100,8 @@ export function PartnersList({
   failed: boolean;
   org: OrgAnswer;
   types: ListEntry[];
+  /** Every side's types, for the hover card's chips (the list's own `types` are this side's). */
+  sideTypes: ListEntry[];
   tiers: ListEntry[];
   priorities: ListEntry[];
 }) {
@@ -112,6 +115,7 @@ export function PartnersList({
   const canAssign = me.capabilities.includes(`${page}.assign`);
   const people = Object.fromEntries(org.people.map((p) => [p.id, p]));
   const [selected, setSelected] = useState<RowSelectionState>({});
+  const [assignIds, setAssignIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
   const [creating, setCreating] = useState(false);
   const [assigning, setAssigning] = useState(false);
@@ -155,7 +159,7 @@ export function PartnersList({
         cell: ({ row }) => (
           <span className="flex min-w-0 items-center gap-2.5">
             <PartnerLogo name={row.original.trade_name_en} size="sm" />
-            <PartnerHover id={row.original.id}>
+            <PartnerHover id={row.original.id} types={sideTypes}>
               <Link
                 href={`${base}/${row.original.id}`}
                 className="truncate font-medium text-link hover:underline"
@@ -232,7 +236,7 @@ export function PartnersList({
         ),
       },
     ],
-    [t, locale, types, people, base],
+    [t, locale, types, sideTypes, people, base],
   );
 
   const chipLabel = (keys: string[], label: (k: string) => string) =>
@@ -419,10 +423,9 @@ export function PartnersList({
               key: 'assign',
               label: t('partners.bulk.assign'),
               variant: 'primary',
-              done: (n) => t('partners.bulk.assigned', { count: n }),
-              run: async () => {
+              open: (selectedIds) => {
+                setAssignIds(selectedIds);
                 setAssigning(true);
-                return null;
               },
             },
           ]}
@@ -431,7 +434,7 @@ export function PartnersList({
       <AssignDialog
         open={assigning}
         onOpenChange={setAssigning}
-        ids={ids}
+        ids={assignIds}
         side={side}
         org={org}
         priorities={priorities}

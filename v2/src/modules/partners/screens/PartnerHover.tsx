@@ -5,16 +5,29 @@ import { rpc } from '@/core/db/rpc';
 import { StatusChip } from '@/ui/Chip';
 import { HoverCard } from '@/ui/HoverCard';
 import { PartnerLogo } from '@/ui/PartnerLogo';
-import { statusTone, tradeName, type HoverPartner } from '../types';
+import { nameOf, statusTone, tradeName, type HoverPartner, type ListEntry } from '../types';
 
 /**
  * The organisation hover card (V61, V149): name, number, the sides as chips with type and status, the key-partner mark
  * — from api.hover_partner, read once when the card first opens. The header figures join it with the record page's
  * setting (V95) once P3-9b draws them here too.
  */
-export function PartnerHover({ id, children }: { id: string; children: ReactNode }) {
+export function PartnerHover({
+  id,
+  types = [],
+  children,
+}: {
+  id: string;
+  /** The side types (both sides), so a side's chip says the type's name, not its key. */
+  types?: ListEntry[];
+  children: ReactNode;
+}) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
+  const typeName = (side: string, key: string) => {
+    const entry = types.find((x) => x.side === side && x.key === key);
+    return entry ? nameOf(entry, locale) : key;
+  };
   return (
     <HoverCard<HoverPartner | null>
       load={async () => (await rpc('hover_partner', { p_id: id })) as unknown as HoverPartner | null}
@@ -35,7 +48,7 @@ export function PartnerHover({ id, children }: { id: string; children: ReactNode
             <div className="flex flex-wrap gap-1.5">
               {p.sides.map((s) => (
                 <StatusChip key={s.side} tone={statusTone(s.status)}>
-                  {t(`partners.side.${s.side}`)} · {s.type}
+                  {t(`partners.side.${s.side}`)} · {typeName(s.side, s.type)}
                   {s.status ? ` · ${t(`partners.status.${s.status}`)}` : ''}
                 </StatusChip>
               ))}
