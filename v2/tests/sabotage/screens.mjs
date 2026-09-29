@@ -197,7 +197,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/NotificationsPanel.tsx',
-        find: 'onClick={() => void act(() => markRead())}',
+        find: 'onClick={() => void act(() => markRead(unreadShown))}',
         replace: 'onClick={() => undefined}',
       },
     ],
@@ -214,7 +214,7 @@ export const sabotages = [
     expect: 'data-deleted-row',
     edits: [
       {
-        file: 'src/modules/settings/screens/ActivityScreen.tsx',
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
         find: "() => rpc('restore', { p_entity: d.entity, p_id: d.id }) as Promise<{ request_id?: string | null } | null>,",
         replace: '() => Promise.resolve({ request_id: null }),',
       },
