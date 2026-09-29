@@ -384,7 +384,9 @@ core.person       STD SOFT; full_name_en not null; full_name_ar; nickname_en; ni
                   -- test account, removed before go-live) sign in but are never team members — every team list, KPI,
                   -- ranking ("leaderboard": any per-person ranking on the KPIs scorecard or the Commercial overview), appraisal and
                   -- reports-to picker excludes every kind but 'staff' (one predicate,
-                  -- `core.is_team_member(person_id)`, used everywhere)
+                  -- `core.is_team_member(person_id)`, used everywhere); V468: the admin account reads every page but
+                  -- creates no work — no New button, a sentence says it is not on the team list, its start page is
+                  -- Overview and its My day shows notices only
                   -- V452: `api.person_leave(id, left_on, reassign_to {...}, reason)` = switch off + reassign the person's
                   -- tasks, action items, owned sides, recurring templates and KPI lead/contributor rows in one request, with
                   -- a count and one Undo; a switched-off or left person is refused as owner, helper or mention everywhere
@@ -462,25 +464,25 @@ core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → 
   - **seeds never overwrite an admin's edit** — the registry sync inserts a missing entry or default and never updates
     one that exists;
   - **an Arabic label is required** (V76).
-- Starting scalar settings: `audit.undo_window_hours` 24
-(D7) · `work.no_update_days` 7 · `work.week_starts_on` sunday · `work.meeting_note_on_time_days` 1 ·
-`partner.match_order` [client_id, vat_cr, discount_code, email, phone, name] · `partner.name_stop_words` (the form words
-list of §3.5) · `partner.credit_date` revenue_date (which date decides whose credit an invoice is — V27) ·
-`finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 · `finance.unpaid_alert_days` 45 ·
-`partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days` 30 · `partner.contract_notify`
-(account manager ✓, followers ✓, commercial manager ✗) · `partner.contract_renewal_task` ✓ · `partner.id_format`
-DK-P-0000 · `partner.logo_fallback` monogram · `core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ ·
-`finance.unbilled_after_days` 30 (a transaction with no billing invoice after that is flagged) · `finance.cost_estimate`
-on (D23) · `perf.pace_bands` {on_track 0.90, at_risk 0.70} (a plan setting — V401, V449) · `report.due_day` 5 ·
-`app.arabic_enabled` false · `app.default_theme` direct (Q32) · `app.default_density` comfortable ·
-`auth.device_idle_days` 30 · `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) ·
-`auth.view_as_enabled` on, off at go-live (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} ·
-`finance.not_invoiced_line` on (V434) · `core.doc_link` (the SOP/SLA links — V435) · `work.reminder_days_before_due` 1 ·
-`notify.kinds_enabled` (every kind on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 ·
-`partner.one_code_per_partner` ✓ · `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27" (the default from
-the cycle's years) · `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93) · `work.late_days` 14 and
-`app.go_live_on` (V400) · `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days` 14
-· `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95).
+- Starting scalar settings: `audit.undo_window_hours` 24 (D7) · `work.no_update_days` 7 · `work.week_starts_on` sunday
+· `work.meeting_note_on_time_days` 1 · `partner.match_order` [client_id, vat_cr, discount_code, email, phone, name] ·
+`partner.name_stop_words` (the form words list of §3.5) · `partner.credit_date` revenue_date (which date decides whose
+credit an invoice is — V27) · `finance.revenue_definition` (§3.6) · `finance.collection_due_days` 30 ·
+`finance.unpaid_alert_days` 45 · `partner.contract_reminder_days` 60 · 30 · 7 · `partner.contract_expiring_from_days`
+30 · `partner.contract_notify` (account manager ✓, followers ✓, commercial manager ✗) ·
+`partner.contract_renewal_task` ✓ · `partner.id_format` DK-P-0000 · `partner.logo_fallback` monogram ·
+`core.file_keep_original_name` ✓ · `core.file_download_display_name` ✓ · `finance.unbilled_after_days` 30 (a
+transaction with no billing invoice after that is flagged) · `finance.cost_estimate` on (D23) · `perf.pace_bands`
+{on_track 0.90, at_risk 0.70} (a plan setting — V401, V449) · `report.due_day` 5 · `app.arabic_enabled` false ·
+`app.default_theme` direct (Q32) · `app.default_density` comfortable · `auth.device_idle_days` 30 ·
+`auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live
+(V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} · `finance.not_invoiced_line` on (V434) ·
+`core.doc_link` (the SOP/SLA links — V435) · `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind
+on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 · `partner.one_code_per_partner` ✓ ·
+`report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27" (the default from the cycle's years) ·
+`work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93; 1–28 — OLD-PRF-010) · `work.late_days` 14 and
+`app.go_live_on` (V400) · `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days`
+14 · `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95).
 
 ### 3.3 Change log, undo and notifications
 
@@ -497,7 +499,9 @@ notify.notification  id; person_id; kind ('assigned','helper_added','mentioned',
                'decision_needed','report_issued','report_for_review','appraisal_step','import_done',
                'alert_contract_expiring','alert_kpi_behind','alert_invoice_unpaid','alert_kpi_checkin',
                'escalated','alert_quiet_client','alert_project_no_update','alert_activity_stale','alert_file_review',
-               'reminder','note_mention','alert_contact_reconfirm'); entity_table; entity_id; request_id;
+               'reminder','note_mention','alert_contact_reconfirm',
+               'due_tomorrow');   -- due_tomorrow: the daily job (OLD-WRK-044)
+               entity_table; entity_id; request_id;
                actor_id; alert_key (unique per person per day for alerts); created_at; read_at; snoozed_until
                index (person_id, read_at nulls first, created_at desc)
 notify.follow  (person_id, entity_table, entity_id) pk      -- Follow / Watch on any record (V61); owners follow their own
@@ -532,13 +536,13 @@ later import first").
   touched (the entity's `owners` function in the registry), one notification per person per request, never to the
   actor, and to everyone who **follows** the record. Due and overdue items are **computed live** (bell count and My
   day), not stored. In-app only in v1 (email once the mail sender exists — V45).
-- **Alerts are notifications** (V61), made by a daily `pg_cron` job (`notify.generate_alerts()`, 06:00 Riyadh =
-`0 3 * * *` UTC — V455: a daily alert fires on the **first run on or after its day**, never twice; a second, small job
-every **5 minutes** sends `core.reminder` rows whose time has come), idempotent by `alert_key`: a contract inside its
-notice days; a KPI whose pace is Behind (to its leads — V401); a counted invoice unpaid for more than
-`finance.unpaid_alert_days` (to the client's account manager, with its follow-up task); a quiet client; a project
-without a health update; an organisation gone stale; a file past its review date. Each threshold is a setting; each
-alert links to its record.
+- **Alerts are notifications** (V61), made by a daily `pg_cron` job (`notify.generate_alerts()`, 06:00 Riyadh = `0 3 *
+* *` UTC — V455: a daily alert fires on the **first run on or after its day**, never twice; a second, small job every
+**5 minutes** sends `core.reminder` rows whose time has come), idempotent by `alert_key`: a contract inside its notice
+days; a KPI whose pace is Behind (to its leads — V401; with no active lead, to the department head — OLD-PRF-009); a
+counted invoice unpaid for more than `finance.unpaid_alert_days` (to the client's account manager, with its follow-up
+task); a quiet client; a project without a health update; an organisation gone stale; a file past its review date.
+Each threshold is a setting; each alert links to its record.
 - **The notification centre** (the bell): tabs **All · Mentions · Assigned to me**, grouped by day, **Mark all read**,
   **Snooze until** (a date or "tomorrow 08:00"), each item a link; the canvas's NotificationsPanel is the layout.
 - **Names are always live** (owner rule — V58). Every reference to a person or a partner is stored as its **ID** and
@@ -587,14 +591,17 @@ the mentions copied as the record's mentions or helpers; one Undo reverts both. 
 logged meeting or call and a reminder in P3-13; a task and an action item with P5-1; an achievement with P5-4.
 - **Finish meeting** turns a meeting note's points into action items (each with its owner and date) on the task it
   names, or a new task, and logs the meeting as an activity on the organisation (`api.activity_log`, type meeting).
-- **Wrap up today** walks the day's open captures: convert, **carry over** (to tomorrow, keeping `happened_on`) or
-  **done**; nothing is deleted.
+- **Wrap up today** walks the day's open captures: convert, **carry over** (to the next working day — Sunday after a
+  Thursday, OLD-WRK-022 — keeping `happened_on`) or **done**; nothing is deleted.
 - **Visibility** is the note's own rule (V143): a private note is readable by its **author alone — admins included**
-(V454, the one exception to "admins see everything"; viewers may keep their own notes) — invisible to everyone else in
-search, exports, notifications, history and View as; team = the author's team; workspace = everyone. The record made
-from a note follows its own type's rule, never the note's.
-- **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares) · **Workspace** (what everyone
-  shares); each block shows **5–7 rows** and a "more" link; Comfortable, never cramped (V85).
+  (V454, the one exception to "admins see everything"; viewers may keep their own notes) — invisible to everyone else
+  in search, exports, notifications, history and View as; team = the author's team; workspace = everyone. The record
+  made from a note follows its own type's rule, never the note's; one made from a private note hides its "from note"
+  chip from anyone who cannot see the note, and an @mention in a private note is refused (OLD-WRK-017/019).
+- **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares, and for a manager the team
+  load — open, overdue and stale by priority, blocked items, escalations; the whole department for a head —
+  OLD-WRK-008) · **Workspace** (what everyone shares); each block shows **5–7 rows** and a "more" link; Comfortable,
+  never cramped (V85).
 
 ### 3.4 Organisations — Clients, and Suppliers & partners; identifiers, contacts, contracts, files
 
@@ -669,7 +676,8 @@ partner.credit_limit  STD SOFT; partner_id (Client side on — trigger); amount_
                   approved_by → core.person; reason
                   -- V70: the limit Payments already enforces, mirrored with its history; current = latest ≤ today
                   -- V92: a refused credit is a row with amount 0 — shown as "Prepaid only" — whose approver and reason
-                  -- are required like any other limit; the approver is a switched-on person of kind staff or
+                  -- are required like any other limit; the approver is a switched-on person other than the caller, of
+                  -- kind staff or
                   -- admin_account — never System, Import, the test account or someone switched off (V444, V445, V452)
 partner.identifier_block  STD SOFT; kind; match ('exact','domain'); value; reason
                   -- values that can never be identifiers: staff email domains, the Payments test VAT, test customers
@@ -699,6 +707,8 @@ partner.activity_outcome  LIST per activity type (V63, V88, V401): call — no a
                   postponed …; `counts_as_demo` on demo set and demo held
 core.file         STD SOFT; bucket; path unique; original_name; kind → core.file_kind; mime; size_bytes; sha256;
                   status ('pending','stored'); sensitivity ('normal','restricted');   -- restricted: IBAN letters, agreements (D10)
+                  -- V469: restriction follows the kind and is never downgraded per file; a person without the
+                  -- capability sees "on file (n)" and never the file
                   review_on date (V401: a travel policy's review date; the alerts job raises 'alert_file_review')
 core.file_kind    LIST: invoice · contract · agreement · rate sheet · certificate · meeting note · travel policy (V401) ·
                   tender document · evidence · report · legacy_report · logo · avatar · other;
@@ -734,9 +744,10 @@ the side's owner and managers. An organisation with both sides has two statuses;
 is about (Clients → the Client side; Suppliers & partners → that side), and search results and hover cards show both
 sides' chips.
 - **One status chip per row**: **At risk** or **Lost** when so; else the most urgent computed flag — **Stale** (no
-activity and no open next step for `partner.stale_after_days`, 21 — V401), **Contract expiring**, **Collection due** (an
-unpaid invoice past `finance.collection_due_days`), **Quiet** (no Fully Paid invoice in `finance.quiet_client_days`, 60
-— V401, clients only), **Sent to legal**, **Tender open**; else the side's status (Prospect, Active).
+activity and no open next step for `partner.stale_after_days`, 21 — V401; only Active and Prospect sides go stale —
+OLD-WRK-123), **Contract expiring**, **Collection due** (an unpaid invoice past `finance.collection_due_days`),
+**Quiet** (no Fully Paid invoice in `finance.quiet_client_days`, 60 — V401, clients only), **Sent to legal**, **Tender
+open**; else the side's status (Prospect, Active).
 - **Log activity** (V401, replacing "Log call"): one click on the record, the row and the hover card — pick the **type**
 (call · meeting · demo · visit · note — a settings list), its **outcome** (a settings list per type), `happened_on`
 (today by default), an optional line, and an optional **next step** with a date, which becomes a **task** on the
@@ -1061,6 +1072,12 @@ work.task            STD SOFT DEPT; number unique; title not null; notes; owner_
                      never after the logged day); logged_at timestamptz not null default now();
                      blocked_reason text (V401: set while In progress = Blocked; required); blocked_on date
                      type_id → work.task_type (LIST — the task's category, with a default per template; V438)
+                     work_type ('client','internal') (V466: client work needs an organisation or a project; internal work an
+                     internal project — no organisation, no invoices; a task's organisation equals its project's)
+                     -- V464: default owner = the one named → the project's owner → the organisation's account manager (if
+                     -- active) → the creator. Overdue = due before today and not Done or Cancelled; Blocked is not exempt
+                     -- from stale (OLD-WRK-040/043). V465: every person column refuses a switched-off, left, system or
+                     -- test-account person
                      -- trigger: a task's partner equals its project's partner when both are set
                      -- V438: no subtask records — a task's action items are its checklist; dependencies are out of v1
 work.task_helper     (task_id, person_id) pk; added_by; added_at
@@ -1152,6 +1169,9 @@ pipeline.stage_change STD; entity_table; entity_id; from_stage_id; to_stage_id; 
                       -- same date; an optional stage skipped is not recorded (V99)
 ```
 
+- **One board** for both sides with a side filter, client | supplier_partner (OLD-WRK-066). A **backward move** (a Signed
+  or Onboarded card moved back) asks first, needs a reason, and keeps its history — `signed_on` stays in the history
+  and the side's status is never silently reverted (OLD-034, OLD-WRK-069).
 - **Moving a card** (drag on the board, or the stage field) is one request with its `happened_on` (today by default,
   any past date). **Submitted** records `submitted_on`; **Awarded** needs the awarded value and date and offers **Log
   achievement** (Contract signed, prefilled with the tender) and **New project**; **Lost** and **Cancelled** need a
@@ -1225,7 +1245,7 @@ perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id
                      happened_on date (not null unless draft — V400: the date on the evidence — e.g. the signing date on the agreement;
                      it decides the month and quarter; never after the logged day); logged_at timestamptz not null;
                      period_moved_from date; period_move_reason; period_moved_by (V400: a manager or admin moved it into the
-                     previous period — the "moved" mark); owner_id not null; use_as_example bool (V67: a report "Case");
+                     previous period — the "moved" mark); owner_id not null; use_as_example bool (V67: a report "Case"; one per quarter — a second is refused naming the first, OLD-PRF-032);
                      origin ('person','task','report','import','backfill'); origin_report_id (V79: "added from report"); remove_reason
 perf.achievement_ref  STD SOFT; achievement_id; system_id → work.ref_system; value not null; url   -- V99: a Direct ticket or
                      booking reference with its link is evidence, beside files
@@ -1266,7 +1286,8 @@ a reason — a logged person action.
 5. **Pace** (ported from the d27 plan): what is due = the targets of past quarters in full plus the current quarter's
 target pro-rated by Riyadh days passed; ratio = year-to-date ÷ due (inverted for lower-is-better). Status: **Exceeded**
 (year target reached) · the **pace bands** (V401) **On track** (ratio ≥ on_track) · **At risk** (≥ at_risk) · **Behind**
-(below) · **Not measured** (no target, not started, or nothing measured). A non-cumulative KPI is judged per quarter; a
+(below) · **Missed** (a closed period that ended below target — OLD-043) · **Not started** (a period not yet begun) ·
+**Not measured** (no target, or nothing measured). A non-cumulative KPI is judged per quarter; a
 `latest` KPI compares its latest figure with the current quarter's target (the d27 rule). The bands' thresholds are a
 **plan setting** (`perf.pace_bands`, default on_track 0.90 · at_risk 0.70 — V449), overridable per KPI revision; the
 KPI-behind alert fires on Behind.
@@ -1312,9 +1333,9 @@ Direct reference with its link; an achievement with neither is "no evidence yet"
 **Starting categories with their own fields** (V66; all settings, as the canvas's KPI artboard; example values in
 tests are made up):
 
-- **Problem solving** and **Cost savings**: exposure (amount at risk), actual loss (amount), avoided (computed =
-  exposure − actual loss), counter-party (partner, or text), story (one line). Typed amounts, never Finance money,
-  never feeding a money KPI.
+- **Problem solving** and **Cost savings**: exposure (amount at risk), actual loss (amount; never above the exposure —
+  refused, OLD-PRF-034), avoided (computed = exposure − actual loss), counter-party (partner, or text), story (one
+  line). Typed amounts, never Finance money, never feeding a money KPI.
 - **MoU / strategic signing**: counter-party (partner), their signatory and title, our signatory (person), event,
 signing date, announced (yes / no), government or private. It **never counts as a new client** (`partner.new_clients`
 reads Finance only); logging it sets the side to **Prospect** from the signing date **only when the side has no status
@@ -1425,9 +1446,11 @@ render for a reader with no View on Finance — the snapshot keeps them; the KPI
   name. The hash covers the tokens, so a rename never changes it. A test renames a partner and a helper and checks an
   issued report's screen and download.
 - **The Reports landing is the archive** (V57): every issued monthly and quarterly report, newest first, filterable by
-  kind and year — including the **legacy** reports of 2024–2026, loaded once from the department's issued PDFs in Drive
-  (a person uploads each PDF with its kind and period; the record has status `legacy`, no snapshot, and is marked
-  **Legacy PDF**). The PDFs hold real figures: they live in Storage, never in the repository (rule 7).
+  kind and year — including the **legacy** reports of 2024–2026, loaded once from the department's issued PDFs in
+  Drive (a person uploads each PDF with its kind and period; the record has status `legacy`, no snapshot, and is
+  marked **Legacy PDF**). The PDFs hold real figures: they live in Storage, never in the repository (rule 7); loading
+  one needs Full on Reports (OLD-PRF-062). An issued report is never removed — only superseded by a correction
+  (OLD-PRF-069).
 - **Compare** any two periods side by side (V57): tiles and sections aligned by section key, differences highlighted
 (the delta beside each figure, lines present on one side only marked); a legacy side shows its typed tiles and, per
 section, "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V73), Bookings, Collections; a
@@ -1796,6 +1819,9 @@ allowed email; all of a person's auth users point to the same person.
    (no active person); the server bans the affected auth users so no new session starts; logged.
 8. **Defence in depth**: an auth user with no active person behind it can read and write nothing.
 9. **Sessions**: `@supabase/ssr`; the middleware refreshes the session cookie; the `(app)` layout calls `api.me()`
+   **before rendering** and the shell re-reads it **on tab focus and every 90 s** (V462): a switched-off or left person is
+   signed out with a message on every device, and a changed role or level redraws the drawer and the controls at once.
+   It also calls `api.me()`
    **before rendering** (A5); one browser client (A4). A signed-out deep link returns to the same address.
 10. **Every sign-in is logged** in `core.sign_in_log` (successes and refusals), and every password set, reset and
     change in the settings/access log — never the password itself — both readable in Settings → Activity by admins.
