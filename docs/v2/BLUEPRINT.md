@@ -276,6 +276,11 @@ Vercel (V13, V21, V84).
     without Finance, appraisal items computed for all, Exclude admin-only; one on-time cut-off, a reading's period is
     its start, moves need a reason; appraisals follow manager changes and lock for leavers; an MoU never overwrites a
     status; no future invoice dates.
+81. **The Scout's old-app comparison** (V462–V470, each unless the owner says no): access re-read on focus and every
+    90 s; a switch-off refused while open work exists unless reassigned in the same request, a head needing a successor;
+    the default owner chain; an active check on every person picker; client work needs an organisation or a project; an
+    achievement from a closed task is the owner's; the admin account creates no work; IBAN letters restricted; fail
+    closed while levels load. The catalogue itself: `SCENARIOS.csv`, `SCENARIOS-OLD.csv`, `SCENARIOS.md`.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
