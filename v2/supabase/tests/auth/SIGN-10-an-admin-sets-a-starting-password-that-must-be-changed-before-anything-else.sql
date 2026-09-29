@@ -104,12 +104,15 @@ set local role service_role;
 select test.eq(api.sign_in_password_check('made.up.nobody@example.test', 'test-agent'), 'not_listed',
   'an unlisted e-mail is refused');
 select test.eq(api.sign_in_password_check(current_setting('t.mail')), 'allowed', 'an allowed one passes');
-select api.sign_in_password_refused(current_setting('t.mail'), 'invalid_credentials', 'test-agent');
+select test.eq(api.sign_in_password_refused(current_setting('t.mail'), 'invalid_credentials', 'test-agent'),
+  'wrong_password', 'Auth''s refusal of the password is a wrong password');
+select test.eq(api.sign_in_password_refused(current_setting('t.mail'), 'unexpected_failure', 'test-agent'),
+  'provider_error', 'any other failure is the service''s');
 reset role;
 select test.eq((select string_agg(result || '/' || coalesce(detail, '-') || '/' || method, ', ' order by result)
                 from core.sign_in_log where method = 'password' and auth_session_id is null),
-  'not_listed/-/password, provider_error/invalid_credentials/password',
-  'the refusal and Auth''s reason are logged; an allowed e-mail is not, until it signs in');
+  'not_listed/-/password, provider_error/unexpected_failure/password, wrong_password/invalid_credentials/password',
+  'the refusal, the wrong password and Auth''s reason are logged; an allowed e-mail is not, until it signs in');
 
 -- nobody, or nobody with a sign-in, gets no password
 select test.as_person(current_setting('t.admin')::uuid);

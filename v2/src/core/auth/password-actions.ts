@@ -7,13 +7,20 @@
 //                        session, logs the sign-in and registers the device (V74). A person whose password must change
 //                        (first sign-in, or after an admin's generate) lands on /set-password first: the database
 //                        says so (V166), and until it is changed the person reaches nothing else.
-//   setOwnPassword     — the signed-in person sets their own password; the server records it (api.password_changed,
-//                        secret key only — the browser never clears its own flag).
-//   changePassword     — My profile → Change password, recorded the same way.
+//   setOwnPassword     — the person whose password must change (the database says so: api.me() answers
+//                        must_change_password) sets a new one, on the session they have just signed in with; anyone
+//                        else is refused (not_needed). The server records it (api.password_changed, secret key only —
+//                        the browser never clears its own flag).
+//   changePassword     — My profile → Change password: made with the current password (a fresh session opened with it
+//                        sets the new one — core/db/probe.ts), and recorded the same way.
+// Too many tries (V172): the database counts wrong passwords per e-mail — five in fifteen minutes lock it for fifteen
+// minutes — because Supabase's own limit sees this server's address, not the person's; a wrong current password on
+// My profile counts too. Auth's "secure password change" is on: a session older than a day cannot change its password
+// straight through Supabase.
 // The 6-digit code door (actions.ts) stays in the code, off unless an admin switches auth.code_door_enabled on.
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { passwordHolds } from '@/core/db/probe';
+import { changeWithCurrent } from '@/core/db/probe';
 import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { deviceLabel } from './device-label';
@@ -33,6 +40,7 @@ export type PasswordError =
   | 'same_as_email'
   | 'mismatch'
   | 'not_signed_in'
+  | 'not_needed'
   | 'unavailable';
 
 export type PasswordResult = { ok: true } | { ok: false; error: PasswordError };
@@ -55,18 +63,19 @@ export async function signInWithPassword(
   const check = await serviceDb().rpc('sign_in_password_check', { p_email: email, p_user_agent: ua ?? undefined });
   if (check.error) return { ok: false, error: 'unavailable' };
   if (check.data === 'not_listed' || check.data === 'switched_off') return { ok: false, error: check.data };
+  if (check.data === 'locked' || check.data === 'rate_limited') return { ok: false, error: 'rate_limited' };
   if (check.data !== 'allowed') return { ok: false, error: 'unavailable' };
 
   const db = await serverDb();
   const signed = await db.auth.signInWithPassword({ email, password });
   if (signed.error || !signed.data.session) {
     const code = signed.error?.code ?? '';
-    await serviceDb().rpc('sign_in_password_refused', {
+    const refused = await serviceDb().rpc('sign_in_password_refused', {
       p_email: email,
       p_detail: code || signed.error?.message || 'no_session',
       p_user_agent: ua ?? undefined,
     });
-    const limited = signed.error?.status === 429 || /rate_limit/.test(code);
+    const limited = signed.error?.status === 429 || /rate_limit/.test(code) || refused.data === 'locked';
     return { ok: false, error: limited ? 'rate_limited' : 'wrong_password' };
   }
   const done = await db.rpc('sign_in_complete', {
@@ -79,7 +88,12 @@ export async function signInWithPassword(
     redirect(`${CHANGE_PASSWORD_PATH}?next=${encodeURIComponent(target)}`);
   if (done.error || done.data !== 'ok') {
     await db.auth.signOut({ scope: 'local' });
-    const refused = done.data === 'not_listed' || done.data === 'switched_off' ? done.data : 'unavailable';
+    const refused =
+      done.data === 'not_listed' || done.data === 'switched_off'
+        ? done.data
+        : done.data === 'locked'
+          ? 'rate_limited'
+          : 'unavailable';
     return { ok: false, error: refused };
   }
   redirect(target);
@@ -93,13 +107,23 @@ function refusal(password: string, again: string, email: string | undefined): Pa
   return null;
 }
 
+/** What api.me() says of the signed-in person: ok, must_change_password, or a refusal. */
+async function meStatus(db: Awaited<ReturnType<typeof serverDb>>): Promise<string | null> {
+  const me = await db.rpc('me');
+  return me.error ? null : ((me.data as { status?: string } | null)?.status ?? null);
+}
+
 /** After Auth took a person's new password: the server records it and clears "must change password" (V166). */
 async function recordChange(authUserId: string): Promise<boolean> {
   const { error } = await serviceDb().rpc('password_changed', { p_auth_user: authUserId });
   return !error;
 }
 
-/** The signed-in person sets their own password (first sign-in or after a generate); the flag clears and they go on. */
+/**
+ * The person whose password must change (first sign-in, or after an admin's generate) sets a new one; the flag clears
+ * and they go on. Only then: the database must say so (api.me() → must_change_password) — anyone else changes theirs on
+ * My profile, with the current password (not_needed).
+ */
 export async function setOwnPassword(
   rawPassword: string,
   rawAgain: string,
@@ -109,11 +133,11 @@ export async function setOwnPassword(
   const db = await serverDb();
   const { data: who } = await db.auth.getUser();
   if (!who.user) return { ok: false, error: 'not_signed_in' };
+  const status = await meStatus(db);
+  if (status === 'ok') return { ok: false, error: 'not_needed' };
+  if (status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };
   const refused = refusal(password, String(rawAgain ?? ''), who.user.email);
   if (refused) return { ok: false, error: refused };
-  const me = await db.rpc('me');
-  const status = (me.data as { status?: string } | null)?.status;
-  if (me.error || (status !== 'ok' && status !== 'must_change_password')) return { ok: false, error: 'not_signed_in' };
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
   if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
@@ -133,13 +157,27 @@ export async function changePassword(
   const password = String(rawPassword ?? '');
   const db = await serverDb();
   const { data: who } = await db.auth.getUser();
-  if (!who.user?.email) return { ok: false, error: 'not_signed_in' };
-  const refused = refusal(password, String(rawAgain ?? ''), who.user.email);
+  const email = who.user?.email;
+  if (!who.user || !email) return { ok: false, error: 'not_signed_in' };
+  const status = await meStatus(db);
+  if (status !== 'ok' && status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };
+  const refused = refusal(password, String(rawAgain ?? ''), email);
   if (refused) return { ok: false, error: refused };
-  const check = await passwordHolds(who.user.email, String(rawCurrent ?? ''));
-  if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };
-  const changed = await db.auth.updateUser({ password });
-  if (changed.error) return { ok: false, error: 'unavailable' };
+  // A wrong current password counts as a wrong password (V172): an unlocked computer cannot guess its way through.
+  const limited = await serviceDb().rpc('sign_in_limited', { p_email: email });
+  if (limited.error) return { ok: false, error: 'unavailable' };
+  if (limited.data) return { ok: false, error: 'rate_limited' };
+  const check = await changeWithCurrent(email, String(rawCurrent ?? ''), password);
+  if (check === 'wrong') {
+    const ua = (await headers()).get('user-agent');
+    const counted = await serviceDb().rpc('sign_in_password_refused', {
+      p_email: email,
+      p_detail: 'invalid_credentials',
+      p_user_agent: ua ?? undefined,
+    });
+    return { ok: false, error: counted.data === 'locked' ? 'rate_limited' : 'wrong_current' };
+  }
+  if (check !== 'ok') return { ok: false, error: 'unavailable' };
   if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
   return { ok: true };
 }
