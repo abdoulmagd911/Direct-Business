@@ -1,8 +1,10 @@
--- v2 the banned words cover the data too (V404): a list value, a side's field or a seed never carries a name the app
--- never says (V59, V73, V74) — "B2G" joins them beside "B2B"; the segment is Government. core.banned_word names the
--- first one a text carries; the list editor and the side-field editor refuse a value that carries one, naming it. The
--- words check (scripts/checks/forbidden-words.mjs) holds the same list and scans the seeds of every migration from this
--- one on; WORDS-01 scans the database built from zero. V156. Forward-only (V103).
+-- v2 the banned words cover the data too (V404): a list value, a side's field, the name of a department, a team or a
+-- role, or a seed never carries one of V59's five names — nor "B2G", which joins them beside "B2B"; the segment is
+-- Government. Google, Zoom, the sign-in tick and GMV are banned on screens only (V59, V73, V74): in data they are
+-- ordinary words — a meeting channel, a reference system (QA-67). core.banned_word names the first one a text carries;
+-- the list editor and the side-field editor refuse a value that carries one, and the three org tables a name, naming
+-- it. The words check (scripts/checks/forbidden-words.mjs) holds the same data list and scans the seeds of every
+-- migration from this one on; WORDS-01 scans the database built from zero. V156. Forward-only (V103).
 
 -- The banned word a text carries, or null: spacing, hyphens and case do not matter ("Direct-KSA", "b 2 g").
 create function core.banned_word(p text) returns text
@@ -18,20 +20,34 @@ as $$
   -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
     (4, '\mb[[:space:]_.-]*2[[:space:]_.-]*g\M', 'B2G'),
   -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
-    (5, '\mmice\M', 'MICE'),
-  -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
-    (6, '\mgoogle\M', 'Google'),
-  -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
-    (7, '\mzoom\M', 'Zoom'),
-  -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
-    (8, '\mkeep[[:space:]_.-]+me[[:space:]_.-]+signed[[:space:]_.-]+in\M', 'Keep me signed in'),
-  -- check-allow: forbidden-words — the database's own copy of the banned words (V404)
-    (9, '\mgmv\M', 'Sales (GMV)')) w(n, re, label)
+    (5, '\mmice\M', 'MICE')) w(n, re, label)
   where coalesce(p, '') ~* w.re
   order by w.n
   limit 1
 $$;
-comment on function core.banned_word(text) is 'The first banned word (V59, V73, V74, V404) a text carries, or null — the words check holds the same list.';
+comment on function core.banned_word(text) is 'The first banned word in data (V59, V404) a text carries, or null — the words check holds the same list (FORBIDDEN_IN_DATA).';
+
+-- A department, a team or a role is named on every person's card and in Organization & access: its names carry no
+-- banned word either, whichever door saves them (QA-68). A name left as it was is not asked again.
+create function core.name_banned() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  bad text;
+begin
+  if tg_op = 'UPDATE' and new.name_en is not distinct from old.name_en and new.name_ar is not distinct from old.name_ar then
+    return new;
+  end if;
+  bad := core.banned_word(pg_catalog.concat_ws(' · ', new.name_en, new.name_ar));
+  if bad is not null then
+    raise exception using errcode = 'P0001', message = 'list.banned_word', detail = bad;
+  end if;
+  return new;
+end
+$$;
+create trigger name_banned before insert or update on core.department for each row execute function core.name_banned();
+create trigger name_banned before insert or update on core.team for each row execute function core.name_banned();
+create trigger name_banned before insert or update on core.role for each row execute function core.name_banned();
 
 -- core.list_save as P3-6d wrote it, refusing a value that carries a banned word.
 create or replace function core.list_save(p_list text, p_id uuid, p_values jsonb, p_version int default null,

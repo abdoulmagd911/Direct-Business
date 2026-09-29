@@ -1,8 +1,10 @@
 -- WORDS-01 — the banned words cover the data too (V404, V156): on the database built from zero, no value of any setting
 -- list, no setting default and no wording carries a name the app never says — the segment is Government, never with
 -- "B2G" after it; the list editor refuses a value that carries one, adding or renaming, and names it; so does the
--- side-field editor, in a label or an option. Every value is made up.
--- Sabotages: supabase/tests/sabotage/the-list-editor-takes-a-banned-word.sql, supabase/tests/sabotage/a-banned-seed.sql.
+-- side-field editor, in a label or an option, and the department, team and role editors in a name (QA-68). Google,
+-- Zoom and GMV are banned on screens only: in data they are ordinary words (QA-67). Every value is made up.
+-- Sabotages: supabase/tests/sabotage/the-list-editor-takes-a-banned-word.sql, supabase/tests/sabotage/a-banned-seed.sql,
+--            supabase/tests/sabotage/an-org-name-takes-a-banned-word.sql.
 do $$
 declare
   e record;
@@ -29,8 +31,11 @@ select test.eq(core.banned_word('Government (B2G)'), 'B2G', 'a banned word is na
 select test.eq(core.banned_word('a b-2-b desk'), 'B2B', 'however it is spaced');
 select test.eq(core.banned_word('Direct KSA travel'), 'Direct KSA', 'or cased');
 select test.eq(core.banned_word('Government · Corporate · microphone · zooming'), null::text, 'ordinary words pass');
+select test.eq(core.banned_word('Zoom meeting · Google Drive folder · GMV per unit'), null::text,
+  'and so do the words banned on screens only');
 
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
+select set_config('t.dept', (select id::text from core.department order by code limit 1), true);
 select set_config('t.gov', (select id::text from partner.side_type where side = 'client' and key = 'government'), true);
 select set_config('t.gv', (select version::text from partner.side_type where side = 'client' and key = 'government'), true);
 select test.as_person(current_setting('t.admin')::uuid);
@@ -42,8 +47,21 @@ select test.raises(format('select api.list_save(%L, %L, %L, %s)', 'side_type', c
 select test.ok((api.list_save('side_type', current_setting('t.gov')::uuid, '{"name_en": "Government sector"}',
                 current_setting('t.gv')::int) ->> 'id') is not null, 'an ordinary name is saved');
 select test.raises($$select api.side_field_save(null, '{"side": "supplier_partner", "key": "made_up_link",
-  "label_en": "Zoom link", "label_ar": "رابط", "type": "text"}')$$, 'P0001', 'the side-field editor refuses one in a label',
+  "label_en": "MICE link", "label_ar": "رابط", "type": "text"}')$$, 'P0001', 'the side-field editor refuses one in a label',
   'list.banned_word');
+select test.ok((api.list_save('activity_type', null, '{"key": "made_up_video", "name_en": "Zoom meeting",
+  "name_ar": "اجتماع مرئي"}') ->> 'id') is not null, 'a meeting channel may be named after its tool');
 select test.raises($$select api.side_field_save(null, '{"side": "client", "key": "made_up_kind", "label_en": "Kind",
   "label_ar": "النوع", "type": "select", "options": [{"key": "b2g", "en": "B2G", "ar": "حكومي"}]}')$$, 'P0001',
   'and in an option', 'list.banned_word');
+
+-- the department, team and role editors refuse a banned name too (QA-68)
+select test.raises($$select api.role_save(null, 'made_up_lead', 'MICE Lead', 'قائد')$$, 'P0001',
+  'the role editor refuses a banned name', 'list.banned_word');
+select test.raises($$select api.department_save(null, 'made_up_dept', 'Direct Corporate', 'إدارة')$$, 'P0001',
+  'so does the department editor', 'list.banned_word');
+select test.raises(format('select api.team_save(null, %L, %L, %L, %L)', current_setting('t.dept'), 'made_up_team',
+  'B2B desk', 'فريق'), 'P0001',
+  'and the team editor', 'list.banned_word');
+select test.ok((api.role_save(null, 'made_up_coordinator', 'Coordinator', 'منسق') ->> 'id') is not null,
+  'an ordinary name is saved');
