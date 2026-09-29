@@ -71,12 +71,25 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   const save = async () => {
     if (editing === null) return;
     setBusy(true);
-    const values: Record<string, unknown> = {
+    const typed: Record<string, unknown> = {
       name_en: draft.name_en.trim(),
       name_ar: draft.name_ar.trim(),
       sort: draft.sort === '' ? null : Number(draft.sort),
     };
-    if (editing === 'new') values.key = draft.key.trim();
+    // An edit sends only what changed (the old app's lesson: an untouched Save changes nothing, and the version is
+    // checked per field it is asked to write); a new entry sends everything with its key.
+    const values: Record<string, unknown> = {};
+    if (editing === 'new') {
+      Object.assign(values, typed, { key: draft.key.trim() });
+    } else {
+      for (const [k, v] of Object.entries(typed))
+        if (JSON.stringify(v) !== JSON.stringify(editing[k] ?? null)) values[k] = v;
+      if (!Object.keys(values).length) {
+        setEditing(null);
+        setBusy(false);
+        return;
+      }
+    }
     await run(
       words,
       () =>

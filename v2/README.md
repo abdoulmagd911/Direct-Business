@@ -112,6 +112,11 @@ the database's own preview, the list editor with the Arabic name required and Us
 with Undo and Revert over the settings log) and `src/modules/org/` My profile, Organization & access and the Person
 record. `core/commands/run.ts` runs one write with its toast and Undo.
 
+P3-7 (V211): `core/commands/command.ts` is the one way a screen writes — the toast with Undo, the global refetch
+(`RefetchBridge`), the conflict dialog when two people changed the same field (FLOW-08); the shell carries the bell
+(`useNotifications`, `NotificationsPanel`), `FollowButton`, `SavedViewsBar` and `BulkBar` for every list, Ctrl K with
+people search and the actions registry (`core/commands/actions.ts`), and Activity gains Recently deleted with Restore.
+
 The password door (V212): `core/auth/password-actions.ts` signs a person in with their work email and password, sends a
 person whose password must change to `/set-password` first, and changes a password from My profile; an admin generates a
 temporary one from the person's record (`/auth/admin/password`, V441). The emailed-code door stays behind
@@ -123,3 +128,9 @@ slate panel with the logo alone at 1,024 px and wider, a slate bar on a phone, a
 the four refusals in words). The tab icon is `app/icon.svg`, `app/favicon.ico` and `app/apple-icon.png`. Proof:
 `tests/e2e/door.spec.ts`; sabotages `door-offline-reads-as-wrong-password`, `door-eye-shows-nothing`,
 `door-panel-grows-a-tagline`.
+The catalogue gaps (V214): a screen names its page (`<Page page=… title=…>`) and a person at none gets the no-access
+state; the root goes to the start page; the admin's default theme, density and start page and the Arabic switch come
+from `core/settings/app.ts` (builder A's `api.app_settings()`, defaults until then) — `PrefsSync` keeps the cookies in
+line and `effectiveLocale` keeps the app English while Arabic is off. Playwright's second project (`utc-arabic-browser`)
+re-runs the screen specs in an Arabic browser on UTC with a moved clock (`tests/e2e/support/fixtures.ts`). The QA
+preview gallery: `GALLERY=1 pnpm test:e2e tests/e2e/gallery.spec.ts --workers=1` (`docs/v2/PREVIEW-GALLERY.md`).
