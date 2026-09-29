@@ -94,7 +94,7 @@
     "settings": {
       "profile": "My profile",
       "org": "Organization & access",
-      "partners": "Clients and Suppliers & partners",
+      "partners": "Clients & suppliers",
       "performance": "Plan & performance",
       "finance": "Finance",
       "work": "Work",
@@ -111,7 +111,8 @@
     "create": "Create",
     "notifications": "Notifications",
     "notificationsUnread": "Notifications, {count} unread",
-    "profile": "My profile"
+    "profile": "My profile",
+    "searchShort": "Search"
   },
   "palette": {
     "placeholder": "Go to a page or search…",
@@ -204,11 +205,25 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "Good day, {name}"
+      "greeting": "Good day, {name}",
+      "greetingMorning": "Good morning, {name}",
+      "greetingAfternoon": "Good afternoon, {name}",
+      "greetingEvening": "Good evening, {name}"
     },
     "settings": {
       "myProfile": "My profile",
       "find": "Find a setting"
+    },
+    "empty": {
+      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
+      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
+      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
+      "projects": "No projects yet. Projects and their milestones appear here.",
+      "tasks": "No tasks yet. Tasks you own or follow appear here.",
+      "finance": "No invoices yet. Invoices, cost and profit appear here.",
+      "kpis": "No KPIs yet. Targets and actuals appear here.",
+      "reports": "No reports yet. Issued reports appear here.",
+      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
     }
   },
   "entity": {
@@ -444,7 +459,7 @@
       "result": "Result",
       "device": "Device",
       "results": {
-        "code_sent": "Code sent",
+        "code_sent": "Email checked",
         "ok": "Signed in",
         "not_listed": "Not on the list",
         "switched_off": "Switched off",
@@ -460,7 +475,62 @@
       "restore": "Restore",
       "restored": "{what} restored",
       "none": "Nothing removed recently"
-    }
+    },
+    "fields": {
+      "full_name_en": "Full name",
+      "full_name_ar": "Full name (Arabic)",
+      "nickname_en": "Nickname",
+      "nickname_ar": "Nickname (Arabic)",
+      "job_title_en": "Job title",
+      "job_title_ar": "Job title (Arabic)",
+      "department_id": "Department",
+      "team_id": "Team",
+      "manager_id": "Reports to",
+      "role_id": "Role",
+      "can_sign_in": "Can sign in",
+      "joined_on": "Joined",
+      "left_on": "Left on",
+      "active": "Active",
+      "email": "Email",
+      "is_primary": "Primary",
+      "display_name_en": "Display name",
+      "display_name_ar": "Display name (Arabic)",
+      "theme": "Theme",
+      "density": "Density",
+      "locale": "Language",
+      "start_page": "Start page",
+      "drawer_pinned": "Drawer",
+      "notify": "Notifications",
+      "avatar_color": "Colour",
+      "badge_kind": "Badge",
+      "badge_value": "Badge value",
+      "name_en": "Name",
+      "name_ar": "Name (Arabic)",
+      "key": "Key",
+      "sort": "Order",
+      "value": "Value",
+      "valid_from": "Applies from",
+      "reason": "Reason",
+      "level": "Level",
+      "page_key": "Page",
+      "capability_key": "Capability",
+      "granted": "Granted",
+      "trade_name_en": "Trade name",
+      "trade_name_ar": "Trade name (Arabic)",
+      "status": "Status",
+      "owner_id": "Owner",
+      "priority_id": "Priority",
+      "key_partner": "Key partner",
+      "type_id": "Type",
+      "tier_id": "Tier",
+      "side": "Side",
+      "on": "On",
+      "since": "Since",
+      "until": "Until"
+    },
+    "moreFields": "+{count} more",
+    "fieldsCount": "{count} fields",
+    "reportsTo": "reports to {name}"
   },
   "profile": {
     "title": "My profile",
@@ -481,8 +551,7 @@
     "badge": "Badge",
     "badgeKind": {
       "none": "No badge",
-      "icon": "Icon",
-      "zodiac": "Zodiac sign"
+      "icon": "Icon"
     },
     "badgeValue": "Which one",
     "theme": "Theme",
@@ -662,7 +731,22 @@
         "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
         "copy": "Copy",
         "copied": "Copied"
-      }
+      },
+      "noRole": "No role",
+      "adminAccount": "Admin account",
+      "testAccount": "Test account",
+      "searchPlaceholder": "Search by name or email",
+      "addEmailFor": "Add an email for {name}",
+      "removeEmailTitle": "Remove {email}?",
+      "removeEmailBody": "{email} can no longer sign in. Every change is logged with its reason.",
+      "pagesGroup": "Pages",
+      "settingsGroup": "Settings sections",
+      "nicknameEn": "Nickname",
+      "nicknameAr": "Nickname (Arabic)",
+      "fullNameAr": "Full name (Arabic)",
+      "switchedOn": "{name} switched on",
+      "switchedOff": "{name} switched off",
+      "emailRefused": "{name} was added, but the email was refused: {detail}"
     },
     "teams": {
       "add": "Add team",
@@ -728,7 +812,36 @@
       "app.export_formats": {
         "csv": "CSV",
         "xlsx": "Excel"
+      },
+      "work": {
+        "week_starts_on": {
+          "saturday": "Saturday",
+          "sunday": "Sunday",
+          "monday": "Monday"
+        }
+      },
+      "partner": {
+        "logo_fallback": {
+          "monogram": "Initials",
+          "blank": "Blank"
+        }
+      },
+      "app": {
+        "export_formats": {
+          "csv": "CSV",
+          "xlsx": "Excel"
+        }
       }
+    },
+    "emptyGroup": "No settings here yet. They arrive with the step that builds this area.",
+    "fields": {
+      "width": "Digits",
+      "prefix": "Prefix",
+      "followers": "Followers",
+      "account_manager": "Account manager",
+      "commercial_manager": "Commercial manager",
+      "in_app": "In app",
+      "email": "Email"
     }
   },
   "errors": {
@@ -826,6 +939,16 @@
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
+    },
+    "crash": {
+      "title": "Something went wrong",
+      "body": "This page could not be drawn. Try again, or go back to My day.",
+      "goMyDay": "Go to My day"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "There is nothing at <address></address>.",
+      "goMyDay": "Go to My day"
     }
   },
   "notifications": {
@@ -869,7 +992,8 @@
       "alert_activity_stale": "{what} has had no activity",
       "alert_file_review": "A file on {what} is due for review",
       "other": "{actor} · {what}"
-    }
+    },
+    "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
   },
   "follow": {
     "follow": "Follow",

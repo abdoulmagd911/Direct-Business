@@ -489,4 +489,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'no-role-reads-as-allowed',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'no role in words',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+      },
+    ],
+  },
+  {
+    name: 'not-found-shows-the-raw-path',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'never the raw path as a title',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: "      <PageHeader title={t('errors.notFound.title')} />",
+        replace: '      <PageHeader title={address} />',
+      },
+    ],
+  },
+  {
+    name: 'activity-shows-column-names',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'the field in words',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: '    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);\n',
+        replace: '    if (f) return f;\n',
+      },
+    ],
+  },
+  {
+    name: 'setting-value-shows-the-key',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'a word, not a key',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        replace: '',
+      },
+    ],
+  },
 ];

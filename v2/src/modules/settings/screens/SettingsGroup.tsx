@@ -1,5 +1,6 @@
 'use client';
 import { useTranslations } from 'next-intl';
+import { DataState } from '@/ui/DataState';
 import type { SettingDefRow } from '../schema';
 import { ListEditor, type ListEntry } from './ListEditor';
 import { SettingCard, type Department } from './SettingCard';
@@ -20,6 +21,7 @@ export function SettingsGroup({
   today: string;
 }) {
   const t = useTranslations();
+  if (!settings.length && !lists.length) return <DataState kind="empty" message={t('settings.emptyGroup')} />;
   return (
     <>
       {settings.map((def) => (

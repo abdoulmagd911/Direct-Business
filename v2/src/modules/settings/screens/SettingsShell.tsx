@@ -26,7 +26,7 @@ export async function SettingsShell({
   const nav = (
     <nav
       aria-label={t('settings.title')}
-      className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible"
+      className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-col md:overflow-visible md:pb-0"
       data-settings-groups
     >
       {groups.map((g) => {

@@ -32,7 +32,10 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await page.locator('[data-colour="c5"]').click();
   await expect(page.getByText('Profile saved').first()).toBeVisible();
   await page.getByLabel('Badge').click();
-  await page.getByRole('option', { name: 'Zodiac sign' }).click();
+  await expect(page.getByRole('option', { name: 'Zodiac sign' }), 'the zodiac sign is no longer offered').toHaveCount(
+    0,
+  );
+  await page.getByRole('option', { name: 'Icon' }).click();
   await expect(page.getByLabel('Which one')).toBeVisible();
 
   await page.getByLabel('Density').click();

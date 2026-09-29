@@ -23,8 +23,8 @@ test('an admin adds a person who then signs in; switching them off signs them ou
   await hydrated(page);
   await page.locator('[data-person-add]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Full name').fill(`Test Person New ${tag}`);
-  await dialog.getByLabel('Job title').fill('Made-up title');
+  await dialog.getByLabel('Full name', { exact: true }).fill(`Test Person New ${tag}`);
+  await dialog.getByLabel('Job title', { exact: true }).fill('Made-up title');
   await dialog.getByLabel('Work email').fill(email);
   await dialog.locator('[data-person-save]').click();
   await expect(toast(page, `Test Person New ${tag} added`)).toBeVisible();
@@ -45,7 +45,7 @@ test('an admin adds a person who then signs in; switching them off signs them ou
   await page.locator('[data-person-switch]').click();
   await page.getByRole('dialog').getByLabel('Reason').fill(reason);
   await page.getByRole('dialog').locator('[data-reason-save]').click();
-  await expect(toast(page, 'Switched off')).toBeVisible();
+  await expect(toast(page, 'switched off')).toBeVisible();
   await their.goto('/tasks');
   await expect(their).toHaveURL(/\/sign-in\?/);
   await expect(their.getByRole('main').getByRole('alert')).toHaveText('Your account is switched off');
@@ -174,8 +174,8 @@ test('an admin edits one field of a person: only that field is sent, and the for
   // one field changed → one field in the request (the old app's lesson: never every field, never a stale copy)
   await page.locator('[data-person-edit]').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByLabel('Full name')).toHaveValue(member.name);
-  await dialog.getByLabel('Job title').fill('Made-up title');
+  await expect(dialog.getByLabel('Full name', { exact: true })).toHaveValue(member.name);
+  await dialog.getByLabel('Job title', { exact: true }).fill('Made-up title');
   const sent = page.waitForRequest((r) => r.url().includes('/rpc/person_update') && r.method() === 'POST');
   await dialog.locator('[data-person-save]').click();
   const body = (await sent).postDataJSON() as { p_changes: Record<string, unknown>; p_version: number };
@@ -200,8 +200,8 @@ test('an admin edits one field of a person: only that field is sent, and the for
   await expect(page.getByRole('dialog').getByLabel('Team'), 'the form shows the stored value').toContainText(
     team!.name,
   );
-  await expect(page.getByRole('dialog').getByLabel('Job title')).toHaveValue('Made-up title');
-  await page.getByRole('dialog').getByLabel('Job title').fill('Made-up title two');
+  await expect(page.getByRole('dialog').getByLabel('Job title', { exact: true })).toHaveValue('Made-up title');
+  await page.getByRole('dialog').getByLabel('Job title', { exact: true }).fill('Made-up title two');
   const again = page.waitForRequest((r) => r.url().includes('/rpc/person_update') && r.method() === 'POST');
   await page.getByRole('dialog').locator('[data-person-save]').click();
   const second = (await again).postDataJSON() as { p_changes: Record<string, unknown>; p_version: number };

@@ -15,6 +15,7 @@ import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { StatusChip } from '@/ui/Chip';
+import { toast } from '@/ui/Toast';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -32,6 +33,7 @@ import {
   type OrgRole,
   type OrgTeam,
   type PeopleAnswer,
+  type PersonRow,
 } from '../types';
 
 export type { MatrixAnswer, OrgAnswer, PeopleAnswer } from '../types';
@@ -168,6 +170,8 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
             value={q}
             onChange={(e) => setQ(e.target.value)}
             aria-label={t('common.search')}
+            placeholder={t('settings.people.searchPlaceholder')}
+            autoComplete="off"
             className="ps-9 sm:w-72"
           />
         </label>
@@ -175,12 +179,13 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
           {t('settings.people.add')}
         </Button>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border bg-raised">
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
         <table className="w-full text-sm">
           <thead className="text-xs text-muted">
             <tr>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.name')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.role')}</th>
+              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.department')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.team')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.emails')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.lastSignIn')}</th>
@@ -205,22 +210,19 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5">{names.role(p.role?.id)}</td>
-                  <td className="px-4 py-2.5">{names.team(p.team_id) || names.dept(p.department_id)}</td>
+                  <td className="px-4 py-2.5" data-person-role>
+                    <PersonRole row={p} roleName={names.role(p.role?.id)} />
+                  </td>
+                  <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.dept(p.department_id) || '—'}</td>
+                  <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.team(p.team_id) || '—'}</td>
                   <td className="px-4 py-2.5 font-data text-xs">{p.emails.map((e) => e.email).join(', ')}</td>
-                  <td className="px-4 py-2.5 font-data text-xs text-muted">
+                  <td className="px-4 py-2.5 font-data text-xs whitespace-nowrap text-muted">
                     {p.last_sign_in_at
                       ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
                       : t('settings.people.never')}
                   </td>
-                  <td className="px-4 py-2.5">
-                    {p.left_on ? (
-                      <StatusChip tone="neutral">{t('settings.people.left')}</StatusChip>
-                    ) : p.can_sign_in ? (
-                      <StatusChip tone="success">{t('settings.people.signInOn')}</StatusChip>
-                    ) : (
-                      <StatusChip tone="warning">{t('settings.people.signInOff')}</StatusChip>
-                    )}
+                  <td className="px-4 py-2.5" data-person-status>
+                    <PersonStatus row={p} />
                   </td>
                 </tr>
               );
@@ -228,9 +230,64 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
           </tbody>
         </table>
       </div>
+      <ul className="flex flex-col gap-2 sm:hidden" data-people-cards>
+        {rows.map((p) => {
+          const avatar = names.avatar(p.id);
+          return (
+            <li key={p.id} className="rounded-lg border border-border bg-raised p-3" data-person-card={p.id}>
+              <div className="flex items-center justify-between gap-3">
+                <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2.5" data-entity="person">
+                  {avatar ? <Avatar person={avatar} size="sm" /> : null}
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span className="truncate font-medium">{p.full_name_en}</span>
+                    <span className="truncate text-xs text-muted">
+                      <PersonRole row={p} roleName={names.role(p.role?.id)} />
+                      {!isAccount(p) && names.dept(p.department_id) ? ` · ${names.dept(p.department_id)}` : ''}
+                    </span>
+                  </span>
+                </Link>
+                <PersonStatus row={p} />
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                <span className="font-data">
+                  {p.emails.map((e) => e.email).join(', ') || t('settings.people.noEmails')}
+                </span>
+                <span className="font-data whitespace-nowrap">
+                  {t('settings.people.lastSignIn')}:{' '}
+                  {p.last_sign_in_at
+                    ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
+                    : t('settings.people.never')}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
       <AddPersonDialog open={adding} onOpenChange={setAdding} org={org} onDone={(id) => router.push(`/people/${id}`)} />
     </section>
   );
+}
+
+/** The admin account and the test account are not team members (V444, V445): named as accounts, no team. */
+export function isAccount(p: { kind?: string | null }): boolean {
+  return p.kind === 'admin_account' || p.kind === 'test_account';
+}
+
+function PersonRole({ row, roleName }: { row: PersonRow; roleName: string }) {
+  const t = useTranslations();
+  if (row.kind === 'admin_account') return <>{t('settings.people.adminAccount')}</>;
+  if (row.kind === 'test_account') return <>{t('settings.people.testAccount')}</>;
+  if (!row.role) return <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>;
+  return <>{roleName}</>;
+}
+
+/** Left (grey) · Switched off (grey) · No role (amber) · Allowed (green), in that order. */
+function PersonStatus({ row }: { row: PersonRow }) {
+  const t = useTranslations();
+  if (row.left_on) return <StatusChip tone="neutral">{t('settings.people.left')}</StatusChip>;
+  if (!row.can_sign_in) return <StatusChip tone="neutral">{t('settings.people.signInOff')}</StatusChip>;
+  if (!row.role) return <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>;
+  return <StatusChip tone="success">{t('settings.people.signInOn')}</StatusChip>;
 }
 
 function AddPersonDialog({
@@ -263,10 +320,13 @@ function AddPersonDialog({
     f.full_name_en.trim().length > 0 && !!f.department_id && (!f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email));
   const save = async () => {
     setBusy(true);
+    // Two writes, said apart (W24): the person is created — the dialog closes only once the server confirms — and then
+    // the email is allowed; an email the server refuses (one someone else already holds) is said in words, and the
+    // record still opens, so a retry never creates the person twice.
     const created = await run(
       { ...words, done: t('settings.people.added', { name: f.full_name_en.trim() }) },
-      async () => {
-        const r = (await rpc('person_create', {
+      async () =>
+        (await rpc('person_create', {
           p_person: {
             full_name_en: f.full_name_en.trim(),
             job_title_en: f.job_title_en.trim() || null,
@@ -276,19 +336,25 @@ function AddPersonDialog({
             role_id: f.role_id || null,
             can_sign_in: f.can_sign_in,
           } as never,
-        })) as { id: string; request_id?: string | null };
-        if (f.email.trim()) {
-          const res = await fetch('/auth/admin/emails', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ person_id: r.id, email: f.email.trim().toLowerCase(), primary: true }),
-          });
-          const body = (await res.json()) as { ok: boolean; error?: { key: string } };
-          if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
-        }
-        return r;
-      },
+        })) as { id: string; request_id?: string | null },
     );
+    if (created && f.email.trim()) {
+      const res = await fetch('/auth/admin/emails', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ person_id: created.id, email: f.email.trim().toLowerCase(), primary: true }),
+      });
+      const body = (await res.json().catch(() => ({ ok: false }))) as { ok: boolean; error?: { key: string } };
+      if (!body.ok) {
+        const key = body.error?.key ?? 'common.unavailable';
+        toast.failed(
+          t('settings.people.emailRefused', {
+            name: f.full_name_en.trim(),
+            detail: t.has(key) ? t(key) : t('errors.kind.RuleBroken', { detail: key }),
+          }),
+        );
+      }
+    }
     setBusy(false);
     if (created) {
       onOpenChange(false);
@@ -314,11 +380,24 @@ function AddPersonDialog({
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t('profile.fullNameEn')} className="sm:col-span-2">
           {(p) => (
-            <Input {...p} value={f.full_name_en} onChange={(e) => field('full_name_en')(e.target.value)} autoFocus />
+            <Input
+              {...p}
+              autoComplete="off"
+              value={f.full_name_en}
+              onChange={(e) => field('full_name_en')(e.target.value)}
+              autoFocus
+            />
           )}
         </Field>
         <Field label={t('settings.people.jobTitleEn')} className="sm:col-span-2">
-          {(p) => <Input {...p} value={f.job_title_en} onChange={(e) => field('job_title_en')(e.target.value)} />}
+          {(p) => (
+            <Input
+              {...p}
+              autoComplete="off"
+              value={f.job_title_en}
+              onChange={(e) => field('job_title_en')(e.target.value)}
+            />
+          )}
         </Field>
         <Field label={t('settings.people.department')}>
           {(p) => (
@@ -486,7 +565,15 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
   const teamForm = (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field label={t('settings.teams.name')}>
-        {(p) => <Input {...p} value={f.name_en} onChange={(e) => setF({ ...f, name_en: e.target.value })} autoFocus />}
+        {(p) => (
+          <Input
+            {...p}
+            autoComplete="off"
+            value={f.name_en}
+            onChange={(e) => setF({ ...f, name_en: e.target.value })}
+            autoFocus
+          />
+        )}
       </Field>
       <Field
         label={t('settings.teams.nameAr')}
@@ -504,7 +591,13 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
       </Field>
       <Field label={t('settings.teams.code')}>
         {(p) => (
-          <Input {...p} value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="font-data" />
+          <Input
+            {...p}
+            autoComplete="off"
+            value={f.code}
+            onChange={(e) => setF({ ...f, code: e.target.value })}
+            className="font-data"
+          />
         )}
       </Field>
       <Field label={t('settings.teams.department')}>
@@ -685,7 +778,13 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('settings.teams.name')}>
             {(p) => (
-              <Input {...p} value={d.name_en} onChange={(e) => setD({ ...d, name_en: e.target.value })} autoFocus />
+              <Input
+                {...p}
+                autoComplete="off"
+                value={d.name_en}
+                onChange={(e) => setD({ ...d, name_en: e.target.value })}
+                autoFocus
+              />
             )}
           </Field>
           <Field
@@ -810,7 +909,7 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
         </Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-border bg-raised">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm whitespace-nowrap">
           <thead className="text-xs text-muted">
             <tr>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.name')}</th>
@@ -880,7 +979,13 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('settings.roles.name')}>
             {(p) => (
-              <Input {...p} value={f.name_en} onChange={(e) => setF({ ...f, name_en: e.target.value })} autoFocus />
+              <Input
+                {...p}
+                autoComplete="off"
+                value={f.name_en}
+                onChange={(e) => setF({ ...f, name_en: e.target.value })}
+                autoFocus
+              />
             )}
           </Field>
           <Field

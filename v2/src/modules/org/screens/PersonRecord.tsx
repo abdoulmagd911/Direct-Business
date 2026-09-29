@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command, run, type ConflictField } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { deviceLabel } from '@/core/auth/device-label';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
 import { Avatar } from '@/ui/Avatar';
@@ -36,6 +37,8 @@ import {
   type PersonRow,
 } from '../types';
 import type { Device } from './MyProfile';
+import { isAccount } from './OrgAccess';
+import { describeWith, summarizeWith } from '../types';
 
 export type PersonRecordData = {
   me: Me;
@@ -47,6 +50,8 @@ export type PersonRecordData = {
   access: PersonAccess | null;
   history: HistoryRow[] | null;
   devices: Device[] | null;
+  /** The person's own devices (api.devices) when the record is their own and the admin read is not theirs. */
+  ownDevices?: Device[] | null;
   signIns: { id: string; at: string; email: string; result: string; user_agent: string | null }[] | null;
   /** The reads that failed for a reason other than access (`people`, `access`, `history`, `devices`, `signIns`). */
   failed: string[];
@@ -64,7 +69,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
-  const { me, org, person, row, access, history, devices, signIns, failed } = data;
+  const { me, org, person, row, access, history, devices, ownDevices, signIns, failed } = data;
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const admin = me.person.role?.is_admin === true;
   const self = me.person.id === person.id;
@@ -75,7 +80,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const manager = byId(person.manager_id);
   const pick = (x: { name_en: string; name_ar: string | null } | undefined) =>
     x ? (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en) : '';
-  const roleName = pick(org.roles.find((r) => r.id === row?.role?.id));
+  const roleName = pick(org.roles.find((r) => r.id === (row?.role?.id ?? (self ? me.person.role?.id : undefined))));
   const reports = org.people.filter((p) => p.manager_id === person.id);
   const teammates = org.people.filter((p) => p.team_id && p.team_id === person.team_id && p.id !== person.id);
   const words = (done: string) => ({
@@ -105,6 +110,21 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const [temporary, setTemporary] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
+  const [removingEmail, setRemovingEmail] = useState<{ id: string; email: string } | null>(null);
+  const removeEmail = async (reason: string) => {
+    if (!removingEmail) return;
+    await run(
+      words(t('settings.people.emailRemoved', { email: removingEmail.email })),
+      () =>
+        rpc('person_email_remove', { p_id: removingEmail.id, p_reason: reason } as never) as Promise<{
+          request_id?: string | null;
+        } | null>,
+      () => {
+        setRemovingEmail(null);
+        refresh();
+      },
+    );
+  };
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
   const [roleChange, setRoleChange] = useState<string | null>(null);
@@ -115,7 +135,11 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
    */
   const stored = {
     full_name_en: person.full_name_en,
+    full_name_ar: person.full_name_ar ?? '',
+    nickname_en: person.nickname_en ?? '',
+    nickname_ar: person.nickname_ar ?? '',
     job_title_en: person.job_title_en ?? '',
+    job_title_ar: person.job_title_ar ?? '',
     department_id: person.department_id,
     team_id: person.team_id ?? '',
     manager_id: person.manager_id ?? '',
@@ -133,7 +157,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
 
   const changedFields = () => {
     const out: Record<string, string | null> = {};
-    const norm = (k: keyof typeof stored) => (k === 'full_name_en' || k === 'job_title_en' ? f[k].trim() : f[k]);
+    const TEXT: (keyof typeof stored)[] = [
+      'full_name_en',
+      'full_name_ar',
+      'nickname_en',
+      'nickname_ar',
+      'job_title_en',
+      'job_title_ar',
+    ];
+    const norm = (k: keyof typeof stored) => (TEXT.includes(k) ? f[k].trim() : f[k]);
     for (const k of Object.keys(stored) as (keyof typeof stored)[]) {
       const next = norm(k);
       if (next === stored[k]) continue;
@@ -162,10 +194,24 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     const every: ConflictField[] = [
       { key: 'full_name_en', label: t('profile.fullNameEn'), mine: changes.full_name_en, read: row.full_name_en },
       {
+        key: 'full_name_ar',
+        label: t('settings.people.fullNameAr'),
+        mine: changes.full_name_ar,
+        read: row.full_name_ar,
+      },
+      { key: 'nickname_en', label: t('settings.people.nicknameEn'), mine: changes.nickname_en, read: row.nickname_en },
+      { key: 'nickname_ar', label: t('settings.people.nicknameAr'), mine: changes.nickname_ar, read: row.nickname_ar },
+      {
         key: 'job_title_en',
         label: t('settings.people.jobTitleEn'),
         mine: changes.job_title_en,
         read: row.job_title_en,
+      },
+      {
+        key: 'job_title_ar',
+        label: t('settings.people.jobTitleAr'),
+        mine: changes.job_title_ar,
+        read: row.job_title_ar,
       },
       {
         key: 'department_id',
@@ -221,12 +267,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const doSwitch = async (reason: string) => {
     const on = !(row?.can_sign_in ?? true);
     await run(
-      words(
-        t('settings.people.switched', {
-          name: person.full_name_en,
-          state: on ? t('settings.people.signInOn') : t('settings.people.signInOff'),
-        }),
-      ),
+      words(t(on ? 'settings.people.switchedOn' : 'settings.people.switchedOff', { name: person.full_name_en })),
       async () => {
         const r = (await rpc('person_switch', { p_id: person.id, p_on: on, p_reason: reason } as never)) as {
           request_id?: string | null;
@@ -364,6 +405,18 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     },
     { key: 'reports', label: t('settings.people.reports'), value: String(reports.length) },
   ];
+  // One's own record without the admin read: the last sign-in from the log the person may read; the devices from the
+  // person's own list. What a member may not read of a colleague is left out — never "not measured" (item 6).
+  const ownLast = self && !row && signIns ? signIns.find((x) => x.result === 'ok') : undefined;
+  const shownFigures: KeyFigure[] = figures
+    .map((f) =>
+      f.key === 'last' && ownLast
+        ? { ...f, value: formatDate(new Date(ownLast.at), locale, { dateStyle: 'medium' }) }
+        : f.key === 'devices' && self && ownDevices
+          ? { ...f, value: String(ownDevices.length) }
+          : f,
+    )
+    .filter((f) => admin || f.value !== null);
   const pageLabel = (key: string) => {
     for (const m of modules) for (const p of m.pages ?? []) if (p.key === key) return t.has(p.label) ? t(p.label) : key;
     return key;
@@ -457,40 +510,77 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             >
               <ul className="flex flex-col gap-1 font-data text-xs">
                 {row.emails.map((e) => (
-                  <li key={e.email} className="flex items-center gap-2">
-                    {e.email}
+                  <li key={e.email} className="flex min-w-0 flex-wrap items-center gap-2" data-person-email={e.email}>
+                    <span className="min-w-0 break-all">{e.email}</span>
                     {e.is_primary ? <StatusChip tone="neutral">{t('settings.people.primary')}</StatusChip> : null}
+                    {admin ? (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="font-sans"
+                        onClick={() => setRemovingEmail(e)}
+                        data-email-remove
+                      >
+                        {t('common.remove')}
+                      </Button>
+                    ) : null}
                   </li>
                 ))}
+                {admin && row.emails.length ? (
+                  <li>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      className="font-sans"
+                      onClick={() => setAddingEmail(true)}
+                      data-email-add
+                    >
+                      {t('settings.people.addEmail')}
+                    </Button>
+                  </li>
+                ) : null}
               </ul>
             </RailField>
           </>
         ) : null}
       </RailSection>
-      {access ? (
-        <RailSection title={t('settings.people.access')}>
-          {pagesForLevels.map((page) => {
-            const override = access.level_overrides.find((o) => o.page === page);
-            return (
-              <RailField key={page} label={pageLabel(page)}>
-                <span className="flex items-center gap-2">
-                  {admin && !self ? (
-                    <Select
-                      value={access.levels[page] ?? 'none'}
-                      onValueChange={(v) => setLevelChange({ page, level: v as Level })}
-                      options={LEVELS.map((l) => ({ value: l, label: t(`levels.${l}`) }))}
-                      className="h-8 min-w-24 text-sm"
-                    />
-                  ) : (
-                    <span>{t(`levels.${access.levels[page] ?? 'none'}`)}</span>
-                  )}
-                  {override ? <StatusChip tone="info">{t('settings.access.override')}</StatusChip> : null}
-                </span>
-              </RailField>
-            );
-          })}
-        </RailSection>
-      ) : null}
+      {access
+        ? (
+            [
+              ['pages', pagesForLevels.filter((k) => !k.startsWith('settings.'))],
+              ['settings', pagesForLevels.filter((k) => k.startsWith('settings.'))],
+            ] as const
+          ).map(([group, keys]) =>
+            keys.length ? (
+              <RailSection
+                key={group}
+                title={`${t('settings.people.access')} · ${t(group === 'pages' ? 'settings.people.pagesGroup' : 'settings.people.settingsGroup')}`}
+                data-access-group={group}
+              >
+                {keys.map((page) => {
+                  const override = access.level_overrides.find((o) => o.page === page);
+                  return (
+                    <RailField key={page} label={pageLabel(page)}>
+                      <span className="flex items-center gap-2">
+                        {admin && !self ? (
+                          <Select
+                            value={access.levels[page] ?? 'none'}
+                            onValueChange={(v) => setLevelChange({ page, level: v as Level })}
+                            options={LEVELS.map((l) => ({ value: l, label: t(`levels.${l}`) }))}
+                            className="h-8 min-w-24 text-sm"
+                          />
+                        ) : (
+                          <span>{t(`levels.${access.levels[page] ?? 'none'}`)}</span>
+                        )}
+                        {override ? <StatusChip tone="info">{t('settings.access.override')}</StatusChip> : null}
+                      </span>
+                    </RailField>
+                  );
+                })}
+              </RailSection>
+            ) : null,
+          )
+        : null}
     </>
   );
 
@@ -536,19 +626,27 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       subtitle={[person.job_title_en, pick(team) || pick(dept)].filter(Boolean).join(' · ')}
       chips={
         <>
-          {roleName ? <StatusChip tone="neutral">{roleName}</StatusChip> : null}
+          {person.kind === 'admin_account' ? (
+            <StatusChip tone="neutral">{t('settings.people.adminAccount')}</StatusChip>
+          ) : person.kind === 'test_account' ? (
+            <StatusChip tone="neutral">{t('settings.people.testAccount')}</StatusChip>
+          ) : roleName ? (
+            <StatusChip tone="neutral">{roleName}</StatusChip>
+          ) : row ? (
+            <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>
+          ) : null}
           {row ? (
             row.left_on ? (
               <StatusChip tone="neutral">{t('settings.people.left')}</StatusChip>
             ) : row.can_sign_in ? (
               <StatusChip tone="success">{t('settings.people.signInOn')}</StatusChip>
             ) : (
-              <StatusChip tone="warning">{t('settings.people.signInOff')}</StatusChip>
+              <StatusChip tone="neutral">{t('settings.people.signInOff')}</StatusChip>
             )
           ) : null}
         </>
       }
-      figures={figures}
+      figures={shownFigures}
       actions={actions}
       tabs={TABS.map((k) => ({
         key: k,
@@ -571,7 +669,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                   {devices.map((d) => (
                     <li key={d.id} className="flex items-center justify-between gap-3 py-2">
                       <span>{d.device_label ?? t('profile.devices.unknown')}</span>
-                      <span className="font-data text-xs text-muted">
+                      <span className="font-data text-xs whitespace-nowrap text-muted">
                         {formatDate(new Date(d.last_seen_at), locale, { dateStyle: 'medium', timeStyle: 'short' })}
                       </span>
                     </li>
@@ -588,15 +686,18 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               <ul className="divide-y divide-border text-sm">
                 {signIns.slice(0, 8).map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="flex items-center gap-2">
+                    <span className="flex min-w-0 items-center gap-2">
                       <StatusChip tone={s.result === 'ok' || s.result === 'code_sent' ? 'success' : 'warning'}>
                         {t.has(`activity.signIn.results.${s.result}`)
                           ? t(`activity.signIn.results.${s.result}`)
                           : s.result}
                       </StatusChip>
-                      <span className="font-data text-xs">{s.email}</span>
+                      <span className="min-w-0 truncate font-data text-xs">{s.email}</span>
+                      {deviceLabel(s.user_agent) ? (
+                        <span className="text-xs whitespace-nowrap text-muted">· {deviceLabel(s.user_agent)}</span>
+                      ) : null}
                     </span>
-                    <span className="font-data text-xs text-muted">
+                    <span className="font-data text-xs whitespace-nowrap text-muted">
                       {formatDate(new Date(s.at), locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </li>
@@ -611,7 +712,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       ) : null}
       {tab === 'activity' ? (
         history ? (
-          <ActivityTimeline rows={history} people={people} onChanged={refresh} />
+          <ActivityTimeline
+            rows={history}
+            people={people}
+            onChanged={refresh}
+            describe={describeWith(org, locale)}
+            summarize={summarizeWith(org, locale, (name) => t('activity.reportsTo', { name }))}
+          />
         ) : (
           (failedRead('history', t('record.activity')) ?? <DataState kind="no-access" what={t('record.activity')} />)
         )
@@ -674,14 +781,70 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           }
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t('profile.fullNameEn')} className="sm:col-span-2">
+            <Field label={t('profile.fullNameEn')}>
               {(p) => (
-                <Input {...p} value={f.full_name_en} onChange={(e) => setF({ ...f, full_name_en: e.target.value })} />
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  value={f.full_name_en}
+                  onChange={(e) => setF({ ...f, full_name_en: e.target.value })}
+                />
               )}
             </Field>
-            <Field label={t('settings.people.jobTitleEn')} className="sm:col-span-2">
+            <Field label={t('settings.people.fullNameAr')}>
               {(p) => (
-                <Input {...p} value={f.job_title_en} onChange={(e) => setF({ ...f, job_title_en: e.target.value })} />
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  dir="rtl"
+                  lang="ar"
+                  value={f.full_name_ar}
+                  onChange={(e) => setF({ ...f, full_name_ar: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t('settings.people.nicknameEn')}>
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  value={f.nickname_en}
+                  onChange={(e) => setF({ ...f, nickname_en: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t('settings.people.nicknameAr')}>
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  dir="rtl"
+                  lang="ar"
+                  value={f.nickname_ar}
+                  onChange={(e) => setF({ ...f, nickname_ar: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t('settings.people.jobTitleEn')}>
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  value={f.job_title_en}
+                  onChange={(e) => setF({ ...f, job_title_en: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t('settings.people.jobTitleAr')}>
+              {(p) => (
+                <Input
+                  {...p}
+                  autoComplete="off"
+                  dir="rtl"
+                  lang="ar"
+                  value={f.job_title_ar}
+                  onChange={(e) => setF({ ...f, job_title_ar: e.target.value })}
+                />
               )}
             </Field>
             <Field label={t('settings.people.department')}>
@@ -715,7 +878,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                   onValueChange={(v) => setF({ ...f, manager_id: v })}
                   placeholder={t('settings.people.noManager')}
                   options={org.people
-                    .filter((x) => x.id !== person.id)
+                    .filter((x) => x.id !== person.id && !isAccount(x))
                     .map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
                 />
               )}
@@ -759,6 +922,20 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         words={{
           reason: t('common.reason'),
           save: row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <ReasonDialog
+        open={removingEmail !== null}
+        onOpenChange={(o) => !o && setRemovingEmail(null)}
+        title={t('settings.people.removeEmailTitle', { email: removingEmail?.email ?? '' })}
+        body={t('settings.people.removeEmailBody', { email: removingEmail?.email ?? '' })}
+        onSave={removeEmail}
+        destructive
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.removeEmail'),
           cancel: t('common.cancel'),
           reasonRequired: t('settings.form.reasonRequired'),
         }}

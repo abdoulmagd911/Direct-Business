@@ -194,7 +194,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
         <thead className="text-xs text-muted">
           <tr>
             <th className="py-2 text-start font-medium">{t('settings.list.nameEn')}</th>
-            <th className="py-2 text-start font-medium">{t('settings.list.nameAr')}</th>
+            <th className="py-2 pe-6 text-end font-medium">{t('settings.list.nameAr')}</th>
             <th className="py-2 text-start font-medium">{t('settings.list.key')}</th>
             <th className="py-2 text-end font-medium">{t('settings.list.sort')}</th>
             <th className="py-2" />
@@ -209,7 +209,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                   {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
                 </span>
               </td>
-              <td className="py-2.5" dir="rtl">
+              <td className="py-2.5 pe-6 text-end whitespace-nowrap" dir="rtl">
                 {r.name_ar}
               </td>
               <td className="py-2.5 font-data text-muted">{r.key}</td>

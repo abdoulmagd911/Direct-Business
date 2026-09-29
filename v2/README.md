@@ -134,3 +134,9 @@ from `core/settings/app.ts` (builder A's `api.app_settings()`, defaults until th
 line and `effectiveLocale` keeps the app English while Arabic is off. Playwright's second project (`utc-arabic-browser`)
 re-runs the screen specs in an Arabic browser on UTC with a moved clock (`tests/e2e/support/fixtures.ts`). The QA
 preview gallery: `GALLERY=1 pnpm test:e2e tests/e2e/gallery.spec.ts --workers=1` (`docs/v2/PREVIEW-GALLERY.md`).
+
+The visual review, round 1 (V216): words never keys (`settings.values.*`, `settings.fields.*`, `activity.fields.*`,
+`describeWith(org)` for ids), the People list's real status, the person record's Arabic fields and email controls, the
+Not found page (`ui/NotFoundBody.tsx`) and the crash page (`app/(app)/error.tsx`), every area page's own empty line.
+Proof: `tests/e2e/review-1.spec.ts`, `tests/unit/shell/the-crash-page-*.test.tsx`; sabotages `no-role-reads-as-allowed`,
+`not-found-shows-the-raw-path`, `activity-shows-column-names`, `setting-value-shows-the-key`.

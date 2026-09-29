@@ -9,7 +9,7 @@ import { formatDate } from '@/core/i18n/format';
 import { DENSITIES, PREF_DEFS, THEMES, readPrefs, setPref } from '@/core/prefs';
 import { NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar, type AvatarColor } from '@/ui/Avatar';
-import { BADGE_ICONS, ZODIAC } from '@/ui/badges';
+import { BADGE_ICONS } from '@/ui/badges';
 import { Button } from '@/ui/Button';
 import { changePassword, type PasswordError } from '@/core/auth/password-actions';
 import { MIN_PASSWORD } from '@/core/auth/password-rules';
@@ -271,28 +271,25 @@ export function MyProfile({
                 onValueChange={(v) =>
                   void save({
                     badge_kind: v as Profile['badge_kind'],
-                    badge_value:
-                      v === 'none' ? null : v === 'icon' ? Object.keys(BADGE_ICONS)[0]! : Object.keys(ZODIAC)[0]!,
+                    badge_value: v === 'none' ? null : Object.keys(BADGE_ICONS)[0]!,
                   })
                 }
-                options={(['none', 'icon', 'zodiac'] as const).map((k) => ({
+                // the zodiac sign is no longer offered (owner, 30 Sep 00:07); a stored one stays until changed
+                options={(['none', 'icon'] as const).map((k) => ({
                   value: k,
                   label: t(`profile.badgeKind.${k}`),
                 }))}
               />
             )}
           </Field>
-          {badgeKind !== 'none' ? (
+          {badgeKind === 'icon' ? (
             <Field label={t('profile.badgeValue')}>
               {(p) => (
                 <Select
                   {...p}
                   value={state.profile?.badge_value ?? ''}
                   onValueChange={(v) => void save({ badge_value: v })}
-                  options={Object.keys(badgeKind === 'icon' ? BADGE_ICONS : ZODIAC).map((k) => ({
-                    value: k,
-                    label: badgeKind === 'zodiac' ? `${ZODIAC[k]} ${k}` : k,
-                  }))}
+                  options={Object.keys(BADGE_ICONS).map((k) => ({ value: k, label: k }))}
                 />
               )}
             </Field>
