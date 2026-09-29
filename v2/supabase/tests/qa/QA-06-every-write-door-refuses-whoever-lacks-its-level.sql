@@ -10,16 +10,17 @@ select set_config('t.mem', test.person('Test Member', 'member')::text, true);
 select set_config('t.other', test.person('Test Other Member', 'member')::text, true);
 select set_config('t.view', test.person('Test Viewer', 'viewer')::text, true);
 select set_config('t.dep', test.department('qa_six')::text, true);
-insert into core.team (department_id, code, name_en) values (current_setting('t.dep')::uuid, 'qa_six_team', 'QA Six Team');
+insert into core.team (department_id, code, name_en, name_ar)
+values (current_setting('t.dep')::uuid, 'qa_six_team', 'QA Six Team', 'فريق مختلق');
 select set_config('t.team', (select id::text from core.team where code = 'qa_six_team'), true);
 select set_config('t.role', (select id::text from core.role where key = 'viewer'), true);
 
 select set_config('t.none', test.person('Test No Partners', 'member')::text, true);
 insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.none')::uuid, 'partners', 'none', 'made up: no partners');
+values (current_setting('t.none')::uuid, 'clients', 'none', 'made up: no partners');
 
 select test.as_person(current_setting('t.admin')::uuid);
-select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA6'), 'made up')
+select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA6', 'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate'))), 'made up')
   ->> 'id', true);
 select set_config('t.alias', api.identifier_add(current_setting('t.p')::uuid, 'name', 'Made Up Alias QA6', 'made up',
   'alias') ->> 'id', true);
@@ -30,7 +31,7 @@ select set_config('t.contact', api.contact_save(current_setting('t.p')::uuid, nu
 
 -- Partners · Full without the capability: a member changes no account manager, identifier, code or individual
 select test.as_person(current_setting('t.mem')::uuid);
-select test.raises(format('select api.partner_manager_set(%L, %L)', current_setting('t.p'), current_setting('t.other')),
+select test.raises(format('select api.partner_owner_set(%L, %L, %L)', current_setting('t.p'), 'client', current_setting('t.other')),
   '42501', 'a member without partners.assign cannot change the account manager', 'access.needs_capability');
 select test.raises(format('select api.identifier_remove(%L, %L)', current_setting('t.alias'), 'made up'), '42501',
   'nor remove an identifier without partners.identify', 'access.needs_capability');
@@ -55,8 +56,8 @@ select test.raises(format('select api.partner_update(%L, %L, 1, %L)', current_se
   'made up'), '42501', 'a viewer cannot change a partner', 'access.needs_level');
 select test.raises(format('select api.contact_save(%L, null, %L)', current_setting('t.p'),
   '{"name_en": "Test Contact"}'), '42501', 'nor add a contact', 'access.needs_level');
-select test.raises(format('select api.partner_roles_set(%L, %L, %L)', current_setting('t.p'), '[{"role": "client"}]',
-  'made up'), '42501', 'nor set its roles', 'access.needs_level');
+select test.raises(format('select api.partner_side_set(%L, %L, %L, %L)', current_setting('t.p'), 'client',
+  '{"type": "corporate"}', 'made up'), '42501', 'nor change its side', 'access.needs_level');
 select test.raises(format('select api.contacts_remove(array[%L]::uuid[], %L)', current_setting('t.contact'), 'made up'),
   '42501', 'nor remove a contact', 'access.needs_level');
 select test.raises($$select api.identifier_block_add('email', 'domain', 'example.org', 'made up')$$, '42501',
@@ -70,8 +71,8 @@ select test.raises(format('select api.person_update(%L, %L, 1, %L)', current_set
   '{"job_title_en": "Made-up Title"}', 'made up'), '42501', 'nor change a colleague''s record', 'access.needs_level');
 select test.raises($$select api.department_save(null, 'qa_six_new', 'Made up department', 'قسم مختلق')$$, '42501',
   'nor add a department', 'access.needs_level');
-select test.raises(format('select api.team_save(null, %L, %L, %L)', current_setting('t.dep'), 'qa_six_more',
-  'Made up team'), '42501', 'nor add a team', 'access.needs_level');
+select test.raises(format('select api.team_save(null, %L, %L, %L, %L)', current_setting('t.dep'), 'qa_six_more',
+  'Made up team', 'فريق مختلق'), '42501', 'nor add a team', 'access.needs_level');
 select test.raises(format('select api.team_retire(%L, null, %L)', current_setting('t.team'), 'made up'), '42501',
   'nor retire one', 'access.needs_level');
 select test.raises($$select api.role_save(null, 'qa_six_role', 'Made up role', 'دور مختلق')$$, '42501',

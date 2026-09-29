@@ -17,8 +17,8 @@ select test.eq((select count(*)::int from core.role_page_level l join core.role 
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises($$select api.setting_set('work.no_update_days', null, '30', null, 'made up')$$, '42501',
   'a head cannot change a Work setting');
-select test.raises($$select api.list_save('segment', null,
-  '{"key": "made_up_segment", "name_en": "Made up", "name_ar": "مختلق"}', null, 'made up')$$, '42501',
+select test.raises($$select api.list_save('side_type', null,
+  '{"side": "client", "key": "made_up_segment", "name_en": "Made up", "name_ar": "مختلق"}', null, 'made up')$$, '42501',
   'a head cannot add to a setting list');
 select test.raises($$select api.identifier_block_add('email', 'domain', 'example.org', 'made up')$$, '42501',
   'a head cannot change the block list');

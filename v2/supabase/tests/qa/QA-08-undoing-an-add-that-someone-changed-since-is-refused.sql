@@ -5,7 +5,7 @@
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
-select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA8'), 'made up')
+select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA8', 'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate'))), 'made up')
   ->> 'id', true);
 select set_config('t.add', api.contact_save(current_setting('t.p')::uuid, null, '{"name_en": "Test Contact"}')::text,
   true);

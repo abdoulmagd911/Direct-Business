@@ -5,7 +5,7 @@
 -- Finding: docs/v2/QA-LOG.md, 2026-09-29, QA-04. Made-up addresses only (V101 shapes).
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
-select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA4'), 'made up')
+select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Trading QA4', 'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate'))), 'made up')
   ->> 'id', true);
 
 select test.raises(format('select api.identifier_add(%L, %L, %L, %L)', current_setting('t.p'), 'email',
