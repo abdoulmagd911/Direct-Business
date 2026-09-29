@@ -15,4 +15,44 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'plant-forbidden-gmv',
+    breaks: ['check:forbidden-words'],
+    expect: j('messages/en.json:3 [forbidden-words] "Sales', ' (GMV)"'),
+    edits: [
+      { file: 'messages/en.json', find: '"name": "Commercial Workspace"', replace: j('"name": "Sales', ' (GMV)"') },
+    ],
+  },
+  {
+    name: 'plant-forbidden-google',
+    breaks: ['check:forbidden-words'],
+    expect: j('messages/en.json:3 [forbidden-words] "Goo', 'gle"'),
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"name": "Commercial Workspace"',
+        replace: j('"name": "Sign in with Goo', 'gle"'),
+      },
+    ],
+  },
+  {
+    name: 'plant-forbidden-zoom',
+    breaks: ['check:forbidden-words'],
+    expect: j('messages/en.json:3 [forbidden-words] "Zo', 'om"'),
+    edits: [
+      { file: 'messages/en.json', find: '"name": "Commercial Workspace"', replace: j('"name": "Meet on Zo', 'om"') },
+    ],
+  },
+  {
+    name: 'plant-forbidden-keep-signed-in',
+    breaks: ['check:forbidden-words'],
+    expect: j('[forbidden-words] "Keep me', ' signed in"'),
+    edits: [
+      {
+        file: 'supabase/templates/sign-in-code.html',
+        find: '<p>Your sign-in code:</p>',
+        replace: j('<p>Your sign-in code:</p><p>Keep me', ' signed in</p>'),
+      },
+    ],
+  },
 ];

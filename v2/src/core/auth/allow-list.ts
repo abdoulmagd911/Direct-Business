@@ -2,8 +2,9 @@ import 'server-only';
 
 // The admin's allow-list, server side (TECH-SPEC §4 steps 2 and 5). Every change is made twice over, on purpose:
 // the database decides and logs it (api.person_email_add / _remove / person_auth_link / person_sign_out, called as
-// the caller — they refuse anyone without Organization & access · Full, or org.sign_out — V125), and the secret key keeps Supabase Auth in step (an auth user per allowed
-// email, created confirmed; banned the moment it may no longer sign in). Screens call these through /auth/admin/*.
+// the caller — they refuse anyone but an admin, or without org.sign_out — V97, V138), and the secret key keeps
+// Supabase Auth in step (an auth user per allowed email, created confirmed; banned the moment it may no longer sign
+// in). Screens call these through /auth/admin/*.
 import { NextResponse } from 'next/server';
 import { DbError, unwrap } from '@/core/db/errors';
 import { serverDb } from '@/core/db/server';
@@ -125,6 +126,19 @@ export async function syncPerson(personId: string) {
   const state = unwrap(await serviceDb().rpc('person_auth_state', { p_person: personId }));
   for (const row of state) await setBanned(row.auth_user_id, !row.allowed);
   return { synced: state.length };
+}
+
+/**
+ * Undo from Settings (P3-6d): the database undoes the request — a change of access, an allowed e-mail or a switch is an
+ * admin's to undo (V128) — and names the people whose sign-ins it changed; their auth users are banned or unbanned to
+ * match, as after any other allow-list change.
+ */
+export async function undoAndSync(requestId: string) {
+  const db = await serverDb();
+  const done = unwrap(await db.rpc('undo', { p_request: requestId })) as { auth_resync?: string[] };
+  let synced = 0;
+  for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;
+  return { ...done, synced };
 }
 
 /** An admin signs a person out — every device, or one (logged; the database deletes the sessions). */

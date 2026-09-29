@@ -92,6 +92,13 @@ export default defineModule({
       default: ['csv', 'xlsx'],
     },
     {
+      key: 'audit.recently_deleted_days',
+      group: 'settings.app',
+      label: 'setting.audit.recently_deleted_days',
+      schema: z.number().int().min(1).max(365),
+      default: 30,
+    },
+    {
       key: 'audit.undo_window_hours',
       group: 'settings.app',
       label: 'setting.audit.undo_window_hours',

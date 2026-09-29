@@ -90,7 +90,8 @@
       "export_formats": "صيغ التصدير"
     },
     "audit": {
-      "undo_window_hours": "ساعات إمكان التراجع عن إجراء"
+      "undo_window_hours": "ساعات إمكان التراجع عن إجراء",
+      "recently_deleted_days": "أيام استعادة السجل المحذوف"
     },
     "files": {
       "max_mb": "أكبر حجم للملف بالميغابايت"

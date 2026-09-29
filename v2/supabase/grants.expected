@@ -15,6 +15,7 @@ function api.access_set_role_level(p_role uuid, p_page text, p_level core.level,
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.auth_user_of(p_email text) execute service_role
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
+function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
@@ -32,7 +33,10 @@ function api.identifier_block_add(p_kind text, p_match text, p_value text, p_rea
 function api.identifier_remove(p_id uuid, p_reason text) execute authenticated
 function api.individual_add(p_name text, p_reason text) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
+function api.list_remove(p_list text, p_id uuid, p_reason text) execute authenticated
+function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function api.list_save(p_list text, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function api.list_usage(p_list text, p_id uuid) execute authenticated
 function api.me() execute authenticated
 function api.my_devices() execute authenticated
 function api.notifications(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
@@ -61,12 +65,16 @@ function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
+function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
+function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
 function api.search(p_q text, p_limit integer) execute authenticated
 function api.setting_clear(p_key text, p_department uuid, p_reason text) execute authenticated
+function api.setting_preview(p_key text, p_department uuid, p_value jsonb, p_valid_from date) execute authenticated
 function api.setting_set(p_key text, p_department uuid, p_value jsonb, p_valid_from date, p_reason text) execute authenticated
 function api.settings(p_group text) execute authenticated
+function api.settings_log(p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
@@ -82,6 +90,7 @@ function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time
 function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
 function authz.can(p_capability text) execute authenticated
+function authz.can_see(p_entity text, p_id uuid) execute authenticated
 function authz.in_my_departments(p_department uuid) execute authenticated
 function authz.is_admin() execute authenticated
 function authz.level(p_page text) execute authenticated
@@ -105,7 +114,10 @@ function core.device_touch() execute authenticated
 function core.format_number(prefix text, year integer, n integer, width integer) execute authenticated
 function core.hover_person(p_id uuid) execute authenticated
 function core.list_items(p_list text, p_include_retired boolean) execute authenticated
+function core.list_remove(p_list text, p_id uuid, p_reason text) execute authenticated
+function core.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function core.list_save(p_list text, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
+function core.list_usage(p_list text, p_id uuid) execute authenticated
 function core.me() execute authenticated
 function core.month_of(d date) execute authenticated
 function core.my_devices() execute authenticated
@@ -123,13 +135,17 @@ function core.person_switch(p_id uuid, p_on boolean, p_reason text) execute auth
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
+function core.recently_deleted(p_limit integer) execute authenticated
+function core.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function core.riyadh_day(t timestamp with time zone) execute authenticated
 function core.riyadh_today() execute authenticated
 function core.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
 function core.search(p_q text, p_limit integer) execute authenticated
 function core.setting_clear(p_key text, p_department uuid, p_reason text) execute authenticated
+function core.setting_preview(p_key text, p_department uuid, p_value jsonb, p_valid_from date) execute authenticated
 function core.setting_set(p_key text, p_department uuid, p_value jsonb, p_valid_from date, p_reason text) execute authenticated
 function core.settings(p_group text) execute authenticated
+function core.settings_log(p_before timestamp with time zone, p_limit integer) execute authenticated
 function core.sign_in_check(p_email text, p_user_agent text) execute service_role
 function core.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role

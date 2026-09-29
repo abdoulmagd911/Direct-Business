@@ -209,6 +209,19 @@
       "effective_dated": false
     },
     {
+      "key": "audit.recently_deleted_days",
+      "group": "settings.app",
+      "label": "setting.audit.recently_deleted_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 30,
+      "effective_dated": false
+    },
+    {
       "key": "audit.undo_window_hours",
       "group": "settings.app",
       "label": "setting.audit.undo_window_hours",
@@ -340,7 +353,7 @@
         "maximum": 14
       },
       "default": 1,
-      "effective_dated": false
+      "effective_dated": true
     },
     {
       "key": "work.no_update_days",
@@ -353,7 +366,7 @@
         "maximum": 60
       },
       "default": 7,
-      "effective_dated": false
+      "effective_dated": true
     },
     {
       "key": "work.pipeline_weekly_target",
@@ -379,7 +392,7 @@
         "maximum": 30
       },
       "default": 1,
-      "effective_dated": false
+      "effective_dated": true
     },
     {
       "key": "work.week_starts_on",
@@ -391,7 +404,7 @@
         "enum": ["saturday", "sunday", "monday"]
       },
       "default": "sunday",
-      "effective_dated": false
+      "effective_dated": true
     }
   ],
   "entities": [
@@ -400,162 +413,370 @@
       "table": "partner.account_manager",
       "page": "partners",
       "owners": "partner.account_manager_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "call_outcome",
       "table": "partner.call_outcome",
       "page": "settings.partners",
       "owners": null,
-      "list": true
+      "list": true,
+      "private": false,
+      "visible": null
     },
     {
       "key": "campaign_code",
       "table": "partner.campaign_code",
       "page": "partners",
       "owners": "owner_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "capability", "table": "core.capability", "page": "settings.org", "owners": null, "list": false },
-    { "key": "code_terms", "table": "partner.code_terms", "page": "partners", "owners": null, "list": false },
+    {
+      "key": "capability",
+      "table": "core.capability",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "code_terms",
+      "table": "partner.code_terms",
+      "page": "partners",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "contact",
       "table": "partner.contact",
       "page": "partners",
       "owners": "partner.contact_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "contract_term", "table": "partner.term", "page": "settings.partners", "owners": null, "list": true },
+    {
+      "key": "contract_term",
+      "table": "partner.term",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "credit_limit",
       "table": "partner.credit_limit",
       "page": "partners",
       "owners": "partner.credit_limit_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "department",
       "table": "core.department",
       "page": "settings.org",
       "owners": "head_person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "entity", "table": "core.entity", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "entity",
+      "table": "core.entity",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "identifier",
       "table": "partner.identifier",
       "page": "partners",
       "owners": "partner.identifier_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "identifier_block",
       "table": "partner.identifier_block",
       "page": "settings.partners",
       "owners": null,
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "individual_name", "table": "partner.individual_name", "page": "partners", "owners": null, "list": false },
-    { "key": "page", "table": "core.page", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "individual_name",
+      "table": "partner.individual_name",
+      "page": "partners",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "page",
+      "table": "core.page",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "partner",
       "table": "partner.partner",
       "page": "partners",
       "owners": "partner.partner_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "partner_category",
       "table": "partner.category",
       "page": "settings.partners",
       "owners": null,
-      "list": true
+      "list": true,
+      "private": false,
+      "visible": null
     },
-    { "key": "partner_merge", "table": "partner.merge", "page": "partners", "owners": null, "list": false },
+    {
+      "key": "partner_merge",
+      "table": "partner.merge",
+      "page": "partners",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "partner_role",
       "table": "partner.partner_role",
       "page": "partners",
       "owners": "partner.partner_role_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "partner_role_def", "table": "partner.role", "page": "settings.partners", "owners": null, "list": true },
+    {
+      "key": "partner_role_def",
+      "table": "partner.role",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "partner_status",
       "table": "partner.status_change",
       "page": "partners",
       "owners": "partner.status_change_owners",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "partner_tier", "table": "partner.tier", "page": "settings.partners", "owners": null, "list": true },
-    { "key": "person", "table": "core.person", "page": "settings.org", "owners": "id", "list": false },
-    { "key": "person_auth", "table": "core.person_auth", "page": "settings.org", "owners": "person_id", "list": false },
+    {
+      "key": "partner_tier",
+      "table": "partner.tier",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "person",
+      "table": "core.person",
+      "page": "settings.org",
+      "owners": "id",
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "person_auth",
+      "table": "core.person_auth",
+      "page": "settings.org",
+      "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "person_capability",
       "table": "core.person_capability",
       "page": "settings.org",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "person_department",
       "table": "core.person_department",
       "page": "settings.org",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "person_email",
       "table": "core.person_email",
       "page": "settings.org",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "person_level",
       "table": "core.person_page_level",
       "page": "settings.org",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
     {
       "key": "person_team",
       "table": "core.person_team_assist",
       "page": "settings.org",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "priority", "table": "work.priority", "page": "settings.work", "owners": null, "list": true },
+    {
+      "key": "priority",
+      "table": "work.priority",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "profile",
       "table": "core.person_profile",
       "page": "settings.profile",
       "owners": "person_id",
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "role", "table": "core.role", "page": "settings.org", "owners": null, "list": false },
+    {
+      "key": "role",
+      "table": "core.role",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "role_capability",
       "table": "core.role_capability",
       "page": "settings.org",
       "owners": null,
-      "list": false
+      "list": false,
+      "private": false,
+      "visible": null
     },
-    { "key": "role_field", "table": "partner.role_field", "page": "settings.partners", "owners": null, "list": false },
-    { "key": "role_level", "table": "core.role_page_level", "page": "settings.org", "owners": null, "list": false },
-    { "key": "saved_view", "table": "core.saved_view", "page": null, "owners": "owner_id", "list": false },
-    { "key": "segment", "table": "partner.segment", "page": "settings.partners", "owners": null, "list": true },
-    { "key": "setting", "table": "core.setting", "page": "settings.app", "owners": null, "list": false },
-    { "key": "setting_def", "table": "core.setting_def", "page": "settings.app", "owners": null, "list": false },
+    {
+      "key": "role_field",
+      "table": "partner.role_field",
+      "page": "settings.partners",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "role_level",
+      "table": "core.role_page_level",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "saved_view",
+      "table": "core.saved_view",
+      "page": null,
+      "owners": "owner_id",
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "segment",
+      "table": "partner.segment",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "setting",
+      "table": "core.setting",
+      "page": "settings.app",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "setting_def",
+      "table": "core.setting_def",
+      "page": "settings.app",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    },
     {
       "key": "status_reason",
       "table": "partner.status_reason",
       "page": "settings.partners",
       "owners": null,
-      "list": true
+      "list": true,
+      "private": false,
+      "visible": null
     },
-    { "key": "team", "table": "core.team", "page": "settings.org", "owners": "lead_person_id", "list": false },
-    { "key": "wording", "table": "core.wording", "page": "settings.app", "owners": null, "list": false }
+    {
+      "key": "team",
+      "table": "core.team",
+      "page": "settings.org",
+      "owners": "lead_person_id",
+      "list": false,
+      "private": false,
+      "visible": null
+    },
+    {
+      "key": "wording",
+      "table": "core.wording",
+      "page": "settings.app",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null
+    }
   ],
   "role_levels": [
     { "role": "admin", "page": "activity", "level": "full" },

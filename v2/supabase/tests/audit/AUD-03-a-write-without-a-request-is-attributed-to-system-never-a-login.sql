@@ -6,7 +6,7 @@ select set_config('t.am1', test.person('Test Account Manager', 'member')::text, 
 -- opened, as a new transaction would)
 select test.claims_of(current_setting('t.am1')::uuid);
 select set_config('app.request_id', '', true);
-insert into core.department (code, name_en) values ('test_unattended', 'Test Unattended');
+insert into core.department (code, name_en, name_ar) values ('test_unattended', 'Test Unattended', 'قسم للتجربة');
 do $$
 declare
   c audit.change := test.last_change('core.department', (select id from core.department where code = 'test_unattended'));

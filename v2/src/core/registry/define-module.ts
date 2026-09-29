@@ -68,6 +68,13 @@ export interface EntityDef {
    * api.list and changed only through api.list_save, with Full on its page (a settings page). Nothing else is.
    */
   list?: boolean;
+  /**
+   * Private (V96): only its own `visible` rule, its owners or an admin let a person see a record — Own on its page never
+   * counts as View (appraisals).
+   */
+  private?: boolean;
+  /** Its own visibility rule: a schema-qualified SQL function `(record uuid, person uuid) → boolean`. */
+  visible?: string;
 }
 
 export interface ModuleDef {

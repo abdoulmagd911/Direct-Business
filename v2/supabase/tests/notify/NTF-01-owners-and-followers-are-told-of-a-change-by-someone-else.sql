@@ -6,11 +6,11 @@
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
-select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
+select set_config('t.am2', test.person('Test Second Admin', 'admin')::text, true);   -- sees every record (V97)
 select set_config('t.dep', test.department('notify_one')::text, true);
 update core.department set head_person_id = current_setting('t.head')::uuid where id = current_setting('t.dep')::uuid;
-insert into core.team (department_id, code, name_en, lead_person_id)
-values (current_setting('t.dep')::uuid, 'desk', 'Desk', current_setting('t.head')::uuid);
+insert into core.team (department_id, code, name_en, name_ar, lead_person_id)
+values (current_setting('t.dep')::uuid, 'desk', 'Desk', 'مكتب', current_setting('t.head')::uuid);
 select set_config('t.team', (select id::text from core.team where department_id = current_setting('t.dep')::uuid), true);
 insert into notify.follow (person_id, entity_table, entity_id)
 values (current_setting('t.am2')::uuid, 'core.department', current_setting('t.dep')::uuid),

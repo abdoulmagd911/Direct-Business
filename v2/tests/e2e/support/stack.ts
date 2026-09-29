@@ -46,14 +46,16 @@ export async function makePerson(
   const email = `test.e2e-${tag}@example.test`;
   const name = `Test Person ${tag}`;
   await sql(
-    `insert into core.department (code, name_en) values ('commercial', 'Commercial') on conflict (code) do nothing`,
+    `insert into core.department (code, name_en, name_ar) values ('commercial', 'Commercial', 'التجاري')
+     on conflict (code) do nothing`,
   );
   const roleKey = isAdmin ? 'admin' : 'member';
-  await sql(`insert into core.role (key, name_en, is_admin) values ($1, $2, $3) on conflict (key) do nothing`, [
-    roleKey,
-    isAdmin ? 'Admin' : 'Team member',
-    isAdmin,
-  ]);
+  // An Arabic name is required (V97): a trigger checks it before the conflict is, so it is passed even when the role
+  // is already there.
+  await sql(
+    `insert into core.role (key, name_en, name_ar, is_admin) values ($1, $2, $3, $4) on conflict (key) do nothing`,
+    [roleKey, isAdmin ? 'Admin' : 'Team member', isAdmin ? 'مدير النظام' : 'عضو الفريق', isAdmin],
+  );
   await sql(
     `insert into core.person (id, full_name_en, department_id, role_id, can_sign_in, kind)
      values ($1, $2, (select id from core.department where code = 'commercial'),
