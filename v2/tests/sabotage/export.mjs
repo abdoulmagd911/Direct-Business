@@ -13,6 +13,7 @@ const DESIGN = unit('export/the-document-palette-and-logo-come-from-the-design-f
 const ENGLISH_COPY = unit('export/the-english-copy-prints-a-line-with-no-english-in-arabic');
 const AWKWARD = unit('export/awkward-reports-still-print-every-section-and-refuse-a-bad-date');
 const WORDS = unit('export/an-amount-in-words-says-every-range-to-the-billions-in-arabic-and-english');
+const ZONES = unit('export/a-report-prints-the-same-in-every-time-zone');
 const COLUMNS = unit('export/a-report-table-never-drops-a-column-in-the-pdf-or-the-pptx');
 const TRANSLATE = `unit:tests/unit/export/the-translate-button-shows-only-where-the-device-can-translate-and-sends-nothing.test.tsx`;
 
@@ -433,6 +434,42 @@ export const sabotages = [
         file: 'src/core/print/report/pptx/zip.ts',
         find: 'let fixed = oneSettingsPerParagraph(xml);',
         replace: 'let fixed = xml;',
+      },
+    ],
+  },
+  {
+    name: 'period-read-in-the-computers-zone',
+    breaks: [ZONES],
+    expect: 'the period in English, in every zone',
+    edits: [
+      {
+        file: 'src/core/print/report/format.ts',
+        find: 'lang: Lang): string {\n  const start = calendarDay(doc.period.start);',
+        replace: 'lang: Lang): string {\n  const start = new Date(`${doc.period.start}T00:00:00`);',
+      },
+    ],
+  },
+  {
+    name: 'pdf-dated-in-the-computers-zone',
+    breaks: [ZONES],
+    expect: 'the same PDF in every zone',
+    edits: [
+      {
+        file: 'src/core/print/report/pdf/ReportPdf.tsx',
+        find: 'const stamp = calendarDay(doc.issuedOn ?? doc.period.end);',
+        replace: 'const stamp = new Date(`${doc.issuedOn ?? doc.period.end}T00:00:00`);',
+      },
+    ],
+  },
+  {
+    name: 'pptx-dated-in-the-computers-zone',
+    breaks: [ZONES],
+    expect: 'the same PPTX in every zone',
+    edits: [
+      {
+        file: 'src/core/print/report/pptx/reportPptx.ts',
+        find: 'calendarDay(doc.issuedOn ?? doc.period.end), { rtl: d.rtl }',
+        replace: 'new Date(`${doc.issuedOn ?? doc.period.end}T00:00:00`), { rtl: d.rtl }',
       },
     ],
   },
