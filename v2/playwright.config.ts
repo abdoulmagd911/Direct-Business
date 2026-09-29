@@ -29,7 +29,7 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    // The made-up development person (core/auth/me.ts) is signed in until P3-2's real gate lands.
-    env: { V2_DEV_ME: '1', NEXT_TELEMETRY_DISABLED: '1' },
+    // V2_KIT lets the test build serve /kit (V202); the specs sign in through the local stack (tests/e2e/support/stack.ts).
+    env: { V2_KIT: '1', NEXT_TELEMETRY_DISABLED: '1' },
   },
 });

@@ -1,6 +1,9 @@
 import { cn } from './cn';
 import { BADGE_ICONS, ZODIAC } from './badges';
-import type { AvatarColor, BadgeKind } from '@/core/auth/me';
+
+/** One of the six chart colours (V7) — a person's own; the profile stores it as text (api.me profile.avatar_color). */
+export type AvatarColor = 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6';
+export type BadgeKind = 'none' | 'icon' | 'zodiac';
 
 export type AvatarPerson = {
   displayName: string;

@@ -37,7 +37,11 @@ test('sign-in mirrors under dir=rtl', async ({ page, context }) => {
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/sign-in');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  const lang = (await page.getByRole('group', { name: 'Language' }).boundingBox())!;
-  expect(lang.x, 'the language switch is at the inline end (left)').toBeLessThan(200);
+  const panel = (await page.locator('[data-brand-panel]').boundingBox())!;
+  const form = (await page.locator('[data-step="email"]').boundingBox())!;
+  expect(form.x + form.width, 'the form is at the inline end (left of the brand panel)').toBeLessThan(panel.x + 1);
+  await expect(page.getByRole('group', { name: 'Language' }), 'no EN | ع switch until Arabic is on (V122)').toHaveCount(
+    0,
+  );
   await page.screenshot({ path: shot('signin-direct-rtl-1500') });
 });

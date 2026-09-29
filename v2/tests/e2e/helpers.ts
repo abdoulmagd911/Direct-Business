@@ -1,4 +1,5 @@
-import { expect, type BrowserContext, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Cookie, type Page } from '@playwright/test';
+import { makePerson, signIn } from './support/stack';
 
 export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -30,9 +31,20 @@ export async function expectNoConsoleErrors(page: Page, run: () => Promise<void>
   expect(errors, 'console errors').toEqual([]);
 }
 
-/** Open a page and wait until it is hydrated (the dev server hydrates late; a click before that is lost). */
+// One made-up admin per worker signs in through the real door once (tests/e2e/support/stack.ts); the browsers that
+// follow carry their session cookies, so a screen spec spends its time on the screen, not on the mail catcher.
+let session: Cookie[] | null = null;
+
+/** Open a page signed in (through the stack's door on the first call) and wait until it is hydrated. */
 export async function open(page: Page, path: string) {
+  const isDoor = path.startsWith('/sign-in');
+  if (session && !isDoor) await page.context().addCookies(session);
   await page.goto(path);
+  if (!isDoor && /\/sign-in(\?|$)/.test(page.url())) {
+    const person = await makePerson({ admin: true });
+    await signIn(page, person.email, path);
+    session = (await page.context().cookies()).filter((c) => c.name.startsWith('sb-'));
+  }
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 }

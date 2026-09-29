@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useMe } from '@/core/auth/MeProvider';
+import { useMe } from '@/core/auth/me-context';
 import { Avatar } from '../Avatar';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
+import { canSee, personOf } from '../person';
 import { CreateMenu } from './CreateMenu';
 import { NAV_PAGES } from './nav';
 
@@ -21,7 +22,8 @@ export function BottomBar() {
   const pathname = usePathname();
   const [more, setMore] = useState(false);
   // The More button is the sheet's Radix trigger, so Escape returns focus to it (M93).
-  const visible = NAV_PAGES.filter((p) => (me.levels[p.key] ?? 'none') !== 'none');
+  const person = personOf(me);
+  const visible = NAV_PAGES.filter((p) => canSee(me, p.key));
   const primary = PRIMARY.map((k) => visible.find((p) => p.key === k)).filter(
     (p): p is (typeof NAV_PAGES)[number] => !!p,
   );
@@ -113,11 +115,11 @@ export function BottomBar() {
               onClick={() => setMore(false)}
               className="mt-2 flex h-12 items-center gap-3 rounded-md border-t border-nav-border px-3 pt-2 text-base"
             >
-              <Avatar person={me.person} size="sm" ring="nav" />
+              <Avatar person={person} size="sm" ring="nav" />
               <span className="min-w-0 leading-tight">
-                <b className="block truncate font-semibold">{me.person.displayName}</b>
-                {me.person.jobTitle ? (
-                  <small className="block truncate text-xs text-nav-muted">{me.person.jobTitle}</small>
+                <b className="block truncate font-semibold">{person.displayName}</b>
+                {person.jobTitle ? (
+                  <small className="block truncate text-xs text-nav-muted">{person.jobTitle}</small>
                 ) : null}
               </span>
             </Link>

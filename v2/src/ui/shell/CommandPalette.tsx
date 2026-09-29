@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
 import { Search } from 'lucide-react';
-import { useMe } from '@/core/auth/MeProvider';
+import { useMe } from '@/core/auth/me-context';
+import { canSee } from '../person';
 import { NAV_PAGES } from './nav';
 import { CREATE_ACTIONS } from './CreateMenu';
 
@@ -38,7 +39,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     close(false);
     router.push(route);
   };
-  const pages = NAV_PAGES.filter((p) => (me.levels[p.key] ?? 'none') !== 'none');
+  const pages = NAV_PAGES.filter((p) => canSee(me, p.key));
 
   return (
     <RD.Root open={open} onOpenChange={close}>
@@ -85,7 +86,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 heading={t('palette.actions')}
                 className="[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted"
               >
-                {CREATE_ACTIONS.filter((a) => (me.levels[a.page] ?? 'none') !== 'none').map((a) => {
+                {CREATE_ACTIONS.filter((a) => canSee(me, a.page)).map((a) => {
                   const Icon = a.icon;
                   return (
                     <Command.Item

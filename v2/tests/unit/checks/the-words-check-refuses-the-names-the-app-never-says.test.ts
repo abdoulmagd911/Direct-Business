@@ -1,38 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import check from '../../../scripts/checks/no-forbidden-words.mjs';
+import check from '../../../scripts/checks/forbidden-words.mjs';
 import { findings, fixture } from './helpers';
 
-// Sabotage: tests/sabotage/screens.mjs "blind-no-forbidden-words" turns this red.
+// Sabotage: tests/sabotage/blind-checks.mjs "blind-forbidden-words" turns this red.
 describe('the words check refuses the names the app never says (V59)', () => {
-  it('refuses Direct KSA, DirectKSA, Direct Corporate, B2B and MICE in catalogs and strings', async () => {
+  it('refuses each name, however it is spaced or cased, in a catalog and in page text', async () => {
     const root = fixture({
-      'messages/en.json': JSON.stringify({ a: 'Direct KSA', b: 'DirectKSA', c: 'B2B clients', d: 'MICE events' }),
-      'src/ui/a.tsx': `export const A = () => <span>Direct Corporate</span>;\nexport const b = 'new B2B deal';\n`,
+      'messages/en.json': [
+        '{',
+        '  "a": "Welcome to Direct KSA",',
+        '  "b": "directksa portal",',
+        '  "c": "Direct-Corporate travel",',
+        '  "d": "our B2B desk",',
+        '  "e": "MICE events",',
+        '  "f": "b 2 b"',
+        '}',
+        '',
+      ].join('\n'),
+      'src/app/page.tsx': [
+        `export const A = () => <h1>Direct Corporate</h1>;`,
+        `export const b = 'b2b';`,
+        'export const c = `the ${1} mice`;',
+        '',
+      ].join('\n'),
     });
     const got = await findings(check, root);
-    expect(got.filter((f) => f.file === 'messages/en.json')).toHaveLength(4);
-    expect(got.filter((f) => f.file === 'src/ui/a.tsx').map((f) => f.line)).toEqual([1, 2]);
+    const lines = (f: string) =>
+      got
+        .filter((x) => x.file === f)
+        .map((x) => x.line)
+        .sort((a, b) => a - b);
+    expect(lines('messages/en.json')).toEqual([2, 3, 4, 5, 6, 7]);
+    expect(lines('src/app/page.tsx')).toEqual([1, 2, 3]);
   });
 
-  it('refuses Company and Margin on screen (V52, V73) but not in code', async () => {
+  it('allows the product and department names, the domain, comments and ordinary words', async () => {
     const root = fixture({
-      'messages/en.json': JSON.stringify({ a: 'Company card', b: 'Margin' }),
-      'src/ui/c.tsx': `export const A = () => <span>Companies</span>;\nexport const cap = 'companies.identify';\n`,
-    });
-    const got = await findings(check, root);
-    expect(got.filter((f) => f.file === 'messages/en.json')).toHaveLength(2);
-    expect(got.filter((f) => f.file === 'src/ui/c.tsx').map((f) => f.line)).toEqual([1]);
-  });
-
-  it('allows Direct, Commercial and words that merely contain the letters', async () => {
-    const root = fixture({
-      'messages/en.json': JSON.stringify({
-        a: 'Direct',
-        b: 'Commercial Workspace',
-        c: 'Directly',
-        d: 'submice',
-      }),
-      'src/ui/b.tsx': `// the check refuses "B2B" (V59)\nexport const A = () => <span>Commercial</span>;\n`,
+      'messages/en.json':
+        '{ "app": { "name": "Commercial Workspace", "department": "Commercial", "copy": "© Direct" } }\n',
+      'src/app/page.tsx': [
+        `// never "Direct KSA" or B2B in the wording (V59) — a comment is not wording`,
+        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c</p>;`,
+        `export const host = 'www.directksab2b.com';`,
+        '',
+      ].join('\n'),
     });
     expect(await findings(check, root)).toEqual([]);
   });

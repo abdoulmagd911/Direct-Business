@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { useMe } from '@/core/auth/MeProvider';
+import { useMe } from '@/core/auth/me-context';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { Avatar } from '../Avatar';
 import { BrandLogo } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
+import { canSee, personOf } from '../person';
 import { Tooltip } from '../Tooltip';
 import { NAV_PAGES } from './nav';
 
@@ -45,7 +46,8 @@ export function Drawer() {
     setPeek(false);
   }
 
-  const visible = (key: string) => (me.levels[key] ?? 'none') !== 'none';
+  const person = personOf(me);
+  const visible = (key: string) => canSee(me, key);
   const main = NAV_PAGES.filter((p) => p.group === 'main' && visible(p.key));
   const foot = NAV_PAGES.filter((p) => p.group === 'foot' && visible(p.key));
 
@@ -136,14 +138,14 @@ export function Drawer() {
             'flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-nav-text focus-visible:outline-2 focus-visible:outline-focus',
             !expanded && 'flex-none',
           )}
-          aria-label={me.person.fullName}
+          aria-label={person.fullName}
         >
-          <Avatar person={me.person} size="sm" ring="nav" />
+          <Avatar person={person} size="sm" ring="nav" />
           {expanded ? (
             <span className="min-w-0 leading-tight">
-              <b className="block truncate text-[13.5px] font-semibold">{me.person.displayName}</b>
-              {me.person.jobTitle ? (
-                <small className="block truncate text-xs text-nav-muted">{me.person.jobTitle}</small>
+              <b className="block truncate text-[13.5px] font-semibold">{person.displayName}</b>
+              {person.jobTitle ? (
+                <small className="block truncate text-xs text-nav-muted">{person.jobTitle}</small>
               ) : null}
             </span>
           ) : null}

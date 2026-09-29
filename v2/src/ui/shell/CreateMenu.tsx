@@ -2,7 +2,8 @@
 import { Briefcase, CheckSquare, Plus, Receipt, Trophy, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useMe } from '@/core/auth/MeProvider';
+import { useMe } from '@/core/auth/me-context';
+import { canSee } from '../person';
 import { Button } from '../Button';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 
@@ -18,7 +19,7 @@ export const CREATE_ACTIONS: { key: string; page: string; route: string; icon: L
 export function CreateMenu({ floating = false }: { floating?: boolean }) {
   const t = useTranslations();
   const me = useMe();
-  const actions = CREATE_ACTIONS.filter((a) => (me.levels[a.page] ?? 'none') !== 'none');
+  const actions = CREATE_ACTIONS.filter((a) => canSee(me, a.page));
   return (
     <Menu>
       <MenuTrigger asChild>

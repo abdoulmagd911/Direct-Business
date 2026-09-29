@@ -25,7 +25,7 @@ import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { Tabs } from '@/ui/Tabs';
 import { toast } from '@/ui/Toast';
-import { Page } from '@/ui/shell/AppShell';
+import { PageFrame } from '@/ui/shell/AppShell';
 import { formatMoney } from '@/core/i18n/format';
 
 /* Made-up people and rows only (rule 7). */
@@ -158,7 +158,7 @@ export function KitGallery() {
 
   return (
     <>
-      <Page>
+      <PageFrame>
         <PageHeader
           crumbs={[{ label: 'Kit', href: '/kit' }, { label: 'Gallery' }]}
           title="Component kit"
@@ -442,7 +442,7 @@ export function KitGallery() {
             maxHeight="440px"
           />
         </Section>
-      </Page>
+      </PageFrame>
 
       <DetailPanel
         open={!!selected}

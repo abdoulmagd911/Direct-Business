@@ -1,11 +1,12 @@
 /**
- * The styled sign-in page (canvas 1 and 1b): one step at a time; the emailed code is the only door (V59); a refused
- * address is told in words; the code step verifies and lands on the asked-for page. Runs against the
- * development stand-in; P3-2 swaps in the real door behind the same screen.
+ * The styled sign-in page (canvas 1 and 1b, V59, V74, V75, V204) on the real door (P3-2): one step at a time; an
+ * unlisted address is told in words; the emailed code verifies and lands on the asked-for page; no second door and
+ * no "keep me signed in" tick. Sabotage: tests/sabotage/screens.mjs "sign-in-grows-a-google-door".
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { THEMES, fitToPage, open, setPrefs, shot } from './helpers';
+import { codeFor, makePerson, sendCode, unlistedEmail } from './support/stack';
 
 test('email step → code step → signed in on the deep link', async ({ page, context }) => {
   await setPrefs(context, { theme: 'direct' });
@@ -18,30 +19,32 @@ test('email step → code step → signed in on the deep link', async ({ page, c
   ).toHaveCount(0);
   await expect(page.locator('[data-step="code"]')).toHaveCount(0);
 
-  await page.getByLabel('Work email').fill('someone@example.com');
-  await page.locator('[data-door="code"]').click();
-  await expect(page.locator('p[role="alert"]')).toHaveText('This email is not on the list — ask an admin');
+  await sendCode(page, unlistedEmail());
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText('This email is not on the list — ask an admin');
+  await expect(page.locator('[data-step="code"]')).toHaveCount(0);
 
-  await page.getByLabel('Work email').fill('test.person@directksa.com');
-  await page.locator('[data-door="code"]').click();
+  const person = await makePerson();
+  const since = await sendCode(page, person.email);
   await expect(page.locator('[data-step="code"]')).toBeVisible();
   await expect(page.locator('[data-step="email"]')).toHaveCount(0);
-  await expect(page.getByLabel('Digit 1')).toBeFocused();
+  await expect(page.getByLabel('Digit 1 of 6')).toBeFocused();
   await expect(
     page.getByLabel('Keep me signed in on this device'),
     'devices stay signed in (V74) — no tick',
   ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Resend code \(\d:\d\d\)$/ })).toBeDisabled();
 
-  await page.getByLabel('Digit 1').fill('1');
-  await page.getByLabel('Digit 2').fill('1');
-  await page.getByLabel('Digit 3').fill('1');
-  await page.getByLabel('Digit 4').fill('1');
-  await page.getByLabel('Digit 5').fill('1');
-  await page.getByLabel('Digit 6').fill('1');
-  await expect(page.locator('p[role="alert"]')).toHaveText('That code is not right');
+  await expect(page.getByRole('button', { name: 'Verify' })).toBeDisabled();
+  for (let i = 1; i <= 6; i++) await page.getByLabel(`Digit ${i} of 6`).fill('1');
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    'That code is not right — check it or send a new one',
+  );
 
-  await page.getByLabel('Digit 1').fill('000000');
+  await page.getByLabel('Digit 1 of 6').fill(await codeFor(person.email, since));
+  await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/tasks$/);
+  await expect(page.getByTestId('address')).toHaveText('/tasks');
 });
 
 test('axe · sign-in', async ({ page, context }) => {

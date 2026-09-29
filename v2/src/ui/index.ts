@@ -34,4 +34,5 @@ export { PageHeader } from './PageHeader';
 export { DataState, type DataStateKind } from './DataState';
 export { DetailPanel } from './DetailPanel';
 export { DataTable, type ColumnDef } from './DataTable';
-export { AppShell, Page } from './shell/AppShell';
+export { AppShell, PageFrame } from './shell/AppShell';
+export { Page } from './shell/Page';

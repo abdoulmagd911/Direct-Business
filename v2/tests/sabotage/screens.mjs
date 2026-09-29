@@ -49,10 +49,10 @@ export const sabotages = [
     ],
   },
   {
-    name: 'plant-forbidden-word',
-    breaks: ['check:no-forbidden-words'],
-    expect: '"B2B"',
-    edits: [{ file: 'messages/en.json', find: '"partners": "Partners"', replace: '"partners": "B2B partners"' }],
+    name: 'plant-screen-word',
+    breaks: ['check:screen-words'],
+    expect: '"Companies" on screen',
+    edits: [{ file: 'messages/en.json', find: '"partners": "Partners"', replace: '"partners": "Companies"' }],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
   {
@@ -78,13 +78,13 @@ export const sabotages = [
     ],
   },
   {
-    name: 'blind-no-forbidden-words',
-    breaks: [unit('the-words-check-refuses-the-names-the-app-never-says')],
-    expect: 'refuses Direct KSA',
+    name: 'blind-screen-words',
+    breaks: [unit('the-screen-words-check-refuses-company-and-margin')],
+    expect: 'refuses them in a catalog and in JSX text',
     edits: [
       {
-        file: 'scripts/checks/no-forbidden-words.mjs',
-        find: "if (lit.kind === 'regex') continue;",
+        file: 'scripts/checks/screen-words.mjs',
+        find: "if (lit.kind !== 'jsx') continue;",
         replace: 'continue;',
       },
     ],
@@ -152,9 +152,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/SignIn.tsx',
-        find: '<Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy} data-door="code">',
+        find: '<Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
         replace:
-          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy} data-door="code">',
+          '<Button type="button" variant="secondary">Continue with Google</Button>\n                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">',
       },
     ],
   },

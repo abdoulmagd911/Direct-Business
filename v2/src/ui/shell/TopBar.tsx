@@ -1,7 +1,7 @@
 'use client';
 import { Bell, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMe } from '@/core/auth/MeProvider';
+import { usePathname } from 'next/navigation';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { Kbd } from '../Kbd';
@@ -22,8 +22,9 @@ export function TopBar({
   bellOpen?: boolean;
 }) {
   const t = useTranslations('top');
-  const me = useMe();
-  const unread = me.unreadNotifications;
+  const pathname = usePathname();
+  // The bell's count arrives with P3-7 (api.notifications_*); until then nothing is unread.
+  const unread = 0;
   return (
     <header
       className="flex h-[var(--topbar-h)] shrink-0 items-center gap-3 border-b border-top-border bg-top-bg px-4 text-top-text sm:px-6"
@@ -62,6 +63,9 @@ export function TopBar({
         ) : null}
       </IconButton>
       <ProfileMenu />
+      <span data-testid="address" className="sr-only">
+        {pathname}
+      </span>
     </header>
   );
 }

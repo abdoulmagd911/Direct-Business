@@ -7,7 +7,7 @@ import { BrandLogo } from '@/ui/BrandLogo';
  * English, right in Arabic) on wide screens and as a band on top on a phone.
  */
 export function BrandPanel() {
-  const t = useTranslations('signIn');
+  const t = useTranslations('app');
   const locale = useLocale();
   return (
     <aside
@@ -20,7 +20,7 @@ export function BrandPanel() {
       </div>
       <div className="relative mt-10 flex flex-col items-start gap-3 md:mb-16 md:mt-auto">
         <p className="max-w-[22ch] font-display text-2xl font-medium leading-snug text-nav-active-text md:text-3xl">
-          {t('tagline')}
+          {t('brand_line')}
         </p>
         <p
           lang={locale === 'ar' ? 'en' : 'ar'}
@@ -30,7 +30,7 @@ export function BrandPanel() {
           {locale === 'ar' ? 'The commercial arm of the all-in-one travel app' : 'الذراع التجاري لتطبيق السفر الشامل'}
         </p>
       </div>
-      <p className="relative hidden text-sm text-nav-muted md:block">{t('footer')}</p>
+      <p className="relative hidden text-sm text-nav-muted md:block">{t('copyright')}</p>
     </aside>
   );
 }

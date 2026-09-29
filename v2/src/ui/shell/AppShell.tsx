@@ -34,8 +34,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 /**
  * The scrolling page area beside an optional detail panel (a sibling of this). Margins 16 / 24 / 32 / 40 px at
  * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85); on a phone the bottom bar's height is kept clear.
+ * Screens use `Page` (shell/Page.tsx), which draws this only after the gate has answered.
  */
-export function Page({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function PageFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] ${className}`}

@@ -2,10 +2,11 @@
 import { LogOut, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useMe } from '@/core/auth/MeProvider';
+import { useMe } from '@/core/auth/me-context';
 import { DENSITIES, DIRS, LOCALES, THEMES } from '@/core/prefs';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { Avatar } from '../Avatar';
+import { personOf } from '../person';
 import { cn } from '../cn';
 import {
   Menu,
@@ -22,13 +23,19 @@ import {
  * The profile chip (avatar, nickname, badge) opens: My profile, the theme switch (four), density,
  * language (Arabic shown only once enabled — V2xx), a direction override in development, sign out.
  */
-export function ProfileMenu({ arabicEnabled = false, onSignOut }: { arabicEnabled?: boolean; onSignOut?: () => void }) {
+// Sign-out is a POST to /auth/sign-out (P3-2), sent by the hidden form the menu renders beside its trigger.
+const SIGN_OUT_FORM = 'sign-out-form';
+const signOut = () => (document.getElementById(SIGN_OUT_FORM) as HTMLFormElement | null)?.requestSubmit();
+
+export function ProfileMenu({ arabicEnabled = false }: { arabicEnabled?: boolean }) {
   const t = useTranslations();
   const me = useMe();
+  const person = personOf(me);
   const { prefs, set } = usePrefs();
   const dev = process.env.NODE_ENV !== 'production';
   return (
     <Menu>
+      <form id={SIGN_OUT_FORM} method="post" action="/auth/sign-out" hidden />
       <MenuTrigger asChild>
         <button
           type="button"
@@ -36,8 +43,8 @@ export function ProfileMenu({ arabicEnabled = false, onSignOut }: { arabicEnable
           data-profile-chip
           className="flex h-11 items-center gap-2.5 rounded-pill pe-3 ps-1 text-base font-medium text-current hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)] focus-visible:outline-2 focus-visible:outline-focus"
         >
-          <Avatar person={me.person} size="sm" ring="nav" />
-          <span className="hidden sm:inline">{me.person.displayName}</span>
+          <Avatar person={person} size="sm" ring="nav" />
+          <span className="hidden sm:inline">{person.displayName}</span>
         </button>
       </MenuTrigger>
       <MenuContent className="min-w-64">
@@ -99,7 +106,7 @@ export function ProfileMenu({ arabicEnabled = false, onSignOut }: { arabicEnable
           </>
         ) : null}
         <MenuSeparator />
-        <MenuItem icon={<LogOut />} onSelect={onSignOut} data-sign-out>
+        <MenuItem icon={<LogOut />} onSelect={signOut} data-sign-out>
           {t('profileMenu.signOut')}
         </MenuItem>
       </MenuContent>

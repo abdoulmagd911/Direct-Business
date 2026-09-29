@@ -35,6 +35,12 @@ create table if not exists auth.users (
   banned_until timestamptz,
   created_at timestamptz default now()
 );
+create table if not exists auth.sessions (
+  id uuid primary key,
+  user_id uuid not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
 create or replace function auth.uid() returns uuid language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
     (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid

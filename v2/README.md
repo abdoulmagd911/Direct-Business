@@ -11,9 +11,26 @@ pnpm dev            # http://127.0.0.1:9300 (builder A's ports are 9300–9399, 
 pnpm checks         # the architecture checks (TECH-SPEC §9.1)
 pnpm lint && pnpm typecheck && pnpm format:check
 pnpm test           # unit tests (Vitest)
-pnpm build && pnpm test:e2e        # end to end (Playwright); in the builders' containers set
-                                   # PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+pnpm build && pnpm test:e2e        # end to end (Playwright), against the Supabase stack — see below
 pnpm sabotage       # every check and test must fail under its sabotage (V100); --kind check|lint|unit|e2e, --only <name>
+```
+
+The app reads three settings (V119): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and, on the
+server only, `SUPABASE_SECRET_KEY`. On Vercel the owner pastes them (V84); never into a file here.
+
+## End to end, against the local Supabase stack (V120)
+
+Sign-in is tested for real: the specs make made-up people in the stack's database and read the emailed codes from its
+mail catcher. In a builder's container (no Docker running at first; the default image registry is refused):
+
+```sh
+dockerd --data-root <scratch>/docker &                        # once
+SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io supabase start \
+  -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+export $(node scripts/e2e/stack-env.mjs)                      # the stack's fixed local addresses and keys
+export PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+pnpm build && pnpm test:e2e && node scripts/sabotage.mjs --kind e2e
+node scripts/db/gen-types.mjs            # after a migration changes the api schema: src/core/db/database.types.ts
 ```
 
 ## The database (`supabase/`)
@@ -46,6 +63,7 @@ In the builders' containers: `pg_ctlcluster 16 main start`, and give the `postgr
 | `no-blob-tables`          | a json/jsonb column not listed with its reason in `scripts/checks/jsonb-columns.txt` (A1)                   |
 | `norm-rebuild-called`     | a change to a `norm.*` function with no `norm.rebuild()` after it (A17)                                     |
 | `v2-ids`                  | a duplicate or out-of-range decision ID; a port outside the builders' blocks (A18)                          |
+| `forbidden-words`         | "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "MICE" in the catalogs or page text (V59)             |
 
 ESLint adds: browser storage only through `src/core/prefs` (A13); no `setInterval` outside `src/core/` (A2).
 A true exception carries `check-allow: <check> — <reason>` on its line (V100).
@@ -74,4 +92,5 @@ node scripts/dev/shot.mjs direct comfortable 1500 /kit   # one screenshot (theme
 
 The screen checks (in `scripts/checks/`, run with the rest): `ui-no-hints` (V11 — no banner, callout or hint anywhere),
 `accent-fill-only` (V60 — the accent is never text and never under a label), `i18n-catalogs` (catalogs in step, no
-hard-coded sentence in a screen), `no-forbidden-words` (V59). Their sabotages: `tests/sabotage/screens.mjs`.
+hard-coded sentence in a screen), `screen-words` (V52/V73 — never Company or Margin on screen; V59's names are A's
+`forbidden-words`). Their sabotages: `tests/sabotage/screens.mjs`.

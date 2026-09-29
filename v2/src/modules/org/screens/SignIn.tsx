@@ -1,8 +1,9 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
-import { devSignInApi, type SignInApi, type SignInRefusal } from '@/core/auth/signIn';
+import { useRef, useState, useTransition, type ClipboardEvent, type FormEvent, type KeyboardEvent } from 'react';
+import { sendCode, verifyCode, type SignInError } from '@/core/auth/actions';
+import { maskEmail } from '@/core/auth/mask';
+import { clock, useCountdown } from '@/core/auth/use-countdown';
 import { setPref } from '@/core/prefs';
 import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
@@ -11,135 +12,150 @@ import { Input } from '@/ui/Input';
 import { BrandPanel } from './BrandPanel';
 
 /**
- * Sign-in (canvas artboards 1 and 1b, spec §4, V59, V204): the brand panel at the inline start, the
- * form at the inline end; on a phone the panel is a band on top. The only door is the emailed code:
- * the work email and "Send code", then the 6-digit step with Resend and Change email; devices stay signed in until sign-out (V74).
- * One step at a time. Every refusal is a sentence in place of the data.
+ * Sign-in (canvas artboards 1 and 1b, TECH-SPEC §4, V59, V74, V75, V204): the brand panel at the inline start, the
+ * form at the inline end; on a phone the panel is a band on top. The only door is the emailed code: the work email
+ * and "Send code", then the 6-digit step with Resend and Change; devices stay signed in until sign-out (V74). The
+ * two steps run on the server (core/auth/actions.ts, P3-2); every refusal is one line in place (role="alert"). The
+ * language switch waits for Arabic to be switched on (V122).
  */
-export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignInApi }) {
-  const t = useTranslations('signIn');
+const RESEND_AFTER_S = 60;
+const EMPTY = ['', '', '', '', '', ''];
+
+export function SignIn({
+  next,
+  refusal,
+  arabicEnabled = false,
+}: {
+  next: string | null;
+  refusal: string | null;
+  /** The EN | ع switch shows once the owner switches Arabic on (`app.arabic_enabled`, P6-7; V122). */
+  arabicEnabled?: boolean;
+}) {
+  const t = useTranslations();
   const locale = useLocale();
-  const router = useRouter();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
-  const [error, setError] = useState<SignInRefusal | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
-  const [resendIn, setResendIn] = useState(0);
-  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const [digits, setDigits] = useState<string[]>(EMPTY);
+  const [error, setError] = useState<SignInError | null>(null);
+  const [shownRefusal, setShownRefusal] = useState(refusal);
+  const [sentAt, setSentAt] = useState<number | null>(null);
+  const [pending, start] = useTransition();
+  const boxes = useRef<(HTMLInputElement | null)[]>([]);
+  const [wait, startWait] = useCountdown();
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = window.setTimeout(() => setResendIn((s) => s - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [resendIn]);
+  const ask = (then?: () => void) =>
+    start(async () => {
+      setError(null);
+      setShownRefusal(null);
+      const r = await sendCode(email);
+      if (!r.ok) return setError(r.error);
+      setEmail(r.email);
+      setSentAt(Date.now());
+      startWait(RESEND_AFTER_S);
+      setDigits(EMPTY);
+      setStep('code');
+      then?.();
+    });
 
-  const sendCode = async () => {
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setError('invalidEmail');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const r = await api.sendCode(email.trim());
-    setBusy(false);
-    if (!r.ok) return setError(r.reason);
-    setStep('code');
-    setDigits(Array(6).fill(''));
-    setResendIn(45);
-    window.setTimeout(() => inputs.current[0]?.focus(), 0);
+  const verify = (code: string) =>
+    start(async () => {
+      setError(null);
+      const r = await verifyCode(email, code, next, sentAt ?? 0);
+      if (r && !r.ok) setError(r.error);
+    });
+
+  const onEmail = (e: FormEvent) => {
+    e.preventDefault();
+    ask(() => requestAnimationFrame(() => boxes.current[0]?.focus()));
   };
 
-  const verify = async (code = digits.join('')) => {
-    if (code.length < 6) return;
-    setBusy(true);
-    setError(null);
-    const r = await api.verifyCode(email.trim(), code);
-    setBusy(false);
-    if (!r.ok) return setError(r.reason);
-    router.replace(next.startsWith('/') ? next : '/my-day');
+  const onCode = (e: FormEvent) => {
+    e.preventDefault();
+    if (digits.every(Boolean)) verify(digits.join(''));
   };
 
-  const onDigit = (i: number, v: string) => {
-    const clean = v.replace(/\D/g, '');
-    const nextDigits = [...digits];
-    if (clean.length > 1) {
-      clean
-        .split('')
-        .slice(0, 6 - i)
-        .forEach((c, k) => (nextDigits[i + k] = c));
-      setDigits(nextDigits);
-      inputs.current[Math.min(5, i + clean.length - 1)]?.focus();
-    } else {
-      nextDigits[i] = clean;
-      setDigits(nextDigits);
-      if (clean && i < 5) inputs.current[i + 1]?.focus();
-    }
-    if (nextDigits.every(Boolean)) void verify(nextDigits.join(''));
+  const put = (i: number, value: string) => {
+    const got = value.replace(/\D/g, '');
+    if (got.length > 1) return fill(i, got);
+    setDigits((d) => d.map((x, j) => (j === i ? got : x)));
+    if (got && i < 5) boxes.current[i + 1]?.focus();
   };
 
-  const maskedEmail = email.replace(/^(.)[^@]*@(.)[^.]*/, '$1•••••@$2•••');
-  const errorText = error ? t(`errors.${error}`) : undefined;
+  const fill = (from: number, text: string) => {
+    const got = text
+      .replace(/\D/g, '')
+      .slice(0, 6 - from)
+      .split('');
+    setDigits((d) => d.map((x, j) => (j >= from && j - from < got.length ? (got[j - from] ?? x) : x)));
+    boxes.current[Math.min(5, from + got.length)]?.focus();
+  };
+
+  const onPaste = (i: number, e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    fill(i, e.clipboardData.getData('text'));
+  };
+
+  const onKey = (i: number, e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) boxes.current[i - 1]?.focus();
+  };
+
+  const line = error ? t(`sign_in.error.${error}`) : (shownRefusal ?? undefined);
   const card = 'flex flex-col gap-5 rounded-lg border border-border bg-raised p-6 shadow-2 sm:p-8';
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-text md:flex-row" data-sign-in>
       <BrandPanel />
-      <div className="flex min-w-0 flex-1 flex-col px-6 py-6 sm:px-10">
-        <div className="flex justify-end">
-          <div
-            role="group"
-            aria-label={t('language')}
-            className="inline-flex rounded-md border border-border bg-raised p-0.5"
-          >
-            {(['en', 'ar'] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                lang={l}
-                aria-pressed={locale === l}
-                onClick={() => {
-                  setPref('locale', l);
-                  window.location.reload();
-                }}
-                className={cn(
-                  'h-8 rounded-[5px] px-3 text-sm',
-                  locale === l ? 'bg-text font-medium text-raised' : 'text-muted',
-                )}
-              >
-                {l === 'en' ? 'EN' : 'ع'}
-              </button>
-            ))}
-          </div>
+      <main className="flex min-w-0 flex-1 flex-col px-6 py-6 sm:px-10">
+        <div className="flex min-h-8 justify-end">
+          {arabicEnabled ? (
+            <div
+              role="group"
+              aria-label={t('sign_in.language')}
+              className="inline-flex rounded-md border border-border bg-raised p-0.5"
+            >
+              {(['en', 'ar'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  lang={l}
+                  aria-pressed={locale === l}
+                  onClick={() => {
+                    setPref('locale', l);
+                    window.location.reload();
+                  }}
+                  className={cn(
+                    'h-8 rounded-[5px] px-3 text-sm',
+                    locale === l ? 'bg-text font-medium text-raised' : 'text-muted',
+                  )}
+                >
+                  {l === 'en' ? 'EN' : 'ع'}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-1 items-center justify-center py-8">
           <div className="flex w-full max-w-[440px] flex-col gap-8">
             <div className="flex flex-col gap-1.5">
-              <h1 className="text-3xl">{t('title')}</h1>
+              <h1 className="text-3xl">{t('app.name')}</h1>
               <p
                 lang={locale === 'ar' ? 'en' : 'ar'}
                 dir={locale === 'ar' ? 'ltr' : 'rtl'}
                 className="text-end text-lg text-muted"
               >
-                {locale === 'ar' ? 'Commercial Workspace' : 'مساحة العمل التجارية'}
+                {t('app.name_other')}
               </p>
             </div>
 
             {step === 'email' ? (
-              <form
-                className={card}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void sendCode();
-                }}
-                data-step="email"
-              >
-                <Field label={t('email')} error={errorText}>
+              <form className={card} onSubmit={onEmail} noValidate data-step="email">
+                <Field label={t('sign_in.email_label')} error={line}>
                   {(p) => (
                     <Input
                       {...p}
                       type="email"
-                      autoComplete="email"
+                      name="email"
+                      autoComplete="username"
                       inputMode="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -148,79 +164,85 @@ export function SignIn({ next, api = devSignInApi }: { next: string; api?: SignI
                     />
                   )}
                 </Field>
-                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy} data-door="code">
-                  {t('sendCode')}
+                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={pending} data-door="code">
+                  {t('sign_in.send_code')}
                 </Button>
               </form>
             ) : (
-              <form
-                className={card}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void verify();
-                }}
-                data-step="code"
-              >
+              <form className={card} onSubmit={onCode} noValidate data-step="code">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[15px] font-semibold">{t('codeTitle')}</span>
+                  <span className="text-[15px] font-semibold">{t('sign_in.code_label')}</span>
                   <span className="text-base text-muted">
-                    {t('codeSent', { email: maskedEmail })} ·{' '}
+                    {t('sign_in.sent_to', { email: maskEmail(email) })} ·{' '}
                     <button
                       type="button"
                       className="font-medium text-link hover:underline"
-                      onClick={() => setStep('email')}
+                      onClick={() => {
+                        setStep('email');
+                        setError(null);
+                        setSentAt(null);
+                      }}
                     >
-                      {t('change')}
+                      {t('sign_in.change')}
                     </button>
                   </span>
                 </div>
-                <div className="flex justify-between gap-2.5" dir="ltr">
+                <div
+                  role="group"
+                  aria-label={t('sign_in.code_label')}
+                  className="flex justify-between gap-2.5"
+                  dir="ltr"
+                >
                   {digits.map((d, i) => (
                     <input
                       key={i}
                       ref={(el) => {
-                        inputs.current[i] = el;
+                        boxes.current[i] = el;
                       }}
+                      aria-label={t('sign_in.digit', { n: i + 1 })}
+                      aria-invalid={error ? true : undefined}
                       inputMode="numeric"
                       autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                      aria-label={t('digit', { n: i + 1 })}
-                      aria-invalid={error ? true : undefined}
+                      pattern="[0-9]*"
+                      maxLength={i === 0 ? 6 : 1}
                       value={d}
-                      onChange={(e) => onDigit(i, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Backspace' && !digits[i] && i > 0) inputs.current[i - 1]?.focus();
-                      }}
+                      onChange={(e) => put(i, e.target.value)}
+                      onPaste={(e) => onPaste(i, e)}
+                      onKeyDown={(e) => onKey(i, e)}
                       className="h-14 w-full rounded-md border border-border-strong bg-raised text-center font-data text-2xl text-text focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger"
                     />
                   ))}
                 </div>
-                {errorText ? (
+                {line ? (
                   <p role="alert" className="text-sm text-danger">
-                    {errorText}
+                    {line}
                   </p>
                 ) : null}
-                <Button type="submit" variant="primary" className="h-12 text-[15px]" loading={busy}>
-                  {t('verify')}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="h-12 text-[15px]"
+                  loading={pending}
+                  disabled={digits.some((d) => !d)}
+                >
+                  {t('sign_in.verify')}
                 </Button>
-                <div className="flex items-center justify-center gap-2 text-base">
+                <div className="flex items-center justify-center text-base">
                   <button
                     type="button"
-                    disabled={resendIn > 0}
+                    disabled={pending || wait > 0}
                     className="font-medium text-link hover:underline disabled:text-muted disabled:no-underline"
-                    onClick={() => void sendCode()}
+                    onClick={() => ask()}
                   >
-                    {t('resend')}
+                    {wait > 0 ? t('sign_in.resend_in', { time: clock(wait) }) : t('sign_in.resend')}
                   </button>
-                  {resendIn > 0 ? (
-                    <span className="font-data text-sm text-muted">0:{String(resendIn).padStart(2, '0')}</span>
-                  ) : null}
                 </div>
               </form>
             )}
           </div>
         </div>
-        <p className="text-center text-sm text-muted md:hidden">{t('footer')}</p>
-      </div>
+        <p className="text-center text-sm text-muted md:hidden">{t('app.copyright')}</p>
+      </main>
     </div>
   );
 }

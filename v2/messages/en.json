@@ -1,9 +1,41 @@
 {
   "app": {
     "name": "Commercial Workspace",
+    "brand_line": "The commercial arm of the all-in-one travel app",
+    "copyright": "© Direct",
     "department": "Commercial",
     "workspace": "Commercial Workspace",
-    "brand": "Direct"
+    "brand": "Direct",
+    "name_other": "مساحة العمل التجارية",
+    "brand_line_other": "الذراع التجاري لتطبيق السفر الشامل"
+  },
+  "sign_in": {
+    "email_label": "Work email",
+    "send_code": "Send code",
+    "code_label": "Enter the 6-digit code",
+    "sent_to": "Sent to {email}",
+    "change": "Change",
+    "digit": "Digit {n} of 6",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "resend_in": "Resend code ({time})",
+    "error": {
+      "not_listed": "This email is not on the list — ask an admin",
+      "switched_off": "Your account is switched off",
+      "code_expired": "The code has expired — send a new one",
+      "code_invalid": "That code is not right — check it or send a new one",
+      "invalid_email": "Enter your work email",
+      "rate_limited": "Too many codes asked for — wait a minute and try again",
+      "unavailable": "Sign-in is not available right now — try again",
+      "inactive": "This device was not used for 30 days — send a new code",
+      "signed_out_elsewhere": "This device was signed out — send a new code",
+      "signed_out_by_admin": "An admin signed this device out — send a new code"
+    },
+    "language": "Language"
+  },
+  "session": {
+    "sign_out": "Sign out",
+    "unknown_device": "A browser"
   },
   "nav": {
     "my-day": "My day",
@@ -100,29 +132,6 @@
     "title": "Remove {item}?",
     "body": "{item} will be removed. You can undo this from the toast.",
     "confirm": "Remove"
-  },
-  "signIn": {
-    "title": "Commercial Workspace",
-    "email": "Work email",
-    "sendCode": "Send code",
-    "codeTitle": "Enter the 6-digit code",
-    "codeSent": "Sent to {email}",
-    "change": "Change",
-    "digit": "Digit {n}",
-    "verify": "Verify",
-    "resend": "Resend code",
-    "resendIn": "Resend in {seconds}",
-    "language": "Language",
-    "footer": "© Direct",
-    "errors": {
-      "invalidEmail": "Enter your work email",
-      "notListed": "This email is not on the list — ask an admin",
-      "switchedOff": "Your account is switched off",
-      "expired": "The code has expired — send a new one",
-      "wrongCode": "That code is not right",
-      "unavailable": "Sign-in is unavailable right now"
-    },
-    "tagline": "The commercial arm of the all-in-one travel app"
   },
   "pages": {
     "myDay": {
