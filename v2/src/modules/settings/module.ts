@@ -25,10 +25,10 @@ export default defineModule({
   key: 'settings',
   pages: [
     {
+      // My profile is everyone's, reached from the profile chip — not a Settings group (V97); no drawer entry.
       key: 'settings.profile',
-      route: '/settings/profile',
+      route: '/profile',
       label: 'nav.settings.profile',
-      nav: { group: 'settings', order: 10 },
       levels: ['own'],
       defaults: { admin: 'own', head: 'own', manager: 'own', member: 'own', viewer: 'own' },
     },
@@ -40,10 +40,12 @@ export default defineModule({
       defaults: { admin: 'full', head: 'view' },
     },
     {
+      // Activity is its own page (V97): the change log, the settings log with Revert, the sign-in log.
       key: 'activity',
-      route: '/settings/activity',
+      route: '/activity',
       label: 'nav.activity',
-      nav: { group: 'settings', order: 80 },
+      icon: 'history',
+      nav: { group: 'main', order: 110 },
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],

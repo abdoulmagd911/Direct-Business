@@ -158,6 +158,54 @@ export const sabotages = [
     ],
   },
   {
+    name: 'settings-open-to-everyone',
+    breaks: ['e2e:tests/e2e/org.spec.ts'],
+    expect: 'no-access',
+    edits: [
+      {
+        file: 'src/app/(app)/settings/[group]/page.tsx',
+        find: '  if (!isAdmin(me))\n',
+        replace: '  if (!isAdmin(me) && me.person.role === undefined)\n',
+      },
+    ],
+  },
+  {
+    name: 'list-arabic-optional',
+    breaks: ['e2e:tests/e2e/settings.spec.ts'],
+    expect: 'the Arabic name is required (V76)',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: 'draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;',
+        replace: 'draft.name_en.trim().length > 0;',
+      },
+    ],
+  },
+  {
+    name: 'setting-saves-without-reason',
+    breaks: ['e2e:tests/e2e/settings.spec.ts'],
+    expect: 'a reason is required',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: 'reason.trim().length > 0 &&',
+        replace: 'true &&',
+      },
+    ],
+  },
+  {
+    name: 'profile-saves-nothing',
+    breaks: ['e2e:tests/e2e/profile.spec.ts'],
+    expect: 'Profile saved',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: 'p_changes: changes as never,',
+        replace: 'p_changes: {} as never,',
+      },
+    ],
+  },
+  {
     name: 'sign-in-grows-a-google-door',
     breaks: ['e2e:tests/e2e/signin.spec.ts'],
     expect: 'the only door is the emailed code (V59)',
