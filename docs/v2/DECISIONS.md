@@ -623,6 +623,27 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Every department, team and role made before P3-6d's rule has an Arabic name, so they can be saved again: the seeded Commercial department takes التجاري, the others their English name until an admin writes the Arabic.
 - `api.recently_deleted` gives each row's `label_ar` where its record has one, for the Arabic screens.
 
+**V166 — Sign-in by e-mail and password, the server side** ACTIVE · 2026-09-29 (the owner, 13:50, relayed by the oversight; amends V59). No e-mail is sent at all. Builder B draws the screens.
+- **An admin sets the password.** `/auth/admin/password` (body: `email_id`, `password`, `reason`) gives an allowed e-mail's sign-in a starting password, or resets it. `/auth/admin/emails` takes an optional `password` to do the same as the e-mail is added.
+  - The database decides first: `api.person_password_set(email, reason)` is admins only and needs a reason. It is logged as the admin's request, marks the sign-in "must change password" (`core.person_auth.must_change_password`, `password_set_at`, `password_set_by`) and signs every device of the person out (a reset may be for a lost device).
+  - Then the secret key sets the password in Auth, confirmed (`email_confirm`). The app never stores or logs a password.
+- **Rules.** At least 10 characters, counted as a person sees them. At most 72 bytes, because Auth would cut a longer one without a word. Never the e-mail itself. `src/core/auth/password.ts` checks this on the server before Auth sees it, and `supabase/config.toml` holds the same minimum. Refusals are keys: `password.too_short`, `password.too_long`, `password.same_as_email`.
+- **The person changes it first.** While the flag is on, the sign-in completes as `must_change_password`. `authz.me()` is null, so every door refuses. `api.me()` answers `must_change_password`, and the gate sends the person to `/change-password` (keeping the session; builder B's screen, outside the gate).
+  - `changePassword(new, next)` checks the rules, lets Auth take the new password, then the server records it: `api.password_changed(auth user)` is service role only, so the browser can never clear its own flag. It is logged as the person's own request (`audit.begin_for`).
+- **The doors.** `signInWithPassword(email, password, next)` works like the code door:
+  - The pre-check (`api.sign_in_password_check`) logs a refusal. An allowed e-mail is logged when its sign-in completes.
+  - Auth's refusal is logged with its reason (`api.sign_in_password_refused`: `provider_error` with, e.g., `invalid_credentials`).
+  - The log's new `method` column names the door (`password` or `code`).
+- **The emailed code** stays built, off by the admin setting `auth.code_sign_in` (Settings → Organization & access).
+  - While it is off, `sendCode` answers `code_off` and sends nothing.
+  - A session a code opened is refused at `api.sign_in_complete` and registers no device: the token says how it was made (`amr`).
+  - `signInMethods()` tells the sign-in page which doors to show. The E2E specs switch the code on for themselves (`codeDoorOn` in `tests/e2e/support/stack.ts`).
+- Sign-ups stay off. Only allowed, switched-on people get in. The device rules are V74's.
+- Tests: SIGN-10; unit `a-password-is-ten-characters-at-least-and-never-the-email`; E2E `an-admin-sets-a-starting-password-that-must-be-changed-first`.
+- Sabotages: `a-starting-password-opens-the-app`, `anyone-sets-a-password`, `the-browser-clears-its-own-password-flag`, `the-code-door-stays-open`, `a-short-password-passes`, `a-password-cut-by-auth`, `e2e-password-never-reaches-auth`.
+- `node scripts/e2e/local.mjs [--no-build] [specs]` runs the E2E specs against the local stack in one command. The installed Chromium goes in `PW_CHROMIUM_PATH` when Playwright's own is missing.
+- **The cloud project's own settings are the owner's:** Auth → minimum password length 10, and "Secure password change" left off. Until the code door is switched on there, nothing needs the e-mail sender.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
