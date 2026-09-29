@@ -17,8 +17,15 @@ function api.auth_user_of(p_email text) execute service_role
 function api.device_sign_out(p_device uuid) execute authenticated
 function api.device_sign_out_others() execute authenticated
 function api.device_touch() execute authenticated
+function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
+function api.following(p_entity text, p_id uuid) execute authenticated
 function api.me() execute authenticated
 function api.my_devices() execute authenticated
+function api.notifications(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
+function api.notifications_mark_read(p_ids uuid[]) execute authenticated
+function api.notifications_snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
+function api.notifications_unread() execute authenticated
+function api.page_seen(p_page text) execute authenticated
 function api.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function api.person_auth_state(p_person uuid) execute service_role
 function api.person_devices(p_person uuid) execute authenticated
@@ -30,6 +37,10 @@ function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
 function api.undo(p_request uuid) execute authenticated
+function api.view_default_set(p_page text, p_view uuid) execute authenticated
+function api.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
+function api.views(p_page text) execute authenticated
+function api.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
@@ -57,6 +68,7 @@ function core.format_number(prefix text, year integer, n integer, width integer)
 function core.me() execute authenticated
 function core.month_of(d date) execute authenticated
 function core.my_devices() execute authenticated
+function core.page_seen(p_page text) execute authenticated
 function core.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function core.person_auth_state(p_person uuid) execute service_role
 function core.person_devices(p_person uuid) execute authenticated
@@ -69,10 +81,21 @@ function core.riyadh_today() execute authenticated
 function core.sign_in_check(p_email text, p_user_agent text) execute service_role
 function core.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function core.view_default_set(p_page text, p_view uuid) execute authenticated
+function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
+function core.views(p_page text) execute authenticated
+function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
+function notify.follow_set(p_entity text, p_id uuid, p_on boolean) execute authenticated
+function notify.following(p_entity text, p_id uuid) execute authenticated
+function notify.list(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
+function notify.mark_read(p_ids uuid[]) execute authenticated
+function notify.snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
+function notify.unread_count() execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated
 schema authz usage authenticated
 schema core usage authenticated
 schema core usage service_role
+schema notify usage authenticated
 type core.level usage public
