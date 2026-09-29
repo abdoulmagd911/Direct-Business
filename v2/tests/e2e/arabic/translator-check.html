@@ -1,0 +1,193 @@
+<!doctype html>
+<!--
+  The translator quality check of plan P3-10 (V76, V86, V302). Open this file in desktop Chrome (138 or later),
+  press "Translate all", and mark each of the 30 made-up report lines usable / needs edits / wrong. "Copy the
+  results" puts a table on the clipboard for the P3-10 pull request. Everything runs on this computer: the page loads
+  nothing from anywhere, and Chrome's built-in Translator translates on the device (the first run downloads its
+  Arabic language pack, about 100 MB, once). Made-up names and figures only (rule 7).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Translator check</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --text: #303848;
+        --muted: #646d79;
+        --border: #e6e8ec;
+        --surface: #fafbfc;
+        --primary: #c94c14;
+        --on-primary: #ffffff;
+      }
+      body {
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        color: var(--text);
+        background: var(--surface);
+        margin: 0;
+        padding: 24px 16px;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      #status {
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #fff;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--primary);
+        color: var(--on-primary);
+        border-color: transparent;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        background: #fff;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+        vertical-align: top;
+        text-align: start;
+      }
+      td.ar {
+        font-size: 15px;
+      }
+      td.marks label {
+        display: block;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Translate to Arabic — quality check</h1>
+      <p id="status">Checking whether this browser can translate on the device…</p>
+      <button class="primary" id="run" disabled>Translate all</button>
+      <button id="copy">Copy the results</button>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>English (made up)</th>
+            <th>Arabic draft</th>
+            <th>Mark</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+    <script>
+      const LINES = [
+        'Signed a cooperation agreement with Test Co A giving a 5% discount on package prices.',
+        'Renewed the contract with Sample Travel LLC and raised its credit line to 50,000 SAR.',
+        'Collected the 2025 commission of 26,231 SAR from Fake Institute.',
+        'Invoice INV-T-0001 for Test Co A was paid in full on 14 August 2026.',
+        'Bookings rose from 1,200 to 3,450 in the first half, up 187.5%.',
+        'Madeup Airlines agreed to a fixed net fare for groups of 10 or more.',
+        'Resolved late ticket delivery for group bookings; the client avoided a loss of 42,000 SAR.',
+        'Added car rental with a driver in 36 countries to the booking system.',
+        'Attended the study abroad fair in Riyadh and handed 40 student contacts to Operations.',
+        'Opened a supplier account with Sample Transfers for airport pickups.',
+        'Negotiated a lower daily insurance price, saving about 70,000 USD a year.',
+        'Submitted two tenders to government entities this month; one is awaiting results.',
+        'Won the tender for accommodation services worth 2.4 million SAR.',
+        'Launched the cruise service with a dedicated partner portal.',
+        'Trained the operations team on the new language test booking flow.',
+        'No reply yet from Fake University on the renewal, open since 3 August 2026.',
+        'The payment gateway integration is waiting for the provider’s security review.',
+        'The embassy has not answered the visa request for the student group.',
+        'The discount code for the airline contract does not work on the website yet.',
+        'Two projects with Test Co A were not approved this quarter.',
+        'Receive the booking commission from Sample Travel LLC.',
+        'Meet the five largest airlines to agree 2027 targets and discount codes.',
+        'Sign the partnership contract with Fake Language School and start work.',
+        'Add three new entry forms to the booking system.',
+        'Review contract DK-P-0001 before it expires in 30 days.',
+        'Client satisfaction reached 96% this quarter, against a target of 90%.',
+        'Average days to pay fell from 45 to 32.',
+        'The account manager for Test Co A changes on 1 September 2026.',
+        'Cost savings are not revenue and are reported separately.',
+        'The MoU with Sample Holding was signed on 20 September 2026; the partner is now a prospect.',
+      ];
+      const rows = document.getElementById('rows');
+      const status = document.getElementById('status');
+      const run = document.getElementById('run');
+      const MARKS = ['usable', 'needs edits', 'wrong'];
+      LINES.forEach((line, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          (i + 1) +
+          '</td><td></td><td class="ar" dir="rtl" lang="ar"></td><td class="marks">' +
+          MARKS.map((m) => '<label><input type="radio" name="m' + i + '" value="' + m + '"> ' + m + '</label>').join(
+            '',
+          ) +
+          '</td>';
+        tr.children[1].textContent = line;
+        rows.appendChild(tr);
+      });
+      const PAIR = { sourceLanguage: 'en', targetLanguage: 'ar' };
+      (async () => {
+        if (!('Translator' in self)) {
+          status.textContent =
+            'This browser has no on-device Translator (Chrome 138+ on a computer has it). In the app the button would be hidden here.';
+          return;
+        }
+        const a = await Translator.availability(PAIR);
+        status.textContent = 'English → Arabic on this device: ' + a + '.';
+        run.disabled = a === 'unavailable';
+      })();
+      run.addEventListener('click', async () => {
+        run.disabled = true;
+        const started = performance.now();
+        const t = await Translator.create({
+          ...PAIR,
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              status.textContent = 'Downloading the Arabic language pack: ' + Math.round(e.loaded * 100) + '%';
+            });
+          },
+        });
+        for (const [i, line] of LINES.entries()) {
+          status.textContent = 'Translating ' + (i + 1) + ' of ' + LINES.length + '…';
+          rows.children[i].children[2].textContent = await t.translate(line);
+        }
+        status.textContent =
+          'Done: ' + LINES.length + ' lines in ' + Math.round(performance.now() - started) + ' ms. Mark each line.';
+      });
+      document.getElementById('copy').addEventListener('click', async () => {
+        const lines = ['| # | English | Arabic draft | Mark |', '|---|---|---|---|'];
+        LINES.forEach((line, i) => {
+          const ar = rows.children[i].children[2].textContent || '';
+          const mark = (document.querySelector('input[name="m' + i + '"]:checked') || {}).value || '';
+          lines.push('| ' + (i + 1) + ' | ' + line + ' | ' + ar + ' | ' + mark + ' |');
+        });
+        const counts = MARKS.map(
+          (m) => m + ': ' + document.querySelectorAll('input[value="' + m + '"]:checked').length,
+        );
+        lines.push('', counts.join(' · ') + ' · ' + navigator.userAgent);
+        await navigator.clipboard.writeText(lines.join('\n'));
+        status.textContent = 'Copied. Paste it into the P3-10 pull request.';
+      });
+    </script>
+  </body>
+</html>
