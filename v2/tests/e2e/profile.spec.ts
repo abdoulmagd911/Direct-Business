@@ -1,10 +1,18 @@
 /**
  * My profile (V9, V74, V97): a team member edits their own profile — nickname, badge, colour, theme Direct, Compact —
  * and sees it at once in the top bar and the drawer foot; Settings is refused by address; another person's page
- * shows no Edit. Sabotage: tests/sabotage/screens.mjs "profile-saves-nothing", "settings-open-to-everyone".
+ * shows no Edit; the profile chip opens My profile; an Undo puts the stored value and the theme back on screen.
+ * Sabotage: tests/sabotage/screens.mjs "profile-saves-nothing", "settings-open-to-everyone", "profile-chip-leads-
+ * nowhere", "profile-keeps-the-undone-value".
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { makePerson, signIn, sql } from './support/stack';
+
+const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
+// the newest toast is the front of the stack (older ones sit behind it, not clickable until hovered)
+const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
+const cookie = (page: Page, name: string) =>
+  page.evaluate((n) => document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]*)'))?.[1] ?? null, name);
 
 test('a team member edits their profile and sees it at once; Settings refuses them by address', async ({ page }) => {
   const member = await makePerson();
@@ -61,4 +69,60 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await expect(page.getByRole('heading', { level: 1, name: other.name })).toBeVisible();
   await expect(page.locator('[data-person-edit]')).toHaveCount(0);
   await expect(page.locator('[data-person-switch]')).toHaveCount(0);
+});
+
+test('the profile chip opens My profile; an Undo puts the stored value and the theme back on screen', async ({
+  page,
+}) => {
+  const member = await makePerson();
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+
+  // the chip in the top bar leads to My profile (the address is /profile — QA on #92)
+  await page.locator('[data-topbar] [data-profile-chip]').click();
+  await page.getByRole('menuitem', { name: 'My profile' }).click();
+  await expect(page, 'the chip opens My profile').toHaveURL(/\/profile$/);
+  await hydrated(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'My profile' })).toBeVisible();
+
+  // the first save of a profile creates its row, and the database does not undo a creation of core.person_profile
+  // (its Undo answers "cannot be removed" — NEED for builder A), so the Undos below start from a profile that exists
+  await sql(`insert into core.person_profile (person_id, created_by) values ($1, $1)`, [member.id]);
+  await page.reload();
+  await hydrated(page);
+
+  // a saved nickname, undone: the stored (empty) value is what the screen shows, and what a reload shows
+  await page.getByLabel('Nickname').fill('Undone Nick');
+  await page.getByLabel('Nickname').press('Enter');
+  await toast(page, 'Profile saved').getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(toast(page, 'Undone')).toBeVisible();
+  await expect(page.getByLabel('Nickname'), 'the undone value is gone from the screen').toHaveValue('');
+  await expect(page.locator('[data-topbar] [data-profile-chip]')).not.toContainText('Undone Nick');
+  const [row] = await sql<{ nickname: string | null }>(
+    `select nickname_en as nickname from core.person where id = $1`,
+    [member.id],
+  );
+  expect(row!.nickname).toBeNull();
+
+  // a saved theme, undone: the page and its cookie go back to the stored theme (Direct), not the undone one
+  await page.getByLabel('Theme').click();
+  await page.getByRole('option', { name: 'Dark' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await cookie(page, 'v2.theme')).toBe('dark');
+  await expect(toast(page, 'Profile saved')).toBeVisible();
+  await toast(page, 'Profile saved').getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(toast(page, 'Undone')).toBeVisible();
+  await expect(page.locator('html'), 'the undone theme is gone from the page').toHaveAttribute('data-theme', 'direct');
+  await expect.poll(() => cookie(page, 'v2.theme'), { message: 'the theme cookie follows the profile' }).toBe('direct');
+  await page.reload();
+  await hydrated(page);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'direct');
+  await expect(page.getByLabel('Nickname')).toHaveValue('');
+
+  // a change made elsewhere (another device, an admin) shows after a reload without a stale copy in the way
+  await sql(`update core.person set nickname_en = 'Elsewhere' where id = $1`, [member.id]);
+  await page.reload();
+  await hydrated(page);
+  await expect(page.getByLabel('Nickname')).toHaveValue('Elsewhere');
 });

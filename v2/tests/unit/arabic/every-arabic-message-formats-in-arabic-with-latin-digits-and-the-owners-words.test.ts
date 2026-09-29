@@ -40,6 +40,7 @@ const NOT_ARABIC = new Set([
   'app.name_other',
   'app.brand_line_other',
   'locale.en',
+  'sign_in.switch_to_en',
   'settings.values.app.export_formats.csv',
   'settings.values.app.export_formats.xlsx',
 ]);
