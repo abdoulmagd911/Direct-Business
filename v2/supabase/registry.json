@@ -10,9 +10,9 @@
     {
       "key": "activity",
       "module": "settings",
-      "route": "/settings/activity",
-      "nav_group": "settings",
-      "nav_order": 80,
+      "route": "/activity",
+      "nav_group": "main",
+      "nav_order": 110,
       "levels": ["none", "view", "own", "full"]
     },
     {
@@ -130,9 +130,9 @@
     {
       "key": "settings.profile",
       "module": "settings",
-      "route": "/settings/profile",
-      "nav_group": "settings",
-      "nav_order": 10,
+      "route": "/profile",
+      "nav_group": null,
+      "nav_order": null,
       "levels": ["own"]
     },
     {

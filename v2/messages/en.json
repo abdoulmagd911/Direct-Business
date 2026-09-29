@@ -68,7 +68,8 @@
     },
     "settings_home": "Settings",
     "clients": "Clients",
-    "suppliers_partners": "Suppliers & partners"
+    "suppliers_partners": "Suppliers & partners",
+    "profile": "My profile"
   },
   "top": {
     "search": "Search partners, tasks, INV-, DRS-",
@@ -132,7 +133,27 @@
     "back": "Back",
     "notMeasured": "not measured",
     "loading": "Loading",
-    "sar": "SAR"
+    "sar": "SAR",
+    "edit": "Edit",
+    "add": "Add",
+    "addNew": "+ Add",
+    "apply": "Apply",
+    "all": "All",
+    "today": "Today",
+    "name": "Name",
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "search": "Search",
+    "required": "Required",
+    "saveChanges": "Save changes",
+    "reason": "Reason",
+    "optional": "optional",
+    "showAll": "Show all",
+    "by": "by",
+    "on": "on",
+    "of": "of"
   },
   "state": {
     "failed": "{what} could not be loaded",
@@ -282,6 +303,418 @@
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner"
+    }
+  },
+  "levels": {
+    "none": "None",
+    "view": "View",
+    "own": "Own",
+    "full": "Full"
+  },
+  "record": {
+    "overview": "Overview",
+    "activity": "Activity",
+    "related": "Related",
+    "showAll": "Show all ({count})",
+    "showLess": "Show less",
+    "tabs": "Record sections",
+    "back": "Back",
+    "details": "Details",
+    "noActivity": "No changes yet"
+  },
+  "activity": {
+    "title": "Activity",
+    "tabs": {
+      "changes": "Changes",
+      "settings": "Settings log",
+      "signIns": "Sign-ins"
+    },
+    "filters": {
+      "who": "Who",
+      "what": "What",
+      "since": "Since",
+      "anyone": "Anyone",
+      "anything": "Anything"
+    },
+    "none": "No changes yet",
+    "undone": "Undone",
+    "undoneChip": "Undone",
+    "revert": "Revert",
+    "reverted": "Setting reverted",
+    "revertTitle": "Revert {setting}?",
+    "revertBody": "{setting} goes back to its previous value from today, as a new entry in the settings log.",
+    "kinds": {
+      "ui": "In the app",
+      "import": "Import",
+      "job": "Job",
+      "system": "System",
+      "undo": "Undo"
+    },
+    "actions": {
+      "insert": "{what} added",
+      "update": "{what} changed: {fields}",
+      "remove": "{what} removed",
+      "restore": "{what} restored",
+      "request": "Change"
+    },
+    "labels": {
+      "profile.updated": "Profile updated",
+      "registry.synced": "Registry synced",
+      "person.created": "Person added",
+      "person.updated": "Person changed",
+      "person.switched": "Sign-in switched",
+      "team.retired": "Team retired",
+      "setting.changed": "Setting changed",
+      "setting.cleared": "Setting cleared",
+      "list.saved": "List entry saved",
+      "access.changed": "Access changed",
+      "team.saved": "Team saved",
+      "department.saved": "Department saved",
+      "role.saved": "Role saved"
+    },
+    "signIn": {
+      "at": "When",
+      "email": "Email",
+      "result": "Result",
+      "device": "Device",
+      "results": {
+        "code_sent": "Code sent",
+        "ok": "Signed in",
+        "not_listed": "Not on the list",
+        "switched_off": "Switched off",
+        "code_invalid": "Wrong code",
+        "code_expired": "Code expired",
+        "provider_error": "Sending failed",
+        "signed_out": "Signed out",
+        "rate_limited": "Too many codes"
+      }
+    },
+    "loadMore": "Show earlier"
+  },
+  "profile": {
+    "title": "My profile",
+    "sections": {
+      "profile": "Profile",
+      "appearance": "Appearance",
+      "notifications": "Notifications",
+      "devices": "Devices"
+    },
+    "fullNameEn": "Full name",
+    "fullNameAr": "Full name (Arabic)",
+    "nicknameEn": "Nickname",
+    "nicknameAr": "Nickname (Arabic)",
+    "displayNameEn": "Display name",
+    "displayNameAr": "Display name (Arabic)",
+    "colour": "Colour",
+    "badge": "Badge",
+    "badgeKind": {
+      "none": "No badge",
+      "icon": "Icon",
+      "zodiac": "Zodiac sign"
+    },
+    "badgeValue": "Which one",
+    "theme": "Theme",
+    "density": "Density",
+    "language": "Language",
+    "startPage": "Start page",
+    "drawer": "Drawer",
+    "drawerPinned": "Pinned",
+    "drawerCollapsed": "Collapsed",
+    "notifyIntro": "In the app",
+    "notify": {
+      "assigned": "Assigned to me",
+      "helper_added": "Added as a helper",
+      "mentioned": "Mentioned",
+      "changed_by_other": "My record changed by someone else",
+      "followed_change": "A record I follow changed",
+      "decision_needed": "A decision is needed",
+      "report_issued": "A report was issued",
+      "report_for_review": "A report waits for my review",
+      "appraisal_step": "An appraisal step",
+      "import_done": "An import finished",
+      "alert_contract_expiring": "A contract is expiring",
+      "alert_kpi_behind": "A KPI is behind pace",
+      "alert_invoice_unpaid": "An invoice is unpaid",
+      "alert_kpi_checkin": "KPI check-in day"
+    },
+    "devices": {
+      "label": "Device",
+      "signedIn": "Signed in",
+      "lastSeen": "Last seen",
+      "thisDevice": "This device",
+      "signOut": "Sign out",
+      "signOutOthers": "Sign out every other device",
+      "signedOut": "Device signed out",
+      "othersSignedOut": "{count} devices signed out",
+      "unknown": "A browser"
+    },
+    "saved": "Profile saved",
+    "colours": {
+      "c1": "Orange",
+      "c2": "Gold",
+      "c3": "Slate",
+      "c4": "Blue",
+      "c5": "Green",
+      "c6": "Grey"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "people": "People",
+      "teams": "Teams",
+      "roles": "Roles",
+      "access": "Access",
+      "settings": "Settings",
+      "lists": "Lists"
+    },
+    "noAccess": "Settings is for admins",
+    "setting": {
+      "companyWide": "All departments",
+      "department": "Department",
+      "current": "Current value",
+      "newValue": "New value",
+      "appliesFrom": "Applies from",
+      "reason": "Reason",
+      "rows": "Where it is set",
+      "by": "Set by",
+      "preview": {
+        "title": "What changes",
+        "from": "From",
+        "to": "To",
+        "departments": "{count} departments keep their own value",
+        "fromToday": "Applies from today",
+        "fromDate": "Applies from {date}",
+        "replacesSameDay": "replaces today's earlier change"
+      },
+      "save": "Save setting",
+      "saved": "Setting saved",
+      "change": "Change",
+      "clear": "Back to the value for all departments",
+      "cleared": "Department value cleared",
+      "default": "Default",
+      "edit": "Change {setting}",
+      "values": {
+        "true": "On",
+        "false": "Off"
+      }
+    },
+    "list": {
+      "add": "Add entry",
+      "key": "Key",
+      "nameEn": "Name",
+      "nameAr": "Name (Arabic)",
+      "sort": "Order",
+      "active": "Active",
+      "archived": "Archived",
+      "archive": "Archive",
+      "restore": "Restore",
+      "usedIn": "Used in {count}",
+      "usage": "Records using it",
+      "replaceWith": "Move its records to",
+      "retireTitle": "Archive {name}?",
+      "retireBody": "Archived entries leave the pickers and stay on the records that hold them.",
+      "retireBodyUsed": "{count} records hold {name}. They move to the entry you pick, in one change with one Undo.",
+      "saved": "Entry saved",
+      "archivedDone": "{name} archived",
+      "restored": "{name} restored",
+      "edit": "Edit {name}",
+      "new": "New entry",
+      "arabicRequired": "An Arabic name is required",
+      "showArchived": "Show archived",
+      "entries": "{count} entries",
+      "banned": "The app never says {word}"
+    },
+    "people": {
+      "add": "Add person",
+      "name": "Name",
+      "role": "Role",
+      "team": "Team",
+      "department": "Department",
+      "manager": "Manager",
+      "emails": "Allowed emails",
+      "lastSignIn": "Last sign-in",
+      "canSignIn": "Can sign in",
+      "signInOn": "Allowed",
+      "signInOff": "Switched off",
+      "status": "Status",
+      "active": "Active",
+      "left": "Left",
+      "jobTitleEn": "Job title",
+      "jobTitleAr": "Job title (Arabic)",
+      "joinedOn": "Joined",
+      "leftOn": "Left on",
+      "allowSignIn": "Allow sign-in",
+      "email": "Work email",
+      "addEmail": "Add email",
+      "removeEmail": "Remove email",
+      "primary": "Primary",
+      "switchOff": "Switch off",
+      "switchOn": "Switch on",
+      "switchOffTitle": "Switch off {name}?",
+      "switchOffBody": "{name} is signed out of every device and cannot sign in until switched on again.",
+      "signOutEverywhere": "Sign out of every device",
+      "signedOutEverywhere": "{name} signed out everywhere",
+      "added": "{name} added",
+      "updated": "{name} updated",
+      "switched": "{name} {state}",
+      "noEmails": "No allowed email",
+      "devices": "Devices",
+      "signInLog": "Sign-in log",
+      "access": "Access",
+      "overrides": "Overrides",
+      "overrideLevel": "Level on {page}",
+      "noManager": "No manager",
+      "noTeam": "No team",
+      "never": "Never",
+      "openRecord": "Open",
+      "people": "{count} people",
+      "setRole": "Change role",
+      "emailAdded": "{email} allowed",
+      "emailRemoved": "{email} removed",
+      "kind": "Kind",
+      "staff": "Staff",
+      "system": "System",
+      "reports": "Direct reports"
+    },
+    "teams": {
+      "add": "Add team",
+      "code": "Code",
+      "name": "Name",
+      "nameAr": "Name (Arabic)",
+      "lead": "Lead",
+      "members": "Members",
+      "retire": "Retire",
+      "retireTitle": "Retire {name}?",
+      "retireBody": "{count} people are in {name}. Pick the team they move to, or none.",
+      "moveTo": "Move its people to",
+      "noTeam": "No team",
+      "retired": "{name} retired",
+      "saved": "Team saved",
+      "edit": "Edit {name}",
+      "retiredChip": "Retired",
+      "department": "Department",
+      "noLead": "No lead"
+    },
+    "departments": {
+      "add": "Add department",
+      "head": "Head",
+      "saved": "Department saved",
+      "edit": "Edit {name}",
+      "noHead": "No head"
+    },
+    "roles": {
+      "name": "Name",
+      "nameAr": "Name (Arabic)",
+      "key": "Key",
+      "admin": "Admin role",
+      "saved": "Role saved",
+      "edit": "Edit {name}",
+      "people": "People"
+    },
+    "access": {
+      "matrix": "Roles × pages",
+      "page": "Page",
+      "capability": "Capability",
+      "level": "Level",
+      "granted": "Granted",
+      "changed": "Access changed",
+      "changeTitle": "Set {what} for {who}",
+      "personLevel": "Level for {name} on {page}",
+      "clearOverride": "Back to the role's level",
+      "roleOverride": "Role",
+      "override": "Override",
+      "effective": "Effective",
+      "capabilities": "Capabilities",
+      "pages": "Pages",
+      "reasonBody": "Every access change is logged with its reason."
+    },
+    "form": {
+      "reasonRequired": "A reason is required"
+    },
+    "values": {
+      "work.week_starts_on": {
+        "saturday": "Saturday",
+        "sunday": "Sunday",
+        "monday": "Monday"
+      },
+      "app.export_formats": {
+        "csv": "CSV",
+        "xlsx": "Excel"
+      }
+    }
+  },
+  "errors": {
+    "kind": {
+      "PermissionDenied": "You do not have access to do this",
+      "Conflict": "Someone changed this since you opened it. Reload and try again.",
+      "RuleBroken": "This change was refused: {detail}",
+      "NotFound": "This record was not found",
+      "Unavailable": "The server did not answer. Try again."
+    },
+    "access": {
+      "needs_level": "You need more access on this page",
+      "needs_capability": "You do not have this permission",
+      "not_your_own": "Nobody changes their own access",
+      "admins_only": "Only an admin can do this",
+      "above_your_level": "You cannot grant more than you have",
+      "denied": "You do not have access to do this"
+    },
+    "common": {
+      "conflict": "Someone changed this since you opened it. Reload and try again.",
+      "not_found": "This record was not found",
+      "unavailable": "The server did not answer. Try again."
+    },
+    "person": {
+      "full_name_required": "A full name is required",
+      "department_required": "A department is required",
+      "manager_cycle": "A person cannot report to someone who reports to them",
+      "team_outside_department": "The team is in another department",
+      "not_yourself": "Nobody switches themselves"
+    },
+    "person_email": {
+      "taken": "That email already belongs to someone"
+    },
+    "list": {
+      "key_taken": "That key is already used",
+      "key_fixed": "A key never changes",
+      "nothing_to_change": "Nothing to change",
+      "invalid": "That value is not allowed: {detail}",
+      "unknown_field": "Unknown field: {detail}"
+    },
+    "profile": {
+      "invalid": "That value is not allowed: {detail}",
+      "arabic_not_enabled": "Arabic is not switched on yet",
+      "unknown_field": "Unknown field: {detail}",
+      "nothing_to_change": "Nothing to change"
+    },
+    "setting": {
+      "invalid": "That value is not allowed: {detail}",
+      "unknown": "Unknown setting",
+      "reason_required": "A reason is required"
+    },
+    "undo": {
+      "changed_since": "Someone changed this since; it cannot be undone",
+      "not_allowed": "You cannot undo this",
+      "already_undone": "Already undone",
+      "blocked_by_duplicate": "Another record now holds that value: {detail}",
+      "not_undoable": "What the system wrote cannot be undone",
+      "nothing_to_undo": "Nothing to undo",
+      "cannot_remove": "This record cannot be removed"
+    },
+    "auth": {
+      "no_active_person": "You are not signed in"
+    },
+    "team": {
+      "other_department": "The team must stay in its department",
+      "code_taken": "That code is already used"
+    },
+    "role": {
+      "key_fixed": "A role's key never changes",
+      "admins_only": "Only an admin renames the admin role"
+    },
+    "org": {
+      "name_ar_required": "An Arabic name is required"
     }
   }
 }

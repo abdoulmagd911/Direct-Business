@@ -88,7 +88,7 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  await expect(links).toHaveCount(14); // logo, 11 entries (Partners is Clients + Suppliers & partners), Settings, the profile
+  await expect(links).toHaveCount(15); // logo, 12 entries (Partners is Clients + Suppliers & partners; Activity — V97), Settings, the profile
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 
@@ -114,7 +114,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
     'KPIs',
     'Reports',
     'Appraisal',
-  ]);
+  ]); // no Activity either: a member starts at none there
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
   await page.locator('[data-profile-chip]').click();
   await expect(page.getByRole('menuitem', { name: 'My profile' })).toBeVisible();
