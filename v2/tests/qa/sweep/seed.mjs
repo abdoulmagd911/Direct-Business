@@ -5,7 +5,7 @@
 // owner, and the auth user through the secret key's admin API); everything after that is done by the made-up admin
 // through the app's own api.* doors, as a person would. Every name, email and value is made up (rule 7); each run gets
 // a fresh tag so runs never share a person.
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import pg from 'pg';
@@ -25,7 +25,11 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(URL) || !/@(127\.0\.0\.1|loc
   throw new Error(`the sweep seeds only a local stack, not ${URL}`);
 }
 
-const tag = Date.now().toString(36).slice(-5);
+// QA_SEED_STAGE: all (default) · people (the people only — the gallery's empty screens) · data (the rest, for the
+// people a `people` run wrote). QA_SEED_MORE=1 adds a few more made-up organisations, so a list is not two rows.
+const STAGE = process.env.QA_SEED_STAGE || 'all';
+const MORE = process.env.QA_SEED_MORE === '1';
+let tag = Date.now().toString(36).slice(-5);
 /** Made-up, the same for every fixture person; never a real password (rule 7). */
 const PASSWORD = 'Test-QA-Sweep-2026-Riyadh';
 const pool = new pg.Pool({ connectionString: DB_URL, max: 2 });
@@ -39,6 +43,8 @@ const authAdmin = createClient(URL, SECRET, { auth: { persistSession: false, aut
  */
 const PEOPLE = {
   admin: { role: 'admin', label: 'Test Admin' },
+  admin_account: { role: 'admin', label: 'Test Owner Account' },
+  qa_test: { role: 'admin', label: 'Test QA Account' },
   head: { role: 'head', label: 'Test Head' },
   manager: { role: 'manager', label: 'Test Manager' },
   member: { role: 'member', label: 'Test Member' },
@@ -106,8 +112,22 @@ async function apiAs(/** @type {Person} */ p) {
 async function main() {
   await ensureBase();
   /** @type {Record<string, Person>} */
-  const users = {};
-  for (const key of Object.keys(PEOPLE)) users[key] = await makePerson(key);
+  let users = {};
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+  if (STAGE === 'data') {
+    const before = JSON.parse(readFileSync(FIXTURES_FILE, 'utf8'));
+    users = before.users;
+    tag = before.tag;
+  } else {
+    for (const key of Object.keys(PEOPLE)) users[key] = await makePerson(key);
+  }
+  if (STAGE === 'people') {
+    mkdirSync(RUN_DIR, { recursive: true });
+    writeFileSync(FIXTURES_FILE, JSON.stringify({ tag, password: PASSWORD, today, users, stage: 'people' }, null, 2));
+    console.log(`seeded run ${tag}: ${Object.keys(users).length} people, no records yet (${FIXTURES_FILE})`);
+    await pool.end();
+    return;
+  }
   const u = (/** @type {string} */ k) => {
     const p = users[k];
     if (!p) throw new Error(`no fixture ${k}`);
@@ -174,7 +194,6 @@ async function main() {
     p_reason: why,
   });
 
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
   /** @param {string} org @param {string} side @param {string} title */
   const contract = (org, side, title) =>
     admin('contract_save', { p_partner: org, p_id: null, p_values: { side, title, start_on: today }, p_reason: why });
@@ -217,6 +236,45 @@ async function main() {
     p_query: { q: 'Test' },
     p_shared: false,
   });
+
+  if (MORE) {
+    /** @type {[string, { side: string; type: string; owner: string }[], string][]} */
+    const moreOrgs = [
+      ['Gamma', [{ side: 'client', type: 'corporate', owner: 'manager' }], 'prospect'],
+      ['Delta', [{ side: 'client', type: 'corporate', owner: 'head' }], 'active'],
+      ['Epsilon', [{ side: 'supplier_partner', type: 'supplier', owner: 'admin' }], 'active'],
+      [
+        'Zeta',
+        [
+          { side: 'client', type: 'corporate', owner: 'member2' },
+          { side: 'supplier_partner', type: 'supplier', owner: 'manager' },
+        ],
+        'active',
+      ],
+      ['Eta', [{ side: 'client', type: 'corporate', owner: 'member' }], 'at_risk'],
+    ];
+    /** @type {string[]} */
+    const moreIds = [];
+    extra.more = moreIds;
+    for (const [name, sides, status] of moreOrgs) {
+      try {
+        const org = await admin('partner_create', {
+          p_partner: {
+            trade_name_en: `Test Org ${name} ${tag}`,
+            sides: sides.map((x) => ({ side: x.side, type: x.type, owner_id: u(x.owner).id })),
+          },
+          p_reason: why,
+        });
+        for (const x of sides)
+          await admin('partner_status_set', { p_id: org.id, p_side: x.side, p_status: status, p_note: why }).catch(
+            () => undefined,
+          );
+        moreIds.push(org.id);
+      } catch (e) {
+        extra.moreError = String(e);
+      }
+    }
+  }
 
   const settingReason = `QA sweep seed setting ${tag}`;
   await admin('setting_set', { p_key: 'work.no_update_days', p_department: null, p_value: 8, p_reason: settingReason });
