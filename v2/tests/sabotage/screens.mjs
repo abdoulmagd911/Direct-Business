@@ -158,9 +158,11 @@ export const sabotages = [
     ],
   },
   {
+    // Without the page's admin gate a member's request reaches api.settings, the database refuses it (V125) and the
+    // page never draws — the spec waits for it and times out, which is the red the sabotage expects.
     name: 'settings-open-to-everyone',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
-    expect: 'no-access',
+    expect: 'page.waitForFunction: Test timeout',
     edits: [
       {
         file: 'src/app/(app)/settings/[group]/page.tsx',
