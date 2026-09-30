@@ -908,6 +908,19 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - The admin routes now pass a refusal's detail to the screen; the dialog turns the route's refusal into words (`DbError`), never "The server did not answer".
 - Test PPL-04. Sabotages `a-taken-email-said-without-its-holder`, `an-email-compared-by-its-capitals`.
 
+**V179 — The admin and test accounts are in no team** ACTIVE · 2026-09-30 (the production finding W26; builds on V170, V444, V445). The owner's admin account showed a team and a manager on production, so it still read as a team member.
+- An account other than a team member has no team and no manager. `core.person_guard` refuses either while the account stands (`person.account_in_no_team`), whichever door saves the person.
+- `core.person_account_set` clears both in the same logged request when it marks the admin or the test account; one Undo puts all three back. Made a team member again, the person takes a team and a manager like anyone.
+- Production: the owner's admin account is marked once, after P3-2b's migration is applied (a one-off through the connector, never a migration: the account names no one in the repo).
+- The appraisal cycle is not built yet; when it is, it asks `core.is_team_member()` like the team lists do (V170).
+- Test ACCT-02. Sabotages `an-admin-account-keeps-its-team`, `an-admin-account-joins-a-team`.
+
+**V180 — The Supplier & partner types are the owner's seven, as built** ACTIVE · 2026-09-30 (the production finding W12; V448 aligns V148's seed). Hotel supplier · Airline · Visa/Embassy · Payment provider · Sales channel · Technology · Strategic partner, in that order, each with its Arabic name.
+- A key never changes, so the entries that mean the same keep theirs and are renamed: `supplier` is Hotel supplier, `payment_solution` Payment provider, `integration` Technology (a technical integration's partner, V99, V407). Airline and Visa/Embassy are added. Nothing is retired, so every side keeps its type.
+- Only an entry still as seeded changes; one an admin renamed or re-sorted stays theirs.
+- **W13** (the status reasons that look doubled) needs no data change: each reason is linked to its status (`status`: at risk or lost, V62), one set for each; `api.list('side_status_reason')` returns the status and `api.list_save` takes it. The Settings list editor does not show that column yet (Builder B), nor the side of a side type.
+- Test TYPE-01; LIST-01 counts eleven side types. Sabotage `the-supplier-types-as-first-seeded`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
