@@ -137,15 +137,26 @@ test("a browser with no choice of its own gets the profile's density and theme b
   page,
 }) => {
   const member = await makePerson();
+  // the theme leaves the screens with the one-theme change, so a stored one stands in for it here — stored before the
+  // page opens, so no save of the page's own can race it
+  await sql(`insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'dark')`, [member.id]);
   await page.setViewportSize({ width: 1500, height: 900 });
   await signIn(page, member.email, '/profile');
   await hydrated(page);
-  // the density is chosen in My profile (V217, cut 5: the chip menu holds My profile and Sign out only); the theme
-  // leaves the screens with the one-theme change, so a stored one stands in for it here
+  // the density is chosen in My profile (V217, cut 5: the chip menu holds My profile and Sign out only)
   await page.getByLabel('Density').click();
   await page.getByRole('option', { name: 'Compact' }).click();
   await expect(toast(page, 'Profile saved'), 'My profile saves to the profile').toBeVisible();
-  await sql(`update core.person_profile set theme = 'dark' where person_id = $1`, [member.id]);
+  await expect
+    .poll(
+      async () =>
+        (
+          await sql<{ density: string | null }>(`select density from core.person_profile where person_id = $1`, [
+            member.id,
+          ])
+        )[0]?.density,
+    )
+    .toBe('compact');
   await page.context().clearCookies({ name: /^v2\./ });
   const res = await page.reload();
   expect(await res!.text(), 'the server renders the profile theme').toMatch(/<html[^>]*data-theme="dark"/);
