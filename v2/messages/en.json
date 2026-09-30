@@ -161,9 +161,7 @@
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement",
-    "partner": "Partner",
-    "project": "Project"
+    "achievement": "Achievement"
   },
   "common": {
     "cancel": "Cancel",
@@ -216,10 +214,7 @@
       "myProfile": "My profile",
       "find": "Find a setting"
     },
-    "beingBuilt": "Being built.",
-    "myDay": {
-      "greeting": "Good day, {name}"
-    }
+    "beingBuilt": "Being built."
   },
   "entity": {
     "partner": "Partner",
@@ -682,7 +677,7 @@
       "values": {
         "side": {
           "client": "Client",
-          "supplier_partner": "Supplier & partner"
+          "supplier_partner": "Supplier"
         },
         "status": {
           "at_risk": "At risk",
