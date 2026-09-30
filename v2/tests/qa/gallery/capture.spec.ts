@@ -52,7 +52,10 @@ async function stateOf(page: Page, status: number | null): Promise<string> {
     .locator('body')
     .innerText({ timeout: 5_000 })
     .catch(() => '');
-  // the app's own error page (its words and a Reload button) is a designed state; Next's bare error is a crash
+  // the app's own crash page (#127, QA-184: its words, Try again and Go to My day), whatever status it is served with
+  if (/Something went wrong/i.test(body) && (await page.getByRole('button', { name: /try again/i }).count()))
+    return 'app-crash-page';
+  // Next's built-in error page (its words and a Reload button, no app frame or font); a bare error is a crash
   if (/This page couldn.t load/i.test(body) && (await page.getByRole('button', { name: /reload/i }).count()))
     return 'error-page';
   if ((status ?? 200) >= 500 || /Application error|server-side exception/i.test(body)) return 'crash';
