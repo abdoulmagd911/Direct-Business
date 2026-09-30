@@ -17,14 +17,15 @@ import {
 } from 'lucide-react';
 import type { Me } from '@/core/auth/me';
 import { modules } from '@/core/registry';
+import type { PageDef } from '@/core/registry/define-module';
 import { canSee } from '../person';
 
 /**
  * The drawer, the bottom bar and Ctrl K read the module registry (TECH-SPEC §2.3, V123): every page with
- * `nav.group === 'main'`, in `nav.order`, as one entry — or as the entries the page declares (Partners shows as
- * Clients and Suppliers & partners). A person sees an entry only with a level above none on its page (V125); a page
- * the database does not know is hidden, never guessed. Settings is the admin's door (owner, 29 Sep); everyone reaches
- * My profile from the profile chip.
+ * `nav.group === 'main'`, in `nav.order`, as one entry — or as the entries the page declares. Which of them make the
+ * menu is the employee view's rule (V217), and it lives here alone: `navFor`. A page the database does not know is
+ * hidden, never guessed. Settings is the admin's door at the foot (owner, 29 Sep); everyone reaches My profile from the
+ * profile chip.
  */
 export type NavEntry = {
   /** `<page>` or `<page>:<entry>` — the drawer's own key. */
@@ -33,6 +34,13 @@ export type NavEntry = {
   route: string;
   label: string;
   icon: LucideIcon;
+  tier: 'work' | 'manage';
+  /** A manage page a Viewer still gets (KPIs, Reports). */
+  viewer: boolean;
+  /** A manage page for Head and Admin only (Overview, Activity). */
+  headUp: boolean;
+  /** The main page this one is a tab of (Suppliers → Clients); never in the menu itself. */
+  tabOf: string | null;
 };
 
 /** Icon names the modules use (lucide names) → components. An unknown name draws a plain circle, never nothing. */
@@ -54,6 +62,14 @@ const ICONS: Record<string, LucideIcon> = {
 
 const iconOf = (name?: string) => (name && ICONS[name]) || Circle;
 
+// A page that names no tier is a manage page: nothing new reaches a Member's menu by default (simplicity gate, item 4).
+const menuOf = (nav: NonNullable<PageDef['nav']>) => ({
+  tier: nav.tier ?? ('manage' as const),
+  viewer: nav.viewer === true,
+  headUp: nav.from === 'head',
+  tabOf: nav.tabOf ?? null,
+});
+
 function build(): NavEntry[] {
   const out: { order: number; entry: NavEntry }[] = [];
   for (const m of modules)
@@ -68,12 +84,20 @@ function build(): NavEntry[] {
               route: e.route,
               label: e.label,
               icon: iconOf(e.icon ?? p.icon),
+              ...menuOf(p.nav!),
             },
           }))
         : [
             {
               order: p.nav.order,
-              entry: { key: p.key, page: p.key, route: p.route, label: p.label, icon: iconOf(p.icon) },
+              entry: {
+                key: p.key,
+                page: p.key,
+                route: p.route,
+                label: p.label,
+                icon: iconOf(p.icon),
+                ...menuOf(p.nav),
+              },
             },
           ];
       out.push(...entries);
@@ -90,11 +114,43 @@ export const SETTINGS_ENTRY: NavEntry = {
   route: '/settings',
   label: 'nav.settings_home',
   icon: Settings,
+  tier: 'manage',
+  viewer: false,
+  headUp: true,
+  tabOf: null,
 };
 
-/** The entries this person may open. */
+/** The roles whose menu carries the manage pages (V217). */
+const MANAGE_ROLES = ['manager', 'head', 'admin'];
+
+/** Whether an entry is in this person's menu: work pages at any level above none; manage pages by role (V217). */
+export function inMenu(me: Me, e: NavEntry): boolean {
+  if (!canSee(me, e.page) || e.tabOf) return false;
+  if (e.tier === 'work') return true;
+  const role = me.person.role;
+  if (!role) return false;
+  if (role.is_admin) return true;
+  if (role.key === 'viewer') return e.viewer;
+  if (e.headUp) return role.key === 'head';
+  return MANAGE_ROLES.includes(role.key);
+}
+
+/** The menu: the drawer's main list, the phone bar's first four and More's rest (V217). */
 export function navFor(me: Me): NavEntry[] {
-  return NAV_ENTRIES.filter((e) => canSee(me, e.page));
+  return NAV_ENTRIES.filter((e) => inMenu(me, e));
+}
+
+/** The menu with Settings at its foot for admins — what the phone bar and More divide between them. */
+export function menuFor(me: Me): NavEntry[] {
+  return [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
+}
+
+/**
+ * Every main page this person may open, in or out of the menu — Ctrl K's pages. Out of the menu is never locked: the
+ * address, search and links keep working at the person's level (V217).
+ */
+export function reachableFor(me: Me): NavEntry[] {
+  return [...NAV_ENTRIES.filter((e) => canSee(me, e.page)), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
 }
 
 /** Settings shows for admins only (owner, 29 Sep); My profile is reached from the profile chip. */

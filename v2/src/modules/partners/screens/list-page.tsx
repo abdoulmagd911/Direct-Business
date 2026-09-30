@@ -6,7 +6,9 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { PartnersList, type ListFilters } from './PartnersList';
-import { SIDE_PAGE, type ListEntry, type PartnersAnswer, type Side } from '../types';
+import Link from 'next/link';
+import { cn } from '@/ui/cn';
+import { SIDE_PAGE, SIDE_ROUTE, type ListEntry, type PartnersAnswer, type Side } from '../types';
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 const many = (v: string) => (v ? v.split(',').filter(Boolean) : []);
@@ -28,7 +30,8 @@ export function filtersOf(q: Record<string, string | string[] | undefined>): Lis
 }
 
 /**
- * One of the two list pages (V98, V149): Clients or Suppliers & partners, over api.partners(side). The filters live in
+ * Clients, with Suppliers as its second tab (V98, V149, V217): one list per side over api.partners(side), each tab
+ * its own address and its own access key. The tab row shows only when the reader has both sides. The filters live in
  * the address, so a saved view is an address and the global refetch re-reads the list. What the reader may not see is
  * refused by the database and shown as the no-access state, never as an empty list.
  */
@@ -42,7 +45,8 @@ export async function PartnersListPage({
   const [q, me] = await Promise.all([searchParams, requireMe()]);
   const t = await getTranslations();
   const page = SIDE_PAGE[side];
-  const title = side === 'client' ? t('nav.clients') : t('nav.suppliers_partners');
+  // one page, two tabs: the title is Clients on both (V217)
+  const title = t('nav.clients');
   if ((me.levels[page] ?? 'none') === 'none')
     return (
       <Page>
@@ -79,6 +83,23 @@ export async function PartnersListPage({
     serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,
     read(),
   ]);
+  const other: Side = side === 'client' ? 'supplier_partner' : 'client';
+  const both = (me.levels[SIDE_PAGE[other]] ?? 'none') !== 'none';
+  let otherTotal: number | null = null;
+  if (both)
+    try {
+      const a = (await serverRpc('partners', {
+        p_filters: { side: other } as never,
+        p_limit: 1,
+      })) as unknown as PartnersAnswer;
+      otherTotal = a.total;
+    } catch {
+      otherTotal = null;
+    }
+  const totals: Record<Side, number | null> = {
+    [side]: answer?.total ?? null,
+    [other]: otherTotal,
+  } as Record<Side, number | null>;
   return (
     <Page bare>
       <PartnersList
@@ -93,6 +114,35 @@ export async function PartnersListPage({
         sideTypes={types}
         tiers={tiers.filter((x) => x.side === side)}
         priorities={priorities}
+        startCreating={str(q.new) === '1'}
+        tabs={
+          both ? (
+            <nav aria-label={t('partners.tabs')} data-side-tabs className="flex border-b border-border sm:gap-1">
+              {(['client', 'supplier_partner'] as const).map((s) => {
+                const active = s === side;
+                return (
+                  <Link
+                    key={s}
+                    href={SIDE_ROUTE[s]}
+                    aria-current={active ? 'page' : undefined}
+                    data-side-tab={s}
+                    className={cn(
+                      '-mb-px flex h-11 flex-1 items-center justify-center gap-2 border-b-2 px-4 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus sm:flex-none',
+                      active ? 'border-primary text-text' : 'border-transparent text-muted hover:text-text',
+                    )}
+                  >
+                    {s === 'client' ? t('nav.clients') : t('nav.suppliers_partners')}
+                    {totals[s] !== null ? (
+                      <span className="font-data text-sm text-muted" data-side-count>
+                        {totals[s]}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null
+        }
       />
     </Page>
   );

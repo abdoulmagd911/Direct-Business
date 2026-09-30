@@ -11,6 +11,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
 export default defineConfig<ClockOptions>({
   testDir: 'tests/e2e',
+  // the admin's access steps of the employee view (brief E, V217), as they stand once the oversight has made them
+  globalSetup: './tests/e2e/support/employee-view-access.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

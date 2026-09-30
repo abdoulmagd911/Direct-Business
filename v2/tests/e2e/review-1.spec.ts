@@ -146,7 +146,7 @@ test("one's own record shows real figures, never not measured; a member sees a c
   const figures = page.locator('[data-key-figures]');
   await expect(figures).not.toContainText('not measured');
   await expect(figures, 'the last sign-in from the log the person may read').toContainText('Last sign-in');
-  await expect(page.locator('[data-record-header]').first()).toContainText('Team member');
+  await expect(page.locator('[data-record-header]').first()).toContainText('Member');
   await page.goto(`/people/${colleague.id}`);
   await hydrated(page);
   await expect(page.locator('[data-key-figures]')).not.toContainText('not measured');

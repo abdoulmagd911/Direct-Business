@@ -10,8 +10,8 @@ export default defineModule({
       route: '/tasks',
       label: 'nav.tasks',
       icon: 'check-square',
-      nav: { group: 'main', order: 60 },
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
+      nav: { group: 'main', order: 20, tier: 'work' },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own' },
     },
     {
       key: 'settings.work',

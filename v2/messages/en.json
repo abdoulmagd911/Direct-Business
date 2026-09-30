@@ -97,20 +97,20 @@
     "activity": "Activity",
     "settings": {
       "profile": "My profile",
-      "org": "Organization & access",
-      "partners": "Clients & suppliers",
-      "performance": "Plan & performance",
+      "org": "People & access",
+      "partners": "Organisations",
+      "performance": "Targets",
       "finance": "Finance",
       "work": "Work",
       "app": "App"
     },
     "settings_home": "Settings",
     "clients": "Clients",
-    "suppliers_partners": "Suppliers & partners",
+    "suppliers_partners": "Suppliers",
     "profile": "My profile"
   },
   "top": {
-    "search": "Search partners, tasks, INV-, DRS-",
+    "search": "Search clients, tasks, invoices",
     "searchLabel": "Search",
     "create": "Create",
     "notifications": "Notifications",
@@ -157,10 +157,10 @@
   },
   "create": {
     "task": "Task",
-    "partner": "Partner",
+    "client": "Client",
+    "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement",
-    "project": "Project"
+    "achievement": "Achievement"
   },
   "common": {
     "cancel": "Cancel",
@@ -323,7 +323,7 @@
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Supplier & partner side's status, owner and priority"
+      "assign": "Set the Supplier side's status, owner and priority"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
@@ -1126,11 +1126,11 @@
     },
     "side": {
       "client": "Client",
-      "supplier_partner": "Supplier & partner"
+      "supplier_partner": "Supplier"
     },
     "sides": {
       "client": "Client side",
-      "supplier_partner": "Supplier & partner side"
+      "supplier_partner": "Supplier side"
     },
     "status": {
       "prospect": "Prospect",
@@ -1172,11 +1172,7 @@
       "notes": "Notes",
       "client_since": "Client since"
     },
-    "tabs": {
-      "overview": "Overview",
-      "activity": "Activity",
-      "related": "Related"
-    },
+    "tabs": "Clients and suppliers",
     "activity": {
       "log": "Log activity",
       "logged": "{type} logged",
@@ -1328,5 +1324,12 @@
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
+  },
+  "createNew": {
+    "task": "New task",
+    "client": "New client",
+    "supplier": "New supplier",
+    "invoice": "New invoice",
+    "achievement": "New achievement"
   }
 }

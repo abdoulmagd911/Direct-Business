@@ -49,7 +49,7 @@ export default defineModule({
       route: '/activity',
       label: 'nav.activity',
       icon: 'history',
-      nav: { group: 'main', order: 110 },
+      nav: { group: 'main', order: 110, tier: 'manage', from: 'head' },
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],

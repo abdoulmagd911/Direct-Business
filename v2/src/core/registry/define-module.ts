@@ -34,7 +34,23 @@ export interface PageDef {
    * its own label and route into the same page — the owner's Clients and Suppliers & partners (29 Sep) are two doors
    * into Partners; access stays the page's. Without `entries`, the page is one entry with its own label and route.
    */
-  nav?: { group: 'main' | 'settings'; order: number; entries?: NavEntryDef[] };
+  nav?: {
+    group: 'main' | 'settings';
+    order: number;
+    entries?: NavEntryDef[];
+    /**
+     * The menu rule (the employee view, V217): a `work` page is in the menu at any level above none; a `manage` page
+     * only for Manager, Head and Admin — and for a Viewer when `viewer` is set. `from: 'head'` keeps a manage page to
+     * Head and Admin. Out of the menu is never locked: the address, Ctrl K and links keep working at the person's level.
+     */
+    tier?: 'work' | 'manage';
+    viewer?: boolean;
+    from?: 'head';
+    /** Shown as a tab of another main page, never in the menu itself (Suppliers is the second tab of Clients). */
+    tabOf?: string;
+  };
+  /** The page's screen is built: its Create item may show, and it no longer says "Being built." (set by whoever lands it). */
+  built?: boolean;
   /** The levels this page offers (default all four). */
   levels?: readonly Level[];
   /** Starting level per role; a role not named starts at `none`. The admin role is Full everywhere regardless. */

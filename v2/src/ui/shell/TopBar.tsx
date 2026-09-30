@@ -16,14 +16,11 @@ export function TopBar({
   onOpenSearch,
   onOpenBell,
   bellOpen,
-  arabicEnabled = false,
   unread = 0,
 }: {
   onOpenSearch: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
-  /** The language switch shows once Arabic is on (`app.arabic_enabled`, V122). */
-  arabicEnabled?: boolean;
   /** api.notifications_unread, kept live by the shell (P3-7). */
   unread?: number;
 }) {
@@ -47,7 +44,7 @@ export function TopBar({
         <Search className="size-4 shrink-0" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate text-start sm:hidden">{t('searchShort')}</span>
         <span className="hidden min-w-0 flex-1 truncate text-start sm:inline">{t('search')}</span>
-        <Kbd className="ms-auto hidden sm:inline">Ctrl K</Kbd>
+        <Kbd className="ms-auto hidden lg:inline">Ctrl K</Kbd>
       </button>
       <div className="flex-1 sm:hidden" />
       <CreateMenu />
@@ -68,7 +65,7 @@ export function TopBar({
           </span>
         ) : null}
       </IconButton>
-      <ProfileMenu arabicEnabled={arabicEnabled} />
+      <ProfileMenu />
       <span data-testid="address" className="sr-only">
         {pathname}
       </span>
