@@ -1072,12 +1072,13 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 | `finance.health` | what is held back or doubtful, by reason, with the riyals at stake (M48, M52): unknown statuses, excluded/hidden rows, units with no partner or with an unknown client ID (V420), cost missing, estimates in use, Provisional units, **Losses** (V414), failed checks |
 
 **"Commercial revenue" is a setting** (`finance.revenue_definition`, effective-dated): basis (revenue as above — the
-default — or margin), which services, which partner categories, whether commissions count. The structure is built now;
-**its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it. The KPI source
-`finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI, report draft and
-appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost · Profit** (V73; a wording
-setting, `core.wording`); code keeps `revenue` and `margin`, and the KPI sheet may call revenue GMV where the strategy
-sheet does.
+default — or margin), which services, which partner categories, whether commissions count — **they do** (V501:
+supplier commissions are Revenue; the switch defaults to on, and `finance.commission_word` marks the invoice). The
+structure is built now; **its value is decided at go-live** (owner, 28 Sep — decision 3), and nothing waits for it.
+The KPI source `finance.commercial_revenue` reads it as of each month, so a changed definition recalculates every KPI,
+report draft and appraisal that uses it (§1a example 6). The screen words are the owner's — **Revenue · Cost ·
+Profit** (V73; a wording setting, `core.wording`); code keeps `revenue` and `margin`, and the KPI sheet may call
+revenue GMV where the strategy sheet does.
 
 **Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read
 as "only paid units count", V418) · credit notes never count and never reduce revenue (V423) · wallet top-ups never
@@ -1163,14 +1164,18 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   day is more than `work.late_days` (14) after its `happened_on` is marked "logged late" (a computed flag, shown on the
   entry) and counts against the on-time appraisal items; entries with `happened_on` before go-live are never late, and
   `backfill` entries (the Past work grid, §3.11) are marked **Backfilled** and raise no notice.
-- **Past work** (V491): a task or achievement dated before `app.go_live_on` — January 2026 typed by hand the normal
-  way, February to September through the Past work grid — never shows on My day, raises no notification, overdue or
-  stale flag, and sits under the **Past work** filter on Tasks and Achievements; it counts toward the KPIs and the
-  report of the month it happened in. It may carry owner **Unknown** (a null owner, past work only): the **Needs an
-  owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7). The January report is
-  generated, compared with the old issued PDF in Compare (V57), edited and issued. An owner given later to a past-work
-  line keeps the same history (`audit.change`); once its month's report is issued, the change shows as a revision
-  (V500, draft).
+- **Past work** (V491): a task or achievement dated before `app.go_live_on` — from **1 January 2025** (V506: 2025
+  fully registered as tasks and achievements, not only baseline readings, because the appraisal cycle runs through
+  April 2026); January 2026 typed by hand the normal way, the rest through the Past work grid — never shows on My day,
+  raises no notification, overdue or stale flag, and sits under the **Past work** filter on Tasks and Achievements; it
+  counts toward the KPIs, the report of the month it happened in and the appraisal period it falls in (V506).
+  Report-derived past work comes from the BD monthly, Partnerships, Commercial quarterly and improvements reports —
+  never the Quality, Complaints or information-centre reports (V506); an undated item from a monthly report is dated
+  the **last day of that month** (V504), not held as a draft. It may carry owner **Unknown** (a null owner, past work
+  only): the **Needs an owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7).
+  The January report is generated, compared with the old issued PDF in Compare (V57), edited and issued. An owner
+  given later to a past-work line keeps the same history (`audit.change`); once its month's report is issued, the
+  change shows as a revision (V500, draft).
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1204,9 +1209,9 @@ Added to v1 (owner, 29 Sep). One **Pipeline** page with two boards — **Tenders
 
 ```
 pipeline.stage        LIST per kind ('tender','partnership'); meaning — locked, editable names (V97, V99); optional bool; sort
-                      -- tender meanings: identified · preparing · submitted · clarifying · awarded · lost · cancelled
+                      -- tender meanings: identified · preparing · submitted · clarifying · awarded · signed · lost · cancelled
                       --   (seed: Identified → Preparing → Submitted → Clarification / negotiation (optional — V481) →
-                      --   Awarded / Lost / Cancelled — V80)
+                      --   Awarded → Signed (V503: the contract counts at signing, never at award) / Lost / Cancelled — V80)
                       -- partnership meanings: open · signed · onboarded · handed_over · lost (V457: a locked "Handed to
                       -- Product" stage that needs the Direct ticket before a card enters it) (seed, V99: Contacted → Demo → Proposal
                       --   (optional) → Signed → Onboarded; Lost). A skipped optional stage is never recorded as passed
@@ -1214,7 +1219,7 @@ pipeline.source       LIST (V99: an admin list — referral · event · inbound 
 pipeline.lost_reason  LIST per kind   -- V476 seeds for tenders: technically non-compliant · price · cancelled by the entity
 pipeline.tender       STD SOFT DEPT; number unique (TND-2026-014); title; partner_id not null (the government entity —
                       a Government-segment partner; another segment needs a manager and a reason); etimad_ref; tender_no
-                      (the entity's own number); submission_due_on; submitted_on; value_sar; awarded_value_sar; awarded_on;
+                      (the entity's own number); submission_due_on; submitted_on; value_sar; awarded_value_sar; awarded_on; signed_on (V503);
                       stage_id; owner_id; source_id → pipeline.source not null (V99); project_id; lost_reason_id; notes
                       -- files: core.file_link purpose 'tender'
 pipeline.opportunity  STD SOFT DEPT; number unique (OPP-2026-031); title; partner_id not null; side ('client' | 'supplier_partner')
@@ -1231,22 +1236,23 @@ pipeline.stage_change STD; entity_table; entity_id; from_stage_id; to_stage_id; 
   or Onboarded card moved back) asks first, needs a reason, and keeps its history — `signed_on` stays in the history
   and the side's status is never silently reverted (OLD-034, OLD-WRK-069).
 - **Moving a card** (drag on the board, or the stage field) is one request with its `happened_on` (today by default,
-  any past date). **Submitted** records `submitted_on`; **Awarded** needs the awarded value and date and offers **Log
-  achievement** (Contract signed, prefilled with the tender) and **New project**; **Lost** and **Cancelled** need a
-  reason. A partnership reaching **Signed** records `signed_on`, offers Log achievement and the Corporate onboarding
-  checklist (V89); reaching **Onboarded** records `onboarded_on`, switches the organisation's side on if it is not, and
-  sets that side's status to **Active** from that date (V99) in the same request — one Undo reverts all of it. **Every
-  card needs a Source** (V99). **No Leads module in v1** (a Leads inbox may come later if volume needs it — V99): a
-  lead from the corporate landing form is a ticket in Direct's ticket system; an opportunity carries its ticket number
-  and shows the organisation's company size on the card (V472), nothing more. A tender's optional **Clarification /
-  negotiation** stage (meaning `clarifying`, between Submitted and Awarded — V481) holds the entity's questions and the
-  negotiated terms; skipping it is never recorded as passed.
-- **Measures** (§3.8): `pipeline.tenders_submitted` — tenders whose history reached Submitted with an effective date in
-the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in the
-period (by `awarded_on`); `pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and
-value per stage, as of a date); `pipeline.partnerships_signed` and `pipeline.partnerships_onboarded` (V99). Government
-entity contracts is the Contract signed category with a Government-segment partner (§3.8). Every measure takes the
-`segment` parameter (V64).
+  any past date). **Submitted** records `submitted_on`; **Awarded** needs the awarded value and date; **Signed**
+  records `signed_on` and offers **Log achievement** (Contract signed, dated at signing — V503: a government tender
+  counts as a contract won at signing, never at award) and **New project**; **Lost** and **Cancelled** need a reason.
+  A partnership reaching **Signed** records `signed_on`, offers Log achievement and the Corporate onboarding checklist
+  (V89); reaching **Onboarded** records `onboarded_on`, switches the organisation's side on if it is not, and sets
+  that side's status to **Active** from that date (V99) in the same request — one Undo reverts all of it. **Every card
+  needs a Source** (V99). **No Leads module in v1** (a Leads inbox may come later if volume needs it — V99): a lead
+  from the corporate landing form is a ticket in Direct's ticket system; an opportunity carries its ticket number and
+  shows the organisation's company size on the card (V472), nothing more. A tender's optional **Clarification /
+  negotiation** stage (meaning `clarifying`, between Submitted and Awarded — V481) holds the entity's questions and
+  the negotiated terms; skipping it is never recorded as passed.
+- **Measures** (§3.8): `pipeline.tenders_submitted` — tenders whose history reached Submitted with an effective date
+in the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in
+the period (by `awarded_on`); `pipeline.tenders_signed` — tenders whose history reached Signed in the period (V503);
+`pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and value per stage, as of a
+date); `pipeline.partnerships_signed` and `pipeline.partnerships_onboarded` (V99). Government entity contracts is the
+Contract signed category with a Government-segment partner (§3.8). Every measure takes the `segment` parameter (V64).
 - **The Commercial overview** (`/overview`, executive): Revenue · Cost · Profit, collections, **clients** (sign-ups ·
   onboarded · active — V477), tenders submitted, awarded value, partnerships signed, government entity contracts — for
   a period (MTD · QTD · YTD · Custom) against last year — then **both funnels**, and a **segment switch** (All ·
@@ -1340,6 +1346,10 @@ perf.period_target   STD SOFT DEPT; period_kind ('month','quarter'); period_star
                      written_in_report_id → report.report
 ```
 
+**Deal revenue** (إجمالي إيراد الصفقات) **is its own KPI** (V505): an achievements-based KPI (`perf.category_kpi` with
+`field_sum` on the deal value typed on Contract signed and MoU achievements) — separate from Finance revenue
+(`finance.commercial_revenue`), never on the money tiles and never reconciled to invoices.
+
 **Plans (§5a).** A plan belongs to a department and a calendar year. `api.plan_copy(from, year, what)` copies
 objectives, KPIs (keeping `copied_from_kpi_id`), their latest revisions (effective 1 January), leads, contributors,
 categories, fields and mappings — targets optionally. Everything is then renamed, renumbered, regrouped or removed in
@@ -1430,8 +1440,9 @@ achievement is not saved), `happened_on` = the **handover to Product** (the tick
 (amount — never Finance money, never on a money KPI), the date received (the evidence date: dated by receipt), a
 reference.
 - **Contract signed** (V80): counter-party (partner), the contract (link), signing date, value (amount, optional — not
-  revenue), the tender it came from (link, optional). "Government entity contracts" counts these with a
-  Government-segment partner, tender or not (`perf.achievements` with the `segment` parameter).
+  revenue), the tender it came from (link, optional; V503: dated at the tender's signing, never its award).
+  "Government entity contracts" counts these with a Government-segment partner, tender or not (`perf.achievements`
+  with the `segment` parameter).
 
 **Challenges** stay open until resolved; their age is computed; a report lists every challenge open at its period's end
 — so they carry over without retyping (§10). A challenge has its own record page (V95, V401: header figures — age,
@@ -1534,6 +1545,11 @@ carried over), revenue by service. `report.draft_suggestions` lists achievements
   late entries. Every reading and every Payments figure carries `as_of` and a **Provisional / Final** state
   (`figure_state`); a Provisional figure shows a chip on the KPI page, in Finance and in a draft report. V36's
   correction stays for a figure that was wrong.
+- **Newest issued report wins** (V502): when a monthly and a quarterly report disagree, or a later report restates an
+  earlier one, the figure in the newest issued report is the accurate one; the older stays in its snapshot and in the
+  history (V500, draft). The same for a legacy year: where a 2025 figure differs between the 2025 report and the 2025
+  column printed in a 2026 report, the 2026 column is used. Readings typed from legacy reports (§3.11) follow it: the
+  loader takes the newest report's figure and notes the older one.
 - **Masked money for readers without Finance** (V458): an issued report's money tiles and money lines are hidden in the
 render for a reader with no View on Finance — the snapshot keeps them; the KPI figures and achievement lines show.
 **Live names in frozen reports** (V58). The snapshot freezes figures and wording, but every person or partner in it is
@@ -1616,11 +1632,13 @@ appraisals (P6-3). Only gaps are filled from the Excel form. After seeding, ever
 (items summing to their group's weight, or to 100 %) both work; the template editor warns when weights do not add up.
 Final % = the sections weighted (70/25/5 as seeded from the online tool — whatever the template holds); grade from the
 cycle's scale.
-- **Self-registration** (V68), before the manager's review: each person sees **my achievements in this cycle** (owned or
-  taken part in, evidence date inside the cycle), completes them, and the page flags any without a date or an evidence
-  file. For appraisal figures an achievement **without a date or evidence never counts** (stricter than the KPI page,
-  where V33 counts it flagged "no evidence yet"). ClickUp items with no date or evidence import only as
-  `appraisal.legacy`, never as achievements.
+- **Self-registration** (V68), before the manager's review: each person sees **my achievements in this cycle** (owned
+  or taken part in, evidence date inside the cycle), completes them, and the page flags any without a date or an
+  evidence file. For appraisal figures an achievement **without a date or evidence never counts** (stricter than the
+  KPI page, where V33 counts it flagged "no evidence yet"). ClickUp items with no date or evidence import only as
+  `appraisal.legacy`, never as achievements. Past work of 2025 registered through the grid (V506) counts in the
+  appraisal period it falls in — the cycle that runs through April 2026 — with its source report as the evidence (a
+  `perf.achievement_ref` to the legacy report, V57).
 - **Steps** (V401): **Self** (self-registration of achievements, V68, then the self column) → **Manager draft** (the
   direct manager's column, private to them and admins) → **Shared** (the person sees the draft, comments, both sign)
   → **Locked**. Each step change is logged and notifies the other party (`appraisal_step`).
@@ -1652,10 +1670,13 @@ io.held_ref (batch_id, ref) pk                                                  
 
 **The Past work grid is in v1** (V400, P5; the component is builder C's — P5-2c, V410): a paste grid on Tasks and on
 Achievements where a person types or pastes rows — title, `happened_on`, status or category, organisation, notes — and
-each row becomes a task or an achievement with its **real date**, marked **Backfilled** (origin `backfill`), raising no
-notices, no late flags and no overdue or no-update flags. A **one-time load of the BD Daily Tasks sheet** goes through
-the same grid (the sheet's columns are mapped once by a person; it holds staff names, so it is never committed — rule
-7); **its task tabs only**.
+each row becomes a task or an achievement with its **real date**, marked **Backfilled** (origin `backfill`), raising
+no notices, no late flags and no overdue or no-update flags. A **one-time load of the BD Daily Tasks sheet** goes
+through the same grid (the sheet's columns are mapped once by a person; it holds staff names, so it is never committed
+— rule 7); **its task tabs only**. A pasted block may name its **source report** (kind and period — V506: BD monthly,
+Partnerships, Commercial quarterly, improvements; the report stands as the rows' evidence); rows from it take the
+report's last day when undated (V504) and the newest issued report's figures where reports disagree (V502); 2025 rows
+are accepted from 1 January 2025 (V506).
 
 **One framework** (`core/import` in the browser, `io.*` and each source's `api.import_<source>` in the database):
 

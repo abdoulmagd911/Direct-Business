@@ -298,6 +298,12 @@ Vercel (V13, V21, V84).
     "as of" and a Provisional or Final state; a change keeps its history and never silently changes an issued report
     ("revised since issue" with the difference; the next report lists it under "Added to earlier periods"); a
     past-work line's owner given later keeps the same history.
+85. **Owner decisions of 30 Sep 2026** (V501–V506): supplier commissions are Revenue; the newest issued report wins, a
+    2026 report's 2025 column included; a government tender is a contract at signing, not award; an undated item from
+    a monthly report is dated the month's last day; Deal revenue is its own KPI apart from Finance revenue; 2025 fully
+    registered as past work from 1 January 2025 — Backfilled, owner Unknown until assigned, never on My day, counted
+    in its month and its appraisal period — from the BD monthly, Partnerships, Commercial quarterly and improvements
+    reports only.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
