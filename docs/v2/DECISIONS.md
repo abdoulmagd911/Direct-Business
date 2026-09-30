@@ -796,6 +796,26 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 
 **V169 — Nothing of v2 lives in the public schema; every grant is a migration's** ACTIVE · 2026-09-29 (the oversight, relaying Supabase's notice that new public-schema tables get no automatic Data API grants from 30 Oct). v2 never relied on those grants: its objects live in its own schemas, the API exposes the `api` schema alone (`supabase/config.toml` `[api] schemas`), and every privilege a request role holds is written by a migration and pinned by GRANTS-01 on both targets (plain Postgres has no automatic grants, so a reliance would already fail there). GRANTS-05 now refuses any table, view, sequence or function in `public` that no extension brought; sabotage `a-table-in-public`.
 
+**V167 — A side's records need that side's own page, owner or not** ACTIVE · 2026-09-29 (the QA review of #94 and #96, H1 and M2; V147 made whole).
+- **Writes.** Setting a side's status or owner, and adding or removing a client ID or a discount code, need the side itself writable by the caller (`partner.side_writable`: Full on that side's page, or Own and that side's owner). A capability (`clients.assign`, `clients.identify`) only ever adds to that; it never stands in for the page. Every manager holds the Clients capabilities by default, so before this a manager shut out of Clients could still set Client status and IDs.
+- **Owners.** A side's owners are those named for it *who hold at least View on its page* (`partner.side_owners`). Named the owner without it, a person owns nothing of that side: no record of it, no alert of it (`notify.alert_contract_expiring` goes to side owners), no Own writes.
+- **Reads.** `partner.sees_side` and a side's files (`core.file_visible_as`) need View on the side's page, whoever you are.
+- **The card and the hover card** name the owner of the first side the reader sees (`partner.owner_seen_by`), never another side's.
+- M1 (the contract alert asking who may see) was closed by P3-6e's alerts job (V163). SIDE-02 proves both.
+- Tests: SIDE-02 (new; a manager holding the Clients capabilities without the Clients page, so the page rule is the only thing refusing). SIDE-01's two refusals now name the page (`access.needs_level`).
+- Sabotages: `side-writes-by-capability-alone`, `a-side-owner-without-its-page`, `owners-see-their-side-without-the-page`, `owners-of-unseen-sides-shown`.
+
+**V168 — Agreements restricted by the table; a removed mention kept; "logged late" proven** ACTIVE · 2026-09-29 (the same review, its Lows).
+- **Agreements (D10).** A file of the kind `agreement`, or one attached for the purpose `agreement` or `iban_letter`, is restricted whatever the upload asked, by triggers on `core.file` and `core.file_link`, whichever door writes them. Sabotage `agreements-uploaded-as-normal`.
+- **Mentions (V401).** A mention taken off a note is marked removed (`core.mention.deleted_at`), never deleted. The timeline shows live mentions, and a person mentioned again is told again. NOTE-01; sabotage `a-removed-mention-is-deleted`.
+- **Logged late (V400).** ACT-01 now sets `app.go_live_on` and shows the rule: 20 days after the day is late, 10 is not, before go-live never is. Sabotage `nothing-is-ever-late`.
+- `scripts/db/sabotage-from.mjs` writes a SQL sabotage from a migration's own function with one rule taken out, so sabotages never drift from the code they test.
+- **H2 (the roles-to-sides conversion, 063100) is not changed here.** Migration 063100 drops the old tables and columns, so no later migration can bring their data back, and 063100 is merged history (V103). No environment holds rows in the old shape:
+  - the cloud counted 0 partners, 0 roles and 0 status changes before 063100 was applied (29 Sep, read-only);
+  - CI and local builds start empty.
+  - The old app's data will enter through the P7 importer, in the sides shape.
+  - OPEN for the oversight: accept that the conversion runs on empty tables (recommended), or allow a one-time correction of 063100 before its first cloud apply.
+
 **V172 — Too many tries lock an e-mail; a password is set only where its rule is checked** ACTIVE · 2026-09-29 (the oversight's QA audit of 17:22, items 1–6; builds on V166).
 - **The lockout is the database's**, because Supabase's own rate limit sees the app server's address, not the person's. `core.sign_in_limited(email)` answers:
   - `locked` for fifteen minutes from the fifth wrong password within fifteen minutes — the right password included;

@@ -4,7 +4,7 @@
 -- record may be mentioned, and a note dated in the past tells nobody; only its author edits a note (it shows as edited,
 -- and people newly mentioned are told); its author or Full on the record removes it, and Undo brings it back. Every
 -- value is made up.
--- Sabotage: supabase/tests/sabotage/a-mention-tells-nobody.sql.
+-- Sabotages: supabase/tests/sabotage/a-mention-tells-nobody.sql, supabase/tests/sabotage/a-removed-mention-is-deleted.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Member', 'member')::text, true);
@@ -79,6 +79,26 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
                 and kind = 'mentioned'), 1, 'a person newly mentioned is told');
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am2')::uuid
                 and kind = 'mentioned'), 1, 'one mentioned before is not told again');
+
+-- a mention taken off leaves the note but is kept, marked removed (V401); mentioned again, the person is told again
+select test.as_person(current_setting('t.am1')::uuid);
+select set_config('t.nv', (select n ->> 'version' from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid)) n
+                           where n ->> 'id' = current_setting('t.n')), true);
+select api.note_edit(current_setting('t.n')::uuid, '{}', current_setting('t.nv')::int, array[current_setting('t.am3')::uuid]);
+select test.eq((select n -> 'mentions' from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid)) n
+                where n ->> 'id' = current_setting('t.n')), jsonb_build_array(current_setting('t.am3')),
+  'a mention taken off leaves the note');
+select test.as_owner();
+select test.eq((select deleted_at is not null from core.mention where note_id = current_setting('t.n')::uuid
+                and person_id = current_setting('t.am2')::uuid), true, 'but is kept, marked removed');
+select test.as_person(current_setting('t.am1')::uuid);
+select set_config('t.nv', (select n ->> 'version' from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid)) n
+                           where n ->> 'id' = current_setting('t.n')), true);
+select api.note_edit(current_setting('t.n')::uuid, '{}', current_setting('t.nv')::int,
+  array[current_setting('t.am2')::uuid, current_setting('t.am3')::uuid]);
+select test.as_owner();
+select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am2')::uuid
+                and kind = 'mentioned'), 2, 'mentioned again, the person is told again');
 
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.raises(format('select api.notes_remove(array[%L]::uuid[])', current_setting('t.n')), '42501',
