@@ -10,30 +10,30 @@ rule-7 scan found one made-up address of the V101 shape and nothing real):
 
 ## The columns
 
-| Column                         | Meaning                                                                                                                                                                          |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ID`                           | the row's name; a builder cites it in a test name and a PR                                                                                                                       |
+| Column | Meaning |
+|---|---|
+| `ID` | the row's name; a builder cites it in a test name and a PR |
 | `Area`, `Page or flow`, `Role` | where the scenario happens and as whom (`Admin account`, `Test account`, `Admin using View as` and `Switched-off / left person` are roles of their own — V444, V445, V442, V452) |
-| `Scenario (given / when)`      | the situation, with made-up names                                                                                                                                                |
-| `Expected result (then)`       | what must happen, in the words a test asserts                                                                                                                                    |
-| `Rule (V# or spec §)`          | the decision or spec section that says so; an old-app row cites the old file that did it                                                                                         |
-| `Admin setting or manual edit` | whether the behaviour is a hard rule or an admin setting (and which)                                                                                                             |
-| `Test today`                   | the test that proves it now — its id, or `none`                                                                                                                                  |
-| `Status`                       | see below                                                                                                                                                                        |
-| `Fix needed`                   | what closes the gap: a test to add, a rule to build, or a question for the owner                                                                                                 |
+| `Scenario (given / when)` | the situation, with made-up names |
+| `Expected result (then)` | what must happen, in the words a test asserts |
+| `Rule (V# or spec §)` | the decision or spec section that says so; an old-app row cites the old file that did it |
+| `Admin setting or manual edit` | whether the behaviour is a hard rule or an admin setting (and which) |
+| `Test today` | the test that proves it now — its id, or `none` |
+| `Status` | see below |
+| `Fix needed` | what closes the gap: a test to add, a rule to build, or a question for the owner |
 
 ## Status, and how a row moves
 
-| Status              | Meaning                                                | It moves when                                                                                                       |
-| ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `Covered`           | enforced **and** tested — `Test today` names the test  | —                                                                                                                   |
-| `Partly`            | enforced, or tested, not both                          | the builder adds the missing half and writes the test id into `Test today`                                          |
-| `Gap`               | built, but the rule is not enforced or not tested      | the fix in `Fix needed` lands with its test                                                                         |
-| `Unbuilt`           | its step has not landed yet                            | the step's PR lands; the builder marks each of the step's rows `Covered` with the test id, or `Gap` with the reason |
-| `Open question`     | the rule is not decided                                | the oversight or the owner rules; the V-number goes into `Rule` and the row becomes one of the above                |
-| `Wrong` (OLD file)  | the catalogue expected less than the old app did       | a ruling (V462 onward) and the catalogue row updated                                                                |
-| `Missed` (OLD file) | the old app did something the catalogue has no row for | the item sits in `BUILD-PLAN.md` against its step; a row is added when it lands                                     |
-| `Decide` (OLD file) | the owner's call                                       | a question in `OPEN-QUESTIONS.md`                                                                                   |
+| Status | Meaning | It moves when |
+|---|---|---|
+| `Covered` | enforced **and** tested — `Test today` names the test | — |
+| `Partly` | enforced, or tested, not both | the builder adds the missing half and writes the test id into `Test today` |
+| `Gap` | built, but the rule is not enforced or not tested | the fix in `Fix needed` lands with its test |
+| `Unbuilt` | its step has not landed yet | the step's PR lands; the builder marks each of the step's rows `Covered` with the test id, or `Gap` with the reason |
+| `Open question` | the rule is not decided | the oversight or the owner rules; the V-number goes into `Rule` and the row becomes one of the above |
+| `Wrong` (OLD file) | the catalogue expected less than the old app did | a ruling (V462 onward) and the catalogue row updated |
+| `Missed` (OLD file) | the old app did something the catalogue has no row for | the item sits in `BUILD-PLAN.md` against its step; a row is added when it lands |
+| `Decide` (OLD file) | the owner's call | a question in `OPEN-QUESTIONS.md` |
 
 **The rule:** every scenario ends **Covered** — enforced in the database or the screen, and proved by a test whose id
 is in `Test today` — or it is **ruled** out with a V-number. A builder's PR that touches a row's area updates the row in

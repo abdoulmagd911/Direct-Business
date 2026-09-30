@@ -676,7 +676,19 @@
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
       "entries": "{count} entries",
-      "banned": "The app never says {word}"
+      "banned": "The app never says {word}",
+      "side": "Side",
+      "status": "Status",
+      "values": {
+        "side": {
+          "client": "Client",
+          "supplier_partner": "Supplier & partner"
+        },
+        "status": {
+          "at_risk": "At risk",
+          "lost": "Lost"
+        }
+      }
     },
     "people": {
       "add": "Add person",
@@ -886,7 +898,8 @@
       "manager_not_team_member": "The admin account and the test account are nobody’s manager",
       "has_reports": "People report to this person — give them another manager first",
       "account_taken": "There is already one of these accounts",
-      "unknown_account": "That is not an account type"
+      "unknown_account": "That is not an account type",
+      "account_in_no_team": "The admin account and the test account are in no team and have no manager"
     },
     "people": {
       "email_taken": "That email already belongs to {detail}"
@@ -1008,7 +1021,8 @@
     "crash": {
       "title": "Something went wrong",
       "body": "This page could not be drawn. Try again, or go back to My day.",
-      "goMyDay": "Go to My day"
+      "goMyDay": "Go to My day",
+      "bodyNoData": "The app could not reach its data just now. Try again in a moment, or go to My day."
     },
     "notFound": {
       "title": "Page not found",

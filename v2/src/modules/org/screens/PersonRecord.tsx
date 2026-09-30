@@ -660,9 +660,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       subtitle={[person.job_title_en, pick(team) || pick(dept)].filter(Boolean).join(' · ')}
       chips={
         <>
-          {person.kind === 'admin_account' ? (
+          {person.account === 'admin_account' ? (
             <StatusChip tone="neutral">{t('settings.people.adminAccount')}</StatusChip>
-          ) : person.kind === 'test_account' ? (
+          ) : person.account === 'test_account' ? (
             <StatusChip tone="neutral">{t('settings.people.testAccount')}</StatusChip>
           ) : roleName ? (
             <StatusChip tone="neutral">{roleName}</StatusChip>
@@ -719,14 +719,21 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               {!signIns.length ? <DataState kind="empty" message={t('state.empty')} /> : null}
               <ul className="divide-y divide-border text-sm">
                 {signIns.slice(0, 8).map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-3 py-2">
-                    <span className="flex min-w-0 items-center gap-2">
+                  // on a phone the email takes its own line rather than shrinking to a letter (QA-183b)
+                  <li
+                    key={s.id}
+                    className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                    data-sign-in-row
+                  >
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       <StatusChip tone={s.result === 'ok' || s.result === 'code_sent' ? 'success' : 'warning'}>
                         {t.has(`activity.signIn.results.${s.result}`)
                           ? t(`activity.signIn.results.${s.result}`)
                           : s.result}
                       </StatusChip>
-                      <span className="min-w-0 truncate font-data text-xs">{s.email}</span>
+                      <span className="min-w-0 max-w-full truncate font-data text-xs" data-sign-in-email>
+                        {s.email}
+                      </span>
                       {deviceLabel(s.user_agent) ? (
                         <span className="text-xs whitespace-nowrap text-muted">· {deviceLabel(s.user_agent)}</span>
                       ) : null}
