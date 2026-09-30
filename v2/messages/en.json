@@ -125,7 +125,8 @@
     "empty": "Nothing matches",
     "openInSettings": "Open Settings",
     "people": "People",
-    "organisations": "Organisations"
+    "organisations": "Organisations",
+    "recentlyDeleted": "Recently deleted"
   },
   "profileMenu": {
     "theme": "Theme",
@@ -160,7 +161,9 @@
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement"
+    "achievement": "Achievement",
+    "partner": "Partner",
+    "project": "Project"
   },
   "common": {
     "cancel": "Cancel",
@@ -209,26 +212,13 @@
     "confirm": "Remove"
   },
   "pages": {
-    "myDay": {
-      "greeting": "Good day, {name}",
-      "greetingMorning": "Good morning, {name}",
-      "greetingAfternoon": "Good afternoon, {name}",
-      "greetingEvening": "Good evening, {name}"
-    },
     "settings": {
       "myProfile": "My profile",
       "find": "Find a setting"
     },
-    "empty": {
-      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
-      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
-      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
-      "projects": "No projects yet. Projects and their milestones appear here.",
-      "tasks": "No tasks yet. Tasks you own or follow appear here.",
-      "finance": "No invoices yet. Invoices, cost and profit appear here.",
-      "kpis": "No KPIs yet. Targets and actuals appear here.",
-      "reports": "No reports yet. Issued reports appear here.",
-      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
+    "beingBuilt": "Being built.",
+    "myDay": {
+      "greeting": "Good day, {name}"
     }
   },
   "entity": {
@@ -553,7 +543,8 @@
       "appearance": "Appearance",
       "notifications": "Notifications",
       "devices": "Devices",
-      "password": "Password"
+      "password": "Password",
+      "preferences": "Preferences"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -627,7 +618,8 @@
       "roles": "Roles",
       "access": "Access",
       "settings": "Settings",
-      "lists": "Lists"
+      "lists": "Lists",
+      "signIn": "Sign-in"
     },
     "noAccess": "Settings is for admins",
     "setting": {
@@ -759,7 +751,11 @@
       "nicknameAr": "Nickname (Arabic)",
       "fullNameAr": "Full name (Arabic)",
       "switchedOn": "{name} switched on",
-      "switchedOff": "{name} switched off"
+      "switchedOff": "{name} switched off",
+      "accessStandard": "{role} (standard)",
+      "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
+      "accessShowAll": "Show all",
+      "accessHide": "Show less"
     },
     "teams": {
       "add": "Add team",

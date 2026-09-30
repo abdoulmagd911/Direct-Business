@@ -377,7 +377,12 @@ export function PartnersList({
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2.5">
                     <PartnerLogo name={r.trade_name_en} size="sm" />
-                    <Link href={`${base}/${r.id}`} className="truncate font-medium text-link" data-entity="partner">
+                    <Link
+                      href={`${base}/${r.id}`}
+                      className="inline-flex min-h-11 min-w-0 items-center truncate font-medium text-link"
+                      data-entity="partner"
+                      data-partner-link={r.id}
+                    >
                       {tradeName(r, locale)}
                     </Link>
                   </span>

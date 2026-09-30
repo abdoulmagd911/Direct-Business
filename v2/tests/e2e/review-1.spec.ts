@@ -150,13 +150,14 @@ test("one's own record shows real figures, never not measured; a member sees a c
   await page.goto(`/people/${colleague.id}`);
   await hydrated(page);
   await expect(page.locator('[data-key-figures]')).not.toContainText('not measured');
-  // the Arabic names are data: editable on My profile whatever the Arabic switch says (W22, QA-179)
+  // the Arabic display name is data: editable on My profile whatever the Arabic switch says (QA-179); the full names
+  // are the admins', on the person's record (V217, cut 6)
   await page.goto('/profile');
   await hydrated(page);
-  await expect(page.getByLabel('Full name (Arabic)')).toBeVisible();
+  await expect(page.getByLabel('Display name (Arabic)')).toBeVisible();
 });
 
-test('an unknown address is Not found; every area page says what goes there; a setting reads as a word; the greeting follows the clock; the empty bell says what it is for', async ({
+test('an unknown address is Not found; an unbuilt page says it is being built; a setting reads as a word; My day is headed by the date; the empty bell says what it is for', async ({
   page,
 }) => {
   const admin = await makePerson({ admin: true });
@@ -166,14 +167,11 @@ test('an unknown address is Not found; every area page says what goes there; a s
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await expect(page.locator('h1'), 'never the raw path as a title').not.toHaveText(/^\//);
   await expect(page.locator('[data-not-found-home]')).toHaveText('Go to My day');
-  for (const [route, line] of [
-    ['/tasks', 'No tasks yet'],
-    ['/finance', 'No invoices yet'],
-    ['/kpis', 'No KPIs yet'],
-  ] as const) {
+  // an unbuilt page says so in two words (V217, cut 9)
+  for (const route of ['/tasks', '/finance', '/kpis']) {
     await page.goto(route);
     await hydrated(page);
-    await expect(page.locator('[data-state="empty"]'), `${route} says what goes there`).toContainText(line);
+    await expect(page.locator('[data-state="empty"]'), `${route} says it is being built`).toContainText('Being built.');
     await expect(page.locator('[data-state="empty"]')).not.toContainText('Nothing here yet');
   }
   await page.goto('/settings/work');
@@ -184,7 +182,8 @@ test('an unknown address is Not found; every area page says what goes there; a s
   ).toHaveText(/^(Saturday|Sunday|Monday)$/);
   await page.goto('/my-day');
   await hydrated(page);
-  await expect(page.locator('h1')).toHaveText(/^Good (morning|afternoon|evening), /);
+  // My day's heading is the date, no greeting (V217, cut 9)
+  await expect(page.locator('h1')).toHaveText(/^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b.*\d{4}$/);
   await page.locator('[data-bell]').click();
   await expect(page.locator('[data-notifications-panel]')).toContainText('Nothing new');
 });

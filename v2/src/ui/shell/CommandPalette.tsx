@@ -4,13 +4,25 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, Search, UserRound } from 'lucide-react';
+import { Building2, History, Search, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
-import { paletteActions } from '@/core/commands/actions';
+import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
 import { reachableFor } from './nav';
 import { createActionsFor } from './CreateMenu';
+
+// Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
+// person without Activity reaches it here.
+registerActions([
+  {
+    key: 'recently_deleted',
+    label: 'palette.recentlyDeleted',
+    icon: History,
+    page: 'settings.profile',
+    route: '/recently-deleted',
+  },
+]);
 
 type Hit = { id: string; full_name_en: string; full_name_ar: string | null; job_title_en: string | null };
 type OrgHit = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null; matched_by: string };

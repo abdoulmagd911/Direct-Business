@@ -95,7 +95,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   const [row] = await sql<{ number: string }>(`select number from partner.partner where id = $1`, [id]);
   await expect(hover).toContainText(row!.number);
   await expect(hover, 'the hover card names both sides').toContainText('Client · Corporate · At risk');
-  await expect(hover, 'the hover card names both sides').toContainText('Supplier & partner · Supplier');
+  await expect(hover, 'the hover card names both sides').toContainText('Supplier · Supplier');
 });
 
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {

@@ -1,8 +1,9 @@
 // The admin's steps of the employee view (brief E, V217), made once before the specs as an admin would make them in
 // Settings › People & access › Access: a member starts at none on Pipeline (the Business Development and Business
 // Solutions people get Own by a person change), a Viewer at none on Tasks and Pipeline; the roles read Head and Member.
-// The live project gets the same from the oversight after merge (never from code), and the registry's own defaults
-// already say so for a fresh project. Each change is made only where the old starting value still stands.
+// The live project gets the same from the oversight after merge (never from code); the registry's defaults follow when
+// builder A's sync can move a starting level that still holds the old default (a database built from zero must match
+// the registry — REG-01). Each change is made only where the old starting value still stands.
 import pg from 'pg';
 
 const LEVELS: [role: string, page: string, from: string, to: string][] = [

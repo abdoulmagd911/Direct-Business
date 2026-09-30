@@ -11,14 +11,10 @@ import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { personOf } from '../person';
 import { CreateMenu } from './CreateMenu';
-import { isActiveEntry, menuFor, type NavEntry } from './nav';
+import { barFor, isActiveEntry, type NavEntry } from './nav';
 import { signOut } from './ProfileMenu';
 
-/**
- * The phone's bar (< 640 px, V85) follows the menu (V217): its first four entries, then More — which holds the rest,
- * My profile and Sign out. A bar of four with nothing left needs no More (a Viewer's); the profile is on the avatar.
- */
-const BAR = 4;
+/** The phone's bar (< 640 px, V85) follows the menu: `barFor` in nav.ts says what it holds (V217). */
 
 export function BottomBar() {
   const t = useTranslations();
@@ -28,10 +24,7 @@ export function BottomBar() {
   const [more, setMore] = useState(false);
   // The More button is the sheet's Radix trigger, so Escape returns focus to it (M93).
   const person = personOf(me);
-  const menu = menuFor(me);
-  const primary = menu.slice(0, BAR);
-  const rest = menu.slice(BAR);
-  const withMore = rest.length > 0 || primary.length < BAR;
+  const { bar: primary, rest, more: withMore } = barFor(me);
   const isActive = (p: NavEntry) => isActiveEntry(p, pathname, view);
   const restActive = rest.some(isActive);
 

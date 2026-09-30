@@ -104,6 +104,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     ) : null;
 
   const [editing, setEditing] = useState(false);
+  // the full access list is open for admins, one line for everyone else (V217, cut 7)
+  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);
   const [switching, setSwitching] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -544,7 +546,39 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           </>
         ) : null}
       </RailSection>
-      {access
+      {access || roleName ? (
+        <RailSection
+          title={t('settings.people.access')}
+          data-access-summary
+          footer={
+            // the full list needs People & access (core.access_of_person); without it the line names the role alone
+            access ? (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => setAllAccess((v) => !v)}
+                aria-expanded={allAccess}
+                data-access-all
+              >
+                {allAccess ? t('settings.people.accessHide') : t('settings.people.accessShowAll')}
+              </Button>
+            ) : null
+          }
+          plain
+        >
+          <p className="text-base" data-access-line>
+            {(() => {
+              if (!access) return roleName;
+              const changes = access.level_overrides.length + (access.capability_overrides?.length ?? 0);
+              const role = roleName || t('settings.people.noRole');
+              return changes
+                ? t('settings.people.accessChanged', { role, count: changes })
+                : t('settings.people.accessStandard', { role });
+            })()}
+          </p>
+        </RailSection>
+      ) : null}
+      {access && allAccess
         ? (
             [
               ['pages', pagesForLevels.filter((k) => !k.startsWith('settings.'))],

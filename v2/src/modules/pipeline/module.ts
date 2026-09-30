@@ -10,7 +10,7 @@ export default defineModule({
       label: 'nav.pipeline',
       icon: 'git-branch',
       nav: { group: 'main', order: 40, tier: 'work' },
-      defaults: { admin: 'full', head: 'full', manager: 'full' },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],
 });

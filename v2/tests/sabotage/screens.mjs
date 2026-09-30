@@ -358,25 +358,13 @@ export const sabotages = [
     ],
   },
   {
-    name: 'menu-theme-stays-in-the-cookie',
+    name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the menu saves to the profile',
-    edits: [
-      {
-        file: 'src/ui/shell/ProfileMenu.tsx',
-        find: "onValueChange={(v) => choose('theme', v as typeof prefs.theme)}",
-        replace: "onValueChange={(v) => set('theme', v as typeof prefs.theme)}",
-      },
-    ],
-  },
-  {
-    name: 'profile-keeps-the-undone-theme',
-    breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the undone theme is gone from the page',
+    expect: 'the undone density is gone from the page',
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);\n",
+        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);\n",
         replace: '',
       },
     ],
@@ -571,6 +559,43 @@ export const sabotages = [
         file: 'src/modules/partners/screens/PartnerHover.tsx',
         find: '              {p.sides.map((s) => (\n',
         replace: '              {p.sides.slice(0, 1).map((s) => (\n',
+      },
+    ],
+  },
+  {
+    // the brief's own sabotage (F7): a manage page given the work tier reaches a member's menu
+    name: 'menu-shows-own-manage-page',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'the member menu',
+    edits: [
+      {
+        file: 'src/modules/projects/module.ts',
+        find: "nav: { group: 'main', order: 60, tier: 'manage' },",
+        replace: "nav: { group: 'main', order: 60, tier: 'work' },",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-an-unbuilt-screen',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'Create offers only built screens',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
+        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+      },
+    ],
+  },
+  {
+    name: 'access-list-closed-for-admins',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'open with Show less',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);',
+        replace: '  const [allAccess, setAllAccess] = useState(false);',
       },
     ],
   },

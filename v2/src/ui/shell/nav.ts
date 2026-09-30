@@ -123,6 +123,12 @@ export const SETTINGS_ENTRY: NavEntry = {
 /** The roles whose menu carries the manage pages (V217). */
 const MANAGE_ROLES = ['manager', 'head', 'admin'];
 
+/** Manager, Head and Admin: the manage tier, whose menu carries the manage pages (V217). */
+export function isManageTier(me: Me): boolean {
+  const role = me.person.role;
+  return !!role && (role.is_admin || MANAGE_ROLES.includes(role.key));
+}
+
 /** Whether an entry is in this person's menu: work pages at any level above none; manage pages by role (V217). */
 export function inMenu(me: Me, e: NavEntry): boolean {
   if (!canSee(me, e.page) || e.tabOf) return false;
@@ -143,6 +149,17 @@ export function navFor(me: Me): NavEntry[] {
 /** The menu with Settings at its foot for admins — what the phone bar and More divide between them. */
 export function menuFor(me: Me): NavEntry[] {
   return [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
+}
+
+/**
+ * The phone bar (V217): the menu's first four, then More — which holds the rest, My profile and Sign out. A Viewer
+ * whose four fill the bar with nothing left has no More; the profile is on the avatar (brief B).
+ */
+export function barFor(me: Me): { bar: NavEntry[]; rest: NavEntry[]; more: boolean } {
+  const menu = menuFor(me);
+  const bar = menu.slice(0, 4);
+  const rest = menu.slice(4);
+  return { bar, rest, more: rest.length > 0 || me.person.role?.key !== 'viewer' };
 }
 
 /**
