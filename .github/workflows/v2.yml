@@ -189,6 +189,8 @@ jobs:
     if: github.ref == 'refs/heads/v2/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # the GitHub environment "production" holds the database password and lets only v2/main deploy (QA-186)
+    environment: production
     # one at a time and never cancelled half-way; a later merge waits, then applies whatever is still pending
     concurrency:
       group: v2-production-database
@@ -199,12 +201,12 @@ jobs:
       SUPABASE_REGION: eu-central-1
     steps:
       - uses: actions/checkout@v4
-      - name: the database password is set (GitHub → Settings → Secrets and variables → Actions)
+      - name: the database password is set (GitHub → Settings → Environments → production)
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           if [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error title=Production database not updated::repository secret not set: SUPABASE_DB_PASSWORD"
+            echo "::error title=Production database not updated::secret not set in the production environment: SUPABASE_DB_PASSWORD"
             exit 1
           fi
       - uses: actions/setup-node@v4
