@@ -557,7 +557,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/ListEditor.tsx',
-        find: "  const extra = EXTRA[entity];\n",
+        find: '  const extra = EXTRA[entity];\n',
         replace: '  const extra = undefined as (typeof EXTRA)[string] | undefined;\n',
       },
     ],
