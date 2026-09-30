@@ -151,7 +151,9 @@
       "greeting": "أهلًا {name}",
       "greetingMorning": "صباح الخير، {name}",
       "greetingAfternoon": "طاب يومك، {name}",
-      "greetingEvening": "مساء الخير، {name}"
+      "greetingEvening": "مساء الخير، {name}",
+      "adminAccount": "هذا حساب مسؤول النظام، وهو مخصّص للإعدادات. أما عملك أنت فعلى حسابك كموظف.",
+      "goSettings": "الانتقال إلى الإعدادات"
     },
     "settings": {
       "myProfile": "ملفي",
