@@ -774,8 +774,8 @@
       "account_taken": "There is already one of these accounts",
       "unknown_account": "That is not an account type"
     },
-    "person_email": {
-      "taken": "That email already belongs to someone"
+    "people": {
+      "email_taken": "That email already belongs to {detail}"
     },
     "list": {
       "key_taken": "That key is already used",
@@ -832,7 +832,8 @@
       "too_late": "Removed more than {detail} days ago — ask an admin",
       "not_allowed": "Only who removed it, its owners or an admin restore it",
       "blocked_by_duplicate": "Another record now holds the same value: {detail}",
-      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there"
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there",
+      "system_removal": "The app removed this itself when it was updated, so it is not restored"
     },
     "notify": {
       "unknown_tab": "Unknown notifications tab",

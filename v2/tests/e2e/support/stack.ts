@@ -21,6 +21,35 @@ export async function sql<T extends pg.QueryResultRow = pg.QueryResultRow>(text:
   return (await pool.query<T>(text, params)).rows;
 }
 
+/**
+ * Removes one row as `personId` would: in a person's own request, so Recently deleted lists it and Restore takes it
+ * back (what the system removes is neither — V177). A bare update is logged as the system's.
+ */
+export async function removeAs(personId: string, table: string, id: string, reason = 'made up: removed') {
+  const client = await (pool ??= new pg.Pool({ connectionString: setting('V2_DB_URL'), max: 4 })).connect();
+  try {
+    await client.query('begin');
+    const [request] = (
+      await client.query<{ id: string }>(
+        `insert into audit.request (actor_id, kind, label_key, reason) values ($1, 'ui', 'made.up_removed', $2) returning id`,
+        [personId, reason],
+      )
+    ).rows;
+    await client.query(`select set_config('app.request_id', $1, true)`, [request!.id]);
+    await client.query(`update ${table} set deleted_at = now(), deleted_by = $1, delete_reason = $2 where id = $3`, [
+      personId,
+      reason,
+      id,
+    ]);
+    await client.query('commit');
+  } catch (e) {
+    await client.query('rollback');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 function admin() {
   return createClient(setting('NEXT_PUBLIC_SUPABASE_URL'), setting('SUPABASE_SECRET_KEY'), {
     auth: { persistSession: false, autoRefreshToken: false },

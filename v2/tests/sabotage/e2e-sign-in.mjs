@@ -309,4 +309,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'e2e-a-taken-email-reads-as-a-broken-server',
+    breaks: [e2e('an-email-already-held-is-named-and-nobody-is-added')],
+    expect: 'That email already belongs to',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: 'if (!body.ok) throw new DbError(body.error.kind, body.error.key, body.error.detail);',
+        replace: 'if (!body.ok) throw new Error(body.error.key);',
+      },
+    ],
+  },
 ];

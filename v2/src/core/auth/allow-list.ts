@@ -34,7 +34,7 @@ export async function adminRoute(request: Request, run: (body: Record<string, un
   } catch (e) {
     if (e instanceof DbError) {
       const status = e.key === 'auth.not_signed_in' ? 401 : STATUS[e.kind];
-      return NextResponse.json({ ok: false, error: { kind: e.kind, key: e.key } }, { status });
+      return NextResponse.json({ ok: false, error: { kind: e.kind, key: e.key, detail: e.detail } }, { status });
     }
     throw e;
   }
