@@ -93,6 +93,10 @@ const CATALOGUE_PEOPLE = {
   c_rmmail: { role: 'member', label: 'Test Cat RemoveEmail' },
   c_admin: { role: 'admin', label: 'Test Cat Admin' },
   c_colleague: { role: 'member', label: 'Test Cat Colleague' },
+  // 08-production-walk.spec.ts: one to switch off and on, one to change and undo, one with an empty bell
+  w_switch: { role: 'member', label: 'Test Walk Switch' },
+  w_undo: { role: 'member', label: 'Test Walk Undo' },
+  w_bell: { role: 'member', label: 'Test Walk Bell' },
 };
 /** Made-up, typed "in the dashboard" for the auth user ACC-031 makes outside the app; never a real password. */
 const DASHBOARD_PASSWORD = 'Test-QA-Dashboard-2026-Jeddah';

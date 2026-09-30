@@ -553,7 +553,7 @@ test('ACC-031 an auth user made outside the app is linked by its email: never a 
   await their.waitForURL((u) => !/\/sign-in/.test(u.pathname), { timeout: 15_000 }).catch(() => undefined);
   const name = /\/profile/.test(pathOf(their))
     ? await their
-        .getByLabel(say('profile.fullNameEn'))
+        .getByLabel(say('profile.fullNameEn'), { exact: true })
         .inputValue()
         .catch(() => '')
     : '';
@@ -748,7 +748,7 @@ test('ACC-055 demoted while an edit screen with Full controls is open: the next 
   await hydrated(page);
   await page.locator('[data-person-edit]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Job title').fill(`Test title ${fx().tag} ${id}`);
+  await dialog.getByLabel('Job title', { exact: true }).fill(`Test title ${fx().tag} ${id}`);
   const demoted = await (
     await apiAs('c_admin')
   )('access_set_person_role', { p_person: me.id, p_role: await roleId('member'), p_reason: `QA catalogue ${id}` });
@@ -943,7 +943,7 @@ test('ACC-094 an admin adds a second email: one person, and either email signs i
   const landed = pathOf(their);
   await their.goto('/profile');
   const asName = await their
-    .getByLabel(say('profile.fullNameEn'))
+    .getByLabel(say('profile.fullNameEn'), { exact: true })
     .inputValue()
     .catch(() => '');
   check(
@@ -1021,9 +1021,10 @@ test('ACC-095 Remove email: a control on the person record that needs a reason; 
   await page.reload();
   await hydrated(page);
   const label = say('settings.people.removeEmail');
+  // each email row carries its own Remove (#127): the second email's, never the first row's
   const control = page
-    .locator('[data-email-remove]')
-    .or(page.getByRole('button', { name: label }))
+    .locator(`[data-person-email="${second}"] [data-email-remove]`)
+    .or(page.locator(`[data-person-email="${second}"]`).getByRole('button', { name: label }))
     .or(page.getByRole('menuitem', { name: label }));
   const n = await control.count();
   check(
@@ -1457,7 +1458,7 @@ test('OLD-009 a save the server refuses: the refusal in words, and the field sho
   if (!first.ok) throw new Error(`set-up: ${said(first)}`);
   await signIn(page, 'c_refuse', '/profile');
   await hydrated(page);
-  const field = page.getByLabel(say('profile.nicknameEn'));
+  const field = page.getByLabel(say('profile.nicknameEn'), { exact: true });
   const atOpen = await field.inputValue();
   const elsewhere = await api('profile_update', {
     p_changes: { nickname_en: `Elsewhere${tag}` },
@@ -1637,13 +1638,13 @@ test('OLD-011 the network drops during a save: the dialog stays open with what w
   await page.locator('[data-person-edit]').click();
   const dialog = page.getByRole('dialog');
   const typed = `Offline title ${tag}`;
-  await dialog.getByLabel('Job title').fill(typed);
+  await dialog.getByLabel('Job title', { exact: true }).fill(typed);
   await context.setOffline(true);
   const line = await nextToast(page, () => dialog.locator('[data-person-save]').click(), 20_000);
   const open = await dialog.isVisible();
   const kept = open
     ? await dialog
-        .getByLabel('Job title')
+        .getByLabel('Job title', { exact: true })
         .inputValue()
         .catch(() => '')
     : '';

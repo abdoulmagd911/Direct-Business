@@ -37,8 +37,8 @@ for (const key of ['admin', 'head', 'manager', 'member', 'viewer', 'noclients', 
       await sql<{ nickname_en: string | null }>(`select nickname_en from core.person where id = $1`, [me.id])
     )[0];
     const nick = `QA${fx().tag}${key.slice(0, 3)}`;
-    await page.getByLabel('Nickname').fill(nick);
-    await page.getByLabel('Nickname').press('Enter');
+    await page.getByLabel('Nickname', { exact: true }).fill(nick);
+    await page.getByLabel('Nickname', { exact: true }).press('Enter');
     await expect(toast(page, 'Profile saved')).toBeVisible();
     const saved = (
       await sql<{ nickname_en: string | null }>(`select nickname_en from core.person where id = $1`, [me.id])
@@ -73,8 +73,8 @@ for (const key of ['admin', 'head', 'manager', 'member', 'viewer', 'noclients', 
     )[0]?.nickname_en;
     await page.reload();
     await hydrated(page);
-    await page.getByLabel('Nickname').fill(`${nick}b`);
-    await page.getByLabel('Nickname').press('Enter');
+    await page.getByLabel('Nickname', { exact: true }).fill(`${nick}b`);
+    await page.getByLabel('Nickname', { exact: true }).press('Enter');
     await expect(toast(page, 'Profile saved')).toBeVisible();
     const u2 = await undoFromToast(page, 'Profile saved');
     const back2 = (
@@ -92,7 +92,7 @@ for (const key of ['admin', 'head', 'manager', 'member', 'viewer', 'noclients', 
     );
     await page.reload();
     await hydrated(page);
-    const field = await page.getByLabel('Nickname').inputValue();
+    const field = await page.getByLabel('Nickname', { exact: true }).inputValue();
     verdict(
       {
         area: AREA,
@@ -241,7 +241,7 @@ test('the admin: a setting, a list entry, a person and a team — each saved wit
   await page.goto(`/people/${target.id}`);
   await hydrated(page);
   await page.locator('[data-person-edit]').click();
-  await dialog.getByLabel('Job title').fill(`Test title ${tag}`);
+  await dialog.getByLabel('Job title', { exact: true }).fill(`Test title ${tag}`);
   await dialog.locator('[data-person-save]').click();
   await expect(toast(page, /updated/i)).toBeVisible();
   verdict(

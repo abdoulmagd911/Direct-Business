@@ -157,9 +157,8 @@ function routes(): Route[] {
     { path: '/profile', expect: () => 'renders' },
     {
       path: '/settings/profile',
-      expect: () => 'renders',
-      lands: /\/profile$/,
-      note: 'the drawer foot, the profile menu and the phone bar link here',
+      expect: () => 'not-found',
+      note: 'nothing links here since #99 moved My profile to /profile (QA-48); an unknown address is Not found (W28)',
     },
     { path: `/people/${f.users.member2!.id}`, expect: () => 'renders' },
     { path: '/people/00000000-0000-4000-8000-00000000abcd', expect: () => 'not-found' },
