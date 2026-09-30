@@ -7,7 +7,9 @@ change that taught it.
 
 **ID ranges** (so two sessions never collide — spec A18): V1–V99 architect and oversight · V100–V199 builder A ·
 V200–V299 builder B · **V300–V399 builder C** (Arabic, exports, the Past work grid — V410) · **V400–V499 owner decisions
-relayed by the oversight** (from 29 Sep, once V1–V99 were used up). **The QA session records no decisions**: its
+relayed by the oversight** (from 29 Sep, once V1–V99 were used up; filled to V493 on 30 Sep) · **V500–V599 owner decisions
+and the oversight's rulings from 30 Sep 2026** · **V600–V699 the architect**, when a rule of its own is needed — the
+`v2-ids` check widens to V1–V699 in the same step (builder A). **The QA session records no decisions**: its
 findings are QA-nn in its log, and a ruling on one becomes a V-number here, written by the architect (V410). A ruled
 open question of the first round keeps its number inside its ID: question Qn (Q1–Q31) became
 **V(20+n)** (Q7 → V27), so an old "Q7" still finds its answer here. Later questions (Q32 on) take the next free V
