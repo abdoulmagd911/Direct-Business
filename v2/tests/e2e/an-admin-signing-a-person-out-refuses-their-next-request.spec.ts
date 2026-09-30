@@ -17,7 +17,12 @@ test('an admin signing a person out refuses their next request', async ({ browse
   expect(refused.status()).toBe(403);
   expect(await refused.json()).toEqual({
     ok: false,
-    error: { kind: 'PermissionDenied', key: 'access.needs_capability' },
+    // the refusal names what is missing (V178: the admin routes pass a refusal's detail to the screen)
+    error: {
+      kind: 'PermissionDenied',
+      key: 'access.needs_capability',
+      detail: JSON.stringify({ capability: 'org.sign_out' }),
+    },
   });
 
   const done = await adminPage.request.post('/auth/admin/sign-out', { data: { person_id: member.id } });

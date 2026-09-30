@@ -27,7 +27,8 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 
 | Check | Who | Where | Verified by | Rule |
 |---|---|---|---|---|
-| Every migration applied at merge from the merged commit, checksum-checked; none edited after merge | builder A | `supabase migration list` against the project | the list equals `v2/supabase/migrations/` | V103, §10 |
+| Every migration applied at merge by the `db-production` job (never by a session); none edited after merge | the job; builder A watches it | the job's run on each v2/main merge (GitHub → Actions → v2) | its last step: "production and main agree" | V103, V181, §10 |
+| The job's repository secret is set: `SUPABASE_DB_PASSWORD` (the project's database password; no access token is needed) | owner | GitHub → the repository → Settings → Secrets and variables → Actions | the job's first step passes | V181 |
 | Auth: sign-ups off; the email provider with password on; minimum password length 10 (`auth.password_min_length` and the project's own minimum); the code door off (`auth.code_door_enabled` false) | builder A (settings), owner (dashboard) | Supabase → Authentication; Settings → App in the app | a sign-up attempt is refused; a 9-character password is refused | V431 |
 | Site URL and redirect URLs list `https://www.directksab2b.com` (and the bare domain) | owner | Supabase → Authentication → URL configuration | sign-in works through the domain | V13 |
 | Google and Zoom providers: off until their keys exist | — | Supabase → Providers | no provider button on the page | V23 |
@@ -48,12 +49,15 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 | The test account removed (soft removal, logged) | oversight | Settings → People | no `test_account` row is live | V445 |
 | View as switched off (`auth.view_as_enabled` false) | admin | Settings → App | the View as action is gone; a start request is refused | V442 |
 | Nobody but the admin role holds any level on a Settings page | admin | Settings → Organization & access | ACC-05 green on the live database (read-only) | V97, V138 |
+| An admin can grant Head and Manager on the live database (the 29 Sep bug: head and manager rows still granted retired keys, so every grant was refused — fixed by V176, #124) | the QA session | Settings → Organization & access | a grant of Head succeeds once, then is undone; V176's test green on the merged commit | V97, V138, V176 |
 
 ## 4. Data and the reset
 
 | Check | Who | Where | Verified by | Rule |
 |---|---|---|---|---|
 | Staging reset to production state, backup first, only on the owner's word | builder A | `golive_reset` (v2) | the backup stamp recorded in the go-live PR; `app.go_live_on` set | D9, V400, P6-5 |
+| Settings typed by an admin: the Supplier & partner types Flight content provider and Accreditation body; the escalation matrix SOP link; the challenge root causes, streams and outside roles; the code channels; the company sizes; a live owner on each seeded task template; the strategy team's words for the KPI statuses; profile photos on or off (V493) | admin | Settings | each list shows its values; no template without a live owner; the KPI sheet prints the words | V486, V474, V485, V471, V472, V479, V473 |
+| The past-work loop (V491): January 2026 registered by hand the normal way — task, achievement, KPI reading, report draft, generate, compare with the old issued PDF, edit, issue; February to September through the Past work grid; every backfilled item owned or listed under Needs an owner | owner, then the managers | the app; Reports → Compare | the January report issued after its comparison; the Needs an owner filter empty or being worked | V491, V57, P5-2c |
 | The plan typed in (objectives, KPIs, targets, leads); the appraisal templates seeded | admin and the KPI leads | the app | the KPIs page shows the year's plan; no "not measured" tile that should measure | P6-8 |
 | The 2026 invoices typed by the team from the pilot on; the DPIN uniqueness verified on real Payments data before P4-1 shipped | team; oversight | Finance → New invoice | monthly revenue compared with Payments by the owner and the oversight | owner decision 4, V417 |
 | Every list exports its exact count; a missing cost is empty, never 0; printed parts reconcile to the printed total | the QA session | every list; a monthly report | `export-count` green; OA4 and OA5 checks | V426, V428 |

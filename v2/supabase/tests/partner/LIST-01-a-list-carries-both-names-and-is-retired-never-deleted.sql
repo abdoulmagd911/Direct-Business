@@ -32,7 +32,7 @@ select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select set_config('t.call_type', (select id::text from partner.activity_type where key = 'call'), true);
 
 select test.as_person(current_setting('t.viewer')::uuid);
-select test.ok(jsonb_array_length(api.list('side_type')) = 9, 'everyone reads the lists');
+select test.ok(jsonb_array_length(api.list('side_type')) = 11, 'everyone reads the lists');
 select test.as_person(current_setting('t.manager')::uuid);
 select test.raises($$select api.list_save('side_type', null, '{"side": "client", "key": "made_up", "name_en": "Made up", "name_ar": "متخيل"}')$$,
   '42501', 'a manager cannot change a list', 'access.needs_level');
@@ -56,10 +56,10 @@ select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'side_type', cu
 select test.raises(format('select api.list_save(%L, %L, %L, 1)', 'side_type', current_setting('t.s'), '{"colour": "red"}'),
   'P0001', 'a column the list does not have is refused', 'list.unknown_field');
 select set_config('t.r', api.list_save('side_type', current_setting('t.s')::uuid, '{"active": false}', 1) ->> 'request_id', true);
-select test.eq(jsonb_array_length(api.list('side_type')), 10, 'a retired entry leaves the list');
-select test.eq(jsonb_array_length(api.list('side_type', true)), 11, 'but is never deleted');
+select test.eq(jsonb_array_length(api.list('side_type')), 12, 'a retired entry leaves the list');
+select test.eq(jsonb_array_length(api.list('side_type', true)), 13, 'but is never deleted');
 select api.undo(current_setting('t.r')::uuid);
-select test.eq(jsonb_array_length(api.list('side_type')), 11, 'and one Undo brings it back');
+select test.eq(jsonb_array_length(api.list('side_type')), 13, 'and one Undo brings it back');
 select test.ok((api.list_save('activity_outcome', null, '{"key": "made_up_call", "name_en": "Made up", "name_ar": "متخيل",
   "counts_as_demo": true}'::jsonb || jsonb_build_object('activity_type_id', current_setting('t.call_type'))) ->> 'id') is not null,
   'a list with columns of its own saves them too');
