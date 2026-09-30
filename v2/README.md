@@ -156,3 +156,10 @@ pages, so out of the menu is never locked. Suppliers is Clients' second tab (`na
 (`tests/e2e/support/employee-view-access.ts`). Proof: `tests/e2e/employee-view.spec.ts`,
 `tests/unit/shell/the-menu-shows-work-pages-to-all-and-manage-pages-by-role.test.ts`; sabotages
 `menu-shows-own-manage-page`, `create-offers-an-unbuilt-screen`, `access-list-closed-for-admins`.
+
+My day, Capture then Convert (V218, P3-14): `src/modules/my-day/` — the capture row ("/" anywhere on My day), the
+blocks of 7 (`logic.ts` `BLOCK_ROWS`), a note's own page (`/my-day/notes/<id>`) with Turn into, Finish meeting and the
+chips, and Wrap up today. The server doors are builder A's P3-13, named in one place (`types.ts`) and called through
+`doors.ts` / `server.ts`; until `api.my_day` exists the page says "Being built." Proof: `tests/unit/my-day/`,
+`tests/e2e/my-day.spec.ts` (waits by name for P3-13); sabotages `turn-into-offers-a-task-too-soon`,
+`block-draws-every-row`, `wrap-up-carries-to-a-friday`, `private-note-reads-as-everyone`.
