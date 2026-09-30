@@ -13,8 +13,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: v2-${{ github.ref }}
-  cancel-in-progress: true
+  # a pull request's newer push cancels its older run; a run on v2/main is never cancelled, so the production database
+  # job is never stopped half-way (V181) — each merge's run has its own group, and that job queues on its own
+  group: v2-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -130,6 +132,8 @@ jobs:
           version: 2.118.0
       - name: start the stack (a new database; every migration applied)
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api,mailpit
+      - name: the production job's check agrees with a stack built from zero (V181)
+        run: node scripts/db/prod-sync.mjs --local
       - name: Supabase's advisors find nothing at warning level (before the test harness is installed)
         run: supabase db advisors --local --type all --level warn --fail-on warn
       - name: the SQL suite on the Supabase stack
@@ -175,3 +179,55 @@ jobs:
           retention-days: 7
       - if: always()
         run: supabase stop --no-backup
+
+  # The one writer of the production database (the owner, 30 Sep — V181). On every merge to v2/main it applies the
+  # migrations production has not had, with the Supabase CLI, then fails loudly unless production and main hold the
+  # same migrations. It never runs on a pull request, so no branch reaches production; no session writes there.
+  db-production:
+    name: production database applies main's migrations
+    if: github.ref == 'refs/heads/v2/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # one at a time and never cancelled half-way; a later merge waits, then applies whatever is still pending
+    concurrency:
+      group: v2-production-database
+      cancel-in-progress: false
+    env:
+      # direct-commercial (GO-LIVE-RUNBOOK §2): a project ref is an address, not a secret
+      SUPABASE_PROJECT_REF: kimadjvaxgiqzjaukuqg
+    steps:
+      - uses: actions/checkout@v4
+      - name: the two secrets are set (GitHub → Settings → Secrets and variables → Actions)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          missing=''
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error title=Production database not updated::repository secret(s) not set:$missing"
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      # the secrets reach only the three steps that use them
+      - name: link the production project (through Supabase's pooler)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: apply the migrations production has not had (migrations only — no seed, no vault, no config)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked --skip-vault --yes
+      - name: production and main hold the same migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/db/prod-sync.mjs --linked
