@@ -192,7 +192,8 @@ test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)',
   );
   try {
     await page.goto('/sign-in');
-    await expect(page.locator('[data-door-language]')).toBeVisible();
+    // the door draws the button twice — in the phone's bar and beside the form on a wide screen — and shows one
+    await expect(page.locator('[data-door-language]:visible')).toBeVisible();
     await signIn(page, admin.email, '/my-day');
     await hydrated(page);
     await page.locator('[data-topbar] [data-profile-chip]').click();
