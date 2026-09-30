@@ -69,6 +69,15 @@ const CASES = [
   ['git -C . push --prune origin refs/heads/v2/*', 'ASK', '--prune deletes remote branches'],
   ['git push origin v2/main', 'ASK', 'straight onto the integration branch, past review'],
   ['git -C . push --all origin', 'ASK', 'every local branch, the production one included'],
+  // the five lanes' own branches (#127, the architect's ask): a lane name in front must not carry a push onto main
+  ['git push -u origin v2/a-x:v2/main', 'ASK', "a lane's branch pushed onto the integration branch (src:dst)"],
+  ['git push -u origin v2/a-x HEAD:v2/main', 'ASK', 'a second refspec onto the integration branch'],
+  ['git push -u origin v2/a-x v2/main', 'ASK', 'the integration branch named second'],
+  ['git push -u origin v2/architecture:refs/heads/v2/main', 'ASK', 'the architect branch onto main by full ref'],
+  ['git push -u origin v2/c-x && git push origin v2/main', 'ASK', 'a lane push chained to a main push'],
+  ['git push origin v2/d-x', 'ASK', 'not a lane'],
+  ['git push origin v2/architecture-x', 'ASK', 'not the architect branch'],
+  ['git push origin v2/a-', 'ASK', 'a lane prefix with no name'],
   // deletes in the sandbox: the owner's rule of 30 Sep (#128) lets everyday rm and find pass — a checkout is recoverable
   // from the remote; kept here so a later change to that rule shows up
   ['rm -rf /tmp/ /home/user/repo', 'ALLOW', 'rm in the sandbox (owner, 30 Sep)'],
@@ -76,6 +85,9 @@ const CASES = [
   // ordinary work that must stay click-free (not a looser answer than ALLOW needed; recorded to catch over-blocking)
   ['git -C . log --oneline -3', 'ALLOW', 'reading'],
   ['git push -u origin v2/q-1', 'ALLOW', "the lane's own branch"],
+  ['git push -u origin v2/a-p3-15', 'ALLOW', "Builder A's own branch (#127)"],
+  ['git push -u origin v2/c-ar-for-127', 'ALLOW', "Builder C's own branch (#127)"],
+  ['git push -u origin v2/architecture', 'ALLOW', "the architect's branch (#127)"],
   ['git commit -F -', 'ALLOW', 'a commit message from stdin'],
 ];
 

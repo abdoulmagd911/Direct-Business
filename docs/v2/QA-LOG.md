@@ -425,3 +425,15 @@ No screen or migration changed (only the workflow, two scripts and their tests),
 |---|---|---|---|---|---|---|
 | QA-185 | 2026-09-30 12:33 | V181, #133, #134 | Medium | Builder A | **The production job doesn't wait for the tests.** `db-production` in `.github/workflows/v2.yml` has no `needs:`, so on a merge it applies the new migrations to production at the same moment `db-plain` and `db-supabase` start building the merged code from zero. Two PRs each green on their own can merge minutes apart, with neither tested against the other; if the combination fails from zero, production already holds it, and only a new migration can take it back. **Fix:** `needs: [checks, db-plain, db-supabase]` on `db-production` (neither database job is ever skipped), so production is written only after main's own run proves the migrations from zero. | Open |
 | QA-186 | 2026-09-30 12:33 | V181 ("no session writes to production") | Medium | Owner (one setting) · Builder A (one line) | **V181's one-writer rule is kept only by the job's `if:`, in a file any branch can change.** `SUPABASE_DB_PASSWORD` is a repository secret. GitHub gives a repository secret to every workflow run from a branch of this repository, including a pull request's run, which uses the branch's own copy of the workflow, and a new workflow file pushed to any branch. So a branch that changes or drops the `if:` reaches production with the password, although no session means to write there. **Fix:** in GitHub → Settings → Environments, a `production` environment whose deployment branches are v2/main only. Move `SUPABASE_DB_PASSWORD` into it as an environment secret, and add `environment: production` to `db-production`. The password then reaches only a job running on v2/main. | Open |
+
+
+## Round 18 — 2026-09-30 13:48 (v2/main 0755dbf, unchanged; #127 at 4a8ae4e: the shell guard for five lanes, CLAUDE.md under 22,000)
+
+- **Nothing merged since 0755dbf.** The gallery, the sweep and the suite stand as in round 16.
+- **#127's two new commits** touch only `.claude/hooks/bash-guard.mjs`, `.claude/settings.json`, CLAUDE.md and `docs/SESSION-REACH.md`, so no new preview is needed. Builder B asked QA to review the guard.
+- **The matcher's new cases** (eleven) cover:
+  - the lanes' own branches;
+  - a lane name carrying a push onto main (`src:dst`, a second refspec, main named second, a full ref, a chained push);
+  - near-miss names.
+- **Result on #127's head:** 0 commands run with less protection than they must. The four lanes' own branches pass click-free; on v2/main 0755dbf they are refused (four "tight" rows), which is the architect's report. The database guard is unchanged: QA-134's 7 statements still pass.
+- **QA-181, QA-183 and QA-184** remain open on #127; its two new commits don't touch them.
