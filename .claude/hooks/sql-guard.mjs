@@ -2,14 +2,15 @@
 /* sql-guard.mjs — runs before every database call a Claude session makes (PreToolUse on mcp__Supabase__execute_sql and
    mcp__Supabase__apply_migration). The owner's standing permissions:
      · the v2 project (direct-commercial, kimadjvaxgiqzjaukuqg — owner, 29 Sep, V402): free, EXCEPT destructive
-       statements, which are asked: any DROP (a table, a column through ALTER … DROP, a function, a policy …), TRUNCATE,
+       statements, which are refused: any DROP (a table, a column through ALTER … DROP, a function, a policy …), TRUNCATE,
        DELETE or UPDATE without WHERE, turning row-level security off, disabling a trigger. DO blocks and function
        bodies are read too;
-     · the old app's project (vkxoeeoauexyfpzqufqd — owner, 29 Sep): every call is asked;
+     · the old app's project (vkxoeeoauexyfpzqufqd — owner, 29 Sep): every call is refused;
      · any other project, as before (START HERE §8, 27 Sep): reading is free, and so is a rolled-back dry run
        (BEGIN … ROLLBACK, no COMMIT inside); execute_sql that WRITES live data or changes structure outside such a dry
-       run is asked; apply_migration is free EXCEPT deleting a live table or rows, or changing who can sign in.
-   Anything this guard cannot read is asked, never waved through. */
+       run is refused; apply_migration is free EXCEPT deleting a live table or rows, or changing who can sign in.
+   Anything this guard cannot read is refused, never waved through. Nothing here ever prompts the owner (his rule of
+   30 Sep): a refusal names its reason, and what needs his word goes to the oversight in chat. */
 const V2_PROJECT = 'kimadjvaxgiqzjaukuqg';
 const OLD_PROJECT = 'vkxoeeoauexyfpzqufqd';
 
@@ -89,24 +90,24 @@ function destructive(sql) {
 let raw = '';
 process.stdin.on('data', (c) => (raw += c));
 process.stdin.on('end', () => {
-  const ask = (why) => {
-    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: why } }));
+  const deny = (why) => {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: why } }));
     process.exit(0);
   };
   let ev;
   try {
     ev = JSON.parse(raw || '{}');
   } catch (_) {
-    return ask('sql-guard: could not read the call — asking instead of guessing');
+    return deny('sql-guard: could not read the call — refused instead of guessing');
   }
   const tool = String(ev.tool_name || ''), inp = ev.tool_input || {};
   const sql = String(inp.query || inp.sql || '');
   const project = String(inp.project_id || '');
-  if (!sql) return ask('sql-guard: no SQL text found in the call');
-  if (project === OLD_PROJECT) return ask("sql-guard: this call is on the old app's project — the owner decides every one");
+  if (!sql) return deny('sql-guard: no SQL text found in the call');
+  if (project === OLD_PROJECT) return deny("sql-guard: this call is on the old app's project — refused; the owner's word comes through the oversight in chat");
   if (project === V2_PROJECT) {
     const why = destructive(sql);
-    if (why) return ask(`sql-guard: ${why} on the v2 project — destructive, so the owner decides`);
+    if (why) return deny(`sql-guard: ${why} on the v2 project — destructive, refused; ask the oversight in chat`);
     process.exit(0);
   }
   /* any other project: the rules of 27 Sep */
@@ -114,12 +115,12 @@ process.stdin.on('end', () => {
     .replace(/'(?:[^']|'')*'/g, "''").toLowerCase().replace(/\s+/g, ' ').trim();
   const alwaysAsk = /\b(drop\s+table|drop\s+schema|truncate|delete\s+from|alter\s+role|create\s+role|drop\s+role)\b|\bauth\s*\./;
   if (tool.endsWith('apply_migration')) {
-    if (alwaysAsk.test(bare)) return ask('sql-guard: this migration deletes a live table or rows, or touches sign-in (auth / roles) — the owner decides that on the day');
+    if (alwaysAsk.test(bare)) return deny('sql-guard: this migration deletes a live table or rows, or touches sign-in (auth / roles) — refused; the oversight decides that on the day');
     process.exit(0);
   }
   const dryRun = /^begin\b/.test(bare) && /\brollback\s*;?\s*$/.test(bare) && !/\bcommit\b/.test(bare) && !/\bend\s*;/.test(bare.replace(/\$body\$/g, ''));
   if (dryRun) process.exit(0);
   const writes = /\b(insert|update|delete|merge|upsert|copy|truncate|drop|alter|create|grant|revoke|comment\s+on|refresh\s+materialized|vacuum|reindex|call|do)\b|\bauth\s*\./;
-  if (writes.test(bare)) return ask('sql-guard: this query writes to the live database or changes its structure outside a BEGIN … ROLLBACK dry run');
+  if (writes.test(bare)) return deny('sql-guard: this query writes to the live database or changes its structure outside a BEGIN … ROLLBACK dry run — refused; a write lands by migration, or through the oversight in chat');
   process.exit(0);
 });
