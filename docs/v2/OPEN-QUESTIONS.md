@@ -34,5 +34,10 @@ Individuals. *Recommended:* **yes** — the check refuses it like the others; th
 The spec assumes the recommendation until the owner rules. (Q42 "referred by" and Q44 the zodiac badge were answered by
 the owner on 30 Sep 00:34: no referred-by field — V492; no zodiac, optional photos — V493.)
 
+**Awaiting the owner's confirmation (30 Sep):** **V500 (draft)** — every KPI reading and every Payments figure carries
+"as of" and a Provisional or Final state; a change keeps its history and never silently changes an issued report
+("revised since issue" with the difference; the next report lists it under "Added to earlier periods"); a past-work
+line's owner given later keeps the same history. The spec assumes it; it is marked ACTIVE on his word.
+
 No default is pending: the Scout's money rulings V420–V425 were made ACTIVE by the owner on 29 Sep 12:55 (V434), their
 numbers and switches now admin settings.

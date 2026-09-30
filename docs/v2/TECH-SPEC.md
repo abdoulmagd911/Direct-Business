@@ -994,6 +994,10 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        source ('manual','import'); src jsonb (per-field export time, imports only); first_batch_id; last_batch_id;
                        payments_as_of date not null (V401: the day the figures were read from Payments — typed: entered by
                        the typist, today by default; imported: the file's export time. Shown as "Payments · as of <date>")
+                       figure_state ('provisional','final') default 'provisional'   -- V500 (draft): Final is set by the month-end
+                       -- Payments import or by a person with Full on Finance with a reason; a change to a Final figure, or to
+                       -- any figure whose month's report is issued, needs a reason and is a revision (§3.9); the history is
+                       -- audit.change (before, after, who, when, the request's reason)
 finance.invoice_line   STD SOFT; invoice_id; line_no; product; name; qty; unit_price; discount_sar; taxable; total_sar
                        service_id → finance.service   -- V483: required on a typed invoice (each line names its service —
                        -- conferences and packages were misfiled under "activity"); an imported line keeps D24's item
@@ -1164,7 +1168,9 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   stale flag, and sits under the **Past work** filter on Tasks and Achievements; it counts toward the KPIs and the
   report of the month it happened in. It may carry owner **Unknown** (a null owner, past work only): the **Needs an
   owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7). The January report is
-  generated, compared with the old issued PDF in Compare (V57), edited and issued.
+  generated, compared with the old issued PDF in Compare (V57), edited and issued. An owner given later to a past-work
+  line keeps the same history (`audit.change`); once its month's report is issued, the change shows as a revision
+  (V500, draft).
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1271,6 +1277,10 @@ perf.kpi_lead        (kpi_id, person_id) pk
 perf.kpi_contributor id; kpi_id; scope ('department','team','person'); scope_id
 perf.kpi_reading     STD SOFT; kpi_id; period_kind; period_start; value numeric; passed bool (checklist);
                      happened_on date not null (V400: the reading's date); logged_at timestamptz not null; note
+                     as_of date not null default today; figure_state ('provisional','final') default 'provisional'
+                     -- V500 (draft): the day the figure was read and whether it is final; Final set by a lead or a manager
+                     -- with Full on KPIs with a reason; a change keeps its history (audit.change) and needs a reason once
+                     -- Final or once the month's report is issued; a Provisional reading shows a chip
                      -- V459: the reading belongs to the period of period_start, never of happened_on
                      -- V93: written by the KPI's leads (and managers with Full on KPIs); on `perf.kpi_checkin_day`
                      -- (default the 15th) each lead of a manual KPI with no reading for the month gets 'alert_kpi_checkin'
@@ -1516,6 +1526,14 @@ carried over), revenue by service. `report.draft_suggestions` lists achievements
   `issued_at` (`report.added_since_issue(id)`, each a link) — and the next report's template has the section **"Added
   to earlier periods"** listing them under their real period. The V36 correction stays available when a figure was
   wrong, not merely late.
+- **Revised since issue** (V500, draft — the owner confirms). A figure that *changed* after issue (a reading, a
+  Payments figure, a past-work line's owner) is a **revision**: the change keeps its history (`audit.change`, with the
+  request's reason — required once the figure is Final or its month's report is issued); the issued report's page
+  shows **"revised since issue"** with each figure's difference (`report.drift`, surfaced on the page, not on demand);
+  and the next report's **"Added to earlier periods"** section lists the revisions with their difference beside the
+  late entries. Every reading and every Payments figure carries `as_of` and a **Provisional / Final** state
+  (`figure_state`); a Provisional figure shows a chip on the KPI page, in Finance and in a draft report. V36's
+  correction stays for a figure that was wrong.
 - **Masked money for readers without Finance** (V458): an issued report's money tiles and money lines are hidden in the
 render for a reader with no View on Finance — the snapshot keeps them; the KPI figures and achievement lines show.
 **Live names in frozen reports** (V58). The snapshot freezes figures and wording, but every person or partner in it is

@@ -294,6 +294,10 @@ Vercel (V13, V21, V84).
     an owner filter, past work never on My day and never notified but counted in its month; "referred by",
     public-reference consent and "Quote sent" dropped; no zodiac badge, optional profile photos with initials as the
     fallback, an admin switch, never in exports.
+84. **V500 (draft, the owner confirms)** — figures stay editable: every KPI reading and every Payments figure carries
+    "as of" and a Provisional or Final state; a change keeps its history and never silently changes an issued report
+    ("revised since issue" with the difference; the next report lists it under "Added to earlier periods"); a
+    past-work line's owner given later keeps the same history.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
