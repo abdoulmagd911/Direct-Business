@@ -310,6 +310,9 @@ Vercel (V13, V21, V84).
     simplicity gate card or is not merged; three real jobs on a phone at 390 px before any module goes live; access by
     team — a team level between the role default and the person override, inherited by new joiners, one migration by
     builder A.
+87. **Owner decisions of 30 Sep 2026, 13:30** (V511, V512): P5 (work and performance) before P4 (Finance), Finance
+    straight after, the Past work grid and My day first inside P5; access comes from the role and the team level,
+    never from the job title.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

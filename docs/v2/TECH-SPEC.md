@@ -417,7 +417,8 @@ core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); 
 highest level of the person's home and assisted teams (`core.team_page_level` — V510), else role default, else `none`;
 an admin role is `full` everywhere. Rules carried over: only an admin makes an admin (D13); nobody
 changes their own access; **only admins change access** (V97, V138 — the old M72 "a manager grants at most their own
-level" is retired).
+level" is retired). **Access comes from the role and the team level, never from the job title** (V512): a person titled
+BD Manager who holds the Team member role keeps Team member access — the title is a label on the card (V76).
 
 The **sign-in allow-list** is the live `core.person_email` rows of persons with `can_sign_in and active and kind =
 'staff'`; a person may hold several allowed emails (a `.com` and a `.net`), each Supabase identity links to exactly
