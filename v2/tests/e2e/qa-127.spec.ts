@@ -14,15 +14,24 @@ const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySele
 test('the admin and test accounts are named as accounts, with no department or team (QA-181)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   const account = await makePerson({ admin: true });
+  // one test account per database (person_one_account_of_each): borrow the mark, and hand it back afterwards
+  const [held] = await sql<{ id: string }>(
+    `update core.person set account = 'team_member' where account = 'test_account' returning id`,
+  );
   await sql(`update core.person set account = 'test_account' where id = $1`, [account.id]);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await signIn(page, admin.email, '/settings/org');
-  await hydrated(page);
-  await page.getByPlaceholder('Search by name or email').fill(account.name);
-  const row = page.locator(`[data-person-row="${account.id}"]`);
-  await expect(row.locator('[data-person-role]'), 'named from core.person.account').toHaveText('Test account');
-  await expect(row.locator('td').nth(2)).toHaveText('—');
-  await expect(row.locator('td').nth(3)).toHaveText('—');
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signIn(page, admin.email, '/settings/org');
+    await hydrated(page);
+    await page.getByPlaceholder('Search by name or email').fill(account.name);
+    const row = page.locator(`[data-person-row="${account.id}"]`);
+    await expect(row.locator('[data-person-role]'), 'named from core.person.account').toHaveText('Test account');
+    await expect(row.locator('td').nth(2)).toHaveText('—');
+    await expect(row.locator('td').nth(3)).toHaveText('—');
+  } finally {
+    await sql(`update core.person set account = 'team_member' where id = $1`, [account.id]);
+    if (held) await sql(`update core.person set account = 'test_account' where id = $1`, [held.id]);
+  }
 });
 
 test('the People table keeps Status on screen at 1440 (QA-183a)', async ({ page }) => {
