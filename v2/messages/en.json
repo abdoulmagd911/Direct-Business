@@ -212,7 +212,124 @@
   "pages": {
     "myDay": {
       "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
-      "goSettings": "Go to Settings"
+      "goSettings": "Go to Settings",
+      "tabs": {
+        "me": "Me",
+        "team": "My team",
+        "workspace": "Workspace"
+      },
+      "tabsLabel": "Whose notes",
+      "capture": {
+        "label": "Capture",
+        "placeholder": "Capture a note — type / for a meeting or a checklist",
+        "save": "Capture",
+        "kind": "Kind",
+        "captured": "Note filed in My notes"
+      },
+      "kinds": {
+        "sticky": "Note",
+        "meeting": "Meeting",
+        "checklist": "Checklist"
+      },
+      "visibility": {
+        "label": "Who sees it",
+        "private": "Only me",
+        "team": "My team",
+        "workspace": "Everyone"
+      },
+      "blocks": {
+        "me": "My notes",
+        "team": "Shared with my team",
+        "workspace": "Shared with everyone",
+        "since": "Since your last visit"
+      },
+      "more": "All {count}",
+      "fewer": "Show fewer",
+      "empty": {
+        "me": "No notes yet. What you capture here stays yours until you share it.",
+        "team": "Nothing shared with your team yet.",
+        "workspace": "Nothing shared with everyone yet."
+      },
+      "since": {
+        "none": "Nothing new since your last visit.",
+        "at": "Last visit {when}",
+        "markSeen": "Mark all seen",
+        "seen": "Marked as seen",
+        "kinds": {
+          "note_mention": "{count, plural, one {# mention} other {# mentions}}",
+          "reminder": "{count, plural, one {# reminder} other {# reminders}}"
+        }
+      },
+      "note": {
+        "untitled": "Untitled note",
+        "title": "Title",
+        "body": "Notes",
+        "items": "Checklist",
+        "addItem": "Add a row",
+        "itemLabel": "Row {n}",
+        "removeItem": "Remove row {n}",
+        "organisation": "Organisation",
+        "meetingOn": "Meeting day",
+        "happenedOn": "Happened on",
+        "by": "by {name}",
+        "draft": "Not logged",
+        "logged": "Logged {date}",
+        "carried": "Carried to {date}",
+        "turnedInto": "Turned into",
+        "fromNote": "From note",
+        "saved": "Note saved",
+        "remove": "Delete note",
+        "removeTitle": "Delete the note “{name}”?",
+        "removeBody": "What it was turned into stays.",
+        "removed": "Note deleted",
+        "notFound": "This note is not there, or it is not yours to read.",
+        "details": "Details",
+        "linkActivity": "{type} · {name}",
+        "linkReminder": "Reminder · {when}"
+      },
+      "turn": {
+        "label": "Turn into",
+        "notYet": "not yet",
+        "kinds": {
+          "activity": "Logged meeting or call",
+          "reminder": "Reminder",
+          "task": "Task",
+          "action_item": "Action item",
+          "achievement": "Achievement"
+        },
+        "activityTitle": "Log a meeting or call",
+        "reminderTitle": "Set a reminder",
+        "organisation": "Organisation",
+        "searchOrg": "Search organisations by name or number",
+        "noOrg": "No organisation found",
+        "type": "Type",
+        "outcome": "Outcome",
+        "line": "What happened",
+        "when": "When",
+        "text": "Remind me to",
+        "logged": "{type} logged on {name}",
+        "reminded": "Reminder set for {when}"
+      },
+      "finish": {
+        "label": "Finish meeting",
+        "title": "Finish meeting",
+        "logOn": "Log the meeting on the organisation",
+        "tasks": "Action items become tasks",
+        "tasksNotYet": "with Tasks — not yet",
+        "save": "Log meeting",
+        "done": "Meeting logged on {name}"
+      },
+      "wrap": {
+        "label": "Wrap up today",
+        "title": "Wrap up today",
+        "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
+        "carry": "Carry over to {date}",
+        "done": "Done",
+        "turn": "Turn into",
+        "save": "Done for today",
+        "saved": "Day wrapped up",
+        "none": "Nothing left to handle today."
+      }
     },
     "settings": {
       "myProfile": "My profile",

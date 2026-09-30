@@ -1,22 +1,36 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { accountOf } from '@/core/auth/account';
-import { getMe } from '@/core/auth/get-me';
+import { requireMe } from '@/core/auth/require-me';
+import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
+import { MyDay } from '@/modules/my-day/screens/MyDay';
+import { myDay } from '@/modules/my-day/server';
+import { SCOPES, type Scope } from '@/modules/my-day/types';
+import type { OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 
-/** My day's heading is the date, Riyadh's day (V40), no greeting (V217, cut 9); the page itself is being built. */
-export default async function MyDayPage() {
-  const t = await getTranslations();
-  const me = await getMe();
-  const adminAccount = me && me.status === 'ok' && (await accountOf(me.person.id)) === 'admin_account';
-  return (
-    <Page>
-      <PageHeader title={formatDate(new Date(), 'en', { weekday: 'long' })} />
-      {adminAccount ? (
-        // the owner's admin account keeps the settings; his own work is on his employee account (V444, W1)
+/** A person's open notes are few; every block shows 7 of them, and Wrap up today walks them all. */
+const READ = 100;
+
+/**
+ * My day (V433): headed by Riyadh's date (V40, V217), Capture then Convert (`modules/my-day`). Until builder A's
+ * api.my_day lands (P3-13) the page says "Being built." as before; the owner's admin account keeps the settings (V444).
+ */
+export default async function MyDayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
+}) {
+  const [t, me, sp] = await Promise.all([getTranslations(), requireMe(), searchParams]);
+  const title = formatDate(new Date(), 'en', { weekday: 'long' });
+  if ((await accountOf(me.person.id)) === 'admin_account')
+    return (
+      <Page>
+        <PageHeader title={title} />
+        {/* the owner's admin account keeps the settings; his own work is on his employee account (V444, W1) */}
         <DataState
           kind="empty"
           message={t('pages.myDay.adminAccount')}
@@ -30,9 +44,24 @@ export default async function MyDayPage() {
             </Link>
           }
         />
-      ) : (
+      </Page>
+    );
+
+  const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
+  const [answer, org] = await Promise.all([
+    myDay(scope, READ),
+    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+  ]);
+  if (!answer)
+    return (
+      <Page>
+        <PageHeader title={title} />
         <DataState kind="empty" message={t('pages.beingBuilt')} />
-      )}
+      </Page>
+    );
+  return (
+    <Page>
+      <MyDay data={{ title, scope, answer, more: sp.more === '1', people: org.people }} />
     </Page>
   );
 }

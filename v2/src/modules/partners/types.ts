@@ -151,6 +151,8 @@ export type Note = {
   version: number;
   mine: boolean;
   mentions: string[];
+  /** The My day note it was made from (V433), when the reader may see that note; absent or null otherwise. */
+  from_note?: { id: string; title: string | null } | null;
 };
 
 export type PartnerCard = {

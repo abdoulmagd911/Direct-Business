@@ -647,4 +647,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'turn-into-offers-a-task-too-soon',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a task waits for Tasks',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "{ task: 'tasks', action_item: 'tasks', achievement: 'kpis' }",
+        replace: "{ action_item: 'tasks', achievement: 'kpis' }",
+      },
+    ],
+  },
+  {
+    name: 'block-draws-every-row',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'seven rows',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  return { rows: rows.slice(0, BLOCK_ROWS),',
+        replace: '  return { rows,',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-carries-to-a-friday',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Sunday after a Thursday',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  while (d.getUTCDay() === 5 || d.getUTCDay() === 6);',
+        replace: '  while (false);',
+      },
+    ],
+  },
+  {
+    name: 'private-note-reads-as-everyone',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Only me',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: '      {t(`pages.myDay.visibility.${visibility}`)}',
+        replace: "      {t('pages.myDay.visibility.workspace')}",
+      },
+    ],
+  },
 ];

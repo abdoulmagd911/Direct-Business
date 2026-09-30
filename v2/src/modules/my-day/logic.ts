@@ -1,0 +1,85 @@
+import type { MyNote, NoteKind, NoteLink, TurnKind, WrapChoice } from './types';
+
+/** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
+export const BLOCK_ROWS = 7;
+
+export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean } {
+  return { rows: rows.slice(0, BLOCK_ROWS), more: Math.max(total, rows.length) > BLOCK_ROWS };
+}
+
+/**
+ * Turn into (V433): a logged meeting or call and a reminder now; a task and an action item arrive with Tasks (P5-2), an
+ * achievement with the KPIs page (P5-6). Until its page is built an option shows greyed, saying "not yet".
+ */
+export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
+  task: 'tasks',
+  action_item: 'tasks',
+  achievement: 'kpis',
+};
+
+export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
+  const page = TURN_NEEDS[kind];
+  return !page || built.has(page);
+}
+
+/** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */
+export const SLASH: Record<string, NoteKind> = { '/note': 'sticky', '/meeting': 'meeting', '/checklist': 'checklist' };
+
+export function parseCapture(text: string, kind: NoteKind): { kind: NoteKind; title: string } {
+  const t = text.trim();
+  const [head, ...rest] = t.split(/\s+/);
+  const slashed = head ? SLASH[head.toLowerCase()] : undefined;
+  return slashed ? { kind: slashed, title: rest.join(' ') } : { kind, title: t };
+}
+
+/** A note's line: its title, else its first words, else its first checklist row. */
+export function noteTitle(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {
+  return (
+    n.title?.trim() || n.body?.trim().split('\n')[0]?.trim() || n.items.find((i) => i.text.trim())?.text.trim() || ''
+  );
+}
+
+/** The whole note as one text, for the line of the activity it becomes. */
+export function noteText(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {
+  return [n.title?.trim(), n.body?.trim(), ...n.items.map((i) => `- ${i.text.trim()}`)].filter(Boolean).join('\n');
+}
+
+export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total: number } {
+  return { done: n.items.filter((i) => i.done).length, total: n.items.length };
+}
+
+/** Where a "turned into" chip leads: an activity opens its organisation's record; a reminder has no page of its own. */
+export function linkRoute(link: NoteLink): string | null {
+  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
+  return null;
+}
+
+/** A note's own page, under My day: where a "from note" chip and a note's row lead. */
+export const noteRoute = (id: string) => `/my-day/notes/${id}`;
+
+/** Wrap up today (V433) walks my open captures of the day: not done, not finished, not turned into anything yet. */
+export function openCaptures(notes: MyNote[], day: string): MyNote[] {
+  return notes.filter(
+    (n) =>
+      n.mine &&
+      !n.done_at &&
+      !n.finished_at &&
+      n.links.length === 0 &&
+      n.happened_on <= day &&
+      !(n.carried_to && n.carried_to > day),
+  );
+}
+
+export function wrapUpChoices(choices: Record<string, WrapChoice | undefined>) {
+  return Object.entries(choices)
+    .filter((e): e is [string, WrapChoice] => e[1] === 'carry' || e[1] === 'done')
+    .map(([note, choice]) => ({ note, choice }));
+}
+
+/** The next working day in Riyadh: Sunday after a Thursday (OLD-WRK-022; Friday and Saturday are the weekend). */
+export function nextWorkingDay(day: string): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  do d.setUTCDate(d.getUTCDate() + 1);
+  while (d.getUTCDay() === 5 || d.getUTCDay() === 6);
+  return d.toISOString().slice(0, 10);
+}
