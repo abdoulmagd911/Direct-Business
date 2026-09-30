@@ -409,3 +409,19 @@ Findings sent to #127 (QA-181, QA-183, QA-184) and #129 (QA-182).
   - V128 lets anyone with Full on the page undo a record change, and the route leaves that decision to the database. So the app was right.
   - The check now tries the admin's latest access change, which only an admin may undo. Re-run on the same stack: head, manager, member and viewer are each refused with `undo.not_allowed`, "You cannot undo this".
 - **The gallery** is retaken in full on v2/main 3f9e946. The #127 and #123 previews carry over (neither head moved), and the gallery items stand as in round 15: #129 changed no screen.
+
+
+## Round 17 — 2026-09-30 12:33 (v2/main 0755dbf: #133 and #134, V181 — production's database is written by one job, from main)
+
+No screen or migration changed (only the workflow, two scripts and their tests), so the gallery, the sweep and the SQL suite stand as in round 16. The job itself was reviewed.
+- **What holds up:**
+  - The password reaches one step and is masked as typed and as encoded. So are the full addresses, and refusals are scrubbed before they are printed.
+  - A merge's run is never cancelled, and the job queues on its own group.
+  - `db push` is migrations only (`--skip-vault`, no seed).
+  - The sync check fails the job by name.
+  - Open PRs' migrations are all newer than main's newest (only #123 carries one), and A9's forward-only check guards the order on each PR.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-185 | 2026-09-30 12:33 | V181, #133, #134 | Medium | Builder A | **The production job doesn't wait for the tests.** `db-production` in `.github/workflows/v2.yml` has no `needs:`, so on a merge it applies the new migrations to production at the same moment `db-plain` and `db-supabase` start building the merged code from zero. Two PRs each green on their own can merge minutes apart, with neither tested against the other; if the combination fails from zero, production already holds it, and only a new migration can take it back. **Fix:** `needs: [checks, db-plain, db-supabase]` on `db-production` (neither database job is ever skipped), so production is written only after main's own run proves the migrations from zero. | Open |
+| QA-186 | 2026-09-30 12:33 | V181 ("no session writes to production") | Medium | Owner (one setting) · Builder A (one line) | **V181's one-writer rule is kept only by the job's `if:`, in a file any branch can change.** `SUPABASE_DB_PASSWORD` is a repository secret. GitHub gives a repository secret to every workflow run from a branch of this repository, including a pull request's run, which uses the branch's own copy of the workflow, and a new workflow file pushed to any branch. So a branch that changes or drops the `if:` reaches production with the password, although no session means to write there. **Fix:** in GitHub → Settings → Environments, a `production` environment whose deployment branches are v2/main only. Move `SUPABASE_DB_PASSWORD` into it as an environment secret, and add `environment: production` to `db-production`. The password then reaches only a job running on v2/main. | Open |
