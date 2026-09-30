@@ -345,3 +345,15 @@ The P1 items of the walk, each with an owner and sent to its builder. The P2 and
 | QA-178 | 2026-09-30 00:00 | W16 | **P1** | Builder B | **Production: settings values show raw keys** (`account_manager`, the prefix `DK-P`, `monogram`, `sunday`). **Fix:** show the words; keys only in the Key column. Includes QA-163. | Open |
 | QA-179 | 2026-09-30 00:00 | W22 | **P1** | Builder B | **Production: there is nowhere to enter Arabic names while Arabic is off.** The Arabic fields must stay editable in the forms and lists whatever `app.arabic_enabled` says (it switches the Arabic interface, not the data). Related to QA-151. | Open |
 | QA-180 | 2026-09-30 00:00 | W24, ACC-093 | **P1** | Builder A · Builder B | **Production: adding a person with an email that already exists (different letter case) says "The server did not answer" but creates the person without the email.** Cause: on main, Add person is two calls, `person_create` and then `/auth/admin/emails` (`OrgAccess.tsx:266–286`); the second is refused after the first has committed. **Fix:** one request, all or nothing, with the refusal in words ("That email already belongs to someone"). | **Fixed on #117** (merge pending): `/auth/admin/people` adds the person and the email in one request (V171) |
+
+## Round 13 — 2026-09-30 05:24 (v2/main 692135a: #128 the guards refuse, never ask; the builders' heads of 30 Sep 04:58)
+
+- **The shell guard after #128 (the owner's rule of 30 Sep: nothing prompts him; the dangerous families are refused; everyday sandbox commands pass).** `matcher.mjs` finds none of its commands under-protected once its delete cases follow that rule: `rm` and `find` in the sandbox now pass by the owner's decision, and the checkout is recoverable from the remote. The QA lane's own `git push -u origin v2/q-1` is now refused by the repo's guard. That is stricter than required, and it doesn't affect this session, which runs under the production checkout's settings.
+- **The database guard after #128: QA-134 is unchanged.** `sql-matcher.mjs` still finds the same 7 destructive statements waved through (for example `delete … where true`, a rewrite of `auth.users`, and `session_replication_role`). Under the new rule they must be refused.
+- **QA suite on the builders' new heads** (each built from zero):
+  - #103 (5b81b5f) and #109 (7abb6d6): 7 fail. QA-47 and QA-57 to QA-59 now pass.
+  - #117 (efc2ed0): 7 fail, the same seven.
+  - #121 (d9ca10a): 5 fail. QA-118 and QA-120 pass as well.
+  - Still failing on every branch: QA-02, QA-03, QA-04, QA-121 (the approver doors) and QA-175 (Recently deleted).
+- **QA-122 is still not fixed on #117 at efc2ed0.** Choosing a password still sets it on the signed-in email only.
+

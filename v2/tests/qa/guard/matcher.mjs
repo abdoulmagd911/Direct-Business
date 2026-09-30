@@ -8,7 +8,8 @@
 //   node v2/tests/qa/guard/matcher.mjs [repo-root]     exits 1 when any command gets a looser answer than it must
 //
 // "must" is the owner's rule for this repository: nothing that rewrites or deletes history, a branch or the hosted
-// database, and nothing that deletes outside /tmp, runs without a person's click.
+// database runs without being refused or asked. Since 30 Sep (#128) the guard refuses rather than asks, and everyday
+// sandbox commands (rm, find) pass; DENY and ASK both count as protected.
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -68,11 +69,10 @@ const CASES = [
   ['git -C . push --prune origin refs/heads/v2/*', 'ASK', '--prune deletes remote branches'],
   ['git push origin v2/main', 'ASK', 'straight onto the integration branch, past review'],
   ['git -C . push --all origin', 'ASK', 'every local branch, the production one included'],
-  // deletes outside /tmp
-  ['rm -rf /tmp/ /home/user/repo', 'ASK', '/tmp/ plus a second path'],
-  ['rm -rf /tmp/../home/user/repo', 'ASK', 'out of /tmp by ..'],
-  ['find /home/user/repo -delete', 'ASK', 'find -delete'],
-  ['find /home/user/repo -exec rm -rf {} +', 'ASK', 'find -exec rm'],
+  // deletes in the sandbox: the owner's rule of 30 Sep (#128) lets everyday rm and find pass — a checkout is recoverable
+  // from the remote; kept here so a later change to that rule shows up
+  ['rm -rf /tmp/ /home/user/repo', 'ALLOW', 'rm in the sandbox (owner, 30 Sep)'],
+  ['find /home/user/repo -delete', 'ALLOW', 'find in the sandbox (owner, 30 Sep)'],
   // ordinary work that must stay click-free (not a looser answer than ALLOW needed; recorded to catch over-blocking)
   ['git -C . log --oneline -3', 'ALLOW', 'reading'],
   ['git push -u origin v2/q-1', 'ALLOW', "the lane's own branch"],
