@@ -69,8 +69,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/auth/password-rules.ts',
-        find: 'password.length >= MIN_PASSWORD',
-        replace: 'password.length >= 1',
+        find: '[...password].length < MIN_PASSWORD',
+        replace: '[...password].length < 1',
       },
     ],
   },
@@ -81,8 +81,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/auth/require-me.ts',
-        find: 'if (await mustChangePassword()) redirect(`/set-password?next=${encodeURIComponent(here)}`);',
-        replace: 'void mustChangePassword;',
+        find: "if (me.status === 'must_change_password') redirect(`${CHANGE_PASSWORD_PATH}?next=${encodeURIComponent(here)}`);",
+        replace: "if (me.status === 'must_change_password') return me as never;",
       },
     ],
   },
@@ -168,14 +168,90 @@ export const sabotages = [
     ],
   },
   {
+    // V166, V441: the database decides and logs, but only the server's secret key puts the password into Auth.
+    name: 'e2e-password-never-reaches-auth',
+    breaks: [e2e('an-admin-generates-a-temporary-password-that-must-be-changed-first')],
+    expect: 'Auth took the generated password',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });',
+        replace: '{ error: null } as { error: null | { message: string } }; void authUserId;',
+      },
+    ],
+  },
+  {
     name: 'change-password-skips-the-current',
     breaks: [e2e('password')],
     expect: 'the current password is checked',
     edits: [
       {
         file: 'src/core/auth/password-actions.ts',
-        find: "  if (check !== 'ok') return { ok: false, error: check === 'wrong' ? 'wrong_current' : 'unavailable' };\n",
-        replace: '  void check;\n',
+        find: "  const check = await changeWithCurrent(email, String(rawCurrent ?? ''), password);\n",
+        replace:
+          "  const check = ((await db.auth.updateUser({ password })).error ? 'unavailable' : 'ok') as 'ok' | 'wrong' | 'unavailable';\n  void changeWithCurrent;\n",
+      },
+    ],
+  },
+  // ---- the 17:22 audit (V172): too many tries, and a server action called by its ID keeps its rules
+  {
+    name: 'e2e-a-locked-email-reads-as-a-broken-server',
+    breaks: [e2e('five-wrong-passwords-lock-the-email-for-fifteen-minutes')],
+    expect: 'and the right password is refused in the same words',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "  if (check.data === 'locked' || check.data === 'rate_limited') return { ok: false, error: 'rate_limited' };\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'e2e-own-password-without-the-rule',
+    breaks: [e2e('a-server-action-called-by-its-id-keeps-its-rules')],
+    expect: 'setOwnPassword sets a password only when the database says a change is due',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "  if (status === 'ok') return { ok: false, error: 'not_needed' };\n  if (status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };\n",
+        replace:
+          "  if (status !== 'ok' && status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };\n",
+      },
+    ],
+  },
+  {
+    name: 'e2e-a-code-checked-while-the-door-is-off',
+    breaks: [e2e('a-server-action-called-by-its-id-keeps-its-rules')],
+    expect: 'verifyCode refuses while the door is off',
+    edits: [
+      {
+        file: 'src/core/auth/actions.ts',
+        find: "  if (!(await signInMethods()).code) return { ok: false, error: 'code_off' };\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'e2e-a-wrong-current-password-is-not-counted',
+    breaks: [e2e('a-server-action-called-by-its-id-keeps-its-rules')],
+    expect: 'a wrong current password counts as a wrong password: the fifth locks the e-mail',
+    edits: [
+      {
+        file: 'src/core/auth/password-actions.ts',
+        find: "    const counted = await serviceDb().rpc('sign_in_password_refused', {\n      p_email: email,\n      p_detail: 'invalid_credentials',\n      p_user_agent: ua ?? undefined,\n    });\n",
+        replace: '    const counted = { data: String(ua).slice(0, 0) as string };\n',
+      },
+    ],
+  },
+  {
+    name: 'e2e-everyone-gets-nothing',
+    breaks: [e2e('generate-for-everyone-without-a-password.alone')],
+    expect: 'everyone without a password gets one',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: '      out.push({ ...p, temporary_password });\n',
+        replace: '      if (!temporary_password) out.push({ ...p, temporary_password });\n',
       },
     ],
   },

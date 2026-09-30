@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMe } from '@/core/auth/get-me';
 import { refusalOf } from '@/core/auth/me';
+import { CHANGE_PASSWORD_PATH } from '@/core/auth/password';
 import { safeNext } from '@/core/auth/safe-next';
 import { serverDb } from '@/core/db/server';
 
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
   const next = safeNext(request.nextUrl.searchParams.get('next'));
   const me = await getMe();
   if (me?.status === 'ok') return NextResponse.redirect(new URL(next, request.url));
+  // A password to change is no refusal (V166): the session stays, and the person is sent to change it.
+  if (me?.status === 'must_change_password')
+    return NextResponse.redirect(new URL(`${CHANGE_PASSWORD_PATH}?${new URLSearchParams({ next })}`, request.url));
   const params = new URLSearchParams({ next });
   const reason = me ? refusalOf(me) : null;
   if (reason) params.set('reason', reason);

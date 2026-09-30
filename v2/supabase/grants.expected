@@ -71,13 +71,18 @@ function api.partner_side_set(p_id uuid, p_side text, p_values jsonb, p_reason t
 function api.partner_status_set(p_id uuid, p_side text, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
 function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
+function api.password_changed(p_auth_user uuid) execute service_role
 function api.people() execute authenticated
+function api.people_without_password() execute authenticated
+function api.person_auth_found(p_auth_user uuid) execute authenticated
 function api.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function api.person_auth_state(p_person uuid) execute service_role
 function api.person_create(p_person jsonb, p_reason text) execute authenticated
 function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
+function api.person_emails_unlinked(p_person uuid) execute authenticated
+function api.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
@@ -99,7 +104,11 @@ function api.side_field_save(p_id uuid, p_values jsonb, p_version integer, p_rea
 function api.sign_in_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function api.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function api.sign_in_limited(p_email text) execute service_role
 function api.sign_in_log(p_person uuid, p_before timestamp with time zone, p_limit integer) execute authenticated
+function api.sign_in_methods() execute service_role
+function api.sign_in_password_check(p_email text, p_user_agent text) execute service_role
+function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
 function api.undo(p_request uuid) execute authenticated
@@ -159,13 +168,18 @@ function core.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p
 function core.notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.org() execute authenticated
 function core.page_seen(p_page text) execute authenticated
+function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated
+function core.people_without_password() execute authenticated
+function core.person_auth_found(p_auth_user uuid) execute authenticated
 function core.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function core.person_auth_state(p_person uuid) execute service_role
 function core.person_create(p_person jsonb, p_reason text) execute authenticated
 function core.person_devices(p_person uuid) execute authenticated
 function core.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function core.person_email_remove(p_id uuid, p_reason text) execute authenticated
+function core.person_emails_unlinked(p_person uuid) execute authenticated
+function core.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function core.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
@@ -186,7 +200,11 @@ function core.settings_log(p_before timestamp with time zone, p_limit integer) e
 function core.sign_in_check(p_email text, p_user_agent text) execute service_role
 function core.sign_in_complete(p_provider text, p_device_label text, p_user_agent text) execute authenticated
 function core.sign_in_event(p_email text, p_result text, p_detail text, p_user_agent text, p_provider text) execute service_role
+function core.sign_in_limited(p_email text) execute service_role
 function core.sign_in_log(p_person uuid, p_before timestamp with time zone, p_limit integer) execute authenticated
+function core.sign_in_methods() execute service_role
+function core.sign_in_password_check(p_email text, p_user_agent text) execute service_role
+function core.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
 function core.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function core.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
 function core.view_default_set(p_page text, p_view uuid) execute authenticated

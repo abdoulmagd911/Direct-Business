@@ -24,6 +24,7 @@
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
+      "code_off": "Sign in with your password",
       "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
@@ -54,7 +55,10 @@
         "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
         "unavailable": "Can't reach the server. Check your connection and try again.",
         "email_required": "Enter your work email.",
-        "password_required": "Enter your password."
+        "password_required": "Enter your password.",
+        "too_long": "Too long — choose a shorter password",
+        "same_as_email": "Not your email address",
+        "not_needed": "Your password doesn't need changing here — use My profile → Change password."
       },
       "subtitle": "Sign in with your work email and password.",
       "signingIn": "Signing in…",
@@ -330,7 +334,8 @@
       "late_days": "Days after which an entry is logged late"
     },
     "auth": {
-      "device_idle_days": "Days a device may go unused before it needs a new code"
+      "device_idle_days": "Days a device may go unused before it signs in again",
+      "code_door_enabled": "Sign in with an emailed code as well as the password"
     },
     "app": {
       "arabic_enabled": "Arabic",
@@ -452,7 +457,9 @@
         "code_expired": "Code expired",
         "provider_error": "Sending failed",
         "signed_out": "Signed out",
-        "rate_limited": "Too many codes"
+        "rate_limited": "Too many tries",
+        "wrong_password": "Wrong password",
+        "locked": "Locked — too many wrong passwords"
       }
     },
     "loadMore": "Show earlier",
@@ -659,7 +666,7 @@
         "generated": "Temporary password generated",
         "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "temporaryBody": "Hand it over in person or by phone — it is shown only now. It works until they choose their own password, which their next sign-in asks for before anything else.",
         "copy": "Copy",
         "copied": "Copied"
       }
@@ -830,6 +837,10 @@
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
+    },
+    "person_password": {
+      "has_one": "This person already has a password of their own — it is kept",
+      "no_sign_in": "This person has no allowed email yet"
     }
   },
   "notifications": {
