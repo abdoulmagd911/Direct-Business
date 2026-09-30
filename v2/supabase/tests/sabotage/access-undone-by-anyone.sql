@@ -11,21 +11,24 @@ begin
   if authz.is_admin() then
     return true;
   end if;
-  if not exists (select 1 from (select distinct c.table_name from audit.change c where c.request_id = q.id) t
-                 left join core.entity e on e.table_name = t.table_name and e.active
-                 where e.page_key is null or authz.level_of(me, e.page_key) < 'full') then
+  if exists (select 1 from audit.change c where c.request_id = q.id and not authz.can_see_as(me, c.table_name, c.row_id)) then
+    return false;
+  end if;
+  if not exists (select 1 from audit.change c
+                 left join core.entity e on e.table_name = c.table_name and e.active
+                 where c.request_id = q.id
+                   and (e.id is null or authz.record_level(me, c.table_name, c.row_id) < 'full')) then
     return true;
   end if;
   if q.at <= core.clock() - pg_catalog.make_interval(hours => window_h) then
     return false;
   end if;
-  if q.actor_id = me then
-    return true;
-  end if;
-  return not exists (select 1 from audit.change c
-                     left join core.entity e on e.table_name = c.table_name and e.active
-                     where c.request_id = q.id
-                       and (not (me = any (core.owners_of(c.table_name, c.row_id)))
-                            or e.page_key is null or authz.level_of(me, e.page_key) < 'own'));
+  return not exists (
+    select 1 from audit.change c
+    left join core.entity e on e.table_name = c.table_name and e.active
+    where c.request_id = q.id
+      and (e.id is null
+           or not ((e.page_key is null and e.level is null) or authz.record_level(me, c.table_name, c.row_id) >= 'own')
+           or (q.actor_id is distinct from me and not (me = any (core.owners_of(c.table_name, c.row_id))))));
 end
 $$;

@@ -3,7 +3,7 @@
 Questions still open, in plain words, each with one recommended answer that the spec assumes until it is answered.
 Every question so far has been answered and now lives in `docs/v2/DECISIONS.md`: the first round's Qn became decision
 **V(20+n)** (Q7 → V27; Q1 → V21; Q3 → V23, deferred); from Q32 on, a ruled question takes the next free V number
-(Q32 → V126, the starting theme Direct, confirmed by the owner on 29 Sep; Q33 → V73; Q34, Q35 and Q36 → V99).
+(Q32 → V126, the starting theme Direct, confirmed by the owner on 29 Sep; Q33 → V73; Q34, Q35 and Q36 → V99; Q41 → V473; Q42 and Q44 → V492 and V493).
 
 **Open — from the Scout's old-app comparison (29 Sep, `SCENARIOS-OLD.csv`):**
 
@@ -23,10 +23,16 @@ blocking.
 **Q40 — Which side does an MoU set to Prospect?** (OLD-PRF-030, V461). *Recommended:* the side chosen on the achievement —
 the Client side for a client MoU, the Supplier & partner side for a partner MoU — never a new client (C4). Not blocking.
 
-**Q41 — A status column in the KPI sheet export?** (OLD-PRF-135). *Recommended:* **yes**, the pace band's word (V449), as
-the strategy team's sheet has one. Not blocking: a column in P6-2c.
+The spec assumes each recommendation until the owner or the oversight rules. (Q41, the KPI sheet's status column, was
+answered by the oversight on 29 Sep: V473.)
 
-The spec assumes each recommendation until the owner or the oversight rules.
+**Open — from the oversight's call analysis (29 Sep, 21:08 and 22:40; the owner's call):**
+
+**Q43 — Add "B2C" to the banned words?** V59 bans "B2B", V404 added "B2G"; the calls say "B2C" for what the app calls
+Individuals. *Recommended:* **yes** — the check refuses it like the others; the segment stays Individuals. Not blocking.
+
+The spec assumes the recommendation until the owner rules. (Q42 "referred by" and Q44 the zodiac badge were answered by
+the owner on 30 Sep 00:34: no referred-by field — V492; no zodiac, optional photos — V493.)
 
 No default is pending: the Scout's money rulings V420–V425 were made ACTIVE by the owner on 29 Sep 12:55 (V434), their
 numbers and switches now admin settings.

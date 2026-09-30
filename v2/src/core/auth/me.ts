@@ -49,7 +49,13 @@ export type SignOutReason = 'person' | 'admin' | 'inactive' | 'switched_off' | '
 export type MeRefused =
   { status: 'not_listed' } | { status: 'switched_off' } | { status: 'signed_out'; reason: SignOutReason };
 
-export type MeAnswer = Me | MeRefused;
+/** A sign-in whose password an admin set (V166): it reaches nothing but the change (CHANGE_PASSWORD_PATH) until then. */
+export interface MeMustChange {
+  status: 'must_change_password';
+  session: { device_id: string; email: string };
+}
+
+export type MeAnswer = Me | MeRefused | MeMustChange;
 
 /** The refusal a signed-out visitor is shown on the sign-in page (?reason=…), from the gate's answer. */
 export type Refusal = 'not_listed' | 'switched_off' | 'inactive' | 'signed_out_elsewhere' | 'signed_out_by_admin';

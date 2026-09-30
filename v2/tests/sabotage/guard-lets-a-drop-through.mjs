@@ -2,8 +2,8 @@
 export const sabotages = [
   {
     name: 'guard-lets-a-drop-through',
-    breaks: ['unit:tests/unit/guard/the-database-guard-asks-only-before-destructive-statements.test.ts'],
-    expect: 'a DROP still asks',
+    breaks: ['unit:tests/unit/guard/the-database-guard-refuses-only-destructive-statements.test.ts'],
+    expect: 'a DROP is refused',
     edits: [
       {
         file: '../.claude/hooks/sql-guard.mjs',

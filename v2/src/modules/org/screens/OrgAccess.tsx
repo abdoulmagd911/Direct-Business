@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
+import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -266,27 +267,31 @@ function AddPersonDialog({
     const created = await run(
       { ...words, done: t('settings.people.added', { name: f.full_name_en.trim() }) },
       async () => {
-        const r = (await rpc('person_create', {
-          p_person: {
-            full_name_en: f.full_name_en.trim(),
-            job_title_en: f.job_title_en.trim() || null,
-            department_id: f.department_id,
-            team_id: f.team_id || null,
-            manager_id: f.manager_id || null,
-            role_id: f.role_id || null,
-            can_sign_in: f.can_sign_in,
-          } as never,
-        })) as { id: string; request_id?: string | null };
-        if (f.email.trim()) {
-          const res = await fetch('/auth/admin/emails', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ person_id: r.id, email: f.email.trim().toLowerCase(), primary: true }),
-          });
-          const body = (await res.json()) as { ok: boolean; error?: { key: string } };
-          if (!body.ok) throw new Error(body.error?.key ?? 'common.unavailable');
-        }
-        return r;
+        // the person, the allowed e-mail, the role and the sign-in switch are one request (ACC-093, V178): a refusal —
+        // the e-mail already held, say — saves nothing, and is said in words with the holder's name
+        const res = await fetch('/auth/admin/people', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            person: {
+              full_name_en: f.full_name_en.trim(),
+              job_title_en: f.job_title_en.trim() || null,
+              department_id: f.department_id,
+              team_id: f.team_id || null,
+              manager_id: f.manager_id || null,
+              role_id: f.role_id || null,
+              can_sign_in: f.can_sign_in,
+              email: f.email.trim().toLowerCase() || null,
+            },
+          }),
+        });
+        const body = (await res.json().catch(() => null)) as
+          | { ok: true; id: string; request_id?: string | null }
+          | { ok: false; error: { kind: DbErrorKind; key: string; detail?: string } }
+          | null;
+        if (!body) throw new DbError('Unavailable', 'common.unavailable', String(res.status));
+        if (!body.ok) throw new DbError(body.error.kind, body.error.key, body.error.detail);
+        return body;
       },
     );
     setBusy(false);
