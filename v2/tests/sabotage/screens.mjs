@@ -252,8 +252,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/ListEditor.tsx',
-        find: 'draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;',
-        replace: 'draft.name_en.trim().length > 0;',
+        find: '    draft.name_ar.trim().length > 0 &&\n',
+        replace: '',
       },
     ],
   },
