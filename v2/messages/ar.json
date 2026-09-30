@@ -60,7 +60,7 @@
     "settings": {
       "profile": "ملفي",
       "org": "المنظمة والصلاحيات",
-      "partners": "العملاء والموردون والشركاء",
+      "partners": "العملاء والموردون",
       "performance": "الخطة والأداء",
       "finance": "المالية",
       "work": "العمل",
@@ -76,7 +76,8 @@
     "create": "إنشاء",
     "notifications": "الإشعارات",
     "notificationsUnread": "الإشعارات، {count} غير مقروءة",
-    "profile": "ملفي"
+    "profile": "ملفي",
+    "searchShort": "بحث"
   },
   "palette": {
     "placeholder": "انتقل إلى صفحة أو ابحث…",
@@ -148,11 +149,27 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "أهلًا {name}"
+      "greeting": "أهلًا {name}",
+      "greetingMorning": "صباح الخير، {name}",
+      "greetingAfternoon": "طاب يومك، {name}",
+      "greetingEvening": "مساء الخير، {name}",
+      "adminAccount": "هذا حساب مسؤول النظام، وهو مخصّص للإعدادات. أما عملك أنت فعلى حسابك كموظف.",
+      "goSettings": "الانتقال إلى الإعدادات"
     },
     "settings": {
       "myProfile": "ملفي",
       "find": "ابحث عن إعداد"
+    },
+    "empty": {
+      "my_day": "لا شيء مستحق اليوم. تظهر هنا مهامك وتذكيراتك وتحديثاتك.",
+      "overview": "لا أرقام بعد. تظهر هنا إيرادات الشهر وتكلفته وربحه بعد تسجيل العمل.",
+      "pipeline": "لا فرص بعد. تظهر هنا العملاء المحتملون والصفقات الجارية.",
+      "projects": "لا مشاريع بعد. تظهر هنا المشاريع ومراحلها.",
+      "tasks": "لا مهام بعد. تظهر هنا المهام التي تملكها أو تتابعها.",
+      "finance": "لا فواتير بعد. تظهر هنا الفواتير والتكلفة والربح.",
+      "kpis": "لا مؤشرات بعد. تظهر هنا المستهدفات والمحقق منها.",
+      "reports": "لا تقارير بعد. تظهر هنا التقارير الصادرة.",
+      "appraisal": "لا تقييم أداء بعد. تظهر دورتك هنا عند فتحها."
     }
   },
   "entity": {
@@ -362,6 +379,17 @@
       "next_step_before": "لا تسبق الخطوة التالية النشاط أبدًا",
       "outcome_required": "يحتاج هذا النوع إلى نتيجة",
       "outcome_of_other_type": "هذه النتيجة تخص نوعًا آخر"
+    },
+    "crash": {
+      "title": "حدث خطأ ما",
+      "body": "تعذّر عرض هذه الصفحة. حاول مجددًا، أو عُد إلى «يومي».",
+      "goMyDay": "الانتقال إلى «يومي»",
+      "bodyNoData": "تعذّر الوصول إلى بيانات التطبيق الآن. حاول مجددًا بعد قليل، أو عُد إلى «يومي»."
+    },
+    "notFound": {
+      "title": "الصفحة غير موجودة",
+      "body": "لا شيء على العنوان <address></address>.",
+      "goMyDay": "الانتقال إلى «يومي»"
     }
   },
   "partners": {
@@ -592,5 +620,120 @@
     "stale": "راكدة منذ {date}",
     "nextStepDue": "الخطوة التالية {date}",
     "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة"
+  },
+  "activity": {
+    "signIn": {
+      "results": {
+        "code_sent": "تم التحقق من البريد"
+      }
+    },
+    "fields": {
+      "full_name_en": "الاسم الكامل",
+      "full_name_ar": "الاسم الكامل (بالعربية)",
+      "nickname_en": "اسم الشهرة",
+      "nickname_ar": "اسم الشهرة (بالعربية)",
+      "job_title_en": "المسمى الوظيفي",
+      "job_title_ar": "المسمى الوظيفي (بالعربية)",
+      "department_id": "الإدارة",
+      "team_id": "الفريق",
+      "manager_id": "يتبع",
+      "role_id": "الدور",
+      "can_sign_in": "يمكنه تسجيل الدخول",
+      "joined_on": "تاريخ الالتحاق",
+      "left_on": "تاريخ المغادرة",
+      "active": "نشط",
+      "email": "البريد الإلكتروني",
+      "is_primary": "أساسي",
+      "display_name_en": "اسم العرض",
+      "display_name_ar": "اسم العرض (بالعربية)",
+      "theme": "المظهر",
+      "density": "الكثافة",
+      "locale": "اللغة",
+      "start_page": "صفحة البداية",
+      "drawer_pinned": "القائمة",
+      "notify": "الإشعارات",
+      "avatar_color": "اللون",
+      "badge_kind": "الشارة",
+      "badge_value": "قيمة الشارة",
+      "name_en": "الاسم",
+      "name_ar": "الاسم (بالعربية)",
+      "key": "المفتاح",
+      "sort": "الترتيب",
+      "value": "القيمة",
+      "valid_from": "يسري من",
+      "reason": "السبب",
+      "level": "المستوى",
+      "page_key": "الصفحة",
+      "capability_key": "الإذن",
+      "granted": "ممنوح",
+      "trade_name_en": "الاسم التجاري",
+      "trade_name_ar": "الاسم التجاري (بالعربية)",
+      "status": "الحالة",
+      "owner_id": "المالك",
+      "priority_id": "الأولوية",
+      "key_partner": "شريك رئيسي",
+      "type_id": "النوع",
+      "tier_id": "المستوى",
+      "side": "الجانب",
+      "on": "مفعّل",
+      "since": "منذ",
+      "until": "حتى"
+    },
+    "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
+    "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
+    "reportsTo": "يتبع {name}"
+  },
+  "settings": {
+    "list": {
+      "side": "الجانب",
+      "status": "الحالة",
+      "values": {
+        "side": {
+          "client": "عميل",
+          "supplier_partner": "مورد وشريك"
+        },
+        "status": {
+          "at_risk": "مهددة",
+          "lost": "مفقودة"
+        }
+      }
+    },
+    "people": {
+      "noRole": "بلا دور",
+      "adminAccount": "حساب مسؤول النظام",
+      "testAccount": "حساب الاختبار",
+      "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني",
+      "addEmailFor": "إضافة بريد إلكتروني لـ {name}",
+      "removeEmailTitle": "إزالة {email}؟",
+      "removeEmailBody": "لن يتمكن {email} من تسجيل الدخول بعد الآن. يُسجَّل كل تغيير مع سببه.",
+      "pagesGroup": "الصفحات",
+      "settingsGroup": "أقسام الإعدادات",
+      "nicknameEn": "اسم الشهرة",
+      "nicknameAr": "اسم الشهرة (بالعربية)",
+      "fullNameAr": "الاسم الكامل (بالعربية)",
+      "switchedOn": "تم تفعيل {name}",
+      "switchedOff": "تم إيقاف {name}"
+    },
+    "values": {
+      "partner": {
+        "logo_fallback": {
+          "monogram": "الأحرف الأولى",
+          "blank": "فارغ"
+        }
+      }
+    },
+    "emptyGroup": "لا إعدادات هنا بعد. تصل مع الخطوة التي تبني هذا القسم.",
+    "fields": {
+      "width": "عدد الخانات",
+      "prefix": "البادئة",
+      "followers": "المتابعون",
+      "account_manager": "مدير الحساب",
+      "commercial_manager": "المدير التجاري",
+      "in_app": "داخل التطبيق",
+      "email": "البريد الإلكتروني"
+    }
+  },
+  "notifications": {
+    "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   }
 }

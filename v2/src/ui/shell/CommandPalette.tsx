@@ -84,7 +84,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])].filter((p) => matches(t(p.label)));
   const actions = paletteActions().filter((a) => canSee(me, a.page) && matches(t(a.label)));
   const createActions = CREATE_ACTIONS.filter(
-    (a) => canSee(me, a.page) && matches(`${t('top.create')} ${t(`create.${a.key}`)}`),
+    (a) => a.built && canSee(me, a.page) && matches(`${t('top.create')} ${t(`create.${a.key}`)}`),
   );
   const personName = (p: Hit) => (locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en);
 
@@ -110,17 +110,19 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             </div>
             <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
               <Command.Empty className="px-3 py-6 text-center text-base text-muted">{t('palette.empty')}</Command.Empty>
-              <Command.Group heading={t('palette.pages')} className={groupClass}>
-                {pages.map((p) => {
-                  const Icon = p.icon;
-                  return (
-                    <Command.Item key={p.key} value={t(p.label)} onSelect={() => go(p.route)} className={itemClass}>
-                      <Icon className="size-4 text-muted" aria-hidden="true" />
-                      {t(p.label)}
-                    </Command.Item>
-                  );
-                })}
-              </Command.Group>
+              {pages.length ? (
+                <Command.Group heading={t('palette.pages')} className={groupClass}>
+                  {pages.map((p) => {
+                    const Icon = p.icon;
+                    return (
+                      <Command.Item key={p.key} value={t(p.label)} onSelect={() => go(p.route)} className={itemClass}>
+                        <Icon className="size-4 text-muted" aria-hidden="true" />
+                        {t(p.label)}
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              ) : null}
               {partners.length ? (
                 <Command.Group heading={t('palette.organisations')} className={groupClass}>
                   {partners.map((p) => (
@@ -155,37 +157,39 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   ))}
                 </Command.Group>
               ) : null}
-              <Command.Group heading={t('palette.actions')} className={groupClass}>
-                {createActions.map((a) => {
-                  const Icon = a.icon;
-                  return (
-                    <Command.Item
-                      key={a.key}
-                      value={`${t('top.create')} ${t(`create.${a.key}`)}`}
-                      onSelect={() => go(a.route)}
-                      className={itemClass}
-                    >
-                      <Icon className="size-4 text-muted" aria-hidden="true" />
-                      {t('top.create')} · {t(`create.${a.key}`)}
-                    </Command.Item>
-                  );
-                })}
-                {actions.map((a) => {
-                  const Icon = a.icon;
-                  return (
-                    <Command.Item
-                      key={a.key}
-                      value={t(a.label)}
-                      onSelect={() => go(a.route)}
-                      className={itemClass}
-                      data-palette-action={a.key}
-                    >
-                      <Icon className="size-4 text-muted" aria-hidden="true" />
-                      {t(a.label)}
-                    </Command.Item>
-                  );
-                })}
-              </Command.Group>
+              {createActions.length || actions.length ? (
+                <Command.Group heading={t('palette.actions')} className={groupClass}>
+                  {createActions.map((a) => {
+                    const Icon = a.icon;
+                    return (
+                      <Command.Item
+                        key={a.key}
+                        value={`${t('top.create')} ${t(`create.${a.key}`)}`}
+                        onSelect={() => go(a.route)}
+                        className={itemClass}
+                      >
+                        <Icon className="size-4 text-muted" aria-hidden="true" />
+                        {t('top.create')} · {t(`create.${a.key}`)}
+                      </Command.Item>
+                    );
+                  })}
+                  {actions.map((a) => {
+                    const Icon = a.icon;
+                    return (
+                      <Command.Item
+                        key={a.key}
+                        value={t(a.label)}
+                        onSelect={() => go(a.route)}
+                        className={itemClass}
+                        data-palette-action={a.key}
+                      >
+                        <Icon className="size-4 text-muted" aria-hidden="true" />
+                        {t(a.label)}
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              ) : null}
             </Command.List>
           </Command>
         </RD.Content>

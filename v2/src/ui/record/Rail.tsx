@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '../cn';
 
 /** A group of properties in the details rail (V81, V95): a small heading and its fields. */
@@ -8,6 +8,7 @@ export function RailSection({
   className,
   plain = false,
   footer,
+  ...rest
 }: {
   title: ReactNode;
   children: ReactNode;
@@ -16,9 +17,9 @@ export function RailSection({
   plain?: boolean;
   /** A control after the fields (an "Add" button), outside the <dl>. */
   footer?: ReactNode;
-}) {
+} & Omit<HTMLAttributes<HTMLElement>, 'title' | 'children' | 'className'>) {
   return (
-    <section className={cn('flex flex-col gap-3', className)}>
+    <section className={cn('flex flex-col gap-3', className)} {...rest}>
       <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
       {plain ? (
         <div className="flex flex-col gap-3">{children}</div>

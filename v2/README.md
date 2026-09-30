@@ -141,3 +141,9 @@ filters, search, the bulk assign as one command, New) and the organisation recor
 contacts, references and contracts. `ui/HoverCard.tsx` is the hover card (organisations and people); Ctrl K finds
 organisations. Proof: `tests/e2e/partners.spec.ts`, `tests/e2e/screens-p3-9.spec.ts`; sabotages
 `at-risk-needs-no-reason`, `bulk-assign-one-by-one`, `hover-card-shows-one-side`.
+
+The visual review, round 1 (V216): words never keys (`settings.values.*`, `settings.fields.*`, `activity.fields.*`,
+`describeWith(org)` for ids), the People list's real status, the person record's Arabic fields and email controls, the
+Not found page (`ui/NotFoundBody.tsx`) and the crash page (`app/(app)/error.tsx`), every area page's own empty line.
+Proof: `tests/e2e/review-1.spec.ts`, `tests/unit/shell/the-crash-page-*.test.tsx`; sabotages `no-role-reads-as-allowed`,
+`not-found-shows-the-raw-path`, `activity-shows-column-names`, `setting-value-shows-the-key`.
