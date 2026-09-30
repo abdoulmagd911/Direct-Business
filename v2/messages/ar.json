@@ -120,9 +120,7 @@
     "client": "عميل",
     "supplier": "مورد",
     "invoice": "فاتورة",
-    "achievement": "إنجاز",
-    "partner": "شريك",
-    "project": "مشروع"
+    "achievement": "إنجاز"
   },
   "common": {
     "cancel": "إلغاء",
@@ -155,10 +153,7 @@
       "myProfile": "ملفي",
       "find": "ابحث عن إعداد"
     },
-    "beingBuilt": "قيد الإنشاء.",
-    "myDay": {
-      "greeting": "أهلًا {name}"
-    }
+    "beingBuilt": "قيد الإنشاء."
   },
   "entity": {
     "partner": "شريك",
