@@ -39,7 +39,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await form.getByLabel('Trade name', { exact: true }).fill(name);
   await form.getByLabel('Trade name (Arabic)').fill(arabic);
   await form.getByLabel('Type').click();
-  await page.getByRole('option', { name: 'Supplier', exact: true }).click();
+  await page.getByRole('option', { name: 'Hotel supplier', exact: true }).click();
   await page.locator('[data-partner-save]').click();
   await expect(toast(page, `${name} added`)).toBeVisible();
   await expect(page).toHaveURL(/\/suppliers\/[0-9a-f-]{36}$/);
@@ -95,7 +95,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   const [row] = await sql<{ number: string }>(`select number from partner.partner where id = $1`, [id]);
   await expect(hover).toContainText(row!.number);
   await expect(hover, 'the hover card names both sides').toContainText('Client · Corporate · At risk');
-  await expect(hover, 'the hover card names both sides').toContainText('Supplier · Supplier');
+  await expect(hover, 'the hover card names both sides').toContainText('Supplier · Hotel supplier');
 });
 
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {
