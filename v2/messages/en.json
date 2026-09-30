@@ -210,6 +210,10 @@
     "confirm": "Remove"
   },
   "pages": {
+    "myDay": {
+      "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
+      "goSettings": "Go to Settings"
+    },
     "settings": {
       "myProfile": "My profile",
       "find": "Find a setting"

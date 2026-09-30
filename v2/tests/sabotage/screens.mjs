@@ -623,4 +623,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'page-squeezes-its-tabs',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'the strip keeps its height',
+    edits: [
+      {
+        file: 'src/ui/shell/AppShell.tsx',
+        find: ' [&>*]:shrink-0 ${className}',
+        replace: ' ${className}',
+      },
+    ],
+  },
+  {
+    name: 'admin-account-gets-a-day',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'the admin account starts on Settings (V444)',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: "  if ((await accountOf(me.person.id)) === 'admin_account') return '/settings';\n",
+        replace: '',
+      },
+    ],
+  },
 ];

@@ -242,14 +242,14 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                   {r.name_ar}
                 </td>
                 {extra ? (
-                  <td className="py-2.5 pe-4 whitespace-nowrap" data-list-extra={extraOf(r)}>
+                  <td className="py-2.5 pe-4 sm:whitespace-nowrap" data-list-extra={extraOf(r)}>
                     {extraWord(extraOf(r))}
                   </td>
                 ) : null}
                 <td className="hidden py-2.5 font-data text-muted sm:table-cell">{r.key}</td>
                 <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
                 <td className="py-2.5 text-end">
-                  <span className="inline-flex flex-wrap justify-end gap-1">
+                  <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
                     <Button
                       size="xs"
                       variant="ghost"
