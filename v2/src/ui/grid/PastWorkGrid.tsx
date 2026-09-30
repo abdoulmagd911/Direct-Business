@@ -28,9 +28,29 @@ import {
   type PersonMatch,
   type Problem,
 } from './rows';
+import {
+  isSourceReport,
+  periodsFor,
+  SOURCE_PERIOD,
+  SOURCE_REPORTS,
+  type SourceReport,
+  type SourceReportKind,
+} from './source';
 
 /** The grid's words, from the screen's catalog (like the table's `labels`). */
 export interface PastWorkLabels {
+  /** "Source report" — the report the rows come from, their evidence (V506). */
+  source: string;
+  /** The four reports: "BD monthly", "Partnerships", "Commercial quarterly", "Improvements". */
+  sourceKinds: Record<SourceReportKind, string>;
+  /** "Which report" — its month, or its quarter. */
+  period: string;
+  /** A quarter's name: "Q1 2025". A month is named by the calendar in the reader's language. */
+  quarter: (n: number, year: number) => string;
+  /** Beside Save until a report is picked: "Pick the report these rows come from". */
+  pickSource: string;
+  /** Beside a date an undated row took (V504): "the report's last day". */
+  fromReport: string;
   /** The paste area: "Paste rows from Excel or Google Sheets". */
   pasteHere: string;
   /** "The first row holds the headers". */
@@ -74,6 +94,12 @@ export interface PastWorkGridProps {
   defaultKind?: string | null;
   lang: 'ar' | 'en';
   labels: PastWorkLabels;
+  /**
+   * The report the person last pasted from (the screen keeps it per person, like the mapping): the pickers start on it
+   * when it is still one they may pick. Without it nothing is picked, and Save waits for a report (V506).
+   */
+  source?: SourceReport | null;
+  onSourceChange?: (source: SourceReport) => void;
   /** The person's remembered mapping (the screen keeps it per person); a guess from the paste otherwise. */
   mapping?: Mapping | null;
   onMappingChange?: (mapping: Mapping) => void;
@@ -170,6 +196,20 @@ export function PastWorkGrid(props: PastWorkGridProps) {
   const [saving, setSaving] = useState(false);
   const fields: readonly Field[] = props.resolvePeople ? FIELDS : OWN_FIELDS;
   const today = props.today ?? riyadhToday();
+  // The report the person last used, when it is still one to pick; otherwise nothing is picked.
+  const [first] = useState(() => (isSourceReport(props.source, today) ? props.source : null));
+  const [kind, setKind] = useState<SourceReportKind | null>(first?.kind ?? null);
+  const [period, setPeriod] = useState<string | null>(first?.period ?? null);
+  const source = useMemo(() => {
+    const picked = kind && period ? { kind, period } : null;
+    return isSourceReport(picked, today) ? picked : null;
+  }, [kind, period, today]);
+  const pick = (k: SourceReportKind, p: string | null) => {
+    setKind(k);
+    setPeriod(p);
+    const next = p ? { kind: k, period: p } : null;
+    if (isSourceReport(next, today)) props.onSourceChange?.(next);
+  };
 
   const table = useMemo(() => readPastedTable(text), [text]);
   const width = Math.max(0, ...table.map((r) => r.length));
@@ -203,8 +243,9 @@ export function PastWorkGrid(props: PastWorkGridProps) {
         organisations: orgs,
         people: resolvePeople ? people : undefined,
         saved,
+        source,
       }),
-    [table, mode, mapping, today, choices, defaultKind, orgs, people, resolvePeople],
+    [table, mode, mapping, today, choices, defaultKind, orgs, people, resolvePeople, source],
   );
   const savedKeys = props.savedKeys;
   const askSaved = useMemo(
@@ -227,8 +268,9 @@ export function PastWorkGrid(props: PastWorkGridProps) {
   };
 
   async function onSave() {
-    const request = toRequest(rows, mode);
-    if (!request.rows.length || saving) return;
+    if (!source || saving) return;
+    const request = toRequest(rows, mode, source);
+    if (!request.rows.length) return;
     setSaving(true);
     try {
       const { requestId } = await props.save(request);
@@ -256,8 +298,43 @@ export function PastWorkGrid(props: PastWorkGridProps) {
     })),
   ];
 
+  const periodName = (p: string) => {
+    const [y, rest] = p.split('-');
+    if (rest!.startsWith('Q')) return labels.quarter(Number(rest!.slice(1)), Number(y));
+    return monthName(lang, Number(y), Number(rest));
+  };
+  const periods = kind ? periodsFor(kind, today).reverse() : [];
+
   return (
     <div className="flex flex-col gap-4" data-past-work-grid={mode}>
+      <div className="flex flex-wrap items-end gap-3" data-past-work-source>
+        <div className="flex min-w-48 flex-col gap-1 text-sm">
+          <span className="text-muted">{labels.source}</span>
+          <Select
+            aria-label={labels.source}
+            placeholder={labels.source}
+            value={kind ?? ''}
+            options={SOURCE_REPORTS.map((k) => ({ value: k, label: labels.sourceKinds[k] }))}
+            onValueChange={(v) => {
+              const next = v as SourceReportKind;
+              // A month and a quarter are not the same report: a new length of period asks for the report again.
+              pick(next, kind && SOURCE_PERIOD[kind] === SOURCE_PERIOD[next] ? period : null);
+            }}
+          />
+        </div>
+        <div className="flex min-w-48 flex-col gap-1 text-sm">
+          <span className="text-muted">{labels.period}</span>
+          <Select
+            aria-label={labels.period}
+            placeholder={labels.period}
+            disabled={!kind}
+            value={period ?? ''}
+            options={periods.map((p) => ({ value: p, label: periodName(p) }))}
+            onValueChange={(p) => kind && pick(kind, p)}
+          />
+        </div>
+      </div>
+
       <Textarea
         aria-label={labels.pasteHere}
         placeholder={labels.pasteHere}
@@ -329,7 +406,10 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                   >
                     <td className="px-3 py-2 font-data text-muted">{r.line}</td>
                     <td className="px-3 py-2">{r.title}</td>
-                    <td className="px-3 py-2 font-data">{r.happenedOn ?? ''}</td>
+                    <td className="px-3 py-2" data-date-from-report={r.dateFromReport || undefined}>
+                      <span className="font-data">{r.happenedOn ?? ''}</span>
+                      {r.dateFromReport ? <span className="ms-2 text-muted">{labels.fromReport}</span> : null}
+                    </td>
                     <td className="px-3 py-2">{choiceName(r.kind)}</td>
                     <td className="px-3 py-2">{r.organisation?.name ?? ''}</td>
                     <td className="px-3 py-2 text-muted">{r.notes ?? ''}</td>
@@ -364,11 +444,16 @@ export function PastWorkGrid(props: PastWorkGridProps) {
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted" data-past-work-summary>
               {labels.summary(ready, rows.length - ready)}
+              {source ? null : (
+                <span className="ms-2 text-warning" data-past-work-pick-source>
+                  {labels.pickSource}
+                </span>
+              )}
             </span>
             <Button
               variant="primary"
               loading={saving}
-              disabled={!ready}
+              disabled={!ready || !source}
               onClick={() => void onSave()}
               data-past-work-save
             >
@@ -379,6 +464,17 @@ export function PastWorkGrid(props: PastWorkGridProps) {
       ) : null}
     </div>
   );
+}
+
+/** A month's name in the reader's language — the Gregorian calendar, Latin digits (V40): "March 2025", «مارس 2025». */
+function monthName(lang: 'ar' | 'en', year: number, month: number): string {
+  return new Intl.DateTimeFormat(lang, {
+    month: 'long',
+    year: 'numeric',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    timeZone: 'UTC',
+  }).format(Date.UTC(year, month - 1, 15));
 }
 
 /** A remembered mapping that still fits the paste (no column beyond its width), or null to guess afresh. */

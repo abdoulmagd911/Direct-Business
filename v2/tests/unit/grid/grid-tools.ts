@@ -1,8 +1,12 @@
 import type { PastWorkLabels } from '@/ui/grid/PastWorkGrid';
 import type { Choice, OrgMatch, PersonMatch } from '@/ui/grid/rows';
+import type { SourceReport } from '@/ui/grid/source';
 
 /** Made-up past work (rule 7: Test Co names, made-up tasks) and the lookups a screen would give the grid. */
 export const TODAY = '2026-09-29';
+
+/** The report a test paste comes from (V506): August's BD monthly, the last month over by TODAY. */
+export const SOURCE: SourceReport = { kind: 'bd_monthly', period: '2026-08' };
 
 export const STATUSES: Choice[] = [
   { key: 'not_started', en: 'Not started', ar: 'لم تبدأ' },
@@ -36,6 +40,17 @@ export const PEOPLE = new Map<string, PersonMatch>([
 
 /** The grid's words, as a screen's catalog gives them. */
 export const LABELS: PastWorkLabels = {
+  source: 'Source report',
+  sourceKinds: {
+    bd_monthly: 'BD monthly',
+    partnerships: 'Partnerships',
+    commercial_quarterly: 'Commercial quarterly',
+    improvements: 'Improvements',
+  },
+  period: 'Which report',
+  quarter: (n, y) => `Q${n} ${y}`,
+  pickSource: 'Pick the report these rows come from',
+  fromReport: "the report's last day",
   pasteHere: 'Paste rows from Excel or Google Sheets',
   hasHeader: 'The first row holds the headers',
   fields: {
@@ -59,6 +74,7 @@ export const LABELS: PastWorkLabels = {
     date_unreadable: 'The date cannot be read',
     date_ambiguous: 'The date could be two days',
     date_in_future: 'The date is after today',
+    date_before_start: 'Before 1 January 2025, where past work starts',
     kind_missing: 'No status',
     kind_unknown: 'Unknown status',
     organisation_unknown: 'Unknown organisation',

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readPastedTable } from '@/ui/grid/paste';
 import { guessMapping, readRows, toRequest } from '@/ui/grid/rows';
-import { excelPaste, ORGS, STATUSES, TODAY, twentyTasks } from './grid-tools';
+import { excelPaste, ORGS, SOURCE, STATUSES, TODAY, twentyTasks } from './grid-tools';
 
 /**
  * The plan's P5-2c test: a pasted block of 20 made-up rows maps to 20 rows and one request — origin `backfill`
@@ -38,13 +38,19 @@ describe('a pasted block of 20 rows', () => {
   });
 
   it('makes one request of 20 rows, marked backfill', () => {
-    const request = toRequest(rows, 'tasks');
+    const request = toRequest(rows, 'tasks', SOURCE);
     expect(request.origin).toBe('backfill');
     expect(request.mode).toBe('tasks');
+    expect(request.source, 'the report the rows come from (V506)').toEqual({
+      kind: 'bd_monthly',
+      period: '2026-08',
+      last_day: '2026-08-31',
+    });
     expect(request.rows).toHaveLength(20);
     expect(request.rows[1]).toEqual({
       title: 'Follow up the made-up offer 2',
       happened_on: '2026-09-02',
+      date_from_report: false,
       kind: 'done',
       organisation_id: '00000000-0000-4000-8000-00000000000a',
       notes: null,
@@ -67,6 +73,6 @@ describe('a pasted block of 20 rows', () => {
       defaultKind: 'done',
       organisations: ORGS,
     });
-    expect(toRequest(r, 'tasks').rows).toHaveLength(20);
+    expect(toRequest(r, 'tasks', SOURCE).rows).toHaveLength(20);
   });
 });

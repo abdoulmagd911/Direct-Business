@@ -7,10 +7,12 @@ const PASTE = unit('pastes-from-excel-and-google-sheets-read-the-same.test.ts');
 const ZONES = unit('a-pasted-date-and-riyadhs-today-read-the-same-in-every-time-zone-and-from-an-arabic-sheet.test.ts');
 const GRID = unit('the-grid-previews-every-row-and-saves-the-ready-ones-as-one-request-with-one-undo.test.tsx');
 const OLD = unit('a-pasted-name-is-matched-by-the-database-and-a-row-pasted-twice-is-added-once.test.tsx');
+const SOURCE_TEST = unit('every-paste-names-its-source-report-and-an-undated-row-takes-its-last-day.test.tsx');
 const ROWS = 'src/ui/grid/rows.ts';
 const DATES = 'src/ui/grid/dates.ts';
 const READ = 'src/ui/grid/paste.ts';
 const COMPONENT = 'src/ui/grid/PastWorkGrid.tsx';
+const SOURCE = 'src/ui/grid/source.ts';
 
 /** @type {{ name: string, breaks: string[], expect: string, edits: { file: string, find: string, replace: string }[] }[]} */
 export const sabotages = [
@@ -243,6 +245,94 @@ export const sabotages = [
         find: 'const missing = wanted.filter((n) => !known.has(n) && !waiting.current.has(n));',
         replace: 'const missing = wanted.filter((n) => !known.has(n));',
       },
+    ],
+  },
+  {
+    name: 'grid-lets-a-2024-row-in',
+    breaks: [SOURCE_TEST],
+    expect: 'before past work starts (V506)',
+    edits: [{ file: ROWS, find: 'else if (date.day < PAST_WORK_FROM)', replace: "else if (date.day < '1900')" }],
+  },
+  {
+    name: 'grid-leaves-an-undated-row-undated',
+    breaks: [SOURCE_TEST],
+    expect: 'dates an undated row on the report',
+    edits: [
+      {
+        file: ROWS,
+        find: 'const reportDay = !dateCell && o.source ? periodLastDay(o.source.period) : null;',
+        replace: 'const reportDay = null as string | null;',
+      },
+    ],
+  },
+  {
+    name: 'grid-dates-an-undated-row-today',
+    breaks: [SOURCE_TEST],
+    expect: 'dates an undated row on the report',
+    edits: [
+      {
+        file: ROWS,
+        find: 'const reportDay = !dateCell && o.source ? periodLastDay(o.source.period) : null;',
+        replace: 'const reportDay = !dateCell && o.source ? o.today : null;',
+      },
+    ],
+  },
+  {
+    name: 'grid-saves-without-a-report',
+    breaks: [SOURCE_TEST],
+    expect: 'no Save without a report (V506)',
+    edits: [{ file: COMPONENT, find: 'disabled={!ready || !source}', replace: 'disabled={!ready}' }],
+  },
+  {
+    name: 'grid-offers-a-report-not-yet-over',
+    breaks: [SOURCE_TEST],
+    expect: 'September is not over on 29 September',
+    edits: [
+      { file: SOURCE, find: 'if (periodLastDay(period)! <= today)', replace: "if (periodLastDay(period)! <= '9999')" },
+    ],
+  },
+  {
+    name: 'grid-counts-february-as-30-days',
+    breaks: [SOURCE_TEST],
+    expect: 'February 2025 has 28 days',
+    edits: [
+      {
+        file: SOURCE,
+        find: 'const last = new Date(Date.UTC(year, month, 0)).getUTCDate();',
+        replace: 'const last = month === 2 ? 30 : new Date(Date.UTC(year, month, 0)).getUTCDate();',
+      },
+    ],
+  },
+  {
+    name: 'grid-keys-a-row-by-its-report',
+    breaks: [SOURCE_TEST],
+    expect: 'as one row',
+    edits: [
+      {
+        file: ROWS,
+        find: 'const key = JSON.stringify([\n      o.mode,',
+        replace: 'const key = JSON.stringify([\n      o.mode,\n      o.source?.period,',
+      },
+    ],
+  },
+  {
+    name: 'grid-sends-no-report',
+    breaks: [BLOCK],
+    expect: 'the report the rows come from (V506)',
+    edits: [
+      {
+        file: ROWS,
+        find: 'source: { kind: source.kind, period: source.period, last_day: lastDay },',
+        replace: "source: undefined as unknown as BackfillRequest['source'],",
+      },
+    ],
+  },
+  {
+    name: 'grid-reads-a-report-day-in-the-computers-zone',
+    breaks: [SOURCE_TEST],
+    expect: 'in every time zone',
+    edits: [
+      { file: SOURCE, find: 'Date.UTC(year, month, 0)).getUTCDate()', replace: 'Date.UTC(year, month, 0)).getDate()' },
     ],
   },
 ];

@@ -14,7 +14,7 @@ import {
   type PersonMatch,
 } from '@/ui/grid/rows';
 import { toast } from '@/ui/Toast';
-import { excelPaste, LABELS, ORGS, PEOPLE, STATUSES, TODAY, twentyTasks } from './grid-tools';
+import { excelPaste, LABELS, ORGS, PEOPLE, SOURCE, STATUSES, TODAY, twentyTasks } from './grid-tools';
 
 /**
  * The old app's missed Past work rows (the Architect's round 13, SCENARIOS-OLD.csv):
@@ -77,7 +77,7 @@ describe('OLD-059 — a pasted name is matched by the database, never guessed', 
       ['', null, 'missing', []],
       ['Someone Not Asked', null, null, ['person_checking']],
     ]);
-    const request = toRequest(rows, 'tasks');
+    const request = toRequest(rows, 'tasks', SOURCE);
     expect(
       request.rows.map((r) => [r.person_id, r.owner_unknown]),
       'a matched person, or owner Unknown — never the person pasting',
@@ -94,7 +94,7 @@ describe('OLD-059 — a pasted name is matched by the database, never guessed', 
     const mapping = guessMapping(table, FIELDS);
     const rows = readRows(table, { mode: 'tasks', mapping, today: TODAY, choices: STATUSES, organisations: ORGS });
     expect(rows.every((r) => r.person === null && r.problems.length === 0)).toBe(true);
-    expect(toRequest(rows, 'tasks').rows.map((r) => [r.person_id, r.owner_unknown])).toEqual(
+    expect(toRequest(rows, 'tasks', SOURCE).rows.map((r) => [r.person_id, r.owner_unknown])).toEqual(
       Array(6).fill([null, false]),
     );
   });
@@ -119,7 +119,7 @@ describe('OLD-PRF-045 — a row pasted twice is added once', () => {
     const again = [a![0]!.toUpperCase().replace(/ /g, '  '), a![1]!, a![2]!, a![3]!, 'another note'];
     const rows = read([head!, a!, b!, again]);
     expect(rows.map((r) => r.problems)).toEqual([[], [], ['repeated']]);
-    expect(toRequest(rows, 'tasks').rows).toHaveLength(2);
+    expect(toRequest(rows, 'tasks', SOURCE).rows).toHaveLength(2);
   });
 
   it('OLD-PRF-045: keeps a row with another status or another day', () => {
@@ -138,10 +138,10 @@ describe('OLD-PRF-045 — a row pasted twice is added once', () => {
     const held = new Map(first.map((r, i) => [r.key, i < 5]));
     const waiting = read(twentyTasks(), new Map());
     expect(waiting.every((r) => r.problems.join() === 'saved_checking')).toBe(true);
-    expect(toRequest(waiting, 'tasks').rows, 'nothing is sent before the answer').toEqual([]);
+    expect(toRequest(waiting, 'tasks', SOURCE).rows, 'nothing is sent before the answer').toEqual([]);
     const second = read(twentyTasks(), held);
     expect(second.filter((r) => r.problems.includes('already_saved'))).toHaveLength(5);
-    expect(toRequest(second, 'tasks').rows.map((r) => r.import_key)).toEqual(first.slice(5).map((r) => r.key));
+    expect(toRequest(second, 'tasks', SOURCE).rows.map((r) => r.import_key)).toEqual(first.slice(5).map((r) => r.key));
   });
 });
 
@@ -182,6 +182,7 @@ describe('the grid on a screen', () => {
       lang: 'en',
       labels: LABELS,
       today: TODAY,
+      source: SOURCE,
       resolveOrganisations: lookup<OrgMatch>(ORGS, { kind: 'none' }),
       save,
       ...props,

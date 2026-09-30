@@ -1,10 +1,11 @@
 import { readDay, type DateOrder } from './dates';
+import { PAST_WORK_FROM, periodLastDay, type SourceReport } from './source';
 
 /**
  * The Past work grid's rows (P5-2c, V400): pasted cells mapped to fields, read and checked, then sent as **one
  * request** — origin `backfill`, so the rows are marked Backfilled, raise no notices and are never "logged late".
  * A row that cannot be saved is named in the preview with every reason, and left out of the request; nothing is
- * guessed for it.
+ * guessed for it. Every paste comes from one of the department's reports, which stands as its rows' evidence (V506).
  */
 export type PastWorkMode = 'tasks' | 'achievements';
 
@@ -47,6 +48,7 @@ export type Problem =
   | 'date_unreadable'
   | 'date_ambiguous'
   | 'date_in_future'
+  | 'date_before_start'
   | 'kind_missing'
   | 'kind_unknown'
   | 'organisation_unknown'
@@ -62,6 +64,8 @@ export interface PastRow {
   line: number;
   title: string;
   happenedOn: string | null;
+  /** The row had no date, so it took the report's last day (V504) — shown as the report's, never as the sheet's. */
+  dateFromReport: boolean;
   /** The chosen status or category key. */
   kind: string | null;
   organisation: { name: string; id: string | null } | null;
@@ -82,8 +86,13 @@ export interface PastRow {
 export interface ReadOptions {
   mode: PastWorkMode;
   mapping: Mapping;
-  /** Riyadh's today (`YYYY-MM-DD`, D20): a past entry may be dated any day up to it, never after (V400). */
+  /**
+   * Riyadh's today (`YYYY-MM-DD`, D20): a past entry may be dated any day from 1 January 2025 (V506) up to it, never
+   * after (V400).
+   */
   today: string;
+  /** The report the paste comes from (V506): an undated row takes its last day (V504). Without it a date is needed. */
+  source?: SourceReport | null;
   choices: readonly Choice[];
   /** The status a task row without one takes (Done: past work is mostly finished); achievements have none. */
   defaultKind?: string | null;
@@ -160,10 +169,14 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
     const title = at(row, 'title');
     if (!title) problems.push('title_missing');
 
-    const date = readDay(at(row, 'happened_on'), o.mapping.dateOrder);
+    // An undated row takes the report's last day (V504); a date in the sheet is always read as the sheet has it.
+    const dateCell = at(row, 'happened_on');
+    const reportDay = !dateCell && o.source ? periodLastDay(o.source.period) : null;
+    const date = reportDay ? { day: reportDay } : readDay(dateCell, o.mapping.dateOrder);
     const happenedOn = 'day' in date ? date.day : null;
     if ('problem' in date) problems.push(date.problem);
     else if (date.day > o.today) problems.push('date_in_future');
+    else if (date.day < PAST_WORK_FROM) problems.push('date_before_start');
 
     const kindCell = at(row, 'kind');
     let kind: string | null = null;
@@ -221,6 +234,7 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
       line: start + i + 1,
       title,
       happenedOn,
+      dateFromReport: reportDay !== null,
       kind,
       organisation,
       notes: at(row, 'notes') || null,
@@ -256,9 +270,13 @@ export function keysToCheck(rows: readonly PastRow[]): string[] {
 export interface BackfillRequest {
   mode: PastWorkMode;
   origin: 'backfill';
+  /** The report every row comes from, its evidence (V506), with the last day its undated rows took (V504). */
+  source: { kind: SourceReport['kind']; period: string; last_day: string };
   rows: {
     title: string;
     happened_on: string;
+    /** The row had no date in the report and took its last day (V504). */
+    date_from_report: boolean;
     kind: string;
     organisation_id: string | null;
     notes: string | null;
@@ -271,16 +289,23 @@ export interface BackfillRequest {
   }[];
 }
 
-/** One request per paste: every row with no problem, and only those (V400). */
-export function toRequest(rows: readonly PastRow[], mode: PastWorkMode): BackfillRequest {
+/**
+ * One request per paste: every row with no problem, and only those (V400), with the report they come from — never
+ * without one (V506).
+ */
+export function toRequest(rows: readonly PastRow[], mode: PastWorkMode, source: SourceReport): BackfillRequest {
+  const lastDay = periodLastDay(source.period);
+  if (!lastDay) throw new Error(`not a report period: ${source.period}`);
   return {
     mode,
     origin: 'backfill',
+    source: { kind: source.kind, period: source.period, last_day: lastDay },
     rows: rows
       .filter((r) => r.problems.length === 0)
       .map((r) => ({
         title: r.title,
         happened_on: r.happenedOn!,
+        date_from_report: r.dateFromReport,
         kind: r.kind!,
         organisation_id: r.organisation?.id ?? null,
         notes: r.notes,

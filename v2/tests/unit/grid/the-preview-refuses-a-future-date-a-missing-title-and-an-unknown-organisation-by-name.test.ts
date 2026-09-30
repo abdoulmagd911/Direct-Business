@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readDay } from '@/ui/grid/dates';
 import { readPastedTable } from '@/ui/grid/paste';
 import { guessMapping, organisationNames, readRows, toRequest, type Mapping } from '@/ui/grid/rows';
-import { CATEGORIES, excelPaste, ORGS, STATUSES, TODAY } from './grid-tools';
+import { CATEGORIES, excelPaste, ORGS, SOURCE, STATUSES, TODAY } from './grid-tools';
 
 /**
  * The preview names every row that will be refused, with every reason (plan P5-2c, V400): a date after today, a
@@ -48,7 +48,7 @@ describe('the preview', () => {
   });
 
   it('sends only the ready rows', () => {
-    const request = toRequest(rows, 'tasks');
+    const request = toRequest(rows, 'tasks', SOURCE);
     expect(request.rows.map((r) => r.title)).toEqual(['Made-up visit']);
   });
 
@@ -63,7 +63,7 @@ describe('the preview', () => {
       organisations: new Map(),
     });
     expect(early[0]!.problems).toEqual(['organisation_checking']);
-    expect(toRequest(early, 'tasks').rows).toEqual([]);
+    expect(toRequest(early, 'tasks', SOURCE).rows).toEqual([]);
   });
 
   it('refuses an achievement without a category, and reads a category in either language', () => {

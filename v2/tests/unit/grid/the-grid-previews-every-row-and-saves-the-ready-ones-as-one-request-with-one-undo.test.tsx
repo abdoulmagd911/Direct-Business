@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PastWorkGrid, type PastWorkLabels } from '@/ui/grid/PastWorkGrid';
 import type { BackfillRequest, OrgMatch } from '@/ui/grid/rows';
 import { toast } from '@/ui/Toast';
-import { excelPaste, ORGS, STATUSES, TODAY, twentyTasks } from './grid-tools';
+import { excelPaste, ORGS, SOURCE, STATUSES, TODAY, twentyTasks } from './grid-tools';
 
 /**
  * The Past work grid in a browser (jsdom): a paste shows every row in the preview — ready rows marked Backfilled,
@@ -17,6 +17,17 @@ import { excelPaste, ORGS, STATUSES, TODAY, twentyTasks } from './grid-tools';
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const labels: PastWorkLabels = {
+  source: 'Source report',
+  sourceKinds: {
+    bd_monthly: 'BD monthly',
+    partnerships: 'Partnerships',
+    commercial_quarterly: 'Commercial quarterly',
+    improvements: 'Improvements',
+  },
+  period: 'Which report',
+  quarter: (n, y) => `Q${n} ${y}`,
+  pickSource: 'Pick the report these rows come from',
+  fromReport: "the report's last day",
   pasteHere: 'Paste rows from Excel or Google Sheets',
   hasHeader: 'The first row holds the headers',
   fields: { title: 'Title', happened_on: 'Date', kind: 'Status', organisation: 'Organisation', notes: 'Notes' },
@@ -33,6 +44,7 @@ const labels: PastWorkLabels = {
     date_unreadable: 'The date cannot be read',
     date_ambiguous: 'The date could be two days',
     date_in_future: 'The date is after today',
+    date_before_start: 'Before 1 January 2025, where past work starts',
     kind_missing: 'No status',
     kind_unknown: 'Unknown status',
     organisation_unknown: 'Unknown organisation',
@@ -94,6 +106,7 @@ function draw() {
         lang="en"
         labels={labels}
         today={TODAY}
+        source={SOURCE}
         resolveOrganisations={resolve}
         save={save}
         undo={undo}
