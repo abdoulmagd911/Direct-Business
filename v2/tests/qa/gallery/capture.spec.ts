@@ -212,7 +212,9 @@ if (STATE === 'filled') {
 if (STATE === 'empty' || STATE === 'error') {
   test(`gallery · admin · ${STATE}`, async ({ browser }) => {
     test.setTimeout(900_000);
-    const routes = ROUTES.filter((r) => r.list || r.id === 'profile' || r.id === 'settings-people');
+    const routes = ROUTES.filter((r) => r.list || r.id === 'profile' || r.id === 'settings-people').filter(
+      (r) => !ONLY_ROUTES.length || ONLY_ROUTES.includes(r.id),
+    );
     await shoot(browser, 'admin', routes, STATE === 'error');
   });
 }

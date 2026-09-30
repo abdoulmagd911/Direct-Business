@@ -39,12 +39,13 @@ const authAdmin = createClient(URL, SECRET, { auth: { persistSession: false, aut
 
 /**
  * @typedef {{ key: string; id: string; email: string; name: string; role: string | null }} Person
- * @type {Record<string, { role: string | null; label: string; canSignIn?: boolean; listed?: boolean }>}
+ * @type {Record<string, { role: string | null; label: string; canSignIn?: boolean; listed?: boolean; account?: string }>}
  */
 const PEOPLE = {
   admin: { role: 'admin', label: 'Test Admin' },
-  admin_account: { role: 'admin', label: 'Test Owner Account' },
-  qa_test: { role: 'admin', label: 'Test QA Account' },
+  // the owner's admin account and the QA test account (V444, V445): marked as such where core.person.account exists
+  admin_account: { role: 'admin', label: 'Test Owner Account', account: 'admin_account' },
+  qa_test: { role: 'admin', label: 'Test QA Account', account: 'test_account' },
   head: { role: 'head', label: 'Test Head' },
   manager: { role: 'manager', label: 'Test Manager' },
   member: { role: 'member', label: 'Test Member' },
@@ -101,6 +102,18 @@ async function ensureBase() {
              on conflict (code) do nothing`);
 }
 
+/** @type {boolean | undefined} */
+let accountColumn;
+/** Whether core.person.account (V444, V445; #115) is on this database — older checkouts have no such column. */
+async function hasAccountColumn() {
+  accountColumn ??=
+    (
+      await sql(`select 1 from information_schema.columns
+                 where table_schema = 'core' and table_name = 'person' and column_name = 'account'`)
+    ).length > 0;
+  return accountColumn;
+}
+
 /** @param {string} key @returns {Promise<Person>} */
 async function makePerson(key) {
   const def = PEOPLE[key] ?? CATALOGUE_PEOPLE[key];
@@ -114,6 +127,14 @@ async function makePerson(key) {
              (select id from core.role where key = $3), $4, 'staff')`,
     [id, name, def.role, def.canSignIn ?? true],
   );
+  // One of each account (a unique index): a second seed on the same database leaves its person a team member.
+  const account = PEOPLE[key]?.account;
+  if (account && (await hasAccountColumn()))
+    await sql(
+      `update core.person set account = $2 where id = $1
+         and not exists (select 1 from core.person o where o.account = $2 and o.deleted_at is null)`,
+      [id, account],
+    );
   if (def.listed === false) return { key, id, email: '', name, role: def.role };
   await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [id, email]);
   const created = await authAdmin.createUser({ email, email_confirm: true, password: PASSWORD });
@@ -172,6 +193,11 @@ async function main() {
   };
   const admin = await apiAs(u('admin'));
   const why = `QA sweep fixture ${tag}`;
+
+  // The gallery only (QA_SEED_SWITCH_OFF=1): "Test Switched Off" is switched off through the admin's own door, so the
+  // People list shows the state (gallery item 2). The sweep leaves it on — 01-sign-in switches it off itself.
+  if (process.env.QA_SEED_SWITCH_OFF === '1')
+    await admin('person_switch', { p_id: u('switchoff').id, p_on: false, p_reason: why });
 
   // shut out of Clients (V147): a member, and a manager who keeps the Clients capabilities of their role
   for (const k of ['noclients', 'noclientscap'])
