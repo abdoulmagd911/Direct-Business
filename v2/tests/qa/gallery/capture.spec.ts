@@ -243,6 +243,12 @@ if (STATE === 'door') {
           const list = await admin.listUsers({ perPage: 1000 });
           const u = list.data.users.find((x) => x.email === who.email);
           if (u) await admin.updateUserById(u.id, { app_metadata: { ...u.app_metadata, must_change_password: true } });
+          // since #109 the flag the door reads lives in the database (core.person_auth), set in a logged request
+          const db = `supabase_db_${process.env.QA_STACK_PROJECT || 'direct-commercial-qa'}`;
+          const sql =
+            "begin; select audit.begin('system', 'qa.gallery_must_change'); update core.person_auth set " +
+            `must_change_password = true where email = '${who.email.replace(/'/g, "''")}'; select audit.end(); commit;`;
+          execSync(`docker exec ${db} psql -U postgres -v ON_ERROR_STOP=1 -c "${sql}"`, { stdio: 'ignore' });
           await page.goto('/sign-in');
           await hydrated(page);
           await tryDoor(page, who.email, fx().password);
