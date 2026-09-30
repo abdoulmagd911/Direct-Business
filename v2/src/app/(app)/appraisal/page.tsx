@@ -8,7 +8,7 @@ export default async function AreaPage() {
   return (
     <Page page="appraisal" title={t('nav.appraisal')}>
       <PageHeader title={t('nav.appraisal')} />
-      <DataState kind="empty" message={t('state.empty')} />
+      <DataState kind="empty" message={t('pages.empty.appraisal')} />
     </Page>
   );
 }

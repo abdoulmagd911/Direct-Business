@@ -64,9 +64,11 @@ export function AppShell({ children, arabicEnabled = false }: { children: ReactN
  * Screens use `Page` (shell/Page.tsx), which draws this only after the gate has answered.
  */
 export function PageFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
+  // The page scrolls, so its blocks never shrink: a block that scrolls sideways (a tab strip, a wide table) would
+  // otherwise be squeezed to nothing on a long page — the Activity tabs vanished and swallowed the first click (W11).
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] ${className}`}
+      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
       data-page
     >
       {children}
