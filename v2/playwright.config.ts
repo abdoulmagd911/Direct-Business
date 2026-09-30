@@ -25,7 +25,7 @@ export default defineConfig<ClockOptions>({
     launchOptions: executablePath ? { executablePath } : {},
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /\.alone\.spec\.ts$/ },
     // The old app's lesson (PRF-139): the same flows under another clock, an Arabic browser and a moved clock — the
     // app must still speak of Riyadh days, Gregorian dates and Western digits (V40), whatever the machine says. The
     // moved clock is tests/e2e/support/fixtures.ts (`movedClock`): 22:30 UTC on the last day of a month, which is
@@ -34,6 +34,15 @@ export default defineConfig<ClockOptions>({
       name: 'utc-arabic-browser',
       testMatch: /(p3-7|settings|org|profile|access|door|partners)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], locale: 'ar-SA', timezoneId: 'UTC', movedClock: true },
+    },
+    // A spec whose action reaches every person (one "Generate for everyone without a password", say) runs alone, after
+    // all the others: in parallel it would change the people another spec is in the middle of using. Name it *.alone.spec.ts.
+    {
+      name: 'alone',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /\.alone\.spec\.ts$/,
+      dependencies: ['chromium', 'utc-arabic-browser'],
+      fullyParallel: false,
     },
   ],
   webServer: {

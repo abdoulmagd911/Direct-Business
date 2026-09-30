@@ -58,6 +58,8 @@ export default defineModule({
       label: `entity.${key}`,
       ...(owners ? { owners } : {}),
       level: 'partner.row_level',
+      // A side's status changes are its history: never rewritten, not even by retiring a reason (V161).
+      ...(key === 'side_status' ? { history: true } : {}),
     })),
     // Client-side matters with no organisation of their own (V65, D25).
     { key: 'code_terms', table: 'partner.code_terms', page: 'clients', label: 'entity.code_terms' },

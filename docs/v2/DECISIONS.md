@@ -7,7 +7,9 @@ change that taught it.
 
 **ID ranges** (so two sessions never collide — spec A18): V1–V99 architect and oversight · V100–V199 builder A ·
 V200–V299 builder B · **V300–V399 builder C** (Arabic, exports, the Past work grid — V410) · **V400–V499 owner decisions
-relayed by the oversight** (from 29 Sep, once V1–V99 were used up). **The QA session records no decisions**: its
+relayed by the oversight** (from 29 Sep, once V1–V99 were used up; filled to V493 on 30 Sep) · **V500–V599 owner decisions
+and the oversight's rulings from 30 Sep 2026** · **V600–V699 the architect**, when a rule of its own is needed — the
+`v2-ids` check widens to V1–V699 in the same step (builder A). **The QA session records no decisions**: its
 findings are QA-nn in its log, and a ruling on one becomes a V-number here, written by the architect (V410). A ruled
 open question of the first round keeps its number inside its ID: question Qn (Q1–Q31) became
 **V(20+n)** (Q7 → V27), so an old "Q7" still finds its answer here. Later questions (Q32 on) take the next free V
@@ -758,6 +760,144 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 
 Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-scanned-for-chrome-words`, `the-list-editor-takes-a-banned-word`, `a-banned-seed`, `an-org-name-takes-a-banned-word`.
 
+**V161 — Rights are read at the moment of an undo or a restore** ACTIVE · 2026-09-29 (the oversight's QA review of #93). Having made a change, or removed a record, is never a right by itself. Before, an admin demoted to head could still undo their own settings, list and person changes (a manager line included) for the whole Undo window.
+- `audit.undo_allowed` decides from the person's rights today:
+  - an admin: always;
+  - access (V128): admins only;
+  - My profile (V9, V97): a request of the person's own that changed only their own names (`full_name_*`, `nickname_*`) or their own profile row, within the window — whatever their level on the people pages, since `api.profile_update` let them make it. Nothing else of their own person record is theirs to undo. (Builder B's `profile.spec` Undo found it: #114 met this rule for the first time when v2/main was merged in.)
+  - every record the request touched must be one the person may see now (V143);
+  - Full on every record it touched: yes, at any time;
+  - else, within the window, at least Own now on every record it touched (a record type with neither page nor level counts as Own), and, for someone else's request, being one of each record's owners.
+- `core.restore` the same way: an admin; Full on the record; or at least Own now, and either being the one who removed it or one of its owners. **And what adding it asks** (QA-47, the second QA round): `core.restore_needs` raises what the record type's own write raises — an identifier its side's `identify` capability (a client ID or a discount code the Client side's), a side's owner its side's `assign`, a credit limit `finance.credit_control`. Access rows are an admin's alone, from one list (`audit.access_tables()`) that the undo rule reads too.
+- Tests: UNDO-05 (a demoted admin undoes neither a setting nor a manager line; a team member undoes their own nickname and theme, not their job title, and not after the window; with Own, someone who neither made the change nor owns the record cannot undo it — QA-96), DEL-01 (the one who removed it restores it with Own, not with View; Full on a page restores no access row; its owner restores what someone else removed, with Own only — QA-60; nobody finds in Recently deleted a record they may not see — QA-96; an owner without the capability restores neither an identifier nor a credit limit — QA-47). Sabotages: `undo-by-rights-then`, `my-profile-cannot-be-undone`, `anyone-with-own-undoes-anything`, `restore-by-the-remover-only`, `restore-ignores-the-record-types-capability`, `recently-deleted-shows-everything`, `restore-by-rights-then`, `restore-by-owners-and-full-only`, `access-restored-by-anyone`, and `access-undone-by-anyone` rewritten on the new rule.
+
+**V162 — Undoing or restoring a sign-in record goes through the admin route** ACTIVE · 2026-09-29 (QA). Undoing or restoring an allowed e-mail, a sign-in link or a person switched on or off changes who may sign in, so Supabase Auth must follow in the same breath. Only the server can do that, with the secret key.
+- The server routes `/auth/admin/undo` and the new `/auth/admin/restore` first take a one-time ticket for the signed-in person and that request or record (`api.auth_ticket_issue(kind, target, person)`, service role only; `core.auth_ticket`, no grants). Then they call `api.undo_ticketed(request, ticket)` or `api.restore_ticketed(entity, id, ticket, reason)` as the person, naming the ticket, and re-sync the people named in `auth_resync`.
+- The database undoes or restores a sign-in record only against the ticket named in the call: issued for this person and this target, under a minute old, unused. A plain `api.undo` / `api.restore`, a ticket for another request, one for someone else and an old one are all refused as `undo.via_admin_route` or `restore.via_admin_route`, naming the route. So no screen can skip the re-sync, and a ticket a failed call leaves behind serves nobody (QA-94: before, a ticket matched by target alone, so a plain browser undo could take one and skip the re-sync).
+- Builder B: the undo toast for a sign-in request and the Recently deleted screen's Restore for an allowed e-mail or a sign-in link call these routes, not the database directly.
+- Test UNDO-06 (a switch-off undone only through the route; the ticket cases). Sabotages: `a-sign-in-undone-without-its-ticket`, `a-sign-in-restored-without-its-ticket`, `a-ticket-for-any-target`, `a-ticket-that-never-ages`, `a-ticket-for-anyone`, `a-switch-is-no-sign-in-change`.
+
+**V163 — Who may see is asked everywhere (V143), and the appraisal line about anyone** ACTIVE · 2026-09-29 (QA).
+- Undo refuses a request that touched a record the person may not see (VIS-01; sabotage `undo-ignores-who-may-see`).
+- The daily alerts job inserts a notice only for someone who may see its record (`authz.can_see_as`; ALR-01; sabotage `alerts-ignore-who-may-see`).
+- `authz.reports_to(person, manager)` answers for any two people; the one-argument form asks with the signed-in person as the manager. Rules that decide for someone else (who may see an appraisal, who is told) use the two-argument form (VIS-01; sabotage `reports-to-asks-about-me`).
+- The two-person form `authz.reports_to(person, manager)` stays inside the database (QA-99): only rules running as their owner ask it; a signed-in person reaches the one-person form alone. GRANTS-01 pins it.
+
+**V164 — Setting lists: Recently deleted counts, history stays as it was** ACTIVE · 2026-09-29 (QA).
+- "Used in" (`core.list_uses`) also counts records waiting in Recently deleted, apart (`in_recently_deleted`), so a value such a record uses cannot be removed: a restore would bring back a reference to it.
+- The registry says which record types are history (`history: true` in a module, `core.entity.history`): a side's status changes and the notes (activities logged). Retiring a list value never rewrites them. They keep the old value, counted as `kept_in_history`.
+- Nor does a retire move another setting list's own rows (an activity type's outcomes stay that type's), counted as `kept_in_lists`. (The old per-role field definitions no longer exist: side fields belong to a side, not a type.)
+- A move that would make two live rows one (a contract holding both terms) is refused as `list.retire_blocked_by_duplicate`; one that breaks another rule as `list.retire_blocked_by_rule`. Both are worded in `errors.list.*`, as are `errors.undo.via_admin_route` and `errors.restore.via_admin_route`, and none shows the raw rule's name (QA-98).
+- A record waiting in Recently deleted moves with the rest, counted as `moved_removed`, so a restore brings it back on the replacement, never on the archived value (QA-97).
+- Only an admin retires a value (Settings are admins' — V151); SETS-01 now shows a head refused.
+- Tests SETS-01. Sabotages: `a-value-used-in-recently-deleted-is-removed`, `retire-rewrites-history`, `retire-moves-definitions`, `retire-leaks-a-raw-duplicate`, `a-retire-leaves-removed-rows-behind`, `anyone-retires-a-list-value`.
+
+**V165 — Setting defaults by one function; Arabic names filled; Recently deleted in Arabic** ACTIVE · 2026-09-29 (QA).
+- The registry sync now writes its defaults through `core.setting_defaults_sync`: a new setting's default from the floor date, a changed default from today only while the latest company-wide row is a default (never under or over an admin's value), a default changed twice in a day keeping the later one. SETS-02 now checks the floor row itself and a value an admin set before the change. Sabotages: `a-default-over-an-admins-value` (rewritten), `a-setting-without-its-floor-row`.
+- Every department, team and role made before P3-6d's rule has an Arabic name, so they can be saved again: the seeded Commercial department takes التجاري, the others their English name until an admin writes the Arabic.
+- `api.recently_deleted` gives each row's `label_ar` where its record has one, for the Arabic screens.
+
+**V166 — Sign-in by e-mail and password, the server side** ACTIVE · 2026-09-29 (the owner, 13:50 and 14:10, and the oversight, 15:10; builds V431, V441 and V446; amends V59; carries builder B's V212 onto the database). No e-mail is sent at all. Builder B draws the screens.
+- **An admin generates a temporary password** (V441 — nobody types a password for someone else). `/auth/admin/password` (body: `person_id`, `reason`, optional `replace`) answers the new password once, 16 characters from an alphabet without look-alikes (`temporaryPassword` in `src/core/auth/password.ts`, drawn with `node:crypto`). A reset is a new generate.
+  - First every allowed e-mail of the person is linked to its auth user (`api.person_emails_unlinked`). An auth user that already exists for the e-mail is found and linked, never made twice.
+  - The database decides: `api.person_password_set(person, reason, replace)` is admins only and needs a reason. It is logged as the admin's request, marks every sign-in of the person "must change password" (`core.person_auth.must_change_password`, `password_set_at`, `password_set_by`) and signs every device of the person out (a reset may be for a lost device).
+  - Then the secret key sets the one password on each of those sign-ins in Auth, confirmed (`email_confirm`). The app never stores or logs a password.
+- **A password someone already holds is kept** unless the admin asks for a Reset (`replace`); otherwise the answer is `person_password.has_one`. "Holds" is the app's own record (`core.has_password`: a live sign-in with `password_set_at`), because Auth keeps a hash even for a user made without a password.
+  - An auth user found already there (made in the Supabase dashboard, as the owner did for his admin account, his employee account and the test account on 29 Sep, with passwords he typed himself) is marked as holding one when it is linked (`api.person_auth_found`, admins only, logged `person_auth.found_existing`; `password_set_by` stays empty). Its "must change password" stays off, so nothing replaces or questions the owner's own passwords.
+- **Generate for everyone without a password.** `/auth/admin/password/everyone` (body: `reason`) generates one for each person `api.people_without_password()` lists: staff, switched on, allowed to sign in, with a live allowed e-mail and no password held, the admin asking aside (a generate signs its person out everywhere). The list goes back once; anyone who changed in between is skipped and named.
+- **Rules.** At least 10 characters, counted as a person sees them. At most 72 bytes, because Auth would cut a longer one without a word. Never the e-mail itself. `passwordProblem` checks this on the server before Auth sees it, and `supabase/config.toml` holds the same minimum. Refusals are keys: `password.too_short`, `password.too_long`, `password.same_as_email`.
+- **The person changes it first.** While the flag is on, the sign-in completes as `must_change_password`. `authz.me()` is null, so every door refuses. `api.me()` answers `must_change_password`, and the gate sends the person to `/set-password` (keeping the session; builder B's screen, outside the gate).
+  - The change (`setOwnPassword`, only while the database says one is due — V172) checks the rules, lets Auth take the new password, then the server records it: `api.password_changed(auth user)` is service role only, so the browser can never clear its own flag. It is logged as the person's own request (`audit.begin_for`).
+- **The doors.** `signInWithPassword(email, password, next)` works like the code door:
+  - The pre-check (`api.sign_in_password_check`) logs a refusal. An allowed e-mail is logged when its sign-in completes.
+  - Auth's refusal is logged with its reason (`api.sign_in_password_refused`: a wrong password as `wrong_password` since V172, anything else `provider_error`, with Supabase's code, e.g. `invalid_credentials`).
+  - The log's new `method` column names the door (`password` or `code`).
+- **The emailed code** stays built, off by the admin setting `auth.code_door_enabled` (Settings → Organization & access).
+  - While it is off, `sendCode` answers `code_off` and sends nothing.
+  - A session a code opened is refused at `api.sign_in_complete` and registers no device: the token says how it was made (`amr`).
+  - `signInMethods()` tells the sign-in page which doors to show. The E2E specs switch the code on for themselves (`codeDoorOn` in `tests/e2e/support/stack.ts`).
+- Sign-ups stay off. Only allowed, switched-on people get in. The device rules are V74's.
+- Tests: SIGN-10; unit `a-password-is-ten-characters-at-least-and-never-the-email`; E2E `an-admin-generates-a-temporary-password-that-must-be-changed-first`.
+- Sabotages: `a-starting-password-opens-the-app`, `anyone-sets-a-password`, `the-browser-clears-its-own-password-flag`, `the-code-door-stays-open`, `the-owners-own-password-is-replaced`, `a-short-password-passes`, `a-guessable-temporary-password`, `a-password-cut-by-auth`, `e2e-password-never-reaches-auth`.
+- `node scripts/e2e/local.mjs [--no-build] [specs]` runs the E2E specs against the local stack in one command, and `--sabotage <names>` runs E2E sabotages the same way. The installed Chromium goes in `PW_CHROMIUM_PATH` when Playwright's own is missing.
+- **The cloud project's own settings are the owner's:** Auth → minimum password length 10, and "Secure password change" on (V172 — it was "left off" until the 17:22 audit). Until the code door is switched on there, nothing needs the e-mail sender.
+- **Builder B's screens (V212) run on this.** Their server actions (`core/auth/password-actions.ts`) now use the database's pre-check, log Auth's refusals, follow `sign_in_complete`'s `must_change_password` to `/set-password`, and record every change through `api.password_changed` (Choose a new password and My profile → Change password alike). The flag in Auth's `app_metadata` is retired: `mustChangePassword()` reads `api.me()`. `/auth/admin/password` answers `temporary_password`, as the screen reads it. A refusal `person_password.has_one` reads in words (`errors.person_password.has_one`); the screen's "Replace it?" step, sending `replace: true`, is builder B's.
+- **The first admin on the cloud project** (TECH-SPEC §10) was made on 29 Sep by a one-off statement through the Supabase connector, never a migration: the Commercial department and one admin person linked to the admin auth user the owner had made in the dashboard (no auth user was made). Its kind is `staff` until V444's `admin_account` exists, then it is converted the same way. When this step reaches the cloud, the owner's three dashboard accounts are marked as holding their own passwords in the same batch.
+
+**V169 — Nothing of v2 lives in the public schema; every grant is a migration's** ACTIVE · 2026-09-29 (the oversight, relaying Supabase's notice that new public-schema tables get no automatic Data API grants from 30 Oct). v2 never relied on those grants: its objects live in its own schemas, the API exposes the `api` schema alone (`supabase/config.toml` `[api] schemas`), and every privilege a request role holds is written by a migration and pinned by GRANTS-01 on both targets (plain Postgres has no automatic grants, so a reliance would already fail there). GRANTS-05 now refuses any table, view, sequence or function in `public` that no extension brought; sabotage `a-table-in-public`.
+
+**V170 — The admin account and the test account, as built** ACTIVE · 2026-09-29 (builds V444 and V445, the oversight's "smallest change"; ACC-039). A column beside `kind`, not new kinds: `core.person.account` is `team_member` (everyone else), `admin_account` or `test_account`, one of each at most. Both stay `kind = 'staff'`, so every rule that asks for staff — sign-in and the allow-list, levels, notices, the Organisation and the people list, a credit limit's approver — already counts them, and no constraint had to be dropped on the cloud project.
+- **Never team members.** `core.is_team_member(person)` (staff, account `team_member`, not removed) is the one test for team lists, KPIs, leaderboards and reports-to pickers; the steps that build those use it. Today: neither account is anyone's manager (`person.manager_not_team_member`), and a person others report to is not made one (`person.has_reports`). `api.org()` and `api.people()` name each person's `account`, so the screens leave both out of pickers and team lists.
+- **Setting it.** `api.person_account_set(person, account, reason)`: admins only, reason required, one logged request (`person.account_set`), undone like any other. A second of either is refused (`person.account_taken`).
+- On the cloud project, the admin account made by the §10 one-off is marked `admin_account` by a one-off in the same batch that applies this step; the test account is marked when the oversight adds it.
+- Test ACCT-01; sabotages `the-admin-account-counts-as-a-team-member`, `anyone-marks-an-account`, `someone-reports-to-the-test-account`.
+
+**V171 — Sign-in gaps from the scenario catalogue, closed** ACTIVE · 2026-09-29 (the oversight, 15:55; builds V166 and V451).
+- **Generate and Reset are two doors (ACC-029, V451).** `/auth/admin/password` generates for a person who holds no password and refuses one who does (`person_password.has_one`). `/auth/admin/password/reset` replaces a held password only with `confirm: true` (else `person_password.confirm_required`) and is logged as `person_auth.password_reset`, apart from `person_auth.password_generated`. Either one signs the person out everywhere (ACC-028) and is logged with its reason (ACC-027).
+- **Your own new password signs your other devices out (ACC-021).** Choose a new password and My profile → Change password record it through `api.own_password_set(auth user, this session)`. It is service role only, and in the same request, logged as the person's own, ends every other device of theirs (their Supabase sessions too) as their own sign-out: those devices read "signed out elsewhere", and the device that changed it stays in.
+- **A person and their e-mail are one request (ACC-093).** `api.person_create` takes `email`. `/auth/admin/people` adds the person with their e-mail, role and sign-in switch in one logged request with one Undo, then links the e-mail's auth user (found, never duplicated) and syncs Auth.
+- **Switching sign-in off or on keeps Auth in step (ACC-100).** `/auth/admin/switch` runs the database's switch and bans or unbans the auth users in the same call. An Undo of a switch-off through `/auth/admin/undo` lifts the ban, and the person signs in again (E2E).
+- **The code door refuses a code while it is off (ACC-011).** `verifyCode` answers `code_off` before Auth is asked; `sendCode` and `sign_in_complete` already refused (V166).
+- Already closed by V166: a wrong password is logged with Auth's reason, and a password try is never logged as `code_sent` (ACC-003/004).
+- For builder B: Settings → People → Add calls `/auth/admin/people`; the person record's switch calls `/auth/admin/switch`; Reset password is its own action with a confirm, calling `/auth/admin/password/reset`. The catalog's `profile.notify.alert_file_review` is missing (a warning in the E2E server log).
+- Tests SIGN-10 (Reset logged apart), SIGN-11, PPL-03; E2E `undoing-a-switch-off-lifts-its-ban-and-the-person-signs-in-again`, `changing-your-own-password-signs-your-other-devices-out`, `adding-a-person-with-an-email-is-one-request`, and the generate spec's confirmed Reset. Sabotages `a-new-password-keeps-the-other-devices`, `a-person-and-their-email-apart`, `a-reset-logged-as-a-generate`, `e2e-switch-leaves-auth-behind`, `e2e-own-password-keeps-the-other-devices`, `e2e-a-new-person-without-a-sign-in`; `e2e-undo-leaves-the-ban` now breaks the switch-off spec too.
+- **A background request never signs the browser out** (found on CI, 29 Sep: `org.spec`'s switch-off lost its line). A page left open keeps prefetching its links; once its person is refused, such a request reached `/auth/sign-out`, which cleared the session unseen, so the next real visit had no session and was never told why. `/auth/sign-out` now only follows the refusal for the router's own fetches (`RSC`, `Next-Router-Prefetch`, `_rsc`); the real visit is told why and clears it. E2E `a-background-request-never-loses-the-reason-for-a-refusal`; sabotage `e2e-a-prefetch-signs-the-browser-out`.
+
+**V167 — A side's records need that side's own page, owner or not** ACTIVE · 2026-09-29 (the QA review of #94 and #96, H1 and M2; V147 made whole).
+- **Writes.** Setting a side's status or owner, and adding or removing a client ID or a discount code, need the side itself writable by the caller (`partner.side_writable`: Full on that side's page, or Own and that side's owner). A capability (`clients.assign`, `clients.identify`) only ever adds to that; it never stands in for the page. Every manager holds the Clients capabilities by default, so before this a manager shut out of Clients could still set Client status and IDs.
+- **Owners.** A side's owners are those named for it *who hold at least View on its page* (`partner.side_owners`). Named the owner without it, a person owns nothing of that side: no record of it, no alert of it (`notify.alert_contract_expiring` goes to side owners), no Own writes.
+- **Reads.** `partner.sees_side` and a side's files (`core.file_visible_as`) need View on the side's page, whoever you are.
+- **The card and the hover card** name the owner of the first side the reader sees (`partner.owner_seen_by`), never another side's.
+- M1 (the contract alert asking who may see) was closed by P3-6e's alerts job (V163). SIDE-02 proves both.
+- Tests: SIDE-02 (new; a manager holding the Clients capabilities without the Clients page, so the page rule is the only thing refusing). SIDE-01's two refusals now name the page (`access.needs_level`).
+- Sabotages: `side-writes-by-capability-alone`, `a-side-owner-without-its-page`, `owners-see-their-side-without-the-page`, `owners-of-unseen-sides-shown`.
+
+**V168 — Agreements restricted by the table; a removed mention kept; "logged late" proven** ACTIVE · 2026-09-29 (the same review, its Lows).
+- **Agreements (D10).** A file of the kind `agreement`, or one attached for the purpose `agreement` or `iban_letter`, is restricted whatever the upload asked, by triggers on `core.file` and `core.file_link`, whichever door writes them. Sabotage `agreements-uploaded-as-normal`.
+- **Mentions (V401).** A mention taken off a note is marked removed (`core.mention.deleted_at`), never deleted. The timeline shows live mentions, and a person mentioned again is told again. NOTE-01; sabotage `a-removed-mention-is-deleted`.
+- **Logged late (V400).** ACT-01 now sets `app.go_live_on` and shows the rule: 20 days after the day is late, 10 is not, before go-live never is. Sabotage `nothing-is-ever-late`.
+- `scripts/db/sabotage-from.mjs` writes a SQL sabotage from a migration's own function with one rule taken out, so sabotages never drift from the code they test.
+- **H2 (the roles-to-sides conversion, 063100) is not changed here.** Migration 063100 drops the old tables and columns, so no later migration can bring their data back, and 063100 is merged history (V103). No environment holds rows in the old shape:
+  - the cloud counted 0 partners, 0 roles and 0 status changes before 063100 was applied (29 Sep, read-only);
+  - CI and local builds start empty.
+  - The old app's data will enter through the P7 importer, in the sides shape.
+  - OPEN for the oversight: accept that the conversion runs on empty tables (recommended), or allow a one-time correction of 063100 before its first cloud apply.
+
+**V174 — Gaps from the scenario catalogue, Builder A's lane** ACTIVE · 2026-09-29 (the oversight's catalogue of 15:55; each a recommendation that applies unless the owner says no).
+- **WRK-092 · work goes only to someone who can work here.** `core.person_available(person)`: staff, active, allowed to sign in, not removed, and not past the day they left. Naming a side's owner and mentioning someone in a note refuse anyone else as `person.unavailable`. What such a person already holds stays, for an admin to hand over. (Helpers arrive with the task manager; they will ask the same function.)
+- **WRK-041 · "Executive directive" is a priority, ranked first.** `work.priority` gains a locked meaning (`meaning`, one row each), and `executive_directive` is seeded at sort 0. Its name may change; its meaning and rank may not.
+- **WRK-124 · an alert fires on the first run on or after its day.** A missed run never loses one:
+  - a stale organisation (`alert_activity_stale`) fires from the day it went stale;
+  - a file due for review (`alert_file_review`) fires from its review day;
+  - a contract (`alert_contract_expiring`) fires for the tightest reminder day reached, never before the day the contract was saved.
+  Each fires once per record and day key, whatever the run.
+- **PRF-143 · "logged late" is judged by the rule in force when it was logged.** `work.late_days` is effective-dated (`effectiveDated: true` in the tasks module), and `core.logged_late` reads it at the Riyadh day of the logging.
+- **PRF-002 · a page checks its level on the server.** `/finance`, `/kpis`, `/reports`, `/appraisal` and `/overview` show the "no access" state for level none, reached by address too. The check is Builder B's shared `<Page page=…>` (V214), asked on the server before anything is drawn; the area pages keep no second copy of it, and the E2E and its sabotage prove that one.
+- PRF-136 / ACC-086 (the banned list split into data and screen) was V156, #97.
+- Tests: ALR-02, AVAIL-01, PRIO-01, LATE-01; E2E `a-page-with-no-level-shows-no-access-by-address`. Sabotages: `a-missed-run-loses-the-alert`, `work-goes-to-a-switched-off-person`, `no-executive-directive`, `logged-late-by-todays-rule`, `e2e-a-page-forgets-its-level`.
+
+**V172 — Too many tries lock an e-mail; a password is set only where its rule is checked** ACTIVE · 2026-09-29 (the oversight's QA audit of 17:22, items 1–6; builds on V166).
+- **The lockout is the database's**, because Supabase's own rate limit sees the app server's address, not the person's. `core.sign_in_limited(email)` answers:
+  - `locked` for fifteen minutes from the fifth wrong password within fifteen minutes — the right password included;
+  - `rate_limited` once an e-mail was checked twenty times in fifteen minutes (either door, codes asked for included);
+  - else nothing.
+  The values are fixed, as the sign-in page's "Try again in 15 minutes or ask your admin" says. A successful sign-in, or a password an admin sets or the person changes, starts the count again ("ask your admin" works). A refusal while locked is logged (`locked`) and is not a try.
+  - Asked by the password door's pre-check, the code door's pre-check and `verifyCode` (`api.sign_in_limited`, service role only), and by `api.sign_in_complete`: a session made straight through Supabase, past the server, is refused while locked and registers no device.
+  - Auth's refusal of a password is logged as `wrong_password` (it was `provider_error`); `api.sign_in_password_refused` answers `locked` on the fifth, so the screen says so at once. The log's results gain `wrong_password`, `locked` and `rate_limited`. Widening the check constraint is a DROP, so its cloud apply waits for the owner's approval.
+  - My profile → Change password counts a wrong current password the same way, so an unlocked computer cannot guess its way through.
+  - Every one of these shows as `rate_limited`: "Too many attempts. Try again in 15 minutes or ask your admin."
+- **"Choose a new password" runs only when a change is due.** `setOwnPassword` needs `api.me()` to answer `must_change_password`; anyone else is refused `not_needed` and changes theirs on My profile, with the current password. A server action is reachable by its action ID from anything holding the page's bundle, so every rule sits in the action, never only in the screen.
+- **My profile's change is made with the current password.** A fresh session is opened with it, sets the new password, and is ended (`changeWithCurrent`, `core/db/probe.ts`); the person's own devices stay signed in. Auth's "Secure password change" is **on** (`supabase/config.toml`, and the owner's project setting): a session older than a day cannot change its password straight through Supabase, while this route and the first sign-in's change (a fresh session) are unaffected. Setting it with the secret key instead was tried and dropped: Auth signs every session of the person out when an admin's key changes a password.
+- **The emailed-code door refuses both of its steps on the server** unless the database has it on (`core.code_door_on()`): `sendCode` through its pre-check, `verifyCode` before any code is checked. The sign-in page draws the code door only when the deployment asks for it (`SIGN_IN_METHOD=code`) **and** the database has it on.
+- **"Must change password" is the database's, not only the page's.** While it is on, `authz.me()` is null, so every `api` function refuses (`auth.no_active_person`), whatever calls it — SIGN-10 and the E2E `an-admin-generates-…` check `api.org`. The page gate (`require-me.ts`) only sends the person to the change.
+- **Generate and Reset.** Generate never replaces a password someone holds (`person_password.has_one`); V451's separate, confirmed Reset is P3-2g's (V171). The temporary-password card no longer says "It works once": the password works until the person chooses their own, which their next sign-in asks for before anything else.
+- **The E2E suite.** A spec whose action reaches every person runs alone, after all the others (`*.alone.spec.ts`, the `alone` project in `playwright.config.ts`): "Generate for everyone without a password", run in parallel, reset people other specs were signing in with — the red run on #111. `makePerson` now records the test password (`passwordRecorded`, on by default) and `givePassword` records it too; a person meant to hold none says so. E2E sabotages run with `--no-deps`.
+- Tests: LOCK-01; SIGN-10 (the wrong password's result); E2E `five-wrong-passwords-lock-the-email-for-fifteen-minutes`, `a-server-action-called-by-its-id-keeps-its-rules` (each action called by its ID from the build's manifest), `generate-for-everyone-without-a-password.alone`.
+- Sabotages: `a-locked-email-signs-in`, `a-wrong-password-is-a-failure-to-send`, `a-locked-email-completes-through-supabase`, `a-reset-keeps-the-lock`, `a-sign-in-never-clears-the-count`, `an-email-tried-without-end`, `e2e-a-locked-email-reads-as-a-broken-server`, `e2e-own-password-without-the-rule`, `e2e-a-code-checked-while-the-door-is-off`, `e2e-a-wrong-current-password-is-not-counted`, `e2e-everyone-gets-nothing`; `change-password-skips-the-current` rewritten for the new route.
+- Not covered: wrong passwords tried straight against Supabase Auth, never through the app, are not counted here. Supabase's own per-address limit applies to them (there it is the caller's own address), and a session so made is still refused while the e-mail is locked. Supabase's "Password Verification Attempt" hook would count them, but it is on the Teams and Enterprise plans only.
+
+**V173 — A retired capability grants nothing, and stops nothing** SUPERSEDED by V176 · 2026-09-29 (QA-56, the second QA round on #103). The role check on the capabilities still in use landed first as the production hotfix V176, which also clears the retired grants and lets `core.access_can_grant` pass a retired capability; #103's own copy of the function was taken out of `20260929093000_core_round7`.
+
 **V176 — A retired capability grants nothing, and stops nothing** ACTIVE · 2026-09-29 (a production bug, found by the oversight while adding the team: Settings → People refused to make anyone a head of department or a manager, "You cannot grant more than you have").
 
 - **The cause.** `partners.assign`, `partners.identify` and `partners.merge` gave way to each side's own (V98). The registry sync made them inactive, but their grants stayed live on the admin, head and manager roles. `authz.can_of` answers no for an inactive capability, even for an admin, so `core.access_set_person_role` found a grant "above" the admin and refused.
@@ -770,6 +910,34 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Tests: ACC-09 (admin makes a head and a manager; no live grant of a retired capability; one retired later stops neither a role change nor clearing an override); WORDS-02 (the two words).
 - Sabotages: `a-retired-capability-blocks-a-role`, `a-retired-capability-blocks-a-grant`, `the-retired-grants-stay-live`, `the-old-seed-words`.
 - #103's V173 (the role check alone) is folded into this one.
+
+**V175 — A made-up world for this machine: the fixture seed** ACTIVE · 2026-09-29 (the oversight, 15:55 item 4: QA's preview gallery of every page for every role). `pnpm fixtures:local` (`scripts/fixtures/seed-local.mjs`), run from `v2/` on a freshly reset local stack, writes:
+- **people for every role and kind of account:** an admin, a head, a manager, two team members, a viewer, the admin account and the test account (V444, V445), someone switched off and someone who left ten days ago. They share one team, one manager line and one made-up password, printed at the end, and each has an allowed `fixture.<key>@example.test` address. People and their sign-ins go straight into the local database, as the E2E specs do.
+- **data for every module built so far, written through `api.*` as those people,** so every rule, log, history entry and notice is the real one:
+  - six organisations on both sides, with owners, contacts, identifiers, statuses and activities;
+  - notes that mention someone, contracts (three ending exactly on a reminder day, so their reminders are due today), portal references and follows;
+  - a discount code, a credit limit, a campaign code, and a personal and a shared saved view;
+  - then the daily alerts job, once.
+  Files are not seeded (Storage).
+- **The guard** (`scripts/fixtures/guard.mjs`) refuses:
+  - any API or database address that is not on this machine;
+  - any database that already allows an address outside `@example.test`.
+  A second run finds its people and stops. Unit test: `the-fixture-seed-runs-on-this-machine-only`. Sabotages: `fixtures-seed-the-cloud`, `fixtures-over-real-addresses`.
+- Every value is made up (rule 7). No phone number is seeded, because a made-up one can still be someone's.
+
+**V177 — What the system removed is not a person's to restore** ACTIVE · 2026-09-29 (the production finding W10, the oversight's walk of 23:57 Riyadh). Activity → Recently deleted listed rows a migration had removed — V97's Settings levels of non-admin roles, V155's replaced setting defaults — each with Restore. (V97's own guard refused the Settings ones, so nothing reopened; the button was still wrong.)
+- A removal made by the system (a migration, the registry sync) or a job is how the app is built, not a person's action. `core.removed_by_system(table, id)` asks the change log: the row's last removal belongs to a `system` or `job` request, or none was logged.
+- `core.recently_deleted` does not list such a row, even to an admin.
+- Restore refuses it (`restore.system_removal`, asked in `core.restore_needs`, which every restore asks). Undo already refused a system or job request (`undo.not_undoable`).
+- A row a person restored and removed again is theirs: the last removal decides.
+- DEL-01 made its "removed by a head" row with a bare update, which the log attributes to the system (AUD-03); it now opens the head's request first.
+- Test DEL-02. Sabotages `the-system-removals-listed`, `the-system-removals-restored`, `a-job-removal-counts-as-a-persons`.
+
+**V178 — An e-mail already held is refused by name, and nothing is saved** ACTIVE · 2026-09-29 (the production finding W24). Adding a person with an e-mail another person holds (in other capitals) created the person without the e-mail, and the screen said "The server did not answer".
+- The Add person dialog now sends the person, the e-mail, the role and the sign-in switch as one request (`/auth/admin/people` → `api.person_create`, ACC-093, V171): a refusal saves nothing.
+- `core.person_email_add` compares the e-mail trimmed and without regard to capitals, and refuses as `people.email_taken`, the holder's name as its detail ("That email already belongs to {detail}").
+- The admin routes now pass a refusal's detail to the screen; the dialog turns the route's refusal into words (`DbError`), never "The server did not answer".
+- Test PPL-04. Sabotages `a-taken-email-said-without-its-holder`, `an-email-compared-by-its-capitals`.
 
 ## Builder B (V200–V299)
 

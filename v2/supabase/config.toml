@@ -180,8 +180,9 @@ enable_signup = false
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
-# Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+# Passwords shorter than this value will be rejected as weak. The owner's minimum is 10 (V166): the server checks it
+# first (src/core/auth/password.ts), and Auth holds the same line; the cloud project's setting must match.
+minimum_password_length = 10
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -228,8 +229,10 @@ enable_signup = true
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
-# If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+# If enabled, users will need to reauthenticate or have logged in recently to change their password. On here and on the
+# project (the 17:22 audit): the app sets passwords only on the server, with the secret key, after its own checks
+# (core/auth/password-actions.ts), so this only closes the browser's own path to Auth.
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.

@@ -34,6 +34,7 @@ export interface Snapshot {
     private: boolean;
     visible: string | null;
     level: string | null;
+    history: boolean;
   }[];
   role_levels: { role: string; page: string; level: Level }[];
   role_capabilities: { role: string; capability: string; granted: boolean }[];
@@ -133,6 +134,7 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
         private: e.private ?? false,
         visible: e.visible ?? null,
         level: e.level ?? null,
+        history: e.history ?? false,
       });
     }
 

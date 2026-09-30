@@ -2,7 +2,9 @@
 -- person) → boolean, and be private. Then a person sees a record only by that rule, as one of its owners, or as an
 -- admin — Full (or Own) on its page never counts — and history, Follow, notices and Activity all ask the same question
 -- (authz.can_see_as). P6-3's appraisals use it; here the partner type is made private for the test. Made up.
--- Sabotage: supabase/tests/sabotage/a-private-record-shown-by-the-page-level.sql.
+-- Sabotages: supabase/tests/sabotage/a-private-record-shown-by-the-page-level.sql,
+--            supabase/tests/sabotage/undo-ignores-who-may-see.sql,
+--            supabase/tests/sabotage/reports-to-asks-about-me.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.mgr', test.person('Test Allowed Manager', 'manager')::text, true);
@@ -68,3 +70,26 @@ select test.ok(not exists (select 1 from jsonb_array_elements(api.activity()) x
 select test.as_person(current_setting('t.admin')::uuid);
 select test.ok(exists (select 1 from jsonb_array_elements(api.activity()) x
                        where x ->> 'request_id' = current_setting('t.r')), 'an admin''s Activity does');
+
+-- Undo asks the same question (V143, QA): Full on the page is no right to undo a change to a private record the person
+-- cannot see; the person its rule names, with Full, undoes it
+select set_config('t.rv', test.act(current_setting('t.am1')::uuid)::text, true);
+update partner.partner set city = 'Made Up Private City' where id = current_setting('t.pid')::uuid;
+select test.done();
+select test.as_person(current_setting('t.head')::uuid);
+select test.raises(format('select api.undo(%L)', current_setting('t.rv')), '42501',
+  'a head with Full on the page cannot undo a change to a private record they cannot see', 'undo.not_allowed');
+select test.as_person(current_setting('t.mgr')::uuid);
+select test.eq(api.undo(current_setting('t.rv')::uuid) ->> 'undone', current_setting('t.rv'),
+  'the person its rule names, with Full on the page, undoes it');
+
+-- the appraisal line is asked about any two people, not only the signed-in one (V96, QA)
+select test.as_owner();
+update core.person set manager_id = current_setting('t.mgr')::uuid where id = current_setting('t.am1')::uuid;
+select test.eq(authz.reports_to(current_setting('t.am1')::uuid, current_setting('t.mgr')::uuid), true,
+  'a person reports to their direct manager, asked by anyone');
+select test.eq(authz.reports_to(current_setting('t.am1')::uuid, current_setting('t.head')::uuid), false,
+  'and to nobody else');
+select test.as_person(current_setting('t.mgr')::uuid);
+select test.eq(authz.reports_to(current_setting('t.am1')::uuid), true, 'asked by the manager themselves, the same answer');
+

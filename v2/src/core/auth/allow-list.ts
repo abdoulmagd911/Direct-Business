@@ -11,6 +11,7 @@ import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { getMe } from './get-me';
 import type { Level, Me } from './me';
+import { temporaryPassword } from './password';
 
 /** Banned for a century: Supabase has no "forever"; unbanning is `none`. */
 const BANNED = '876000h';
@@ -33,7 +34,7 @@ export async function adminRoute(request: Request, run: (body: Record<string, un
   } catch (e) {
     if (e instanceof DbError) {
       const status = e.key === 'auth.not_signed_in' ? 401 : STATUS[e.kind];
-      return NextResponse.json({ ok: false, error: { kind: e.kind, key: e.key } }, { status });
+      return NextResponse.json({ ok: false, error: { kind: e.kind, key: e.key, detail: e.detail } }, { status });
     }
     throw e;
   }
@@ -81,14 +82,26 @@ export function textArg(body: Record<string, unknown>, name: string): string | u
   return typeof v === 'string' && v.trim() ? v.trim() : undefined;
 }
 
-/** The auth user for an allowed email: created confirmed (a door never makes a person — the person exists first). */
-async function ensureAuthUser(email: string): Promise<string> {
+/**
+ * The auth user for an allowed email: created confirmed (a door never makes a person — the person exists first), or the
+ * one already there for that email, found and never made twice (`existed`: made outside the app — the owner's accounts,
+ * made in the dashboard with the passwords he typed himself, V166).
+ */
+async function ensureAuthUser(email: string): Promise<{ id: string; existed: boolean }> {
   const admin = serviceDb().auth.admin;
   const created = await admin.createUser({ email, email_confirm: true });
-  if (created.data.user) return created.data.user.id;
+  if (created.data.user) return { id: created.data.user.id, existed: false };
   const existing = unwrap(await serviceDb().rpc('auth_user_of', { p_email: email }));
   if (!existing) throw new DbError('Unavailable', 'common.unavailable', created.error?.message);
-  return existing;
+  return { id: existing, existed: true };
+}
+
+/** Links an allowed email to its auth user; one found already there keeps its own password (core.person_auth_found). */
+async function linkAuthUser(db: Awaited<ReturnType<typeof serverDb>>, email: string): Promise<string> {
+  const user = await ensureAuthUser(email);
+  unwrap(await db.rpc('person_auth_link', { p_email: email, p_auth_user_id: user.id }));
+  if (user.existed) unwrap(await db.rpc('person_auth_found', { p_auth_user: user.id }));
+  return user.id;
 }
 
 async function setBanned(authUserId: string, banned: boolean) {
@@ -102,10 +115,102 @@ export async function addEmail(personId: string, email: string, primary: boolean
   const added = unwrap(
     await db.rpc('person_email_add', { p_person: personId, p_email: email, p_primary: primary, p_reason: reason }),
   ) as { id: string; version: number; request_id: string };
-  const authUserId = await ensureAuthUser(email);
-  unwrap(await db.rpc('person_auth_link', { p_email: email, p_auth_user_id: authUserId }));
+  const authUserId = await linkAuthUser(db, email);
   await syncPerson(personId);
   return { ...added, auth_user_id: authUserId };
+}
+
+/**
+ * Settings → People → Add (ACC-093): the person, their allowed e-mail, role and sign-in switch in one request — one
+ * entry in the log, one Undo (api.person_create). Then the e-mail's auth user is linked (the one already there, found
+ * by e-mail, or a new one) and the person's Auth state synced.
+ */
+export async function createPerson(person: Record<string, unknown>, reason?: string) {
+  const db = await serverDb();
+  const created = unwrap(await db.rpc('person_create', { p_person: person as never, p_reason: reason })) as {
+    id: string;
+    version: number;
+    email_id: string | null;
+    request_id: string;
+  };
+  const email = typeof person.email === 'string' ? person.email.trim().toLowerCase() : '';
+  const authUserId = email ? await linkAuthUser(db, email) : null;
+  await syncPerson(created.id);
+  return { ...created, auth_user_id: authUserId };
+}
+
+/**
+ * Switch a person's sign-in on or off (P3-5): the database decides and logs it (off ends every device at once — V74),
+ * then their auth users are banned or unbanned to match, in the same call, so Auth never lags behind.
+ */
+export async function switchPerson(personId: string, on: boolean, reason: string) {
+  const db = await serverDb();
+  const done = unwrap(await db.rpc('person_switch', { p_id: personId, p_on: on, p_reason: reason })) as {
+    can_sign_in: boolean;
+    devices_ended: number;
+    request_id: string;
+  };
+  return { ...done, ...(await syncPerson(personId)) };
+}
+
+type Generated = { person_id: string; auth_user_ids: string[]; signed_out: number; request_id: string };
+
+/**
+ * An admin generates a person's temporary password (V441 — nobody types a password for someone else). First every
+ * allowed e-mail of the person is linked to its auth user — the one that already exists for that e-mail (one the owner
+ * made in the dashboard, say), found by e-mail and never made twice. The database then decides (admins only), logs it
+ * with its reason, marks every sign-in of the person "must change password" and signs the person's devices out; a
+ * person who already holds a password — one the owner typed himself (V166), or one generated before — keeps it unless
+ * `replace` says otherwise (the screen's Reset, asked explicitly). Then the secret key sets the one generated password on
+ * each of those sign-ins, confirmed. The password goes back to the admin once, in this answer (`temporary_password`) —
+ * never stored or logged.
+ */
+export async function generatePassword(personId: string, reason: string, replace = false) {
+  if (!reason.trim()) throw new DbError('RuleBroken', 'common.reason_required');
+  const db = await serverDb();
+  const unlinked = unwrap(await db.rpc('person_emails_unlinked', { p_person: personId })) as string[];
+  for (const email of unlinked) await linkAuthUser(db, email);
+  const set = unwrap(
+    await db.rpc('person_password_set', { p_person: personId, p_reason: reason, p_replace: replace }),
+  ) as Generated;
+  const password = temporaryPassword();
+  for (const authUserId of set.auth_user_ids) {
+    const { error } = await serviceDb().auth.admin.updateUserById(authUserId, { password, email_confirm: true });
+    if (error) throw new DbError('Unavailable', 'common.unavailable', error.message);
+  }
+  return { ...set, temporary_password: password };
+}
+
+/**
+ * "Generate for everyone without a password" (V441): one temporary password for each allowed, switched-on person who
+ * holds none in Auth (so never the accounts whose passwords the owner typed himself — V166), each its own logged
+ * request; the list goes back to the admin once. Anyone who changed in between (an e-mail removed, a password given)
+ * is skipped, named.
+ */
+export async function generateForEveryoneWithout(reason: string) {
+  if (!reason.trim()) throw new DbError('RuleBroken', 'common.reason_required');
+  const db = await serverDb();
+  const people = unwrap(await db.rpc('people_without_password', {})) as {
+    person_id: string;
+    full_name_en: string;
+    full_name_ar: string | null;
+  }[];
+  const out = [];
+  const skipped = [];
+  for (const p of people) {
+    try {
+      const { temporary_password } = await generatePassword(p.person_id, reason);
+      out.push({ ...p, temporary_password });
+    } catch (e) {
+      if (
+        !(e instanceof DbError) ||
+        !['person_password.no_sign_in', 'person_password.has_one', 'common.not_found'].includes(e.key)
+      )
+        throw e;
+      skipped.push({ ...p, key: e.key });
+    }
+  }
+  return { people: out, skipped };
 }
 
 /** Remove an allowed email (soft, logged): its sign-in is refused at once, and its auth user is banned. */
@@ -134,10 +239,41 @@ export async function syncPerson(personId: string) {
  * match, as after any other allow-list change.
  */
 export async function undoAndSync(requestId: string) {
+  const me = await signedIn();
   const db = await serverDb();
-  const done = unwrap(await db.rpc('undo', { p_request: requestId })) as { auth_resync?: string[] };
+  // The database undoes a sign-in change only against a one-time ticket for this person and this request, named in the
+  // call — so Auth is never left behind, and a ticket a failed call leaves serves nobody else (V162, QA-94).
+  const ticket = unwrap(
+    await serviceDb().rpc('auth_ticket_issue', { p_kind: 'undo', p_target: requestId, p_person: me.person.id }),
+  ) as string;
+  const done = unwrap(await db.rpc('undo_ticketed', { p_request: requestId, p_ticket: ticket })) as {
+    auth_resync?: string[];
+  };
   let synced = 0;
   for (const personId of done.auth_resync ?? []) synced += (await syncPerson(personId)).synced;
+  return { ...done, synced };
+}
+
+/**
+ * Restore a removed allowed e-mail or sign-in link, then keep Supabase Auth in step (V162): the database restores a
+ * sign-in record only against this route's ticket — for this person and this record, named in the call — and names whose
+ * sign-in to re-sync. Any other record restores the same.
+ */
+export async function restoreAndSync(entity: string, id: string, reason?: string) {
+  const me = await signedIn();
+  const db = await serverDb();
+  const ticket = unwrap(
+    await serviceDb().rpc('auth_ticket_issue', {
+      p_kind: 'restore',
+      p_target: `${entity}:${id}`,
+      p_person: me.person.id,
+    }),
+  ) as string;
+  const done = unwrap(
+    await db.rpc('restore_ticketed', { p_entity: entity, p_id: id, p_ticket: ticket, p_reason: reason }),
+  ) as { auth_resync?: string[] };
+  let synced = 0;
+  for (const person of done.auth_resync ?? []) synced += (await syncPerson(person)).synced;
   return { ...done, synced };
 }
 

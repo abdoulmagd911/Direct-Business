@@ -91,6 +91,8 @@ export default defineModule({
       owners: 'core.note_owners',
       visible: 'core.note_visible',
       level: 'core.note_level',
+      // What happened stays as it was logged: retiring an activity type or outcome leaves its notes alone (V161).
+      history: true,
     },
     {
       key: 'mention',
