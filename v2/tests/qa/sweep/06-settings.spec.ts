@@ -173,8 +173,12 @@ test("the app's admin routes refuse a non-admin's browser session, in words, cha
   const pw = async () =>
     (await sql<{ p: string }>(`select encrypted_password as p from auth.users where email = $1`, [m2.email]))[0]?.p ??
     '';
+  // /auth/admin/undo lets the database decide who may undo (V128): a head or anyone with Full on the page may undo a
+  // record change, so the request tried here is one only an admin may undo — the admin's own access change.
   const [someRequest] = await sql<{ id: string }>(
-    `select id::text from audit.request where actor_id = $1 order by at desc limit 1`,
+    `select id::text from audit.request
+     where actor_id = $1 and label_key = 'access.person_level_set' and undone_at is null
+     order by at desc limit 1`,
     [user('admin').id],
   );
   for (const key of ['head', 'manager', 'member', 'viewer']) {
