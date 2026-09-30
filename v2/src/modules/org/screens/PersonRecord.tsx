@@ -70,7 +70,10 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const { me, org, person, row, access, history, devices, ownDevices, signIns, failed } = data;
-  const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
+  // the admin and test accounts are never team members (V444, V445): no team, manager, department or appraisal (QA-203)
+  const account = isAccount(data.person);
+  const tabs = TABS.filter((k) => !(account && k === 'appraisal'));
+  const tab = (tabs as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const admin = me.person.role?.is_admin === true;
   const self = me.person.id === person.id;
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
@@ -442,37 +445,43 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             roleName || '—'
           )}
         </RailField>
-        <RailField label={t('settings.people.department')}>{pick(dept)}</RailField>
-        <RailField
-          label={t('settings.people.team')}
-          empty={!team}
-          add={
-            admin ? (
-              <Button size="xs" variant="ghost" onClick={openEdit}>
-                {t('common.addNew')}
-              </Button>
-            ) : (
-              <span>—</span>
-            )
-          }
-        >
-          {pick(team)}
-        </RailField>
-        <RailField
-          label={t('settings.people.manager')}
-          empty={!manager}
-          add={
-            admin ? (
-              <Button size="xs" variant="ghost" onClick={openEdit}>
-                {t('common.addNew')}
-              </Button>
-            ) : (
-              <span>—</span>
-            )
-          }
-        >
-          {manager ? <PersonChip person={avatarOf(manager, locale)} href={`/people/${manager.id}`} size="xs" /> : null}
-        </RailField>
+        <RailField label={t('settings.people.department')}>{account ? '—' : pick(dept)}</RailField>
+        {account ? null : (
+          <>
+            <RailField
+              label={t('settings.people.team')}
+              empty={!team}
+              add={
+                admin ? (
+                  <Button size="xs" variant="ghost" onClick={openEdit}>
+                    {t('common.addNew')}
+                  </Button>
+                ) : (
+                  <span>—</span>
+                )
+              }
+            >
+              {pick(team)}
+            </RailField>
+            <RailField
+              label={t('settings.people.manager')}
+              empty={!manager}
+              add={
+                admin ? (
+                  <Button size="xs" variant="ghost" onClick={openEdit}>
+                    {t('common.addNew')}
+                  </Button>
+                ) : (
+                  <span>—</span>
+                )
+              }
+            >
+              {manager ? (
+                <PersonChip person={avatarOf(manager, locale)} href={`/people/${manager.id}`} size="xs" />
+              ) : null}
+            </RailField>
+          </>
+        )}
         {row ? (
           <>
             <RailField
@@ -623,7 +632,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       back={{ href: '/settings/org?tab=people', label: t('record.back') }}
       avatar={<Avatar person={avatarOf(person, locale)} size="xl" />}
       title={person.full_name_en}
-      subtitle={[person.job_title_en, pick(team) || pick(dept)].filter(Boolean).join(' · ')}
+      subtitle={[person.job_title_en, account ? null : pick(team) || pick(dept)].filter(Boolean).join(' · ')}
       chips={
         <>
           {person.account === 'admin_account' ? (
@@ -648,7 +657,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       }
       figures={shownFigures}
       actions={actions}
-      tabs={TABS.map((k) => ({
+      tabs={tabs.map((k) => ({
         key: k,
         label: k === 'appraisal' ? t('nav.appraisal') : t(`record.${k}`),
         count: k === 'activity' && history ? history.length : undefined,
@@ -745,19 +754,21 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               <DataState kind="empty" message={t('state.empty')} />
             )}
           </Card>
-          <Card title={pick(team) || t('settings.people.team')}>
-            {teammates.length ? (
-              <ul className="flex flex-wrap gap-2">
-                {teammates.map((p) => (
-                  <li key={p.id}>
-                    <PersonChip person={avatarOf(p, locale)} href={`/people/${p.id}`} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <DataState kind="empty" message={t('state.empty')} />
-            )}
-          </Card>
+          {account ? null : (
+            <Card title={pick(team) || t('settings.people.team')}>
+              {teammates.length ? (
+                <ul className="flex flex-wrap gap-2">
+                  {teammates.map((p) => (
+                    <li key={p.id}>
+                      <PersonChip person={avatarOf(p, locale)} href={`/people/${p.id}`} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <DataState kind="empty" message={t('state.empty')} />
+              )}
+            </Card>
+          )}
         </>
       ) : null}
       {tab === 'appraisal' ? <DataState kind="empty" message={t('state.empty')} /> : null}
@@ -864,32 +875,36 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 />
               )}
             </Field>
-            <Field label={t('settings.people.team')}>
-              {(p) => (
-                <Select
-                  {...p}
-                  value={f.team_id}
-                  onValueChange={(v) => setF({ ...f, team_id: v })}
-                  placeholder={t('settings.people.noTeam')}
-                  options={org.teams
-                    .filter((x) => x.active && x.department_id === f.department_id)
-                    .map((x) => ({ value: x.id, label: pick(x) }))}
-                />
-              )}
-            </Field>
-            <Field label={t('settings.people.manager')} className="sm:col-span-2">
-              {(p) => (
-                <Select
-                  {...p}
-                  value={f.manager_id}
-                  onValueChange={(v) => setF({ ...f, manager_id: v })}
-                  placeholder={t('settings.people.noManager')}
-                  options={org.people
-                    .filter((x) => x.id !== person.id && !isAccount(x))
-                    .map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
-                />
-              )}
-            </Field>
+            {account ? null : (
+              <>
+                <Field label={t('settings.people.team')}>
+                  {(p) => (
+                    <Select
+                      {...p}
+                      value={f.team_id}
+                      onValueChange={(v) => setF({ ...f, team_id: v })}
+                      placeholder={t('settings.people.noTeam')}
+                      options={org.teams
+                        .filter((x) => x.active && x.department_id === f.department_id)
+                        .map((x) => ({ value: x.id, label: pick(x) }))}
+                    />
+                  )}
+                </Field>
+                <Field label={t('settings.people.manager')} className="sm:col-span-2">
+                  {(p) => (
+                    <Select
+                      {...p}
+                      value={f.manager_id}
+                      onValueChange={(v) => setF({ ...f, manager_id: v })}
+                      placeholder={t('settings.people.noManager')}
+                      options={org.people
+                        .filter((x) => x.id !== person.id && !isAccount(x))
+                        .map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
+                    />
+                  )}
+                </Field>
+              </>
+            )}
             <Field label={t('settings.people.joinedOn')}>
               {(p) => (
                 <Input

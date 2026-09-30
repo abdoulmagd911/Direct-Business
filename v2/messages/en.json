@@ -212,7 +212,9 @@
       "greeting": "Good day, {name}",
       "greetingMorning": "Good morning, {name}",
       "greetingAfternoon": "Good afternoon, {name}",
-      "greetingEvening": "Good evening, {name}"
+      "greetingEvening": "Good evening, {name}",
+      "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
+      "goSettings": "Go to Settings"
     },
     "settings": {
       "myProfile": "My profile",
