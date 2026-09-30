@@ -200,6 +200,7 @@ export type Database = {
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
+      own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
       partner_bulk_assign: {

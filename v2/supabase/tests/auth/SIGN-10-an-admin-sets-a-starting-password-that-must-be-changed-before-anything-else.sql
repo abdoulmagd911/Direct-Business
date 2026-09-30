@@ -44,7 +44,10 @@ select test.eq((select must_change_password from core.person_auth where auth_use
 select test.eq((select r.reason || ' · ' || r.label_key from audit.request r
                 where r.id = (current_setting('t.set')::jsonb ->> 'request_id')::uuid
                   and r.actor_id = current_setting('t.admin')::uuid),
-  'made up: first sign-in · person_auth.password_generated', 'logged as the admin''s, with the reason');
+  'made up: first sign-in · person_auth.password_reset', 'logged as the admin''s Reset, with the reason (ACC-029)');
+select test.ok(exists (select 1 from audit.request r where r.label_key = 'person_auth.password_generated'
+                       and r.actor_id = current_setting('t.admin')::uuid),
+  'the first was logged as a Generate');
 select test.eq((select count(*)::int from core.device_session where person_id = current_setting('t.am1')::uuid
                 and signed_out_at is null), 0, 'and every device of the person is signed out');
 

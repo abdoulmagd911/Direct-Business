@@ -91,7 +91,8 @@ jobs:
   db-plain:
     name: database from zero (Postgres 17) and its sabotage
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # every SQL test is run again under each of its sabotages (over 170 now): 15 minutes no longer covers it
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17
@@ -139,7 +140,8 @@ jobs:
   e2e:
     name: build and end-to-end
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # one build per end-to-end sabotage (over 50 now): 30 minutes no longer covers the suite and them
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

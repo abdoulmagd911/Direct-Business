@@ -9,8 +9,8 @@
 //                        says so (V166), and until it is changed the person reaches nothing else.
 //   setOwnPassword     — the person whose password must change (the database says so: api.me() answers
 //                        must_change_password) sets a new one, on the session they have just signed in with; anyone
-//                        else is refused (not_needed). The server records it (api.password_changed, secret key only —
-//                        the browser never clears its own flag).
+//                        else is refused (not_needed). The server records it (api.own_password_set, secret key only —
+//                        the browser never clears its own flag) and signs their other devices out.
 //   changePassword     — My profile → Change password: made with the current password (a fresh session opened with it
 //                        sets the new one — core/db/probe.ts), and recorded the same way.
 // Too many tries (V172): the database counts wrong passwords per e-mail — five in fifteen minutes lock it for fifteen
@@ -113,9 +113,17 @@ async function meStatus(db: Awaited<ReturnType<typeof serverDb>>): Promise<strin
   return me.error ? null : ((me.data as { status?: string } | null)?.status ?? null);
 }
 
-/** After Auth took a person's new password: the server records it and clears "must change password" (V166). */
-async function recordChange(authUserId: string): Promise<boolean> {
-  const { error } = await serviceDb().rpc('password_changed', { p_auth_user: authUserId });
+/**
+ * After Auth took a person's new password: the server records it, clears "must change password" (V166) and signs
+ * every other device of the person out in the same logged request — this one stays in (ACC-021).
+ */
+async function recordChange(db: Awaited<ReturnType<typeof serverDb>>, authUserId: string): Promise<boolean> {
+  const { data } = await db.auth.getClaims();
+  const session = (data?.claims as { session_id?: string } | undefined)?.session_id;
+  const { error } = await serviceDb().rpc('own_password_set', {
+    p_auth_user: authUserId,
+    p_keep_session: session ?? '00000000-0000-0000-0000-000000000000',
+  });
   return !error;
 }
 
@@ -140,7 +148,7 @@ export async function setOwnPassword(
   if (refused) return { ok: false, error: refused };
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
+  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
   redirect(safeNext(next));
 }
 
@@ -178,6 +186,6 @@ export async function changePassword(
     return { ok: false, error: counted.data === 'locked' ? 'rate_limited' : 'wrong_current' };
   }
   if (check !== 'ok') return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(who.user.id))) return { ok: false, error: 'unavailable' };
+  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
   return { ok: true };
 }

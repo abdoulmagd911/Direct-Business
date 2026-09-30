@@ -5,8 +5,8 @@ import { makePerson, signIn } from './support/stack';
 // V431, V441, V166 · e-mail and password: an admin's route generates a person's temporary password — refused to anyone
 // but an admin and without a reason — answers it once, 14 characters or more, and Auth takes it; the sign-in it opens
 // completes as must_change_password and reaches nothing else until the change is recorded, which the browser cannot do.
-// "Generate for everyone without a password" is generate-for-everyone-without-a-password.alone.spec.ts (it runs alone).
-// The person's own screens are builder B's.
+// "Generate for everyone without a password" is generate-for-everyone-without-a-password.alone.spec.ts (it runs alone);
+// replacing a password someone holds is a confirmed Reset (V451). The person's own screens are builder B's.
 // Every value is made up. Sabotage: tests/sabotage/e2e-sign-in.mjs "e2e-password-never-reaches-auth".
 function publicClient() {
   return createClient(
@@ -59,10 +59,14 @@ test('an admin generates a temporary password, which must be changed before anyt
   });
   expect(again.status(), 'a password the person holds is kept').toBe(422);
   expect(((await again.json()) as { error: { key: string } }).error.key).toBe('person_password.has_one');
-  const reset = await adminPage.request.post('/auth/admin/password', {
-    data: { person_id: person.id, reason: 'Test: reset', replace: true },
+  const unconfirmed = await adminPage.request.post('/auth/admin/password/reset', {
+    data: { person_id: person.id, reason: 'Test: reset' },
   });
-  expect(reset.status(), 'unless the admin asks for a Reset').toBe(200);
+  expect(unconfirmed.status(), 'a Reset is confirmed, never implied (V451)').toBe(422);
+  const reset = await adminPage.request.post('/auth/admin/password/reset', {
+    data: { person_id: person.id, reason: 'Test: reset', confirm: true },
+  });
+  expect(reset.status(), 'unless the admin asks for a Reset and confirms it').toBe(200);
 
   await memberCtx.close();
   await adminCtx.close();
