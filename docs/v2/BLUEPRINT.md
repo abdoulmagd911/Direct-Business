@@ -304,6 +304,12 @@ Vercel (V13, V21, V84).
     registered as past work from 1 January 2025 — Backfilled, owner Unknown until assigned, never on My day, counted
     in its month and its appraisal period — from the BD monthly, Partnerships, Commercial quarterly and improvements
     reports only.
+86. **The employee view** (V507–V510, owner-delegated to the oversight from the Design lead's brief): a Member's menu
+    is My day, Tasks, Clients and the +; Suppliers & partners a tab inside Clients; Reports out of the member menu;
+    Pipeline for the Business Development and Business Solutions teams and managers up; every screen PR names its
+    simplicity gate card or is not merged; three real jobs on a phone at 390 px before any module goes live; access by
+    team — a team level between the role default and the person override, inherited by new joiners, one migration by
+    builder A.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

@@ -228,11 +228,12 @@ shows its count — M102/M89).
   text column up to **880 px**; wider screens centre the content. The drawer: pinned from 1,024 px, the 56 px rail on
   tablets (opening as an overlay), replaced on phones by the bottom bar. The detail panel is 480 px from 1,024 px;
   below 900 px a record opens full page.
-- **Phones** (V85): a **bottom bar** — My day · Tasks · Clients · KPIs · More (More opens every other page as a
-  sheet) — replaces the drawer; the top bar keeps search, the bell and the profile chip; records open **full screen**
-  with a back arrow; tables show as **two-line cards** (line 1: the title and its key figure; line 2: two or three
-  secondary fields and the status chip); a **floating +** above the bottom bar (end side) opens quick add — task, Log
-  call, achievement. The same data and actions as on a desktop; nothing is phone-only.
+- **Phones** (V85): a **bottom bar** — My day · Tasks · Clients · KPIs · More (More opens every other page as a sheet;
+  a Member's bar is My day · Tasks · Clients · + — V507) — replaces the drawer; the top bar keeps search, the bell and
+  the profile chip; records open **full screen** with a back arrow; tables show as **two-line cards** (line 1: the
+  title and its key figure; line 2: two or three secondary fields and the status chip); a **floating +** above the
+  bottom bar (end side) opens quick add — task, Log call, achievement. The same data and actions as on a desktop;
+  nothing is phone-only.
 - **Four themes** (owner, 28 Sep): **Light**, **Dark**, **Colorful** (the blueprint's values, unchanged) and **Direct**
   — **the official brand palette** (V60, replacing the first Direct values): bg #F6F7F9, surface #FAFBFC, raised
   #FFFFFF, border #E6E8EC, strong #858E99, text #303848, muted #646D79, link #B5490E; **accent #F06820 for marks, tabs
@@ -395,6 +396,8 @@ core.page         key text pk; module; route; nav_group; nav_order; levels_allow
 core.capability   key text pk; page_key → core.page; active                                            -- synced
 core.role_page_level    (role_id, page_key) pk; level core.level           -- defaults (synced, then editable)
 core.role_capability    (role_id, capability_key) pk; granted bool
+core.team_page_level    (team_id, page_key) pk; level; set_by; set_at; reason          -- V510: access by team, between the
+                  -- role default and the person override; a new joiner inherits it with the team; admins only
 core.person_page_level  (person_id, page_key) pk; level; set_by; set_at; reason        -- per-person overrides
 core.person_capability  (person_id, capability_key) pk; granted; set_by; set_at; reason
 core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); avatar_file_id → core.file; avatar_color
@@ -410,8 +413,9 @@ core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); 
                   -- role, team, manager, emails and access stay with admins and managers
 ```
 
-`core.level` is the ordered enum `none < view < own < full` (D2). Effective level = person override, else role
-default, else `none`; an admin role is `full` everywhere. Rules carried over: only an admin makes an admin (D13); nobody
+`core.level` is the ordered enum `none < view < own < full` (D2). Effective level = person override, else the
+highest level of the person's home and assisted teams (`core.team_page_level` — V510), else role default, else `none`;
+an admin role is `full` everywhere. Rules carried over: only an admin makes an admin (D13); nobody
 changes their own access; **only admins change access** (V97, V138 — the old M72 "a manager grants at most their own
 level" is retired).
 
@@ -2053,7 +2057,7 @@ quarterly reports — and revisited later (V83).
 | **My day** `/my-day` | **Capture, then Convert** (V433, §3.3a): the Capture row (a Note in one keystroke — sticky · meeting · checklist; private by default), **Turn into** on every note, the from-note and turned-into chips, **Finish meeting**, **Wrap up today**; tabs **Me · My team · Workspace**; 5–7 rows per block. Then the blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
 | **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, clients (sign-ups · onboarded · active — V477), tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything and the **payment-type chip** (V87); each tile links to its list | — | Period; segment; export |
 | **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
-| **Clients** `/clients/[id]` and **Suppliers & partners** `/suppliers/[id]` (V98) | Two list pages over the one organisation table, each lean: **saved views across the top** (Clients: All · Government · Corporate · Agencies · Individuals; Suppliers & partners: All · Suppliers · Strategic partners · Sales channels · Integrations; a default per person); visible chips **Type · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; organisations that contributed); everything else under **More filters**; any combination saves as a view. Columns: logo or monogram, trade name (V77), the side's type, status chip, owner, last activity, and on Clients YTD revenue and outstanding | **The record page of V95**: header (trade name, side chips with type and status, up to five figures, New task · Log activity · Log achievement · New project); **Overview · Activity · Related · Finance** (Finance only with the Client side on: invoices, months, collections, credit limit and outstanding against it, prepaid balance, Sent to legal, codes with their terms, days to pay, **Open in Finance** carrying the filters); the details rail: both sides' fields, identifiers with add / remove / history, contacts with roles, Direct references, contracts | New client / New supplier & partner; **Log activity** (type, outcome, next step — V401); switch a side on or off; set a side's status (with reason); add identifier; upload logo; add contract; merge; set the side's owner; Escalate; Follow |
+| **Clients** `/clients` with the tabs **Clients** and **Suppliers & partners** (V507: one menu entry; the record routes `/clients/[id]` and `/suppliers/[id]` stay) (V98) | Two lists over the one organisation table, each lean: **saved views across the top** (Clients: All · Government · Corporate · Agencies · Individuals; Suppliers & partners: All · Suppliers · Strategic partners · Sales channels · Integrations; a default per person); visible chips **Type · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; organisations that contributed); everything else under **More filters**; any combination saves as a view. Columns: logo or monogram, trade name (V77), the side's type, status chip, owner, last activity, and on Clients YTD revenue and outstanding | **The record page of V95**: header (trade name, side chips with type and status, up to five figures, New task · Log activity · Log achievement · New project); **Overview · Activity · Related · Finance** (Finance only with the Client side on: invoices, months, collections, credit limit and outstanding against it, prepaid balance, Sent to legal, codes with their terms, days to pay, **Open in Finance** carrying the filters); the details rail: both sides' fields, identifiers with add / remove / history, contacts with roles, Direct references, contracts | New client / New supplier & partner; **Log activity** (type, outcome, next step — V401); switch a side on or off; set a side's status (with reason); add identifier; upload logo; add contract; merge; set the side's owner; Escalate; Follow |
 | **Needs a decision** (a view of Clients) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
 | **Finance** `/finance/[view]` | Views: Overview (tiles: Revenue, Cost, Profit (the screen words — V73), the estimate apart and flagged — never a "profit with estimates" (V419), counted units, **Not yet invoiced: Ready / Pending** (V424 — never in revenue); months; income by service; **by segment** (V64); what is held back and what fails a check) · Invoices (every kind and state; chips: **payment type** (prepaid · postpaid · code · tender — V87), Provisional, **Loss** (V414), checks failing, no partner) · Collections (ageing, who to chase — on billing and standalone invoices; each row's due basis — V415; the payment-type chip; Sent to legal chip and note — V70) · **Sales by code** (code × month, partner or campaign, terms — V65; campaign codes listed apart); every filter lives in the URL (partner, period, kind, status, service …) so **Open in Finance** from a partner card lands on the same figures; **saved views** (personal or shared) and bulk actions on every list · **New invoice** (the fast entry screen of §7) · Imports (P7) | Invoice: header, lines, expenses (transactions), transactions and DPIN and receipts (billing), cost status, checks, partner and match level, credit (split), projects/achievements/report lines citing it, history | New invoice (Save and new, Duplicate); link transactions to a billing invoice; split credit |
 | **Projects** `/projects/[id]` | Number, name, partner, owner, status, dates, linked revenue and profit | Overview (linked invoices and money) · Tasks · Achievements · Files · Timeline | New project; link invoices |
@@ -2072,11 +2076,13 @@ per-device sign-out (V74).
 Top bar: search and command palette (Ctrl K — pages, records through `api.search`, and the actions **New task · Log
 activity · New invoice · Go to** — V401), Create menu, bell (the notification centre: All · Mentions · Assigned to me,
 by day, mark all read, snooze — §3.3) (notifications; due items counted live), profile chip (avatar, nickname, badge)
-opening My profile (theme, density, language once Arabic is enabled, change password — V431, sign out) and **Documents**
-(the SOP and SLA links to Drive — V435); while **View as** is on, a banner across the top of every page — "Viewing as X
-— read-only" with Exit (V442). The drawer: My day, Overview, Clients, Suppliers & partners, Pipeline, Projects, Tasks,
-Finance, KPIs, Reports, Appraisal, Activity; Settings for admins (§2.5); on phones the bottom bar My day · Tasks ·
-Clients · KPIs · More (V85).
+opening My profile (theme, density, language once Arabic is enabled, change password — V431, sign out) and
+**Documents** (the SOP and SLA links to Drive — V435); while **View as** is on, a banner across the top of every page
+— "Viewing as X — read-only" with Exit (V442). The drawer: My day, Overview, Clients (with the Suppliers & partners
+tab — V507), Pipeline (the Business Development and Business Solutions teams, managers and above — V510), Projects,
+Tasks, Finance, KPIs, Reports (managers and above — V507), Appraisal, Activity; Settings for admins (§2.5). A
+**Member** sees My day, Tasks, Clients and the + (V507, the Design lead's employee-view brief); on phones the bottom
+bar My day · Tasks · Clients · KPIs · More (V85), a Member's My day · Tasks · Clients · +.
 
 ---
 
@@ -2269,7 +2275,10 @@ the catalog).
 The PR's own tests pass, each new test was seen to fail under its sabotage (named in the PR), the full SQL and unit
 suites pass on a database built from zero, E2E passes for the areas touched, the checks pass, the grants snapshot is
 updated on purpose if it changed, and nothing real is in the diff (rule 7). **The PR description lists the V-numbers
-it implements and states "checked against DECISIONS.md at <commit>"** (V94).
+it implements and states "checked against DECISIONS.md at <commit>"** (V94), **and a PR that adds or changes a screen
+names its simplicity gate card** — the ten cuts and the acceptance test it meets — or it is not merged (V508). **Before
+any module goes live**, three real jobs of it are done on a phone at 390 px by someone who did not build it, checked at
+1,440 px, and recorded in the PR that switches it on (V509).
 
 ---
 
