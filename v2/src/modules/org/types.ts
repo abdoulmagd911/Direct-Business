@@ -47,8 +47,8 @@ export type OrgPerson = {
   avatar_file_id: string | null;
   badge_kind: BadgeKind | null;
   badge_value: string | null;
-  /** 'staff', or 'admin_account' / 'test_account' (V444, V445) once api.org serves it. */
-  kind?: string | null;
+  /** 'team_member', or the owner's 'admin_account' / the 'test_account' (V444, V445; core.person.account, #115). */
+  account?: string | null;
 };
 /** api.org(): the structure everyone may read — no emails, no access (V132). */
 export type OrgAnswer = { departments: OrgDepartment[]; teams: OrgTeam[]; roles: OrgRole[]; people: OrgPerson[] };
@@ -70,8 +70,8 @@ export type PersonRow = {
   can_sign_in: boolean;
   active: boolean;
   version: number;
-  /** 'staff', or the owner's 'admin_account' / the 'test_account' (V444, V445) once api.people serves it. */
-  kind?: string | null;
+  /** 'team_member', or the owner's 'admin_account' / the 'test_account' (V444, V445; core.person.account, #115). */
+  account?: string | null;
   role: { id: string; key: string; is_admin: boolean } | null;
   emails: { id: string; email: string; is_primary: boolean }[];
   last_sign_in_at: string | null;

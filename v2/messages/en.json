@@ -678,7 +678,19 @@
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
       "entries": "{count} entries",
-      "banned": "The app never says {word}"
+      "banned": "The app never says {word}",
+      "side": "Side",
+      "status": "Status",
+      "values": {
+        "side": {
+          "client": "Client",
+          "supplier_partner": "Supplier & partner"
+        },
+        "status": {
+          "at_risk": "At risk",
+          "lost": "Lost"
+        }
+      }
     },
     "people": {
       "add": "Add person",
@@ -960,7 +972,8 @@
     "crash": {
       "title": "Something went wrong",
       "body": "This page could not be drawn. Try again, or go back to My day.",
-      "goMyDay": "Go to My day"
+      "goMyDay": "Go to My day",
+      "bodyNoData": "The app could not reach its data just now. Try again in a moment, or go to My day."
     },
     "notFound": {
       "title": "Page not found",

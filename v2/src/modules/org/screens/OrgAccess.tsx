@@ -187,7 +187,9 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.role')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.department')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.team')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.emails')}</th>
+              <th className="hidden px-4 py-2.5 text-start font-medium min-[1600px]:table-cell">
+                {t('settings.people.emails')}
+              </th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.lastSignIn')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.status')}</th>
             </tr>
@@ -215,13 +217,20 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                   </td>
                   <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.dept(p.department_id) || '—'}</td>
                   <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.team(p.team_id) || '—'}</td>
-                  <td className="px-4 py-2.5 font-data text-xs">{p.emails.map((e) => e.email).join(', ')}</td>
+                  {/* Emails from 1600 px, truncated with the full list in the title, so Status keeps its room at 1440
+                      (QA-183a); the record and the phone cards carry every email */}
+                  <td
+                    className="hidden max-w-56 truncate px-4 py-2.5 font-data text-xs min-[1600px]:table-cell"
+                    title={p.emails.map((e) => e.email).join(', ')}
+                  >
+                    {p.emails.map((e) => e.email).join(', ')}
+                  </td>
                   <td className="px-4 py-2.5 font-data text-xs whitespace-nowrap text-muted">
                     {p.last_sign_in_at
                       ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
                       : t('settings.people.never')}
                   </td>
-                  <td className="px-4 py-2.5" data-person-status>
+                  <td className="px-4 py-2.5 whitespace-nowrap" data-person-status>
                     <PersonStatus row={p} />
                   </td>
                 </tr>
@@ -269,14 +278,14 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
 }
 
 /** The admin account and the test account are not team members (V444, V445): named as accounts, no team. */
-export function isAccount(p: { kind?: string | null }): boolean {
-  return p.kind === 'admin_account' || p.kind === 'test_account';
+export function isAccount(p: { account?: string | null }): boolean {
+  return p.account === 'admin_account' || p.account === 'test_account';
 }
 
 function PersonRole({ row, roleName }: { row: PersonRow; roleName: string }) {
   const t = useTranslations();
-  if (row.kind === 'admin_account') return <>{t('settings.people.adminAccount')}</>;
-  if (row.kind === 'test_account') return <>{t('settings.people.testAccount')}</>;
+  if (row.account === 'admin_account') return <>{t('settings.people.adminAccount')}</>;
+  if (row.account === 'test_account') return <>{t('settings.people.testAccount')}</>;
   if (!row.role) return <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>;
   return <>{roleName}</>;
 }

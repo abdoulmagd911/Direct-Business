@@ -538,4 +538,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'account-read-from-kind',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'named from core.person.account',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: "  if (row.account === 'test_account')",
+        replace: "  if ((row as { kind?: string }).kind === 'test_account')",
+      },
+    ],
+  },
+  {
+    name: 'list-hides-its-side',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'Side type shows each side',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: "  const extra = EXTRA[entity];\n",
+        replace: '  const extra = undefined as (typeof EXTRA)[string] | undefined;\n',
+      },
+    ],
+  },
 ];

@@ -8,7 +8,8 @@ import { settingsGroups } from '../groups';
 
 /**
  * Settings (V97, admins only): the groups down the start side (a list of links, not tabs — the group's own page may
- * carry the one tab row), the group's content beside them; on a phone the groups scroll across the top.
+ * carry the one tab row), the group's content beside them; on a phone the groups wrap across the top, every one in
+ * sight — a sideways scroll hid the last ones with no cue (QA-183d).
  */
 export async function SettingsShell({
   current,
@@ -26,7 +27,7 @@ export async function SettingsShell({
   const nav = (
     <nav
       aria-label={t('settings.title')}
-      className="flex gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-col md:overflow-visible md:pb-0"
+      className="flex flex-wrap gap-1 md:flex-col md:flex-nowrap"
       data-settings-groups
     >
       {groups.map((g) => {
@@ -37,7 +38,7 @@ export async function SettingsShell({
             href={`/settings/${g.slug}`}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'whitespace-nowrap rounded-md px-3 py-2 text-base hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus',
+              'inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-3 py-2 text-base hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus md:min-h-0',
               active ? 'bg-surface font-semibold text-text' : 'text-muted',
             )}
           >

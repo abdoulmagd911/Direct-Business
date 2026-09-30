@@ -24,7 +24,17 @@ export type ListEntry = {
   [column: string]: unknown;
 };
 
-type Draft = { key: string; name_en: string; name_ar: string; sort: string };
+type Draft = { key: string; name_en: string; name_ar: string; sort: string; extra: string };
+
+/**
+ * The lists whose entries belong to one side or one status (QA-176, QA-177): the column shows it, the rows group by
+ * it, and Add entry asks for it (a status reason without its status is refused — `list.invalid: status`, #129).
+ */
+const EXTRA: Record<string, { col: 'side' | 'status'; options: readonly string[]; label: (v: string) => string }> = {
+  side_type: { col: 'side', options: ['client', 'supplier_partner'], label: (v) => `settings.list.values.side.${v}` },
+  side_tier: { col: 'side', options: ['client', 'supplier_partner'], label: (v) => `settings.list.values.side.${v}` },
+  side_status_reason: { col: 'status', options: ['at_risk', 'lost'], label: (v) => `settings.list.values.status.${v}` },
+};
 
 /**
  * A setting list (§3.0 LIST, V76, V97, V133): its entries with both names, the key and the order; Add and Edit in one
@@ -38,7 +48,10 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ListEntry | 'new' | null>(null);
-  const [draft, setDraft] = useState<Draft>({ key: '', name_en: '', name_ar: '', sort: '' });
+  const [draft, setDraft] = useState<Draft>({ key: '', name_en: '', name_ar: '', sort: '', extra: '' });
+  const extra = EXTRA[entity];
+  const extraOf = (r: ListEntry) => (extra ? String(r[extra.col] ?? '') : '');
+  const extraWord = (v: string) => (extra && v && t.has(extra.label(v)) ? t(extra.label(v)) : v || '—');
   const [reason, setReason] = useState('');
   const [archiving, setArchiving] = useState<ListEntry | null>(null);
   const [usage, setUsage] = useState<number | null>(null);
@@ -53,21 +66,30 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   };
   const shown = rows
     .filter((r) => showArchived || r.active)
-    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.name_en.localeCompare(b.name_en));
+    .sort(
+      (a, b) =>
+        (extra ? extra.options.indexOf(extraOf(a)) - extra.options.indexOf(extraOf(b)) : 0) ||
+        (a.sort ?? 0) - (b.sort ?? 0) ||
+        a.name_en.localeCompare(b.name_en),
+    );
   const name = (r: ListEntry) => (locale === 'ar' && r.name_ar ? r.name_ar : r.name_en);
 
   const startEdit = (r: ListEntry | 'new') => {
     setDraft(
       r === 'new'
-        ? { key: '', name_en: '', name_ar: '', sort: String(rows.length + 1) }
-        : { key: r.key, name_en: r.name_en, name_ar: r.name_ar ?? '', sort: String(r.sort ?? '') },
+        ? { key: '', name_en: '', name_ar: '', sort: String(rows.length + 1), extra: '' }
+        : { key: r.key, name_en: r.name_en, name_ar: r.name_ar ?? '', sort: String(r.sort ?? ''), extra: extraOf(r) },
     );
     setReason('');
     setEditing(r);
   };
   const banned = bannedIn(draft.name_en) ?? bannedIn(draft.name_ar);
   const draftOk =
-    !banned && draft.key.trim().length > 0 && draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;
+    !banned &&
+    draft.key.trim().length > 0 &&
+    draft.name_en.trim().length > 0 &&
+    draft.name_ar.trim().length > 0 &&
+    (!extra || editing !== 'new' || !!draft.extra);
   const save = async () => {
     if (editing === null) return;
     setBusy(true);
@@ -80,7 +102,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     // checked per field it is asked to write); a new entry sends everything with its key.
     const values: Record<string, unknown> = {};
     if (editing === 'new') {
-      Object.assign(values, typed, { key: draft.key.trim() });
+      Object.assign(values, typed, { key: draft.key.trim() }, extra ? { [extra.col]: draft.extra } : {});
     } else {
       for (const [k, v] of Object.entries(typed))
         if (JSON.stringify(v) !== JSON.stringify(editing[k] ?? null)) values[k] = v;
@@ -190,55 +212,68 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
           </Button>
         </div>
       </div>
-      <table className="w-full text-sm">
-        <thead className="text-xs text-muted">
-          <tr>
-            <th className="py-2 text-start font-medium">{t('settings.list.nameEn')}</th>
-            <th className="py-2 pe-6 text-end font-medium">{t('settings.list.nameAr')}</th>
-            <th className="py-2 text-start font-medium">{t('settings.list.key')}</th>
-            <th className="py-2 text-end font-medium">{t('settings.list.sort')}</th>
-            <th className="py-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {shown.map((r) => (
-            <tr key={r.id} data-list-entry={r.key} data-active={r.active}>
-              <td className="py-2.5">
-                <span className="flex items-center gap-2">
-                  {r.name_en}
-                  {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
-                </span>
-              </td>
-              <td className="py-2.5 pe-6 text-end whitespace-nowrap" dir="rtl">
-                {r.name_ar}
-              </td>
-              <td className="py-2.5 font-data text-muted">{r.key}</td>
-              <td className="py-2.5 text-end font-data text-muted">{r.sort}</td>
-              <td className="py-2.5 text-end">
-                <span className="inline-flex gap-1">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => startEdit(r)}
-                    aria-label={t('settings.list.edit', { name: name(r) })}
-                  >
-                    {t('common.edit')}
-                  </Button>
-                  {r.active ? (
-                    <Button size="xs" variant="ghost" onClick={() => void startArchive(r)} data-list-archive>
-                      {t('settings.list.archive')}
-                    </Button>
-                  ) : (
-                    <Button size="xs" variant="ghost" onClick={() => void restore(r)}>
-                      {t('settings.list.restore')}
-                    </Button>
-                  )}
-                </span>
-              </td>
+      {/* on a phone the key and the order step aside and the names get room, so Edit and Archive stay on screen (QA-183c) */}
+      <div className="-mx-5 overflow-x-auto px-5">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-muted">
+            <tr>
+              <th className="py-2 text-start font-medium">{t('settings.list.nameEn')}</th>
+              <th className="py-2 ps-4 pe-6 text-end font-medium">{t('settings.list.nameAr')}</th>
+              {extra ? (
+                <th className="py-2 pe-4 text-start font-medium" data-list-column={extra.col}>
+                  {t(`settings.list.${extra.col}`)}
+                </th>
+              ) : null}
+              <th className="hidden py-2 text-start font-medium sm:table-cell">{t('settings.list.key')}</th>
+              <th className="hidden py-2 text-end font-medium sm:table-cell">{t('settings.list.sort')}</th>
+              <th className="py-2" />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {shown.map((r) => (
+              <tr key={r.id} data-list-entry={r.key} data-active={r.active}>
+                <td className="py-2.5">
+                  <span className="flex items-center gap-2">
+                    {r.name_en}
+                    {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
+                  </span>
+                </td>
+                <td className="py-2.5 ps-4 pe-6 text-end" dir="rtl" lang="ar">
+                  {r.name_ar}
+                </td>
+                {extra ? (
+                  <td className="py-2.5 pe-4 whitespace-nowrap" data-list-extra={extraOf(r)}>
+                    {extraWord(extraOf(r))}
+                  </td>
+                ) : null}
+                <td className="hidden py-2.5 font-data text-muted sm:table-cell">{r.key}</td>
+                <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
+                <td className="py-2.5 text-end">
+                  <span className="inline-flex flex-wrap justify-end gap-1">
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => startEdit(r)}
+                      aria-label={t('settings.list.edit', { name: name(r) })}
+                    >
+                      {t('common.edit')}
+                    </Button>
+                    {r.active ? (
+                      <Button size="xs" variant="ghost" onClick={() => void startArchive(r)} data-list-archive>
+                        {t('settings.list.archive')}
+                      </Button>
+                    ) : (
+                      <Button size="xs" variant="ghost" onClick={() => void restore(r)}>
+                        {t('settings.list.restore')}
+                      </Button>
+                    )}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Dialog
         open={editing !== null}
@@ -270,6 +305,20 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               />
             )}
           </Field>
+          {extra ? (
+            <Field label={t(`settings.list.${extra.col}`)}>
+              {(p) => (
+                <Select
+                  {...p}
+                  value={draft.extra}
+                  disabled={editing !== 'new'}
+                  onValueChange={(v) => setDraft({ ...draft, extra: v })}
+                  options={extra.options.map((o) => ({ value: o, label: extraWord(o) }))}
+                  data-list-extra-select
+                />
+              )}
+            </Field>
+          ) : null}
           <Field
             label={t('settings.list.nameEn')}
             error={bannedIn(draft.name_en) ? t('settings.list.banned', { word: bannedIn(draft.name_en)! }) : undefined}
