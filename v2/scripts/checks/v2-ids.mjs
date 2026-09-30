@@ -1,7 +1,8 @@
 // @ts-check
 // A18 — two builders once collided on decision numbers and file numbers. Decision IDs in docs/v2/DECISIONS.md are
 // unique and in range (V1–V99 architect and oversight, V100–V199 builder A, V200–V299 builder B, V300–V399 builder C,
-// V400–V499 the owner's decisions relayed by the oversight — from 29 Sep; V410); local ports used by v2's scripts and
+// V400–V499 the owner's decisions relayed by the oversight — from 29 Sep; V410; V500–V599 owner decisions and the
+// oversight's rulings from 30 Sep; V600–V699 the architect — #130); local ports used by v2's scripts and
 // configs are in the sessions' blocks (A 9300–9399, B 9400–9499, C 9500–9599, QA 9600–9699), or the Supabase stack's
 // own (5432, 54320–54329).
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ function portAllowed(p) {
 
 export default defineCheck({
   name: CHECK,
-  rule: 'A18: decision IDs unique and within V1–V499; local ports within 9300–9699 (or the Supabase stack)',
+  rule: 'A18: decision IDs unique and within V1–V699; local ports within 9300–9699 (or the Supabase stack)',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];
@@ -32,7 +33,7 @@ export default defineCheck({
       for (const m of text.matchAll(/^\*\*V(\d+)\s+—/gm)) {
         const id = Number(m[1]);
         const line = lineOf(text, m.index ?? 0);
-        if (!(id >= 1 && id <= 499)) out.push({ check: CHECK, file: rel, line, message: `V${id} is outside V1–V499` });
+        if (!(id >= 1 && id <= 699)) out.push({ check: CHECK, file: rel, line, message: `V${id} is outside V1–V699` });
         if (seen.has(id))
           out.push({ check: CHECK, file: rel, line, message: `V${id} is used twice (first on line ${seen.get(id)})` });
         else seen.set(id, line);
