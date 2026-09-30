@@ -28,7 +28,7 @@ owner's private knowledge base. Read `DECISIONS.md` for the rules and `BUILD-PLA
 | Check | Who | Where | Verified by | Rule |
 |---|---|---|---|---|
 | Every migration applied at merge by the `db-production` job (never by a session); none edited after merge | the job; builder A watches it | the job's run on each v2/main merge (GitHub → Actions → v2) | its last step: "production and main agree" | V103, V181, §10 |
-| The job's two repository secrets are set: `SUPABASE_ACCESS_TOKEN` (a Supabase personal access token) and `SUPABASE_DB_PASSWORD` (the project's database password) | owner | GitHub → the repository → Settings → Secrets and variables → Actions | the job's first step passes | V181 |
+| The job's repository secret is set: `SUPABASE_DB_PASSWORD` (the project's database password; no access token is needed) | owner | GitHub → the repository → Settings → Secrets and variables → Actions | the job's first step passes | V181 |
 | Auth: sign-ups off; the email provider with password on; minimum password length 10 (`auth.password_min_length` and the project's own minimum); the code door off (`auth.code_door_enabled` false) | builder A (settings), owner (dashboard) | Supabase → Authentication; Settings → App in the app | a sign-up attempt is refused; a 9-character password is refused | V431 |
 | Site URL and redirect URLs list `https://www.directksab2b.com` (and the bare domain) | owner | Supabase → Authentication → URL configuration | sign-in works through the domain | V13 |
 | Google and Zoom providers: off until their keys exist | — | Supabase → Providers | no provider button on the page | V23 |
