@@ -778,7 +778,8 @@
       "manager_not_team_member": "The admin account and the test account are nobody’s manager",
       "has_reports": "People report to this person — give them another manager first",
       "account_taken": "There is already one of these accounts",
-      "unknown_account": "That is not an account type"
+      "unknown_account": "That is not an account type",
+      "account_in_no_team": "The admin account and the test account are in no team and have no manager"
     },
     "people": {
       "email_taken": "That email already belongs to {detail}"
