@@ -503,6 +503,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'at-risk-needs-no-reason',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'At risk asks for a reason',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/SideDialogs.tsx',
+        find: "  const needsReason = f.status === 'at_risk' || f.status === 'lost';\n",
+        replace: '  const needsReason = false;\n',
+      },
+    ],
+  },
+  {
     name: 'not-found-shows-the-raw-path',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
     expect: 'never the raw path as a title',
@@ -511,6 +523,18 @@ export const sabotages = [
         file: 'src/app/(app)/[[...path]]/page.tsx',
         find: "      <PageHeader title={t('errors.notFound.title')} />",
         replace: '      <PageHeader title={address} />',
+      },
+    ],
+  },
+  {
+    name: 'bulk-assign-one-by-one',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'every selected organisation is owned by the new owner',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: '          p_ids: ids,\n',
+        replace: '          p_ids: ids.slice(0, 1),\n',
       },
     ],
   },
@@ -535,6 +559,18 @@ export const sabotages = [
         file: 'src/modules/settings/screens/SchemaEditor.tsx',
         find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'hover-card-shows-one-side',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the hover card names both sides',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerHover.tsx',
+        find: '              {p.sides.map((s) => (\n',
+        replace: '              {p.sides.slice(0, 1).map((s) => (\n',
       },
     ],
   },
