@@ -168,6 +168,7 @@ export type Database = {
       };
       list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
+      my_day: { Args: { p_limit?: number; p_offset?: number; p_scope?: string }; Returns: Json };
       my_devices: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -178,6 +179,7 @@ export type Database = {
           this_device: boolean;
         }[];
       };
+      note: { Args: { p_id: string }; Returns: Json };
       note_add: {
         Args: {
           p_body: string;
@@ -189,7 +191,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      note_capture: { Args: { p_kind: string; p_mentions?: string[]; p_values?: Json }; Returns: Json };
       note_edit: { Args: { p_id: string; p_mentions?: string[]; p_values: Json; p_version: number }; Returns: Json };
+      note_finish_meeting: { Args: { p_id: string; p_values?: Json }; Returns: Json };
+      note_links: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      note_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      note_turn_into: { Args: { p_id: string; p_into: string; p_values?: Json }; Returns: Json };
+      note_update: { Args: { p_id: string; p_mentions?: string[]; p_values: Json; p_version: number }; Returns: Json };
+      note_wrap_up: { Args: { p_day: string; p_steps: Json }; Returns: Json };
       notes: {
         Args: { p_entity: string; p_id: string; p_kinds?: string[]; p_limit?: number; p_offset?: number };
         Returns: Json;
@@ -271,6 +280,7 @@ export type Database = {
         Returns: Json;
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      reminder_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       restore_ticketed: {
         Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };

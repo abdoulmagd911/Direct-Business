@@ -19,6 +19,8 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_checkin',
   'alert_activity_stale',
   'alert_file_review',
+  'reminder',
+  'note_mention',
 ] as const;
 
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like

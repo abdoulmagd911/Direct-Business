@@ -359,7 +359,9 @@
             "alert_invoice_unpaid",
             "alert_kpi_checkin",
             "alert_activity_stale",
-            "alert_file_review"
+            "alert_file_review",
+            "reminder",
+            "note_mention"
           ]
         }
       },
@@ -379,7 +381,9 @@
         "alert_invoice_unpaid",
         "alert_kpi_checkin",
         "alert_activity_stale",
-        "alert_file_review"
+        "alert_file_review",
+        "reminder",
+        "note_mention"
       ],
       "effective_dated": false
     },
@@ -578,7 +582,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "activity_type",
@@ -589,7 +594,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "campaign_code",
@@ -600,7 +606,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "capability",
@@ -611,7 +618,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "code_terms",
@@ -622,7 +630,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "contact",
@@ -633,7 +642,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "contact_role",
@@ -644,7 +654,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "contract",
@@ -655,7 +666,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "contract_term",
@@ -666,7 +678,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "contract_terms",
@@ -677,7 +690,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "credit_limit",
@@ -688,7 +702,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "department",
@@ -699,7 +714,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "entity",
@@ -710,7 +726,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "file",
@@ -721,7 +738,8 @@
       "private": false,
       "visible": "core.file_visible_as",
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "file_kind",
@@ -732,7 +750,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "file_link",
@@ -743,7 +762,8 @@
       "private": false,
       "visible": "core.file_link_visible",
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "identifier",
@@ -754,7 +774,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "identifier_block",
@@ -765,7 +786,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "individual_name",
@@ -776,7 +798,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "mention",
@@ -787,7 +810,44 @@
       "private": false,
       "visible": "core.mention_visible",
       "level": "core.mention_level",
-      "history": false
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "my_note",
+      "table": "my.note",
+      "page": null,
+      "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": "my.note_visible",
+      "level": null,
+      "history": false,
+      "rule_only": true
+    },
+    {
+      "key": "my_note_link",
+      "table": "my.note_link",
+      "page": null,
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": "my.note_link_visible",
+      "level": null,
+      "history": false,
+      "rule_only": true
+    },
+    {
+      "key": "my_note_mention",
+      "table": "my.note_mention",
+      "page": null,
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": "my.note_mention_visible",
+      "level": null,
+      "history": false,
+      "rule_only": true
     },
     {
       "key": "note",
@@ -798,7 +858,8 @@
       "private": false,
       "visible": "core.note_visible",
       "level": "core.note_level",
-      "history": true
+      "history": true,
+      "rule_only": false
     },
     {
       "key": "page",
@@ -809,7 +870,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "partner",
@@ -820,7 +882,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "partner_merge",
@@ -831,7 +894,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "partner_side",
@@ -842,7 +906,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person",
@@ -853,7 +918,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_auth",
@@ -864,7 +930,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_capability",
@@ -875,7 +942,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_department",
@@ -886,7 +954,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_email",
@@ -897,7 +966,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_level",
@@ -908,7 +978,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "person_team",
@@ -919,7 +990,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "priority",
@@ -930,7 +1002,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "profile",
@@ -941,7 +1014,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "ref_system",
@@ -952,7 +1026,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "reference",
@@ -963,7 +1038,20 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "reminder",
+      "table": "core.reminder",
+      "page": null,
+      "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": "core.reminder_visible",
+      "level": null,
+      "history": false,
+      "rule_only": true
     },
     {
       "key": "role",
@@ -974,7 +1062,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "role_capability",
@@ -985,7 +1074,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "role_level",
@@ -996,7 +1086,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "saved_view",
@@ -1007,7 +1098,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "setting",
@@ -1018,7 +1110,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "setting_def",
@@ -1029,7 +1122,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "side_field",
@@ -1040,7 +1134,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "side_owner",
@@ -1051,7 +1146,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "side_status",
@@ -1062,7 +1158,8 @@
       "private": false,
       "visible": null,
       "level": "partner.row_level",
-      "history": true
+      "history": true,
+      "rule_only": false
     },
     {
       "key": "side_status_reason",
@@ -1073,7 +1170,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "side_tier",
@@ -1084,7 +1182,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "side_type",
@@ -1095,7 +1194,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "team",
@@ -1106,7 +1206,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "wording",
@@ -1117,7 +1218,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     }
   ],
   "role_levels": [
