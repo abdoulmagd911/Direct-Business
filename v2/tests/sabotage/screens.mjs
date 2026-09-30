@@ -168,7 +168,8 @@ export const sabotages = [
     // page never draws — the spec waits for it and times out, which is the red the sabotage expects.
     name: 'settings-open-to-everyone',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
-    expect: 'page.waitForFunction: Test timeout',
+    // with the crash page inside the shell (V216) the refused read no longer hangs the page: the no-access line is missing
+    expect: 'Settings says no access in words',
     edits: [
       {
         file: 'src/app/(app)/settings/[group]/page.tsx',

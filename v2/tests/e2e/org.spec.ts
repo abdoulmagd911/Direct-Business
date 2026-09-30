@@ -158,7 +158,7 @@ test('a non-admin is refused Settings by address', async ({ page }) => {
   const member = await makePerson();
   await signIn(page, member.email, '/settings/work');
   await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]')).toBeVisible();
+  await expect(page.locator('[data-state="no-access"]'), 'Settings says no access in words').toBeVisible();
   await expect(page.locator('[data-setting]')).toHaveCount(0);
 });
 
