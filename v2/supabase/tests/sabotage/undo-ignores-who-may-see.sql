@@ -1,7 +1,7 @@
--- Sabotage: access-undone-by-anyone
--- Breaks: sql:UNDO-05
--- Expect: cannot undo a change of someone's access
--- Undo forgets that a change of access is an admin's to undo: a head re-grants what the three rules refuse.
+-- Sabotage: undo-ignores-who-may-see
+-- Breaks: sql:VIS-01
+-- Expect: a head with Full on the page cannot undo a change to a private record they cannot see
+-- Undo forgets to ask whether the person may see what the request touched (V143).
 create or replace function audit.undo_allowed(q audit.request, me uuid) returns boolean
 language plpgsql stable security definer set search_path = ''
 as $$
@@ -11,7 +11,7 @@ begin
   if authz.is_admin() then
     return true;
   end if;
-  if exists (select 1 from audit.change c where c.request_id = q.id and not authz.can_see_as(me, c.table_name, c.row_id)) then
+  if audit.touches_access(q.id) then
     return false;
   end if;
   if not exists (select 1 from audit.change c

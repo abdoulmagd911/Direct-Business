@@ -39,9 +39,8 @@ select test.eq((select name_en from core.department where id = current_setting('
 select test.eq((select undone_by from audit.request where id = current_setting('t.r1')::uuid), null::uuid,
   'and the request is not marked undone');
 
-select test.as_person(current_setting('t.head')::uuid);
-select api.undo(current_setting('t.r2')::uuid);
 select test.as_person(current_setting('t.admin')::uuid);
+select api.undo(current_setting('t.r2')::uuid);
 select api.undo(current_setting('t.r1')::uuid);
 select test.as_owner();
 select test.eq((select name_en from core.team where id = current_setting('t.team')::uuid), 'Desk',

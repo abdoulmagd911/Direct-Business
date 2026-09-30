@@ -1,7 +1,7 @@
--- Sabotage: restore-ignores-the-window
--- Breaks: sql:DEL-01
--- Expect: restore after the window is refused
--- Restore forgets the Recently deleted window (V401): a record removed months ago comes back.
+-- Sabotage: a-sign-in-restored-without-its-ticket
+-- Breaks: sql:UNDO-06
+-- Expect: a sign-in record is restored only through the admin route
+-- A sign-in record is restored without the admin route, so Supabase Auth is left behind (V162).
 create or replace function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -25,6 +25,9 @@ begin
   if gone is null then
     raise exception using errcode = 'P0001', message = 'restore.not_removed';
   end if;
+  if gone < core.clock() - pg_catalog.make_interval(days => days) then
+    raise exception using errcode = 'P0001', message = 'restore.too_late', detail = days::text;
+  end if;
   may_own := (e.page_key is null and e.level is null) or authz.record_level(me, e.table_name, p_id) >= 'own';
   if not (authz.is_admin()
           or (not (e.table_name = any (audit.access_tables()))
@@ -33,10 +36,6 @@ begin
     raise exception using errcode = '42501', message = 'restore.not_allowed';
   end if;
   perform core.restore_needs(e.table_name, p_id);
-  if e.table_name in ('core.person_email', 'core.person_auth')
-     and not core.auth_ticket_take(p_ticket, 'restore', p_entity || ':' || p_id) then
-    raise exception using errcode = 'P0001', message = 'restore.via_admin_route', detail = '/auth/admin/restore';
-  end if;
   req := audit.begin('ui', 'record.restored', pg_catalog.jsonb_build_object('entity', p_entity), p_reason);
   begin
     perform audit.write_fields(e.table_name, p_id, '{"deleted_at": null, "deleted_by": null, "delete_reason": null}');

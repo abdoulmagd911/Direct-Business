@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { command } from '@/core/commands/command';
-import { rpc } from '@/core/db/rpc';
+import { restoreRecord } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
@@ -42,7 +42,7 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
         has: (k) => t.has(k),
         failed: (k, detail) => t(k, { detail }),
       },
-      () => rpc('restore', { p_entity: d.entity, p_id: d.id }) as Promise<{ request_id?: string | null } | null>,
+      () => restoreRecord(d.entity, d.id),
       { after: () => router.refresh() },
     );
   return (

@@ -1,7 +1,7 @@
--- Sabotage: undo-does-what-it-can
--- Breaks: sql:UNDO-03
--- Expect: undo refuses when a later change touched the same field
--- Undo skips what changed since and undoes the rest: half a request comes back, silently (A16).
+-- Sabotage: a-sign-in-undone-without-its-ticket
+-- Breaks: sql:UNDO-06
+-- Expect: even an admin undoes it only through the admin route, which re-syncs Auth
+-- A sign-in change is undone without the admin route, so Supabase Auth is left behind (V162).
 create or replace function audit.undo_ticketed(p_request uuid, p_ticket uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -35,11 +35,7 @@ begin
   req := audit.begin('undo', 'undo.done', pg_catalog.jsonb_build_object('request', q.id, 'label', q.label_key), null);
   begin
     for c in select * from audit.change x where x.request_id = q.id order by x.id desc loop
-      begin
-        perform audit.revert_change(c, q.id, req, me);
-      exception when serialization_failure then
-        null; -- the sabotage: a field changed since is skipped, the rest is undone
-      end;
+      perform audit.revert_change(c, q.id, req, me);
     end loop;
   exception when unique_violation then
     get stacked diagnostics holder = pg_exception_detail;
