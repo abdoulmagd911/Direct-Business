@@ -71,15 +71,22 @@ describe('the Arabic catalog', () => {
   it('formats every message in Arabic, for every plural form, with Latin digits', () => {
     for (const [key, message] of ar) {
       const args = argsOf(message);
-      for (const count of args.includes('count') ? [0, 1, 2, 3, 11, 100, 1234] : [0]) {
-        const values = Object.fromEntries(args.map((a) => [a, sample(a, count)]));
+      // A counted argument ({days, plural, …}) takes numbers like count; a tag (<address></address>) takes its chunks.
+      const plural = new Set([...message.matchAll(/\{\s*(\w+)\s*,\s*plural/g)].map((m) => m[1]!));
+      const tags = [...new Set([...message.matchAll(/<(\w+)>/g)].map((m) => m[1]!))];
+      for (const count of args.includes('count') || plural.size ? [0, 1, 2, 3, 11, 100, 1234] : [0]) {
+        const values: Record<string, unknown> = Object.fromEntries(
+          args.map((a) => [a, plural.has(a) ? count : sample(a, count)]),
+        );
+        for (const tag of tags) values[tag] = (chunks: string[]) => chunks.join('');
         let out = '';
         expect(() => (out = t(key as never, values as never)), `${key} formats`).not.toThrow();
         expect(out, `${key} is not its own key`).not.toBe(key);
         expect(ARABIC_DIGIT.test(out), `${key} prints Latin digits: ${out}`).toBe(false);
         if (!NOT_ARABIC.has(key) && hasOwnWords(message))
           expect(ARABIC_LETTER.test(out), `${key} reads in Arabic: ${out}`).toBe(true);
-        if (args.includes('count') && count === 1234) expect(out, `${key} shows the count`).toMatch(/1,?234/);
+        if (count === 1234 && (args.includes('count') || message.includes('#')))
+          expect(out, `${key} shows the count`).toMatch(/1,?234/);
       }
     }
   });
