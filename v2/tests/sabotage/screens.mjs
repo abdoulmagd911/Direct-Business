@@ -546,7 +546,7 @@ export const sabotages = [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
         find: "  if (row.account === 'test_account')",
-        replace: "  if ((row as { kind?: string }).kind === 'test_account')",
+        replace: "  if (row.account === 'not_an_account')",
       },
     ],
   },
