@@ -398,8 +398,9 @@ core.role_capability    (role_id, capability_key) pk; granted bool
 core.person_page_level  (person_id, page_key) pk; level; set_by; set_at; reason        -- per-person overrides
 core.person_capability  (person_id, capability_key) pk; granted; set_by; set_at; reason
 core.person_profile  person_id pk; display_name_en; display_name_ar (nickname); avatar_file_id → core.file; avatar_color
-                  (one of the chart colours); badge_kind ('none','icon','zodiac'); badge_value (an icon key from a fixed set, or
-                  one of the 12 zodiac signs); theme ('light','dark','colorful','direct'); density ('comfortable','compact');
+                  (one of the chart colours); badge_kind ('none','icon'); badge_value (an icon key from a fixed set — V493: no zodiac,
+                  icons only; the photo is optional, initials the fallback, `app.profile_photos_enabled` hides every
+                  photo at once, and no export ever carries one); theme ('light','dark','colorful','direct'); density ('comfortable','compact');
                   locale ('en','ar' — ar once enabled); start_page → core.page; drawer_pinned bool;
                   notify jsonb {kind: {in_app: bool, email: bool}} — kinds as the canvas lists them: mentions and comments, tasks and
                   action items assigned to me, due today and overdue, a report submitted for my review, invoices past N days on
@@ -427,7 +428,8 @@ core.setting      id; key → core.setting_def; department_id null (null = whole
                   valid_from date not null; set_by; set_at; reason
                   unique nulls not distinct (key, department_id, valid_from)   -- one company-wide row per date
 core.wording      (locale, key) pk; text; set_by; set_at        -- Settings → App → Wording overrides the catalog
-                  -- (V73 Revenue · Cost · Profit; V405 `kpi.lead` = Responsible / المسؤول)
+                  -- (V73 Revenue · Cost · Profit; V405 `kpi.lead` = Responsible / المسؤول; V473 `kpi.status.<status>` = the
+                  -- strategy team's word for each pace status, printed in the KPI sheet)
 ```
 
 - A **scalar setting** is read with `core.setting_at(key, department, date)`: the department's latest row with
@@ -478,11 +480,12 @@ transaction with no billing invoice after that is flagged) · `finance.cost_esti
 `auth.code_door_enabled` false · `auth.password_min_length` 10 (V431) · `auth.view_as_enabled` on, off at go-live
 (V442) · `partner.open_client_ids` {prepaid 1, postpaid 1, tender unlimited} · `finance.not_invoiced_line` on (V434) ·
 `core.doc_link` (the SOP/SLA links — V435) · `work.reminder_days_before_due` 1 · `notify.kinds_enabled` (every kind
-on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 · `partner.one_code_per_partner` ✓ ·
+on) · `app.export_formats` [csv, xlsx] · `files.max_mb` 20 · `partner.one_code_per_service` ✓ (V471) ·
 `report.cases_per_quarter` 1 · `appraisal.cycle_label` "2026-27" (the default from the cycle's years) ·
 `work.pipeline_weekly_target` 1 · `perf.kpi_checkin_day` 15 (V93; 1–28 — OLD-PRF-010) · `work.late_days` 14 and
 `app.go_live_on` (V400) · `partner.stale_after_days` 21 · `finance.quiet_client_days` 60 · `work.project_update_days`
-14 · `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95).
+14 · `audit.recently_deleted_days` 30 (V401) · `record.header_figures.<type>` (V95) · `partner.active_client_days` 90
+(V477) · `work.handover_follow_days` 30 (V488) · `app.profile_photos_enabled` ✓ (V493).
 
 ### 3.3 Change log, undo and notifications
 
@@ -621,13 +624,17 @@ partner.partner   STD SOFT; number unique (the organisation ID, e.g. DK-P-0142: 
                   website; city; country; address; notes; archived_at; merged_into_id → partner.partner;
                   logo_file_id → core.file (uploaded from the header; a monogram of the initials when none);
                   client_since date   -- typed; until Payments history is imported, marks a client as not new (V31)
+                  company_size_id → partner.company_size (LIST: micro · small · medium · large — V472, shown on the opportunity card)
                   -- SHARED by both sides (V98): names, logo, identifiers (below), contacts, notes, files of kind other
                   -- no VAT, CR, client ID, discount code or email columns: those live only in partner.identifier (one home)
 partner.side      fixed in code, never a table: 'client' | 'supplier_partner'   (V98)
 partner.side_type LIST per side (V98): CLIENT types = the segments of V64, one list (Government · Corporate ·
                   Agencies · Individuals … — the banned words apply to list values too, V404);
                   SUPPLIER & PARTNER types (V448, the owner's seven): Hotel supplier · Airline · Visa/Embassy ·
-                  Payment provider · Sales channel · Technology · Strategic partner — admins edit both lists
+                  Payment provider · Sales channel · Technology · Strategic partner — admins edit both lists; V486: an
+                  admin adds Flight content provider and Accreditation body in Settings, no code; V487: an individual
+                  referrer's practice is a Sales channel organisation with the person as its contact — the person's own
+                  bookings stay individual (V30)
 partner.side_tier LIST per side
 partner.side_field  STD SOFT; side; key; label_en; label_ar; type (as perf.category_field); required; options; sort
                   -- each side's own custom fields, shown in the record's details rail (V95); a field named like a
@@ -636,7 +643,8 @@ partner.partner_side  STD SOFT; partner_id; side; type_id → partner.side_type;
                   field_values jsonb; since date; until date          unique (partner_id, side) where live
                   -- the side switch: a row = the side is on. Switching the Client side on offers the Corporate
                   -- onboarding checklist (V89)
-partner.side_status_reason  LIST per status (at risk and lost: e.g. price, service issue, competitor, no response)
+partner.side_status_reason  LIST per status (at risk and lost: e.g. price, service issue, competitor, no response;
+                  V476 seeds also product gap · payment method not supported · price vs competitor)
 partner.side_status_change  STD; partner_id; side; status ('prospect','active','at_risk','lost','on_hold','ended');
                   -- V450: at_risk and lost on the Client side, on_hold and ended on the Supplier & partner side
                   effective_on date not null;
@@ -647,6 +655,7 @@ partner.side_owner  STD SOFT; partner_id; side; person_id; effective_from date n
                   exclude using gist (partner_id with =, side with =, daterange(effective_from, effective_to, '[)') with &&)
                   -- the Client side's owner is the ACCOUNT MANAGER (credit follows them — V27); the Supplier & partner
                   -- side's owner is the RELATIONSHIP OWNER. P3-8a's partner.account_manager becomes this table with side
+                  -- V488: a change of owner makes the previous owner a follower for `work.handover_follow_days` (30)
 partner.identifier  id; partner_id not null; kind ('payments_client_id','vat','cr','discount_code','email','phone','name');
                   subkind (client ID: 'prepaid'|'postpaid'|'tender'; name: 'official_en'|'official_ar'|'trade_en'|'trade_ar'|'alias');
                   value_raw not null; value_key not null; norm_version int; reason not null (§3 "each with a reason");
@@ -669,6 +678,12 @@ partner.identifier  id; partner_id not null; kind ('payments_client_id','vat','c
 partner.code_terms  STD SOFT; identifier_id → partner.identifier (kind discount_code) or campaign_code_id; fee_percent
                   (percent of the service fee); services uuid[] → finance.service; countries text[]; tiers jsonb
                   [{from_bookings, fee_percent}]; review_on date; approved_by → core.person; approved_on; effective_from   -- V65
+                  channels → partner.code_channel[] (LIST: website · app · corporate system — V471)
+                  -- V471: one live code per organisation PER SERVICE — a trigger refuses a live code whose services (or, with
+                  -- no services named, whose whole scope) overlap another live code of the same organisation on overlapping
+                  -- dates, because Payments applies the lower discount when two codes cover one service; the setting is
+                  -- `partner.one_code_per_service`; the promo-code import (P7-4) holds an overlapping or unlinked code in
+                  -- Needs a decision (WRK-100, PRF-119)
 partner.campaign_code  STD SOFT; code_raw; code_key; name; valid_from; valid_to; owner_id; reason
                   -- V65: a short-trial code credited to no organisation, listed apart like individuals (V30); a code key is
                   -- live on one organisation or one campaign at a time (trigger across both, date ranges included)
@@ -693,15 +708,21 @@ partner.reference STD SOFT; partner_id; side (null = shared); system_id → work
                   -- V98: references to Direct's systems only — client ID, ticket number, portal link; a value that
                   -- looks like a secret is refused. V409: a supplier's or partner's portal (Supplier & partner side)
                   -- keeps the portal link in `url` and the username in `value` — never the password
+                  held_by_department_id → core.department; code_mailbox text   -- V484: which department holds the access
+                  -- and which mailbox its one-time codes reach; the Supplier onboarding template (V479) asks for both
 partner.merge     STD; kept_id; merged_id; reason not null; request_id; undone_at
 partner.contract  STD SOFT; partner_id; side not null; kind ('contract','agreement'); title; start_on date; end_on date
                   (null = open-ended); reminders_on bool default true; reminder_days int[] (null = the
                   `partner.contract_reminder_days` setting, 60 · 30 · 7); renewal_task_id → work.task; notes   -- V56, per side (V98)
 partner.contract_term  STD SOFT; contract_id; term_id → partner.term (LIST: corporate rate, free cancellation, payment
-                  terms, peak allotment …, each with its unit); value_before numeric; value_after numeric;
+                  terms, peak allotment …, each with its unit; V480 seeds also payment model, minimum monthly commitment,
+                  cancellation / force-majeure refund term, minimum volume, commission %, target, IATA RHC limit, bank
+                  guarantee, risk status — typed terms, never Finance money); value_before numeric; value_after numeric;
+                  value_text (word terms: prepaid / postpaid, a risk status — V480);
                   achievement_id → perf.achievement (null = "Not logged")   -- the "Terms · before → after" block
                   -- its document(s) are core.file rows linked with purpose 'contract' / 'agreement'
-partner.activity_type  LIST (V401): call · meeting · demo · visit · note — admins add more
+partner.activity_type  LIST (V401): call · meeting · demo · visit · note · decision — admins add more
+                  -- V478: decision records one taken with the organisation ("Quote sent" dropped by the owner — V492)
 partner.activity_outcome  LIST per activity type (V63, V88, V401): call — no answer · answered · meeting set · demo set ·
                   not interested · call back later · wrong number; demo — demo held · demo cancelled; meeting — held ·
                   postponed …; `counts_as_demo` on demo set and demo held
@@ -762,14 +783,23 @@ selects a list and assigns **owner and priority in one action** (`api.partner_bu
 side with no status becomes Prospect). Owner here is the side's owner: a manager may assign one where no revenue is
 counted; changing the Client side's owner where revenue exists stays with the head and admins (V26, V27). Leads from the
 corporate landing form stay in Direct's ticket system and are referenced by ticket number only (a Direct reference on
-the organisation or the opportunity — V99); a Leads inbox may come later if volume needs it.
+the organisation or the opportunity — V99); a Leads inbox may come later if volume needs it — and V472 records that the
+trigger may already be met (sign-ups after an event went unanswered for days; the owner decides after go-live).
+Meanwhile: the seeded daily **New lead tickets** task (V479), the ticket number and the company size on the opportunity
+card, and **bulk assign** on opportunities (`api.opportunity_bulk_assign`, one request, one Undo, each new owner told
+once — V456).
 - **Segment** (V64): each partner has a default segment; a project and an invoice may override it. A unit's segment =
   the invoice's own, else its project's (one linked project), else the partner's; an individual's is Individuals; else
   "No segment". Revenue, margin and every computed KPI can split by segment (a measure parameter).
 - **Discount codes carry terms** (V65): fee percent of the service fee, scope (services, countries), volume tiers,
-  review date and who approved them, with history. **One live code per partner** by default
-  (`partner.one_code_per_partner`); a second needs a manager and a reason. A **campaign code** belongs to no partner:
-  its invoices are credited to nobody and listed apart, like individuals. Finance shows **sales by code by month**.
+  review date and who approved them, with history. **One live code per organisation per service** (V471,
+  `partner.one_code_per_service`): two live codes of one organisation never share a service on overlapping dates,
+  because Payments applies the lower discount; a code's scope also names its channels (website · app · corporate
+  system); the promo-code import flags an overlapping or unlinked code. A **campaign code** belongs to no partner: its
+  invoices are credited to nobody and listed apart, like individuals. Finance shows **sales by code by month**.
+- **One official client count** (V477): **sign-ups** (the Client side on), **onboarded** (the side reached Active) and
+  **active** (a counted invoice inside `partner.active_client_days`, 90) — the measure `partner.active_clients` by
+  segment, one tile on the Commercial overview and the three counts on the Clients list header.
 - **Partner finance** (V70) on the Finance tab: the credit limit (with history and who approved it) and outstanding
   against it; the **prepaid (wallet) balance** = paid top-ups − the wallet part consumed by invoices; receivables
   flagged **Sent to legal** with a note. Out of v1: guarantees (promissory notes), supplier payables and statements,
@@ -805,6 +835,8 @@ manager, the partner's followers and, when the setting says so, the commercial m
 the **renewal task** (owner: the account manager; due: the end date; linked to the contract) when
 `partner.contract_renewal_task` is on, and the card and the notification offer **Create renewal task** and **Log renewal
 achievement** (prefilled, a person presses it). Contracts appear on the partner card and in the evidence picker.
+Adding a contract offers the **Legal review** task (a seeded template — V479); the typed terms include the payment
+model (prepaid / postpaid), the minimum monthly commitment and the cancellation / force-majeure refund term (V480).
 - **File names are computed, live** (V55). A file keeps its `original_name`; its display and download name comes from
   its kind's pattern and the records it is linked to, at the moment it is shown — e.g. `INV-T-0001 · {partner} ·
   {amount} SAR · {date}.pdf`, `Contract · {partner official} · {title} · {start} to {end}.pdf` (`{partner}` is the trade
@@ -813,9 +845,10 @@ achievement** (prefilled, a person presses it). Contracts appear on the partner 
   signed URL is created with `download: <display name>`, so the browser saves under that name (Content-Disposition).
   Characters a file system refuses are replaced; the original name stays visible in the file's details.
 - **Logos and avatars** (V53): logo files SVG or PNG, at least 256 px; without one, the monogram (or a blank tile —
-  `partner.logo_fallback`). A partner's logo (or its monogram) and a person's avatar, nickname and badge appear in
-  rows, chips, headers and **hover cards** (`api.hover_partner(id)`, `api.hover_person(id)`: the few facts the canvas's
-  HoverCards artboard shows).
+  `partner.logo_fallback`). A partner's logo (or its monogram) and a person's avatar (V493: an optional photo,
+  initials when none, every photo hidden by `app.profile_photos_enabled`, never in an export), nickname and badge
+  appear in rows, chips, headers and **hover cards** (`api.hover_partner(id)`, `api.hover_person(id)`: the few facts
+  the canvas's HoverCards artboard shows).
 - The two date-range rules above need the `btree_gist` extension (enabled in the first migration).
 - A **contact's** email is not automatically an identifier (a shared or personal address would mis-match invoices);
 the contact form offers "also use as identifier", which goes through the identifier rules. - **Merging**
@@ -962,6 +995,9 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        payments_as_of date not null (V401: the day the figures were read from Payments — typed: entered by
                        the typist, today by default; imported: the file's export time. Shown as "Payments · as of <date>")
 finance.invoice_line   STD SOFT; invoice_id; line_no; product; name; qty; unit_price; discount_sar; taxable; total_sar
+                       service_id → finance.service   -- V483: required on a typed invoice (each line names its service —
+                       -- conferences and packages were misfiled under "activity"); an imported line keeps D24's item
+                       -- mapping and may be overridden per line; income by service reads the line
                        unique (invoice_id, line_no)
 finance.billing_link   STD SOFT; billing_invoice_id → finance.invoice (kind billing); transaction_invoice_id → finance.invoice
                        (kind transaction) unique where live; source ('payments','person','proposal')
@@ -1064,7 +1100,8 @@ work.task_status     LIST + meaning ('not_started','in_progress','done','cancell
                      (V401; the seed: Not started · In progress · Done · Cancelled); is_default
 work.priority        LIST + rank
 work.ref_system      LIST + url_template      -- Direct system references (booking, invoice, ticket); the URL pattern is a setting
-work.task            STD SOFT DEPT; number unique; title not null; notes; owner_id not null; team_id not null (active team, D11);
+work.task            STD SOFT DEPT; number unique; title not null; notes; owner_id (null = Unknown, allowed only on past work
+                     — V491); team_id not null (active team, D11);
                      priority_id; status_id; start_on; due_on; partner_id; project_id;
                      origin ('manual','template','period_target','meeting','next_step','alert','backfill'); template_id;
                      period_target_id; assigned_by (set when owner ≠ creator); closed_at; closed_by;
@@ -1092,6 +1129,14 @@ work.task_template   STD SOFT DEPT; title; notes; owner_id; team_id; priority_id
                      for_each ('key_partner') — one task per key partner, owned by its account manager (V72);
                      checklist jsonb [{text, owner: 'task_owner'|person_id, due_offset_days}];
                      rule jsonb {freq: weekly|monthly|quarterly|yearly, interval, weekdays, month_day, lead_days}; starts_on; ends_on; active
+                     for_each also 'side_type:<id>' (one task per organisation of that type); attach_previous bool (the new
+                     occurrence links the previous one's files); offered_on ('contract_added','supplier_signed') — a template
+                     offered by an event instead of generated (V479)
+                     -- V479 seeds, each with a named owner at go-live: New lead tickets (daily, working days — V472);
+                     -- Supplier onboarding (offered at Signed on a Supplier & partner opportunity: one checklist item per
+                     -- department's portal access, held by and code mailbox — V484); Accreditation yearly review (for each
+                     -- Accreditation body, attach_previous); Legal review (offered when a contract is added); Stats
+                     -- readings (monthly — V489)
 work.task_occurrence (template_id, occurs_on, partner_id) pk; task_id    -- makes generation idempotent
 work.task_status_change  STD; task_id; from_status_id; to_status_id; happened_on date not null; logged_at timestamptz not null;
                      reason (required when blocking)   -- V400: the Done change's happened_on is the completion date
@@ -1114,6 +1159,12 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   day is more than `work.late_days` (14) after its `happened_on` is marked "logged late" (a computed flag, shown on the
   entry) and counts against the on-time appraisal items; entries with `happened_on` before go-live are never late, and
   `backfill` entries (the Past work grid, §3.11) are marked **Backfilled** and raise no notice.
+- **Past work** (V491): a task or achievement dated before `app.go_live_on` — January 2026 typed by hand the normal
+  way, February to September through the Past work grid — never shows on My day, raises no notification, overdue or
+  stale flag, and sits under the **Past work** filter on Tasks and Achievements; it counts toward the KPIs and the
+  report of the month it happened in. It may carry owner **Unknown** (a null owner, past work only): the **Needs an
+  owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7). The January report is
+  generated, compared with the old issued PDF in Compare (V57), edited and issued.
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1147,13 +1198,14 @@ Added to v1 (owner, 29 Sep). One **Pipeline** page with two boards — **Tenders
 
 ```
 pipeline.stage        LIST per kind ('tender','partnership'); meaning — locked, editable names (V97, V99); optional bool; sort
-                      -- tender meanings: identified · preparing · submitted · awarded · lost · cancelled
-                      --   (seed: Identified → Preparing → Submitted → Awarded / Lost / Cancelled — V80)
+                      -- tender meanings: identified · preparing · submitted · clarifying · awarded · lost · cancelled
+                      --   (seed: Identified → Preparing → Submitted → Clarification / negotiation (optional — V481) →
+                      --   Awarded / Lost / Cancelled — V80)
                       -- partnership meanings: open · signed · onboarded · handed_over · lost (V457: a locked "Handed to
                       -- Product" stage that needs the Direct ticket before a card enters it) (seed, V99: Contacted → Demo → Proposal
                       --   (optional) → Signed → Onboarded; Lost). A skipped optional stage is never recorded as passed
 pipeline.source       LIST (V99: an admin list — referral · event · inbound ticket · outbound · tender portal …)
-pipeline.lost_reason  LIST per kind
+pipeline.lost_reason  LIST per kind   -- V476 seeds for tenders: technically non-compliant · price · cancelled by the entity
 pipeline.tender       STD SOFT DEPT; number unique (TND-2026-014); title; partner_id not null (the government entity —
                       a Government-segment partner; another segment needs a manager and a reason); etimad_ref; tender_no
                       (the entity's own number); submission_due_on; submitted_on; value_sar; awarded_value_sar; awarded_on;
@@ -1179,19 +1231,21 @@ pipeline.stage_change STD; entity_table; entity_id; from_stage_id; to_stage_id; 
   checklist (V89); reaching **Onboarded** records `onboarded_on`, switches the organisation's side on if it is not, and
   sets that side's status to **Active** from that date (V99) in the same request — one Undo reverts all of it. **Every
   card needs a Source** (V99). **No Leads module in v1** (a Leads inbox may come later if volume needs it — V99): a
-  lead from the corporate landing form is a ticket in Direct's ticket system; an opportunity carries its ticket number,
-  nothing more.
+  lead from the corporate landing form is a ticket in Direct's ticket system; an opportunity carries its ticket number
+  and shows the organisation's company size on the card (V472), nothing more. A tender's optional **Clarification /
+  negotiation** stage (meaning `clarifying`, between Submitted and Awarded — V481) holds the entity's questions and the
+  negotiated terms; skipping it is never recorded as passed.
 - **Measures** (§3.8): `pipeline.tenders_submitted` — tenders whose history reached Submitted with an effective date in
 the period (a later Lost still counts); `pipeline.awarded_value` — the sum of awarded values of tenders awarded in the
 period (by `awarded_on`); `pipeline.tenders_by_stage` and `pipeline.opportunities_by_stage` (the funnels: count and
 value per stage, as of a date); `pipeline.partnerships_signed` and `pipeline.partnerships_onboarded` (V99). Government
 entity contracts is the Contract signed category with a Government-segment partner (§3.8). Every measure takes the
 `segment` parameter (V64).
-- **The Commercial overview** (`/overview`, executive): Revenue · Cost · Profit, collections, new clients, tenders
-  submitted, awarded value, partnerships signed, government entity contracts — for a period (MTD · QTD · YTD · Custom)
-  against last year — then **both funnels**, and a **segment switch** (All · Government · Corporate · Agencies ·
-  Individuals) that filters every tile and funnel. It replaces the old app's separate Finance, B2B and Tenders
-  overviews; each tile links to the list behind it.
+- **The Commercial overview** (`/overview`, executive): Revenue · Cost · Profit, collections, **clients** (sign-ups ·
+  onboarded · active — V477), tenders submitted, awarded value, partnerships signed, government entity contracts — for
+  a period (MTD · QTD · YTD · Custom) against last year — then **both funnels**, and a **segment switch** (All ·
+  Government · Corporate · Agencies · Individuals) that filters every tile and funnel. It replaces the old app's
+  separate Finance, B2B and Tenders overviews; each tile links to the list behind it.
 - A tender or opportunity shows on its partner's card (Work tab) and in Ctrl K; a file kind **Tender document** has the
   pattern `Tender · {partner official} · {tender no} · {date}`.
 
@@ -1222,10 +1276,14 @@ perf.kpi_reading     STD SOFT; kpi_id; period_kind; period_start; value numeric;
                      -- (default the 15th) each lead of a manual KPI with no reading for the month gets 'alert_kpi_checkin'
                      -- manual and percentage/score KPIs; evidence via core.file_link. Also last year's monthly figures of a
                      -- computed KPI, typed once and used only for months its source has no data for, shown as "typed" (V31)
+                     -- V489: a figure read from a system's stats page (monthly GMV …) is a reading whose evidence is the
+                     -- screenshot (kind 'evidence'); the monthly Stats readings task (V479) asks for both
 perf.kpi_status_note STD; kpi_id; quarter_start; status ('on_track','at_risk','behind','exceeded','not_measured');
                      -- one pace vocabulary (V401, V449): the declared status uses the bands' words; a project's health
                      -- (on_track · at_risk · off_track) is a different thing and keeps its own three
                      note; noted_on                                          -- the status a person declares for the strategy sheet
+                     -- V473: the KPI sheet prints each status through `core.wording` keys `kpi.status.<status>` — the
+                     -- strategy team's words, set by an admin (Q41 answered)
 perf.measure_def     key pk; unit_kind; params_schema jsonb; scopes text[]; label_key           -- synced from the registry
 perf.achievement_category  STD SOFT; plan_id; parent_id (sub-category); code; name_en; name_ar; is_money_link bool;
                      line_template_en not null; line_template_ar not null (V76: the Arabic sentence filled from the
@@ -1245,7 +1303,7 @@ perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id
                      happened_on date (not null unless draft — V400: the date on the evidence — e.g. the signing date on the agreement;
                      it decides the month and quarter; never after the logged day); logged_at timestamptz not null;
                      period_moved_from date; period_move_reason; period_moved_by (V400: a manager or admin moved it into the
-                     previous period — the "moved" mark); owner_id not null; use_as_example bool (V67: a report "Case"; one per quarter — a second is refused naming the first, OLD-PRF-032);
+                     previous period — the "moved" mark); owner_id (null = Unknown, only on past work — V491); use_as_example bool (V67: a report "Case"; one per quarter — a second is refused naming the first, OLD-PRF-032);
                      origin ('person','task','report','import','backfill'); origin_report_id (V79: "added from report"); remove_reason
 perf.achievement_ref  STD SOFT; achievement_id; system_id → work.ref_system; value not null; url   -- V99: a Direct ticket or
                      booking reference with its link is evidence, beside files
@@ -1256,6 +1314,18 @@ perf.achievement_kpi_adjust  id; achievement_id; kpi_id; mode ('include','exclud
                      reason not null
 perf.challenge       STD SOFT DEPT; title; details; partner_id; supplier_name; owner_id; opened_on; resolved_on; resolution;
                      critical bool; escalated_to → core.person; escalated_on date      -- V69
+                     root_cause_id → perf.challenge_root_cause (LIST); stream_id → perf.challenge_stream (LIST: Operations ·
+                     Finance · Product · Supplier · Client …); impact_kind ('financial','contractual','client'); exposure_sar;
+                     loss_sar   -- V474: both optional and typed, never Finance money; a challenge may have no loss; the
+                     -- screen calls `resolution` "action taken"; a repeat = another challenge with the same root cause on
+                     -- the same organisation in the plan year, counted beside the quarterly total (`perf.challenges`,
+                     -- `perf.challenge_repeats`)
+                     escalated_outside_role_id → core.outside_role (LIST: Operations director · Strategy …); escalated_outside_on
+                     -- V485: an escalation to someone who is not an app user; `perf.escalations` counts both; V465 stays
+                     -- V475: a refund still owed to a client is a challenge in the Finance stream, its exposure the amount
+                     -- owed, aged like any other — no refund module in v1 (V423)
+perf.challenge_ref   STD SOFT; challenge_id; system_id → work.ref_system; value not null; url; opened_on; closed_on
+                     -- V474: several ticket references (supplier and Product), each counted and aged on the Challenge
 perf.period_target   STD SOFT DEPT; period_kind ('month','quarter'); period_start; text; owner_id; task_id not null;
                      written_in_report_id → report.report
 ```
@@ -1358,6 +1428,14 @@ reference.
 escalations, linked tasks; type tab Resolution) and the Escalate action (§3.3). A **critical** challenge records who it
 was escalated to and when (V69); `perf.escalations` counts them for the appraisal item "documenting and escalating
 critical client feedback".
+A challenge also carries its **root cause** and **stream** (settings lists), an **impact kind** (financial ·
+contractual · client), optional **exposure** and **actual loss** (typed, never Finance money — a challenge may have
+none) and several **ticket references** with their dates, each counted and aged (V474); the screen says **action
+taken** for the resolution. The quarterly count shows **repeats** (same root cause, same organisation, one plan year).
+The **escalation matrix** is a linked SOP (`core.doc_link` key `sop.escalation_matrix` — V435). An escalation to
+someone outside the app names an **outside role** and a date beside `escalated_to` (V485). A refund still owed to a
+client is an aged challenge in the **Finance** stream (V475). The report's challenges table lists organisation,
+stream, root cause, impact, age, tickets and action taken (V474).
 
 **Next-month (and next-quarter) targets.** Writing a target in a report creates a `perf.period_target` **and its task**
 (owner named, due the period's last day, origin `period_target`) in one request. The next report shows each as
@@ -1756,13 +1834,19 @@ viewed — never an admin, never the admin account — and the viewed person's *
 V454). The setting `auth.view_as_enabled` is on until go-live and **off at go-live**. Builder A: the claim, the refusal,
 tests and sabotages (P3-15); builder B: the banner, the View as action on a person's record, Exit (P3-16).
 
-**Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's chrome
-or wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" (a check scans the message catalogs and
-the page templates). **The banned words cover data labels too** (V404): seed lists, settings defaults and the values
-admins type into a list — the segment is **Government**, with no abbreviation after it; the check scans the seeds and
-the defaults, and the list editor refuses a value carrying a banned word, naming it. Codes are IDs, not labels (a KPI
-code copied from the strategy sheet stays as the sheet writes it). The logo is the official file (slate wordmark on
-light, white wordmark on dark or slate), never recoloured.
+**Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's
+chrome or wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" and — Q43, assumed — "B2C" (a
+check scans the message catalogs and the page templates). **The banned words cover data labels too** (V404): seed
+lists, settings defaults and the values admins type into a list — the segment is **Government**, with no abbreviation
+after it; the check scans the seeds and the defaults, and the list editor refuses a value carrying a banned word,
+naming it. Codes are IDs, not labels (a KPI code copied from the strategy sheet stays as the sheet writes it). The
+logo is the official file (slate wordmark on light, white wordmark on dark or slate), never recoloured.
+
+**One Arabic word for each term** (V490, from the oversight's check of the whole catalog): **Admin** = مسؤول النظام
+everywhere (never مدير النظام, which clashes with the Manager role, مدير); **Department** = إدارة, so **Head of
+department** = رئيس الإدارة in the role seed and the catalog alike; the tanween sits on the alif — متأخرًا، لاحقًا;
+**Monday** = الاثنين; the **Own** level = سجلاته فقط. Builder C applies it in the catalog (P3-11), builder A in the
+role seed (P3-4); the catalog check refuses the old forms.
 
 **One person, several emails.**
 
@@ -1928,7 +2012,7 @@ quarterly reports — and revisited later (V83).
 | Area (route) | List | Detail (one tab row) | Main actions |
 |---|---|---|---|
 | **My day** `/my-day` | **Capture, then Convert** (V433, §3.3a): the Capture row (a Note in one keystroke — sticky · meeting · checklist; private by default), **Turn into** on every note, the from-note and turned-into chips, **Finish meeting**, **Wrap up today**; tabs **Me · My team · Workspace**; 5–7 rows per block. Then the blocks: **My work** (overdue, today, this week — tasks and action items I own, am assigned or help on; stale flags) · **Since your last visit** (counters, each a link: mentions, invoices paid, contracts expiring, KPIs behind pace, tasks updated; Mark all seen) · **My partners' activity** (new invoices and bookings, payments, overdue invoices, contracts expiring — since my last visit) · **My KPIs** (lead or contributor: pace light, year to date vs due, this month's addition) · **My appraisal** (private: cycle step, what is due from me) | — | Quick add task; mark action item done |
-| **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything and the **payment-type chip** (V87); each tile links to its list | — | Period; segment; export |
+| **Overview** `/overview` (V80) | The executive view: Revenue · Cost · Profit, collections, clients (sign-ups · onboarded · active — V477), tenders submitted, awarded value, partnerships signed, government entity contracts — period switch against last year; the tender and partnership funnels; a **segment switch** over everything and the **payment-type chip** (V87); each tile links to its list | — | Period; segment; export |
 | **Pipeline** `/pipeline/tenders`, `/pipeline/partnerships` (V80) | Two boards (columns per stage, drag to move) and their list views; chips: stage, owner, partner, segment, due; saved views | Tender: partner (official name), Etimad reference, tender number, dates, value, awarded value, stage history, files, linked project and achievement. Opportunity: partner, kind, stage history, next step, expected value | New tender; new opportunity; move stage (with date; reason for Lost / Cancelled); Log achievement on Awarded / Signed |
 | **Clients** `/clients/[id]` and **Suppliers & partners** `/suppliers/[id]` (V98) | Two list pages over the one organisation table, each lean: **saved views across the top** (Clients: All · Government · Corporate · Agencies · Individuals; Suppliers & partners: All · Suppliers · Strategic partners · Sales channels · Integrations; a default per person); visible chips **Type · Owner · Status** and one **KPI** chip (objective → KPI, period this quarter by default; organisations that contributed); everything else under **More filters**; any combination saves as a view. Columns: logo or monogram, trade name (V77), the side's type, status chip, owner, last activity, and on Clients YTD revenue and outstanding | **The record page of V95**: header (trade name, side chips with type and status, up to five figures, New task · Log activity · Log achievement · New project); **Overview · Activity · Related · Finance** (Finance only with the Client side on: invoices, months, collections, credit limit and outstanding against it, prepaid balance, Sent to legal, codes with their terms, days to pay, **Open in Finance** carrying the filters); the details rail: both sides' fields, identifiers with add / remove / history, contacts with roles, Direct references, contracts | New client / New supplier & partner; **Log activity** (type, outcome, next step — V401); switch a side on or off; set a side's status (with reason); add identifier; upload logo; add contract; merge; set the side's owner; Escalate; Follow |
 | **Needs a decision** (a view of Clients) | Customer groups with row count and riyals at stake, candidates for conflicts | The rows, their clues | The decisions of §3.5 |
