@@ -654,8 +654,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "{ task: 'tasks', action_item: 'tasks', achievement: 'kpis' }",
-        replace: "{ action_item: 'tasks', achievement: 'kpis' }",
+        find: "  task: 'tasks',\n  action_item: 'tasks',\n",
+        replace: "  action_item: 'tasks',\n",
       },
     ],
   },
