@@ -32,12 +32,14 @@ export default defineModule({
   ],
   settings: [
     {
-      // V400: an entry logged more than this many days after it happened is "logged late" (after go-live).
+      // V400: an entry logged more than this many days after it happened is "logged late" (after go-live). Effective-dated
+      // (PRF-143): an entry is judged by the value in force on the day it was logged.
       key: 'work.late_days',
       group: 'settings.work',
       label: 'setting.work.late_days',
       schema: z.number().int().min(1).max(90),
       default: 14,
+      effectiveDated: true,
     },
     {
       key: 'work.no_update_days',

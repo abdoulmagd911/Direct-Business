@@ -833,6 +833,19 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
   - The old app's data will enter through the P7 importer, in the sides shape.
   - OPEN for the oversight: accept that the conversion runs on empty tables (recommended), or allow a one-time correction of 063100 before its first cloud apply.
 
+**V174 — Gaps from the scenario catalogue, Builder A's lane** ACTIVE · 2026-09-29 (the oversight's catalogue of 15:55; each a recommendation that applies unless the owner says no).
+- **WRK-092 · work goes only to someone who can work here.** `core.person_available(person)`: staff, active, allowed to sign in, not removed, and not past the day they left. Naming a side's owner and mentioning someone in a note refuse anyone else as `person.unavailable`. What such a person already holds stays, for an admin to hand over. (Helpers arrive with the task manager; they will ask the same function.)
+- **WRK-041 · "Executive directive" is a priority, ranked first.** `work.priority` gains a locked meaning (`meaning`, one row each), and `executive_directive` is seeded at sort 0. Its name may change; its meaning and rank may not.
+- **WRK-124 · an alert fires on the first run on or after its day.** A missed run never loses one:
+  - a stale organisation (`alert_activity_stale`) fires from the day it went stale;
+  - a file due for review (`alert_file_review`) fires from its review day;
+  - a contract (`alert_contract_expiring`) fires for the tightest reminder day reached, never before the day the contract was saved.
+  Each fires once per record and day key, whatever the run.
+- **PRF-143 · "logged late" is judged by the rule in force when it was logged.** `work.late_days` is effective-dated (`effectiveDated: true` in the tasks module), and `core.logged_late` reads it at the Riyadh day of the logging.
+- **PRF-002 · a page checks its level on the server.** `/finance`, `/kpis`, `/reports`, `/appraisal` and `/overview` show the "no access" state for level none, reached by address too. The check is Builder B's shared `<Page page=…>` (V214), asked on the server before anything is drawn; the area pages keep no second copy of it, and the E2E and its sabotage prove that one.
+- PRF-136 / ACC-086 (the banned list split into data and screen) was V156, #97.
+- Tests: ALR-02, AVAIL-01, PRIO-01, LATE-01; E2E `a-page-with-no-level-shows-no-access-by-address`. Sabotages: `a-missed-run-loses-the-alert`, `work-goes-to-a-switched-off-person`, `no-executive-directive`, `logged-late-by-todays-rule`, `e2e-a-page-forgets-its-level`.
+
 **V172 — Too many tries lock an e-mail; a password is set only where its rule is checked** ACTIVE · 2026-09-29 (the oversight's QA audit of 17:22, items 1–6; builds on V166).
 - **The lockout is the database's**, because Supabase's own rate limit sees the app server's address, not the person's. `core.sign_in_limited(email)` answers:
   - `locked` for fifteen minutes from the fifth wrong password within fifteen minutes — the right password included;
