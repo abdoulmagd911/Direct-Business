@@ -74,6 +74,7 @@ function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execut
 function api.password_changed(p_auth_user uuid) execute service_role
 function api.people() execute authenticated
 function api.people_without_password() execute authenticated
+function api.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function api.person_auth_found(p_auth_user uuid) execute authenticated
 function api.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function api.person_auth_state(p_person uuid) execute service_role
@@ -171,6 +172,7 @@ function core.page_seen(p_page text) execute authenticated
 function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated
 function core.people_without_password() execute authenticated
+function core.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function core.person_auth_found(p_auth_user uuid) execute authenticated
 function core.person_auth_link(p_email text, p_auth_user_id uuid) execute authenticated
 function core.person_auth_state(p_person uuid) execute service_role

@@ -437,6 +437,7 @@
       "team.saved": "Team saved",
       "department.saved": "Department saved",
       "role.saved": "Role saved",
+      "person.account_set": "Account type set",
       "view.removed": "View removed",
       "view.saved": "View saved",
       "record.restored": "Record restored",
@@ -767,7 +768,11 @@
       "department_required": "A department is required",
       "manager_cycle": "A person cannot report to someone who reports to them",
       "team_outside_department": "The team is in another department",
-      "not_yourself": "Nobody switches themselves"
+      "not_yourself": "Nobody switches themselves",
+      "manager_not_team_member": "The admin account and the test account are nobody’s manager",
+      "has_reports": "People report to this person — give them another manager first",
+      "account_taken": "There is already one of these accounts",
+      "unknown_account": "That is not an account type"
     },
     "person_email": {
       "taken": "That email already belongs to someone"

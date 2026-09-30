@@ -231,6 +231,7 @@ export type Database = {
       password_changed: { Args: { p_auth_user: string }; Returns: Json };
       people: { Args: Record<PropertyKey, never>; Returns: Json };
       people_without_password: { Args: Record<PropertyKey, never>; Returns: Json };
+      person_account_set: { Args: { p_account: string; p_id: string; p_reason: string }; Returns: Json };
       person_auth_found: { Args: { p_auth_user: string }; Returns: Json };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
