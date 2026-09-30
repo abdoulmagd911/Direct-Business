@@ -913,7 +913,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 **V179 — The admin and test accounts are in no team** ACTIVE · 2026-09-30 (the production finding W26; builds on V170, V444, V445). The owner's admin account showed a team and a manager on production, so it still read as a team member.
 - An account other than a team member has no team and no manager. `core.person_guard` refuses either while the account stands (`person.account_in_no_team`), whichever door saves the person.
 - `core.person_account_set` clears both in the same logged request when it marks the admin or the test account; one Undo puts all three back. Made a team member again, the person takes a team and a manager like anyone.
-- Production: the owner's admin account is marked once, after P3-2b's migration is applied (a one-off through the connector, never a migration: the account names no one in the repo).
+- Production: the owner's admin account is marked once, after P3-2b's migration is applied (a one-off through the connector, never a migration: the account names no one in the repo). Done 30 Sep, in one logged system request; it had no team, manager or reports.
 - The appraisal cycle is not built yet; when it is, it asks `core.is_team_member()` like the team lists do (V170).
 - Test ACCT-02. Sabotages `an-admin-account-keeps-its-team`, `an-admin-account-joins-a-team`.
 
