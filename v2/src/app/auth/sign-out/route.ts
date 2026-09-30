@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMe } from '@/core/auth/get-me';
 import { refusalOf } from '@/core/auth/me';
+import { CHANGE_PASSWORD_PATH } from '@/core/auth/password';
 import { safeNext } from '@/core/auth/safe-next';
 import { serverDb } from '@/core/db/server';
 
@@ -22,11 +23,27 @@ export async function GET(request: NextRequest) {
   const next = safeNext(request.nextUrl.searchParams.get('next'));
   const me = await getMe();
   if (me?.status === 'ok') return NextResponse.redirect(new URL(next, request.url));
+  // A password to change is no refusal (V166): the session stays, and the person is sent to change it.
+  if (me?.status === 'must_change_password')
+    return NextResponse.redirect(new URL(`${CHANGE_PASSWORD_PATH}?${new URLSearchParams({ next })}`, request.url));
   const params = new URLSearchParams({ next });
   const reason = me ? refusalOf(me) : null;
   if (reason) params.set('reason', reason);
+  // A request the browser makes in the background — the router prefetching a link, or fetching a page's data — only
+  // follows the refusal: clearing the session there would sign the browser out unseen, and the person's next real visit
+  // would arrive with no session and never be told why. That visit asks again, and clears it.
+  if (isBackground(request)) return NextResponse.redirect(new URL(`/sign-in?${params}`, request.url));
   // Refused, or a token nobody accepts any more: the browser's copy is cleared (nothing valid is ever cleared here).
   const db = await serverDb();
   await db.auth.signOut({ scope: 'local' });
   return NextResponse.redirect(new URL(`/sign-in?${params}`, request.url));
+}
+
+/** The router's own fetches (a prefetch, a page's data) carry these; a visit to the address does not. */
+function isBackground(request: NextRequest): boolean {
+  return (
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('rsc') === '1' ||
+    request.nextUrl.searchParams.has('_rsc')
+  );
 }

@@ -2,7 +2,7 @@
 -- Breaks: sql:DEL-01
 -- Expect: restore after the window is refused
 -- Restore forgets the Recently deleted window (V401): a record removed months ago comes back.
-create or replace function core.restore(p_entity text, p_id uuid, p_reason text default null) returns jsonb
+create or replace function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -13,6 +13,8 @@ declare
   who uuid;
   req uuid;
   holder text;
+  may_own boolean;
+  resync uuid[];
 begin
   if not exists (select 1 from pg_catalog.pg_attribute a where a.attrelid = pg_catalog.to_regclass(e.table_name)
                    and a.attname = 'deleted_at' and not a.attisdropped) then
@@ -23,14 +25,17 @@ begin
   if gone is null then
     raise exception using errcode = 'P0001', message = 'restore.not_removed';
   end if;
+  may_own := (e.page_key is null and e.level is null) or authz.record_level(me, e.table_name, p_id) >= 'own';
   if not (authz.is_admin()
-          or (e.table_name not in ('core.person_email', 'core.person_auth', 'core.person_page_level',
-                                   'core.person_capability', 'core.role_page_level', 'core.role_capability')
-              and (who = me
-                   or (e.page_key is not null and authz.level_of(me, e.page_key) = 'full')
-                   or (me = any (core.owners_of(e.table_name, p_id))
-                       and (e.page_key is null or authz.level_of(me, e.page_key) >= 'own'))))) then
+          or (not (e.table_name = any (audit.access_tables()))
+              and (authz.record_level(me, e.table_name, p_id) = 'full'
+                   or (may_own and (who = me or me = any (core.owners_of(e.table_name, p_id))))))) then
     raise exception using errcode = '42501', message = 'restore.not_allowed';
+  end if;
+  perform core.restore_needs(e.table_name, p_id);
+  if e.table_name in ('core.person_email', 'core.person_auth')
+     and not core.auth_ticket_take(p_ticket, 'restore', p_entity || ':' || p_id) then
+    raise exception using errcode = 'P0001', message = 'restore.via_admin_route', detail = '/auth/admin/restore';
   end if;
   req := audit.begin('ui', 'record.restored', pg_catalog.jsonb_build_object('entity', p_entity), p_reason);
   begin
@@ -39,7 +44,12 @@ begin
     get stacked diagnostics holder = pg_exception_detail;
     raise exception using errcode = '23505', message = 'restore.blocked_by_duplicate', detail = holder;
   end;
+  if e.table_name in ('core.person_email', 'core.person_auth') then
+    execute pg_catalog.format('select array[t.person_id] from %s t where t.id = $1', pg_catalog.to_regclass(e.table_name))
+      into resync using p_id;
+  end if;
   perform audit.end();
-  return pg_catalog.jsonb_build_object('id', p_id, 'request_id', req);
+  return pg_catalog.jsonb_build_object('id', p_id, 'request_id', req,
+                                       'auth_resync', coalesce(pg_catalog.to_jsonb(resync), '[]'::jsonb));
 end
 $$;

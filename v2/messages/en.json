@@ -24,6 +24,7 @@
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
+      "code_off": "Sign in with your password",
       "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
@@ -54,7 +55,10 @@
         "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
         "unavailable": "Can't reach the server. Check your connection and try again.",
         "email_required": "Enter your work email.",
-        "password_required": "Enter your password."
+        "password_required": "Enter your password.",
+        "too_long": "Too long — choose a shorter password",
+        "same_as_email": "Not your email address",
+        "not_needed": "Your password doesn't need changing here — use My profile → Change password."
       },
       "subtitle": "Sign in with your work email and password.",
       "signingIn": "Signing in…",
@@ -345,7 +349,8 @@
       "late_days": "Days after which an entry is logged late"
     },
     "auth": {
-      "device_idle_days": "Days a device may go unused before it needs a new code"
+      "device_idle_days": "Days a device may go unused before it signs in again",
+      "code_door_enabled": "Sign in with an emailed code as well as the password"
     },
     "app": {
       "arabic_enabled": "Arabic",
@@ -447,6 +452,7 @@
       "team.saved": "Team saved",
       "department.saved": "Department saved",
       "role.saved": "Role saved",
+      "person.account_set": "Account type set",
       "view.removed": "View removed",
       "view.saved": "View saved",
       "record.restored": "Record restored",
@@ -467,7 +473,9 @@
         "code_expired": "Code expired",
         "provider_error": "Sending failed",
         "signed_out": "Signed out",
-        "rate_limited": "Too many codes"
+        "rate_limited": "Too many tries",
+        "wrong_password": "Wrong password",
+        "locked": "Locked — too many wrong passwords"
       }
     },
     "loadMore": "Show earlier",
@@ -728,7 +736,7 @@
         "generated": "Temporary password generated",
         "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "temporaryBody": "Hand it over in person or by phone — it is shown only now. It works until they choose their own password, which their next sign-in asks for before anything else.",
         "copy": "Copy",
         "copied": "Copied"
       },
@@ -745,8 +753,7 @@
       "nicknameAr": "Nickname (Arabic)",
       "fullNameAr": "Full name (Arabic)",
       "switchedOn": "{name} switched on",
-      "switchedOff": "{name} switched off",
-      "emailRefused": "{name} was added, but the email was refused: {detail}"
+      "switchedOff": "{name} switched off"
     },
     "teams": {
       "add": "Add team",
@@ -873,17 +880,23 @@
       "department_required": "A department is required",
       "manager_cycle": "A person cannot report to someone who reports to them",
       "team_outside_department": "The team is in another department",
-      "not_yourself": "Nobody switches themselves"
+      "not_yourself": "Nobody switches themselves",
+      "manager_not_team_member": "The admin account and the test account are nobody’s manager",
+      "has_reports": "People report to this person — give them another manager first",
+      "account_taken": "There is already one of these accounts",
+      "unknown_account": "That is not an account type"
     },
-    "person_email": {
-      "taken": "That email already belongs to someone"
+    "people": {
+      "email_taken": "That email already belongs to {detail}"
     },
     "list": {
       "key_taken": "That key is already used",
       "key_fixed": "A key never changes",
       "nothing_to_change": "Nothing to change",
       "invalid": "That value is not allowed: {detail}",
-      "unknown_field": "Unknown field: {detail}"
+      "unknown_field": "Unknown field: {detail}",
+      "retire_blocked_by_duplicate": "Another record already holds the replacement there, so nothing was replaced",
+      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced"
     },
     "profile": {
       "invalid": "That value is not allowed: {detail}",
@@ -903,7 +916,8 @@
       "blocked_by_duplicate": "Another record now holds that value: {detail}",
       "not_undoable": "What the system wrote cannot be undone",
       "nothing_to_undo": "Nothing to undo",
-      "cannot_remove": "This record cannot be removed"
+      "cannot_remove": "This record cannot be removed",
+      "via_admin_route": "A sign-in change is undone from Settings, so the sign-in follows at once — try Undo there"
     },
     "auth": {
       "no_active_person": "You are not signed in"
@@ -929,7 +943,9 @@
       "not_removed": "This record is not removed",
       "too_late": "Removed more than {detail} days ago — ask an admin",
       "not_allowed": "Only who removed it, its owners or an admin restore it",
-      "blocked_by_duplicate": "Another record now holds the same value: {detail}"
+      "blocked_by_duplicate": "Another record now holds the same value: {detail}",
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there",
+      "system_removal": "The app removed this itself when it was updated, so it is not restored"
     },
     "notify": {
       "unknown_tab": "Unknown notifications tab",
@@ -949,6 +965,11 @@
       "title": "Page not found",
       "body": "There is nothing at <address></address>.",
       "goMyDay": "Go to My day"
+    },
+    "person_password": {
+      "has_one": "This person already has a password of their own — it is kept",
+      "no_sign_in": "This person has no allowed email yet",
+      "confirm_required": "A Reset replaces the password they hold — confirm it first"
     }
   },
   "notifications": {

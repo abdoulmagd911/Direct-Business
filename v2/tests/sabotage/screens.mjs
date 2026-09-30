@@ -216,7 +216,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: "() => rpc('restore', { p_entity: d.entity, p_id: d.id }) as Promise<{ request_id?: string | null } | null>,",
+        find: '() => restoreRecord(d.entity, d.id),',
         replace: '() => Promise.resolve({ request_id: null }),',
       },
     ],

@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { THEMES, fitToPage, setPrefs, shot } from './helpers';
-import { makePerson, signIn, sql } from './support/stack';
+import { makePerson, removeAs, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast]', { hasText: text }).first();
@@ -26,7 +26,7 @@ async function stage(page: Page, admin: { email: string; id: string; name: strin
   await page.getByRole('dialog').locator('[data-view-save-confirm]').click();
   await expect(toast(page, 'View saved')).toBeVisible();
   const [view] = await sql<{ id: string }>(`select id from core.saved_view where name = $1`, [`Shot view ${tag}`]);
-  await sql(`update core.saved_view set deleted_at = now(), deleted_by = $2 where id = $1`, [view!.id, admin.id]);
+  await removeAs(admin.id, 'core.saved_view', view!.id);
   return member;
 }
 

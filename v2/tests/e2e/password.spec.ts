@@ -59,7 +59,7 @@ test('an admin generates a temporary password with a reason; the person signs in
 }) => {
   test.slow();
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
@@ -123,7 +123,7 @@ test('a generated password opens "Choose a new password"; My profile changes it 
 }) => {
   test.slow();
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
@@ -194,7 +194,7 @@ test('axe · the password door and set your own password', async ({ page, contex
   expect(serious(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())).toEqual([]);
   // set-password: reached by a person whose admin reset it
   const admin = await makePerson({ admin: true });
-  const person = await makePerson();
+  const person = await makePerson({ passwordRecorded: false });
   await signIn(page, admin.email, `/people/${person.id}`);
   await hydrated(page);
   await page.locator('[data-person-more]').click();
