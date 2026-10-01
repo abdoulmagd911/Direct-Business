@@ -16,10 +16,10 @@ import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
-import { door } from '../doors';
+import { rpc } from '@/core/db/rpc';
 import { checklistCount, noteTitle } from '../logic';
 import { VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
-import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
+import { KIND_ICON, LinkChip, VisibilityChip, type Names } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
 import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
 
@@ -33,13 +33,13 @@ type Draft = {
   meeting_on: string;
 };
 
-const draftOf = (n: MyNote): Draft => ({
+const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
   title: n.title ?? '',
   body: n.body ?? '',
   items: n.items,
   visibility: n.visibility,
   happened_on: n.happened_on,
-  meeting_partner: n.meeting_partner,
+  meeting_partner: partner,
   meeting_on: n.meeting_on ?? '',
 });
 
@@ -51,29 +51,31 @@ const draftOf = (n: MyNote): Draft => ({
 export function NotePage({
   note,
   author,
-  types,
+  names,
   outcomes,
 }: {
   note: MyNote;
   author?: string;
-  types: ListEntry[];
+  names: Names;
   outcomes: ListEntry[];
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const router = useRouter();
-  const [d, setD] = useState<Draft>(() => draftOf(note));
+  const partner = note.meeting_partner_id ? (names.partners[note.meeting_partner_id] ?? null) : null;
+  const fresh = () => draftOf(note, partner);
+  const [d, setD] = useState<Draft>(fresh);
   // a newer version (my own save, or a refresh) restarts the form from it; the page and any open dialog stay
   const [seen, setSeen] = useState(note.version);
   if (note.version !== seen) {
     setSeen(note.version);
-    setD(draftOf(note));
+    setD(fresh());
   }
   const [busy, setBusy] = useState(false);
   const [turning, setTurning] = useState<TurnKind | 'finish' | null>(null);
   const [removing, setRemoving] = useState(false);
-  const dirty = JSON.stringify(d) !== JSON.stringify(draftOf(note));
+  const dirty = JSON.stringify(d) !== JSON.stringify(fresh());
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
   const Icon = KIND_ICON[note.kind];
   const count = checklistCount({ items: d.items });
@@ -81,28 +83,34 @@ export function NotePage({
 
   const save = async () => {
     setBusy(true);
-    await command(words(t('pages.myDay.note.saved')), () =>
-      door('note_update', {
-        p_id: note.id,
-        p_version: note.version,
-        p_values: {
-          title: d.title.trim() || null,
-          body: d.body.trim() || null,
-          items: d.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
-          visibility: d.visibility,
-          happened_on: d.happened_on,
-          meeting_partner_id: d.meeting_partner?.id ?? null,
-          meeting_on: d.meeting_on || null,
-        },
-      }),
+    await command(
+      words(t('pages.myDay.note.saved')),
+      () =>
+        rpc('note_update', {
+          p_id: note.id,
+          p_version: note.version,
+          p_values: {
+            title: d.title.trim() || null,
+            body: d.body.trim() || null,
+            items: d.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
+            visibility: d.visibility,
+            happened_on: d.happened_on,
+            meeting_partner_id: d.meeting_partner?.id ?? null,
+            meeting_on: d.meeting_on || null,
+          },
+        }) as Promise<{ request_id?: string | null }>,
     );
     setBusy(false);
   };
   const remove = async () => {
     setBusy(true);
-    await command(words(t('pages.myDay.note.removed')), () => door('my_notes_remove', { p_ids: [note.id] }), {
-      after: () => router.push('/my-day'),
-    });
+    await command(
+      words(t('pages.myDay.note.removed')),
+      () => rpc('note_remove', { p_ids: [note.id] }) as Promise<{ request_id?: string | null }>,
+      {
+        after: () => router.push('/my-day'),
+      },
+    );
     setBusy(false);
     setRemoving(false);
   };
@@ -233,7 +241,7 @@ export function NotePage({
           ) : null}
           {mine ? (
             <div className="flex justify-end gap-2">
-              <Button disabled={!dirty || busy} onClick={() => setD(draftOf(note))}>
+              <Button disabled={!dirty || busy} onClick={() => setD(fresh())}>
                 {t('common.cancel')}
               </Button>
               <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => void save()} data-note-save>
@@ -299,10 +307,10 @@ export function NotePage({
           ) : null}
           <div className="flex flex-col gap-2" data-note-links>
             <h3 className="text-sm font-medium">{t('pages.myDay.note.turnedInto')}</h3>
-            {note.links.length ? (
+            {note.turned_into.length ? (
               <span className="flex flex-wrap gap-1.5">
-                {note.links.map((l) => (
-                  <LinkChip key={`${l.entity}-${l.id}`} link={l} />
+                {note.turned_into.map((l) => (
+                  <LinkChip key={`${l.entity}-${l.id}`} link={l} names={names} />
                 ))}
               </span>
             ) : (
@@ -317,7 +325,8 @@ export function NotePage({
             note={note}
             open={turning === 'activity'}
             onOpenChange={(o) => setTurning(o ? 'activity' : null)}
-            types={types}
+            partner={partner}
+            types={names.types}
             outcomes={outcomes}
           />
           <LogFromNoteDialog
@@ -325,7 +334,8 @@ export function NotePage({
             finish
             open={turning === 'finish'}
             onOpenChange={(o) => setTurning(o ? 'finish' : null)}
-            types={types}
+            partner={partner}
+            types={names.types}
             outcomes={outcomes}
           />
           <ReminderDialog

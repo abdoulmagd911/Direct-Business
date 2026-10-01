@@ -5,20 +5,18 @@ import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { MyDay } from '@/modules/my-day/screens/MyDay';
-import { myDay } from '@/modules/my-day/server';
+import { activityTypes, myDay, partnersOf } from '@/modules/my-day/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 
-/** A person's open notes are few; every block shows 7 of them, and Wrap up today walks them all. */
-const READ = 100;
+/** What `?more=1` reads: the first block is 7 notes, the rest a person keeps open is a few dozen. */
+const ALL = 100;
+const BLOCK = 7;
 
-/**
- * My day (V433): headed by Riyadh's date (V40, V217), Capture then Convert (`modules/my-day`). Until builder A's
- * api.my_day lands (P3-13) the page says "Being built." as before; the owner's admin account keeps the settings (V444).
- */
+/** My day (V433): headed by Riyadh's date (V40, V217), Capture then Convert (`modules/my-day`); the owner's admin account keeps the settings (V444). */
 export default async function MyDayPage({
   searchParams,
 }: {
@@ -48,20 +46,16 @@ export default async function MyDayPage({
     );
 
   const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
-  const [answer, org] = await Promise.all([
-    myDay(scope, READ),
+  const all = sp.more === '1';
+  const [answer, org, types] = await Promise.all([
+    myDay(scope, all ? ALL : BLOCK + 1),
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+    activityTypes(),
   ]);
-  if (!answer)
-    return (
-      <Page>
-        <PageHeader title={title} />
-        <DataState kind="empty" message={t('pages.beingBuilt')} />
-      </Page>
-    );
+  const partners = await partnersOf(answer.notes);
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, more: sp.more === '1', people: org.people }} />
+      <MyDay data={{ title, scope, answer, all, people: org.people, names: { partners, types } }} />
     </Page>
   );
 }

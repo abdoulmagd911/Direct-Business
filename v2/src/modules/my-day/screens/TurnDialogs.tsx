@@ -13,7 +13,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { Select } from '@/ui/Select';
-import { door } from '../doors';
+import { rpc } from '@/core/db/rpc';
 import { noteText, noteTitle, turnLive } from '../logic';
 import { TURN_KINDS, type MyNote, type PartnerRef, type TurnKind } from '../types';
 import { PartnerPicker } from './PartnerPicker';
@@ -57,6 +57,7 @@ export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
  */
 export function LogFromNoteDialog({
   note,
+  partner,
   open,
   onOpenChange,
   types,
@@ -64,6 +65,8 @@ export function LogFromNoteDialog({
   finish = false,
 }: {
   note: MyNote;
+  /** The organisation the meeting note names, when it names one. */
+  partner: PartnerRef | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   types: ListEntry[];
@@ -74,7 +77,7 @@ export function LogFromNoteDialog({
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const fresh = () => ({
-    partner: note.meeting_partner as PartnerRef | null,
+    partner,
     type: finish || note.kind === 'meeting' ? 'meeting' : 'call',
     outcome: '',
     on: note.meeting_on ?? note.happened_on,
@@ -85,17 +88,17 @@ export function LogFromNoteDialog({
   const choices = types.filter((x) => CALL_OR_MEETING.includes(x.key));
   const type = types.find((x) => x.key === f.type);
   const own = outcomes.filter((o) => o.activity_type_id === type?.id);
-  const ok = !!f.partner && !!f.type && (own.length === 0 || !!f.outcome) && !!f.on;
+  // Finish meeting holds the meeting unless another outcome is chosen (api.note_finish_meeting)
+  const ok = !!f.partner && !!f.type && (finish || own.length === 0 || !!f.outcome) && !!f.on;
   const save = async () => {
     if (!f.partner) return;
     setBusy(true);
     const name = tradeName(f.partner, locale);
     const values = {
-      partner: f.partner.id,
-      type: f.type,
-      outcome: f.outcome || null,
+      partner_id: f.partner.id,
+      ...(f.outcome ? { outcome: f.outcome } : {}),
       happened_on: f.on,
-      body: f.body.trim() || null,
+      ...(f.body.trim() ? { body: f.body.trim() } : {}),
     };
     await command(
       words(
@@ -104,9 +107,11 @@ export function LogFromNoteDialog({
           : t('pages.myDay.turn.logged', { type: nameOf(type, locale), name }),
       ),
       () =>
-        finish
-          ? door('note_finish_meeting', { p_note: note.id, p_values: values })
-          : door('note_turn_into', { p_note: note.id, p_kind: 'activity', p_values: values }),
+        (finish
+          ? rpc('note_finish_meeting', { p_id: note.id, p_values: values })
+          : rpc('note_turn_into', { p_id: note.id, p_into: f.type, p_values: values })) as Promise<{
+          request_id?: string | null;
+        }>,
       {
         after: () => {
           onOpenChange(false);
@@ -216,11 +221,11 @@ export function ReminderDialog({
         t('pages.myDay.turn.reminded', { when: formatDate(at, locale, { dateStyle: 'medium', timeStyle: 'short' }) }),
       ),
       () =>
-        door('note_turn_into', {
-          p_note: note.id,
-          p_kind: 'reminder',
+        rpc('note_turn_into', {
+          p_id: note.id,
+          p_into: 'reminder',
           p_values: { remind_at: at, text: f.text.trim() },
-        }),
+        }) as Promise<{ request_id?: string | null }>,
       {
         after: () => {
           onOpenChange(false);
