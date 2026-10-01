@@ -286,7 +286,10 @@
         "movedFrom": "Moved from",
         "moveReason": "Why moved",
         "none": "None",
-        "link": "Link"
+        "link": "Link",
+        "number": "Number",
+        "repeatOf": "Repeat of",
+        "side": "Signed with"
       },
       "tabs": {
         "overview": "Overview",
@@ -341,11 +344,24 @@
           "before_2025": "Dates start 1 Jan 2025",
           "title_required": "Say what was achieved",
           "ref_taken": "That reference is already here",
-          "ref_looks_secret": "That looks like a password"
+          "ref_looks_secret": "That looks like a password",
+          "side_required": "Choose who signed",
+          "repeat_invalid": "That earlier one does not match",
+          "number_fixed": "The number never changes"
         },
         "common": {
           "reason_required": "Say why"
         }
+      },
+      "sides": {
+        "client": "Client",
+        "supplier_partner": "Supplier"
+      },
+      "repeat": {
+        "title": "Logged before?",
+        "body": "{number} · {date} looks the same.",
+        "new": "This is a new one",
+        "same": "Same as the earlier one"
       }
     }
   },

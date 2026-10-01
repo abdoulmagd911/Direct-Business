@@ -18,4 +18,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-skips-the-repeat-check',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'Logged before?',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '    if (found.length) setRepeats(found);',
+        replace: '    if (false) setRepeats(found);',
+      },
+    ],
+  },
 ];

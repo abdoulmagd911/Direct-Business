@@ -5,6 +5,11 @@ export type ReportKind = 'bd_monthly' | 'partnerships' | 'commercial_quarterly' 
 
 export type AchievementRow = {
   id: string;
+  /** ACH-2026-0042 (V531): shown beside the date and the organisation everywhere. */
+  number: string;
+  repeat_of: string | null;
+  repeat_of_number: string | null;
+  mou_side: 'client' | 'supplier_partner' | null;
   plan_id: string;
   year: number;
   department_id: string;
@@ -76,6 +81,8 @@ export type Category = {
   parent_code: string | null;
   is_money_link: boolean;
   has_deal_value: boolean;
+  /** An MoU (V521): logged with an organisation, it names the side it was signed with. */
+  sets_prospect: boolean;
   required_ref_system: string | null;
   sort: number;
   active: boolean;
@@ -83,6 +90,9 @@ export type Category = {
 };
 
 /** The list's filters, kept in the address (`?category=…&mine=1&month=2026-09&backfilled=1&past=1&owner=none`). */
+/** A possible repeat (V531), from api.achievement_repeats. */
+export type RepeatMatch = { id: string; number: string; title: string; happened_on: string; score: number };
+
 export type ListFilter = {
   category?: string;
   mine?: boolean;

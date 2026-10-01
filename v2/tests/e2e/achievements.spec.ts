@@ -1,12 +1,13 @@
 /**
  * Achievements under KPIs (GC-4; builder E). A member logs an achievement with a Direct reference from Log achievement
  * and lands on its record page, the reference on the Evidence tab; the list shows it; a colleague in the same
- * department sees it, someone in another department does not (V96); at 390 px the form fits the phone. Every value is
- * made up (rule 7).
+ * department sees it, someone in another department does not (V96); at 390 px the form fits the phone; the same award
+ * logged again for the same organisation asks "This is a new one" or "Same as the earlier one", and the new one carries
+ * its number and names the earlier one (V531). Every value is made up (rule 7).
  * Sabotage: tests/sabotage/achievements.mjs "log-sends-no-reference".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { makePerson, signIn, sql } from './support/stack';
+import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast]', { hasText: text }).first();
@@ -107,4 +108,51 @@ test('Log achievement fits a phone at 390 px', async ({ page }) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow, 'no sideways scroll').toBeLessThanOrEqual(0);
   await expect(page.getByRole('button', { name: 'Save' })).toBeVisible();
+});
+
+test('logging the same award again for an organisation offers the one-tap repeat choice', async ({ page, context }) => {
+  const member = await makePerson();
+  const tag = member.id.slice(0, 8);
+  await signIn(page, member.email, '/kpis/achievements');
+  await hydrated(page);
+  // a made-up organisation the member owns, made through the app's own door as the member
+  const made = await callAs(context, 'partner_create', {
+    p_partner: {
+      trade_name_en: `Made Up Repeat ${tag}`,
+      sides: [{ side: 'client', type: 'corporate', owner_id: member.id }],
+    },
+  });
+  expect(made.status, JSON.stringify(made.body)).toBe(200);
+  const log = async () => {
+    await page.goto('/kpis/achievements/new');
+    await hydrated(page);
+    await page.getByRole('combobox', { name: 'Category' }).click();
+    await page.getByRole('option', { name: 'Awards' }).click();
+    await page.getByLabel('What').fill(`Made-up travel award ${tag}`);
+    await page.getByRole('combobox', { name: 'Organisation' }).click();
+    await page.getByRole('option', { name: `Made Up Repeat ${tag}` }).click();
+    await page.getByRole('button', { name: 'Save' }).click();
+  };
+  await log();
+  await expect(toast(page, 'Achievement logged')).toBeVisible();
+  const first = page.url();
+  const number = (await page.locator('[data-record-header]').innerText()).match(/ACH-\d{4}-\d{4,}/)?.[0];
+  expect(number, 'the record shows its number').toBeTruthy();
+
+  await log();
+  const dialog = page.getByRole('dialog', { name: 'Logged before?' });
+  await expect(dialog).toContainText(number!);
+  await dialog.locator('[data-repeat-new]').click();
+  await expect(toast(page, 'Achievement logged')).toBeVisible();
+  await expect(page).not.toHaveURL(first);
+  await expect(page.getByRole('link', { name: number! }), 'the new one names the earlier one').toBeVisible();
+
+  await log();
+  await page.getByRole('dialog', { name: 'Logged before?' }).locator('[data-repeat-same]').click();
+  await expect(page, 'the earlier one opens; nothing is saved').toHaveURL(/\/kpis\/achievements\/[0-9a-f-]{36}$/);
+  const [count] = await sql<{ n: number }>(
+    `select count(*)::int as n from perf.achievement where owner_id = $1 and deleted_at is null`,
+    [member.id],
+  );
+  expect(count!.n).toBe(2);
 });

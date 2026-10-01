@@ -1,5 +1,6 @@
 'use client';
 import { ExternalLink, MoreHorizontal, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -163,7 +164,15 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         ]}
         back={{ href: '/kpis/achievements', label: t('back') }}
         title={locale === 'ar' ? a.line_ar : a.line_en}
-        subtitle={`${category} · ${nameFor(a.owner_id)}`}
+        subtitle={[
+          a.number,
+          a.happened_on ? formatDate(a.happened_on, locale) : t('noDate'),
+          data.partnerName,
+          category,
+          nameFor(a.owner_id),
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         chips={<Marks row={a} />}
         figures={figures}
         actions={
@@ -197,7 +206,18 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         words={{ tabs: tc('record.tabs'), notMeasured: tc('common.notMeasured') }}
         rail={
           <RailSection title={tc('record.details')}>
+            <RailField label={t('fields.number')}>
+              <span className="font-data">{a.number}</span>
+            </RailField>
             <RailField label={t('fields.category')}>{category}</RailField>
+            {a.repeat_of ? (
+              <RailField label={t('fields.repeatOf')}>
+                <Link href={`/kpis/achievements/${a.repeat_of}`} className="font-data text-link hover:underline">
+                  {a.repeat_of_number}
+                </Link>
+              </RailField>
+            ) : null}
+            {a.mou_side ? <RailField label={t('fields.side')}>{t(`sides.${a.mou_side}`)}</RailField> : null}
             <RailField label={t('fields.owner')}>{nameFor(a.owner_id)}</RailField>
             <RailField label={t('fields.organisation')} empty={!data.partnerName}>
               {data.partnerName}

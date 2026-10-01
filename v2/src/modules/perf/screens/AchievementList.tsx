@@ -160,6 +160,9 @@ function Row({ row, owner, top }: { row: AchievementRow; owner: string | null; t
             <span className="font-data tabular text-sm">{formatMoney(row.deal_value, locale)}</span>
           ) : null}
           <Marks row={row} />
+          <span className="font-data text-sm text-muted tabular" data-achievement-number>
+            {row.number}
+          </span>
           <span className="text-sm text-muted tabular">
             {row.happened_on ? formatDate(row.happened_on, locale) : t('noDate')}
           </span>

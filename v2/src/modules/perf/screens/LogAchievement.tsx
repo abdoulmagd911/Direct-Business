@@ -10,7 +10,9 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
-import type { Category } from '../types';
+import { Dialog } from '@/ui/Dialog';
+import { formatDate } from '@/core/i18n/format';
+import type { Category, RepeatMatch } from '../types';
 import { useCommandWords } from './words';
 
 const NONE = '__none';
@@ -60,8 +62,12 @@ export function LogAchievement({
   const [ref, setRef] = useState('');
   const [link, setLink] = useState('');
   const [busy, setBusy] = useState(false);
+  const [side, setSide] = useState<'client' | 'supplier_partner' | ''>('');
+  const [repeats, setRepeats] = useState<RepeatMatch[]>([]);
   const cat = categories.find((c) => c.code === code);
   const needsRef = cat?.required_ref_system ?? null;
+  // V521: an MoU with an organisation names the side it was signed with.
+  const needsSide = !!cat?.sets_prospect && partner !== NONE;
 
   // The categories are the plan's of the date's year (§5a): another year reads that year's.
   const onDay = async (next: string) => {
@@ -79,7 +85,29 @@ export function LogAchievement({
     }
   };
 
-  const save = async () => {
+  // V531: before saving, an earlier achievement of the same organisation and category with a similar title is offered
+  // as a one-tap choice — never blocking: no answer from the check saves as usual.
+  const check = async () => {
+    if (partner === NONE) return save(null);
+    setBusy(true);
+    let found: RepeatMatch[] = [];
+    try {
+      found = (await rpc('achievement_repeats', {
+        p_partner: partner,
+        p_category: code,
+        p_title: title.trim(),
+        ...(day ? { p_on: day } : {}),
+      })) as unknown as RepeatMatch[];
+    } catch {
+      found = [];
+    }
+    setBusy(false);
+    if (found.length) setRepeats(found);
+    else await save(null);
+  };
+
+  const save = async (repeatOf: string | null) => {
+    setRepeats([]);
     setBusy(true);
     const refs = ref.trim() ? [{ system: needsRef ?? system, value: ref.trim(), url: link.trim() || null }] : [];
     await command(
@@ -94,6 +122,8 @@ export function LogAchievement({
             ...(cat?.has_deal_value && value.trim() ? { deal_value: Number(value.replace(/,/g, '')) } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
+            ...(needsSide && side ? { side } : {}),
+            ...(repeatOf ? { repeat_of: repeatOf } : {}),
           },
           p_refs: refs,
         }) as Promise<{ id: string; request_id?: string | null }>,
@@ -103,14 +133,14 @@ export function LogAchievement({
   };
 
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
-  const ready = !!code && !!title.trim() && (!needsRef || !!ref.trim());
+  const ready = !!code && !!title.trim() && (!needsRef || !!ref.trim()) && (!needsSide || !!side);
   return (
     <form
       className="flex max-w-xl flex-col gap-4"
       data-log-form
       onSubmit={(e) => {
         e.preventDefault();
-        if (ready && !busy) void save();
+        if (ready && !busy) void check();
       }}
     >
       <PageHeader crumbs={[{ label: t('title'), href: '/kpis/achievements' }]} title={t('log')} />
@@ -148,6 +178,20 @@ export function LogAchievement({
           />
         )}
       </Field>
+      {needsSide ? (
+        <Field label={t('fields.side')}>
+          {(p) => (
+            <Select
+              id={p.id}
+              aria-label={t('fields.side')}
+              value={side || undefined}
+              placeholder={t('actions.choose')}
+              options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
+              onValueChange={(v) => setSide(v as 'client' | 'supplier_partner')}
+            />
+          )}
+        </Field>
+      ) : null}
       {cat?.has_deal_value ? (
         <Field label={`${t('fields.value')} · ${t('notRevenue')}`}>
           {(p) => <Input {...p} inputMode="decimal" mono value={value} onChange={(e) => setValue(e.target.value)} />}
@@ -199,6 +243,32 @@ export function LogAchievement({
           {t('actions.cancel')}
         </Button>
       </div>
+      <Dialog
+        open={repeats.length > 0}
+        onOpenChange={(o) => !o && setRepeats([])}
+        title={t('repeat.title')}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => router.push(`/kpis/achievements/${repeats[0]!.id}`)}
+              data-repeat-same
+            >
+              {t('repeat.same')}
+            </Button>
+            <Button variant="primary" onClick={() => void save(repeats[0]!.id)} data-repeat-new>
+              {t('repeat.new')}
+            </Button>
+          </>
+        }
+      >
+        {repeats[0] ? (
+          <p className="text-text">
+            {t('repeat.body', { number: repeats[0].number, date: formatDate(repeats[0].happened_on, locale) })}
+            <span className="mt-1 block text-muted">{repeats[0].title}</span>
+          </p>
+        ) : null}
+      </Dialog>
     </form>
   );
 }
