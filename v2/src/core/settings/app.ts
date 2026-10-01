@@ -1,15 +1,16 @@
 import 'server-only';
 import { cache } from 'react';
-import { serverDb } from '@/core/db/server';
+import { serviceDb } from '@/core/db/service';
 
 /**
  * The app-wide settings every page needs before it knows who is asking (ACC-090/091, ACC-129/139): the admin's default
  * theme and density (a person without their own choice gets them), the default start page, and whether Arabic is on
  * (V122 — the switch shows only then, and a locale cookie saying Arabic is ignored while it is off).
  *
- * They come from `api.app_settings()` — builder A's public read of these four keys, callable by every signed-in person
- * and, for `app.arabic_enabled`, before sign-in (NEED). Until it exists (or when it cannot be reached) the registry's
- * defaults apply, so nothing is invented and the screens behave as before. One read per request (React's cache).
+ * They come from `api.app_settings()` (V182, QA-207): the four keys as they stand today, the same for everyone. The server
+ * reads them with its own key, so the sign-in page knows whether Arabic is on before anyone has signed in — someone not
+ * signed in reaches nothing in the database (M87). When it cannot be reached the registry's defaults apply, so nothing
+ * is invented and the screens behave as before. One read per request (React's cache).
  */
 export type AppSettings = {
   arabic_enabled: boolean;
@@ -30,10 +31,7 @@ const DENSITIES = new Set(['comfortable', 'compact']);
 
 export const getAppSettings = cache(async (): Promise<AppSettings> => {
   try {
-    const db = (await serverDb()) as unknown as {
-      rpc: (fn: string) => Promise<{ data: unknown; error: unknown }>;
-    };
-    const { data, error } = await db.rpc('app_settings');
+    const { data, error } = await serviceDb().rpc('app_settings');
     if (error || !data || typeof data !== 'object') return APP_DEFAULTS;
     const v = data as Record<string, unknown>;
     const theme = v['app.default_theme'];

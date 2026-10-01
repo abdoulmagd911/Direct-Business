@@ -196,6 +196,31 @@
       "effective_dated": false
     },
     {
+      "key": "app.default_start_page",
+      "group": "settings.app",
+      "label": "setting.app.default_start_page",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": [
+          "my_day",
+          "overview",
+          "clients",
+          "suppliers_partners",
+          "pipeline",
+          "projects",
+          "tasks",
+          "finance",
+          "kpis",
+          "reports",
+          "appraisal",
+          "activity"
+        ]
+      },
+      "default": "my_day",
+      "effective_dated": false
+    },
+    {
       "key": "app.default_theme",
       "group": "settings.app",
       "label": "setting.app.default_theme",
