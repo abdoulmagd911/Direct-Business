@@ -30,4 +30,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'held-typed-read-as-a-report',
+    breaks: ['unit:tests/unit/achievements/the-grid-reads-held-keys-and-categories-as-the-door-answers.test.ts'],
+    expect: 'reads a report, a typed value and a blank one apart',
+    edits: [
+      {
+        file: 'src/modules/perf/backfill.ts',
+        find: "from: r.typed ? 'typed' :",
+        replace: "from: false ? 'typed' :",
+      },
+    ],
+  },
 ];
