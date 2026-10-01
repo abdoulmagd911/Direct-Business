@@ -1,8 +1,8 @@
 # v2 build plan — phases P3 to P7
 
 Kept in step with `DECISIONS.md` (V1 to the current decision). P1 was the blueprint (`BLUEPRINT.md`), P2 is this
-architecture (`TECH-SPEC.md`, "the spec" below). This file cuts P3–P7 into PR-sized steps for three builders and the QA
-session (V410; P7, the imports, comes after go-live):
+architecture (`TECH-SPEC.md`, "the spec" below). This file cuts P3–P7 into PR-sized steps for five builders (three
+until 1 Oct; D and E added by V519) and two QA sessions (V410; P7, the imports, comes after go-live):
 
 - **Builder A — data, server, tests:** migrations, `api.*` functions and views, the SQL suite, imports, CI, cloud setup.
 - **Builder B — screens:** the design system, the shell, every page, the E2E suite, the English catalog.
@@ -12,6 +12,12 @@ session (V410; P7, the imports, comes after go-live):
 - **The QA session — read-only audit** (V402, V410): the QA log and the `tests/qa/` suite; findings, never features; on
   localhost it hard-tests every role with **fixture users of every role** (made-up people — V447), while production is
   tested through the test account and View as (V445, V442).
+- **Builder D — the Tasks screens** (V519; session `01HMwsed5gwwu6CY284PJkBt`): P5-2 and the Past
+  work grid on Tasks, from `briefs/tasks-screens.md`; branches `v2/d-*`.
+- **Builder E — achievements** (V519; session `01AWTPAbb3FZXU87wQW9JaKX`): the achievements part of
+  P5-4 and P5-6 and the grid's achievements mode, from `briefs/achievements.md`; branches `v2/e-*`.
+- **QA 2 — the pilot path** (1 Oct; session `01Ufb5mV3SuW6zPmoXKBDpAa`): #123, #132, #145 and #135
+  first; QA 1 keeps #137, #139 and #138. Both read-only, both log in the one QA log (V402).
 
 English first; every step is Arabic-ready (every string in `messages/en.json` — builder B; its Arabic in
 `messages/ar.json` — builder C, the app showing the English until it is written; logical CSS only — spec §2.5). Arabic
