@@ -19,6 +19,8 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_checkin',
   'alert_activity_stale',
   'alert_file_review',
+  'reminder',
+  'note_mention',
   'escalated',
   'alert_project_no_update',
   'alert_due_tomorrow',

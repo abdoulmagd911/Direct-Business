@@ -69,8 +69,8 @@ begin
       insert into work.task (number, title, notes, owner_id, team_id, department_id, status_id, work_type, partner_id,
                              origin, happened_on, closed_at, closed_by, source_kind, source_period, date_from_report,
                              import_key)
-      values (core.format_number('TSK', pg_catalog.date_part('year', core.riyadh_today())::int,
-                                 core.next_number('task', pg_catalog.date_part('year', core.riyadh_today())::int)),
+      values (core.format_number('TSK', pg_catalog.date_part('year', day)::int,                      -- V531
+                                 core.next_number('task', pg_catalog.date_part('year', day)::int)),
               pg_catalog.btrim(r ->> 'title'), nullif(pg_catalog.btrim(r ->> 'notes'), ''), owner, team,
               (select t.department_id from core.team t where t.id = team), st.id,
               case when pid is null then 'internal' else 'client' end, pid, 'backfill', day,
