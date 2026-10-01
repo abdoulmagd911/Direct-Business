@@ -98,6 +98,11 @@ export interface EntityDef {
    * these rows and counts them apart (V161).
    */
   history?: boolean;
+  /**
+   * Its own `visible` rule alone decides who sees a record — admins and owners included (V454, V183): a private My day
+   * note is its author's alone. Needs `visible`.
+   */
+  ruleOnly?: boolean;
 }
 
 export interface ModuleDef {
