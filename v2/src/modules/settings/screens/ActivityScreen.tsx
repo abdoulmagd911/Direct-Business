@@ -5,9 +5,10 @@ import { useState } from 'react';
 import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { deviceLabel } from '@/core/auth/device-label';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
-import { avatarOf, nameOf, type OrgAnswer } from '@/modules/org/types';
+import { avatarOf, describeWith, nameOf, summarizeWith, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
@@ -64,6 +65,8 @@ export function ActivityScreen({
   const pathname = usePathname();
   const current = (TABS as readonly string[]).includes(tab) ? tab : 'changes';
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
+  const describe = describeWith(org, locale);
+  const summarize = summarizeWith(org, locale, (name) => t('activity.reportsTo', { name }));
   const entities: { key: string; label: string }[] = [];
   for (const m of modules)
     for (const e of m.entities ?? []) entities.push({ key: e.key, label: t.has(e.label) ? t(e.label) : e.key });
@@ -188,7 +191,14 @@ export function ActivityScreen({
       )}
       {current === 'changes' ? (
         <section className="rounded-lg border border-border bg-raised px-5 py-2" data-activity-changes>
-          <ActivityTimeline rows={rows} people={people} initial={50} onChanged={() => router.refresh()} />
+          <ActivityTimeline
+            rows={rows}
+            people={people}
+            initial={50}
+            onChanged={() => router.refresh()}
+            describe={describe}
+            summarize={summarize}
+          />
         </section>
       ) : null}
       {current === 'settings' ? (
@@ -210,7 +220,9 @@ export function ActivityScreen({
                           ? t(`activity.labels.${r.label_key}`)
                           : t('activity.actions.request')}
                         {c?.fields.length ? (
-                          <span className="ms-2 font-data text-xs text-muted">{c.fields.join(', ')}</span>
+                          <span className="ms-2 font-data text-xs whitespace-nowrap text-muted">
+                            {c.fields.join(', ')}
+                          </span>
                         ) : null}
                       </span>
                       <span className="text-xs text-muted">
@@ -264,7 +276,9 @@ export function ActivityScreen({
                           : s.result}
                       </StatusChip>
                     </td>
-                    <td className="max-w-[320px] truncate px-4 py-2 text-xs text-muted">{s.user_agent}</td>
+                    <td className="max-w-[320px] truncate px-4 py-2 text-xs text-muted" title={s.user_agent ?? ''}>
+                      {deviceLabel(s.user_agent) ?? s.user_agent}
+                    </td>
                   </tr>
                 ))}
               </tbody>
