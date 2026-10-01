@@ -1,6 +1,7 @@
 // What the proxy (src/proxy.ts) does on every page request (TECH-SPEC §4 step 7, V74):
 //   · refreshes the session cookie when its access token is due (Supabase's SSR pattern — one client per request);
-//   · sends a signed-out visitor to /sign-in?next=<the address>, so a deep link comes back to the same place;
+//   · sends a signed-out visitor to /sign-in?next=<the address>, so a deep link comes back to the same place — except
+//     under /api, which answers 401 in JSON (W32);
 //   · at most once an hour per browser, tells the database this device is still in use (api.device_touch); a device
 //     idle for 30 days or signed out elsewhere goes to /auth/sign-out, which clears it and asks for a new code;
 //   · hands the address to the (app) gate in the x-v2-path request header (a layout is not told its own path).
@@ -18,6 +19,11 @@ const TOUCH_EVERY_MS = 60 * 60 * 1000;
 /** Pages anyone may open: the sign-in page and the auth routes (which check the session themselves). */
 export function isPublicPath(path: string): boolean {
   return path === '/sign-in' || path.startsWith('/auth/');
+}
+
+/** An address under /api (W32). */
+export function isApiPath(path: string): boolean {
+  return path === '/api' || path.startsWith('/api/');
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
@@ -50,6 +56,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
   if (!signedIn) {
     if (isPublicPath(path)) return response;
+    // W32: an /api address is for a program, not a person: it is told it is not signed in, in JSON, never redirected.
+    if (isApiPath(path)) {
+      return NextResponse.json(
+        { ok: false, error: { kind: 'PermissionDenied', key: 'auth.not_signed_in' } },
+        { status: 401, headers: { 'cache-control': 'no-store' } },
+      );
+    }
     // A session cookie Supabase no longer accepts (signed out elsewhere, banned): /auth/sign-out asks the database
     // why, so the sign-in page can say it; with no cookie at all, straight to the sign-in page.
     const to = hadSession ? '/auth/sign-out' : '/sign-in';
