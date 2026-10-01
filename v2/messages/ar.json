@@ -399,6 +399,13 @@
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
     "reportsTo": "يتبع {name}"
   },
+  "profile": {
+    "notify": {
+      "escalated": "أمر تم تصعيده إليّ",
+      "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
+      "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها"
+    }
+  },
   "settings": {
     "list": {
       "side": "الجانب",
@@ -463,6 +470,9 @@
     }
   },
   "notifications": {
+    "kinds": {
+      "alert_due_tomorrow": "يقترب موعد استحقاق {what}"
+    },
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   }
 }
