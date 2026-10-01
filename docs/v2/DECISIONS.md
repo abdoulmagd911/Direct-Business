@@ -1069,6 +1069,54 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - `app.default_start_page` joins the registry (Settings → App): a page of the main navigation, My day by default. A value that is not such a page is refused (`setting.invalid_value`); a person who may not see the chosen page lands on My day (the root route).
 - Test SETS-03. Sabotages `app-settings-read-from-the-registry`, `app-settings-without-the-start-page`, `app-settings-open-before-sign-in`.
 
+**V183 — A record type may be seen by its own rule alone** ACTIVE · 2026-09-30 (P3-13; builds V454, V143). V143 lets a record type name its own visibility rule, but an admin was let in before the rule was asked. V454 makes a private My day note its author's alone, admins included — the one exception.
+- `core.entity.rule_only`, set from the registry's `ruleOnly` (it needs `visible`; a check refuses one without it). `authz.can_see_as` asks such a type's rule first and alone: no admin shortcut, no owners, no page level.
+- Every reader that already asks `can_see_as` follows: history, the Activity page, Follow, notifications and alerts, Undo by a manager. So do the new doors: My day, one note, search.
+- **Undo, admins included (QA-211).** A request that touched a rule-only record the reader may not see is not theirs to undo — `audit.undo_allowed` asks that first, ahead of the admin shortcut. Test NOTE-02, sabotage `an-admin-undoes-a-private-note`.
+- Rule-only: `my.note` (V185), its links and mentions (seen as the note is), and `core.reminder` (its person's alone — a reminder carries a note's words).
+- Test NOTE-02. Sabotages `an-admin-reads-a-private-note`, `the-admin-shortcut-ignores-rule-only`, `a-rule-only-type-without-its-rule`.
+
+**V184 — A note's link shows while both ends are live** ACTIVE · 2026-09-30 (P3-13; spec §3.3a). `my.note_link` is the two-way link: the note shows "turned into", the record "from note".
+- Removing either record hides the link and never removes the other. Undo of that removal brings the link back, with nothing written to the link.
+- Undo of the conversion itself removes the link with the record it made. So the link has the removal columns, beyond the spec's STD. Its `made_at` and `made_by` are its `created_at` and `created_by`.
+- `my.note_mention` has an id and the removal columns, like `core.mention`: every watched table has an id, and a mention dropped from a note is removed, not deleted. The spec's `(note_id, person_id)` key is its unique key.
+- A record comes from one note at most (the link is unique per record). It shows "from note" only to a reader who may see the note (V454).
+- The chips: `links` on a note (an activity with its organisation and type, a reminder with its time); `from_note` on each timeline entry of `api.notes`, and `api.from_note(entity, id)` for any record — the note, or null.
+- Test NOTE-03. Sabotages `a-removed-record-keeps-its-chip`, `a-from-note-chip-shows-a-private-note`.
+
+**V185 — Who sees a note, who may be mentioned, who changes it** ACTIVE · 2026-09-30 (P3-13; builds V454; OLD-WRK-017/019).
+- **Private** (the default): its author.
+- **Team**: its author; anyone whose home team is the author's, who helps that team or who leads it; and admins.
+- **Workspace**: every active member of staff.
+- A removed note is its author's alone.
+- A mention must be able to see the note, and is told once (`note_mention`). A private note mentions nobody (`note.private_mentions_nobody`).
+- Sharing a note more narrowly while a mentioned person would lose it is refused (`note.mention_cannot_see`); drop the mention in the same edit.
+- Only the author edits, converts, finishes, wraps up or removes a note. Anyone else who can see it gets `note.not_yours`; anyone who cannot gets `common.not_found`.
+
+**V186 — Turn into and Finish meeting, as built now** ACTIVE · 2026-09-30 (P3-13; spec §3.3a). Each is one request, and one Undo takes it all back.
+- The door is `api.note_turn_into(p_note, p_kind, p_values)` — the names Builder B's screens were built against (#138).
+- **A logged call or meeting** (`activity`, with `type` call or meeting — a meeting note's by default, else a call) goes through Log activity. It carries the note's title, words and rows, and the note's mentions who can see the organisation; the others are returned as `mentions_left_out`. The organisation is `partner_id`, else the meeting's.
+- **A reminder** is the author's own, at a later time. Its words are the note's unless others are given.
+- The request is logged in the made record's own words (`partner.activity_logged`, `reminder.set`), so the Activity page names no note.
+- A task and an action item arrive with P5-1, an achievement with P5-4. Until then they are refused with `note.turn_into_not_yet`, so the screen can grey them.
+- **Finish meeting** logs one meeting on the note's organisation: type meeting, held unless said otherwise, with the note's points. It marks the note finished, once. A meeting on a later day is not logged. The points become action items once tasks exist (P5-1).
+- Tests NOTE-03, NOTE-04. Sabotage `finish-meeting-drops-the-points`.
+
+**V187 — Wrap up today and the My day scopes** ACTIVE · 2026-09-30 (P3-13; spec §3.3a; OLD-WRK-022).
+- An **open capture** is one not done and due — carried to, else happened — on or before the day.
+- `api.note_wrap_up(p_day, p_choices)` takes each open capture (`[{note, choice}]`): **carry** (to the next working day — the weekend is Friday and Saturday, so a Thursday's go to Sunday, `core.next_working_day` — keeping `happened_on`), **done**, or **turn_into** (then done). One request; nothing is deleted.
+- `api.my_day(scope, limit, offset, since)`: **me** — my open captures, and the reminders still to come; **team** — the open captures my own team shares; **workspace** — those everyone shares. Seven rows a page, with `notes_total` and `more`.
+- **Since your last visit**: the page passes the last visit `api.page_seen('my_day')` returned (V61, SEEN-01; it also records this one, and Mark all seen calls it again), and `since` counts what others shared since then (`team_notes`, `workspace_notes`) — never a private note.
+- One note: `api.my_note(id)`. Removing: `api.my_notes_remove(ids, reason)`, `api.reminders_remove(ids, reason)`. A note's meeting organisation is `meeting_partner` (its number and names), shown only to a reader who may see it.
+- The manager's team load joins My team with tasks (P5-7). Search (`api.search`) also answers the notes the reader may see.
+- Tests NOTE-02 (the scopes, the total, the counters), NOTE-05. Sabotages `since-counts-private-notes`, `wrap-up-rewrites-the-day-it-happened`.
+
+**V188 — Reminders go out every five minutes, once** ACTIVE · 2026-09-30 (P3-13; builds V455).
+- `notify.send_reminders()` runs every five minutes (`notify-send-reminders`, pg_cron `*/5 * * * *` where pg_cron exists). It tells each reminder due by now and not yet sent to its person once (`reminder`), then marks it sent. A missed run is caught up once by the next; a removed reminder is never sent.
+- `reminder` and `note_mention` join the notification kinds (the check and `NOTIFICATION_KINDS`), so an admin or a person can switch them off.
+- The daily alerts' first-run-on-or-after rule was already built (WRK-124, test ALR-02). V455's "a kind whose run failed is shown to admins" stays with P3-6e part 2.
+- Test NOTE-06. Sabotages `a-reminder-sent-twice`, `a-reminder-sent-early`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
