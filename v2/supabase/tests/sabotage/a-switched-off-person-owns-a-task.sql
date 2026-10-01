@@ -4,6 +4,4 @@
 -- Anyone is named, switched off or not.
 create or replace function work.person_ok(p_person uuid) returns boolean
 language sql stable security definer set search_path = ''
-as $$
-  select true or exists (select 1 from core.person p where p.id = p_person and p.account <> 'test_account')
-$$;
+as $$ select true and core.is_team_member(p_person) $$;
