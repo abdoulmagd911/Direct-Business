@@ -366,6 +366,9 @@
         },
         "person": {
           "unavailable": "That person cannot be given work here"
+        },
+        "common": {
+          "date_in_future": "That day is after today"
         }
       }
     }

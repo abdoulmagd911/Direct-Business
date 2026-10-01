@@ -233,10 +233,11 @@ export function canTick(
 // ---------------------------------------------------------------- refusals in words
 
 /**
- * The catalog key for a task door's refusal. The task doors' own keys (`task.*`, `action_item.*`) are worded under
+ * The catalog key for a task door's refusal. The task doors' own keys (`task.*`, `action_item.*`, and a day in the
+ * future — QA-234) are worded under
  * `pages.tasks.errors.*` (builder D's part of the catalog); every other key is the shared `errors.*` one.
  */
 export function refusalKey(key: string): string {
-  const m = /^errors\.((?:task|action_item)\.[a-z_]+|person\.unavailable)$/.exec(key);
+  const m = /^errors\.((?:task|action_item)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
   return m ? `pages.tasks.errors.${m[1]}` : key;
 }
