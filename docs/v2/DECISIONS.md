@@ -1039,6 +1039,26 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Single records:** `api.task(id)` with its checklist, helpers, references, contacts and status history; `api.projects(filter)`; `api.project(id)` with the latest health and its history.
 - Sabotages: `stale-judged-on-the-logged-day`, `the-directive-sorts-anywhere`, `late-before-go-live`, `the-oldest-health-shows`.
 
+**V196 — The Past work grid's door** ACTIVE · 2026-10-01 (P5-1; builds V400, V491, V504, V506; OLD-059, OLD-PRF-045; for Builder C's grid, P5-2c #105).
+- **`api.backfill_tasks(request)`** takes C's shape: `{ mode: 'tasks', origin: 'backfill', source: { kind, period, last_day }, rows: [...] }`.
+- **One paste is one request**, and one Undo takes it back.
+- **Each row** becomes a Backfilled task:
+  - its day is its own, or the report's last day when it has none (`date_from_report`);
+  - it keeps the report as evidence (`source_kind`, `source_period`);
+  - its owner is the person named, Unknown (`owner_unknown`), or else the paster;
+  - its status is the one given, Done when none.
+- **Never noisy:** it tells nobody and is never logged late.
+- **Refused:**
+  - a row before 1 January 2025 (`backfill.before_2025`);
+  - a paste with no report;
+  - a row for someone else without `tasks.assign`.
+
+  Each refusal names the row's index.
+- **Saved once:** a live task holds one `import_key`. A key already held is left out and returned as `held`; `api.backfill_keys_held(keys)` answers the grid's "saved before".
+- **`api.people_match(names)`** answers each pasted name with one person, none, or several. Real names in either language beat nicknames, which beat e-mail prefixes. Spellings are folded.
+- **Not built here:** the place in the profile for the grid's mapping and last report, and V502's figure (no task row carries one).
+- Tests BACK-01, NAMEMATCH-01. Sabotages `a-pasted-row-saved-twice`, `an-undated-row-dated-today`, `a-nickname-beats-a-real-name`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.

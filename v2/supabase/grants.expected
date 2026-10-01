@@ -20,6 +20,8 @@ function api.activity(p_actor uuid, p_entity text, p_since timestamp with time z
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
 function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function api.auth_user_of(p_email text) execute service_role
+function api.backfill_keys_held(p_keys text[]) execute authenticated
+function api.backfill_tasks(p_request jsonb) execute authenticated
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
@@ -78,6 +80,7 @@ function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.password_changed(p_auth_user uuid) execute service_role
 function api.people() execute authenticated
+function api.people_match(p_names text[]) execute authenticated
 function api.people_without_password() execute authenticated
 function api.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function api.person_auth_found(p_auth_user uuid) execute authenticated
@@ -194,6 +197,7 @@ function core.own_password_set(p_auth_user uuid, p_keep_session uuid) execute se
 function core.page_seen(p_page text) execute authenticated
 function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated
+function core.people_match(p_names text[]) execute authenticated
 function core.people_without_password() execute authenticated
 function core.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function core.person_auth_found(p_auth_user uuid) execute authenticated
@@ -274,6 +278,8 @@ function work.action_item_add(p_task uuid, p_values jsonb) execute authenticated
 function work.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
 function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.backfill_keys_held(p_keys text[]) execute authenticated
+function work.backfill_tasks(p_request jsonb) execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
 function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated

@@ -59,6 +59,8 @@ export type Database = {
       };
       auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
+      backfill_keys_held: { Args: { p_keys: string[] }; Returns: Json };
+      backfill_tasks: { Args: { p_request: Json }; Returns: Json };
       campaign_code_add: {
         Args: {
           p_code: string;
@@ -235,6 +237,7 @@ export type Database = {
       partners: { Args: { p_filters?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       password_changed: { Args: { p_auth_user: string }; Returns: Json };
       people: { Args: Record<PropertyKey, never>; Returns: Json };
+      people_match: { Args: { p_names: string[] }; Returns: Json };
       people_without_password: { Args: Record<PropertyKey, never>; Returns: Json };
       person_account_set: { Args: { p_account: string; p_id: string; p_reason: string }; Returns: Json };
       person_auth_found: { Args: { p_auth_user: string }; Returns: Json };
