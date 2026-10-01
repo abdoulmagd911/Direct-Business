@@ -38,6 +38,7 @@ const labels: PastWorkLabels = {
   monthFirst: 'Month first',
   line: 'Line',
   ready: 'Backfilled',
+  updatesSaved: 'Updates a saved row',
   problems: {
     title_missing: 'No title',
     date_missing: 'No date',
@@ -47,6 +48,8 @@ const labels: PastWorkLabels = {
     date_before_start: 'Before 1 January 2025, where past work starts',
     kind_missing: 'No status',
     kind_unknown: 'Unknown status',
+    value_unreadable: 'The value is not an amount',
+    value_not_allowed: 'This category has no deal value',
     organisation_unknown: 'Unknown organisation',
     organisation_ambiguous: 'More than one organisation has this name',
     organisation_checking: 'Checking the organisation',

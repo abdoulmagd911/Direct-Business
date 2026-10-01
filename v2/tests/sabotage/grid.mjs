@@ -7,6 +7,7 @@ const PASTE = unit('pastes-from-excel-and-google-sheets-read-the-same.test.ts');
 const ZONES = unit('a-pasted-date-and-riyadhs-today-read-the-same-in-every-time-zone-and-from-an-arabic-sheet.test.ts');
 const GRID = unit('the-grid-previews-every-row-and-saves-the-ready-ones-as-one-request-with-one-undo.test.tsx');
 const OLD = unit('a-pasted-name-is-matched-by-the-database-and-a-row-pasted-twice-is-added-once.test.tsx');
+const VALUE_TEST = unit('a-newer-reports-deal-value-updates-a-saved-row-and-an-older-one-never-does.test.tsx');
 const SOURCE_TEST = unit('every-paste-names-its-source-report-and-an-undated-row-takes-its-last-day.test.tsx');
 const ROWS = 'src/ui/grid/rows.ts';
 const DATES = 'src/ui/grid/dates.ts';
@@ -345,6 +346,120 @@ export const sabotages = [
         find: 'happened_on: r.dateFromReport ? null : r.happenedOn!,',
         replace: 'happened_on: r.happenedOn!,',
       },
+    ],
+  },
+  {
+    name: 'grid-takes-a-value-for-a-category-without-one',
+    breaks: [VALUE_TEST],
+    expect: 'Cost savings has no deal value (V505)',
+    edits: [
+      {
+        file: ROWS,
+        find: "else if (kind && !(o.valueKinds ?? []).includes(kind)) problems.push('value_not_allowed');",
+        replace: "else if (kind && false) problems.push('value_not_allowed');",
+      },
+    ],
+  },
+  {
+    name: 'grid-lets-an-older-report-replace-a-saved-value',
+    breaks: [VALUE_TEST],
+    expect: 'is not replaced by March',
+    edits: [
+      {
+        file: ROWS,
+        find: "return held.from !== null && held.from !== 'typed' && reportIsNewer(source, held.from);",
+        replace: "return held.from !== null && held.from !== 'typed';",
+      },
+    ],
+  },
+  {
+    name: 'grid-lets-a-report-replace-a-typed-value',
+    breaks: [VALUE_TEST],
+    expect: 'never replaces a value a person typed',
+    edits: [
+      {
+        file: ROWS,
+        find: "return held.from !== null && held.from !== 'typed' && reportIsNewer(source, held.from);",
+        replace: "return held.from === 'typed' || (held.from !== null && reportIsNewer(source, held.from));",
+      },
+    ],
+  },
+  {
+    name: 'grid-lets-the-monthly-beat-the-quarterly',
+    breaks: [VALUE_TEST],
+    expect: 'both end 31 March: the quarterly wins',
+    edits: [
+      {
+        file: SOURCE,
+        find: "return SOURCE_PERIOD[a.kind] === 'quarter' && SOURCE_PERIOD[b.kind] === 'month';",
+        replace: "return SOURCE_PERIOD[a.kind] === 'month' && SOURCE_PERIOD[b.kind] === 'quarter';",
+      },
+    ],
+  },
+  {
+    name: 'grid-sends-a-value-with-a-task',
+    breaks: [VALUE_TEST],
+    expect: 'a task row carries no value key',
+    edits: [
+      { file: ROWS, find: "...(mode === 'achievements' ? { value: r.value } : {}),", replace: 'value: r.value,' },
+    ],
+  },
+  {
+    name: 'grid-reads-an-arabic-amount-as-no-amount',
+    breaks: [VALUE_TEST],
+    expect: 'Arabic-Indic digits and thousands mark',
+    edits: [{ file: ROWS, find: '.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))', replace: '' }],
+  },
+  {
+    name: 'grid-updates-a-saved-row-with-the-same-value',
+    breaks: [VALUE_TEST],
+    expect: 'does not call the same amount an update',
+    edits: [
+      {
+        file: ROWS,
+        find: 'if (value === null || !source || value === held.amount) return false;',
+        replace: 'if (value === null || !source) return false;',
+      },
+    ],
+  },
+  {
+    name: 'grid-offers-the-value-column-for-tasks',
+    breaks: [VALUE_TEST],
+    expect: 'a task has no value column',
+    edits: [
+      {
+        file: COMPONENT,
+        find: "const offersValue = mode === 'achievements' && !!props.valueKinds?.length;",
+        replace: 'const offersValue = !!props.valueKinds?.length;',
+      },
+    ],
+  },
+  {
+    name: 'grid-reads-a-value-in-a-task-paste',
+    breaks: [VALUE_TEST],
+    expect: 'no value problem for a task',
+    edits: [
+      {
+        file: ROWS,
+        find: "const valueCell = o.mode === 'achievements' ? at(row, 'value') : '';",
+        replace: "const valueCell = at(row, 'value');",
+      },
+    ],
+  },
+  {
+    name: 'grid-calls-an-update-backfilled',
+    breaks: [VALUE_TEST],
+    expect: 'Updates a saved row',
+    edits: [
+      { file: COMPONENT, find: '{r.updatesSaved ? labels.updatesSaved : labels.ready}', replace: '{labels.ready}' },
+    ],
+  },
+  {
+    name: 'grid-reads-a-held-map-as-a-plain-set',
+    breaks: [VALUE_TEST],
+    expect: 'marked as an update',
+    edits: [
+      { file: COMPONENT, find: 'held instanceof Map ? (held.get(k) ?? false) : held.has(k)', replace: 'held.has(k)' },
     ],
   },
 ];

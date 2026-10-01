@@ -9,11 +9,11 @@ import { Select, type SelectOption } from '@/ui/Select';
 import { toast } from '@/ui/Toast';
 import { readPastedTable } from './paste';
 import {
-  FIELDS,
+  fieldsFor,
+  type HeldKey,
   guessMapping,
   keysToCheck,
   organisationNames,
-  OWN_FIELDS,
   personNames,
   readRows,
   toRequest,
@@ -55,8 +55,11 @@ export interface PastWorkLabels {
   pasteHere: string;
   /** "The first row holds the headers". */
   hasHeader: string;
-  /** Each field's name; `kind` is "Status" for tasks, "Category" for achievements; `person` where it is offered. */
-  fields: Record<OwnField, string> & { person?: string };
+  /**
+   * Each field's name; `kind` is "Status" for tasks, "Category" for achievements; `person` where it is offered; `value`
+   * ("Value (SAR)") where achievements may carry a deal value (V502).
+   */
+  fields: Record<OwnField, string> & { person?: string; value?: string };
   /** "Not in the paste". */
   noColumn: string;
   /** A pasted column: "Column B · Title". */
@@ -69,6 +72,8 @@ export interface PastWorkLabels {
   line: string;
   /** A row ready to save: "Backfilled". */
   ready: string;
+  /** A row ready to save that updates a saved row's deal value from a newer report (V502): "Updates a saved row". */
+  updatesSaved: string;
   /** Why a row is refused, one sentence each. */
   problems: Record<Problem, string>;
   /**
@@ -92,6 +97,11 @@ export interface PastWorkGridProps {
   choices: readonly Choice[];
   /** A task row with no status takes this one (Done). */
   defaultKind?: string | null;
+  /**
+   * The categories that carry a deal value (V502, V505: Contract signed, MoU). Offered with achievements, it adds the Value
+   * (SAR) column — sent as `value` — and a value on any other category is refused.
+   */
+  valueKinds?: readonly string[];
   lang: 'ar' | 'en';
   labels: PastWorkLabels;
   /**
@@ -113,9 +123,11 @@ export interface PastWorkGridProps {
   resolvePeople?: (names: string[]) => Promise<ReadonlyMap<string, PersonMatch>>;
   /**
    * Which of these row keys the database already holds (OLD-PRF-045) — every ready row, in one call; those rows are
-   * named "already saved" and left out, so pasting the same rows twice adds nothing.
+   * named "already saved" and left out, so pasting the same rows twice adds nothing. Answering with a map from each held
+   * key to its deal value and where that came from (`HeldKey`) lets a row from a newer report say it updates the saved
+   * row instead (V502, which the database settles when it saves).
    */
-  savedKeys?: (keys: string[]) => Promise<ReadonlySet<string>>;
+  savedKeys?: (keys: string[]) => Promise<ReadonlySet<string> | ReadonlyMap<string, HeldKey>>;
   /** Builder A's `api.backfill_tasks` / `api.backfill_achievements` (P5-1, P5-4): one request, one Undo. */
   save: (request: BackfillRequest) => Promise<{ requestId: string | null }>;
   undo?: (requestId: string) => Promise<void>;
@@ -194,7 +206,8 @@ export function PastWorkGrid(props: PastWorkGridProps) {
   const [text, setText] = useState('');
   const [own, setOwn] = useState<Mapping | null>(null);
   const [saving, setSaving] = useState(false);
-  const fields: readonly Field[] = props.resolvePeople ? FIELDS : OWN_FIELDS;
+  const offersValue = mode === 'achievements' && !!props.valueKinds?.length;
+  const fields: readonly Field[] = fieldsFor({ people: !!props.resolvePeople, value: offersValue });
   const today = props.today ?? riyadhToday();
   // The report the person last used, when it is still one to pick; otherwise nothing is picked.
   const [first] = useState(() => (isSourceReport(props.source, today) ? props.source : null));
@@ -233,19 +246,33 @@ export function PastWorkGrid(props: PastWorkGridProps) {
 
   const { choices, defaultKind, resolvePeople } = props;
   const read = useCallback(
-    (saved: ReadonlyMap<string, boolean> | undefined) =>
+    (saved: ReadonlyMap<string, boolean | HeldKey> | undefined) =>
       readRows(table, {
         mode,
         mapping,
         today,
         choices,
         defaultKind,
+        valueKinds: offersValue ? props.valueKinds : undefined,
         organisations: orgs,
         people: resolvePeople ? people : undefined,
         saved,
         source,
       }),
-    [table, mode, mapping, today, choices, defaultKind, orgs, people, resolvePeople, source],
+    [
+      table,
+      mode,
+      mapping,
+      today,
+      choices,
+      defaultKind,
+      orgs,
+      people,
+      resolvePeople,
+      source,
+      offersValue,
+      props.valueKinds,
+    ],
   );
   const savedKeys = props.savedKeys;
   const askSaved = useMemo(
@@ -253,7 +280,9 @@ export function PastWorkGrid(props: PastWorkGridProps) {
       savedKeys &&
       (async (keys: string[]) => {
         const held = await savedKeys(keys);
-        return new Map(keys.map((k) => [k, held.has(k)]));
+        return new Map<string, boolean | HeldKey>(
+          keys.map((k) => [k, held instanceof Map ? (held.get(k) ?? false) : held.has(k)]),
+        );
       }),
     [savedKeys],
   );
@@ -403,6 +432,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                     className="border-t border-border"
                     data-line={r.line}
                     data-ready={!r.problems.length}
+                    data-updates-saved={r.updatesSaved || undefined}
                   >
                     <td className="px-3 py-2 font-data text-muted">{r.line}</td>
                     <td className="px-3 py-2">{r.title}</td>
@@ -424,6 +454,11 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                         )}
                       </td>
                     ) : null}
+                    {offersValue ? (
+                      <td className="px-3 py-2 font-data" data-value>
+                        {r.value ?? ''}
+                      </td>
+                    ) : null}
                     <td className="px-3 py-2">
                       {r.problems.length ? (
                         <ul className="flex flex-col gap-0.5 text-danger" data-problems={r.problems.join(' ')}>
@@ -432,7 +467,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                           ))}
                         </ul>
                       ) : (
-                        <StatusChip tone="neutral">{labels.ready}</StatusChip>
+                        <StatusChip tone="neutral">{r.updatesSaved ? labels.updatesSaved : labels.ready}</StatusChip>
                       )}
                     </td>
                   </tr>

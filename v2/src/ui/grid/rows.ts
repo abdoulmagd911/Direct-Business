@@ -1,5 +1,5 @@
 import { readDay, type DateOrder } from './dates';
-import { PAST_WORK_FROM, periodLastDay, type SourceReport } from './source';
+import { PAST_WORK_FROM, periodLastDay, reportIsNewer, type SourceReport } from './source';
 
 /**
  * The Past work grid's rows (P5-2c, V400): pasted cells mapped to fields, read and checked, then sent as **one
@@ -12,13 +12,19 @@ export type PastWorkMode = 'tasks' | 'achievements';
 /**
  * `kind` is the status of a task, or the category of an achievement. `person` — whose work the row is — is offered
  * only where the screen may backfill for others (the one-time BD Daily Tasks load, a manager); without it every row
- * is the signed-in person's own.
+ * is the signed-in person's own. `value` — an achievement's deal value in SAR (V502) — is offered only for achievements,
+ * and only a category that has a deal value takes one.
  */
-export const FIELDS = ['title', 'happened_on', 'kind', 'organisation', 'notes', 'person'] as const;
+export const FIELDS = ['title', 'happened_on', 'kind', 'organisation', 'notes', 'person', 'value'] as const;
 export type Field = (typeof FIELDS)[number];
-export type OwnField = Exclude<Field, 'person'>;
-/** The fields of a person's own past work — every field but `person`. */
+export type OwnField = Exclude<Field, 'person' | 'value'>;
+/** The fields of a person's own past work — every field but `person` and `value`. */
 export const OWN_FIELDS: readonly OwnField[] = ['title', 'happened_on', 'kind', 'organisation', 'notes'];
+
+/** The columns a screen offers: the person's, where it may backfill for others; the value's, for achievements (V502). */
+export function fieldsFor(o: { people: boolean; value: boolean }): readonly Field[] {
+  return FIELDS.filter((f) => (f === 'person' ? o.people : f === 'value' ? o.value : true));
+}
 
 export interface Mapping {
   /** The first pasted row holds the headers. */
@@ -26,7 +32,7 @@ export interface Mapping {
   /** How "03/04/2026" reads; null refuses a date that could be either. */
   dateOrder: DateOrder | null;
   /** The pasted column (0-based) each field comes from, or null (a mapping remembered before `person` lacks it). */
-  columns: Record<OwnField, number | null> & { person?: number | null };
+  columns: Record<OwnField, number | null> & { person?: number | null; value?: number | null };
 }
 
 /** A status or a category the row may name, in either language, or by its key. */
@@ -51,6 +57,8 @@ export type Problem =
   | 'date_before_start'
   | 'kind_missing'
   | 'kind_unknown'
+  | 'value_unreadable'
+  | 'value_not_allowed'
   | 'organisation_unknown'
   | 'organisation_ambiguous'
   | 'organisation_checking'
@@ -68,6 +76,13 @@ export interface PastRow {
   dateFromReport: boolean;
   /** The chosen status or category key. */
   kind: string | null;
+  /** An achievement's deal value in SAR (V502), from the pasted column; null when the row has none. */
+  value: number | null;
+  /**
+   * The key is already saved, but this row brings its deal value from a newer report than the one the saved value came
+   * from (or the saved value is blank) — so saving updates that row instead of leaving it out (V502).
+   */
+  updatesSaved: boolean;
   organisation: { name: string; id: string | null } | null;
   notes: string | null;
   /**
@@ -96,6 +111,8 @@ export interface ReadOptions {
   choices: readonly Choice[];
   /** The status a task row without one takes (Done: past work is mostly finished); achievements have none. */
   defaultKind?: string | null;
+  /** The categories that carry a deal value (V502, V505): only these take a `value`. */
+  valueKinds?: readonly string[];
   /** The organisations already looked up by name; a name not yet looked up is "checking". */
   organisations: ReadonlyMap<string, OrgMatch>;
   /**
@@ -105,9 +122,26 @@ export interface ReadOptions {
   people?: ReadonlyMap<string, PersonMatch>;
   /**
    * Which rows' keys the database already holds (OLD-PRF-045): `true` is saved before, `false` is new, a key not yet
-   * asked is "checking". Without it only repeats inside the paste are caught.
+   * asked is "checking". Without it only repeats inside the paste are caught. A held key may come with what its deal
+   * value is and where it came from (`HeldKey`), so a row from a newer report can say it updates it (V502).
    */
-  saved?: ReadonlyMap<string, boolean>;
+  saved?: ReadonlyMap<string, boolean | HeldKey>;
+}
+
+/**
+ * What the database holds under a key, as far as the deal value goes (V502): its amount, and where that came from — the
+ * report it was read from, `typed` when a person typed it (a report never replaces that), or null when it is blank.
+ */
+export interface HeldKey {
+  amount: number | null;
+  from: SourceReport | 'typed' | null;
+}
+
+/** Whether saving a row with this value updates the held row instead of leaving it out — the database's rule (V502). */
+export function updatesHeld(held: HeldKey, value: number | null, source: SourceReport | null | undefined): boolean {
+  if (value === null || !source || value === held.amount) return false;
+  if (held.amount === null) return true;
+  return held.from !== null && held.from !== 'typed' && reportIsNewer(source, held.from);
 }
 
 const HEADERS: Record<Field, string[]> = {
@@ -127,6 +161,18 @@ const HEADERS: Record<Field, string[]> = {
     'المورد',
   ],
   notes: ['notes', 'note', 'details', 'comment', 'comments', 'description', 'ملاحظات', 'التفاصيل', 'الوصف'],
+  value: [
+    'value',
+    'deal value',
+    'value (sar)',
+    'value sar',
+    'amount',
+    'sar',
+    'القيمة',
+    'قيمة الصفقة',
+    'المبلغ',
+    'قيمة العقد',
+  ],
   person: ['person', 'owner', 'staff', 'employee', 'assignee', 'done by', 'name', 'الموظف', 'الشخص', 'المنفذ', 'الاسم'],
 };
 
@@ -139,7 +185,10 @@ const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
  */
 export function guessMapping(table: readonly string[][], fields: readonly Field[] = OWN_FIELDS): Mapping {
   const first = (table[0] ?? []).map(norm);
-  const columns = Object.fromEntries(FIELDS.map((f) => [f, null])) as Record<Field, number | null>;
+  // `value` has a column only where the screen offers it, so a mapping remembered before it existed still fits.
+  const columns = Object.fromEntries(
+    FIELDS.filter((f) => f !== 'value' || fields.includes('value')).map((f) => [f, null]),
+  ) as Record<Field, number | null>;
   for (const f of fields) {
     const at = first.findIndex((h, i) => HEADERS[f].includes(h) && !Object.values(columns).includes(i));
     if (at >= 0) columns[f] = at;
@@ -149,6 +198,22 @@ export function guessMapping(table: readonly string[][], fields: readonly Field[
   const width = Math.max(0, ...table.map((r) => r.length));
   fields.forEach((f, i) => (columns[f] = i < width ? i : null));
   return { hasHeader: false, dateOrder: 'dmy', columns };
+}
+
+/**
+ * An amount in SAR as a sheet has it (V502): Latin, Arabic-Indic or Eastern digits, thousands separators of either
+ * script, a decimal point of either, at most two decimals (the database keeps numeric(14,2)), never negative. A
+ * trailing SAR or ريال is ignored. Null when it is not an amount — never a guess.
+ */
+export function readAmount(cell: string): number | null {
+  const plain = cell
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/(?:sar|ريال|ر\.\s?س)/gi, '')
+    .replace(/[\s\u00a0,٬]/g, '')
+    .replace('٫', '.');
+  if (!/^\d{1,12}(?:\.\d{1,2})?$/.test(plain)) return null;
+  return Number(plain);
 }
 
 function choose(cell: string, choices: readonly Choice[]): string | null {
@@ -185,6 +250,15 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
       if (!kind) problems.push('kind_unknown');
     } else if (o.mode === 'tasks' && o.defaultKind) kind = o.defaultKind;
     else problems.push('kind_missing');
+
+    // A deal value (V502): achievements only, and only a category that has one — never read for a task.
+    let value: number | null = null;
+    const valueCell = o.mode === 'achievements' ? at(row, 'value') : '';
+    if (valueCell) {
+      value = readAmount(valueCell);
+      if (value === null) problems.push('value_unreadable');
+      else if (kind && !(o.valueKinds ?? []).includes(kind)) problems.push('value_not_allowed');
+    }
 
     const orgName = at(row, 'organisation');
     let organisation: PastRow['organisation'] = null;
@@ -224,9 +298,13 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
     ]);
     if (title && happenedOn && seen.has(key)) problems.push('repeated');
     seen.add(key);
+    // Held already: left out as saved before — unless it brings a deal value from a newer report (V502), which the
+    // database then writes over the older, keeping that in the change log.
+    let updatesSaved = false;
     if (!problems.length && o.saved) {
       const before = o.saved.get(key);
       if (before === undefined) problems.push('saved_checking');
+      else if (typeof before === 'object' && updatesHeld(before, value, o.source)) updatesSaved = true;
       else if (before) problems.push('already_saved');
     }
 
@@ -236,6 +314,8 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
       happenedOn,
       dateFromReport: reportDay !== null,
       kind,
+      value,
+      updatesSaved,
       organisation,
       notes: at(row, 'notes') || null,
       person,
@@ -282,6 +362,8 @@ export interface BackfillRequest {
     /** The row had no date in the report and took its last day (V504). */
     date_from_report: boolean;
     kind: string;
+    /** An achievement's deal value in SAR (V502); sent for achievements only, null when the row has none. */
+    value?: number | null;
     organisation_id: string | null;
     notes: string | null;
     /** Whose work; null with `owner_unknown` false is the signed-in person's own. */
@@ -311,6 +393,7 @@ export function toRequest(rows: readonly PastRow[], mode: PastWorkMode, source: 
         happened_on: r.dateFromReport ? null : r.happenedOn!,
         date_from_report: r.dateFromReport,
         kind: r.kind!,
+        ...(mode === 'achievements' ? { value: r.value } : {}),
         organisation_id: r.organisation?.id ?? null,
         notes: r.notes,
         person_id: r.person?.id ?? null,

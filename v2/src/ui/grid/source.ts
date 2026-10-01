@@ -56,6 +56,19 @@ export function periodsFor(kind: SourceReportKind, today: string): string[] {
   return out;
 }
 
+/**
+ * Whether report `a` is newer than report `b` (V502, the Architect's answer of 1 Oct): the later last day; on the same
+ * day the quarterly beats the monthly — March's monthly and Q1's quarterly both end 31 March, and the quarterly wins.
+ * The database settles it when it saves (builder E's `perf.report_newer`); this only lets the preview say so first.
+ */
+export function reportIsNewer(a: SourceReport, b: SourceReport): boolean {
+  const da = periodLastDay(a.period);
+  const db = periodLastDay(b.period);
+  if (!da || !db) return false;
+  if (da !== db) return da > db;
+  return SOURCE_PERIOD[a.kind] === 'quarter' && SOURCE_PERIOD[b.kind] === 'month';
+}
+
 /** A source the screen may send: a known kind, and a period of its length that has ended by today. */
 export function isSourceReport(source: SourceReport | null | undefined, today: string): source is SourceReport {
   return !!source && SOURCE_REPORTS.includes(source.kind) && periodsFor(source.kind, today).includes(source.period);

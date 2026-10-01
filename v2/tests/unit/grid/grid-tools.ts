@@ -20,6 +20,9 @@ export const CATEGORIES: Choice[] = [
   { key: 'cost_saving', en: 'Cost savings', ar: 'وفورات التكلفة' },
 ];
 
+/** The categories that carry a deal value (V502, V505): the contract one only. */
+export const VALUE_KINDS = ['contract'] as const;
+
 export const ORGS = new Map<string, OrgMatch>([
   ['Test Co A', { kind: 'one', id: '00000000-0000-4000-8000-00000000000a' }],
   ['Test Co B', { kind: 'one', id: '00000000-0000-4000-8000-00000000000b' }],
@@ -60,6 +63,7 @@ export const LABELS: PastWorkLabels = {
     organisation: 'Organisation',
     notes: 'Notes',
     person: 'Person',
+    value: 'Value (SAR)',
   },
   noColumn: 'Not in the paste',
   column: (l, h) => (h ? `Column ${l} · ${h}` : `Column ${l}`),
@@ -68,6 +72,7 @@ export const LABELS: PastWorkLabels = {
   monthFirst: 'Month first',
   line: 'Line',
   ready: 'Backfilled',
+  updatesSaved: 'Updates a saved row',
   problems: {
     title_missing: 'No title',
     date_missing: 'No date',
@@ -77,6 +82,8 @@ export const LABELS: PastWorkLabels = {
     date_before_start: 'Before 1 January 2025, where past work starts',
     kind_missing: 'No status',
     kind_unknown: 'Unknown status',
+    value_unreadable: 'The value is not an amount',
+    value_not_allowed: 'This category has no deal value',
     organisation_unknown: 'Unknown organisation',
     organisation_ambiguous: 'More than one organisation has this name',
     organisation_checking: 'Checking the organisation',
