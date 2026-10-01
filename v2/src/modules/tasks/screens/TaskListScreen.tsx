@@ -182,7 +182,14 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       ) : rows.length === 0 ? (
         <DataState
           kind="empty"
-          message={t(isFiltered(f) ? 'pages.tasks.emptyFiltered' : `pages.tasks.empty.${f.scope}`)}
+          message={t(
+            isFiltered(f)
+              ? 'pages.tasks.emptyFiltered'
+              : // My work keeps the area's own empty line (pages.empty.tasks, checked by review-1)
+                f.scope === 'my_work'
+                ? 'pages.empty.tasks'
+                : `pages.tasks.empty.${f.scope}`,
+          )}
         />
       ) : (
         <>

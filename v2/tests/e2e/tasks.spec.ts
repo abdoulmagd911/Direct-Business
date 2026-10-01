@@ -13,25 +13,11 @@ const WIDTHS = [
   { name: 'desk', width: 1440, height: 900 },
 ] as const;
 
-/** A made-up member with a home team in the Commercial department (a task's team is its owner's, V194). */
-async function memberWithTeam(): Promise<TestPerson> {
-  const person = await makePerson();
-  const code = `test_tasks_${randomUUID().slice(0, 8)}`;
-  await sql(
-    `insert into core.team (department_id, code, name_en, name_ar, created_by)
-     values ((select id from core.department where code = 'commercial'), $1, 'Test team', 'فريق تجريبي', $2)`,
-    [code, person.id],
-  );
-  await sql(`update core.person set team_id = (select id from core.team where code = $1) where id = $2`, [
-    code,
-    person.id,
-  ]);
-  return person;
-}
-
-/** A task put straight into the database (a fixture), owned by `owner` in `department`'s new team. */
-async function taskIn(department: string, owner: string, title: string): Promise<string> {
-  const code = `test_tasks_${randomUUID().slice(0, 8)}`;
+/**
+ * The one made-up team these specs use in a department (made once, then reused), so repeated runs never crowd another
+ * spec's team pickers with "Test team" rows.
+ */
+async function testTeam(department: string, createdBy: string): Promise<string> {
   await sql(
     `insert into core.department (code, name_en, name_ar) values ($1, 'Test department', 'قسم تجريبي')
      on conflict (code) do nothing`,
@@ -39,15 +25,35 @@ async function taskIn(department: string, owner: string, title: string): Promise
   );
   await sql(
     `insert into core.team (department_id, code, name_en, name_ar, created_by)
-     values ((select id from core.department where code = $1), $2, 'Test team', 'فريق تجريبي', $3)`,
-    [department, code, owner],
+     values ((select id from core.department where code = $1), 'test_tasks', 'Test tasks team', 'فريق مهام تجريبي', $2)
+     on conflict (department_id, code) do nothing`,
+    [department, createdBy],
   );
+  const [team] = await sql<{ id: string }>(
+    `select t.id from core.team t join core.department d on d.id = t.department_id
+     where d.code = $1 and t.code = 'test_tasks'`,
+    [department],
+  );
+  return team!.id;
+}
+
+/** A made-up member with a home team in the Commercial department (a task's team is its owner's, V194). */
+async function memberWithTeam(): Promise<TestPerson> {
+  const person = await makePerson();
+  const team = await testTeam('commercial', person.id);
+  await sql(`update core.person set team_id = $1 where id = $2`, [team, person.id]);
+  return person;
+}
+
+/** A task put straight into the database (a fixture), owned by `owner` in `department`'s test team. */
+async function taskIn(department: string, owner: string, title: string): Promise<string> {
+  const team = await testTeam(department, owner);
   const number = `TSK-1999-${String(Math.floor(Math.random() * 90000) + 10000)}`;
   await sql(
     `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
-     values ($1, $2, $3, (select id from core.team where code = $4), (select id from core.department where code = $5),
+     values ($1, $2, $3, $4, (select department_id from core.team where id = $4),
              (select id from work.task_status where is_default and deleted_at is null), 'internal', $3)`,
-    [number, title, owner, code, department],
+    [number, title, owner, team],
   );
   return number;
 }
