@@ -55,28 +55,33 @@ test('the phone Search box is at least 44 px high (W41)', async ({ page }) => {
   expect(box!.height, 'a finger-sized Search box').toBeGreaterThanOrEqual(44);
 });
 
-test('Settings: an empty group, a default and the file types read in words; a list hides its Key (W44–W46, W49)', async ({
-  page,
-}) => {
+test('an empty Settings group says what it is in one line (W44)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
-  await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/settings/finance');
   await hydrated(page);
   await expect(page.locator('main')).toContainText('Nothing to set up here yet.');
+});
 
-  await page.goto('/settings/work');
+test('a setting nobody changed says Default, and the file types carry their extension (W45, W46)', async ({ page }) => {
+  const admin = await makePerson({ admin: true });
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, admin.email, '/settings/work');
   await hydrated(page);
   const card = page.locator('[data-setting="work.no_update_days"]');
   await expect(card, 'a setting nobody changed says Default').toContainText('Default');
   await expect(card).not.toContainText('Applies from');
-
   await page.goto('/settings/app');
   await hydrated(page);
-  await expect(page.locator('[data-setting="files.allowed_types"]')).toContainText('Word (.docx)');
-  await expect(page.locator('[data-setting="files.allowed_types"]')).toContainText('Excel (.xlsx)');
-  await expect(page.locator('[data-setting="files.allowed_types"]')).toContainText('PowerPoint (.pptx)');
+  const types = page.locator('[data-setting="files.allowed_types"]');
+  await expect(types).toContainText('Word (.docx)');
+  await expect(types).toContainText('Excel (.xlsx)');
+  await expect(types).toContainText('PowerPoint (.pptx)');
+});
 
-  await page.goto('/settings/work');
+test("a list's Key is behind Details, and a new entry takes its key from its name (W49)", async ({ page }) => {
+  const admin = await makePerson({ admin: true });
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, admin.email, '/settings/work');
   await hydrated(page);
   const list = page.locator('[data-list="priority"]');
   await expect(list.locator('th', { hasText: /^Key$/ }), 'the key is not a column').toHaveCount(0);
