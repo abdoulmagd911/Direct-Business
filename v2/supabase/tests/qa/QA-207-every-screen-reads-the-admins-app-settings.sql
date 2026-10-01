@@ -1,6 +1,6 @@
 -- QA-207 — Every screen reads the admin's App settings (V214; ACC-090/091, ACC-129/139): the default theme, the default
 -- density, the default start page and whether Arabic is on reach the screens through api.app_settings(), builder A's
--- public read of those keys — callable by every signed-in person and, for app.arabic_enabled, before sign-in. On
+-- read of those keys — callable by every signed-in person, and by the server before sign-in (never anon). On
 -- v2/main at 0755dbf (and on #127 at 4fa2265) it does not exist, so core/settings/app.ts falls back to the registry's
 -- defaults: an admin's change to any of the four never reaches a screen, and the browser tests that need it skip by name.
 -- The registry has no app.default_start_page key either. Written by the QA auditor to fail until built. Made-up people.
@@ -25,6 +25,12 @@ select test.eq(api.app_settings() ->> 'app.default_density', 'compact', 'and the
 select test.eq(api.app_settings() -> 'app.arabic_enabled', 'true'::jsonb, 'and that Arabic is on');
 select test.ok(api.app_settings() ? 'app.default_start_page', 'and the default start page (null until an admin sets it)');
 
-select test.as_anon();
+-- before sign-in the server reads it with its own key (the sign-in page reads api.sign_in_methods() the same way):
+-- anon still reaches nothing (GRANTS-03, M87), as Builder A proposed on #136
+select test.as_owner();
+set local role service_role;
 select test.eq(api.app_settings() -> 'app.arabic_enabled', 'true'::jsonb,
-  'before sign-in, the door reads whether Arabic is on');
+  'before sign-in, the server reads whether Arabic is on');
+reset role;
+select test.as_anon();
+select test.raises($$select api.app_settings()$$, '42501', 'someone not signed in still reaches nothing');
