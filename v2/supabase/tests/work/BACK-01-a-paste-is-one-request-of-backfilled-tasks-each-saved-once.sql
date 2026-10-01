@@ -3,7 +3,8 @@
 -- or Unknown; none tells anyone or is ever "logged late"; a key already held is left out and named, so the same paste
 -- twice adds nothing; a row before 1 January 2025 is refused by its index; a member backfills only their own rows; one
 -- Undo takes the paste back. Every value is made up.
--- Sabotages: supabase/tests/sabotage/a-pasted-row-saved-twice.sql, an-undated-row-dated-today.sql.
+-- Sabotages: supabase/tests/sabotage/a-pasted-row-saved-twice.sql, an-undated-row-dated-today.sql,
+-- a-past-task-numbered-this-year.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار');
 select set_config('t.mgr', test.person('Test Manager', 'manager')::text, true);
@@ -34,6 +35,8 @@ select test.eq((select date_from_report from work.task where import_key = 'made-
   'marked as the report''s date');
 select test.eq((select happened_on from work.task where import_key = 'made-up-key-1'), date '2025-03-10',
   'a dated row keeps its own day');
+select test.ok((select bool_and(number like 'TSK-2025-%') from work.task where origin = 'backfill'),
+  'numbered in the year it happened, never the year it was entered (V531)');
 select test.eq((select source_kind || ' ' || source_period from work.task where import_key = 'made-up-key-1'),
   'bd_monthly 2025-03', 'each row keeps its source report');
 select test.eq((select owner_id from work.task where import_key = 'made-up-key-2'), null::uuid, 'an Unknown owner stays');
