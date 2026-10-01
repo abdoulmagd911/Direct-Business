@@ -987,7 +987,8 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Removing either record hides the link and never removes the other. Undo of that removal brings the link back, with nothing written to the link.
 - Undo of the conversion itself removes the link with the record it made. So the link has the removal columns, beyond the spec's STD. Its `made_at` and `made_by` are its `created_at` and `created_by`.
 - `my.note_mention` has an id and the removal columns, like `core.mention`: every watched table has an id, and a mention dropped from a note is removed, not deleted. The spec's `(note_id, person_id)` key is its unique key.
-- A record made from a note shows "from note" only to a reader who may see the note (V454). The chips are `turned_into` on a note, `from_notes` on each timeline entry (`api.notes`), and `api.note_links(entity, id)` for any record.
+- A record comes from one note at most (the link is unique per record). It shows "from note" only to a reader who may see the note (V454).
+- The chips: `links` on a note (an activity with its organisation and type, a reminder with its time); `from_note` on each timeline entry of `api.notes`, and `api.from_note(entity, id)` for any record — the note, or null.
 - Test NOTE-03. Sabotages `a-removed-record-keeps-its-chip`, `a-from-note-chip-shows-a-private-note`.
 
 **V185 — Who sees a note, who may be mentioned, who changes it** ACTIVE · 2026-09-30 (P3-13; builds V454; OLD-WRK-017/019).
@@ -1000,7 +1001,8 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Only the author edits, converts, finishes, wraps up or removes a note. Anyone else who can see it gets `note.not_yours`; anyone who cannot gets `common.not_found`.
 
 **V186 — Turn into and Finish meeting, as built now** ACTIVE · 2026-09-30 (P3-13; spec §3.3a). Each is one request, and one Undo takes it all back.
-- **A logged call or meeting** goes through Log activity. It carries the note's title, words and rows, and the note's mentions who can see the organisation; the others are returned as `mentions_left_out`. The organisation is the one named, else the meeting's.
+- The door is `api.note_turn_into(p_note, p_kind, p_values)` — the names Builder B's screens were built against (#138).
+- **A logged call or meeting** (`activity`, with `type` call or meeting — a meeting note's by default, else a call) goes through Log activity. It carries the note's title, words and rows, and the note's mentions who can see the organisation; the others are returned as `mentions_left_out`. The organisation is `partner_id`, else the meeting's.
 - **A reminder** is the author's own, at a later time. Its words are the note's unless others are given.
 - The request is logged in the made record's own words (`partner.activity_logged`, `reminder.set`), so the Activity page names no note.
 - A task and an action item arrive with P5-1, an achievement with P5-4. Until then they are refused with `note.turn_into_not_yet`, so the screen can grey them.
@@ -1009,10 +1011,12 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 
 **V187 — Wrap up today and the My day scopes** ACTIVE · 2026-09-30 (P3-13; spec §3.3a; OLD-WRK-022).
 - An **open capture** is one not done and due — carried to, else happened — on or before the day.
-- `api.note_wrap_up(day, steps)` takes each open capture: **carry** (to the next working day — the weekend is Friday and Saturday, so a Thursday's go to Sunday, `core.next_working_day` — keeping `happened_on`), **done**, or **turn_into** (then done). One request; nothing is deleted.
-- `api.my_day(scope)`: **me** — my open captures, and the reminders still to come; **team** — the open captures my own team shares; **workspace** — those everyone shares. Seven rows a page, with `more`.
+- `api.note_wrap_up(p_day, p_choices)` takes each open capture (`[{note, choice}]`): **carry** (to the next working day — the weekend is Friday and Saturday, so a Thursday's go to Sunday, `core.next_working_day` — keeping `happened_on`), **done**, or **turn_into** (then done). One request; nothing is deleted.
+- `api.my_day(scope, limit, offset, since)`: **me** — my open captures, and the reminders still to come; **team** — the open captures my own team shares; **workspace** — those everyone shares. Seven rows a page, with `notes_total` and `more`.
+- **Since your last visit**: the page passes the last visit `api.page_seen('my_day')` returned (V61, SEEN-01; it also records this one, and Mark all seen calls it again), and `since` counts what others shared since then (`team_notes`, `workspace_notes`) — never a private note.
+- One note: `api.my_note(id)`. Removing: `api.my_notes_remove(ids, reason)`, `api.reminders_remove(ids, reason)`. A note's meeting organisation is `meeting_partner` (its number and names), shown only to a reader who may see it.
 - The manager's team load joins My team with tasks (P5-7). Search (`api.search`) also answers the notes the reader may see.
-- Test NOTE-05. Sabotage `wrap-up-rewrites-the-day-it-happened`.
+- Tests NOTE-02 (the scopes, the total, the counters), NOTE-05. Sabotages `since-counts-private-notes`, `wrap-up-rewrites-the-day-it-happened`.
 
 **V188 — Reminders go out every five minutes, once** ACTIVE · 2026-09-30 (P3-13; builds V455).
 - `notify.send_reminders()` runs every five minutes (`notify-send-reminders`, pg_cron `*/5 * * * *` where pg_cron exists). It tells each reminder due by now and not yet sent to its person once (`reminder`), then marks it sent. A missed run is caught up once by the next; a removed reminder is never sent.

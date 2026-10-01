@@ -23,15 +23,16 @@ select set_config('t.call', api.note_capture('sticky', jsonb_build_object('title
 select test.eq(jsonb_array_length(api.my_day('me') -> 'notes'), 3, 'three open captures on Thursday');
 
 select set_config('t.w', api.note_wrap_up('2026-10-01', jsonb_build_array(
-  jsonb_build_object('id', current_setting('t.carry'), 'action', 'carry'),
-  jsonb_build_object('id', current_setting('t.done'), 'action', 'done'),
-  jsonb_build_object('id', current_setting('t.call'), 'action', 'turn_into', 'into', 'call',
-                     'values', jsonb_build_object('partner_id', current_setting('t.p'), 'outcome', 'answered'))))::text,
+  jsonb_build_object('note', current_setting('t.carry'), 'choice', 'carry'),
+  jsonb_build_object('note', current_setting('t.done'), 'choice', 'done'),
+  jsonb_build_object('note', current_setting('t.call'), 'choice', 'turn_into', 'kind', 'activity',
+                     'values', jsonb_build_object('partner_id', current_setting('t.p'), 'type', 'call',
+                                                  'outcome', 'answered'))))::text,
   true);
-select test.eq(api.note(current_setting('t.carry')::uuid) ->> 'carried_to', '2026-10-04', 'carried over to Sunday');
-select test.eq(api.note(current_setting('t.carry')::uuid) ->> 'happened_on', '2026-09-30', 'keeping the day it happened');
-select test.ok(api.note(current_setting('t.done')::uuid) ->> 'done_at' is not null, 'the done one is done');
-select test.eq(api.note(current_setting('t.call')::uuid) -> 'turned_into' -> 0 ->> 'type', 'call',
+select test.eq(api.my_note(current_setting('t.carry')::uuid) ->> 'carried_to', '2026-10-04', 'carried over to Sunday');
+select test.eq(api.my_note(current_setting('t.carry')::uuid) ->> 'happened_on', '2026-09-30', 'keeping the day it happened');
+select test.ok(api.my_note(current_setting('t.done')::uuid) ->> 'done_at' is not null, 'the done one is done');
+select test.eq(api.my_note(current_setting('t.call')::uuid) -> 'links' -> 0 ->> 'type', 'call',
   'the converted one is a call');
 select test.eq(jsonb_array_length(api.my_day('me') -> 'notes'), 0, 'Thursday''s list is clear');
 select test.as_owner();
@@ -43,7 +44,7 @@ select test.eq((select count(distinct c.request_id)::int from audit.change c
                   and c.action = 'update'), 1, 'one request for the whole wrap-up');
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.note_wrap_up(%L, %L::jsonb)', '2026-10-01',
-  jsonb_build_array(jsonb_build_object('id', current_setting('t.done'), 'action', 'done'))), 'P0001',
+  jsonb_build_array(jsonb_build_object('note', current_setting('t.done'), 'choice', 'done'))), 'P0001',
   'a done capture is not wrapped up again', 'note.not_open');
 
 -- Sunday: the carried capture is back
