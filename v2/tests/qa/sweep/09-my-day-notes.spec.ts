@@ -5,14 +5,19 @@
  * CATALOGUE_PEOPLE n_*). NOT BUILT where api.note_capture is missing (v2/main before #139).
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { apiAs, fx, hydrated, info, notBuilt, said, signIn, sql, toast, verdict } from './lib';
+import { V2_DIR } from './paths.mjs';
 
 const AREA = 'my-day';
 type Where = { screen?: string; user?: string; detail?: string };
 const check = (expected: string, w: Where, ok: boolean) => verdict({ area: AREA, ...w, check: expected }, ok);
 const tag = () => `${fx().tag}${Math.random().toString(36).slice(2, 6)}`;
 
+/** Built when both halves are in: the data (P3-13, #139) and My day's screens with Turn into (P3-14, #138). */
 async function built(): Promise<boolean> {
+  if (!existsSync(join(V2_DIR, 'src', 'modules', 'my-day', 'screens', 'TurnDialogs.tsx'))) return false;
   const [r] = await sql<{ ok: boolean }>(
     `select to_regprocedure('api.note_capture(text,jsonb,uuid[])') is not null and
             exists (select 1 from pg_catalog.pg_proc where proname = 'note_turn_into') as ok`,
@@ -77,7 +82,8 @@ async function settle(read: () => Promise<number>, want: number, ms = 15_000): P
 test("Turn into, then the toast's Undo: the call leaves the organisation and the note is open again", async ({
   page,
 }) => {
-  if (!(await built())) return notBuilt({ area: AREA, check: 'Turn into and Undo (api.note_capture is not built)' });
+  if (!(await built()))
+    return notBuilt({ area: AREA, check: 'Turn into and Undo (P3-13 data or P3-14 screens not built)' });
   const t = tag();
   const { org, orgId, noteId } = await orgAndNote(t);
   await signIn(page, 'n_author', `/my-day/notes/${noteId}`);

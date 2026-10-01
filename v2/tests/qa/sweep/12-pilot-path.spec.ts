@@ -4,11 +4,15 @@
  * Appraisal) hidden by setting their page level to none on the pilot roles, as the runbook's pilot row says (logged,
  * undoable). Checked the way a pilot member meets it: the menus at 1440 and 390, Ctrl K and the +, every deferred
  * address, Clients' list and record, and My day's capture turned into a call on a client. The levels are put back
- * afterwards. It changes role levels, so run it alone: tests/qa/sweep/run.sh -- --grep "pilot path".
+ * afterwards. It changes role levels, so it runs alone, never in a full sweep:
+ * QA_PILOT=1 tests/qa/sweep/run.sh -- --grep "pilot path".
  * Made-up people only (seed.mjs).
  */
 import { expect, test, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { apiAs, fx, hydrated, info, notBuilt, said, signIn, sql, toast, user, verdict } from './lib';
+import { V2_DIR } from './paths.mjs';
 
 const AREA = 'pilot';
 const DEFERRED = ['finance', 'kpis', 'pipeline', 'projects', 'overview', 'reports', 'appraisal'];
@@ -154,8 +158,12 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
     const [built] = await sql<{ ok: boolean }>(
       `select to_regprocedure('api.note_capture(text,jsonb,uuid[])') is not null as ok`,
     );
-    if (!built?.ok) {
-      notBuilt({ area: AREA, user: 'member', check: "My day's notes (P3-13/P3-14 not on this build)" });
+    if (!built?.ok || !existsSync(join(V2_DIR, 'src', 'modules', 'my-day', 'screens', 'TurnDialogs.tsx'))) {
+      notBuilt({
+        area: AREA,
+        user: 'member',
+        check: "My day's notes (P3-13's data or P3-14's screens not on this build)",
+      });
     } else {
       await page.context().clearCookies();
       await signIn(page, 'member', '/my-day');

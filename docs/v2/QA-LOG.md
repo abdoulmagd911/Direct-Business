@@ -777,3 +777,15 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 - **The stage-0 trial, rebuilt with #139 ab6e12e:** the pilot path is unchanged, 38 PASS and 2 FAIL (QA-236). The My day notes spec gives 14 PASS and 2 INFO.
 - **#138 is still on 312be57.** It needs #139's new head merged in and a fresh registry sync before it merges.
 - **#147 (Builder D, Tasks) at 7140637:** QA-234 is fixed, though one Arabic line is missing (Builder C). Builder C's Arabic for the Tasks screens is in. Otherwise clear from QA; QA-233 is re-checked once #145 is in.
+
+
+## Round 37 — 2026-10-02 01:50 (v2/main 7460739: #139 merged)
+
+- **Main retake at 7460739** (#139, P3-13 My day notes, the data):
+  - **SQL suite from zero:** 150 of 156. The 6 reds are QA's fail-until-built tests for other lanes: QA-02, QA-03, QA-04, QA-121, QA-208 and QA-214. QA-211 is green on main.
+  - **Full browser sweep:** no new failure against main 9fa2447, either as a result row or as a whole test. The FAIL rows (542) are the open items already logged: W31/W32, QA-219 titles, Arabic left for #104, and the rest.
+  - **No gallery republish:** #139 changes data, not screens.
+- **QA's own fixes:**
+  - **`09-my-day-notes` read "built" on main once #139 merged**, then waited for screens that come with #138 and timed out. It now needs both halves: the data doors and My day's screens (`TurnDialogs.tsx`). On main it reads NOT BUILT, as it should. The pilot spec's notes part uses the same check.
+  - **The pilot spec no longer runs in a full sweep.** It changes role levels, so it runs alone: `QA_PILOT=1 run.sh -- --grep "pilot path"`.
+- **The merge train after #139:** #138 (655b170) still carries #139's old head, and three branches still have registry syncs older than main's newest (`20261001211629`): #138 `20261001154833`, #123 `20261001155024`, #132 `20261001155145`. Each re-stamps after main as it merges (V600).
