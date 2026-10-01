@@ -335,4 +335,16 @@ export const sabotages = [
       { file: SOURCE, find: 'Date.UTC(year, month, 0)).getUTCDate()', replace: 'Date.UTC(year, month, 0)).getDate()' },
     ],
   },
+  {
+    name: 'grid-hands-a-report-dated-row-its-day-as-if-dated',
+    breaks: [SOURCE_TEST],
+    expect: 'never hands it a day',
+    edits: [
+      {
+        file: ROWS,
+        find: 'happened_on: r.dateFromReport ? null : r.happenedOn!,',
+        replace: 'happened_on: r.happenedOn!,',
+      },
+    ],
+  },
 ];

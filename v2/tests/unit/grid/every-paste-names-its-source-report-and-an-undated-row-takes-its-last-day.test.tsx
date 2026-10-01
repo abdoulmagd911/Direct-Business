@@ -128,7 +128,16 @@ describe('V504 — an undated row takes the report’s last day', () => {
     const [row] = read([['Made-up offer', '', 'Done', 'Test Co B']], Q1_2025);
     expect(row).toMatchObject({ happenedOn: '2025-03-31', dateFromReport: true, problems: [] });
     const request = toRequest([row!], 'tasks', Q1_2025);
-    expect(request.rows[0]).toMatchObject({ happened_on: '2025-03-31', date_from_report: true });
+    // The database dates it on the report's last day and marks it; the request never hands it a day as if the sheet had one.
+    expect(request.rows[0], 'the request never hands it a day').toMatchObject({
+      happened_on: null,
+      date_from_report: true,
+    });
+    const dated = toRequest(read([['Made-up offer', '12/02/2025', 'Done', 'Test Co B']], Q1_2025), 'tasks', Q1_2025);
+    expect(dated.rows[0], 'a dated row keeps its own day').toMatchObject({
+      happened_on: '2025-02-12',
+      date_from_report: false,
+    });
   });
 
   it('keeps a dated row’s own day, whatever the report', () => {
@@ -221,7 +230,7 @@ describe('the grid asks for the report before it saves', () => {
       period: '2025-Q1',
       last_day: '2025-03-31',
     });
-    expect(save.mock.calls[0]![0].rows[0]).toMatchObject({ happened_on: '2025-03-31', date_from_report: true });
+    expect(save.mock.calls[0]![0].rows[0]).toMatchObject({ happened_on: null, date_from_report: true });
     expect(onSourceChange, 'a remembered report is not a new pick').not.toHaveBeenCalled();
   });
 

@@ -274,7 +274,11 @@ export interface BackfillRequest {
   source: { kind: SourceReport['kind']; period: string; last_day: string };
   rows: {
     title: string;
-    happened_on: string;
+    /**
+     * The day it happened; **null for a row the report dated** (V504), which the database dates on `source.last_day` and
+     * marks as the report's — the flag below says so too, for a server that reads it.
+     */
+    happened_on: string | null;
     /** The row had no date in the report and took its last day (V504). */
     date_from_report: boolean;
     kind: string;
@@ -304,7 +308,7 @@ export function toRequest(rows: readonly PastRow[], mode: PastWorkMode, source: 
       .filter((r) => r.problems.length === 0)
       .map((r) => ({
         title: r.title,
-        happened_on: r.happenedOn!,
+        happened_on: r.dateFromReport ? null : r.happenedOn!,
         date_from_report: r.dateFromReport,
         kind: r.kind!,
         organisation_id: r.organisation?.id ?? null,
