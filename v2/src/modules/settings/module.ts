@@ -138,6 +138,28 @@ export default defineModule({
       default: 'comfortable',
     },
     {
+      // The start page of everyone who has not chosen their own (ACC-091, V214, QA-207): a page of the main
+      // navigation; a person who may not see it lands on My day.
+      key: 'app.default_start_page',
+      group: 'settings.app',
+      label: 'setting.app.default_start_page',
+      schema: z.enum([
+        'my_day',
+        'overview',
+        'clients',
+        'suppliers_partners',
+        'pipeline',
+        'projects',
+        'tasks',
+        'finance',
+        'kpis',
+        'reports',
+        'appraisal',
+        'activity',
+      ]),
+      default: 'my_day',
+    },
+    {
       key: 'app.export_formats',
       group: 'settings.app',
       label: 'setting.app.export_formats',

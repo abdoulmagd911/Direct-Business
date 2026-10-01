@@ -3,7 +3,8 @@
 -- code). Each is called with empty arguments, twice. A sign-in with no person behind it must be refused, or answered
 -- nothing (null, false, none, an empty list); a viewer may read, but neither call may change any table. Sign-in
 -- itself serves a sign-in before it has a person; me and the device heartbeat answer a sign-in about itself; signing
--- one's own devices out acts on oneself alone — each named below with its reason.
+-- one's own devices out acts on oneself alone; the app-wide display settings name no one — each named below with its
+-- reason.
 -- Sabotage: supabase/tests/sabotage/a-definer-function-that-asks-nobody.sql.
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select set_config('t.uid', test.sign_in(current_setting('t.viewer')::uuid)::text, true);
@@ -26,6 +27,9 @@ declare
   -- signing one's own devices out acts on the caller alone (SIGN-08, SIGN-09); calling it would end the viewer's
   -- session and blunt every call after it
   own_sign_out text[] := array['core.device_sign_out(p_device uuid)', 'core.device_sign_out_others()'];
+  -- the app-wide display settings (V182): the same four values for everyone, naming no one and no record — any
+  -- sign-in may read them; they must still change nothing
+  app_wide text[] := array['core.app_settings()'];
 begin
   for f in
     select format('%s.%s(%s)', ns.nspname, p.proname, pg_get_function_identity_arguments(p.oid)) as name,
@@ -62,7 +66,8 @@ begin
                     (select count(*) from core.person_last_seen), (select count(*) from core.sign_in_log)) into after;
       if before is distinct from after then
         bad := bad || format('%s — a %s changed something', f.name, who);
-      elsif who = 'nobody' and not raised and coalesce(got, '') not in ('', 'false', 'none', '0', '[]', '{}') then
+      elsif who = 'nobody' and not raised and not (f.name = any (app_wide))
+            and coalesce(got, '') not in ('', 'false', 'none', '0', '[]', '{}') then
         bad := bad || format('%s — a %s was answered: %s', f.name, who, left(got, 60));
       end if;
     end loop;

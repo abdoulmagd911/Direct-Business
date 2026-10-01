@@ -18,6 +18,8 @@ function api.action_item_update(p_id uuid, p_values jsonb, p_version integer) ex
 function api.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
+function api.app_settings() execute authenticated
+function api.app_settings() execute service_role
 function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function api.auth_user_of(p_email text) execute service_role
 function api.backfill_keys_held(p_keys text[]) execute authenticated
@@ -167,6 +169,8 @@ function core.access_set_person_level(p_person uuid, p_page text, p_level core.l
 function core.access_set_person_role(p_person uuid, p_role uuid, p_reason text) execute authenticated
 function core.access_set_role_capability(p_role uuid, p_capability text, p_granted boolean, p_reason text) execute authenticated
 function core.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
+function core.app_settings() execute authenticated
+function core.app_settings() execute service_role
 function core.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function core.auth_user_of(p_email text) execute service_role
 function core.clock() execute authenticated

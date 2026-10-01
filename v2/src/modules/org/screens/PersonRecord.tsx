@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command, run, type ConflictField } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { deviceLabel } from '@/core/auth/device-label';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -118,10 +119,26 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     if (!removingEmail) return;
     await run(
       words(t('settings.people.emailRemoved', { email: removingEmail.email })),
-      () =>
-        rpc('person_email_remove', { p_id: removingEmail.id, p_reason: reason } as never) as Promise<{
+      // through the admin route, which also bans the removed email's sign-in (V144, QA-209)
+      async () => {
+        const res = await fetch('/auth/admin/emails/remove', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: removingEmail.id, reason }),
+        });
+        const body = (await res.json()) as {
+          ok: boolean;
           request_id?: string | null;
-        } | null>,
+          error?: { kind: DbErrorKind; key: string; detail?: string };
+        };
+        if (!body.ok)
+          throw new DbError(
+            body.error?.kind ?? 'Unavailable',
+            body.error?.key ?? 'common.unavailable',
+            body.error?.detail,
+          );
+        return { request_id: body.request_id };
+      },
       () => {
         setRemovingEmail(null);
         refresh();
@@ -522,7 +539,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                   <li key={e.email} className="flex min-w-0 flex-wrap items-center gap-2" data-person-email={e.email}>
                     <span className="min-w-0 break-all">{e.email}</span>
                     {e.is_primary ? <StatusChip tone="neutral">{t('settings.people.primary')}</StatusChip> : null}
-                    {admin ? (
+                    {admin && !(self && row.emails.length <= 1) ? (
                       <Button
                         size="xs"
                         variant="ghost"

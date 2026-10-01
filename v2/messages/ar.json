@@ -308,6 +308,7 @@
       "arabic_enabled": "العربية",
       "default_theme": "المظهر الافتراضي",
       "default_density": "الكثافة الافتراضية",
+      "default_start_page": "صفحة البداية الافتراضية",
       "export_formats": "صيغ التصدير",
       "go_live_on": "يوم تشغيل التطبيق"
     },
