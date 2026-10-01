@@ -41,7 +41,7 @@ export function TopBar({
         aria-keyshortcuts="Control+K"
         data-search
         className={cn(
-          'flex h-[38px] min-w-0 flex-1 items-center gap-2.5 rounded-md border border-search-border bg-search-bg px-3 text-base text-search-text focus-visible:outline-2 focus-visible:outline-focus sm:max-w-[440px]',
+          'flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md border border-search-border bg-search-bg px-3 text-base text-search-text focus-visible:outline-2 focus-visible:outline-focus sm:h-[38px] sm:max-w-[440px]',
         )}
       >
         <Search className="size-4 shrink-0" aria-hidden="true" />

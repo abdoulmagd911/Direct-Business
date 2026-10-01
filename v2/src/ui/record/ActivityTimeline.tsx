@@ -11,7 +11,7 @@ import { PersonChip } from '../PersonChip';
 import type { AvatarPerson } from '../Avatar';
 import { ShowAll } from './ShowAll';
 
-import { type HistoryRow } from './history';
+import { groupPreferenceRuns, type HistoryRow } from './history';
 export type { HistoryRow, RecordChange } from './history';
 export { historyRows } from './history';
 
@@ -106,7 +106,7 @@ export function ActivityTimeline({
     ).finally(() => setBusy(null));
   };
 
-  const items = rows.map((r) => {
+  const items = groupPreferenceRuns(rows).map((r) => {
     const who = r.actor_id ? people[r.actor_id] : undefined;
     return (
       <li
@@ -115,11 +115,15 @@ export function ActivityTimeline({
         data-history-row
         data-kind={r.kind}
         data-undone={r.undone || undefined}
+        data-history-grouped={r.grouped}
       >
         <div className="mt-1 size-2 shrink-0 rounded-pill bg-border-strong" aria-hidden="true" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-medium text-text">{label(r)}</span>
+            {r.grouped ? (
+              <StatusChip tone="neutral">{t('activity.groupedChanges', { count: r.grouped })}</StatusChip>
+            ) : null}
             {r.undone ? <StatusChip tone="neutral">{t('activity.undoneChip')}</StatusChip> : null}
             {r.kind === 'undo' ? <StatusChip tone="info">{t('activity.kinds.undo')}</StatusChip> : null}
           </div>

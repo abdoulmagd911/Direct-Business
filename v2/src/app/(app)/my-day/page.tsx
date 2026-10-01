@@ -7,6 +7,9 @@ import { formatDate, TIME_ZONE } from '@/core/i18n/format';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.my_day');
 
 export default async function MyDayPage() {
   const t = await getTranslations();
