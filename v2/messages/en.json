@@ -467,6 +467,7 @@
       "arabic_enabled": "Arabic",
       "default_theme": "Default theme",
       "default_density": "Default density",
+      "default_start_page": "Default start page",
       "export_formats": "Export formats",
       "go_live_on": "The day the app went live"
     },
@@ -973,6 +974,20 @@
         "export_formats": {
           "csv": "CSV",
           "xlsx": "Excel"
+        },
+        "default_start_page": {
+          "my_day": "My day",
+          "overview": "Overview",
+          "clients": "Clients",
+          "suppliers_partners": "Suppliers & partners",
+          "pipeline": "Pipeline",
+          "projects": "Projects",
+          "tasks": "Tasks",
+          "finance": "Finance",
+          "kpis": "KPIs",
+          "reports": "Reports",
+          "appraisal": "Appraisal",
+          "activity": "Activity"
         }
       }
     },
