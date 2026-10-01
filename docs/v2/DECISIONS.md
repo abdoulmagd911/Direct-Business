@@ -977,6 +977,68 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - History stays as V113 left it: each applied migration carries its file's version, so `db push` finds the 40 already there and applies only what is new.
 - The db-supabase job runs the same check against a stack built from zero, so a change in the CLI's answer shows on a pull request, not on production. Tests: `production-and-main-hold-the-same-migrations` and `production-is-reached-with-the-password-alone` (unit). Sabotages `production-misses-a-migration-unseen`, `production-extra-migration-unseen`, `production-read-from-the-local-column`, `production-password-sent-unencoded`, `production-only-the-first-pooler`, `production-refusal-said-as-a-greeting`, `production-password-printed-encoded`.
 
+**V189 — Projects and tasks, the core as built** ACTIVE · 2026-10-01 (P5-1, first PR; spec §3.7).
+- **Lists:**
+  - `work.task_status`: one row per locked meaning (Not started · In progress · Done · Cancelled; Not started is the default). Names stay editable; a fifth status is refused.
+  - `work.project_status`: each status in a category (planned, active, on hold, done, cancelled).
+  - `work.task_type`: seeded Follow-up, Meeting, Request, Report, Other.
+- **Numbers:** `TSK-2026-0001` and `PRJ-2026-001`.
+- **Link tables have an id and soft removal.** Helpers, item helpers, references and contacts each have an id; the pair is unique among live rows (§2's link-table rule).
+- **Segment:** a project's segment override points at a Client side type, since `partner.segment` became the side types (V98).
+- **Later P5-1 PRs:** templates and recurring generation, team load, Escalate, next-step and follow-up tasks, the measures, and the Past work grid's door.
+- Tests TSK-01 to TSK-05, DATE-02, PAST-01, PRJ-01.
+
+**V190 — Who sees and who changes work** ACTIVE · 2026-10-01 (P5-1; builds §5, V96).
+- **Who sees:** a task or project is seen by the whole team of its department, plus the departments an admin lets a person see. `work.row_level` gives the Tasks or Projects page's level there, and none elsewhere.
+- **Who changes a task:** Full, or Own and its owner or creator. Helpers add notes (`core.note_add`) and tick the action items they own or help on.
+- **Who changes a project:** its owner with Own, or Full.
+- **Who is told of changes:** a task's owner, creator and helpers.
+- **Giving work to someone else needs `tasks.assign`.** That covers naming another owner at creation, reassigning, and naming another owner for an action item. An Unknown owner is given only with the capability.
+- Sabotages:
+  - `a-member-assigns-to-anyone`, `a-task-seen-by-another-department`;
+  - `a-helper-ticks-any-item`, `my-work-forgets-the-helpers`.
+
+**V191 — Status moves, Blocked and closing** ACTIVE · 2026-10-01 (P5-1; builds V401, V400).
+- **One door for every move:** `api.task_status_set(id, status, happened_on, reason, close_items)`.
+- **Blocked** is In progress with a reason, recorded with its day; moving to In progress without a reason resumes the task.
+- **Done with open action items** is refused with `task.open_action_items` (the count) until `close_items` is true. Then the items close on the same day, or on the day they were raised if that is later.
+- Done or Cancelled records who closed the task and when; reopening clears it.
+- Every move goes into `work.task_status_change` with its day. A move dated before the task was raised is refused.
+- Sabotages: `blocked-forgets-its-reason`, `done-leaves-items-open`.
+
+**V192 — Past work, as built** ACTIVE · 2026-10-01 (P5-1; builds V491, V506).
+- **What counts:** a task dated before `app.go_live_on`, or any backfilled task, is past work.
+- **Owner:** its owner may be Unknown (`owner_unknown`). Live work is refused one (`task.owner_required`).
+- **Where it shows:** it has no overdue or stale flag, and stays out of the live list and My work. It sits under the `past_work` and `needs_owner` filters.
+- **No notices:** a change to past work tells nobody, not even through the change fan-out. The request is dated on the work's own day, never later than yesterday (`work.quiet_if_past`).
+- Sabotages: `live-work-without-an-owner`, `past-work-flagged-overdue`.
+
+**V193 — "Assigned" and "helper added" reach the person on back-dated live work** ACTIVE · 2026-10-01 (P5-1; builds V456).
+- `notify.push_assigned` ignores the request's day: only the actor, the person's notice choices and whether they may see the record decide.
+- Every other notice still follows the past-dated rule.
+- A project's new owner is told too.
+- Sabotage `a-back-dated-assignment-tells-nobody`.
+
+**V194 — The rules every task meets** ACTIVE · 2026-10-01 (P5-1; builds V464, V465, V466; OLD-014, OLD-018).
+- **Owner:** the one named, else the project's owner, else the Client side's account manager (while they can work here), else the maker.
+- **Team and department:** the team is the one named, else the owner's home team, else the maker's. The department is the team's. A task keeps its team on reassignment.
+- **Organisation and work type** are the project's.
+- **Client and internal work:** client work needs an organisation or a project; internal work has none. With neither given, a task is internal.
+- **A contact** belongs to the task's organisation.
+- **A project with live tasks** keeps its organisation and is not removed.
+- **Who can be named:** a switched-off, departed, system or test-account person is refused (`person.unavailable`).
+- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`.
+
+**V195 — The task reads** ACTIVE · 2026-10-01 (P5-1; builds V400, OLD-WRK-040/041/043).
+- **`api.tasks(filter)`** filters by `scope` (all · mine · my_work), meanings, owner, organisation, project, type, overdue, stale, blocked, past_work, needs_owner and words.
+- **Order:** the Executive directive first, then open before closed, then by due day. The answer carries `total` and `more`.
+- **Flags, judged today:**
+  - *overdue* — due before Riyadh today, and not Done or Cancelled;
+  - *stale* — In progress, Blocked included, with no activity for `work.no_update_days`, judged on each entry's `happened_on`;
+  - *logged late* — after go-live, never on backfilled work.
+- **Single records:** `api.task(id)` with its checklist, helpers, references, contacts and status history; `api.projects(filter)`; `api.project(id)` with the latest health and its history.
+- Sabotages: `stale-judged-on-the-logged-day`, `the-directive-sorts-anywhere`, `late-before-go-live`, `the-oldest-health-shows`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.

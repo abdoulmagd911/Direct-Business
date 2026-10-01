@@ -289,7 +289,17 @@
     "file_kind": "File kind",
     "file_link": "File attached",
     "note": "Note",
-    "mention": "Mention"
+    "mention": "Mention",
+    "task_status": "Task status",
+    "task_type": "Task type",
+    "project_status": "Project status",
+    "task_helper": "Task helper",
+    "action_item": "Action item",
+    "action_item_helper": "Action item helper",
+    "task_ref": "Task reference",
+    "task_contact": "Task contact",
+    "task_status_change": "Status change",
+    "project_health": "Project health"
   },
   "status": {
     "done": "Done",

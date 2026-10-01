@@ -36,6 +36,10 @@ export type Database = {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
         Returns: Json;
       };
+      action_item_add: { Args: { p_task: string; p_values: Json }; Returns: Json };
+      action_item_done: { Args: { p_done: boolean; p_id: string; p_on?: string }; Returns: Json };
+      action_item_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
+      action_items_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       activity: {
         Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
         Returns: Json;
@@ -264,6 +268,14 @@ export type Database = {
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
+      project: { Args: { p_id: string }; Returns: Json };
+      project_health_set: {
+        Args: { p_happened_on?: string; p_health: string; p_line: string; p_project: string };
+        Returns: Json;
+      };
+      project_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
+      projects: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      projects_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       recently_deleted: { Args: { p_limit?: number }; Returns: Json };
       record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
       reference_save: {
@@ -315,6 +327,24 @@ export type Database = {
       sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
       sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
+      task: { Args: { p_id: string }; Returns: Json };
+      task_add_meeting: {
+        Args: { p_body: string; p_happened_on: string; p_items?: Json; p_mentions?: string[]; p_task: string };
+        Returns: Json;
+      };
+      task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
+      task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
+      task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
+      task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
+      task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      task_status_set: {
+        Args: { p_close_items?: boolean; p_happened_on?: string; p_id: string; p_reason?: string; p_status: string };
+        Returns: Json;
+      };
+      task_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
+      tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      tasks_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {

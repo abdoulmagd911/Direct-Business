@@ -228,7 +228,17 @@
     "file_kind": "نوع الملف",
     "file_link": "ملف مرفق",
     "note": "ملاحظة",
-    "mention": "إشارة"
+    "mention": "إشارة",
+    "task_status": "حالة المهمة",
+    "task_type": "نوع المهمة",
+    "project_status": "حالة المشروع",
+    "task_helper": "مساعد في المهمة",
+    "action_item": "بند عمل",
+    "action_item_helper": "مساعد في بند العمل",
+    "task_ref": "مرجع المهمة",
+    "task_contact": "جهة اتصال المهمة",
+    "task_status_change": "تغيير الحالة",
+    "project_health": "صحة المشروع"
   },
   "status": {
     "done": "منجزة",
