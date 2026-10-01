@@ -58,7 +58,14 @@ export const sabotages = [
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
     expect: '"Companies" on screen',
-    edits: [{ file: 'messages/en.json', find: '"clients": "Clients"', replace: '"clients": "Companies"' }],
+    // the navigation's label: the same words also name a start page under Settings → App
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"settings_home": "Settings",\n    "clients": "Clients"',
+        replace: '"settings_home": "Settings",\n    "clients": "Companies"',
+      },
+    ],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
   {
@@ -443,6 +450,30 @@ export const sabotages = [
     ],
   },
   {
+    name: 'admins-start-page-ignored',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: "the admin's default start page applies to a person without their own",
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
+        replace: '  for (const key of [me.profile?.start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'arabic-never-switched-on',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'once Arabic is on, the switch shows and the cookie is honoured',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
+        replace: "  return 'en';",
+      },
+    ],
+  },
+  {
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
     expect: 'the door stays English',
@@ -582,6 +613,42 @@ export const sabotages = [
       {
         file: 'src/app/(app)/[[...path]]/page.tsx',
         find: "  if ((await accountOf(me.person.id)) === 'admin_account') return '/settings';\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'prefsync-copies-the-default-as-a-choice',
+    breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
+    expect: 'the profile still wins over what was copied',
+    edits: [
+      {
+        file: 'src/ui/shell/PrefsSync.tsx',
+        find: "setPref('theme', theme, { cache: true });",
+        replace: "setPref('theme', theme);",
+      },
+    ],
+  },
+  {
+    name: 'own-last-email-offers-remove',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "no Remove on one's own last email",
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '{admin && !(self && row.emails.length <= 1) ? (',
+        replace: '{admin ? (',
+      },
+    ],
+  },
+  {
+    name: 'remove-email-skips-the-ban',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'its auth user is banned',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
         replace: '',
       },
     ],

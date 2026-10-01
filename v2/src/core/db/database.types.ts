@@ -57,6 +57,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      app_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       backfill_keys_held: { Args: { p_keys: string[] }; Returns: Json };

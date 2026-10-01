@@ -955,6 +955,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Test PPL-04. Sabotages `a-taken-email-said-without-its-holder`, `an-email-compared-by-its-capitals`.
 
 **V179 — The admin and test accounts are in no team** ACTIVE · 2026-09-30 (the production finding W26; builds on V170, V444, V445). The owner's admin account showed a team and a manager on production, so it still read as a team member.
+
 - An account other than a team member has no team and no manager. `core.person_guard` refuses either while the account stands (`person.account_in_no_team`), whichever door saves the person.
 - `core.person_account_set` clears both in the same logged request when it marks the admin or the test account; one Undo puts all three back. Made a team member again, the person takes a team and a manager like anyone.
 - Production: the owner's admin account is marked once, after P3-2b's migration is applied (a one-off through the connector, never a migration: the account names no one in the repo). Done 30 Sep, in one logged system request; it had no team, manager or reports.
@@ -962,12 +963,14 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Test ACCT-02. Sabotages `an-admin-account-keeps-its-team`, `an-admin-account-joins-a-team`.
 
 **V180 — The Supplier & partner types are the owner's seven, as built** ACTIVE · 2026-09-30 (the production finding W12; V448 aligns V148's seed). Hotel supplier · Airline · Visa/Embassy · Payment provider · Sales channel · Technology · Strategic partner, in that order, each with its Arabic name.
+
 - A key never changes, so the entries that mean the same keep theirs and are renamed: `supplier` is Hotel supplier, `payment_solution` Payment provider, `integration` Technology (a technical integration's partner, V99, V407). Airline and Visa/Embassy are added. Nothing is retired, so every side keeps its type.
 - Only an entry still as seeded changes; one an admin renamed or re-sorted stays theirs.
 - **W13** (the status reasons that look doubled) needs no data change: each reason is linked to its status (`status`: at risk or lost, V62), one set for each; `api.list('side_status_reason')` returns the status and `api.list_save` takes it. The Settings list editor does not show that column yet (Builder B), nor the side of a side type.
 - Test TYPE-01; LIST-01 counts eleven side types. Sabotage `the-supplier-types-as-first-seeded`.
 
 **V181 — Production's database is written by one job, from main** ACTIVE · 2026-09-30 (the owner: no session writes to the production database, and none asks him to approve anything). Replaces V113's apply through the Supabase connector.
+
 - The `db-production` job of `.github/workflows/v2.yml` runs on every merge to v2/main, and on a manual run of v2/main. `scripts/db/prod-url.mjs` finds the database through Supabase's shared pooler of the project's region (session mode; `aws-1-…` then `aws-0-…`, each tried with a read), since GitHub's runners reach no IPv6 and the project's own address is IPv6. Then `supabase db push --db-url … --skip-vault --yes`: migrations only, never the seed, the vault or the config. Then `scripts/db/prod-sync.mjs --db-url` fails the job, naming each version, when production and main do not hold the same migrations (a file not applied, or a version applied with no file).
 - It needs one repository secret, which the owner sets: `SUPABASE_DB_PASSWORD` (the project's database password). The project ref and region are written in the job; they are addresses, not secrets. A missing secret fails the job by name. The password reaches one step; the address built from it is masked in the log, and so is the password, as typed and as encoded.
 - No access token. The first run (30 Sep, #133) went through `supabase link`, which asks the Management API for the project's keys and settings; the owner's scoped token lacked `api_gateway_keys_read` and the run stopped there, having written nothing. The database password alone is the smaller key: it reaches the database and nothing else of the account. `SUPABASE_ACCESS_TOKEN` is no longer read.
@@ -976,6 +979,12 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - The job never runs on a pull request. A run on v2/main is never cancelled, and the job queues on its own group, so a push is never stopped half-way. A later merge's run applies whatever is still pending.
 - History stays as V113 left it: each applied migration carries its file's version, so `db push` finds the 40 already there and applies only what is new.
 - The db-supabase job runs the same check against a stack built from zero, so a change in the CLI's answer shows on a pull request, not on production. Tests: `production-and-main-hold-the-same-migrations` and `production-is-reached-with-the-password-alone` (unit). Sabotages `production-misses-a-migration-unseen`, `production-extra-migration-unseen`, `production-read-from-the-local-column`, `production-password-sent-unencoded`, `production-only-the-first-pooler`, `production-refusal-said-as-a-greeting`, `production-password-printed-encoded`.
+
+**V182 — The admin's App settings reach every screen; the server reads them before sign-in** ACTIVE · 2026-09-30 (QA-207, QA round 22; builds V214). The admin's default theme, density and start page and the Arabic switch were saved but read by nothing: `api.app_settings()` did not exist, so `core/settings/app.ts` answered the registry's defaults.
+- `api.app_settings()` answers the four keys as they stand today (Riyadh): `app.arabic_enabled`, `app.default_theme`, `app.default_density`, `app.default_start_page`. The values are the same for everyone and name no one, so any sign-in may read them. SEC-02 names the function as its one exception to "answered nothing", and still proves it changes nothing.
+- **Before sign-in, the server reads them, never anon.** V214 asked for the Arabic switch "before sign-in"; M87 (GRANTS-03) says someone not signed in reaches nothing in v2. Both hold: the function is granted to `authenticated` and `service_role`, not `anon`, and `core/settings/app.ts` reads it with the server's own key (`serviceDb`, as the sign-in page already reads `api.sign_in_methods()`).
+- `app.default_start_page` joins the registry (Settings → App): a page of the main navigation, My day by default. A value that is not such a page is refused (`setting.invalid_value`); a person who may not see the chosen page lands on My day (the root route).
+- Test SETS-03. Sabotages `app-settings-read-from-the-registry`, `app-settings-without-the-start-page`, `app-settings-open-before-sign-in`.
 
 **V189 — Projects and tasks, the core as built** ACTIVE · 2026-10-01 (P5-1, first PR; spec §3.7).
 - **Lists:**
@@ -1026,8 +1035,9 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Client and internal work:** client work needs an organisation or a project; internal work has none. With neither given, a task is internal.
 - **A contact** belongs to the task's organisation.
 - **A project with live tasks** keeps its organisation and is not removed.
-- **Who can be named:** a switched-off, departed, system or test-account person is refused (`person.unavailable`).
-- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`.
+- **Who can be named:** team members only (`core.is_team_member`). A switched-off, departed or system person, the test account and the owner's admin account are refused (`person.unavailable`), as owner, helper or item owner; a task the admin account makes cannot fall back to it as owner (QA-214, V444). The Past work grid's name matching (`api.people_match`) counts team members only, so the owner's name answers his employee account.
+- **The number** takes the year the task happened (Happened on) when it is made, never the year it was entered, in `api.task_create` and `api.backfill_tasks` alike: a 2025 past-work task is `TSK-2025-…`. It never changes afterwards, even if Happened on is edited (V531). Projects keep the year they were made.
+- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`, `the-admin-account-owns-a-task`, `the-admin-account-matches-a-name`, `a-past-task-numbered-this-year`.
 
 **V195 — The task reads** ACTIVE · 2026-10-01 (P5-1; builds V400, OLD-WRK-040/041/043).
 - **`api.tasks(filter)`** filters by `scope` (all · mine · my_work), meanings, owner, organisation, project, type, overdue, stale, blocked, past_work, needs_owner and words.
@@ -1130,3 +1140,5 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Today is Riyadh's day** whatever the device's clock. A closed task's due day is history; **past work is never overdue**; due within 2 days is "soon" (V514's `work.urgent_within_days`, its first value, until the setting exists).
 - **Refusals:** the task doors' own keys (`task.*`, `action_item.*`, `person.unavailable`) are worded under `pages.tasks.errors.*` — builder D's part of the catalog — until the shared `errors.*` takes them; every other key keeps its shared wording.
 - Tests `the-day-is-riyadhs-and-past-work-is-never-overdue`. Sabotages `tasks-past-work-flagged-overdue`, `tasks-day-in-the-clocks-zone`.
+
+**V219 — QA round 23 on the screens lane: the cache is not a choice; an admin keeps their last email; Remove email bans** ACTIVE · 2026-10-01 (QA-210, QA-208 screen half, QA-209). **QA-210**: what `PrefsSync` copies into the theme and density cookies is the profile's or the admin's default, kept for the first paint — it is marked in the `v2.synced` cookie as a cache and never counts as a choice (`ownChoice`, `serverPrefs`, `prefIsSet`); a choice made here (`setPref` without `cache`) clears the mark. A later change to the profile or to the admin's default arrives on the next page; before, the copied value beat it for good. **QA-208 (screen half)**: no Remove beside one's own last allowed email — the database half is builder A's. **QA-209**: Remove email goes through `/auth/admin/emails/remove`, which also bans the removed email's auth user (V144), as Add email goes through its route. Proof: `tests/unit/prefs.test.ts`, `tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts`, `tests/e2e/own-last-email.spec.ts`, `tests/e2e/review-1.spec.ts`; sabotages `prefsync-copies-the-default-as-a-choice`, `own-last-email-offers-remove`, `remove-email-skips-the-ban`.
