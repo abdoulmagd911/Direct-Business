@@ -752,3 +752,17 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 | QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Open — expected fixed by #145 |
 | QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Open |
 | QA-235 | 2026-10-02 00:21 | #147; V464, V517 | Low | Architect (the runbook) | **A pilot member with no team cannot add a task** ("The task needs a team", V464). **Fix:** the runbook's pilot rows say every pilot member is in a team before stage 1. | Open |
+
+
+## Round 35 — 2026-10-02 00:38 (v2/main 9fa2447; a local trial of stage 0 for the Friday pilot path)
+
+- **A trial of stage 0 before its PRs merge.** v2/main 9fa2447 was merged locally with #139 312be57, #138 655b170, #123 070f514 and #132 aebe3df, in a scratch copy that is never pushed (`pilot-trial-merge.sh` in QA's scratch folder).
+  - **How they merge:** `DECISIONS.md` conflicts on #139, #138 and #132; the registry-sync migrations clash twice as rename/rename (#139 with #123, #138 with #132), leaving merge markers in the kept file. Each kept sync is its own branch's full snapshot, so whichever is newest would switch off the others' pages: one fresh `pnpm registry:sync` last is needed, as QA-501 and V600 say. With that, the database builds from zero.
+- **The pilot path on the trial (`12-pilot-path.spec.ts`): 38 PASS, 2 FAIL.**
+  - **Pass:** with the seven deferred modules at none, a pilot member and a pilot manager see none of them in the menu at 1440 or 390, or in Ctrl K. Every deferred address says "You do not have access to …". Clients lists and opens a client at `/clients`. My day files a capture, and Turn into offers a call or a reminder only (no task before stage 1); the note becomes a call on the client. The admin keeps every module, and the levels are put back.
+  - **Fail (new, QA-236):** the menu also offers Tasks, which opens "Being built." until stage 1.
+  - **The spec's own fix:** after #123, Clients' address is `/clients`, not `/partners?view=clients`. The spec now follows the menu's Clients link and checks every page the pilot menu offers.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-236 | 2026-10-02 00:38 | V517; BUILD-PLAN pilot row 7 | Low | Oversight (row 7) · Architect | **In stage 0 a pilot member's and a pilot manager's menu offers Tasks, which opens "Being built."** V517 brings Tasks in stage 1 (18 Oct); row 7 sets only the deferred modules (and, for QA-213, Member · Pipeline and Viewer · Tasks and Pipeline) to none. So for two weeks the pilot group meets a page that is empty, and if #140 and #147 merge before Sunday, Tasks would go live in stage 0 instead. **Fix:** row 7 adds Tasks at none on the member and manager roles for stage 0, lifted on 18 Oct (or the runbook accepts the "Being built" page). **Test:** `12-pilot-path.spec.ts`, "a page the pilot menu offers is not a 'Being built' page". | Open |

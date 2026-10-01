@@ -71,7 +71,24 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
         check(
           'and offers My day and Clients',
           { screen: `menu @${width}`, user: persona, detail: links.join(' ') },
-          links.includes('/my-day') && links.some((l) => l.startsWith('/partners')),
+          links.includes('/my-day') && links.some((l) => l.startsWith('/clients') || l.startsWith('/partners')),
+        );
+      }
+      // every page the menu still offers has something in it in stage 0: none is a "Being built" page (QA-236)
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      for (const link of (await menuLinks(page, false)).filter((l) => !DEFERRED.some((d) => l.startsWith(`/${d}`)))) {
+        await page.goto(link);
+        await hydrated(page);
+        const text = (
+          (await page
+            .getByRole('main')
+            .innerText()
+            .catch(() => '')) ?? ''
+        ).replace(/\s+/g, ' ');
+        check(
+          'a page the pilot menu offers is not a "Being built" page',
+          { screen: link, user: persona, detail: text.slice(0, 120) },
+          !/Being built/i.test(text),
         );
       }
       await page.setViewportSize({ width: 1440, height: 1000 });
@@ -104,8 +121,10 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
           /do not have access|not available to you|not there|switched off/i.test(text),
         );
       }
-      // Clients: the list and a client's record
-      await page.goto('/partners?view=clients');
+      // Clients: the list and a client's record (at /clients since #123; /partners?view=clients before it)
+      const clients = (await menuLinks(page, false)).find((l) => l.startsWith('/clients')) ?? '/partners?view=clients';
+      const recordBase = clients.startsWith('/clients') ? '/clients' : '/partners';
+      await page.goto(clients);
       await hydrated(page);
       const alpha = fx().orgs.alpha;
       const listed = await page
@@ -115,8 +134,8 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
         .waitFor({ timeout: 15_000 })
         .then(() => true)
         .catch(() => false);
-      check('Clients lists the clients they may see', { screen: '/partners?view=clients', user: persona }, listed);
-      await page.goto(`/partners/${alpha.id}`);
+      check('Clients lists the clients they may see', { screen: clients, user: persona }, listed);
+      await page.goto(`${recordBase}/${alpha.id}`);
       await hydrated(page);
       const record = (
         (await page
@@ -126,7 +145,7 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
       ).replace(/\s+/g, ' ');
       check(
         "a client's record opens, with no deferred module's tab or figure",
-        { screen: '/partners/:id', user: persona, detail: record.slice(0, 120) },
+        { screen: `${recordBase}/:id`, user: persona, detail: record.slice(0, 120) },
         record.includes(alpha.name) && !/do not have access/i.test(record),
       );
     }
