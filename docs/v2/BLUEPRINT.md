@@ -326,6 +326,9 @@ Vercel (V13, V21, V84).
     names follow HR, with a profile link; contact details reveal-and-copy on a phone. **91. The Direct theme** (V516):
     Direct's real brand — orange accent and buttons, slate sidebar and header, gold highlight — at WCAG AA; the other
     themes untouched.
+92. **The pilot cut** (V517): Clients, My day, Tasks and Past work first — stage 0 on Sunday 4 Oct, stage 1 on Sunday
+    18 Oct; the rest deferred, not dropped. **93. The fast lane and two more builders** (V518, V519): small edits
+    after go-live get one review; builder D builds the Tasks screens, builder E achievements.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
