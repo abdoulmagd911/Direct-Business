@@ -426,6 +426,22 @@
           "monogram": "الأحرف الأولى",
           "blank": "فارغ"
         }
+      },
+      "app": {
+        "default_start_page": {
+          "my_day": "يومي",
+          "overview": "نظرة عامة",
+          "clients": "العملاء",
+          "suppliers_partners": "الموردون والشركاء",
+          "pipeline": "الفرص",
+          "projects": "المشاريع",
+          "tasks": "المهام",
+          "finance": "المالية",
+          "kpis": "مؤشرات الأداء",
+          "reports": "التقارير",
+          "appraisal": "تقييم الأداء",
+          "activity": "سجل النشاط"
+        }
       }
     },
     "emptyGroup": "لا إعدادات هنا بعد. تصل مع الخطوة التي تبني هذا القسم.",
