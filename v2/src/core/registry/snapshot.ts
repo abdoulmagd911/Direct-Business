@@ -35,6 +35,7 @@ export interface Snapshot {
     visible: string | null;
     level: string | null;
     history: boolean;
+    rule_only: boolean;
   }[];
   role_levels: { role: string; page: string; level: Level }[];
   role_capabilities: { role: string; capability: string; granted: boolean }[];
@@ -125,6 +126,8 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
         problems.push(`entity "${e.key}": visible is a schema.function`);
       if (e.level !== undefined && !/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(e.level))
         problems.push(`entity "${e.key}": level is a schema.function`);
+      if (e.ruleOnly && e.visible === undefined)
+        problems.push(`entity "${e.key}": a record type whose own rule alone decides names that rule (visible)`);
       entities.push({
         key: e.key,
         table: e.table,
@@ -135,6 +138,7 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
         visible: e.visible ?? null,
         level: e.level ?? null,
         history: e.history ?? false,
+        rule_only: e.ruleOnly ?? false,
       });
     }
 
