@@ -1,6 +1,6 @@
 import type { Me } from '@/core/auth/me';
 import type { AppSettings } from '@/core/settings/app';
-import { PREF_DEFS, prefsFrom, type Prefs } from './index';
+import { ownChoice, prefsFrom, type Prefs } from './index';
 
 /**
  * What the screen should show for a signed-in person (ACC-090/091/139): their own profile choice first, then the
@@ -32,10 +32,7 @@ export function effectiveLocale(cookieLocale: Prefs['locale'], app: AppSettings)
  */
 export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string) => string | undefined): Prefs {
   const raw = prefsFrom(get);
-  const own = (key: 'theme' | 'density') => {
-    const v = get(PREF_DEFS[key].cookie);
-    return v !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(v);
-  };
+  const own = (key: 'theme' | 'density') => ownChoice(key, get);
   const eff = effectivePrefs(me, app, raw);
   return {
     ...raw,
