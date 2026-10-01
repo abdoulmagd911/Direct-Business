@@ -15,7 +15,9 @@ The pilot's stage 1 (V517, Sunday 18 Oct): a person sees and works their tasks o
    task's checklist (V438). Boards, the calendar and the Team load view are the second PR, after the pilot.
 2. **The Past work grid on Tasks** — builder C's component (#105, `src/ui/grid`), tasks mode only, wired to
    `api.backfill_tasks` (#140). C owns the component; D mounts it and passes the props.
-3. **The star and the due** (V514) where P5-1's tables carry them; the Today sort is P5-7's (A + B).
+3. **The star and the due** (V514) where P5-1's tables carry them; the Today sort is P5-7's (A + B). The task's
+**number** (V531) shows beside Happened on and the organisation in the list and the header — written by the app, never
+typed.
 
 **Behind its module switch**: until P3-17 lands, the page follows the registry's `built` flag and the person's page
 level; when P3-17 lands, it reads `moduleOn('tasks')` (V513).
@@ -25,7 +27,8 @@ level; when P3-17 lands, it reads `moduleOn('tasks')` (V513).
 V400 (the dates rule) · V401 (statuses, Blocked) · V438 (no subtasks; action items are the checklist) · V464 (default
 owner) · V465 (person columns refuse a switched-off person) · V466 (client or internal work) · V491, V504, V506 (past
 work) · V507 (the member's menu) · V508 (gate card) · V509 (the phone test) · V513 (switches) · V514 (star, due) ·
-V517 (the pilot cut) · V519 (this lane) · builder A's V189–V196 (#140) for the doors' names and refusals.
+V517 (the pilot cut) · V519 (this lane) · V531 (the number) · builder A's V189–V196 (#140) for the doors' names and
+refusals.
 
 ## The gate card — GC-3 (to be signed before the PR merges)
 

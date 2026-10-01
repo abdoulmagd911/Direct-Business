@@ -334,6 +334,9 @@ of old rows.
   the only schema PostgREST exposes. `test` exists only in test databases.
 - **Keys.** `id uuid primary key default gen_random_uuid()`. People-facing numbers are separate columns
   (`TSK-2026-0042`, `PRJ-2026-007`) from `core.next_number(kind, year)` (a locked counter row per kind and year).
+  V531: a task's and an achievement's year is its Happened on year when the record is made; a number is written by the
+  app, never typed, never changed, and shows beside Happened on and the organisation in every list, report line and
+  export.
 - **Standard columns** (written `STD` below): `id`, `created_at timestamptz not null default now()`,
   `created_by uuid not null → core.person`, `updated_at`, `updated_by → core.person`, `version int not null default 1`
   (bumped by trigger on every update — A14). **Soft removal** (`SOFT`): `deleted_at`, `deleted_by`, `delete_reason`;
@@ -1363,6 +1366,8 @@ perf.category_kpi    id; category_id; kpi_id; contribution ('count','field_sum')
                      -- condition: only achievements whose field matches, e.g. {"field":"integration_type","in":["api"]} —
                      -- how "a promo-code-only partnership is not a technical-integration KPI" (§3) is kept without code
 perf.achievement     STD SOFT DEPT; plan_id; category_id; partner_id; project_id; source_task_id; service_id → finance.service;
+                     number text not null unique (V531: ACH-2026-0042, the Happened on year; never typed or changed);
+                     repeat_of → perf.achievement (V531: "This is a new one" chosen against this earlier one);
                      title (the person's short words); count int default 1; before_value; after_value; field_values jsonb;
                      draft bool default false (V68: a self-registered item with no date or evidence is a flagged draft that
                      never counts; happened_on may be null only while draft);
@@ -1483,6 +1488,11 @@ signatory and title, our signatory (person), event, signing date, announced (yes
 **only when the side has no status yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request,
 reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
+- **Repeats, not duplicates** (V531): logging an achievement for the same organisation and category as one in the
+  last 12 months with a similar title (`norm` folding, a trigram score over `perf.repeat_similarity`, 0.6) offers one
+  tap — **This is a new one** (saved with `repeat_of`) or **Same as the earlier one** (nothing saved; the earlier one
+  opens to take the new evidence). Never on tasks, never in a bulk paste (the grid marks a possible repeat in its
+  preview), never blocking.
 - **The weekly nudge** (V529, after stage 2): once a week (`perf.nudge_day`, `perf.nudge_time`; default Friday as the
   owner said) each person is told which of their tasks closed that week and are not yet linked to an achievement; one
   tap opens a sheet that logs the ticked ones — a category each, the task as the evidence (`perf.achievement_ref`),
@@ -1542,6 +1552,9 @@ report.line          STD SOFT; report_id; section_key; kind ('achievement','note
 report.search_doc    report_id; section_key; line_id; tsv tsvector   -- V67: issued snapshots and their lines, `simple`
                      -- configuration over norm.fold text, entity tokens kept as ids; rebuilt at issue
 report.line_achievement (line_id, achievement_id) pk
+                     -- V531: a line shows each cited achievement's number and Happened on date; repeats (repeat_of)
+                     -- are listed under the same line with their dates ("again on …"), never folded into one; a line
+                     -- is referred to as the report's number and its place (RPT-… · line 12), not a number of its own
 report.line_invoice  (line_id, invoice_id) pk
 report.render        id; report_id; format ('pdf','pptx'); file_id; snapshot_sha256
                      -- a 'legacy' report has no snapshot: its issued PDF is linked here (kind legacy_report), marked "Legacy PDF"

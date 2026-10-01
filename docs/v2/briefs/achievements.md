@@ -10,15 +10,17 @@ Achievements become real records the owner and the team can load, including 2025
 
 1. **The data PR — the achievements part of P5-4**, as spec §3.8 names it: `perf.plan` (only the yearly rows the
    categories need — objectives, KPIs and readings stay builder A's), `perf.achievement_category` (sub-categories;
-   admins edit in Settings), `perf.achievement`, `perf.achievement_ref` (evidence = a file or a Direct reference
-   with its link — V99), `perf.achievement_participant`; RLS and audit triggers like every table; the doors to log,
-   edit, remove (with reason) and list; **`api.backfill_achievements`** in the shape the grid sends (#105), with
-   `source`, `date_from_report` (V504), owner Unknown (V491) and one Undo; the **deal value** on Contract signed and
-   MoU (V505) and the MoU's **side**, chosen on it (V521), a newer report's value replacing an older one's with the
-   history kept (V502, V500).
-2. **The screens PR — the achievements part of P5-6**: the list (category, person, month, Backfilled), the record
-   page (V95 template), **Log achievement** from the + and from the record pages that offer it (V503's tender
-   Signed comes later, with Pipeline).
+   admins edit in Settings), `perf.achievement`, `perf.achievement_ref` (evidence = a file or a Direct reference with
+   its link — V99), `perf.achievement_participant`; RLS and audit triggers like every table; the doors to log, edit,
+   remove (with reason) and list; **`api.backfill_achievements`** in the shape the grid sends (#105), with `source`,
+   `date_from_report` (V504), owner Unknown (V491) and one Undo; the **deal value** on Contract signed and MoU (V505)
+   and the MoU's **side**, chosen on it (V521), a newer report's value replacing an older one's with the history kept
+   (V502, V500); the **number** `ACH-<Happened on year>-0042` from `core.next_number`, and `repeat_of` (V531).
+2. **The screens PR — the achievements part of P5-6**: the list (category, person, month, Backfilled), the record page
+   (V95 template), **Log achievement** from the + and from the record pages that offer it (V503's tender Signed comes
+   later, with Pipeline); the **repeat check** on Log achievement (V531: same organisation and category in the last 12
+   months, a similar title — This is a new one / Same as the earlier one, one tap, never blocking); the number beside
+   Happened on and the organisation everywhere.
 3. **The grid's achievements mode** — builder C's component (#105) wired to `api.backfill_achievements`, with the
    Value column (V502). C owns the component; E passes the props.
 
@@ -28,9 +30,9 @@ then `moduleOn('kpis')` (V513).
 ## Decisions to read first
 
 V68 (self-registration) · V99 (evidence) · V400 (dates) · V491, V502, V504, V506 (past work, newest report wins) ·
-V500 (history) · V503, V505 (Contract signed, deal value) · V521 (the MoU's side) · V523 (monthly reports) ·
-V507–V509 · V513 · V515 (the appraisal reads these) · V517 · V519 · builder A's V189–V196 (#140) for the request,
-Undo and import-key patterns to copy.
+V500 (history) · V503, V505 (Contract signed, deal value) · V521 (the MoU's side) · V523 (monthly reports) · V531
+(numbers and repeats) · V507–V509 · V513 · V515 (the appraisal reads these) · V517 · V519 · builder A's V189–V196
+(#140) for the request, Undo and import-key patterns to copy.
 
 ## The gate card — GC-4 (to be signed before the screens PR merges)
 

@@ -337,6 +337,10 @@ Vercel (V13, V21, V84).
     (about November); an Ideas label and a quick note from the + (stage 1; the simple + entry the week after stage
     0); a weekly nudge that turns the week's closed tasks into achievements in one tap (early November); later, an
     e-mail or message forwarded into a note.
+96. **Numbers, and repeats that are not duplicates** (V531): every task and achievement shows an app-written number
+    (TSK-/ACH-, the Happened on year) beside its date and organisation everywhere; logging an achievement like one in
+    the last 12 months for the same organisation offers "This is a new one" or "Same as the earlier one"; reports list
+    repeats with their dates.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
