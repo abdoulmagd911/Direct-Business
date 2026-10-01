@@ -752,7 +752,7 @@ export const sabotages = [
   {
     name: 'sign-in-boxes-turn-autofill-off',
     breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
-    expect: 'Expected string: "username"',
+    expect: 'Expected: "username"',
     edits: [
       {
         file: 'src/modules/org/screens/PasswordDoor.tsx',
