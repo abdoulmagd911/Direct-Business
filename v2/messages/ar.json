@@ -358,6 +358,7 @@
       "arabic_enabled": "العربية",
       "default_theme": "المظهر الافتراضي",
       "default_density": "الكثافة الافتراضية",
+      "default_start_page": "صفحة البداية الافتراضية",
       "export_formats": "صيغ التصدير",
       "go_live_on": "يوم تشغيل التطبيق"
     },
@@ -858,6 +859,20 @@
         "export_formats": {
           "csv": "CSV",
           "xlsx": "Excel"
+        },
+        "default_start_page": {
+          "my_day": "يومي",
+          "overview": "نظرة عامة",
+          "clients": "العملاء",
+          "suppliers_partners": "الموردون والشركاء",
+          "pipeline": "الفرص",
+          "projects": "المشاريع",
+          "tasks": "المهام",
+          "finance": "المالية",
+          "kpis": "مؤشرات الأداء",
+          "reports": "التقارير",
+          "appraisal": "تقييم الأداء",
+          "activity": "سجل النشاط"
         }
       },
       "partner": {
