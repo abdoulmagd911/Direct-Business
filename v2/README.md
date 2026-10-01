@@ -135,6 +135,13 @@ line and `effectiveLocale` keeps the app English while Arabic is off. Playwright
 re-runs the screen specs in an Arabic browser on UTC with a moved clock (`tests/e2e/support/fixtures.ts`). The QA
 preview gallery: `GALLERY=1 pnpm test:e2e tests/e2e/gallery.spec.ts --workers=1` (`docs/v2/PREVIEW-GALLERY.md`).
 
+P3-9a (V215): `src/modules/partners/` holds the two list pages (`/clients`, `/suppliers`: saved views, chips, More
+filters, search, the bulk assign as one command, New) and the organisation record (`/clients/[id]`, `/suppliers/[id]`;
+`/partners/[id]` redirects) on the record template — the sides' ⋯ door, Log activity, the rail with identifiers,
+contacts, references and contracts. `ui/HoverCard.tsx` is the hover card (organisations and people); Ctrl K finds
+organisations. Proof: `tests/e2e/partners.spec.ts`, `tests/e2e/screens-p3-9.spec.ts`; sabotages
+`at-risk-needs-no-reason`, `bulk-assign-one-by-one`, `hover-card-shows-one-side`.
+
 The visual review, round 1 (V216): words never keys (`settings.values.*`, `settings.fields.*`, `activity.fields.*`,
 `describeWith(org)` for ids), the People list's real status, the person record's Arabic fields and email controls, the
 Not found page (`ui/NotFoundBody.tsx`) and the crash page (`app/(app)/error.tsx`), every area page's own empty line.
