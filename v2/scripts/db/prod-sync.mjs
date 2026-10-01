@@ -4,7 +4,7 @@
 // after `supabase db push`, on every merge to v2/main: every migration file in supabase/migrations must be in the
 // project's history, and the project's history must hold nothing else. Any difference fails the job and is named.
 //
-//   node scripts/db/prod-sync.mjs --linked   the linked project (the production job: after `supabase link`)
+//   node scripts/db/prod-sync.mjs --db-url   production, at SUPABASE_PROD_DB_URL (found by scripts/db/prod-url.mjs)
 //   node scripts/db/prod-sync.mjs --local    the local stack (CI proves the check agrees with a stack built from zero)
 //
 // Needs the Supabase CLI (`supabase`, or SUPABASE_BIN). It only reads: `supabase migration list`.
@@ -69,16 +69,22 @@ export function report(d, count, where) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const target = process.argv.includes('--local') ? '--local' : '--linked';
-  const where = target === '--local' ? 'the local stack' : 'production';
+  const onStack = process.argv.includes('--local');
+  const where = onStack ? 'the local stack' : 'production';
+  const url = process.env.SUPABASE_PROD_DB_URL;
+  if (!onStack && !url) {
+    console.error('::error title=Production check could not run::SUPABASE_PROD_DB_URL is not set');
+    process.exit(1);
+  }
+  const target = onStack ? ['--local'] : ['--db-url', String(url)];
   const bin = process.env.SUPABASE_BIN || 'supabase';
-  const r = spawnSync(bin, ['migration', 'list', target, '--output-format', 'json'], {
+  const r = spawnSync(bin, ['migration', 'list', ...target, '--output-format', 'json'], {
     cwd: V2,
     encoding: 'utf8',
     maxBuffer: 16 << 20,
   });
   if (r.error || r.status !== 0) {
-    console.error(`::error title=Production check could not run::supabase migration list ${target} failed`);
+    console.error(`::error title=Production check could not run::supabase migration list on ${where} failed`);
     console.error(String(r.error ?? r.stderr));
     process.exit(1);
   }

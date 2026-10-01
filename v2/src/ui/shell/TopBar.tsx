@@ -45,6 +45,7 @@ export function TopBar({
         )}
       >
         <Search className="size-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-start sm:hidden">{t('searchShort')}</span>
         <span className="hidden min-w-0 flex-1 truncate text-start sm:inline">{t('search')}</span>
         <Kbd className="ms-auto hidden sm:inline">Ctrl K</Kbd>
       </button>
