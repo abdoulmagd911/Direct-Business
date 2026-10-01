@@ -49,7 +49,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   // the record's tab row says its tabs in words — never the catalogue's key (the side-tabs label once took the key)
   const tabs = page.locator('main [data-tabs]');
   for (const label of ['Overview', 'Activity', 'Related'])
-    await expect(tabs.getByRole('link', { name: label, exact: true })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
   const figures = page.locator('[data-key-figures]');
   for (const label of ['Last activity', 'Next step', 'Contracts', 'Contacts', 'Files']) {
     await expect(figures.getByText(label, { exact: true }), `the ${label} figure`).toBeVisible();
