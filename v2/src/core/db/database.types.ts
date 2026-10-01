@@ -53,6 +53,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
       campaign_code_add: {
         Args: {
@@ -199,6 +200,7 @@ export type Database = {
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
+      own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
       partner_bulk_assign: {
@@ -227,7 +229,11 @@ export type Database = {
       };
       partner_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       partners: { Args: { p_filters?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      password_changed: { Args: { p_auth_user: string }; Returns: Json };
       people: { Args: Record<PropertyKey, never>; Returns: Json };
+      people_without_password: { Args: Record<PropertyKey, never>; Returns: Json };
+      person_account_set: { Args: { p_account: string; p_id: string; p_reason: string }; Returns: Json };
+      person_auth_found: { Args: { p_auth_user: string }; Returns: Json };
       person_auth_link: { Args: { p_auth_user_id: string; p_email: string }; Returns: Json };
       person_auth_state: {
         Args: { p_person: string };
@@ -252,6 +258,8 @@ export type Database = {
         Returns: Json;
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      person_emails_unlinked: { Args: { p_person: string }; Returns: string[] };
+      person_password_set: { Args: { p_person: string; p_reason: string; p_replace?: boolean }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
@@ -264,6 +272,10 @@ export type Database = {
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
+      restore_ticketed: {
+        Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };
+        Returns: Json;
+      };
       role_save: {
         Args: {
           p_id: string;
@@ -298,7 +310,11 @@ export type Database = {
         Args: { p_detail?: string; p_email: string; p_provider?: string; p_result: string; p_user_agent?: string };
         Returns: undefined;
       };
+      sign_in_limited: { Args: { p_email: string }; Returns: string };
       sign_in_log: { Args: { p_before?: string; p_limit?: number; p_person?: string }; Returns: Json };
+      sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
+      sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
+      sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {
@@ -314,6 +330,7 @@ export type Database = {
         Returns: Json;
       };
       undo: { Args: { p_request: string }; Returns: Json };
+      undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
       view_save: {
         Args: {

@@ -137,18 +137,22 @@ identical before and after); the QA login is `test@directksa.com`; staff passwor
 - Multi-step work lives in committed scripts (`scripts/…`, `v2/scripts/…`) and is run by path.
 - `.claude/settings.json` holds the allow list; builder B keeps it and this section in step with the plan's
   "Working rules".
-- **The shell guard** (`.claude/hooks/bash-guard.mjs`, QA on #110, 29 Sep 17:20) reads the WHOLE of every Bash command,
-  whatever the allow list matched at its start: it **denies** `supabase db reset --linked`, `db push`, `link` and
-  `projects delete`; it **asks** before `--force`/`-f`, a `+refspec`, `--delete` or a `:branch` refspec on a push,
-  `branch -D`, `reset --hard`, `clean`, `checkout -- <path>`, `restore`, `worktree remove`, `stash drop`, `rm -r`
-  outside /tmp, `find … -delete` / `-exec rm`, `xargs rm`, `npx`, `pnpm dlx/add/install <pkg>`, `docker run/pull`,
-  `curl`/`wget` piped anywhere, `git push --mirror/--prune/--all`, and any push naming `v2/main`, another lane's branch
-  or a raw ref — with or without `-C <dir>`, first flag or last. What it cannot read it asks too (QA-114): a command
-  inside `$( )` or backticks, inline code for an interpreter (`node -e`, `python3 -c`, `bash -c`, `sh -c`) and a script
-  fed on stdin (`python3 - <<EOF`). Pushes are allowed only as explicit, non-forced `git push [-q] [-u] origin v2/b-…`
-  (this lane's own branches; the old app's `claude/…` work branches likewise); `node`/`python3` only on scripts in the
-  repo; `pnpm`, `supabase`, `docker` and `find` only in their named forms. Proof:
-  `v2/tests/unit/guard/the-shell-guard-asks-before-force-and-production.test.ts` (every string the QA named).
+- **No tool call may prompt the owner** (owner, 30 Sep). The `ask` list in `.claude/settings.json` is empty: dangerous
+  commands are **denied** (forced, deleting or rewriting pushes; pushes to `v2/main` or production; `reset --hard`,
+  `clean`, `branch -D`; hosted Supabase changes; sending mail or sharing outward), everyday sandbox commands are
+  **allowed** (`rm`, `find`, installs, one-line scripts, docker, the local supabase). Anything that needs the owner's
+  word goes to the oversight in chat, never to a permission prompt.
+- **The shell guard** (`.claude/hooks/bash-guard.mjs`, QA on #110, 29 Sep 17:20; refusals only since 30 Sep) reads the
+  WHOLE of every Bash command, whatever the allow list matched at its start: it **denies** `supabase db reset --linked`,
+  `db push`, `link`, `projects delete` and any supabase call naming the hosted project; a push with `--force`/`-f`, a
+  `+refspec`, `--delete` or a `:branch` refspec, `--mirror/--prune/--all/--tags`; any push naming production,
+  `v2/main`, a branch outside the five lanes or a raw ref — with or without `-C <dir>`, first flag or last, even inside
+  `$( )` or `node -e`; `branch -D`, `reset --hard`, `clean`, `filter-branch`. What it cannot read at all it denies too.
+  Pushes go up only as explicit, non-forced `git push [-q] [-u] origin v2/<lane>-…` — the lanes' own branches
+  (`v2/a-`, `v2/b-`, `v2/c-`, `v2/q-`, `v2/architecture`; the architect, 30 Sep) and the old app's `claude/…` ones. **The database guard** (`.claude/hooks/sql-guard.mjs`) denies destructive SQL on
+  the v2 project, every call on the old app's project, and live writes elsewhere outside a rolled-back dry run. Proof:
+  `v2/tests/unit/guard/the-shell-guard-refuses-force-and-production.test.ts` and
+  `v2/tests/unit/guard/the-database-guard-refuses-only-destructive-statements.test.ts`.
 
 ## What this project is
 
@@ -160,34 +164,9 @@ Arabic + English. Used by employees only.
 
 Verified by testing, 2026-08-08 — do not re-litigate, and do not promise what is blocked.
 
-> **2026-09-21 — the last two rows of this table describe the CHAT sandbox. A Claude Code session
-> running in the remote container reaches BOTH.** Measured the same day: `https://www.directksab2b.com/`
-> answers `200`, and `https://vkxoeeoauexyfpzqufqd.supabase.co/rest/v1/` answers `401` — refused for
-> want of a key, which is a reply, not a block. That difference is worth a lot: it is what lets a
-> session drive **the real app against the real database** instead of trusting the harness, and the
-> harness serves fake data (the warning at the top of this file). The recipe, learned the hard way:
-> - run node with the proxy variables stripped — `env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy node …`;
-> - launch Chromium with `proxy:{server:'direct://'}` and `args:['--no-proxy-server']`;
-> - serve the repo from a tiny local HTTP server and `page.route()` the Supabase host to a node
->   `fetch(REAL + pathname + search)`, passing the headers through;
-> - **block only table writes and `save_state`/`save_state_patch` — never all non-GET.** The app
->   LOADS through POST rpcs, so blocking every POST gives you an app with no data and a day lost.
->   **And block the rpc `log_page_denied` too** (2026-09-24, Build lane sweep): driving the app as a
->   restricted role makes js/64 log every refused page as an audit row — a read-only walk of twenty
->   pages as a team member wrote 16 "Page access · Refused" rows to the live log before this line
->   existed. Those rows are harmless and the Activity page names them as refusals, but a sweep that
->   promises "read-only" must not be the thing writing.
-> - drive the live site itself with `curl` and a cache-buster (`?cb=$(date +%s%N)`) when confirming
->   a deploy: the CDN will otherwise hand you the previous file and you will "prove" a push failed.
->
-> Everything a session writes this way must still respect rule 7: real names, amounts and invoice
-> numbers stay in the database and in the scratchpad, never in a commit.
->
-> **2026-09-27 — reach depends on the ENVIRONMENT, not on being Claude Code.** A second builder session measured the
-> opposite of the note above: its environment's network policy refused `vkxoeeoauexyfpzqufqd.supabase.co`,
-> `cdn.jsdelivr.net`, `assets.directksa.com` and `www.directksab2b.com` (the proxy answers 403). Test with `curl` first;
-> where they are refused, the DirectFont, download and live probes go red for that reason alone — compare against the
-> base before calling a red yours. The fix is the environment's Network access setting (the owner's click).
+> **Reach depends on the environment** (2026-09-21, 2026-09-27): a Claude Code session in the remote container may
+> reach the live app and database, or be refused by its network policy — test with `curl` first. How to drive the
+> real app read-only (proxy variables, Chromium flags, what to block, rule 7): `docs/SESSION-REACH.md`, word for word.
 
 | | |
 |---|---|

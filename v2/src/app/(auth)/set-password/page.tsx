@@ -18,7 +18,8 @@ export default async function SetPasswordPage({
   const target = safeNext(typeof next === 'string' ? next : null);
   const me = await getMe();
   if (!me) redirect(`/sign-in?next=${encodeURIComponent('/set-password')}`);
-  if (me.status !== 'ok') redirect('/auth/sign-out');
-  if (!(await mustChangePassword())) redirect(target);
+  if (me.status === 'ok') redirect(target);
+  // api.me() answers must_change_password for exactly this person (V166); any other refusal is the sign-out's to word.
+  if (!(await mustChangePassword())) redirect('/auth/sign-out');
   return <SetPassword next={target} arabicEnabled={(await getAppSettings()).arabic_enabled} />;
 }

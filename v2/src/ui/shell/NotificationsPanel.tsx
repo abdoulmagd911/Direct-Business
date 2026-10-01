@@ -147,7 +147,7 @@ export function NotificationsPanel({
               ) : items === null ? (
                 <DataState kind="loading" what={t('notifications.title')} />
               ) : items.length === 0 ? (
-                <DataState kind="empty" what={t('notifications.title')} />
+                <DataState kind="empty" what={t('notifications.title')} message={t('notifications.none')} />
               ) : (
                 groups
                   .filter((g) => g.rows.length)
