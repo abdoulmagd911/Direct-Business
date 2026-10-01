@@ -138,6 +138,7 @@ export type Database = {
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
       hover_partner: { Args: { p_id: string }; Returns: Json };
       hover_person: { Args: { p_id: string }; Returns: Json };
       identifier_add: {
@@ -169,6 +170,7 @@ export type Database = {
       };
       list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
+      my_day: { Args: { p_limit?: number; p_offset?: number; p_scope?: string; p_since?: string }; Returns: Json };
       my_devices: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -179,6 +181,8 @@ export type Database = {
           this_device: boolean;
         }[];
       };
+      my_note: { Args: { p_id: string }; Returns: Json };
+      my_notes_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       note_add: {
         Args: {
           p_body: string;
@@ -190,7 +194,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      note_capture: { Args: { p_kind: string; p_mentions?: string[]; p_values?: Json }; Returns: Json };
       note_edit: { Args: { p_id: string; p_mentions?: string[]; p_values: Json; p_version: number }; Returns: Json };
+      note_finish_meeting: { Args: { p_note: string; p_values?: Json }; Returns: Json };
+      note_turn_into: { Args: { p_kind: string; p_note: string; p_values?: Json }; Returns: Json };
+      note_update: { Args: { p_id: string; p_mentions?: string[]; p_values: Json; p_version: number }; Returns: Json };
+      note_wrap_up: { Args: { p_choices: Json; p_day: string }; Returns: Json };
       notes: {
         Args: { p_entity: string; p_id: string; p_kinds?: string[]; p_limit?: number; p_offset?: number };
         Returns: Json;
@@ -272,6 +281,7 @@ export type Database = {
         Returns: Json;
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      reminders_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       restore_ticketed: {
         Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };

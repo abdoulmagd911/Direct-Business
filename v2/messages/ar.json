@@ -289,7 +289,11 @@
     "file_kind": "نوع الملف",
     "file_link": "ملف مرفق",
     "note": "ملاحظة",
-    "mention": "إشارة"
+    "mention": "إشارة",
+    "my_note": "ملاحظة يومي",
+    "my_note_link": "تحوّلت إلى",
+    "my_note_mention": "إشارة في ملاحظة",
+    "reminder": "تذكير"
   },
   "status": {
     "done": "منجزة",
