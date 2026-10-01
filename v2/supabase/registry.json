@@ -607,7 +607,8 @@
       "private": false,
       "visible": null,
       "level": "perf.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "achievement_category",
@@ -618,7 +619,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "achievement_participant",
@@ -629,7 +631,8 @@
       "private": false,
       "visible": null,
       "level": "perf.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "achievement_ref",
@@ -640,7 +643,8 @@
       "private": false,
       "visible": null,
       "level": "perf.row_level",
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "activity_outcome",
@@ -1071,7 +1075,8 @@
       "private": false,
       "visible": null,
       "level": null,
-      "history": false
+      "history": false,
+      "rule_only": false
     },
     {
       "key": "priority",
