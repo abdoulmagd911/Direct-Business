@@ -586,4 +586,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'prefsync-copies-the-default-as-a-choice',
+    breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
+    expect: 'the profile still wins over what was copied',
+    edits: [
+      {
+        file: 'src/ui/shell/PrefsSync.tsx',
+        find: "setPref('theme', theme, { cache: true });",
+        replace: "setPref('theme', theme);",
+      },
+    ],
+  },
 ];
