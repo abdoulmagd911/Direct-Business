@@ -187,6 +187,9 @@ jobs:
   db-production:
     name: production database applies main's migrations
     if: github.ref == 'refs/heads/v2/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # production is written only after main's own checks and both databases built from zero are green (QA-185); these
+    # three lines are guarded by scripts/checks/production-job.mjs (QA-502)
+    needs: [checks, db-plain, db-supabase]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # the GitHub environment "production" holds the database password and lets only v2/main deploy (QA-186)
