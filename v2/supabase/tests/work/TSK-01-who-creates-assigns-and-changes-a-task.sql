@@ -1,9 +1,10 @@
 -- TSK-01 — who creates, assigns and changes a task (§3.7, §5; V96, V465). Anyone with Own on Tasks makes their own
 -- task; giving one to someone else needs the capability (tasks.assign), and the new owner is told once. The whole team of
 -- the task's department reads it; only its owner, its creator or Full changes it; another department does not see it.
--- A switched-off person and the test account are never named. Every value is made up.
+-- A switched-off person, the test account and the owner's admin account (QA-214) are never named. Every value is made
+-- up.
 -- Sabotages: supabase/tests/sabotage/a-member-assigns-to-anyone.sql, a-task-seen-by-another-department.sql,
--- a-switched-off-person-owns-a-task.sql.
+-- a-switched-off-person-owns-a-task.sql, the-admin-account-owns-a-task.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار'),
        (test.department('test_other_dept'), 'test_far', 'Test Far', 'فريق بعيد');
@@ -64,3 +65,18 @@ update core.person set account = 'test_account', team_id = null where id = curre
 select test.as_person(current_setting('t.mgr')::uuid);
 select test.raises(format('select api.task_helpers_set(%L, array[%L]::uuid[])', current_setting('t.t'), current_setting('t.am1')),
   'P0001', 'nor does the test account', 'person.unavailable');
+
+-- the owner's admin account is never named on work, and what it makes never falls back to it (V444, QA-214)
+select set_config('t.acct', test.person('Test Admin Account', 'admin')::text, true);
+select test.as_owner();
+update core.person set account = 'admin_account', team_id = null, manager_id = null where id = current_setting('t.acct')::uuid;
+select set_config('t.desk', (select id::text from core.team where code = 'test_desk'), true);
+select test.as_person(current_setting('t.mgr')::uuid);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.acct')),
+  'P0001', 'the admin account owns nothing', 'person.unavailable');
+select test.raises(format('select api.task_helpers_set(%L, array[%L]::uuid[])', current_setting('t.t'), current_setting('t.acct')),
+  'P0001', 'nor helps on anything', 'person.unavailable');
+select test.as_person(current_setting('t.acct')::uuid);
+select test.raises(format('select api.task_create(%L::jsonb)', jsonb_build_object('title', 'Made up',
+  'team_id', current_setting('t.desk'))), 'P0001',
+  'a task it makes never falls back to it as owner', 'person.unavailable');

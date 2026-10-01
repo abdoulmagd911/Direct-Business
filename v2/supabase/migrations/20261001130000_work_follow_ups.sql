@@ -41,8 +41,8 @@ begin
   end if;
   insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, partner_id, due_on,
                          origin, happened_on)
-  values (core.format_number('TSK', pg_catalog.date_part('year', core.riyadh_today())::int,
-                             core.next_number('task', pg_catalog.date_part('year', core.riyadh_today())::int)),
+  values (core.format_number('TSK', pg_catalog.date_part('year', new.happened_on)::int,                   -- V531
+                             core.next_number('task', pg_catalog.date_part('year', new.happened_on)::int)),
           heading, new.created_by, team, (select t.department_id from core.team t where t.id = team),
           (select s.id from work.task_status s where s.is_default and s.deleted_at is null),
           'client', new.entity_id, new.next_step_on, 'next_step', new.happened_on)
