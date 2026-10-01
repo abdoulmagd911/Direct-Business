@@ -955,6 +955,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Test PPL-04. Sabotages `a-taken-email-said-without-its-holder`, `an-email-compared-by-its-capitals`.
 
 **V179 — The admin and test accounts are in no team** ACTIVE · 2026-09-30 (the production finding W26; builds on V170, V444, V445). The owner's admin account showed a team and a manager on production, so it still read as a team member.
+
 - An account other than a team member has no team and no manager. `core.person_guard` refuses either while the account stands (`person.account_in_no_team`), whichever door saves the person.
 - `core.person_account_set` clears both in the same logged request when it marks the admin or the test account; one Undo puts all three back. Made a team member again, the person takes a team and a manager like anyone.
 - Production: the owner's admin account is marked once, after P3-2b's migration is applied (a one-off through the connector, never a migration: the account names no one in the repo). Done 30 Sep, in one logged system request; it had no team, manager or reports.
@@ -962,12 +963,14 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - Test ACCT-02. Sabotages `an-admin-account-keeps-its-team`, `an-admin-account-joins-a-team`.
 
 **V180 — The Supplier & partner types are the owner's seven, as built** ACTIVE · 2026-09-30 (the production finding W12; V448 aligns V148's seed). Hotel supplier · Airline · Visa/Embassy · Payment provider · Sales channel · Technology · Strategic partner, in that order, each with its Arabic name.
+
 - A key never changes, so the entries that mean the same keep theirs and are renamed: `supplier` is Hotel supplier, `payment_solution` Payment provider, `integration` Technology (a technical integration's partner, V99, V407). Airline and Visa/Embassy are added. Nothing is retired, so every side keeps its type.
 - Only an entry still as seeded changes; one an admin renamed or re-sorted stays theirs.
 - **W13** (the status reasons that look doubled) needs no data change: each reason is linked to its status (`status`: at risk or lost, V62), one set for each; `api.list('side_status_reason')` returns the status and `api.list_save` takes it. The Settings list editor does not show that column yet (Builder B), nor the side of a side type.
 - Test TYPE-01; LIST-01 counts eleven side types. Sabotage `the-supplier-types-as-first-seeded`.
 
 **V181 — Production's database is written by one job, from main** ACTIVE · 2026-09-30 (the owner: no session writes to the production database, and none asks him to approve anything). Replaces V113's apply through the Supabase connector.
+
 - The `db-production` job of `.github/workflows/v2.yml` runs on every merge to v2/main, and on a manual run of v2/main. `scripts/db/prod-url.mjs` finds the database through Supabase's shared pooler of the project's region (session mode; `aws-1-…` then `aws-0-…`, each tried with a read), since GitHub's runners reach no IPv6 and the project's own address is IPv6. Then `supabase db push --db-url … --skip-vault --yes`: migrations only, never the seed, the vault or the config. Then `scripts/db/prod-sync.mjs --db-url` fails the job, naming each version, when production and main do not hold the same migrations (a file not applied, or a version applied with no file).
 - It needs one repository secret, which the owner sets: `SUPABASE_DB_PASSWORD` (the project's database password). The project ref and region are written in the job; they are addresses, not secrets. A missing secret fails the job by name. The password reaches one step; the address built from it is masked in the log, and so is the password, as typed and as encoded.
 - No access token. The first run (30 Sep, #133) went through `supabase link`, which asks the Management API for the project's keys and settings; the owner's scoped token lacked `api_gateway_keys_read` and the run stopped there, having written nothing. The database password alone is the smaller key: it reaches the database and nothing else of the account. `SUPABASE_ACCESS_TOKEN` is no longer read.
