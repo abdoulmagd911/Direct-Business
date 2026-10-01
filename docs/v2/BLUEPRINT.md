@@ -320,10 +320,12 @@ Vercel (V13, V21, V84).
     checklist line, action item and meeting follow-up; urgency derived from the due (2 days, a setting); the Today
     list sorted Do now · Plan it · Quick or hand off · Later; the matrix optional; a starred-share line flagged above
     40%; the priority list kept for executive directives.
-90. **Direct HR** (V515, owner 1 Oct): HR owns people, job, attendance, leave, payslips, training, news and the
-    appraisal cycle and scores — never duplicated here; this app keeps the work, the dated evidence and a per-person
-    appraisal evidence pack for HR; the appraisal stages, weights, grades and sign-off are held until HR's appraisal
-    is known; names follow HR, with a profile link; contact details reveal-and-copy on a phone.
+90. **Direct HR** (V515, owner 1 Oct, corrected the same day): HR owns people, job, attendance, leave, payslips,
+    training, news and its own final appraisal decision — never duplicated here; the appraisal (stages, weights,
+    grades, sign-off, evidence) stays in this workspace and each locked appraisal gives HR one fixed-column export;
+    names follow HR, with a profile link; contact details reveal-and-copy on a phone. **91. The Direct theme** (V516):
+    Direct's real brand — orange accent and buttons, slate sidebar and header, gold highlight — at WCAG AA; the other
+    themes untouched.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

@@ -234,16 +234,20 @@ available, solid = applied with "field: value" and ✕; a chip keeps or drops ro
   title and its key figure; line 2: two or three secondary fields and the status chip); a **floating +** above the
   bottom bar (end side) opens quick add — task, Log call, achievement. The same data and actions as on a desktop;
   nothing is phone-only.
-- **Four themes** (owner, 28 Sep): **Light**, **Dark**, **Colorful** (the blueprint's values, unchanged) and **Direct**
-  — **the official brand palette** (V60, replacing the first Direct values): bg #F6F7F9, surface #FAFBFC, raised
-  #FFFFFF, border #E6E8EC, strong #858E99, text #303848, muted #646D79, link #B5490E; **accent #F06820 for marks, tabs
-  and bars only — never a text colour or a label background**; accent hover #FF6B00, accent-soft #FFF3EC; **primary
-  #C94C14 (filled buttons, white label 4.64:1)**, primary hover #B5430F; focus #2563EB; success #1F7A4D, warning
-  #7D6200, danger #C0233F, info #2563B0 and their soft tints; navigation slate #323E48, nav text #E6E8EC, active item
-  #3E4B56 with an #FF6B00 active mark. Every theme gains **`--primary` / `--primary-hover` / `--on-primary`** (in Light,
-  Dark and Colorful they equal accent, accent-hover and on-accent). Each person chooses their theme (My profile); an
-  admin sets the default. **The logo** is the official file — slate wordmark on light, white wordmark on dark or slate —
-  never recoloured (the files come to builder B from the owner).
+- **Four themes** (owner, 28 Sep): **Light**, **Dark**, **Colorful** (the blueprint's values, unchanged) and
+  **Direct** — **the official brand palette** (V60, replacing the first Direct values): bg #F6F7F9, surface #FAFBFC,
+  raised #FFFFFF, border #E6E8EC, strong #858E99, text #303848, muted #646D79, link #B5490E; **accent #F06820 for
+  marks, tabs and bars only — never a text colour or a label background**; accent hover #FF6B00, accent-soft #FFF3EC;
+  **primary #C94C14 (filled buttons, white label 4.64:1)**, primary hover #B5430F; focus #2563EB; success #1F7A4D,
+  warning #7D6200, danger #C0233F, info #2563B0 and their soft tints; navigation slate #323E48, nav text #E6E8EC,
+  active item #3E4B56 with an #FF6B00 active mark. Every theme gains **`--primary` / `--primary-hover` /
+  `--on-primary`** (in Light, Dark and Colorful they equal accent, accent-hover and on-accent). Each person chooses
+  their theme (My profile); an admin sets the default. **The logo** is the official file — slate wordmark on light,
+  white wordmark on dark or slate — never recoloured (the files come to builder B from the owner). **V516** (owner, 1
+  Oct): the Direct theme copies Direct's real brand — orange `#F06820` also on the primary buttons (a dark label, or
+  `#C94C14` with white), slate `#303848` sidebar and header with the white logo, gold `#FBAE16` as a highlight only,
+  muted `#6B7480` on white (`#646D79` on the wash), Proxima Nova Alt headings when licensed; AA everywhere; values
+  settle in P3-18 with the Design lead.
 - **Tokens.** One file `src/ui/tokens.css` declares, for each `[data-theme="light|dark|colorful|direct"]`, the full
   set of the build plan's token table: `--bg`, `--surface`, `--raised`, `--border`, `--border-strong`, `--text`,
   `--muted`, `--link`, `--accent`, `--accent-hover`, `--accent-soft` (selected row), `--on-accent`, `--primary`,
@@ -369,7 +373,7 @@ list entry is retired, never deleted, and stays readable where a record holds it
 
 **Systems this app never duplicates** (V515): Direct Payments (money, invoices, refunds — D6), Etimad, the corporate
 platform, the booking engine, the complaints and quality systems, and **Direct HR** (identity, job and grade,
-attendance, leave and requests, payslips, training, news and policies, the appraisal cycle and its scores). The app
+attendance, leave and requests, payslips, training, news and policies, HR's own final appraisal decision). The app
 links to them and never copies them.
 
 ### 3.1 Organization, people and access
@@ -1617,12 +1621,13 @@ section, "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V
 
 ### 3.10 Appraisal engine (§5)
 
-**Held, pending HR (V515).** Direct HR owns the appraisal cycle and its scores. Built now: the dated evidence
-register, the self-registration step and the per-person, per-cycle **appraisal evidence pack** (one page or PDF:
-achievements, KPI readings and tasks done in the cycle, each with its date and evidence; visible as an appraisal is —
-the person, their direct manager, admins). Held until Q46 is answered: the steps Self → Manager draft → Shared →
-Locked, the weights, the grades and the sign-off below — kept here as written, not built. The Appraisal page sits
-behind its module switch (V513).
+**The HR export (V515).** The appraisal is built here in full; Direct HR adds only its own decision and the HR details
+(attendance and the like), which this app never touches. When an appraisal is **Locked**,
+`api.appraisal_hr_export(cycle, person)` gives one fixed-column file per person per cycle — the name exactly as in HR,
+the cycle, one score per section of the cycle's template, the final %, the grade, the evidence list (date · title ·
+link in one cell) and the locked date — for HR to import into its own appraisal; no live link. It downloads from the
+appraisal and, for an admin, for the whole cycle; it is never committed (rule 7). The Appraisal page sits behind its
+module switch (V513).
 
 ```
 appraisal.grade_scale   LIST;  appraisal.grade_band (scale_id, from_pct, to_pct, label, sort)   -- bands must tile without gaps
