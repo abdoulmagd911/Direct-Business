@@ -4,7 +4,8 @@
 -- everyone. A mention must see the note and is told once; sharing more narrowly while someone mentioned would lose the
 -- note is refused. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/an-admin-reads-a-private-note.sql, a-private-note-found-in-search.sql,
--- a-team-note-seen-by-another-team.sql, the-admin-shortcut-ignores-rule-only.sql, a-rule-only-type-without-its-rule.sql.
+-- a-team-note-seen-by-another-team.sql, the-admin-shortcut-ignores-rule-only.sql, a-rule-only-type-without-its-rule.sql,
+-- since-counts-private-notes.sql.
 select set_config('t.dep', test.department('commercial')::text, true);
 insert into core.team (department_id, code, name_en, name_ar)
 values (current_setting('t.dep')::uuid, 'test_alpha', 'Test Alpha', 'فريق ألفا'),
@@ -25,7 +26,7 @@ values (current_setting('t.helper')::uuid, (select id from core.team where code 
 select test.as_person(current_setting('t.author')::uuid);
 select set_config('t.n', api.note_capture('sticky', jsonb_build_object('title', 'Made-up quiet thought',
   'body', 'Made-up words for me alone')) ->> 'id', true);
-select test.eq(api.note(current_setting('t.n')::uuid) ->> 'visibility', 'private', 'a note is private by default');
+select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'visibility', 'private', 'a note is private by default');
 select test.eq(api.my_day('me') -> 'notes' -> 0 ->> 'id', current_setting('t.n'), 'it is on its author''s My day');
 select test.eq(jsonb_array_length(api.search('quiet thought') -> 'notes'), 1, 'its author finds it');
 select test.eq(jsonb_array_length(api.record_history('my_note', current_setting('t.n')::uuid)), 1,
@@ -34,7 +35,7 @@ select test.raises(format('select api.note_capture(%L, %L::jsonb, array[%L]::uui
   current_setting('t.mate')), 'P0001', 'a private note mentions nobody', 'note.private_mentions_nobody');
 
 select test.as_person(current_setting('t.admin')::uuid);
-select test.raises(format('select api.note(%L)', current_setting('t.n')), 'P0002',
+select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002',
   'an admin cannot open a member''s private note', 'common.not_found');
 select test.eq(jsonb_array_length(api.search('quiet thought') -> 'notes'), 0, 'nor find it');
 select test.raises(format('select api.record_history(%L, %L)', 'my_note', current_setting('t.n')), '42501',
@@ -46,7 +47,7 @@ select test.eq(jsonb_array_length(api.my_day('team') -> 'notes') + jsonb_array_l
   0, 'nor meet it on My day');
 
 select test.as_person(current_setting('t.mate')::uuid);
-select test.raises(format('select api.note(%L)', current_setting('t.n')), 'P0002', 'a teammate cannot open it either',
+select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002', 'a teammate cannot open it either',
   'common.not_found');
 select test.eq(jsonb_array_length(api.my_day('team') -> 'notes'), 0, 'nor meet it on My team');
 select test.raises(format('select api.note_update(%L, %L::jsonb, 1)', current_setting('t.n'), '{"title": "Made up"}'),
@@ -102,6 +103,12 @@ select test.as_person(current_setting('t.other')::uuid);
 select test.eq(api.my_day('workspace') -> 'notes' -> 0 ->> 'id', current_setting('t.wn'), 'a workspace note is everyone''s');
 select test.eq((api.my_day('workspace') -> 'notes' -> 0 ->> 'mine')::boolean, false, 'not theirs to change');
 select test.eq(jsonb_array_length(api.my_day('me') -> 'notes'), 0, 'and not on their own list');
+select test.eq((api.my_day('workspace') ->> 'notes_total')::int, 1, 'the scope counts its notes');
+select test.eq(api.my_day('workspace', 7, 0, now() - interval '1 day') -> 'since',
+  jsonb_build_array(jsonb_build_object('kind', 'workspace_notes', 'count', 1)),
+  'since a visit, what is shared since is counted, never a private note');
+select test.eq(api.my_day('workspace', 7, 0, now() + interval '1 day') -> 'since', '[]'::jsonb,
+  'and nothing older than the visit');
 
 -- ---------------------------------------------------------------- a rule-only record type names its rule (V183)
 select test.as_owner();

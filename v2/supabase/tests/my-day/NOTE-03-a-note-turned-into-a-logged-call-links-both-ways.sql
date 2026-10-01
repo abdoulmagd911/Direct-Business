@@ -24,10 +24,10 @@ select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.n', api.note_capture('sticky', jsonb_build_object('title', 'Made-up call notes',
   'body', 'Made-up: they want a proposal', 'visibility', 'team', 'meeting_partner_id', null),
   array[current_setting('t.am2')::uuid]) ->> 'id', true);
-select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'call'), 'P0001',
+select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'activity'), 'P0001',
   'a call needs its organisation', 'note.turn_into_needs_partner');
-select set_config('t.made', api.note_turn_into(current_setting('t.n')::uuid, 'call',
-  jsonb_build_object('partner_id', current_setting('t.p'), 'outcome', 'answered'))::text, true);
+select set_config('t.made', api.note_turn_into(current_setting('t.n')::uuid, 'activity',
+  jsonb_build_object('partner_id', current_setting('t.p'), 'type', 'call', 'outcome', 'answered'))::text, true);
 select set_config('t.a', current_setting('t.made')::jsonb ->> 'id', true);
 select test.as_owner();
 select test.eq((select count(*)::int from core.note where id = current_setting('t.a')::uuid and kind = 'activity'
@@ -37,12 +37,12 @@ select test.eq((select body from core.note where id = current_setting('t.a')::uu
 select test.eq((select array_agg(person_id) from core.mention where note_id = current_setting('t.a')::uuid),
   array[current_setting('t.am2')::uuid], 'and its mentions');
 select test.as_person(current_setting('t.am1')::uuid);
-select test.eq(api.note(current_setting('t.n')::uuid) -> 'turned_into' -> 0 ->> 'id', current_setting('t.a'),
+select test.eq(api.my_note(current_setting('t.n')::uuid) -> 'links' -> 0 ->> 'id', current_setting('t.a'),
   'the note shows what it turned into');
-select test.eq(api.note(current_setting('t.n')::uuid) -> 'turned_into' -> 0 ->> 'type', 'call', 'a call');
-select test.eq(api.notes('partner', current_setting('t.p')::uuid) -> 0 -> 'from_notes' -> 0 ->> 'note_id',
+select test.eq(api.my_note(current_setting('t.n')::uuid) -> 'links' -> 0 ->> 'type', 'call', 'a call');
+select test.eq(api.notes('partner', current_setting('t.p')::uuid) -> 0 -> 'from_note' ->> 'id',
   current_setting('t.n'), 'the call shows the note it came from');
-select test.eq(api.note_links('note', current_setting('t.a')::uuid) -> 0 ->> 'note_id', current_setting('t.n'),
+select test.eq(api.from_note('note', current_setting('t.a')::uuid) ->> 'id', current_setting('t.n'),
   'and so does its own door');
 select test.as_owner();
 select test.eq((select count(distinct c.request_id)::int from audit.change c
@@ -55,7 +55,7 @@ select test.eq((select q.label_key from audit.request q
 
 -- the head sees the organisation and its call, not the team note: no chip
 select test.as_person(current_setting('t.head')::uuid);
-select test.eq(jsonb_array_length(api.notes('partner', current_setting('t.p')::uuid) -> 0 -> 'from_notes'), 0,
+select test.ok((api.notes('partner', current_setting('t.p')::uuid) -> 0 ->> 'from_note') is null,
   'someone who cannot see the note sees the call without its chip');
 
 -- one Undo takes the whole conversion back — its author's to undo, not the head's
@@ -65,32 +65,31 @@ select test.as_person(current_setting('t.am1')::uuid);
 select test.runs(format('select api.undo(%L)', current_setting('t.made')::jsonb ->> 'request_id'),
   'the conversion is undone');
 select test.eq(jsonb_array_length(api.notes('partner', current_setting('t.p')::uuid)), 0, 'the call is gone');
-select test.eq(jsonb_array_length(api.note(current_setting('t.n')::uuid) -> 'turned_into'), 0, 'and so is the link');
+select test.eq(jsonb_array_length(api.my_note(current_setting('t.n')::uuid) -> 'links'), 0, 'and so is the link');
 
-select set_config('t.made', api.note_turn_into(current_setting('t.n')::uuid, 'call',
-  jsonb_build_object('partner_id', current_setting('t.p'), 'outcome', 'answered'))::text, true);
+select set_config('t.made', api.note_turn_into(current_setting('t.n')::uuid, 'activity',
+  jsonb_build_object('partner_id', current_setting('t.p'), 'type', 'call', 'outcome', 'answered'))::text, true);
 select set_config('t.a', current_setting('t.made')::jsonb ->> 'id', true);
 
 -- removing the call leaves the note and clears the chip; Undo brings the chip back
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.rm', api.notes_remove(array[current_setting('t.a')::uuid]) ->> 'request_id', true);
-select test.eq(api.note(current_setting('t.n')::uuid) ->> 'title', 'Made-up call notes', 'the note stays');
-select test.eq(jsonb_array_length(api.note(current_setting('t.n')::uuid) -> 'turned_into'), 0, 'its chip clears');
+select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'title', 'Made-up call notes', 'the note stays');
+select test.eq(jsonb_array_length(api.my_note(current_setting('t.n')::uuid) -> 'links'), 0, 'its chip clears');
 select test.runs(format('select api.undo(%L)', current_setting('t.rm')), 'the removal is undone');
-select test.eq(api.note(current_setting('t.n')::uuid) -> 'turned_into' -> 0 ->> 'id', current_setting('t.a'),
+select test.eq(api.my_note(current_setting('t.n')::uuid) -> 'links' -> 0 ->> 'id', current_setting('t.a'),
   'and the chip is back');
 
 -- removing the note leaves the call and clears its chip
-select set_config('t.rn', api.note_remove(array[current_setting('t.n')::uuid]) ->> 'request_id', true);
+select set_config('t.rn', api.my_notes_remove(array[current_setting('t.n')::uuid]) ->> 'request_id', true);
 select test.eq(jsonb_array_length(api.notes('partner', current_setting('t.p')::uuid)), 1, 'the call stays');
-select test.eq(jsonb_array_length(api.notes('partner', current_setting('t.p')::uuid) -> 0 -> 'from_notes'), 0,
-  'without its chip');
+select test.ok((api.notes('partner', current_setting('t.p')::uuid) -> 0 ->> 'from_note') is null, 'without its chip');
 select test.runs(format('select api.undo(%L)', current_setting('t.rn')), 'the note''s removal is undone');
 
 -- a reminder, and what is not there yet
 select set_config('t.r', api.note_turn_into(current_setting('t.n')::uuid, 'reminder',
   jsonb_build_object('remind_at', core.clock() + interval '1 day')) ->> 'id', true);
-select test.ok(api.note(current_setting('t.n')::uuid) -> 'turned_into'
+select test.ok(api.my_note(current_setting('t.n')::uuid) -> 'links'
                  @> jsonb_build_array(jsonb_build_object('entity', 'reminder', 'id', current_setting('t.r'))),
   'a note turned into a reminder shows it');
 select test.eq(api.my_day('me') -> 'reminders' -> 0 ->> 'text', E'Made-up call notes\nMade-up: they want a proposal',
