@@ -68,9 +68,10 @@ test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)',
     await expect(page.locator('[data-door-language]:visible')).toBeVisible();
     await signIn(page, admin.email, '/my-day');
     await hydrated(page);
-    await page.locator('[data-topbar] [data-profile-chip]').click();
-    await expect(page.getByRole('menu').getByText('Language')).toBeVisible();
-    await page.keyboard.press('Escape');
+    // the language lives in My profile's Preferences, not in the profile chip's menu (V217, cut 5)
+    await page.goto('/profile');
+    await hydrated(page);
+    await expect(page.locator('main').getByText('Language', { exact: true })).toBeVisible();
     await setPrefs(context, { locale: 'ar' });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
