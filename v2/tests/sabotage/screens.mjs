@@ -629,8 +629,13 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/ActivityTimeline.tsx',
-        find: '                if (!seen.includes(said)) seen.push(said);\n',
-        replace: '                seen.push(said + String(Math.random()));\n',
+        find: 'const seen = byField.get(f) ?? [];',
+        replace: 'const seen = byField.get(`${c.id}-${f}`) ?? [];',
+      },
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'byField.set(f, seen);',
+        replace: 'byField.set(`${c.id}-${f}`, seen);',
       },
     ],
   },
