@@ -30,6 +30,7 @@ rule-7 scan found one made-up address of the V101 shape and nothing real):
 | `Partly` | enforced, or tested, not both | the builder adds the missing half and writes the test id into `Test today` |
 | `Gap` | built, but the rule is not enforced or not tested | the fix in `Fix needed` lands with its test |
 | `Unbuilt` | its step has not landed yet | the step's PR lands; the builder marks each of the step's rows `Covered` with the test id, or `Gap` with the reason |
+| `Held` | its step is held by a ruling (V515: appraisal stages and scoring, pending HR) — kept, not deleted | the ruling lifts and the row returns to `Unbuilt` |
 | `Open question` | the rule is not decided | the oversight or the owner rules; the V-number goes into `Rule` and the row becomes one of the above |
 | `Wrong` (OLD file) | the catalogue expected less than the old app did | a ruling (V462 onward) and the catalogue row updated |
 | `Missed` (OLD file) | the old app did something the catalogue has no row for | the item sits in `BUILD-PLAN.md` against its step; a row is added when it lands |

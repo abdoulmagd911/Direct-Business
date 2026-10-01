@@ -34,6 +34,10 @@ Individuals. *Recommended:* **yes** — the check refuses it like the others; th
 The spec assumes the recommendation until the owner rules. (Q42 "referred by" and Q44 the zodiac badge were answered by
 the owner on 30 Sep 00:34: no referred-by field — V492; no zodiac, optional photos — V493.)
 
+**Q46 — Can Direct HR's appraisal take the commercial KPIs and a manager draft?** (V515). Until the answer, P6-3's
+steps, weights, grades and sign-off are held; the evidence register and the appraisal evidence pack are built. *To
+learn from HR*, not a choice for the owner.
+
 **Q45 — How often do the Partnerships and improvements reports come out?** (V506, #105). The Past work grid needs each
 source report's period. *Assumed:* monthly, like the BD monthly; one line to change. Not blocking. (V500 was confirmed
 by the owner on 1 Oct.)

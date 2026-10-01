@@ -367,6 +367,11 @@ list entry is retired, never deleted, and stays readable where a record holds it
   (`42501` permission, `40001` conflict with who/when, `23505` duplicate with the holder named, `P0001` business rule
   with a message key). Grants: `revoke all … from public, anon; grant execute … to authenticated` (A8).
 
+**Systems this app never duplicates** (V515): Direct Payments (money, invoices, refunds — D6), Etimad, the corporate
+platform, the booking engine, the complaints and quality systems, and **Direct HR** (identity, job and grade,
+attendance, leave and requests, payslips, training, news and policies, the appraisal cycle and its scores). The app
+links to them and never copies them.
+
 ### 3.1 Organization, people and access
 
 ```
@@ -379,6 +384,8 @@ core.person       STD SOFT; full_name_en not null; full_name_ar; nickname_en; ni
                   department_id; team_id → core.team; manager_id → core.person (no cycles, trigger);
                   role_id → core.role; can_sign_in bool default false; active bool default true;
                   joined_on; left_on; kind text check (kind in ('staff','system','admin_account','test_account'))
+                  hr_profile_url text   -- V515: the Direct HR profile link; names, job title, department and manager
+                  -- follow Direct HR (changed there first); this app keeps the work e-mail, role, access, team, ownership
                   -- 'system' persons ("Import", "System") are named non-login actors: imports and jobs are never
                   -- attributed to a real login (replaces the old QA-account attribution, D13)
                   -- V444, V445: 'admin_account' (the owner's separate admin account) and 'test_account' (the oversight's
@@ -724,6 +731,7 @@ partner.contact_role  LIST (V401: e.g. decision maker · travel coordinator · f
 partner.contact_authority  LIST (V436: e.g. signs · approves · recommends · is informed)
 partner.contact   STD SOFT; partner_id; name_en; name_ar; job_title; role_id → partner.contact_role; email; phone; notes;
                   is_primary; sides text[] (which side(s) this contact belongs to; both by default)   -- shared (V98)
+                  -- V515: on a phone, the phone and e-mail are revealed and copied with one tap
                   authority_id → partner.contact_authority; reconfirm_on date   -- V436: past it the contact shows
                   -- a Re-confirm chip and the side's owner is reminded ('alert_contact_reconfirm')
 partner.reference STD SOFT; partner_id; side (null = shared); system_id → work.ref_system; value not null; url
@@ -1608,6 +1616,13 @@ section, "Legacy PDF · page N" opening its PDF there. Tiles: Revenue, Profit (V
   their workbook layout with ExcelJS (template needed — V35).
 
 ### 3.10 Appraisal engine (§5)
+
+**Held, pending HR (V515).** Direct HR owns the appraisal cycle and its scores. Built now: the dated evidence
+register, the self-registration step and the per-person, per-cycle **appraisal evidence pack** (one page or PDF:
+achievements, KPI readings and tasks done in the cycle, each with its date and evidence; visible as an appraisal is —
+the person, their direct manager, admins). Held until Q46 is answered: the steps Self → Manager draft → Shared →
+Locked, the weights, the grades and the sign-off below — kept here as written, not built. The Appraisal page sits
+behind its module switch (V513).
 
 ```
 appraisal.grade_scale   LIST;  appraisal.grade_band (scale_id, from_pct, to_pct, label, sort)   -- bands must tile without gaps
