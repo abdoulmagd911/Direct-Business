@@ -86,6 +86,12 @@ test('the person record: Arabic name, a second email added and one removed with 
   await page.getByRole('dialog').locator('[data-reason-save]').click();
   await expect(toast(page, 'removed')).toBeVisible();
   await expect(page.locator(`[data-person-email="${second}"]`)).toHaveCount(0);
+  // the removed email's sign-in is banned too, not only refused (V144, QA-209)
+  const [gone] = await sql<{ banned: boolean }>(
+    `select banned_until > now() as banned from auth.users where email = $1`,
+    [second],
+  );
+  expect(gone?.banned, 'its auth user is banned').toBe(true);
 
   // Access: pages and settings sections apart (item 8)
   await expect(page.locator('[data-access-group="pages"]')).toBeVisible();
