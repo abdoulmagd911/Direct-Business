@@ -549,14 +549,15 @@ core.person_default_view  (person_id, page_key) pk; saved_view_id    -- the view
   fields' values only with Finance view); the whole log (Settings → Activity) is for admins and managers (D13, M25).
 - **Undo** — `api.undo(request_id)`:
 - Who: the person who made the change, within `audit.undo_window_hours`; the owner of a changed record within the same
-window (D7); admins and managers with Full on the page, any time. - How: in reverse order, per field — an update is
-reverted only where the field still holds the `after` value; an insert (including a link) is soft-removed; a removal is
-restored. **All or nothing**: if any field was changed again later, nothing is undone and the answer names the field,
-who changed it and when (A16). A restore that a uniqueness rule now blocks (an identifier another partner holds) is
-refused and names the holder. - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The toast's
-Undo button calls this with the request id the command returned. - An import is undone as one request: facts it inserted
-are removed, fields it changed are restored — refused if a later import changed the same rows (it names them: "undo the
-later import first").
+window (D7); admins and managers with Full on the page, any time; **on money** (`finance.*`) only admins and managers
+with Full on Finance — V525's interim default, parked with Finance's redesign. - How: in reverse order, per field — an
+update is reverted only where the field still holds the `after` value; an insert (including a link) is soft-removed; a
+removal is restored. **All or nothing**: if any field was changed again later, nothing is undone and the answer names
+the field, who changed it and when (A16). A restore that a uniqueness rule now blocks (an identifier another partner
+holds) is refused and names the holder. - Undo is itself a request (`kind 'undo'`, `undo_of`); undoing it is redo. The
+toast's Undo button calls this with the request id the command returned. - An import is undone as one request: facts
+it inserted are removed, fields it changed are restored — refused if a later import changed the same rows (it names
+them: "undo the later import first").
 - **Notifications.** Assignment, helper, mention, report issued and appraisal steps are pushed by the API function
   that caused them. "Changed by someone else" is fanned out by `audit.end()` to the owners of every record the request
   touched (the entity's `owners` function in the registry), one notification per person per request, never to the
@@ -599,13 +600,16 @@ achievement, a logged meeting or call, or a reminder. The new record and the not
 my.note           STD SOFT; person_id (the author); kind ('sticky','meeting','checklist'); title; body;
                   items jsonb [{text, done, owner_id, due_on, due_time, starred}]   -- checklist rows; a meeting's points
                   visibility ('private','team','workspace') default 'private'   -- who may see it: only me; my team; everyone
+                  -- V524: + 'record' (whoever sees the record it is written on; the default there) and 'named'
+                  -- (the author and the my.note_reader rows); nothing else widens a private or named note
                   happened_on date not null; logged_at timestamptz not null default now();          -- V400
                   meeting_partner_id → partner.partner; meeting_on date; finished_at (Finish meeting);
                   carried_to date (Wrap up today: carried over); done_at (Wrap up today: done)
 my.note_link      STD; note_id → my.note; entity_table; entity_id; kind ('turned_into'); made_at; made_by
                   -- the two-way link: the record shows "from note", the note "turned into"; removing either record
-                  -- removes the link and never the other record
+                  -- removes the link and never the other record; V524: kind 'about' = the record a note is written on
 my.note_mention   (note_id, person_id) pk                          -- the mentioned person is told ('note_mention')
+my.note_reader    (note_id, person_id) pk   -- V524: who else reads a 'named' note; an admin only if named (V454)
 core.reminder     STD SOFT; person_id; note_id → my.note; remind_at timestamptz not null; text; sent_at
                   -- a 'reminder' notification at its time, sent by the five-minute reminder job (V455); once
 ```
@@ -634,6 +638,11 @@ logged meeting or call and a reminder in P3-13; a task and an action item with P
   in search, exports, notifications, history and View as; team = the author's team; workspace = everyone. The record
   made from a note follows its own type's rule, never the note's; one made from a private note hides its "from note"
   chip from anyone who cannot see the note, and an @mention in a private note is refused (OLD-WRK-017/019).
+- **A note on a record** (V524, after stage 1 opens — P5-11): **Who can see** — Everyone on the record (the default) ·
+  Only me · Me and the people I name (one or more; `my.note_reader`). A restricted note follows the private note's one
+  read rule — invisible to everyone else, admins included unless named, in search, exports, notifications, history,
+  Activity and View as; its readers see a small lock chip. The named list does not follow a change of record owner.
+  Never on a person's record; the appraisal never reads it (V515).
 - **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares, and for a manager the team
   load — open, overdue and stale by priority, blocked items, escalations; the whole department for a head —
   OLD-WRK-008) · **Workspace** (what everyone shares); each block shows **5–7 rows** and a "more" link; Comfortable,
@@ -736,6 +745,7 @@ partner.contact_authority  LIST (V436: e.g. signs · approves · recommends · i
 partner.contact   STD SOFT; partner_id; name_en; name_ar; job_title; role_id → partner.contact_role; email; phone; notes;
                   is_primary; sides text[] (which side(s) this contact belongs to; both by default)   -- shared (V98)
                   -- V515: on a phone, the phone and e-mail are revealed and copied with one tap
+                  -- V520: the sides sort and filter, never hide — every contact shows to whoever sees either side
                   authority_id → partner.contact_authority; reconfirm_on date   -- V436: past it the contact shows
                   -- a Re-confirm chip and the side's owner is reminded ('alert_contact_reconfirm')
 partner.reference STD SOFT; partner_id; side (null = shared); system_id → work.ref_system; value not null; url
@@ -1205,13 +1215,13 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   April 2026); January 2026 typed by hand the normal way, the rest through the Past work grid — never shows on My day,
   raises no notification, overdue or stale flag, and sits under the **Past work** filter on Tasks and Achievements; it
   counts toward the KPIs, the report of the month it happened in and the appraisal period it falls in (V506).
-  Report-derived past work comes from the BD monthly, Partnerships, Commercial quarterly and improvements reports —
-  never the Quality, Complaints or information-centre reports (V506); an undated item from a monthly report is dated
-  the **last day of that month** (V504), not held as a draft. It may carry owner **Unknown** (a null owner, past work
-  only): the **Needs an owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7).
-  The January report is generated, compared with the old issued PDF in Compare (V57), edited and issued. An owner
-  given later to a past-work line keeps the same history (`audit.change`); once its month's report is issued, the
-  change shows as a revision (V500).
+  Report-derived past work comes from the BD monthly, Partnerships, Commercial quarterly and improvements reports (the
+  Partnerships and improvements reports are monthly — V523) — never the Quality, Complaints or information-centre
+  reports (V506); an undated item from a monthly report is dated the **last day of that month** (V504), not held as a
+  draft. It may carry owner **Unknown** (a null owner, past work only): the **Needs an owner** filter lists those, and
+  a manager or admin assigns one later — logged, one Undo (D7). The January report is generated, compared with the old
+  issued PDF in Compare (V57), edited and issued. An owner given later to a past-work line keeps the same history
+  (`audit.change`); once its month's report is issued, the change shows as a revision (V500).
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1462,10 +1472,12 @@ tests are made up):
 - **Problem solving** and **Cost savings**: exposure (amount at risk), actual loss (amount; never above the exposure —
   refused, OLD-PRF-034), avoided (computed = exposure − actual loss), counter-party (partner, or text), story (one
   line). Typed amounts, never Finance money, never feeding a money KPI.
-- **MoU / strategic signing**: counter-party (partner), their signatory and title, our signatory (person), event,
-signing date, announced (yes / no), government or private. It **never counts as a new client** (`partner.new_clients`
-reads Finance only); logging it sets the side to **Prospect** from the signing date **only when the side has no status
-yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request, reason "MoU signed").
+- **MoU / strategic signing**: counter-party (partner), **the side** (Client or Supplier & partner — V521), their
+signatory and title, our signatory (person), event, signing date, announced (yes / no), government or private. It
+**never counts as a new client** (`partner.new_clients` reads Finance only); logging it sets **the side chosen on it**
+(a client MoU the Client side, a partner MoU the Supplier & partner side — V521) to **Prospect** from the signing date
+**only when the side has no status yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request,
+reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
 - **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
   ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
@@ -1718,9 +1730,9 @@ each row becomes a task or an achievement with its **real date**, marked **Backf
 no notices, no late flags and no overdue or no-update flags. A **one-time load of the BD Daily Tasks sheet** goes
 through the same grid (the sheet's columns are mapped once by a person; it holds staff names, so it is never committed
 — rule 7); **its task tabs only**. A pasted block may name its **source report** (kind and period — V506: BD monthly,
-Partnerships, Commercial quarterly, improvements; the report stands as the rows' evidence); rows from it take the
-report's last day when undated (V504) and the newest issued report's figures where reports disagree (V502); 2025 rows
-are accepted from 1 January 2025 (V506).
+Partnerships, Commercial quarterly, improvements — Partnerships and improvements are monthly, V523; the report stands
+as the rows' evidence); rows from it take the report's last day when undated (V504) and the newest issued report's
+figures where reports disagree (V502); 2025 rows are accepted from 1 January 2025 (V506).
 
 **One framework** (`core/import` in the browser, `io.*` and each source's `api.import_<source>` in the database):
 
@@ -1918,12 +1930,12 @@ V454). The setting `auth.view_as_enabled` is on until go-live and **off at go-li
 tests and sabotages (P3-15); builder B: the banner, the View as action on a person's record, Exit (P3-16).
 
 **Words in the app's chrome** (V59): the department is **Commercial** / **الإدارة التجارية**. Never in the app's
-chrome or wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" and — Q43, assumed — "B2C" (a
-check scans the message catalogs and the page templates). **The banned words cover data labels too** (V404): seed
-lists, settings defaults and the values admins type into a list — the segment is **Government**, with no abbreviation
-after it; the check scans the seeds and the defaults, and the list editor refuses a value carrying a banned word,
-naming it. Codes are IDs, not labels (a KPI code copied from the strategy sheet stays as the sheet writes it). The
-logo is the official file (slate wordmark on light, white wordmark on dark or slate), never recoloured.
+chrome or wording: "Direct KSA", "DirectKSA", "Direct Corporate", "B2B", "B2G", "MICE" and "B2C" (V522 — the segment
+is Individuals; a check scans the message catalogs and the page templates). **The banned words cover data labels too**
+(V404): seed lists, settings defaults and the values admins type into a list — the segment is **Government**, with no
+abbreviation after it; the check scans the seeds and the defaults, and the list editor refuses a value carrying a
+banned word, naming it. Codes are IDs, not labels (a KPI code copied from the strategy sheet stays as the sheet writes
+it). The logo is the official file (slate wordmark on light, white wordmark on dark or slate), never recoloured.
 
 **One Arabic word for each term** (V490, from the oversight's check of the whole catalog): **Admin** = مسؤول النظام
 everywhere (never مدير النظام, which clashes with the Manager role, مدير); **Department** = إدارة, so **Head of

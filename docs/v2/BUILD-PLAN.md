@@ -73,6 +73,9 @@ is switched on only in P6-7 (builder C), after it is tested.
 - **The fast lane after go-live** (V518): a wording, layout or field edit that touches no rule, access, money or
   schema gets one review and the quick checks, then merges; rules, access, money and schema changes keep the full QA
   round. **No builder pushes to a branch whose PR awaits QA or merge** (V519): new work goes on a new branch.
+- **The merge train** (V600): the architect merges a PR only on an up-to-date head — `v2/main` merged in, the registry
+  sync regenerated fresh (dated after main's newest migration), every migration newer than main's, CI green, and QA's
+  clearance naming that exact head ("cleared at <sha>").
 
 ## Design tokens and screens
 
@@ -214,6 +217,10 @@ Undo works on every change; CI runs the full suite from zero with its sabotages.
 **Order (V511, owner 30 Sep 13:30): P4 follows straight after P5.** The steps below keep their numbers; every lane
 reaches them after its P5 steps.
 
+**Parked (V525, owner 1 Oct night):** the owner wants Finance rethought around **transactions** instead of invoices, in
+a joint design session; P4's steps are re-cut after it and **none starts before it**. Meanwhile a change to money is
+undone only by admins and managers with Full on Finance.
+
 **Goal:** the team can type every kind of Payments invoice quickly (owner decision 4); every invoice finds its partner
 or asks for a decision; every money figure (partner card, Finance) comes from the ported rules and the finance finding
 of 28 Sep (spec §3.6). Flows **FLOW-01** (up to the partner card and the finance measures), **FLOW-03**, **FLOW-04**
@@ -256,6 +263,7 @@ FLOW-01's My day step.
 | **P5-8** Pipeline data | A | P3-8, P5-1, P5-4 | `pipeline.*` (V80, V99: stages per kind on **locked meanings** with editable names and an `optional` flag — partnership seed Contacted → Demo → Proposal (optional) → Signed → Onboarded; a **Source** list required on every card; a lead's ticket number on the opportunity; lost reasons, tenders — Government-segment partner, Etimad reference, tender number, dates, value, awarded value — and partnership opportunities; `stage_change` history); `api` to create, move (with date and reason), award and sign — Signed offers Log achievement and the Corporate onboarding checklist (V89); **Onboarded switches the side on and sets it Active** in the same request (V99); a skipped optional stage is not recorded; stage changes carry `happened_on` (V400); file kind Tender document; measures `pipeline.tenders_submitted`, `awarded_value`, `tenders_by_stage`, `opportunities_by_stage`, `partnerships_signed`, all with `segment`; the locked **Handed to Product** stage that needs the Direct ticket (V457); one board for both sides with a side filter (OLD-WRK-066); a backward move asks first, needs a reason, keeps its history and never silently reverts the side's status (OLD-034, OLD-WRK-069); the optional tender stage Clarification / negotiation (`clarifying` — V481); the tender lost reasons (V476); `api.opportunity_bulk_assign` (one request, one Undo, each new owner told once — V472, V456); the Supplier onboarding template offered when a Supplier & partner opportunity reaches Signed (V479); the tender meaning `signed` after `awarded` with `signed_on`; the Contract signed achievement logged at Signed and dated at signing; `pipeline.tenders_signed` (V503) | `PIPE-*` · FLOW-11 (SQL) · a Lost tender without a reason is refused · moving Identified → Submitted records Preparing on the same date · Undo of Onboarded restores the side's status · a card without a Source is refused · `PIPE-*` per V99 · a card without a ticket cannot enter Handed to Product · a card moved back from Onboarded keeps `signed_on` in its history and the side's status unchanged · a tender skipping the clarifying stage records no pass; a bulk assign of five opportunities sends five notices and one Undo reverts all · an awarded tender counts no contract until Signed; Signed logs the achievement dated at signing |
 | **P5-9** Pipeline screens | B | P5-8, P3-7 | The **Pipeline** page (V80): two boards, Tenders and Partnerships (columns per stage on their meanings, the optional Proposal column skippable, drag to move with its `happened_on`, a Source on every new card, reason for Lost / Cancelled), their list views with chips, saved views and export; the tender record page (V95: Bid as the type tab) and the opportunity detail; Log achievement on Awarded / Signed; the partner card's Work tab lists them; the side filter on the board; the backward-move confirm with its reason (OLD-034); the stage on the tender board (V481); the bulk bar on the Pipeline page (V472); the ticket number and the company size on the opportunity card (V472); the Supplier onboarding offer at Signed (V479); the Signed stage on the tender board (V503); Pipeline shown for the Business Development and Business Solutions teams and managers up, through the team level (V507, V510) | E2E: a partnership dragged Contacted → Demo → Signed → Onboarded skips Proposal and the organisation's side turns Active at Onboarded; drag a made-up tender to Submitted and see Q3 "tenders submitted" change on the KPI page; award it and log Contract signed; FLOW-11 in the browser |
 | **P5-10** Commercial overview | A + B | P5-8 (P4-2 only for the money tiles — they wait for P4, V511) | `api.overview(period, segment)`; the **Overview** page (V80): Revenue · Cost · Profit, collections, new clients, tenders submitted, awarded value, partnerships signed, government entity contracts against last year; both funnels; the segment switch and the payment-type chip (V87); every tile links to its list; the clients tile: sign-ups · onboarded · active (V477), replacing new clients | the Overview's figures per segment add up to All; each tile equals the list it links to; switching segment changes every tile and funnel |
+| **P5-11** Notes on a record: Who can see (V524) | A + B | P3-13, P3-14, P5-1 | A: `my.note.visibility` gains `record` and `named`, `my.note_reader`, `my.note_link` kind `about`; the read rule extended from V454's author-only path (search, exports, notifications, history, Activity, View as). B: the Who can see choice on a note written on a task, an organisation's side or a project (three choices, Everyone on the record by default) and the lock chip | SQL per role: a named note is read by its author and the named only — an admin not named is refused in every path, each with a sabotage; browser at 390 px: a manager's note to one member is unseen by a third member. After stage 1 opens, never in stage 0 |
 
 **P5 exit:** flows 01–04, 06, 07, 08 and 11 green in the browser except their report and appraisal steps.
 
@@ -321,6 +329,7 @@ My day's notes) if rows 1–5 merge by Saturday night; stage 1 on **Sunday 18 Oc
 | 12 | Readiness, slim: the restore drill and the advisors (from P6-5) | A | before stage 1 |
 | 13 | Tasks and Past work opened to the pilot group, one live session (V71) | oversight | rows 8–12 — **stage 1** |
 | 14 | Achievements tables and screens, the grid's achievements mode | E (V519) | after #140; brief `briefs/achievements.md`, GC-4 — **stage 2**, target 25 Oct |
+| 15 | P5-11 notes on a record with Who can see (V524) | A + B | after stage 1 opens, with stage 2 at the latest; never holds up stage 1 |
 
 ## Order at a glance
 

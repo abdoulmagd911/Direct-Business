@@ -2,41 +2,22 @@
 
 Questions still open, in plain words, each with one recommended answer that the spec assumes until it is answered.
 Every question so far has been answered and now lives in `docs/v2/DECISIONS.md`: the first round's Qn became decision
-**V(20+n)** (Q7 → V27; Q1 → V21; Q3 → V23, deferred); from Q32 on, a ruled question takes the next free V number
-(Q32 → V126, the starting theme Direct, confirmed by the owner on 29 Sep; Q33 → V73; Q34, Q35 and Q36 → V99; Q41 → V473; Q42 and Q44 → V492 and V493).
+**V(20+n)** (Q7 → V27; Q1 → V21; Q3 → V23, deferred); from Q32 on, a ruled question takes the next free V number (Q32
+→ V126, the starting theme Direct, confirmed by the owner on 29 Sep; Q33 → V73; Q34, Q35 and Q36 → V99; Q41 → V473;
+Q42 and Q44 → V492 and V493; Q39 → V520, Q40 → V521, Q43 → V522, Q45 → V523, Q37 → V524, Q38 parked → V525).
 
-**Open — from the Scout's old-app comparison (29 Sep, `SCENARIOS-OLD.csv`):**
+**No question is open.** The owner answered the last round on 1 Oct 2026, night (relayed by the oversight): Q37
+manager-only notes → **V524** (the reverse: a note on a record says who can see it — everyone on the record, only me,
+or me and the people I name; built after stage 1 opens); Q39 a contact's sides → **V520** (no — every contact shows);
+Q40 an MoU's side → **V521** (the side chosen on the achievement; never a new client); Q43 "B2C" → **V522** (banned);
+Q45 the report periods → **V523** (monthly). Q41 was answered on 29 Sep (V473).
 
-**Q37 — Manager-only notes** (OLD-022). The old app had notes on a task that only managers, admins and the department head
-could read. *Recommended:* **no** — keep notes simple (one note, visible like its record; private My day notes stay
-author-only, V454). Not blocking: a note kind can be added later.
+**Parked — Q38, undo on money** (OLD-038) → **V525**: the owner wants Finance rethought around transactions instead of
+invoices in a joint design session; until then the old safe default holds — only admins and managers with Full on
+Finance undo a change to money.
 
-**Q38 — May a record owner's Undo reach money?** (OLD-038). ACC-112 lets a record's owner undo others' changes within 24
-hours; the old app kept Undo on invoices to admins and managers. *Recommended:* **no** — an invoice's changes are undone
-only by admins and managers with Full on Finance (D7 as the old app applied it). Not blocking: one predicate in
-`audit.undo_allowed`.
-
-**Q39 — Does a contact's side hide it?** (OLD-WRK-106). A contact belongs to one or both sides (V98). *Recommended:*
-**no** — every contact shows on the organisation whatever side the reader may see; the side only sorts them. Not
-blocking.
-
-**Q40 — Which side does an MoU set to Prospect?** (OLD-PRF-030, V461). *Recommended:* the side chosen on the achievement —
-the Client side for a client MoU, the Supplier & partner side for a partner MoU — never a new client (C4). Not blocking.
-
-The spec assumes each recommendation until the owner or the oversight rules. (Q41, the KPI sheet's status column, was
-answered by the oversight on 29 Sep: V473.)
-
-**Open — from the oversight's call analysis (29 Sep, 21:08 and 22:40; the owner's call):**
-
-**Q43 — Add "B2C" to the banned words?** V59 bans "B2B", V404 added "B2G"; the calls say "B2C" for what the app calls
-Individuals. *Recommended:* **yes** — the check refuses it like the others; the segment stays Individuals. Not blocking.
-
-The spec assumes the recommendation until the owner rules. (Q42 "referred by" and Q44 the zodiac badge were answered by
-the owner on 30 Sep 00:34: no referred-by field — V492; no zodiac, optional photos — V493.)
-
-**Q45 — How often do the Partnerships and improvements reports come out?** (V506, #105). The Past work grid needs each
-source report's period. *Assumed:* monthly, like the BD monthly; one line to change. Not blocking. (V500 was confirmed
-by the owner on 1 Oct.)
+**Later, not open:** the Vision board's questions (whose board, what goes on it, its link to the KPIs and the yearly
+plan, who sees it) wait until the owner takes the module up — `FUTURE-MODULES.md`, module 10 (V526).
 
 No default is pending: the Scout's money rulings V420–V425 were made ACTIVE by the owner on 29 Sep 12:55 (V434), their
 numbers and switches now admin settings.
