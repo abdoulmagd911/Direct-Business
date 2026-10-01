@@ -722,3 +722,17 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 | QA-230 | 2026-10-01 23:06 | #137; DECISIONS header, V519 | Low | Architect | **The decision-number ranges overlap:** the header still gives builder B V200–V299 and C V300–V399, while V519 gives D 270–299 and E 370–399. **Fix:** B V200–V269, C V300–V369. | Open |
 | QA-231 | 2026-10-01 23:06 | #137; .claude/settings.json | Low | Architect | **Three items in the new allow and deny lists:** `Bash(psql postgres://:*)` / `postgresql://` deny every direct `psql` to a local QA stack, and a deny wins over any allow (QA runs these through scripts, so accept or narrow); `Bash(rm -rf /*:*)` may deny every absolute-path `rm -rf` if the `*` is read as a wildcard; the allow `mcp__github__update_pull_request_branch` pushes a merge onto a PR's branch, against V519's "no one pushes to a branch awaiting QA". | Open |
 | QA-232 | 2026-10-01 23:06 | #137 (briefs/tasks-screens.md); QA-214, V444, V464 | Low | Architect (D's brief) | **D's quick add leans on V464's default owner (#140), where QA-214 is open:** the owner's admin account can be named or defaulted as a task owner and is matched by pasted names. **Fix:** a line in D's brief that owner pickers leave the admin account out, until QA-214 lands in #140. | Open |
+
+
+## Round 33 — 2026-10-01 23:17 (v2/main 9fa2447; the Friday pilot path prepared)
+
+- **The pilot path spec `12-pilot-path.spec.ts` (V517 stage 0; run alone: `-- --grep "pilot path"`).**
+  - **What it does:** sets the deferred modules (Finance, KPIs, Pipeline, Projects, Overview, Reports, Appraisal) to none on the member and manager roles through the admin's own door, as the runbook's pilot row says, and puts them back afterwards. Then it checks, as a pilot member and a pilot manager:
+    - the menus at 1440 and 390, and Ctrl K;
+    - every deferred address;
+    - Clients' list and a client's record;
+    - My day's capture turned into a call on a client;
+    - that the admin keeps every module.
+  - **On main 9fa2447:** the menus and Ctrl K offer no deferred module, every deferred address shows "You do not have access to …", the admin keeps all, and the levels come back as they were. Clients fails here because #123 isn't merged; My day's notes are NOT BUILT (#139 and #138).
+  - It runs in full on the stage-0 tree once #139, #138, #123 and #132 merge, with the registry sync regenerated last (QA 2's QA-501).
+- **Merges first, then the path:** #138 conflicts with main on `DECISIONS.md`, and #132 conflicts with #138 on the registry syncs (rename/rename). These are the builders' to resolve as they merge.
