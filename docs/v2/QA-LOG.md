@@ -706,3 +706,19 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - No regression in the walk.
   - **Still open:** QA-225, QA-227 and QA-228.
   - QA-220 is covered only by B's unit test so far.
+
+
+## Round 32 — 2026-10-01 23:06 (v2/main 9fa2447; the review split: QA 1 takes #137, #139, #138 and the Friday pilot path, QA 2 takes #123, #132, #145, #135)
+
+- **#137 (the Architect: V500–V519, the D and E lanes and briefs) at f3380ea: clear to merge from QA.**
+  - Its guard unit tests pass locally (108/108) and `pnpm checks` is green.
+  - V500–V519 agree with what's built; no decision number is reused; the new scenario IDs are unique.
+  - Four follow-ups below, none blocking.
+- **Pilot note:** V517's stage 0 needs #139, where QA-211 is still open.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-229 | 2026-10-01 23:06 | #137; ACC-149, GO-LIVE-RUNBOOK (pilot row), V513, V214, V517 | Medium | Architect | **A hidden module's address has three different expected answers.** ACC-149 and the runbook's pilot row: "reads as not there". V513: "Switched off". What level none does (V214; #146's wording): "You do not have access to Finance · Go to My day". The pilot hides modules by level none, so a pilot check written from ACC-149 would fail. **Fix:** the pilot's expected answer is the no-access state; V513's "Switched off" applies once P3-17's switches land. | Open |
+| QA-230 | 2026-10-01 23:06 | #137; DECISIONS header, V519 | Low | Architect | **The decision-number ranges overlap:** the header still gives builder B V200–V299 and C V300–V399, while V519 gives D 270–299 and E 370–399. **Fix:** B V200–V269, C V300–V369. | Open |
+| QA-231 | 2026-10-01 23:06 | #137; .claude/settings.json | Low | Architect | **Three items in the new allow and deny lists:** `Bash(psql postgres://:*)` / `postgresql://` deny every direct `psql` to a local QA stack, and a deny wins over any allow (QA runs these through scripts, so accept or narrow); `Bash(rm -rf /*:*)` may deny every absolute-path `rm -rf` if the `*` is read as a wildcard; the allow `mcp__github__update_pull_request_branch` pushes a merge onto a PR's branch, against V519's "no one pushes to a branch awaiting QA". | Open |
+| QA-232 | 2026-10-01 23:06 | #137 (briefs/tasks-screens.md); QA-214, V444, V464 | Low | Architect (D's brief) | **D's quick add leans on V464's default owner (#140), where QA-214 is open:** the owner's admin account can be named or defaulted as a task owner and is matched by pasted names. **Fix:** a line in D's brief that owner pickers leave the admin account out, until QA-214 lands in #140. | Open |
