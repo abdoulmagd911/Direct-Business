@@ -29,7 +29,7 @@ begin
   perform test.eq(
     (select jsonb_agg(jsonb_build_object('key', key, 'table', table_name, 'page', page_key, 'owners', owners,
                                          'list', is_list, 'private', private, 'visible', visible, 'level', level,
-                                         'history', history)
+                                         'history', history, 'rule_only', rule_only)
                       order by key collate "C") from core.entity where active),
     (select jsonb_agg(e order by e ->> 'key' collate "C") from jsonb_array_elements(reg -> 'entities') e),
     'the record types are the registry''s');
