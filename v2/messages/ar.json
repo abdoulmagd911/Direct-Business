@@ -392,6 +392,12 @@
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
     "reportsTo": "يتبع {name}"
   },
+  "profile": {
+    "notify": {
+      "reminder": "تذكيراتي",
+      "note_mention": "الإشارة إليّ في ملاحظة"
+    }
+  },
   "settings": {
     "list": {
       "side": "الجانب",
@@ -456,6 +462,10 @@
     }
   },
   "notifications": {
+    "kinds": {
+      "reminder": "تذكير: {what}",
+      "note_mention": "أشار {actor} إليك في ملاحظة"
+    },
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   }
 }
