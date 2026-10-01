@@ -647,4 +647,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'record-tabs-lose-their-words',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'Overview',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '    "tabs": {\n      "overview": "Overview",',
+        replace: '    "tabsGone": {\n      "overview": "Overview",',
+      },
+    ],
+  },
 ];

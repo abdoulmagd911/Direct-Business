@@ -1181,7 +1181,12 @@
       "notes": "Notes",
       "client_since": "Client since"
     },
-    "tabs": "Clients and suppliers",
+    "sideTabs": "Clients and suppliers",
+    "tabs": {
+      "overview": "Overview",
+      "activity": "Activity",
+      "related": "Related"
+    },
     "activity": {
       "log": "Log activity",
       "logged": "{type} logged",
