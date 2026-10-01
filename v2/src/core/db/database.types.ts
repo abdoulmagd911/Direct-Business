@@ -36,6 +36,26 @@ export type Database = {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
         Returns: Json;
       };
+      achievement: { Args: { p_id: string }; Returns: Json };
+      achievement_categories: { Args: { p_department?: string; p_plan?: string; p_year?: number }; Returns: Json };
+      achievement_categories_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      achievement_category_save: {
+        Args: { p_id: string; p_plan: string; p_values: Json; p_version?: number };
+        Returns: Json;
+      };
+      achievement_line: { Args: { p_id: string; p_locale?: string }; Returns: string };
+      achievement_log: { Args: { p_participants?: string[]; p_refs?: Json; p_values: Json }; Returns: Json };
+      achievement_move: { Args: { p_id: string; p_reason: string; p_to: string; p_version: number }; Returns: Json };
+      achievement_participants_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
+      achievement_ref_add: { Args: { p_id: string; p_system: string; p_url?: string; p_value: string }; Returns: Json };
+      achievement_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      achievement_update: {
+        Args: { p_id: string; p_reason?: string; p_values: Json; p_version: number };
+        Returns: Json;
+      };
+      achievements: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
+      achievements_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      achievements_remove: { Args: { p_ids: string[]; p_reason: string }; Returns: Json };
       activity: {
         Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
         Returns: Json;
@@ -56,6 +76,8 @@ export type Database = {
       app_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
+      backfill_achievement_keys_held: { Args: { p_keys: string[] }; Returns: Json };
+      backfill_achievements: { Args: { p_request: Json }; Returns: Json };
       campaign_code_add: {
         Args: {
           p_code: string;
@@ -264,6 +286,8 @@ export type Database = {
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
+      plans: { Args: { p_department?: string }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
       recently_deleted: { Args: { p_limit?: number }; Returns: Json };
       record_history: { Args: { p_entity: string; p_id: string }; Returns: Json };
