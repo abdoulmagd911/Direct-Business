@@ -289,6 +289,28 @@ hand-entered row (D21). Started only when the owner says so (decision 4: "import
 **Out of v1** (recorded, not planned — V70): guarantees (promissory notes), supplier payables and statements, referral
 terms. Each becomes a step when the owner asks for it.
 
+## Pilot cut (V517, 1 Oct)
+
+On: Clients (Suppliers as its tab), My day, Tasks, Past work, with sign-in, Settings and People. Off for the pilot (page
+level none, undoable): every other module — deferred, not dropped. Stage 0 on **Sunday 4 Oct, morning** (Clients and
+My day's notes) if rows 1–5 merge by Saturday night; stage 1 on **Sunday 18 Oct** (fallback 25 Oct).
+
+| # | PR or step | Owner | What it needs |
+|---|---|---|---|
+| 1 | #137 decisions (V500–V517) and `.claude/settings.json` | Architect | QA's clearance |
+| 2 | #139 P3-13 My day notes, data | A | QA-211 fixed, `v2/main` merged in, QA |
+| 3 | #123 P3-9a Clients screens | B | out of draft, QA |
+| 4 | #132 the employee view | B | QA-213 fixed, QA |
+| 5 | #138 P3-14 My day screens | B | GC-2 signed (owner), QA |
+| 6 | #145 security headers, 401 and 404; #135 the production job's environment | A | QA |
+| 7 | Pilot setup: people with names as in HR, page levels none for the deferred modules, temporary passwords, the three-job phone test (V509) | oversight | rows 1–6 — **stage 0** |
+| 8 | #140 P5-1 tasks data and the grid's door | A | after #139; QA |
+| 9 | P5-2 Tasks screens, first PR only (list, record, quick add, status) | B | not started — the critical path |
+| 10 | The My work block on My day (the tasks slice of P5-7) | A + B | after rows 8–9 |
+| 11 | #105 P5-2c the Past work grid, mounted on Tasks | C, then B | conflict fixed; row 8 |
+| 12 | Readiness, slim: the restore drill and the advisors (from P6-5) | A | before stage 1 |
+| 13 | Tasks and Past work opened to the pilot group, one live session (V71) | oversight | rows 8–12 — **stage 1** |
+
 ## Order at a glance
 
 ```
