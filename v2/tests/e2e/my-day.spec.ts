@@ -80,7 +80,7 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(toast(page, `logged on ${org}`)).toBeVisible();
 
   // the note says what it became, and the chip opens the organisation, where the call says where it came from
-  const chip = page.locator('[data-note-links] [data-turned-into="activity"]');
+  const chip = page.locator('[data-note-links] [data-turned-into="note"]');
   await expect(chip).toContainText(org);
   await chip.click();
   await hydrated(page);
@@ -162,7 +162,7 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
   await page.getByRole('option').first().click();
   await dialog.locator('[data-log-from-note-save]').click();
   await expect(toast(page, `Meeting logged on ${org}`)).toBeVisible();
-  await expect(page.locator('[data-note-links] [data-turned-into="activity"]')).toContainText(org);
+  await expect(page.locator('[data-note-links] [data-turned-into="note"]')).toContainText(org);
   await expect(page.locator('[data-finish-meeting]'), 'a finished meeting is not finished twice').toHaveCount(0);
 });
 
