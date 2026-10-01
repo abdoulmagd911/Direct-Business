@@ -252,13 +252,11 @@ select audit.end();
 
 -- ================================================================ who may be named (V465)
 -- An owner, a helper or an item's owner can work here: staff, switched on, allowed to sign in, not removed, not past
--- the day they left — and not the test account.
+-- the day they left — and a team member: never the owner's admin account (his work is on his employee account, V444)
+-- nor the test account (V445) (QA-214).
 create function work.person_ok(p_person uuid) returns boolean
 language sql stable security definer set search_path = ''
-as $$
-  select core.person_available(p_person)
-         and exists (select 1 from core.person p where p.id = p_person and p.account <> 'test_account')
-$$;
+as $$ select core.person_available(p_person) and core.is_team_member(p_person) $$;
 create function work.require_person(p_person uuid) returns void
 language plpgsql stable security definer set search_path = ''
 as $$
@@ -860,8 +858,9 @@ begin
   begin
     insert into work.task (number, title, notes, owner_id, team_id, department_id, priority_id, status_id, type_id,
                            work_type, start_on, due_on, partner_id, project_id, origin, assigned_by, happened_on)
-    values (core.format_number('TSK', pg_catalog.date_part('year', core.riyadh_today())::int,
-                               core.next_number('task', pg_catalog.date_part('year', core.riyadh_today())::int)),
+    -- V531: numbered in the year it happened, so a 2025 entry is TSK-2025-… and an annual report agrees with it
+    values (core.format_number('TSK', pg_catalog.date_part('year', day)::int,
+                               core.next_number('task', pg_catalog.date_part('year', day)::int)),
             pg_catalog.btrim(v ->> 'title'), nullif(pg_catalog.btrim(v ->> 'notes'), ''), owner, team,
             (select t.department_id from core.team t where t.id = team),
             work.list_id('work.priority', v ->> 'priority'),
