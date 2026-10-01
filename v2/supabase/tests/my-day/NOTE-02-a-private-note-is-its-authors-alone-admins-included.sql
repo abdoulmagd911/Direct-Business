@@ -5,7 +5,7 @@
 -- note is refused. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/an-admin-reads-a-private-note.sql, a-private-note-found-in-search.sql,
 -- a-team-note-seen-by-another-team.sql, the-admin-shortcut-ignores-rule-only.sql, a-rule-only-type-without-its-rule.sql,
--- since-counts-private-notes.sql.
+-- since-counts-private-notes.sql, an-admin-undoes-a-private-note.sql.
 select set_config('t.dep', test.department('commercial')::text, true);
 insert into core.team (department_id, code, name_en, name_ar)
 values (current_setting('t.dep')::uuid, 'test_alpha', 'Test Alpha', 'فريق ألفا'),
@@ -24,8 +24,9 @@ values (current_setting('t.helper')::uuid, (select id from core.team where code 
 
 -- ---------------------------------------------------------------- private: the author's alone
 select test.as_person(current_setting('t.author')::uuid);
-select set_config('t.n', api.note_capture('sticky', jsonb_build_object('title', 'Made-up quiet thought',
-  'body', 'Made-up words for me alone')) ->> 'id', true);
+select set_config('t.ncap', api.note_capture('sticky', jsonb_build_object('title', 'Made-up quiet thought',
+  'body', 'Made-up words for me alone'))::text, true);
+select set_config('t.n', current_setting('t.ncap')::jsonb ->> 'id', true);
 select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'visibility', 'private', 'a note is private by default');
 select test.eq(api.my_day('me') -> 'notes' -> 0 ->> 'id', current_setting('t.n'), 'it is on its author''s My day');
 select test.eq(jsonb_array_length(api.search('quiet thought') -> 'notes'), 1, 'its author finds it');
@@ -45,6 +46,8 @@ select test.raises(format('select api.follow(%L, %L, true)', 'my_note', current_
   'access.needs_level');
 select test.eq(jsonb_array_length(api.my_day('team') -> 'notes') + jsonb_array_length(api.my_day('workspace') -> 'notes'),
   0, 'nor meet it on My day');
+select test.raises(format('select api.undo(%L)', current_setting('t.ncap')::jsonb ->> 'request_id'), '42501',
+  'nor undo its capture (QA-211)', 'undo.not_allowed');
 
 select test.as_person(current_setting('t.mate')::uuid);
 select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002', 'a teammate cannot open it either',

@@ -769,6 +769,62 @@ alter table notify.notification add constraint notification_kind_check check (ki
   'alert_invoice_unpaid', 'alert_kpi_checkin', 'escalated', 'alert_quiet_client', 'alert_project_no_update',
   'alert_activity_stale', 'alert_file_review', 'reminder', 'note_mention'));
 
+-- ================================================================ Undo follows the rule-only rule (QA-211)
+-- audit.undo_allowed as round 7 wrote it, with one clause first: a request that touched a rule-only record the reader
+-- may not see is not theirs to undo, whoever they are.
+create or replace function audit.undo_allowed(q audit.request, me uuid) returns boolean
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  window_h int := coalesce((core.setting_at('audit.undo_window_hours', null, core.riyadh_today()) #>> '{}')::int, 24);
+begin
+  -- A rule-only record (a private My day note, V454) is undone only by someone its own rule lets see every row the
+  -- request touched — admins included, ahead of their shortcut (QA-211).
+  if exists (select 1 from audit.change c
+             join core.entity e on e.table_name = c.table_name and e.active and e.rule_only
+             where c.request_id = q.id and not authz.can_see_as(me, c.table_name, c.row_id)) then
+    return false;
+  end if;
+  if authz.is_admin() then
+    return true;
+  end if;
+  if audit.touches_access(q.id) then
+    return false;
+  end if;
+  -- My profile (V9, V97): a change you made to your own names or your own profile is yours to undo within the window,
+  -- whatever your level on the people pages — exactly what api.profile_update let you change.
+  if q.actor_id = me and q.at > core.clock() - pg_catalog.make_interval(hours => window_h)
+     and not exists (
+       select 1 from audit.change c
+       where c.request_id = q.id
+         and not ((c.table_name = 'core.person' and c.row_id = me
+                   and c.fields <@ array['full_name_en', 'full_name_ar', 'nickname_en', 'nickname_ar'])
+                  or (c.table_name = 'core.person_profile'
+                      and exists (select 1 from core.person_profile pp where pp.id = c.row_id and pp.person_id = me)))) then
+    return true;
+  end if;
+  if exists (select 1 from audit.change c where c.request_id = q.id and not authz.can_see_as(me, c.table_name, c.row_id)) then
+    return false;
+  end if;
+  if not exists (select 1 from audit.change c
+                 left join core.entity e on e.table_name = c.table_name and e.active
+                 where c.request_id = q.id
+                   and (e.id is null or authz.record_level(me, c.table_name, c.row_id) < 'full')) then
+    return true;
+  end if;
+  if q.at <= core.clock() - pg_catalog.make_interval(hours => window_h) then
+    return false;
+  end if;
+  return not exists (
+    select 1 from audit.change c
+    left join core.entity e on e.table_name = c.table_name and e.active
+    where c.request_id = q.id
+      and (e.id is null
+           or not ((e.page_key is null and e.level is null) or authz.record_level(me, c.table_name, c.row_id) >= 'own')
+           or (q.actor_id is distinct from me and not (me = any (core.owners_of(c.table_name, c.row_id))))));
+end
+$$;
+
 -- ================================================================ My day (§3.3a)
 -- The scopes: Me (my open captures — not done, due today or before — and my reminders to come), My team (what my team
 -- shares) and Workspace (what everyone shares), newest first, a page of rows with whether there is more.
