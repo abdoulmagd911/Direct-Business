@@ -615,7 +615,9 @@
       "alert_invoice_unpaid": "فاتورة غير مدفوعة",
       "alert_kpi_checkin": "يوم تحديث المؤشرات",
       "alert_activity_stale": "شريك بلا نشاط منذ مدة",
-      "alert_file_review": "ملف ينتظر المراجعة"
+      "alert_file_review": "ملف ينتظر المراجعة",
+      "reminder": "تذكيراتي",
+      "note_mention": "الإشارة إليّ في ملاحظة"
     },
     "devices": {
       "label": "الجهاز",
@@ -1060,6 +1062,8 @@
       "alert_project_no_update": "لا تحديث لحالة {what}",
       "alert_activity_stale": "لا نشاط على {what} منذ مدة",
       "alert_file_review": "حان موعد مراجعة ملف في {what}",
+      "reminder": "تذكير: {what}",
+      "note_mention": "أشار {actor} إليك في ملاحظة",
       "other": "{actor} · {what}"
     },
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
