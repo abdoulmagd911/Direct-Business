@@ -622,4 +622,29 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'history-lists-a-field-twice',
+    breaks: ['unit:tests/unit/shell/a-request-that-changes-one-field-on-two-records-names-it-once.test.tsx'],
+    expect: 'one chip for the field',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: '                if (!seen.includes(said)) seen.push(said);\n',
+        replace: '                seen.push(said + String(Math.random()));\n',
+      },
+    ],
+  },
+  {
+    name: 'add-person-email-allows-autofill',
+    breaks: ['e2e:tests/e2e/work-email-fields-turn-autofill-off.spec.ts'],
+    expect: "Add person's Work email turns autofill off",
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n              autoComplete="off"\n',
+        replace:
+          '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n',
+      },
+    ],
+  },
 ];

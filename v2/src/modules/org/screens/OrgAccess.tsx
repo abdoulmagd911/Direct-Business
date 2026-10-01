@@ -453,6 +453,7 @@ function AddPersonDialog({
               value={f.email}
               onChange={(e) => field('email')(e.target.value)}
               className="font-data"
+              autoComplete="off"
             />
           )}
         </Field>
