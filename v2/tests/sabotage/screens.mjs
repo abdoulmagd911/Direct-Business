@@ -726,4 +726,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'clients-none-reads-as-a-list',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'no-access',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/list-page.tsx',
+        find: "if ((me.levels[page] ?? 'none') === 'none')",
+        replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'suppliers-door-lost-when-clients-none',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'a person with Clients none still has a door to Suppliers',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: '(e.tabOf && canSee(me, e.tabOf))',
+        replace: 'e.tabOf',
+      },
+    ],
+  },
+  {
+    name: 'capped-list-says-nothing',
+    breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
+    expect: 'says how many it shows of how many',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/CappedNote.tsx',
+        find: 'if (total <= shown) return null;',
+        replace: 'if (total >= 0) return null;',
+      },
+    ],
+  },
 ];
