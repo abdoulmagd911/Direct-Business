@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 /**
  * English beneath Arabic where the app loads its language (V305, V410): `core/i18n/request.ts` hands next-intl the
  * Arabic catalog merged over the English one, so a key not yet in Arabic shows its English — never its key. This
- * holds whatever reads the Arabic switch (builder B's V214 gate, #120): the database stand-in answers "Arabic on"
- * to either reader. The Arabic catalog here holds one word, so every other key must come from English.
+ * holds whatever reads the Arabic switch (builder B's V214 gate, #120; builder A's V182, #136): the database stand-in
+ * answers "Arabic on" to either reader. The Arabic catalog here holds one word, so every other key must come from English.
  * Sabotage: `request-drops-the-english-fallback` (tests/sabotage/arabic.mjs).
  */
 const { rpc } = vi.hoisted(() => ({
@@ -23,6 +23,8 @@ vi.mock('next/headers', () => ({
 vi.mock('@/core/db/server', () => ({
   serverDb: async () => ({ rpc, auth: { getSession: async () => ({ data: {} }) } }),
 }));
+// V182 (#136): the admin's App settings are read with the server's own key, so the Arabic switch comes from here.
+vi.mock('@/core/db/service', () => ({ serviceDb: () => ({ rpc }) }));
 vi.mock('../../../messages/ar.json', () => ({ default: { common: { save: 'حفظ' } } }));
 
 type Catalog = { [k: string]: string | Catalog };
