@@ -19,6 +19,8 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_checkin',
   'alert_activity_stale',
   'alert_file_review',
+  'reminder',
+  'note_mention',
 ] as const;
 
 /** The five a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
