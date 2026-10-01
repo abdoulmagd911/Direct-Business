@@ -71,20 +71,42 @@ function readCookie(name: string): string | undefined {
   return m?.[1] ? decodeURIComponent(m[1]) : undefined;
 }
 
-/** Whether this browser holds its own choice for a preference (a cookie), as opposed to the coerced default. */
+/**
+ * The cookie naming the preferences whose cookie is only a cache of what the person's profile or the admin's default says
+ * (PrefsSync wrote it), not a choice this browser made. A cached value never beats the profile or the admin's default
+ * (QA-210); a choice made here (`setPref` without `cache`) removes the key from the list again.
+ */
+export const SYNCED_COOKIE = 'v2.synced';
+
+/** The keys whose cookie is only a cache, from any cookie reader. */
+export function syncedFrom(get: (name: string) => string | undefined): Set<string> {
+  return new Set((get(SYNCED_COOKIE) ?? '').split(',').filter(Boolean));
+}
+
+/** Whether a cookie holds a choice this browser made for the preference: a valid value that PrefsSync did not just cache. */
+export function ownChoice(key: keyof Prefs, get: (name: string) => string | undefined): boolean {
+  const raw = get(PREF_DEFS[key].cookie);
+  return raw !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(raw) && !syncedFrom(get).has(key);
+}
+
+/** Whether this browser holds its own choice for a preference, as opposed to the coerced default or a cached value. */
 export function prefIsSet(key: keyof Prefs): boolean {
-  const raw = readCookie(PREF_DEFS[key].cookie);
-  return raw !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(raw);
+  return ownChoice(key, readCookie);
 }
 
 export function readPrefs(): Prefs {
   return prefsFrom(readCookie);
 }
 
-export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
+/** `cache`: the value is what the profile or the admin's default says, kept in the cookie for the first paint — not a choice. */
+export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K], opts: { cache?: boolean } = {}): void {
   const def = PREF_DEFS[key];
   if (!(def.values as readonly string[]).includes(value)) throw new Error(`prefs: ${key} cannot be ${String(value)}`);
   if (typeof document === 'undefined') return;
+  const synced = syncedFrom(readCookie);
+  if (opts.cache) synced.add(key);
+  else synced.delete(key);
+  document.cookie = `${SYNCED_COOKIE}=${[...synced].join(',')}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
   document.cookie = `${def.cookie}=${encodeURIComponent(value)}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
   applyPrefsToDocument(readPrefs());
   window.dispatchEvent(new CustomEvent('v2:prefs', { detail: readPrefs() }));

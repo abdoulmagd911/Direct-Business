@@ -6,8 +6,8 @@
  *  · ACC-091 — the root goes to the person's start page (their choice, else the admin's default, else My day).
  *  · ACC-090 — a person without their own theme or density gets the admin's defaults.
  *  · ACC-129/139 — the language switch shows only while Arabic is on; a cookie saying Arabic is ignored while it is off.
- * The admin's defaults and the switch come from builder A's `api.app_settings()`; the promises that need it skip, by
- * name, until it exists. Sabotages: tests/sabotage/screens.mjs "none-gets-an-empty-page", "root-ignores-the-start-page",
+ * The promises that change the admin's App settings reach everyone, so they run alone, after every other spec:
+ * app-settings.alone.spec.ts. Sabotages: tests/sabotage/screens.mjs "none-gets-an-empty-page", "root-ignores-the-start-page",
  * "arabic-cookie-wins-while-off", "profile-link-lost-in-the-drawer".
  */
 import { type Page } from '@playwright/test';
@@ -29,16 +29,6 @@ async function personAtNone() {
   ]);
   return person;
 }
-
-async function appSettingsRpcExists(): Promise<boolean> {
-  const [row] = await sql<{ ok: boolean }>(
-    `select exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                    where n.nspname = 'api' and p.proname = 'app_settings') as ok`,
-  );
-  return row?.ok === true;
-}
-
-const NEEDS_A = "waits for builder A's api.app_settings()";
 
 const AREAS: [string, string][] = [
   ['/overview', 'Overview'],
@@ -117,52 +107,6 @@ test('the root goes to the start page the person chose (ACC-091)', async ({ page
   await expect(page).toHaveURL(/\/my-day$/);
 });
 
-test("the admin's default start page applies to a person without their own (ACC-091)", async ({ page }) => {
-  test.skip(!(await appSettingsRpcExists()), NEEDS_A);
-  const admin = await makePerson({ admin: true });
-  const member = await makePerson();
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by)
-       values ('app.default_start_page', '"tasks"'::jsonb, current_date, 'Made-up reason', $1)`,
-    [admin.id],
-  );
-  try {
-    await signIn(page, member.email, '/');
-    await expect(page).toHaveURL(/\/tasks$/);
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key = 'app.default_start_page'`);
-  }
-});
-
-test("the admin's default theme and density apply to a person without their own (ACC-090)", async ({ page }) => {
-  test.skip(!(await appSettingsRpcExists()), NEEDS_A);
-  const admin = await makePerson({ admin: true });
-  const member = await makePerson();
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by) values
-       ('app.default_theme', '"dark"'::jsonb, current_date, 'Made-up reason', $1),
-       ('app.default_density', '"compact"'::jsonb, current_date, 'Made-up reason', $1)`,
-    [admin.id],
-  );
-  try {
-    await signIn(page, member.email, '/my-day');
-    await hydrated(page);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
-    // their own choice still wins
-    await sql(
-      `insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'light')
-       on conflict (person_id) do update set theme = 'light'`,
-      [member.id],
-    );
-    await page.reload();
-    await hydrated(page);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key in ('app.default_theme', 'app.default_density')`);
-  }
-});
-
 test('a locale cookie saying Arabic is ignored while Arabic is off, and no switch shows (ACC-129/139)', async ({
   page,
   context,
@@ -180,29 +124,4 @@ test('a locale cookie saying Arabic is ignored while Arabic is off, and no switc
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/\S/);
   await page.locator('[data-topbar] [data-profile-chip]').click();
   await expect(page.getByRole('menu').getByText('Language')).toHaveCount(0);
-});
-
-test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)', async ({ page, context }) => {
-  test.skip(!(await appSettingsRpcExists()), NEEDS_A);
-  const admin = await makePerson({ admin: true });
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by)
-       values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason', $1)`,
-    [admin.id],
-  );
-  try {
-    await page.goto('/sign-in');
-    await expect(page.locator('[data-door-language]')).toBeVisible();
-    await signIn(page, admin.email, '/my-day');
-    await hydrated(page);
-    await page.locator('[data-topbar] [data-profile-chip]').click();
-    await expect(page.getByRole('menu').getByText('Language')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await setPrefs(context, { locale: 'ar' });
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
-  }
 });
