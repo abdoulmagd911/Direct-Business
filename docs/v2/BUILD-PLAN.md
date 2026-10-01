@@ -321,7 +321,7 @@ My day's notes) if rows 1–5 merge by Saturday night; stage 1 on **Sunday 18 Oc
 | 4 | #132 the employee view | B | QA-213 fixed, QA |
 | 5 | #138 P3-14 My day screens | B | GC-2 signed (owner), QA |
 | 6 | #145 security headers, 401 and 404; #135 the production job's environment | A | QA |
-| 7 | Pilot setup: people with names as in HR, page levels none for the deferred modules, temporary passwords, the three-job phone test (V509) | oversight | rows 1–6 — **stage 0** |
+| 7 | Pilot setup: people with names as in HR, page levels none for the deferred modules, GC-1's starting levels set by hand until builder A's forward migration lands (QA-213: Member · Pipeline none; Viewer · Tasks none and Pipeline none — before stage 1), temporary passwords, the three-job phone test (V509) | oversight | rows 1–6 — **stage 0** |
 | 8 | #140 P5-1 tasks data and the grid's door | A | after #139; QA |
 | 9 | P5-2 Tasks screens, first PR only (list, record, quick add, status) | D (V519) | not started — the critical path; brief `briefs/tasks-screens.md`, GC-3 |
 | 10 | The My work block on My day (the tasks slice of P5-7) | A + B | after rows 8–9 |
