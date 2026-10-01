@@ -39,6 +39,7 @@ function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
+function api.from_note(p_entity text, p_id uuid) execute authenticated
 function api.hover_partner(p_id uuid) execute authenticated
 function api.hover_person(p_id uuid) execute authenticated
 function api.identifier_add(p_partner uuid, p_kind text, p_value text, p_reason text, p_subkind text, p_valid_from date, p_valid_to date, p_note text, p_second_code boolean) execute authenticated
@@ -51,9 +52,17 @@ function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason te
 function api.list_save(p_list text, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.list_usage(p_list text, p_id uuid) execute authenticated
 function api.me() execute authenticated
+function api.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
 function api.my_devices() execute authenticated
+function api.my_note(p_id uuid) execute authenticated
+function api.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
+function api.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
 function api.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
+function api.note_finish_meeting(p_note uuid, p_values jsonb) execute authenticated
+function api.note_turn_into(p_note uuid, p_kind text, p_values jsonb) execute authenticated
+function api.note_update(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
+function api.note_wrap_up(p_day date, p_choices jsonb) execute authenticated
 function api.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p_offset integer) execute authenticated
 function api.notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.notifications(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
@@ -95,6 +104,7 @@ function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
@@ -168,6 +178,7 @@ function core.list_usage(p_list text, p_id uuid) execute authenticated
 function core.me() execute authenticated
 function core.month_of(d date) execute authenticated
 function core.my_devices() execute authenticated
+function core.next_working_day(p_day date) execute authenticated
 function core.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
 function core.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
 function core.notes(p_entity text, p_id uuid, p_kinds text[], p_limit integer, p_offset integer) execute authenticated
@@ -194,6 +205,7 @@ function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
 function core.recently_deleted(p_limit integer) execute authenticated
+function core.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function core.riyadh_day(t timestamp with time zone) execute authenticated
@@ -219,6 +231,15 @@ function core.view_default_set(p_page text, p_view uuid) execute authenticated
 function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
+function my.from_note_of(p_entity text, p_id uuid) execute authenticated
+function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
+function my.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
+function my.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
+function my.note_finish_meeting(p_note uuid, p_values jsonb) execute authenticated
+function my.note_get(p_id uuid) execute authenticated
+function my.note_turn_into(p_note uuid, p_kind text, p_values jsonb) execute authenticated
+function my.note_update(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
+function my.note_wrap_up(p_day date, p_choices jsonb) execute authenticated
 function notify.follow_set(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function notify.following(p_entity text, p_id uuid) execute authenticated
 function notify.list(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
@@ -259,6 +280,7 @@ schema audit usage authenticated
 schema authz usage authenticated
 schema core usage authenticated
 schema core usage service_role
+schema my usage authenticated
 schema notify usage authenticated
 schema partner usage authenticated
 type core.level usage public
