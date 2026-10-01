@@ -159,8 +159,8 @@ pages, so out of the menu is never locked. Suppliers is Clients' second tab (`na
 
 My day, Capture then Convert (V218, P3-14): `src/modules/my-day/` — the capture row ("/" anywhere on My day), the
 blocks of 7 (`logic.ts` `BLOCK_ROWS`), a note's own page (`/my-day/notes/<id>`) with Turn into, Finish meeting and the
-chips, Wrap up today, and the waiting reminders. The doors are builder A's P3-13 (V183–V188), described in `types.ts`
+chips, Wrap up, What's new and the waiting reminders. The doors are builder A's P3-13 (V183–V188), described in `types.ts`
 and called through `rpc` / `server.ts`. Proof: `tests/unit/my-day/`, `tests/e2e/my-day.spec.ts`; sabotages
 `turn-into-offers-a-task-too-soon`, `block-draws-every-row`, `wrap-up-carries-to-a-friday`,
 `private-note-reads-as-everyone`, `capture-starts-shared`, `wrap-up-defaults-to-done`,
-`turned-into-chip-leads-nowhere`, `from-note-chip-hidden`.
+`turned-into-chip-leads-nowhere`, `from-note-chip-hidden`, `mark-seen-keeps-the-block`.
