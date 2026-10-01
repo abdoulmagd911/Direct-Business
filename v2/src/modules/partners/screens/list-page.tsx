@@ -117,7 +117,7 @@ export async function PartnersListPage({
         startCreating={str(q.new) === '1'}
         tabs={
           both ? (
-            <nav aria-label={t('partners.tabs')} data-side-tabs className="flex border-b border-border sm:gap-1">
+            <nav aria-label={t('partners.sideTabs')} data-side-tabs className="flex border-b border-border sm:gap-1">
               {(['client', 'supplier_partner'] as const).map((s) => {
                 const active = s === side;
                 return (

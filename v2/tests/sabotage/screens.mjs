@@ -740,6 +740,15 @@ export const sabotages = [
         file: 'src/modules/partners/screens/PartnerRecord.tsx',
         find: '{(n.from_notes ?? []).map((f) => (',
         replace: '{([] as NonNullable<typeof n.from_notes>).map((f) => (',
+    name: 'record-tabs-lose-their-words',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'Overview',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '    "tabs": {\n      "overview": "Overview",',
+        replace: '    "tabsGone": {\n      "overview": "Overview",',
+];
       },
     ],
   },

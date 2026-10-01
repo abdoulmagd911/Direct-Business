@@ -585,7 +585,12 @@
       "notes": "الملاحظات",
       "client_since": "عميل منذ"
     },
-    "tabs": "العملاء والموردون",
+    "sideTabs": "العملاء والموردون",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "activity": "النشاط",
+      "related": "ذات صلة"
+    },
     "activity": {
       "log": "تسجيل نشاط",
       "logged": "تم تسجيل {type}",
