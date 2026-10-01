@@ -15,7 +15,8 @@ import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
 import { CaptureRow } from './CaptureRow';
-import { NoteRow, type Names } from './NoteBits';
+import { NoteRow } from './NoteBits';
+import { SinceBlock } from './SinceBlock';
 import { WrapUpDialog } from './WrapUpDialog';
 
 export type MyDayData = {
@@ -25,7 +26,6 @@ export type MyDayData = {
   /** Every note read (`?more=1`) rather than the first block. */
   all: boolean;
   people: OrgPerson[];
-  names: Names;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -39,7 +39,7 @@ export function MyDay({ data }: { data: MyDayData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  const { scope, answer, all, names } = data;
+  const { scope, answer, all } = data;
   const [wrapping, setWrapping] = useState(false);
   const [removing, setRemoving] = useState<PendingReminder | null>(null);
   const people = new Map(data.people.map((p) => [p.id, p]));
@@ -68,6 +68,7 @@ export function MyDay({ data }: { data: MyDayData }) {
         tabs={SCOPES.map((s) => ({ value: s, label: t(`pages.myDay.tabs.${s}`), href: tabHref(s) }))}
       />
       {scope === 'me' ? <CaptureRow /> : null}
+      {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
           <h2 className="text-base font-semibold">{t(`pages.myDay.blocks.${scope}`)}</h2>
@@ -80,7 +81,7 @@ export function MyDay({ data }: { data: MyDayData }) {
         {rows.length ? (
           <ul className="divide-y divide-border" data-block-rows>
             {rows.map((n) => (
-              <NoteRow key={n.id} note={n} names={names} author={scope === 'me' ? undefined : authorOf(n.author_id)} />
+              <NoteRow key={n.id} note={n} author={scope === 'me' ? undefined : authorOf(n.author_id)} />
             ))}
           </ul>
         ) : (
@@ -129,7 +130,7 @@ export function MyDay({ data }: { data: MyDayData }) {
           if (r)
             await command(
               words(t('pages.myDay.reminder.removed')),
-              () => rpc('reminder_remove', { p_ids: [r.id] }) as Promise<{ request_id?: string | null }>,
+              () => rpc('reminders_remove', { p_ids: [r.id] }) as Promise<{ request_id?: string | null }>,
             );
         }}
       />

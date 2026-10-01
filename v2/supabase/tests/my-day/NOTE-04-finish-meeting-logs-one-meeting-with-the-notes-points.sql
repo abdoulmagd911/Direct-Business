@@ -16,7 +16,7 @@ select set_config('t.m', api.note_capture('meeting', jsonb_build_object('title',
   'items', jsonb_build_array(jsonb_build_object('text', 'Made-up: send the rates', 'owner_id', current_setting('t.am1'),
                                                 'due_on', core.riyadh_today() + 3),
                              jsonb_build_object('text', 'Made-up: book the visit')))) ->> 'id', true);
-select test.eq(api.note(current_setting('t.m')::uuid) -> 'items' -> 1 ->> 'done', 'false', 'a point is open unless said');
+select test.eq(api.my_note(current_setting('t.m')::uuid) -> 'items' -> 1 ->> 'done', 'false', 'a point is open unless said');
 select set_config('t.s', api.note_capture('sticky', jsonb_build_object('title', 'Made-up sticky')) ->> 'id', true);
 select test.raises(format('select api.note_finish_meeting(%L)', current_setting('t.s')), 'P0001', 'a sticky is no meeting',
   'note.not_a_meeting');
@@ -43,13 +43,13 @@ select test.eq((select body from core.note where id = (current_setting('t.f')::j
   E'Made-up quarterly review\n- Made-up: send the rates\n- Made-up: book the visit', 'with the note''s points');
 select test.eq((current_setting('t.f')::jsonb ->> 'points')::int, 2, 'two points');
 select test.as_person(current_setting('t.am1')::uuid);
-select test.ok(api.note(current_setting('t.m')::uuid) ->> 'finished_at' is not null, 'the note is finished');
-select test.eq(api.note(current_setting('t.m')::uuid) -> 'turned_into' -> 0 ->> 'id',
+select test.ok(api.my_note(current_setting('t.m')::uuid) ->> 'finished_at' is not null, 'the note is finished');
+select test.eq(api.my_note(current_setting('t.m')::uuid) -> 'links' -> 0 ->> 'id',
   current_setting('t.f')::jsonb ->> 'activity_id', 'and shows the meeting');
 select test.raises(format('select api.note_finish_meeting(%L)', current_setting('t.m')), 'P0001', 'finished once',
   'note.meeting_finished');
 select test.runs(format('select api.undo(%L)', current_setting('t.f')::jsonb ->> 'request_id'), 'one Undo');
-select test.eq(api.note(current_setting('t.m')::uuid) ->> 'finished_at', null, 'takes the finish back');
+select test.eq(api.my_note(current_setting('t.m')::uuid) ->> 'finished_at', null, 'takes the finish back');
 select test.as_owner();
 select test.eq((select count(*)::int from core.note where entity_id = current_setting('t.p')::uuid and deleted_at is null),
   0, 'and the meeting with it');

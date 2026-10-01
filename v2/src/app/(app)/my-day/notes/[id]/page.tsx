@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { serverRpc } from '@/core/db/server-rpc';
 import { NotePage } from '@/modules/my-day/screens/NotePage';
-import { activityOutcomes, activityTypes, myNote, partnersOf } from '@/modules/my-day/server';
+import { activityOutcomes, activityTypes, myNote } from '@/modules/my-day/server';
 import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
@@ -21,10 +21,9 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         <DataState kind="empty" message={t('pages.myDay.note.notFound')} />
       </Page>
     );
-  const [types, outcomes, partners, org] = await Promise.all([
+  const [types, outcomes, org] = await Promise.all([
     activityTypes(),
     activityOutcomes(),
-    partnersOf([note]),
     note.mine ? null : (serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>),
   ]);
   const author = org?.people.find((p) => p.id === note.author_id);
@@ -34,7 +33,7 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         key={note.id}
         note={note}
         author={author ? personName(author, locale === 'ar' ? 'ar' : 'en') : undefined}
-        names={{ partners, types }}
+        types={types}
         outcomes={outcomes}
       />
     </Page>

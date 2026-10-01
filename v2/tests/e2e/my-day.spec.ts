@@ -65,11 +65,10 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(page).toHaveURL(/\/my-day\/notes\//);
   await hydrated(page);
   await page.locator('[data-turn-into]').click();
-  await expect(page.locator('[data-turn-kind="task"]'), 'a task waits for Tasks').toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
-  await expect(page.locator('[data-turn-kind="task"]')).toContainText('not yet');
+  await expect(
+    page.locator('[data-turn-kind="task"]'),
+    'a task is left out until Tasks is built, not greyed',
+  ).toHaveCount(0);
   await page.locator('[data-turn-kind="activity"]').click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('[data-partner-search]').fill(org);
@@ -80,7 +79,7 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(toast(page, `logged on ${org}`)).toBeVisible();
 
   // the note says what it became, and the chip opens the organisation, where the call says where it came from
-  const chip = page.locator('[data-note-links] [data-turned-into="note"]');
+  const chip = page.locator('[data-note-links] [data-turned-into="activity"]');
   await expect(chip).toContainText(org);
   await chip.click();
   await hydrated(page);
@@ -130,7 +129,7 @@ test('no colleague reads a private note — not on any tab, not at its address, 
     await hydrated(page);
     await expect(page.locator('main'), 'reads as not there, never as "no access"').toContainText('not yours to read');
     await expect(page.locator('main')).not.toContainText(`Private thought ${t}`);
-    const read = await callAs(ctx, 'note', { p_id: hidden });
+    const read = await callAs(ctx, 'my_note', { p_id: hidden });
     expect(read.status, 'the door refuses too').not.toBe(200);
     await ctx.close();
   }
@@ -155,14 +154,13 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
 
   await page.locator('[data-finish-meeting]').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.locator('[data-finish-tasks]'), 'tasks wait for Tasks, and say so').toContainText('not yet');
   await dialog.locator('[data-partner-search]').fill(org);
   await dialog.locator('[data-partner-hit]').first().click();
   await dialog.getByLabel('Outcome').click();
   await page.getByRole('option').first().click();
   await dialog.locator('[data-log-from-note-save]').click();
   await expect(toast(page, `Meeting logged on ${org}`)).toBeVisible();
-  await expect(page.locator('[data-note-links] [data-turned-into="note"]')).toContainText(org);
+  await expect(page.locator('[data-note-links] [data-turned-into="activity"]')).toContainText(org);
   await expect(page.locator('[data-finish-meeting]'), 'a finished meeting is not finished twice').toHaveCount(0);
 });
 
@@ -193,6 +191,36 @@ test('Wrap up today carries the open captures to the next working day, keeping t
     expect(r.carried_to, 'carried over').not.toBeNull();
     expect(r.carried_to! > r.happened_on, 'to a later day, the day it happened kept').toBe(true);
   }
+});
+
+test("What's new counts the team's notes since the last visit, never a private one, and Mark seen clears it", async ({
+  browser,
+}) => {
+  const reader = await makePerson();
+  const author = await makePerson();
+  await sameTeam([reader, author]);
+  const t = tag();
+  const rc = await browser.newContext();
+  const page = await rc.newPage();
+  await signIn(page, reader.email, '/my-day');
+  await hydrated(page); // this opening records the visit
+  const ac = await browser.newContext();
+  const ap = await ac.newPage();
+  await signIn(ap, author.email, '/my-day');
+  await capture(ac, `Shared with the team ${t}`, 'team');
+  await capture(ac, `Kept private ${t}`);
+  await ac.close();
+  await page.goto('/my-day');
+  await hydrated(page);
+  const block = page.locator('[data-since]');
+  await expect(block.locator('[data-since-kind="team_notes"]')).toHaveText('1 note from your team');
+  await expect(block, 'a private note is never counted').not.toContainText('2 notes');
+  await block.locator('[data-since-seen]').click();
+  await expect(block, 'Mark seen clears the block').toHaveCount(0);
+  await page.goto('/my-day');
+  await hydrated(page);
+  await expect(page.locator('[data-since]'), 'nothing new on the next opening').toHaveCount(0);
+  await rc.close();
 });
 
 for (const width of [400, 1500])

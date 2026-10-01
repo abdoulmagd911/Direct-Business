@@ -592,9 +592,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             {who ? (
               <span className="text-xs text-muted">{t('partners.activity.by', { name: personName(who, locale) })}</span>
             ) : null}
-            {(n.from_notes ?? []).map((f) => (
-              <FromNoteChip key={f.note_id} note={f} />
-            ))}
+            {n.from_note ? <FromNoteChip note={n.from_note} /> : null}
           </span>
           {n.body ? <span className="whitespace-pre-wrap text-sm">{n.body}</span> : null}
           {n.next_step ? (

@@ -13,7 +13,7 @@ select set_config('t.r', api.note_turn_into(current_setting('t.n')::uuid, 'remin
   jsonb_build_object('remind_at', '2026-10-05 10:03:00+03', 'text', 'Made-up: ring them now')) ->> 'id', true);
 select set_config('t.gone', api.note_turn_into(current_setting('t.n')::uuid, 'reminder',
   jsonb_build_object('remind_at', '2026-10-05 10:01:00+03')) ->> 'id', true);
-select test.runs(format('select api.reminder_remove(array[%L]::uuid[])', current_setting('t.gone')), 'one is removed');
+select test.runs(format('select api.reminders_remove(array[%L]::uuid[])', current_setting('t.gone')), 'one is removed');
 select test.eq(api.my_day('me') -> 'reminders' -> 0 ->> 'id', current_setting('t.r'), 'the reminder waits on My day');
 
 select test.as_person(current_setting('t.admin')::uuid);

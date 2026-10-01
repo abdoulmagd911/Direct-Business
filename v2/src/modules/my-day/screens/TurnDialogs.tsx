@@ -14,16 +14,16 @@ import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
-import { noteText, noteTitle, turnLive } from '../logic';
-import { TURN_KINDS, type MyNote, type PartnerRef, type TurnKind } from '../types';
+import { liveKinds, noteText, noteTitle } from '../logic';
+import type { MyNote, TurnKind } from '../types';
 import { PartnerPicker } from './PartnerPicker';
 
 /** A logged meeting or call is a call or a meeting (V433); the other activity types are logged on the record itself. */
 const CALL_OR_MEETING = ['call', 'meeting'];
 
 /**
- * Turn into (V433): every kind in its place, the ones whose door has not landed greyed with "not yet" — a task and an
- * action item with Tasks (P5-2), an achievement with the KPIs page (P5-6).
+ * Turn into (V433): a logged meeting or call and a reminder now. A task and an action item join with Tasks (P5-2), an
+ * achievement with the KPIs page (P5-6): a kind whose page is not built is left out, never greyed (GC-1, cut 3).
  */
 export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
   const t = useTranslations();
@@ -36,15 +36,11 @@ export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
         </Button>
       </MenuTrigger>
       <MenuContent>
-        {TURN_KINDS.map((k) => {
-          const live = turnLive(k, BUILT);
-          return (
-            <MenuItem key={k} disabled={!live} onSelect={() => onPick(k)} data-turn-kind={k} data-turn-live={live}>
-              <span className="flex-1">{t(`pages.myDay.turn.kinds.${k}`)}</span>
-              {live ? null : <span className="text-xs text-muted">{t('pages.myDay.turn.notYet')}</span>}
-            </MenuItem>
-          );
-        })}
+        {liveKinds(BUILT).map((k) => (
+          <MenuItem key={k} onSelect={() => onPick(k)} data-turn-kind={k}>
+            {t(`pages.myDay.turn.kinds.${k}`)}
+          </MenuItem>
+        ))}
       </MenuContent>
     </Menu>
   );
@@ -57,7 +53,6 @@ export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
  */
 export function LogFromNoteDialog({
   note,
-  partner,
   open,
   onOpenChange,
   types,
@@ -65,8 +60,6 @@ export function LogFromNoteDialog({
   finish = false,
 }: {
   note: MyNote;
-  /** The organisation the meeting note names, when it names one. */
-  partner: PartnerRef | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   types: ListEntry[];
@@ -77,7 +70,7 @@ export function LogFromNoteDialog({
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const fresh = () => ({
-    partner,
+    partner: note.meeting_partner,
     type: finish || note.kind === 'meeting' ? 'meeting' : 'call',
     outcome: '',
     on: note.meeting_on ?? note.happened_on,
@@ -96,6 +89,7 @@ export function LogFromNoteDialog({
     const name = tradeName(f.partner, locale);
     const values = {
       partner_id: f.partner.id,
+      ...(finish ? {} : { type: f.type }),
       ...(f.outcome ? { outcome: f.outcome } : {}),
       happened_on: f.on,
       ...(f.body.trim() ? { body: f.body.trim() } : {}),
@@ -108,8 +102,8 @@ export function LogFromNoteDialog({
       ),
       () =>
         (finish
-          ? rpc('note_finish_meeting', { p_id: note.id, p_values: values })
-          : rpc('note_turn_into', { p_id: note.id, p_into: f.type, p_values: values })) as Promise<{
+          ? rpc('note_finish_meeting', { p_note: note.id, p_values: values })
+          : rpc('note_turn_into', { p_note: note.id, p_kind: 'activity', p_values: values })) as Promise<{
           request_id?: string | null;
         }>,
       {
@@ -138,11 +132,6 @@ export function LogFromNoteDialog({
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-log-from-note={finish ? 'finish' : 'activity'}>
-        {finish ? (
-          <p className="text-sm text-muted sm:col-span-2" data-finish-tasks>
-            {t('pages.myDay.finish.tasks')} · {t('pages.myDay.finish.tasksNotYet')}
-          </p>
-        ) : null}
         <Field label={t('pages.myDay.turn.organisation')} className="sm:col-span-2">
           {(p) => <PartnerPicker id={p.id} value={f.partner} onChange={(partner) => setF({ ...f, partner })} />}
         </Field>
@@ -222,8 +211,8 @@ export function ReminderDialog({
       ),
       () =>
         rpc('note_turn_into', {
-          p_id: note.id,
-          p_into: 'reminder',
+          p_note: note.id,
+          p_kind: 'reminder',
           p_values: { remind_at: at, text: f.text.trim() },
         }) as Promise<{ request_id?: string | null }>,
       {

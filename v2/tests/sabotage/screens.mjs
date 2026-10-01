@@ -726,7 +726,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "if (link.entity === 'note' && link.partner_id) return `/partners/${link.partner_id}`;",
+        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;",
         replace: 'if (link.partner_id === "never") return null;',
       },
     ],
@@ -734,12 +734,12 @@ export const sabotages = [
   {
     name: 'from-note-chip-hidden',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-from-note',
+    expect: 'where the call says where it came from',
     edits: [
       {
         file: 'src/modules/partners/screens/PartnerRecord.tsx',
-        find: '{(n.from_notes ?? []).map((f) => (',
-        replace: '{([] as NonNullable<typeof n.from_notes>).map((f) => (',
+        find: '{n.from_note ? <FromNoteChip',
+        replace: '{n.from_note && n.id === "never" ? <FromNoteChip',
       },
     ],
   },
@@ -752,6 +752,18 @@ export const sabotages = [
         file: 'messages/en.json',
         find: '    "tabs": {\n      "overview": "Overview",',
         replace: '    "tabsGone": {\n      "overview": "Overview",',
+      },
+    ],
+  },
+  {
+    name: 'mark-seen-keeps-the-block',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'Mark seen clears the block',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/SinceBlock.tsx',
+        find: '            setSince(null);\n',
+        replace: '',
       },
     ],
   },

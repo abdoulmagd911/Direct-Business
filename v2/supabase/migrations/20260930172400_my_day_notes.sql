@@ -124,9 +124,8 @@ create table my.note_link (
   created_at timestamptz not null default now(), created_by uuid not null references core.person (id),
   updated_at timestamptz, updated_by uuid references core.person (id), version int not null default 1,
   deleted_at timestamptz, deleted_by uuid references core.person (id), delete_reason text,   -- Undo of a conversion
-  unique (note_id, entity_table, entity_id)
+  unique (entity_table, entity_id)                                       -- a record comes from one note at most
 );
-create index note_link_record on my.note_link (entity_table, entity_id);
 create trigger entity_ref before insert or update of entity_table, entity_id on my.note_link
   for each row execute function core.entity_ref_guard();
 comment on table my.note_link is 'What a note was turned into (V433); made_at and made_by are its created_at and created_by.';
@@ -234,31 +233,35 @@ as $$
      from pg_catalog.jsonb_array_elements(n.items) with ordinality x(i, o))), 20000)
 $$;
 
--- What a note was turned into, for one reader: the live records they may see.
+-- What a note was turned into, for one reader: the live records they may see, each as its chip reads it — an activity
+-- with its organisation and type, a reminder with its time.
 create function my.turned_into(p_note uuid, p_reader uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
   select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-           'entity', e.key, 'id', l.entity_id, 'kind', l.kind, 'made_at', l.created_at, 'made_by', l.created_by,
-           'partner_id', a.entity_id, 'type', t.key, 'happened_on', a.happened_on,
+           'entity', case l.entity_table when 'core.note' then 'activity' when 'core.reminder' then 'reminder'
+                                         else e.key end,
+           'id', l.entity_id, 'made_at', l.created_at, 'made_by', l.created_by,
+           'partner_id', a.entity_id, 'partner_name_en', p.trade_name_en, 'partner_name_ar', p.trade_name_ar,
+           'type', t.key, 'type_en', t.name_en, 'type_ar', t.name_ar, 'happened_on', a.happened_on,
            'remind_at', r.remind_at, 'sent_at', r.sent_at) order by l.created_at, l.id), '[]'::jsonb)
   from my.note_link l
   join core.entity e on e.table_name = l.entity_table
   left join core.note a on l.entity_table = 'core.note' and a.id = l.entity_id
+  left join partner.partner p on a.entity_table = 'partner.partner' and p.id = a.entity_id
   left join partner.activity_type t on t.id = a.activity_type_id
   left join core.reminder r on l.entity_table = 'core.reminder' and r.id = l.entity_id
   where l.note_id = p_note and l.deleted_at is null and core.record_live(l.entity_table, l.entity_id)
     and authz.can_see_as(p_reader, l.entity_table, l.entity_id)
 $$;
 
--- The notes a record came from, for one reader: those they may see, while both are live (V454: a record made from a
--- private note hides its "from note" chip from anyone who cannot see the note).
-create function my.from_notes(p_table text, p_id uuid, p_reader uuid) returns jsonb
+-- The note a record came from, for one reader — null for one who may not see it, while both are live (V454: a record
+-- made from a private note hides its "from note" chip from anyone who cannot see the note).
+create function my.from_note(p_table text, p_id uuid, p_reader uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
-           'note_id', n.id, 'kind', n.kind, 'title', n.title, 'author_id', n.person_id, 'made_at', l.created_at)
-           order by l.created_at, l.id), '[]'::jsonb)
+  select pg_catalog.jsonb_build_object('id', n.id, 'kind', n.kind, 'title', n.title, 'author_id', n.person_id,
+                                       'made_at', l.created_at)
   from my.note_link l join my.note n on n.id = l.note_id
   where l.entity_table = p_table and l.entity_id = p_id and l.deleted_at is null and n.deleted_at is null
     and core.record_live(p_table, p_id)
@@ -271,11 +274,15 @@ as $$
   select pg_catalog.jsonb_build_object(
     'id', n.id, 'kind', n.kind, 'title', n.title, 'body', n.body, 'items', n.items, 'visibility', n.visibility,
     'happened_on', n.happened_on, 'logged_at', n.logged_at, 'author_id', n.person_id, 'mine', n.person_id = p_reader,
-    'meeting_partner_id', n.meeting_partner_id, 'meeting_on', n.meeting_on, 'finished_at', n.finished_at,
+    'meeting_partner', (select pg_catalog.jsonb_build_object('id', p.id, 'number', p.number, 'trade_name_en',
+                                  p.trade_name_en, 'trade_name_ar', p.trade_name_ar)
+                        from partner.partner p
+                        where p.id = n.meeting_partner_id and authz.can_see_as(p_reader, 'partner.partner', p.id)),
+    'meeting_on', n.meeting_on, 'finished_at', n.finished_at,
     'carried_to', n.carried_to, 'done_at', n.done_at, 'version', n.version,
     'mentions', coalesce((select pg_catalog.jsonb_agg(m.person_id order by m.created_at, m.person_id)
                           from my.note_mention m where m.note_id = n.id and m.deleted_at is null), '[]'::jsonb),
-    'turned_into', my.turned_into(n.id, p_reader))
+    'links', my.turned_into(n.id, p_reader))
 $$;
 
 -- ================================================================ checks every door shares
@@ -499,7 +506,7 @@ end
 $$;
 
 -- Its author removes a note; what it was turned into stays (its link hides), and Undo brings the note back.
-create function my.note_remove(p_ids uuid[], p_reason text default null) returns jsonb
+create function my.my_notes_remove(p_ids uuid[], p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -528,7 +535,7 @@ $$;
 -- ================================================================ Turn into (§3.3a)
 -- Inside an open request: the new record through its own door, the link, the mentions carried over. A logged meeting or
 -- call and a reminder now; a task and an action item arrive with P5-1, an achievement with P5-4 (note.turn_into_not_yet).
-create function my.turn_into_inner(n my.note, p_into text, p_values jsonb) returns jsonb
+create function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -542,8 +549,12 @@ declare
   at timestamptz;
   words text;
   what text;
+  t text := coalesce(nullif(v ->> 'type', ''), case when n.kind = 'meeting' then 'meeting' else 'call' end);
 begin
-  if p_into in ('call', 'meeting') then
+  if p_kind = 'activity' then
+    if t not in ('call', 'meeting') then
+      raise exception using errcode = 'P0001', message = 'note.turn_into_type_invalid', detail = t;
+    end if;
     pid := coalesce(nullif(v ->> 'partner_id', '')::uuid, n.meeting_partner_id);
     if pid is null then
       raise exception using errcode = 'P0001', message = 'note.turn_into_needs_partner';
@@ -554,15 +565,15 @@ begin
              filter (where not (authz.can_see_as(m.person_id, 'partner.partner', pid) and core.person_available(m.person_id)))
       into carried, left_out
     from my.note_mention m where m.note_id = n.id and m.deleted_at is null;
-    a := partner.activity_log(pid, p_into, nullif(v ->> 'outcome', ''),
+    a := partner.activity_log(pid, t, nullif(v ->> 'outcome', ''),
                               coalesce(nullif(v ->> 'happened_on', '')::date,
-                                       case when p_into = 'meeting' then n.meeting_on end, n.happened_on),
+                                       case when t = 'meeting' then n.meeting_on end, n.happened_on),
                               coalesce(nullif(pg_catalog.btrim(v ->> 'body'), ''), my.note_text(n)),
                               nullif(v ->> 'next_step', ''), nullif(v ->> 'next_step_on', '')::date, carried);
     insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'core.note', (a ->> 'id')::uuid);
-    return a || pg_catalog.jsonb_build_object('into', p_into, 'entity', 'note', 'partner_id', pid,
+    return a || pg_catalog.jsonb_build_object('entity', 'activity', 'type', t, 'partner_id', pid,
                                               'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
-  elsif p_into = 'reminder' then
+  elsif p_kind = 'reminder' then
     at := nullif(v ->> 'remind_at', '')::timestamptz;
     if at is null then
       raise exception using errcode = 'P0001', message = 'reminder.time_required';
@@ -578,39 +589,39 @@ begin
       raise exception using errcode = 'P0001', message = my.note_refused(what);
     end;
     insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'core.reminder', rid);
-    return pg_catalog.jsonb_build_object('id', rid, 'into', p_into, 'entity', 'reminder', 'remind_at', at);
-  elsif p_into in ('task', 'action_item', 'achievement') then
-    raise exception using errcode = 'P0001', message = 'note.turn_into_not_yet', detail = p_into;
+    return pg_catalog.jsonb_build_object('id', rid, 'entity', 'reminder', 'remind_at', at);
+  elsif p_kind in ('task', 'action_item', 'achievement') then
+    raise exception using errcode = 'P0001', message = 'note.turn_into_not_yet', detail = p_kind;
   end if;
-  raise exception using errcode = 'P0001', message = 'note.turn_into_invalid', detail = p_into;
+  raise exception using errcode = 'P0001', message = 'note.turn_into_invalid', detail = p_kind;
 end
 $$;
 
 -- One request: the record, the link and the mentions; one Undo reverts them all. Logged under the made record's own
 -- words (a logged call reads as one), so nobody learns of a note they may not see.
-create function my.note_turn_into(p_id uuid, p_into text, p_values jsonb default null) returns jsonb
+create function my.note_turn_into(p_note uuid, p_kind text, p_values jsonb default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  n my.note := my.note_mine(p_id);
+  n my.note := my.note_mine(p_note);
   req uuid;
   r jsonb;
 begin
-  req := audit.begin('ui', case when p_into in ('call', 'meeting') then 'partner.activity_logged' else 'reminder.set' end,
-                     pg_catalog.jsonb_build_object('type', p_into));
-  r := my.turn_into_inner(n, p_into, p_values);
+  req := audit.begin('ui', case when p_kind = 'activity' then 'partner.activity_logged' else 'reminder.set' end,
+                     pg_catalog.jsonb_build_object('kind', p_kind));
+  r := my.turn_into_inner(n, p_kind, p_values);
   perform audit.end();
-  return r || pg_catalog.jsonb_build_object('note_id', p_id, 'request_id', req);
+  return r || pg_catalog.jsonb_build_object('note_id', p_note, 'request_id', req);
 end
 $$;
 
 -- Finish meeting: the meeting is logged on its organisation (type meeting, held unless said), carrying the note's points
 -- and mentions, and the note is marked finished — one request. Its points become action items once tasks exist (P5-1).
-create function my.note_finish_meeting(p_id uuid, p_values jsonb default null) returns jsonb
+create function my.note_finish_meeting(p_note uuid, p_values jsonb default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  n my.note := my.note_mine(p_id);
+  n my.note := my.note_mine(p_note);
   v jsonb := coalesce(p_values, '{}'::jsonb);
   req uuid;
   a jsonb;
@@ -625,10 +636,11 @@ begin
     raise exception using errcode = 'P0001', message = 'note.meeting_needs_partner';
   end if;
   req := audit.begin('ui', 'partner.activity_logged', pg_catalog.jsonb_build_object('type', 'meeting'));
-  a := my.turn_into_inner(n, 'meeting', v || pg_catalog.jsonb_build_object('outcome', coalesce(v ->> 'outcome', 'meeting_held')));
-  update my.note set finished_at = core.clock() where id = p_id;
+  a := my.turn_into_inner(n, 'activity', v || pg_catalog.jsonb_build_object('type', 'meeting',
+                                                                            'outcome', coalesce(v ->> 'outcome', 'meeting_held')));
+  update my.note set finished_at = core.clock() where id = p_note;
   perform audit.end();
-  return pg_catalog.jsonb_build_object('id', p_id, 'activity_id', a ->> 'id', 'partner_id', a ->> 'partner_id',
+  return pg_catalog.jsonb_build_object('id', p_note, 'activity_id', a ->> 'id', 'partner_id', a ->> 'partner_id',
     'points', pg_catalog.jsonb_array_length(n.items), 'mentions_left_out', a -> 'mentions_left_out', 'request_id', req);
 end
 $$;
@@ -636,7 +648,7 @@ $$;
 -- ================================================================ Wrap up today (§3.3a)
 -- The day's open captures (not done, and due on or before the day): each converted (then done), carried over to the next
 -- working day — keeping the day it happened — or done. Nothing is deleted; one request.
-create function my.note_wrap_up(p_day date, p_steps jsonb) returns jsonb
+create function my.note_wrap_up(p_day date, p_choices jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -651,40 +663,40 @@ begin
   if day > core.riyadh_today() then
     raise exception using errcode = 'P0001', message = 'common.date_in_future';
   end if;
-  if pg_catalog.jsonb_typeof(p_steps) is distinct from 'array' or pg_catalog.jsonb_array_length(p_steps) = 0 then
+  if pg_catalog.jsonb_typeof(p_choices) is distinct from 'array' or pg_catalog.jsonb_array_length(p_choices) = 0 then
     raise exception using errcode = 'P0001', message = 'common.nothing_selected';
   end if;
   req := audit.begin('ui', 'note.wrapped_up',
-                     pg_catalog.jsonb_build_object('day', day, 'count', pg_catalog.jsonb_array_length(p_steps)));
-  for s in select x from pg_catalog.jsonb_array_elements(p_steps) x loop
-    n := my.note_mine(nullif(s ->> 'id', '')::uuid);
+                     pg_catalog.jsonb_build_object('day', day, 'count', pg_catalog.jsonb_array_length(p_choices)));
+  for s in select x from pg_catalog.jsonb_array_elements(p_choices) x loop
+    n := my.note_mine(nullif(s ->> 'note', '')::uuid);
     if n.done_at is not null or coalesce(n.carried_to, n.happened_on) > day then
       raise exception using errcode = 'P0001', message = 'note.not_open', detail = n.id::text;
     end if;
-    case s ->> 'action'
+    case s ->> 'choice'
       when 'carry' then
         update my.note set carried_to = core.next_working_day(day) where id = n.id;
-        r := pg_catalog.jsonb_build_object('id', n.id, 'action', 'carry', 'carried_to', core.next_working_day(day));
+        r := pg_catalog.jsonb_build_object('note', n.id, 'choice', 'carry', 'carried_to', core.next_working_day(day));
       when 'done' then
         update my.note set done_at = core.clock() where id = n.id;
-        r := pg_catalog.jsonb_build_object('id', n.id, 'action', 'done');
+        r := pg_catalog.jsonb_build_object('note', n.id, 'choice', 'done');
       when 'turn_into' then
-        r := my.turn_into_inner(n, s ->> 'into', s -> 'values');
+        r := my.turn_into_inner(n, s ->> 'kind', s -> 'values');
         update my.note set done_at = core.clock() where id = n.id;
-        r := pg_catalog.jsonb_build_object('id', n.id, 'action', 'turn_into', 'made', r);
+        r := pg_catalog.jsonb_build_object('note', n.id, 'choice', 'turn_into', 'made', r);
       else
-        raise exception using errcode = 'P0001', message = 'note.wrap_up_action_invalid', detail = s ->> 'action';
+        raise exception using errcode = 'P0001', message = 'note.wrap_up_choice_invalid', detail = s ->> 'choice';
     end case;
     out := out || pg_catalog.jsonb_build_array(r);
   end loop;
   perform audit.end();
-  return pg_catalog.jsonb_build_object('day', day, 'steps', out, 'request_id', req);
+  return pg_catalog.jsonb_build_object('day', day, 'choices', out, 'request_id', req);
 end
 $$;
 
 -- ================================================================ reminders (V455)
 -- Its person removes a reminder before it is sent; the note it came from stays.
-create function core.reminder_remove(p_ids uuid[], p_reason text default null) returns jsonb
+create function core.reminders_remove(p_ids uuid[], p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
@@ -771,7 +783,8 @@ as $$
     and my.note_visible(n.id, p_reader)
 $$;
 
-create function my.my_day(p_scope text default 'me', p_limit int default 7, p_offset int default 0) returns jsonb
+create function my.my_day(p_scope text default 'me', p_limit int default 7, p_offset int default 0,
+                          p_since timestamptz default null) returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
@@ -790,7 +803,16 @@ begin
       from (select n as n, coalesce(n.carried_to, n.happened_on) as d, n.logged_at as at, n.id
             from my.note n where my.in_scope(n, scope, me)
             order by 2 desc, 3 desc, 4 limit lim offset off) y), '[]'::jsonb),
+    'notes_total', (select pg_catalog.count(*)::int from my.note n where my.in_scope(n, scope, me)),
     'more', exists (select 1 from my.note n where my.in_scope(n, scope, me) offset off + lim),
+    'since', case when p_since is null then '[]'::jsonb else coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('kind', x.kind, 'count', x.k) order by x.kind)
+      from (select case n.visibility when 'team' then 'team_notes' else 'workspace_notes' end as kind,
+                   pg_catalog.count(*)::int as k
+            from my.note n
+            where n.person_id <> me and n.visibility <> 'private' and n.logged_at > p_since
+              and (my.in_scope(n, 'team', me) or my.in_scope(n, 'workspace', me))
+            group by 1) x), '[]'::jsonb) end,
     'reminders', case when scope = 'me' then coalesce((
       select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', r.id, 'note_id', r.note_id, 'remind_at', r.remind_at,
                'text', r.text) order by r.remind_at, r.id)
@@ -819,14 +841,14 @@ begin
 end
 $$;
 
--- The "from note" chips of any record the reader may see.
-create function my.note_links(p_entity text, p_id uuid) returns jsonb
+-- The "from note" chip of any record the reader may see: the note, or null.
+create function my.from_note_of(p_entity text, p_id uuid) returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
   e core.entity := core.can_see_record(p_entity, p_id);
 begin
-  return my.from_notes(e.table_name, p_id, authz.me());
+  return my.from_note(e.table_name, p_id, authz.me());
 end
 $$;
 
@@ -849,7 +871,7 @@ begin
       'author_id', n.created_by, 'edited_at', n.edited_at, 'version', n.version, 'mine', n.created_by = me,
       'mentions', coalesce((select pg_catalog.jsonb_agg(m.person_id order by m.created_at, m.person_id)
                             from core.mention m where m.note_id = n.id and m.deleted_at is null), '[]'::jsonb),
-      'from_notes', my.from_notes('core.note', n.id, me))
+      'from_note', my.from_note('core.note', n.id, me))
       order by n.happened_on desc, n.logged_at desc, n.id)
     from (select * from core.note x
           where x.entity_table = e.table_name and x.entity_id = p_id and x.deleted_at is null
@@ -920,9 +942,9 @@ $$;
 
 -- ================================================================ grants and the doors (V124)
 grant execute on function my.note_capture(text, jsonb, uuid[]), my.note_update(uuid, jsonb, int, uuid[]),
-  my.note_remove(uuid[], text), my.note_turn_into(uuid, text, jsonb), my.note_finish_meeting(uuid, jsonb),
-  my.note_wrap_up(date, jsonb), my.my_day(text, int, int), my.note_get(uuid), my.note_links(text, uuid),
-  core.reminder_remove(uuid[], text)
+  my.my_notes_remove(uuid[], text), my.note_turn_into(uuid, text, jsonb), my.note_finish_meeting(uuid, jsonb),
+  my.note_wrap_up(date, jsonb), my.my_day(text, int, int, timestamptz), my.note_get(uuid), my.from_note_of(text, uuid),
+  core.reminders_remove(uuid[], text)
   to authenticated;
 
 create function api.note_capture(p_kind text, p_values jsonb default null, p_mentions uuid[] default null) returns jsonb
@@ -931,27 +953,29 @@ as $$ select my.note_capture(p_kind, p_values, p_mentions) $$;
 create function api.note_update(p_id uuid, p_values jsonb, p_version int, p_mentions uuid[] default null) returns jsonb
 language sql volatile security invoker set search_path = ''
 as $$ select my.note_update(p_id, p_values, p_version, p_mentions) $$;
-create function api.note_remove(p_ids uuid[], p_reason text default null) returns jsonb
-language sql volatile security invoker set search_path = '' as $$ select my.note_remove(p_ids, p_reason) $$;
-create function api.note_turn_into(p_id uuid, p_into text, p_values jsonb default null) returns jsonb
+create function api.my_notes_remove(p_ids uuid[], p_reason text default null) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select my.my_notes_remove(p_ids, p_reason) $$;
+create function api.note_turn_into(p_note uuid, p_kind text, p_values jsonb default null) returns jsonb
 language sql volatile security invoker set search_path = ''
-as $$ select my.note_turn_into(p_id, p_into, p_values) $$;
-create function api.note_finish_meeting(p_id uuid, p_values jsonb default null) returns jsonb
+as $$ select my.note_turn_into(p_note, p_kind, p_values) $$;
+create function api.note_finish_meeting(p_note uuid, p_values jsonb default null) returns jsonb
 language sql volatile security invoker set search_path = ''
-as $$ select my.note_finish_meeting(p_id, p_values) $$;
-create function api.note_wrap_up(p_day date, p_steps jsonb) returns jsonb
-language sql volatile security invoker set search_path = '' as $$ select my.note_wrap_up(p_day, p_steps) $$;
-create function api.my_day(p_scope text default 'me', p_limit int default 7, p_offset int default 0) returns jsonb
-language sql stable security invoker set search_path = '' as $$ select my.my_day(p_scope, p_limit, p_offset) $$;
-create function api.note(p_id uuid) returns jsonb
+as $$ select my.note_finish_meeting(p_note, p_values) $$;
+create function api.note_wrap_up(p_day date, p_choices jsonb) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select my.note_wrap_up(p_day, p_choices) $$;
+create function api.my_day(p_scope text default 'me', p_limit int default 7, p_offset int default 0,
+                           p_since timestamptz default null) returns jsonb
+language sql stable security invoker set search_path = ''
+as $$ select my.my_day(p_scope, p_limit, p_offset, p_since) $$;
+create function api.my_note(p_id uuid) returns jsonb
 language sql stable security invoker set search_path = '' as $$ select my.note_get(p_id) $$;
-create function api.note_links(p_entity text, p_id uuid) returns jsonb
-language sql stable security invoker set search_path = '' as $$ select my.note_links(p_entity, p_id) $$;
-create function api.reminder_remove(p_ids uuid[], p_reason text default null) returns jsonb
-language sql volatile security invoker set search_path = '' as $$ select core.reminder_remove(p_ids, p_reason) $$;
+create function api.from_note(p_entity text, p_id uuid) returns jsonb
+language sql stable security invoker set search_path = '' as $$ select my.from_note_of(p_entity, p_id) $$;
+create function api.reminders_remove(p_ids uuid[], p_reason text default null) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select core.reminders_remove(p_ids, p_reason) $$;
 
 grant execute on function api.note_capture(text, jsonb, uuid[]), api.note_update(uuid, jsonb, int, uuid[]),
-  api.note_remove(uuid[], text), api.note_turn_into(uuid, text, jsonb), api.note_finish_meeting(uuid, jsonb),
-  api.note_wrap_up(date, jsonb), api.my_day(text, int, int), api.note(uuid), api.note_links(text, uuid),
-  api.reminder_remove(uuid[], text)
+  api.my_notes_remove(uuid[], text), api.note_turn_into(uuid, text, jsonb), api.note_finish_meeting(uuid, jsonb),
+  api.note_wrap_up(date, jsonb), api.my_day(text, int, int, timestamptz), api.my_note(uuid), api.from_note(text, uuid),
+  api.reminders_remove(uuid[], text)
   to authenticated;

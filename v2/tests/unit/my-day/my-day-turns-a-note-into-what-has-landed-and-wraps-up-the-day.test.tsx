@@ -21,10 +21,11 @@ import {
   openCaptures,
   parseCapture,
   turnLive,
-  wrapUpSteps,
+  wrapUpChoices,
+  liveKinds,
 } from '../../../src/modules/my-day/logic';
 import { FromNoteChip, LinkChip, VisibilityChip } from '../../../src/modules/my-day/screens/NoteBits';
-import type { MyNote, TurnedInto } from '../../../src/modules/my-day/types';
+import type { MyNote, NoteLink } from '../../../src/modules/my-day/types';
 
 const html = (node: ReactNode) =>
   renderToStaticMarkup(
@@ -33,13 +34,17 @@ const html = (node: ReactNode) =>
     </NextIntlClientProvider>,
   );
 
-const turned = (over: Partial<TurnedInto> = {}): TurnedInto => ({
-  entity: 'note',
+const turned = (over: Partial<NoteLink> = {}): NoteLink => ({
+  entity: 'activity',
   id: 'a1',
   made_at: '2026-10-01T09:00:00Z',
   made_by: 'p1',
   partner_id: null,
+  partner_name_en: null,
+  partner_name_ar: null,
   type: null,
+  type_en: null,
+  type_ar: null,
   happened_on: null,
   remind_at: null,
   sent_at: null,
@@ -58,17 +63,22 @@ const note = (over: Partial<MyNote> = {}): MyNote => ({
   logged_at: '2026-10-01T08:00:00Z',
   author_id: 'p1',
   mine: true,
-  meeting_partner_id: null,
+  meeting_partner: null,
   meeting_on: null,
   finished_at: null,
   carried_to: null,
   done_at: null,
   mentions: [],
-  turned_into: [],
+  links: [],
   ...over,
 });
 
 describe('Turn into', () => {
+  it('the menu leaves out a kind whose page is not built — never greyed (GC-1)', () => {
+    expect(liveKinds(new Set())).toEqual(['activity', 'reminder']);
+    expect(liveKinds(new Set(['tasks']))).toEqual(['activity', 'reminder', 'task', 'action_item']);
+    expect(liveKinds(new Set(['tasks', 'kpis']))).toHaveLength(5);
+  });
   it('offers a logged meeting or call and a reminder now', () => {
     expect(turnLive('activity', new Set())).toBe(true);
     expect(turnLive('reminder', new Set())).toBe(true);
@@ -116,7 +126,7 @@ describe('Wrap up today', () => {
       note({ id: 'earlier', happened_on: '2026-09-29' }),
       note({ id: 'colleague', mine: false }),
       note({ id: 'finished', kind: 'meeting', finished_at: '2026-10-01T10:00:00Z' }),
-      note({ id: 'turned', turned_into: [turned({ entity: 'reminder', id: 'r1' })] }),
+      note({ id: 'turned', links: [turned({ entity: 'reminder', id: 'r1' })] }),
     ];
     expect(openCaptures(notes).map((n) => n.id)).toEqual(['open', 'earlier']);
   });
@@ -126,38 +136,37 @@ describe('Wrap up today', () => {
     expect(nextWorkingDay('2026-10-03'), 'Saturday to Sunday').toBe('2026-10-04');
   });
   it('sends only the choices made, carry or done, as api.note_wrap_up takes them', () => {
-    expect(wrapUpSteps({ a: 'carry', b: 'done', c: undefined })).toEqual([
-      { id: 'a', action: 'carry' },
-      { id: 'b', action: 'done' },
+    expect(wrapUpChoices({ a: 'carry', b: 'done', c: undefined })).toEqual([
+      { note: 'a', choice: 'carry' },
+      { note: 'b', choice: 'done' },
     ]);
   });
 });
 
 describe('the chips', () => {
-  const org = { id: 'org-1', number: 'DK-P-1', trade_name_en: 'Test Org', trade_name_ar: null };
-  const names = {
-    partners: { 'org-1': org },
-    types: [{ id: 't1', key: 'call', name_en: 'Call', name_ar: 'مكالمة', sort: 1, active: true }],
-  };
+  const call = turned({
+    partner_id: 'org-1',
+    partner_name_en: 'Test Org',
+    type: 'call',
+    type_en: 'Call',
+    type_ar: 'مكالمة',
+  });
   it('a private note says "Only me" — there is no admin override (V454)', () => {
     expect(html(<VisibilityChip visibility="private" />)).toContain('Only me');
     expect(html(<VisibilityChip visibility="team" />)).toContain('My team');
     expect(html(<VisibilityChip visibility="workspace" />)).toContain('Everyone');
   });
   it('"turned into" opens the organisation; a reminder names its time', () => {
-    const call = turned({ partner_id: 'org-1', type: 'call' });
     expect(linkRoute(call)).toBe('/partners/org-1');
-    const chip = html(<LinkChip link={call} names={names} />);
+    const chip = html(<LinkChip link={call} />);
     expect(chip).toContain('href="/partners/org-1"');
     expect(chip).toContain('Call · Test Org');
-    const reminder = html(
-      <LinkChip link={turned({ entity: 'reminder', remind_at: '2026-10-02T06:00:00Z' })} names={names} />,
-    );
+    const reminder = html(<LinkChip link={turned({ entity: 'reminder', remind_at: '2026-10-02T06:00:00Z' })} />);
     expect(reminder).toContain('Reminder · ');
     expect(reminder).not.toContain('href=');
   });
   it('"from note" opens the note', () => {
     expect(noteRoute('n1')).toBe('/my-day/notes/n1');
-    expect(html(<FromNoteChip note={{ note_id: 'n1', title: 'Made-up note' }} />)).toContain('href="/my-day/notes/n1"');
+    expect(html(<FromNoteChip note={{ id: 'n1', title: 'Made-up note' }} />)).toContain('href="/my-day/notes/n1"');
   });
 });
