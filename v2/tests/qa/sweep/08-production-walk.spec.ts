@@ -22,7 +22,8 @@ const MIME = /\b(?:application|image|text|video|audio)\/[\w.+-]+/g;
 async function autofilled(page: Page, scope: string): Promise<{ total: number; open: string[] }> {
   return page
     .locator(
-      `${scope} input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=search]):not([type=password]), ${scope} textarea`,
+      // date pickers left out: browsers offer no autofill on them
+      `${scope} input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=search]):not([type=password]):not([type=date]):not([type=datetime-local]):not([type=time]):not([type=month]), ${scope} textarea`,
     )
     .evaluateAll((els) => ({
       total: els.length,
