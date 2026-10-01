@@ -8,7 +8,8 @@
        project), link, projects delete, and any supabase call naming --linked, --project-ref or --db-url;
      · a push that forces, deletes or rewrites (--force / -f / --force-with-lease, a +<refspec>, --delete, a
        :<branch> refspec, --mirror / --prune / --all / --tags), a push to production (claude/new-session-9fhlp1), to
-       v2/main, to another lane's branch or to a raw ref — the integration branch and production land by PR;
+       v2/main, to a branch outside the five lanes (v2/a-*, v2/b-*, v2/c-*, v2/q-*, v2/architecture) or to a raw ref —
+       the integration branch and production land by PR;
      · work thrown away for good: branch -D, reset --hard / --merge, clean, filter-branch / filter-repo.
    Everyday sandbox commands (rm, find, installs, one-line scripts, docker, the local supabase) are the allow list's
    and pass. The deny checks read the raw text, so a forced push hidden in $( ) or in node -e is still refused.
@@ -25,6 +26,9 @@ export function segmentsOf(command) {
 }
 
 // `git` at the start, after whitespace, or after $( ' " ` — a push hidden in a subshell or in node -e is read too
+/** The five lanes' work branches (the architect, 30 Sep): builders A, B and C, QA, and the architecture branch. */
+export const LANE_BRANCH = /^v2\/(?:(?:a|b|c|q)-[\w.-]+|architecture)$/;
+
 const git = (s) => /(^|[\s(`'"])git\s/.test(` ${s} `) || /^(sudo\s+)?git\s/.test(s);
 
 /** Why a command is denied, asked, or null when the allow list may decide. */
@@ -52,11 +56,12 @@ export function decide(command) {
         if (/\s--delete\b|\s-d\b/.test(s)) return deny('git push --delete removes a branch on the remote — refused');
         if (/\s:\S/.test(s) || /\s\S+:\S+(\s|$)/.test(s.replace(/\S+:\/\/\S+/g, ''))) return deny('a refspec with a colon on git push (deletes or renames on the remote) — refused');
         if (/\bclaude\/new-session-9fhlp1\b/.test(s)) return deny('a push to production (claude/new-session-9fhlp1) — refused; production lands by PR merge');
-        // only this lane's own work branches go up: v2/main lands by PR merge, other lanes own theirs
+        // only the lanes' own work branches go up — builders A, B, C, QA and the architect (the guard ships in every
+        // checkout, so it admits all five); v2/main lands by PR merge, production too
         const refs = s.replace(/\S+:\/\/\S+/g, '').split(/\s+/).filter((w) => /^(v2|claude)\//.test(w) || /^refs\//.test(w) || w === 'HEAD');
-        if (refs.some((r) => !/^v2\/b-[\w.-]+$/.test(r) && !/^claude\/(?!new-session-9fhlp1)[\w.-]+$/.test(r)))
-          return deny("a push to v2/main, another lane's branch or a raw ref — refused; the integration branch lands by PR");
-        if (!refs.length && !/\s(-u|--set-upstream)\s/.test(s)) return deny('a push naming no branch of this lane — refused; name the v2/b-* branch');
+        if (refs.some((r) => !LANE_BRANCH.test(r) && !/^claude\/(?!new-session-9fhlp1)[\w.-]+$/.test(r)))
+          return deny('a push to v2/main, a branch outside the five lanes or a raw ref — refused; the integration branch lands by PR');
+        if (!refs.length && !/\s(-u|--set-upstream)\s/.test(s)) return deny('a push naming no lane branch — refused; name the v2/<lane>-* branch');
       }
       if (/\bbranch\b[^]*\s-[a-zA-Z]*D/.test(s)) return deny('git branch -D throws a branch away — refused; a branch is deleted by the oversight after its PR merges');
       if (/\breset\b[^]*--hard/.test(s) || /\breset\s+--merge\b/.test(s)) return deny('git reset --hard throws work away — refused; commit or stash instead');

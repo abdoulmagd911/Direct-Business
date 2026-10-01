@@ -38,14 +38,15 @@ test('Ctrl K opens the palette and goes to a page', async ({ page, context }) =>
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Tasks');
 });
 
-test('the Create menu lists the create actions and the top bar carries no page title', async ({ page, context }) => {
+test('the Create menu offers nothing until a create screen is built (W4/W28); the top bar carries no page title', async ({
+  page,
+  context,
+}) => {
   await setPrefs(context, { theme: 'colorful' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
-  await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem', { name: 'Task' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: 'Invoice' })).toBeVisible();
-  await page.keyboard.press('Escape');
+  // no create screen has landed yet: no Create button, so no raw address is ever offered
+  await expect(page.locator('[data-create]'), 'no Create button before a create screen is built').toHaveCount(0);
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');
   await expect(page.locator('h1')).toHaveText('Clients');
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Clients');
@@ -70,7 +71,8 @@ test('under 640 px the bottom bar carries My day · Tasks · Clients · KPIs · 
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
-  await expect(page.locator('[data-create-floating]')).toBeVisible();
+  // the floating + is My day's, and only once a create screen is built (item 16, W4)
+  await expect(page.locator('[data-create-floating]')).toHaveCount(0);
   await expect(page.locator('[data-create]')).toBeHidden();
 });
 

@@ -7,6 +7,35 @@ import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import type { SettingSchema } from '../schema';
 
+/** File types as people say them (files.allowed_types holds MIME types — W20). */
+const FILE_TYPES: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'image/png': 'PNG',
+  'image/jpeg': 'JPEG',
+  'image/webp': 'WebP',
+  'image/gif': 'GIF',
+  'image/svg+xml': 'SVG',
+  'text/csv': 'CSV',
+  'text/plain': 'Text',
+  'application/msword': 'Word (.doc)',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
+  'application/vnd.ms-excel': 'Excel (.xls)',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
+  'application/vnd.ms-powerpoint': 'PowerPoint (.ppt)',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
+  'application/zip': 'ZIP',
+};
+
+/** A key in plain words: its wording, else "account_manager" → "Account manager". */
+export function useKeyWords() {
+  const t = useTranslations();
+  return (k: string): string => {
+    if (t.has(`settings.fields.${k}`)) return t(`settings.fields.${k}`);
+    const plain = k.replace(/_/g, ' ');
+    return plain.charAt(0).toUpperCase() + plain.slice(1);
+  };
+}
+
 /** The word for an enum value: the setting's own list in the catalog, else a shared list, else the value itself. */
 export function useValueWords(settingKey: string) {
   const t = useTranslations();
@@ -14,21 +43,23 @@ export function useValueWords(settingKey: string) {
     if (typeof v === 'boolean') return t(`settings.setting.values.${v}`);
     if (typeof v === 'number') return String(v);
     if (typeof v !== 'string') return JSON.stringify(v);
+    if (FILE_TYPES[v]) return FILE_TYPES[v];
     for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])
       if (t.has(k)) return t(k);
     return v;
   };
 }
 
-/** A value as words, for the card and the preview: lists joined, objects as "key value" pairs. */
+/** A value as words, for the card and the preview: lists joined, objects as "Key: value" pairs (W16). */
 export function SchemaValue({ settingKey, value }: { settingKey: string; value: unknown }) {
   const word = useValueWords(settingKey);
+  const keyWord = useKeyWords();
   if (Array.isArray(value)) return <>{value.length ? value.map(word).join(' · ') : '—'}</>;
   if (value && typeof value === 'object')
     return (
       <>
         {Object.entries(value as Record<string, unknown>)
-          .map(([k, v]) => `${k} ${word(v)}`)
+          .map(([k, v]) => `${keyWord(k)}: ${word(v)}`)
           .join(' · ')}
       </>
     );
