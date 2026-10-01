@@ -333,6 +333,10 @@ Vercel (V13, V21, V84).
     it; "B2C" is banned; the Partnerships and improvements reports are monthly; a note on a record says who can see it
     (everyone on the record, only me, or me and the people I name — after stage 1 opens); undo on money is parked with
     Finance's redesign around transactions; the Vision board joins the later modules (`FUTURE-MODULES.md`).
+95. **Later, agreed the same night** (V527–V530): the Vision board is a read-only view over what is recorded
+    (about November); an Ideas label and a quick note from the + (stage 1; the simple + entry the week after stage
+    0); a weekly nudge that turns the week's closed tasks into achievements in one tap (early November); later, an
+    e-mail or message forwarded into a note.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

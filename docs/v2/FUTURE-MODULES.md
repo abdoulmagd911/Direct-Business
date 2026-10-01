@@ -18,6 +18,14 @@ data in the repository) and never duplicates Direct's own systems (V515).
 | 7 | Guarantees | Every guarantee received or given, with expiry reminders | 4 | S |
 | 8 | Referral terms | What a partner earns for the volume it brings, worked out from Finance | 6 | S |
 | 9 | Payments imports (P7) | Finance filled from Payments exports instead of typing — already planned as P7 | 1 | M |
-| 10 | **Vision board** (V526, owner 1 Oct) | **No spec yet.** Open questions: whose board it is (personal, team or department); what goes on it; how it links to the KPIs and the yearly plan; who sees it. They sit in the Project doc `claude/future-vision-board.md` | — | — |
+| 10 | **Vision board** (V526, V527, owner 1 Oct) | **A read-only view over what is already recorded**: the yearly objectives, the KPIs with their pace, the achievements and tasks behind them, each person's goals — nothing typed on it. Target about November, after the KPIs are live. Still open: whose board (personal, team or department) and who sees it — the Project doc `claude/future-vision-board.md` | — | S–M |
+
+## Later items inside the modules we have
+
+| Item | Decision | When |
+|---|---|---|
+| **Ideas** label on My day notes; **Quick note** from the + on every screen | V528 | the simple + entry through the fast lane the week after stage 0; the label and the capture over any page with stage 1 (18 Oct) |
+| **The weekly nudge**: the week's closed tasks become achievements in one tap | V529 | after stage 2 (achievements), target early November |
+| An **e-mail or message forwarded** into a private note | V530 | later, not dated; an inbound-mail service, its cost flagged first (V6) |
 
 A module leaves this list only by an owner decision that gives it a V-number, a brief and a step in `BUILD-PLAN.md`.

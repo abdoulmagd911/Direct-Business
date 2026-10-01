@@ -605,6 +605,7 @@ my.note           STD SOFT; person_id (the author); kind ('sticky','meeting','ch
                   happened_on date not null; logged_at timestamptz not null default now();          -- V400
                   meeting_partner_id → partner.partner; meeting_on date; finished_at (Finish meeting);
                   carried_to date (Wrap up today: carried over); done_at (Wrap up today: done)
+                  idea boolean not null default false   -- V528 (stage 1): the Ideas label; My day's Ideas filter
 my.note_link      STD; note_id → my.note; entity_table; entity_id; kind ('turned_into'); made_at; made_by
                   -- the two-way link: the record shows "from note", the note "turned into"; removing either record
                   -- removes the link and never the other record; V524: kind 'about' = the record a note is written on
@@ -643,6 +644,9 @@ logged meeting or call and a reminder in P3-13; a task and an action item with P
   read rule — invisible to everyone else, admins included unless named, in search, exports, notifications, history,
   Activity and View as; its readers see a small lock chip. The named list does not follow a change of record owner.
   Never on a person's record; the appraisal never reads it (V515).
+- **Ideas and Quick note** (V528, not in stage 0): a note may carry the **Ideas** label (`idea`), and My day filters
+  by it; the **+** offers **Quick note** on every screen to everyone with My day — a small capture over the current
+  page, saved as a private note through `api.note_capture`, the page underneath kept as it was.
 - **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares, and for a manager the team
   load — open, overdue and stale by priority, blocked items, escalations; the whole department for a head —
   OLD-WRK-008) · **Workspace** (what everyone shares); each block shows **5–7 rows** and a "more" link; Comfortable,
@@ -1479,6 +1483,10 @@ signatory and title, our signatory (person), event, signing date, announced (yes
 **only when the side has no status yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request,
 reason "MoU signed").
 - **Awards**: an optional entry cost (amount).
+- **The weekly nudge** (V529, after stage 2): once a week (`perf.nudge_day`, `perf.nudge_time`; default Friday as the
+  owner said) each person is told which of their tasks closed that week and are not yet linked to an achievement; one
+  tap opens a sheet that logs the ticked ones — a category each, the task as the evidence (`perf.achievement_ref`),
+  the done date as `happened_on` — as one request with one Undo; a task left unticked is not offered again.
 - **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
   ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
 it the

@@ -331,6 +331,18 @@ My day's notes) if rows 1–5 merge by Saturday night; stage 1 on **Sunday 18 Oc
 | 14 | Achievements tables and screens, the grid's achievements mode | E (V519) | after #140; brief `briefs/achievements.md`, GC-4 — **stage 2**, target 25 Oct |
 | 15 | P5-11 notes on a record with Who can see (V524) | A + B | after stage 1 opens, with stage 2 at the latest; never holds up stage 1 |
 
+## After the pilot's stages (owner, 1 Oct night)
+
+Agreed, and kept out of stage 0 so it is not put at risk. The modules still to come are in `FUTURE-MODULES.md`.
+
+| Item | Owner | What it needs | Target |
+|---|---|---|---|
+| Quick note on the + in its simple form — the + opens My day's capture (V528) | B | #138 merged, stage 0 live; the fast lane (V518) | the week after stage 0 |
+| The Ideas label (`my.note.idea`, the Ideas filter) and the quick note as a capture over any page (V528) | A + B | #139 and #138 merged; one small migration, full QA | stage 1, 18 Oct |
+| The weekly nudge: the week's closed tasks become achievements in one tap (V529) | E + A | #140, #148 and E's screens; A's weekly job and notification kind | after stage 2, early November |
+| The Vision board: a read-only view over the plan, the KPIs with pace, the achievements and tasks, each person's goals (V527) | A + B | P5-4 and P5-6 live (deferred in the pilot); a brief and a gate card first | about November |
+| An e-mail or message forwarded into a private note (V530) | A | an inbound-mail service, its cost flagged first (V6) | later, not dated |
+
 ## Order at a glance
 
 ```

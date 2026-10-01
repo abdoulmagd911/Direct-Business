@@ -16,8 +16,8 @@ Q45 the report periods → **V523** (monthly). Q41 was answered on 29 Sep (V473)
 invoices in a joint design session; until then the old safe default holds — only admins and managers with Full on
 Finance undo a change to money.
 
-**Later, not open:** the Vision board's questions (whose board, what goes on it, its link to the KPIs and the yearly
-plan, who sees it) wait until the owner takes the module up — `FUTURE-MODULES.md`, module 10 (V526).
+**Later, not open:** the Vision board's direction is set (V527: a read-only view over what is recorded, about
+November); whose board it is and who sees it wait for its brief — `FUTURE-MODULES.md`, module 10.
 
 No default is pending: the Scout's money rulings V420–V425 were made ACTIVE by the owner on 29 Sep 12:55 (V434), their
 numbers and switches now admin settings.
