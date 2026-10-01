@@ -24,6 +24,7 @@
       "switched_off": "Your account is switched off",
       "code_expired": "The code has expired — send a new one",
       "code_invalid": "That code is not right — check it or send a new one",
+      "code_off": "Sign in with your password",
       "invalid_email": "Enter your work email.",
       "rate_limited": "Too many codes asked for — wait a minute and try again",
       "unavailable": "Sign-in is not available right now — try again",
@@ -54,7 +55,10 @@
         "rate_limited": "Too many attempts. Try again in 15 minutes or ask your admin.",
         "unavailable": "Can't reach the server. Check your connection and try again.",
         "email_required": "Enter your work email.",
-        "password_required": "Enter your password."
+        "password_required": "Enter your password.",
+        "too_long": "Too long — choose a shorter password",
+        "same_as_email": "Not your email address",
+        "not_needed": "Your password doesn't need changing here — use My profile → Change password."
       },
       "subtitle": "Sign in with your work email and password.",
       "signingIn": "Signing in…",
@@ -94,7 +98,7 @@
     "settings": {
       "profile": "My profile",
       "org": "Organization & access",
-      "partners": "Clients and Suppliers & partners",
+      "partners": "Clients & suppliers",
       "performance": "Plan & performance",
       "finance": "Finance",
       "work": "Work",
@@ -111,7 +115,8 @@
     "create": "Create",
     "notifications": "Notifications",
     "notificationsUnread": "Notifications, {count} unread",
-    "profile": "My profile"
+    "profile": "My profile",
+    "searchShort": "Search"
   },
   "palette": {
     "placeholder": "Go to a page or search…",
@@ -204,11 +209,27 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "Good day, {name}"
+      "greeting": "Good day, {name}",
+      "greetingMorning": "Good morning, {name}",
+      "greetingAfternoon": "Good afternoon, {name}",
+      "greetingEvening": "Good evening, {name}",
+      "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
+      "goSettings": "Go to Settings"
     },
     "settings": {
       "myProfile": "My profile",
       "find": "Find a setting"
+    },
+    "empty": {
+      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
+      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
+      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
+      "projects": "No projects yet. Projects and their milestones appear here.",
+      "tasks": "No tasks yet. Tasks you own or follow appear here.",
+      "finance": "No invoices yet. Invoices, cost and profit appear here.",
+      "kpis": "No KPIs yet. Targets and actuals appear here.",
+      "reports": "No reports yet. Issued reports appear here.",
+      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
     }
   },
   "entity": {
@@ -330,7 +351,8 @@
       "late_days": "Days after which an entry is logged late"
     },
     "auth": {
-      "device_idle_days": "Days a device may go unused before it needs a new code"
+      "device_idle_days": "Days a device may go unused before it signs in again",
+      "code_door_enabled": "Sign in with an emailed code as well as the password"
     },
     "app": {
       "arabic_enabled": "Arabic",
@@ -432,6 +454,7 @@
       "team.saved": "Team saved",
       "department.saved": "Department saved",
       "role.saved": "Role saved",
+      "person.account_set": "Account type set",
       "view.removed": "View removed",
       "view.saved": "View saved",
       "record.restored": "Record restored",
@@ -444,7 +467,7 @@
       "result": "Result",
       "device": "Device",
       "results": {
-        "code_sent": "Code sent",
+        "code_sent": "Email checked",
         "ok": "Signed in",
         "not_listed": "Not on the list",
         "switched_off": "Switched off",
@@ -452,7 +475,9 @@
         "code_expired": "Code expired",
         "provider_error": "Sending failed",
         "signed_out": "Signed out",
-        "rate_limited": "Too many codes"
+        "rate_limited": "Too many tries",
+        "wrong_password": "Wrong password",
+        "locked": "Locked — too many wrong passwords"
       }
     },
     "loadMore": "Show earlier",
@@ -460,7 +485,62 @@
       "restore": "Restore",
       "restored": "{what} restored",
       "none": "Nothing removed recently"
-    }
+    },
+    "fields": {
+      "full_name_en": "Full name",
+      "full_name_ar": "Full name (Arabic)",
+      "nickname_en": "Nickname",
+      "nickname_ar": "Nickname (Arabic)",
+      "job_title_en": "Job title",
+      "job_title_ar": "Job title (Arabic)",
+      "department_id": "Department",
+      "team_id": "Team",
+      "manager_id": "Reports to",
+      "role_id": "Role",
+      "can_sign_in": "Can sign in",
+      "joined_on": "Joined",
+      "left_on": "Left on",
+      "active": "Active",
+      "email": "Email",
+      "is_primary": "Primary",
+      "display_name_en": "Display name",
+      "display_name_ar": "Display name (Arabic)",
+      "theme": "Theme",
+      "density": "Density",
+      "locale": "Language",
+      "start_page": "Start page",
+      "drawer_pinned": "Drawer",
+      "notify": "Notifications",
+      "avatar_color": "Colour",
+      "badge_kind": "Badge",
+      "badge_value": "Badge value",
+      "name_en": "Name",
+      "name_ar": "Name (Arabic)",
+      "key": "Key",
+      "sort": "Order",
+      "value": "Value",
+      "valid_from": "Applies from",
+      "reason": "Reason",
+      "level": "Level",
+      "page_key": "Page",
+      "capability_key": "Capability",
+      "granted": "Granted",
+      "trade_name_en": "Trade name",
+      "trade_name_ar": "Trade name (Arabic)",
+      "status": "Status",
+      "owner_id": "Owner",
+      "priority_id": "Priority",
+      "key_partner": "Key partner",
+      "type_id": "Type",
+      "tier_id": "Tier",
+      "side": "Side",
+      "on": "On",
+      "since": "Since",
+      "until": "Until"
+    },
+    "moreFields": "+{count} more",
+    "fieldsCount": "{count} fields",
+    "reportsTo": "reports to {name}"
   },
   "profile": {
     "title": "My profile",
@@ -481,8 +561,7 @@
     "badge": "Badge",
     "badgeKind": {
       "none": "No badge",
-      "icon": "Icon",
-      "zodiac": "Zodiac sign"
+      "icon": "Icon"
     },
     "badgeValue": "Which one",
     "theme": "Theme",
@@ -601,7 +680,19 @@
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
       "entries": "{count} entries",
-      "banned": "The app never says {word}"
+      "banned": "The app never says {word}",
+      "side": "Side",
+      "status": "Status",
+      "values": {
+        "side": {
+          "client": "Client",
+          "supplier_partner": "Supplier & partner"
+        },
+        "status": {
+          "at_risk": "At risk",
+          "lost": "Lost"
+        }
+      }
     },
     "people": {
       "add": "Add person",
@@ -659,10 +750,24 @@
         "generated": "Temporary password generated",
         "body": "A random temporary password is made and shown once, here, with Copy. The person chooses their own at their next sign-in.",
         "temporaryTitle": "Temporary password for {name}",
-        "temporaryBody": "Hand it over in person or by phone. It works once: the next sign-in asks for a new password.",
+        "temporaryBody": "Hand it over in person or by phone — it is shown only now. It works until they choose their own password, which their next sign-in asks for before anything else.",
         "copy": "Copy",
         "copied": "Copied"
-      }
+      },
+      "noRole": "No role",
+      "adminAccount": "Admin account",
+      "testAccount": "Test account",
+      "searchPlaceholder": "Search by name or email",
+      "addEmailFor": "Add an email for {name}",
+      "removeEmailTitle": "Remove {email}?",
+      "removeEmailBody": "{email} can no longer sign in. Every change is logged with its reason.",
+      "pagesGroup": "Pages",
+      "settingsGroup": "Settings sections",
+      "nicknameEn": "Nickname",
+      "nicknameAr": "Nickname (Arabic)",
+      "fullNameAr": "Full name (Arabic)",
+      "switchedOn": "{name} switched on",
+      "switchedOff": "{name} switched off"
     },
     "teams": {
       "add": "Add team",
@@ -728,7 +833,36 @@
       "app.export_formats": {
         "csv": "CSV",
         "xlsx": "Excel"
+      },
+      "work": {
+        "week_starts_on": {
+          "saturday": "Saturday",
+          "sunday": "Sunday",
+          "monday": "Monday"
+        }
+      },
+      "partner": {
+        "logo_fallback": {
+          "monogram": "Initials",
+          "blank": "Blank"
+        }
+      },
+      "app": {
+        "export_formats": {
+          "csv": "CSV",
+          "xlsx": "Excel"
+        }
       }
+    },
+    "emptyGroup": "No settings here yet. They arrive with the step that builds this area.",
+    "fields": {
+      "width": "Digits",
+      "prefix": "Prefix",
+      "followers": "Followers",
+      "account_manager": "Account manager",
+      "commercial_manager": "Commercial manager",
+      "in_app": "In app",
+      "email": "Email"
     }
   },
   "errors": {
@@ -760,17 +894,24 @@
       "department_required": "A department is required",
       "manager_cycle": "A person cannot report to someone who reports to them",
       "team_outside_department": "The team is in another department",
-      "not_yourself": "Nobody switches themselves"
+      "not_yourself": "Nobody switches themselves",
+      "manager_not_team_member": "The admin account and the test account are nobody’s manager",
+      "has_reports": "People report to this person — give them another manager first",
+      "account_taken": "There is already one of these accounts",
+      "unknown_account": "That is not an account type",
+      "account_in_no_team": "The admin account and the test account are in no team and have no manager"
     },
-    "person_email": {
-      "taken": "That email already belongs to someone"
+    "people": {
+      "email_taken": "That email already belongs to {detail}"
     },
     "list": {
       "key_taken": "That key is already used",
       "key_fixed": "A key never changes",
       "nothing_to_change": "Nothing to change",
       "invalid": "That value is not allowed: {detail}",
-      "unknown_field": "Unknown field: {detail}"
+      "unknown_field": "Unknown field: {detail}",
+      "retire_blocked_by_duplicate": "Another record already holds the replacement there, so nothing was replaced",
+      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced"
     },
     "profile": {
       "invalid": "That value is not allowed: {detail}",
@@ -790,7 +931,8 @@
       "blocked_by_duplicate": "Another record now holds that value: {detail}",
       "not_undoable": "What the system wrote cannot be undone",
       "nothing_to_undo": "Nothing to undo",
-      "cannot_remove": "This record cannot be removed"
+      "cannot_remove": "This record cannot be removed",
+      "via_admin_route": "A sign-in change is undone from Settings, so the sign-in follows at once — try Undo there"
     },
     "auth": {
       "no_active_person": "You are not signed in"
@@ -816,7 +958,9 @@
       "not_removed": "This record is not removed",
       "too_late": "Removed more than {detail} days ago — ask an admin",
       "not_allowed": "Only who removed it, its owners or an admin restore it",
-      "blocked_by_duplicate": "Another record now holds the same value: {detail}"
+      "blocked_by_duplicate": "Another record now holds the same value: {detail}",
+      "via_admin_route": "A sign-in record is restored from Settings, so the sign-in follows at once — try Restore there",
+      "system_removal": "The app removed this itself when it was updated, so it is not restored"
     },
     "notify": {
       "unknown_tab": "Unknown notifications tab",
@@ -826,6 +970,22 @@
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
+    },
+    "crash": {
+      "title": "Something went wrong",
+      "body": "This page could not be drawn. Try again, or go back to My day.",
+      "goMyDay": "Go to My day",
+      "bodyNoData": "The app could not reach its data just now. Try again in a moment, or go to My day."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "There is nothing at <address></address>.",
+      "goMyDay": "Go to My day"
+    },
+    "person_password": {
+      "has_one": "This person already has a password of their own — it is kept",
+      "no_sign_in": "This person has no allowed email yet",
+      "confirm_required": "A Reset replaces the password they hold — confirm it first"
     }
   },
   "notifications": {
@@ -869,7 +1029,8 @@
       "alert_activity_stale": "{what} has had no activity",
       "alert_file_review": "A file on {what} is due for review",
       "other": "{actor} · {what}"
-    }
+    },
+    "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
   },
   "follow": {
     "follow": "Follow",

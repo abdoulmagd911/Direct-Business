@@ -21,7 +21,8 @@
     "sabotage": "node scripts/sabotage.mjs",
     "db:test": "node scripts/db/test.mjs",
     "db:grants": "node scripts/db/test.mjs --write-grants",
-    "registry:sync": "tsx scripts/registry/sync.ts"
+    "registry:sync": "tsx scripts/registry/sync.ts",
+    "fixtures:local": "node scripts/fixtures/seed-local.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

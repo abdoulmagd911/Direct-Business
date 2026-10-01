@@ -1,20 +1,29 @@
 'use server';
 
-// The two steps of the emailed-code door (TECH-SPEC §4 step 3, V59), run on the server:
-//   sendCode   — is this email allowed? (api.sign_in_check, with the secret key; a refusal is logged with its reason)
-//                then Supabase emails a 6-digit code, never creating a user (sign-ups are off; shouldCreateUser false).
-//   verifyCode — Supabase checks the code and sets the session cookie; api.sign_in_complete, as the new session, logs
-//                the sign-in and registers this device (V74), or refuses and the session is ended at once.
+// The emailed-code door, run on the server (TECH-SPEC §4; V59 as amended by V166 — the door is e-mail and password,
+// password-actions.ts; this one is off unless an admin switches auth.code_door_enabled on, and no e-mail is sent):
+//   sendCode / verifyCode — Supabase emails a 6-digit code (never creating a user; sign-ups are off), then checks it;
+//                the database completes the sign-in (api.sign_in_complete), refusing a code session while the door is
+//                off. A password an admin set must be changed first: the sign-in goes to CHANGE_PASSWORD_PATH.
+//   signInMethods — which doors the database offers (the password always; the code only when switched on).
 // Refusals come back as keys of the catalog's sign_in.error.*; nothing here trusts the browser to decide access.
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { serverDb } from '@/core/db/server';
 import { serviceDb } from '@/core/db/service';
 import { deviceLabel } from './device-label';
+import { CHANGE_PASSWORD_PATH } from './password';
 import { safeNext } from './safe-next';
 
 export type SignInError =
-  'invalid_email' | 'not_listed' | 'switched_off' | 'rate_limited' | 'code_expired' | 'code_invalid' | 'unavailable';
+  | 'invalid_email'
+  | 'not_listed'
+  | 'switched_off'
+  | 'rate_limited'
+  | 'code_expired'
+  | 'code_invalid'
+  | 'code_off'
+  | 'unavailable';
 
 export type SendCodeResult = { ok: true; email: string } | { ok: false; error: SignInError };
 export type VerifyCodeResult = { ok: false; error: SignInError };
@@ -27,6 +36,37 @@ async function userAgent(): Promise<string | null> {
   return (await headers()).get('user-agent');
 }
 
+/** The doors the sign-in page offers: the password always; the emailed code only when an admin switched it on. */
+export async function signInMethods(): Promise<{ password: boolean; code: boolean }> {
+  const { data, error } = await serviceDb().rpc('sign_in_methods');
+  const methods = data as { password?: boolean; code?: boolean } | null;
+  if (error || !methods) return { password: true, code: false };
+  return { password: methods.password !== false, code: methods.code === true };
+}
+
+/** After a door let the session in: the database completes the sign-in, and where the person goes next. */
+async function complete(next: string | null, ua: string | null): Promise<{ ok: false; error: SignInError }> {
+  const db = await serverDb();
+  const done = await db.rpc('sign_in_complete', {
+    p_provider: 'email',
+    p_device_label: deviceLabel(ua) ?? undefined,
+    p_user_agent: ua ?? undefined,
+  });
+  if (!done.error && done.data === 'must_change_password')
+    redirect(`${CHANGE_PASSWORD_PATH}?next=${encodeURIComponent(safeNext(next))}`);
+  if (done.error || done.data !== 'ok') {
+    await db.auth.signOut({ scope: 'local' });
+    const refused =
+      done.data === 'not_listed' || done.data === 'switched_off' || done.data === 'code_off'
+        ? done.data
+        : done.data === 'locked'
+          ? 'rate_limited'
+          : 'unavailable';
+    return { ok: false, error: refused };
+  }
+  redirect(safeNext(next));
+}
+
 export async function sendCode(rawEmail: string): Promise<SendCodeResult> {
   const email = String(rawEmail ?? '')
     .trim()
@@ -36,6 +76,8 @@ export async function sendCode(rawEmail: string): Promise<SendCodeResult> {
 
   const check = await serviceDb().rpc('sign_in_check', { p_email: email, p_user_agent: ua ?? undefined });
   if (check.error) return { ok: false, error: 'unavailable' };
+  if (check.data === 'code_off') return { ok: false, error: 'code_off' };
+  if (check.data === 'locked' || check.data === 'rate_limited') return { ok: false, error: 'rate_limited' };
   if (check.data === 'not_listed' || check.data === 'switched_off') return { ok: false, error: check.data };
   if (check.data !== 'allowed') return { ok: false, error: 'unavailable' };
 
@@ -64,6 +106,12 @@ export async function verifyCode(
     .toLowerCase();
   const code = String(rawCode ?? '').replace(/\D/g, '');
   if (!EMAIL.test(email)) return { ok: false, error: 'invalid_email' };
+  // The door is off unless an admin switched it on (ACC-011): no code is checked at all, whatever Auth would say.
+  if (!(await signInMethods()).code) return { ok: false, error: 'code_off' };
+  // Nor for an e-mail that is locked or tried too often (V172).
+  const limited = await serviceDb().rpc('sign_in_limited', { p_email: email });
+  if (limited.error) return { ok: false, error: 'unavailable' };
+  if (limited.data) return { ok: false, error: 'rate_limited' };
   const ua = await userAgent();
   const late = Number.isFinite(sentAt) && Date.now() - sentAt > CODE_LIFETIME_S * 1000;
   if (code.length !== 6) return { ok: false, error: 'code_invalid' };
@@ -75,18 +123,7 @@ export async function verifyCode(
     await logEvent(email, reason, verified.error?.code ?? verified.error?.message ?? null, ua);
     return { ok: false, error: reason };
   }
-
-  const done = await db.rpc('sign_in_complete', {
-    p_provider: 'email',
-    p_device_label: deviceLabel(ua) ?? undefined,
-    p_user_agent: ua ?? undefined,
-  });
-  if (done.error || done.data !== 'ok') {
-    await db.auth.signOut({ scope: 'local' });
-    const refused = done.data === 'not_listed' || done.data === 'switched_off' ? done.data : 'unavailable';
-    return { ok: false, error: refused };
-  }
-  redirect(safeNext(next));
+  return complete(next, ua);
 }
 
 async function logEvent(

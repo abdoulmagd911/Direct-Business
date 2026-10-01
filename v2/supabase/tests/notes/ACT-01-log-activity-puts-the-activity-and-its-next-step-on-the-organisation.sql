@@ -4,7 +4,8 @@
 -- needs the demo's day, "meeting set" and "demo held" tell the screen what to offer; an activity dated in the past
 -- tells nobody; its author changes its outcome, to one of its own type only; a viewer, a person who sees neither side
 -- and an archived organisation log nothing. Every value is made up.
--- Sabotages: supabase/tests/sabotage/an-outcome-of-another-type.sql, supabase/tests/sabotage/anyone-logs-an-activity.sql.
+-- Sabotages: supabase/tests/sabotage/an-outcome-of-another-type.sql, supabase/tests/sabotage/anyone-logs-an-activity.sql,
+--            supabase/tests/sabotage/nothing-is-ever-late.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Member', 'member')::text, true);
@@ -87,3 +88,18 @@ update partner.partner set archived_at = now() where id = current_setting('t.q')
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.activity_log(%L, %L, %L)', current_setting('t.q'), 'call', 'answered'), 'P0001',
   'an archived organisation takes no activity', 'partner.archived');
+
+-- logged late (V400): after go-live, an entry logged more than work.late_days (14) after the day it happened is marked;
+-- one dated before go-live never is
+select test.as_owner();
+insert into core.setting (key, department_id, value, valid_from, reason)
+values ('app.go_live_on', null, to_jsonb((core.riyadh_today() - 60)::text), core.riyadh_today(), 'made up: live 60 days ago');
+select test.as_person(current_setting('t.am1')::uuid);
+select api.activity_log(current_setting('t.p')::uuid, 'note', null, core.riyadh_today() - 20, 'Made-up line: twenty days on');
+select api.activity_log(current_setting('t.p')::uuid, 'note', null, core.riyadh_today() - 10, 'Made-up line: ten days on');
+select api.activity_log(current_setting('t.p')::uuid, 'note', null, core.riyadh_today() - 70, 'Made-up line: before go-live');
+select test.eq((select jsonb_object_agg(n ->> 'body', n -> 'logged_late')
+                from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid)) n
+                where n ->> 'body' like 'Made-up line: %days on' or n ->> 'body' = 'Made-up line: before go-live'),
+  '{"Made-up line: twenty days on": true, "Made-up line: ten days on": false, "Made-up line: before go-live": false}'::jsonb,
+  'logged 20 days after the day is late; 10 days is not; before go-live never is');

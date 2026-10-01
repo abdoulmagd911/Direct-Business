@@ -93,6 +93,11 @@ export interface EntityDef {
    * a level — an organisation's records go by the pages of its sides. Without one, the level on `page`.
    */
   level?: string;
+  /**
+   * A record of what happened, never rewritten (a side's status changes — V62): retiring a list entry leaves it on
+   * these rows and counts them apart (V161).
+   */
+  history?: boolean;
 }
 
 export interface ModuleDef {

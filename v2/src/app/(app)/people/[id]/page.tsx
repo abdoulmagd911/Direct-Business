@@ -21,7 +21,7 @@ export default async function PersonPage({
   if (!person) notFound();
   const admin = me.person.role?.is_admin === true;
   const failed: string[] = [];
-  const [people, access, history, devices, signIns] = await Promise.all([
+  const [people, access, history, devices, ownDevices, signIns] = await Promise.all([
     maybe<PeopleAnswer>('people', failed, () => serverRpc('people', {} as never)),
     admin
       ? maybe<PersonAccess>('access', failed, () => serverRpc('access_of_person', { p_person: id } as never))
@@ -31,6 +31,9 @@ export default async function PersonPage({
     ),
     admin
       ? maybe<Device[]>('devices', failed, () => serverRpc('person_devices', { p_person: id }))
+      : Promise.resolve(null),
+    !admin && me.person.id === id
+      ? maybe<Device[]>('ownDevices', failed, () => serverRpc('my_devices', {} as never))
       : Promise.resolve(null),
     maybe<PersonRecordData['signIns']>('signIns', failed, () => serverRpc('sign_in_log', { p_person: id } as never)),
   ]);
@@ -43,6 +46,7 @@ export default async function PersonPage({
     access,
     history: history ? historyRows(history, 'person', id) : null,
     devices,
+    ownDevices,
     signIns,
     failed,
   };

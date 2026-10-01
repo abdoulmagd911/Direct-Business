@@ -51,11 +51,11 @@ select test.ok(current_setting('t.ss') <> '', 'but sets the Supplier & partner s
 select test.runs(format('select api.record_history(%L, %L)', 'side_status', current_setting('t.ss')),
   'and reads that side''s history');
 select test.raises(format('select api.partner_status_set(%L, %L, %L)', current_setting('t.p'), 'client', 'lost'), '42501',
-  'not the Client side''s', 'access.needs_capability');
+  'not the Client side''s', 'access.needs_level');
 select test.raises(format('select api.partner_side_set(%L, %L, %L)', current_setting('t.p'), 'client', '{"tier": null}'),
   '42501', 'nor changes the Client side', 'access.needs_level');
 select test.raises(format('select api.partner_owner_set(%L, %L, %L)', current_setting('t.p'), 'client',
-  current_setting('t.sup')), '42501', 'nor names its owner', 'access.needs_capability');
+  current_setting('t.sup')), '42501', 'nor names its owner', 'access.needs_level');
 select test.ok((api.partner_owner_set(current_setting('t.p')::uuid, 'supplier_partner', current_setting('t.sup')::uuid)
                 ->> 'request_id') is not null, 'but names the Supplier & partner side''s');
 
