@@ -28,7 +28,8 @@ const LATIN_OK = new Set(
     ' ',
   ),
 );
-const WRITE_BUTTON = /^(\+|Add|Create|New|Edit|Remove|Delete|Archive|Save|Switch|Import|Upload|Merge|Assign|Restore)\b/;
+const WRITE_BUTTON =
+  /^(\+|Add(?! filter)|Create|New|Edit|Remove|Delete|Archive|Save|Switch|Import|Upload|Merge|Assign|Restore)\b/;
 
 /** The fixtures' names and the org names: data, not wording, on any page. */
 function dataWords(): Set<string> {

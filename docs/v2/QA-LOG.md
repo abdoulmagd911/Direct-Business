@@ -736,3 +736,19 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **On main 9fa2447:** the menus and Ctrl K offer no deferred module, every deferred address shows "You do not have access to …", the admin keeps all, and the levels come back as they were. Clients fails here because #123 isn't merged; My day's notes are NOT BUILT (#139 and #138).
   - It runs in full on the stage-0 tree once #139, #138, #123 and #132 merge, with the registry sync regenerated last (QA 2's QA-501).
 - **Merges first, then the path:** #138 conflicts with main on `DECISIONS.md`, and #132 conflicts with #138 on the registry syncs (rename/rename). These are the builders' to resolve as they merge.
+
+
+## Round 34 — 2026-10-02 00:21 (v2/main 9fa2447; #147 claimed by QA 1 as the pilot's stage 1, Tasks)
+
+- **#147 (Builder D: P5-2's first PR, the Tasks screens, on #140) at 1dd8268:**
+  - **SQL suite:** 152 of 160; the reds are the known fail-until-built ones (QA-214 from #140; QA-207 off main's base).
+  - **The English signed-in walk:** Tasks renders for every role at both widths, with no missing key and no console error of its own, and a viewer is offered no Add task. QA's write-button check now leaves out "Add filter" chips, which change no data.
+  - **The new spec `13-tasks.spec.ts`:** a teamless member is refused in words; a double click adds one task; a teammate can't change a task's status; a viewer can't add a task; a future-dated status move is refused.
+  - **Owner picker:** leaves out the admin and test accounts, which covers QA-232's screen side.
+  - **New:** QA-233 to QA-235.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Open — expected fixed by #145 |
+| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Open |
+| QA-235 | 2026-10-02 00:21 | #147; V464, V517 | Low | Architect (the runbook) | **A pilot member with no team cannot add a task** ("The task needs a team", V464). **Fix:** the runbook's pilot rows say every pilot member is in a team before stage 1. | Open |
