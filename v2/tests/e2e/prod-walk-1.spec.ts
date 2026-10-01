@@ -62,15 +62,18 @@ test('an empty Settings group says what it is in one line (W44)', async ({ page 
   await expect(page.locator('main')).toContainText('Nothing to set up here yet.');
 });
 
-test('a setting nobody changed says Default, and the file types carry their extension (W45, W46)', async ({ page }) => {
+test('a setting nobody changed says Default (W45)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
-  await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/settings/work');
   await hydrated(page);
   const card = page.locator('[data-setting="work.no_update_days"]');
   await expect(card, 'a setting nobody changed says Default').toContainText('Default');
   await expect(card).not.toContainText('Applies from');
-  await page.goto('/settings/app');
+});
+
+test('the file types carry their extension (W46)', async ({ page }) => {
+  const admin = await makePerson({ admin: true });
+  await signIn(page, admin.email, '/settings/app');
   await hydrated(page);
   const types = page.locator('[data-setting="files.allowed_types"]');
   await expect(types).toContainText('Word (.docx)');
