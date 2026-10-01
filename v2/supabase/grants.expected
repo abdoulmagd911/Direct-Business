@@ -22,6 +22,7 @@ function api.achievement_move(p_id uuid, p_to date, p_reason text, p_version int
 function api.achievement_participants_set(p_id uuid, p_people uuid[]) execute authenticated
 function api.achievement_ref_add(p_id uuid, p_system text, p_value text, p_url text) execute authenticated
 function api.achievement_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.achievement_repeats(p_partner uuid, p_category text, p_title text, p_on date) execute authenticated
 function api.achievement_update(p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.achievements(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.achievements_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
@@ -279,6 +280,7 @@ function perf.achievement_move(p_id uuid, p_to date, p_reason text, p_version in
 function perf.achievement_participants_set(p_id uuid, p_people uuid[]) execute authenticated
 function perf.achievement_ref_add(p_id uuid, p_system text, p_value text, p_url text) execute authenticated
 function perf.achievement_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function perf.achievement_repeats(p_partner uuid, p_category text, p_title text, p_on date) execute authenticated
 function perf.achievement_update(p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function perf.achievements_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function perf.achievements_remove(p_ids uuid[], p_reason text) execute authenticated

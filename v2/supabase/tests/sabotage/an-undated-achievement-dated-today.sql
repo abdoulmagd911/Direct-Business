@@ -29,6 +29,7 @@ declare
   held jsonb := '[]'::jsonb;
   updated jsonb := '[]'::jsonb;
   kept jsonb := '[]'::jsonb;
+  repeats jsonb := '[]'::jsonb;
 begin
   if p_request is null or pg_catalog.jsonb_typeof(p_request -> 'rows') is distinct from 'array'
      or pg_catalog.jsonb_array_length(p_request -> 'rows') = 0 then
@@ -124,10 +125,10 @@ begin
       raise exception using errcode = 'P0002', message = 'common.not_found', detail = i::text;
     end if;
     begin
-      insert into perf.achievement (plan_id, department_id, category_id, partner_id, title, notes, deal_value,
+      insert into perf.achievement (number, plan_id, department_id, category_id, partner_id, title, notes, deal_value,
                                     value_report_kind, value_report_period, happened_on, owner_id, origin, source_kind,
                                     source_period, date_from_report, import_key)
-      values (pl, dept, c.id, pid, pg_catalog.btrim(r ->> 'title'), nullif(pg_catalog.btrim(r ->> 'notes'), ''), val,
+      values (perf.number_for(pg_catalog.date_part('year', day)::int), pl, dept, c.id, pid, pg_catalog.btrim(r ->> 'title'), nullif(pg_catalog.btrim(r ->> 'notes'), ''), val,
               case when val is not null then src ->> 'kind' end, case when val is not null then src ->> 'period' end,
               day, owner, 'backfill', src ->> 'kind', src ->> 'period', nullif(r ->> 'happened_on', '') is null,
               nullif(r ->> 'import_key', ''))
@@ -143,6 +144,12 @@ begin
     end;
     ids := ids || aid;
     first_day := least(coalesce(first_day, day), day);
+    -- V531: a paste never prompts; it names the rows that may repeat an earlier achievement.
+    if pid is not null then
+      repeats := repeats || (select pg_catalog.jsonb_build_object('row', i, 'id', aid, 'matches', m)
+                             from (select perf.repeats_for(me, pid, c.code, r ->> 'title', day, aid) as m) x
+                             where m <> '[]'::jsonb);
+    end if;
   end loop;
   if first_day is not null then
     perform audit.happened(least(first_day, core.riyadh_today() - 1));    -- past work tells nobody (V491)
@@ -151,6 +158,6 @@ begin
   return pg_catalog.jsonb_build_object(
     'request_id', case when pg_catalog.cardinality(ids) + pg_catalog.cardinality(touched) > 0 then req end,
     'saved', pg_catalog.cardinality(ids), 'ids', pg_catalog.to_jsonb(ids),
-    'held', held, 'updated', updated, 'kept', kept);
+    'held', held, 'updated', updated, 'kept', kept, 'repeats', repeats);
 end
 $$;

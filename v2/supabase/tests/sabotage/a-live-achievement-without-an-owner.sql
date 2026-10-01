@@ -25,6 +25,9 @@ begin
     raise exception using errcode = 'P0001', message = 'achievement.category_retired', detail = c.code;
   end if;
   new.plan_id := pl;
+  if tg_op = 'UPDATE' and new.number is distinct from old.number then
+    raise exception using errcode = 'P0001', message = 'achievement.number_fixed';
+  end if;
   if new.deal_value is not null and not c.has_deal_value then
     raise exception using errcode = 'P0001', message = 'achievement.no_deal_value', detail = c.code;
   end if;

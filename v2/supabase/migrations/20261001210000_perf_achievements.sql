@@ -6,13 +6,16 @@
 -- row Backfilled with its day or its report's last day (V504), the report as its evidence (V506), owner Unknown allowed
 -- (V491), one live row per import key, and the deal value on Contract signed and MoU (V505) — a newer report's value
 -- replacing an older one's, the older kept in the change log (V502, V500). Nothing is dated before 1 January 2025
--- (V506). V370–V376. Every function the Data API reaches is a security-invoker wrapper (V124). Forward-only (V103).
+-- (V506). Every achievement has its number, ACH-<year>-0042, and may be marked a repeat of an earlier one (V531); an MoU
+-- sets the side chosen on it to Prospect where that side has no status yet (V521). V370–V376, V378. Every function the
+-- Data API reaches is a security-invoker wrapper (V124). Forward-only (V103).
 --
 -- Links to tables other steps build — project_id → work.project and source_task_id → work.task (P5-1, #140),
 -- service_id → finance.service (P4), origin_report_id → report.report (P6-1) — are plain columns here; the step that
 -- lands second adds the foreign key (spec §3.0).
 
 create schema perf;   -- plans, KPIs, achievements, challenges, period targets (§3.8)
+create extension if not exists pg_trgm with schema extensions;   -- the repeat check's title similarity (V531)
 comment on schema perf is 'Yearly plans, KPIs, achievements, challenges and period targets (TECH-SPEC §3.8).';
 
 -- ================================================================ plans (§3.8, §5a)
@@ -48,6 +51,7 @@ create table perf.achievement_category (
   name_ar text not null check (pg_catalog.btrim(name_ar) <> '' and pg_catalog.length(name_ar) <= 120),
   is_money_link boolean not null default false,
   has_deal_value boolean not null default false,
+  sets_prospect boolean not null default false,                      -- V521: an MoU sets its chosen side to Prospect
   required_ref_system_id uuid references work.ref_system (id),
   line_template_en text not null check (pg_catalog.btrim(line_template_en) <> '' and pg_catalog.length(line_template_en) <= 300),
   line_template_ar text not null check (pg_catalog.btrim(line_template_ar) <> '' and pg_catalog.length(line_template_ar) <= 300),
@@ -65,6 +69,9 @@ comment on table perf.achievement_category is
 -- ================================================================ achievements (§3.8; V400, V491, V502, V504–V506)
 create table perf.achievement (
   id uuid primary key default gen_random_uuid(),
+  number text not null unique check (number ~ '^ACH-[0-9]{4}-[0-9]{4,}$'),   -- V531: written by the app, never changed
+  repeat_of uuid references perf.achievement (id),                    -- V531: "This is a new one" of an earlier one
+  mou_side text check (mou_side in ('client', 'supplier_partner')),   -- V521: the side an MoU was signed with
   plan_id uuid not null references perf.plan (id),                     -- the plan of happened_on's year (set by trigger)
   department_id uuid not null references core.department (id),
   category_id uuid not null references perf.achievement_category (id),
@@ -98,6 +105,7 @@ create table perf.achievement (
   created_at timestamptz not null default now(), created_by uuid not null references core.person (id),
   updated_at timestamptz, updated_by uuid references core.person (id), version int not null default 1,
   deleted_at timestamptz, deleted_by uuid references core.person (id), delete_reason text,
+  constraint achievement_not_its_own_repeat check (repeat_of is distinct from id),
   constraint achievement_not_after_logged check (happened_on is null or happened_on <= core.riyadh_day(logged_at)),
   constraint achievement_moved_together check ((period_moved_from is null) = (period_move_reason is null)
                                                and (period_moved_from is null) = (period_moved_by is null)),
@@ -234,6 +242,9 @@ begin
     raise exception using errcode = 'P0001', message = 'achievement.category_retired', detail = c.code;
   end if;
   new.plan_id := pl;
+  if tg_op = 'UPDATE' and new.number is distinct from old.number then
+    raise exception using errcode = 'P0001', message = 'achievement.number_fixed';
+  end if;
   if new.deal_value is not null and not c.has_deal_value then
     raise exception using errcode = 'P0001', message = 'achievement.no_deal_value', detail = c.code;
   end if;
@@ -398,9 +409,9 @@ as $$
 declare
   k int;
 begin
-  insert into perf.achievement_category (plan_id, code, name_en, name_ar, has_deal_value, required_ref_system_id,
-                                         line_template_en, line_template_ar, sort)
-  select p_plan, s.code, s.name_en, s.name_ar, s.deal, (select r.id from work.ref_system r
+  insert into perf.achievement_category (plan_id, code, name_en, name_ar, has_deal_value, sets_prospect,
+                                         required_ref_system_id, line_template_en, line_template_ar, sort)
+  select p_plan, s.code, s.name_en, s.name_ar, s.deal, s.code = 'MOU', (select r.id from work.ref_system r
                                                          where r.key = s.ref and r.deleted_at is null), s.en, s.ar, s.sort
   from (values
     ('PROBLEM', 'Problem solving', 'حل المشكلات', false, null, 'Problem solved: {title}', 'حل مشكلة: {title}', 10),
@@ -457,9 +468,9 @@ begin
   if src is null then
     perform perf.categories_seed(pid);
   else
-    insert into perf.achievement_category (plan_id, code, name_en, name_ar, is_money_link, has_deal_value,
+    insert into perf.achievement_category (plan_id, code, name_en, name_ar, is_money_link, has_deal_value, sets_prospect,
                                            required_ref_system_id, line_template_en, line_template_ar, sort, active)
-    select pid, c.code, c.name_en, c.name_ar, c.is_money_link, c.has_deal_value, c.required_ref_system_id,
+    select pid, c.code, c.name_en, c.name_ar, c.is_money_link, c.has_deal_value, c.sets_prospect, c.required_ref_system_id,
            c.line_template_en, c.line_template_ar, c.sort, c.active
     from perf.achievement_category c where c.plan_id = src and c.deleted_at is null;
     update perf.achievement_category n set parent_id = np.id
@@ -517,7 +528,8 @@ declare
   req uuid;
   cid uuid;
   what text;
-  allowed text[] := array['code', 'name_en', 'name_ar', 'parent', 'is_money_link', 'has_deal_value', 'required_ref_system',
+  allowed text[] := array['code', 'name_en', 'name_ar', 'parent', 'is_money_link', 'has_deal_value', 'sets_prospect',
+                          'required_ref_system',
                           'line_template_en', 'line_template_ar', 'sort', 'active'];
 begin
   if exists (select 1 from pg_catalog.jsonb_object_keys(v) k where k <> all (allowed)) then
@@ -555,10 +567,11 @@ begin
   begin
     if p_id is null then
       insert into perf.achievement_category (plan_id, parent_id, code, name_en, name_ar, is_money_link, has_deal_value,
-                                             required_ref_system_id, line_template_en, line_template_ar, sort, active)
+                                             sets_prospect, required_ref_system_id, line_template_en, line_template_ar,
+                                             sort, active)
       values (p_plan, par, pg_catalog.upper(pg_catalog.btrim(v ->> 'code')), pg_catalog.btrim(v ->> 'name_en'),
               pg_catalog.btrim(v ->> 'name_ar'), coalesce((v ->> 'is_money_link')::boolean, false),
-              coalesce((v ->> 'has_deal_value')::boolean, false), sys,
+              coalesce((v ->> 'has_deal_value')::boolean, false), coalesce((v ->> 'sets_prospect')::boolean, false), sys,
               coalesce(nullif(pg_catalog.btrim(v ->> 'line_template_en'), ''), '{title}'),
               coalesce(nullif(pg_catalog.btrim(v ->> 'line_template_ar'), ''), '{title}'),
               coalesce((v ->> 'sort')::int, 0), coalesce((v ->> 'active')::boolean, true))
@@ -570,6 +583,7 @@ begin
         parent_id = case when v ? 'parent' then par else x.parent_id end,
         is_money_link = case when v ? 'is_money_link' then (v ->> 'is_money_link')::boolean else x.is_money_link end,
         has_deal_value = case when v ? 'has_deal_value' then (v ->> 'has_deal_value')::boolean else x.has_deal_value end,
+        sets_prospect = case when v ? 'sets_prospect' then (v ->> 'sets_prospect')::boolean else x.sets_prospect end,
         required_ref_system_id = case when v ? 'required_ref_system' then sys else x.required_ref_system_id end,
         line_template_en = case when v ? 'line_template_en' then pg_catalog.btrim(v ->> 'line_template_en') else x.line_template_en end,
         line_template_ar = case when v ? 'line_template_ar' then pg_catalog.btrim(v ->> 'line_template_ar') else x.line_template_ar end,
@@ -655,6 +669,7 @@ begin
   return coalesce((select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
       'id', c.id, 'plan_id', c.plan_id, 'code', c.code, 'name_en', c.name_en, 'name_ar', c.name_ar,
       'parent_id', c.parent_id, 'parent_code', p.code, 'is_money_link', c.is_money_link, 'has_deal_value', c.has_deal_value,
+      'sets_prospect', c.sets_prospect or coalesce(p.sets_prospect, false),
       'required_ref_system', r.key, 'line_template_en', c.line_template_en, 'line_template_ar', c.line_template_ar,
       'sort', c.sort, 'active', c.active, 'version', c.version)
       order by coalesce(p.sort, c.sort), coalesce(p.code, c.code), c.parent_id nulls first, c.sort, c.code)
@@ -689,6 +704,78 @@ create function perf.achievement_line(p_id uuid, p_locale text default 'en') ret
 language sql stable security definer set search_path = ''
 as $$
   select case when perf.row_level('perf.achievement', p_id, authz.me()) >= 'view' then perf.line_of(p_id, p_locale) end
+$$;
+
+-- ================================================================ numbers and repeats (V531)
+-- The number an achievement is known by: ACH-<year>-0042, the year its Happened on falls in when it is made (a draft:
+-- the year it is logged), drawn from core.next_number — never typed, never changed, never reused.
+create function perf.number_for(p_year int) returns text
+language sql volatile security definer set search_path = ''
+as $$ select core.format_number('ACH', p_year, core.next_number('achievement', p_year)) $$;
+
+-- How alike two titles must be (V531): the setting perf.repeat_similarity, registered once its words exist in both
+-- catalogs (V378); until then 0.6.
+create function perf.repeat_threshold() returns numeric
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  if exists (select 1 from core.setting_def d where d.key = 'perf.repeat_similarity') then
+    return coalesce((core.setting_at('perf.repeat_similarity', null, core.riyadh_today()) #>> '{}')::numeric, 0.6);
+  end if;
+  return 0.6;
+end
+$$;
+
+-- Possible repeats (V531): live achievements the person may see for the same organisation and category code, dated
+-- in the 12 months up to the day, whose title is like this one (folded, then a trigram score at least the setting
+-- perf.repeat_similarity, default 0.6) — best first. No organisation, no check.
+create function perf.repeats_for(p_person uuid, p_partner uuid, p_category text, p_title text, p_on date,
+                                 p_exclude uuid default null) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'id', x.id, 'number', x.number, 'title', x.title, 'happened_on', x.happened_on, 'score', pg_catalog.round(x.score::numeric, 2))
+      order by x.score desc, x.happened_on desc), '[]'::jsonb)
+  from (
+    select a.id, a.number, a.title, a.happened_on,
+           extensions.similarity(norm.fold(a.title), norm.fold(p_title)) as score
+    from perf.achievement a
+    join perf.achievement_category c on c.id = a.category_id
+    where p_partner is not null and nullif(pg_catalog.btrim(p_title), '') is not null
+      and a.partner_id = p_partner and a.deleted_at is null and a.id is distinct from p_exclude
+      and c.code = pg_catalog.upper(pg_catalog.btrim(p_category))
+      and a.happened_on between (coalesce(p_on, core.riyadh_today()) - interval '12 months')::date
+                            and coalesce(p_on, core.riyadh_today())
+      and perf.sees_department(p_person, a.department_id)
+  ) x
+  where x.score >= perf.repeat_threshold()
+$$;
+
+-- The read Log achievement calls before saving (V531): the possible repeats, for the one-tap choice.
+create function perf.achievement_repeats(p_partner uuid, p_category text, p_title text, p_on date default null)
+  returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.require('kpis', 'view');
+begin
+  return perf.repeats_for(me, p_partner, p_category, p_title, p_on);
+end
+$$;
+
+-- An MoU sets the side chosen on it to Prospect from its signing day, only where that side has no status at all yet
+-- (V461, V521) — through the side's own door, in the same request, so the side's rules and its log hold; never a new
+-- client (C4).
+create function perf.mou_prospect(p_partner uuid, p_side text, p_on date) returns void
+language plpgsql volatile security definer set search_path = ''
+as $$
+begin
+  if p_partner is null or p_side is null or exists (
+       select 1 from partner.side_status_change s where s.partner_id = p_partner and s.side = p_side and s.deleted_at is null) then
+    return;
+  end if;
+  perform partner.side_status_set(p_partner, p_side, 'prospect', coalesce(p_on, core.riyadh_today()), null, 'MoU signed');
+end
 $$;
 
 -- ================================================================ the doors: log, change, move, assign, remove
@@ -757,6 +844,9 @@ declare
   pl uuid;
   c perf.achievement_category;
   pid uuid := nullif(v ->> 'partner_id', '')::uuid;
+  rep uuid := nullif(v ->> 'repeat_of', '')::uuid;
+  side text := nullif(v ->> 'side', '');
+  prospect boolean;
   aid uuid;
   req uuid;
   r jsonb;
@@ -768,7 +858,7 @@ begin
   end if;
   for k in select pg_catalog.jsonb_object_keys(v) loop
     if k not in ('category', 'title', 'notes', 'happened_on', 'partner_id', 'count', 'deal_value', 'owner_id',
-                 'use_as_example', 'before_value', 'after_value') then
+                 'use_as_example', 'before_value', 'after_value', 'repeat_of', 'side') then
       raise exception using errcode = 'P0001', message = 'common.unknown_field', detail = k;
     end if;
   end loop;
@@ -795,6 +885,21 @@ begin
   if pid is not null and not authz.can_see_as(me, 'partner.partner', pid) then
     raise exception using errcode = 'P0002', message = 'common.not_found', detail = 'partner.partner';
   end if;
+  -- V521: an MoU with an organisation names the side it was signed with.
+  prospect := c.sets_prospect or exists (select 1 from perf.achievement_category x where x.id = c.parent_id and x.sets_prospect);
+  if side is not null and side not in ('client', 'supplier_partner') then
+    raise exception using errcode = 'P0001', message = 'achievement.side_required';
+  end if;
+  if prospect and pid is not null and side is null then
+    raise exception using errcode = 'P0001', message = 'achievement.side_required';
+  end if;
+  -- V531: "This is a new one" names the earlier achievement it repeats — one the person sees, same organisation and code.
+  if rep is not null and not exists (
+       select 1 from perf.achievement e join perf.achievement_category ec on ec.id = e.category_id
+       where e.id = rep and e.deleted_at is null and e.partner_id is not distinct from pid and ec.code = c.code
+         and perf.sees_department(me, e.department_id)) then
+    raise exception using errcode = 'P0001', message = 'achievement.repeat_invalid';
+  end if;
   if c.required_ref_system_id is not null and not exists (
        select 1 from pg_catalog.jsonb_array_elements(refs) x join work.ref_system s on s.key = x ->> 'system'
        where s.id = c.required_ref_system_id and nullif(pg_catalog.btrim(x ->> 'value'), '') is not null) then
@@ -804,11 +909,13 @@ begin
   req := audit.begin('ui', 'achievement.logged', pg_catalog.jsonb_build_object('category', c.code));
   perform audit.happened(day);
   begin
-    insert into perf.achievement (plan_id, department_id, category_id, partner_id, title, notes, count, before_value,
-                                  after_value, deal_value, happened_on, owner_id, use_as_example, origin)
-    values (pl, dept, c.id, pid, pg_catalog.btrim(v ->> 'title'), nullif(pg_catalog.btrim(v ->> 'notes'), ''),
-            coalesce((v ->> 'count')::int, 1), (v ->> 'before_value')::numeric, (v ->> 'after_value')::numeric,
-            (v ->> 'deal_value')::numeric, day, owner, coalesce((v ->> 'use_as_example')::boolean, false), 'person')
+    insert into perf.achievement (number, plan_id, department_id, category_id, partner_id, title, notes, count,
+                                  before_value, after_value, deal_value, happened_on, owner_id, use_as_example, origin,
+                                  repeat_of, mou_side)
+    values (perf.number_for(yr), pl, dept, c.id, pid, pg_catalog.btrim(v ->> 'title'),
+            nullif(pg_catalog.btrim(v ->> 'notes'), ''), coalesce((v ->> 'count')::int, 1),
+            (v ->> 'before_value')::numeric, (v ->> 'after_value')::numeric, (v ->> 'deal_value')::numeric, day, owner,
+            coalesce((v ->> 'use_as_example')::boolean, false), 'person', rep, case when prospect then side end)
     returning id into aid;
   exception when check_violation or not_null_violation then
     get stacked diagnostics what = constraint_name;
@@ -821,8 +928,12 @@ begin
     continue when pp = owner;
     insert into perf.achievement_participant (achievement_id, person_id) values (aid, pp) on conflict do nothing;
   end loop;
+  if prospect and day is not null then
+    perform perf.mou_prospect(pid, side, day);
+  end if;
   perform audit.end();
-  return pg_catalog.jsonb_build_object('id', aid, 'version', 1, 'request_id', req);
+  return pg_catalog.jsonb_build_object('id', aid, 'version', 1, 'request_id', req,
+                                       'number', (select a.number from perf.achievement a where a.id = aid));
 end
 $$;
 
@@ -1120,7 +1231,9 @@ create function perf.achievement_row(a perf.achievement, p_reader uuid) returns 
 language sql stable security definer set search_path = ''
 as $$
   select pg_catalog.jsonb_build_object(
-    'id', a.id, 'plan_id', a.plan_id, 'year', p.year, 'department_id', a.department_id,
+    'id', a.id, 'number', a.number, 'plan_id', a.plan_id, 'year', p.year, 'department_id', a.department_id,
+    'repeat_of', a.repeat_of, 'repeat_of_number', (select e.number from perf.achievement e where e.id = a.repeat_of),
+    'mou_side', a.mou_side,
     'category', c.code, 'category_en', c.name_en, 'category_ar', c.name_ar, 'parent_category', pc.code,
     'has_deal_value', c.has_deal_value, 'title', a.title, 'count', a.count, 'deal_value', a.deal_value,
     'value_report_kind', a.value_report_kind, 'value_report_period', a.value_report_period,
@@ -1171,7 +1284,7 @@ begin
       and (month is null or (a.happened_on >= month and a.happened_on < (month + interval '1 month')::date))
       and (nullif(f ->> 'year', '') is null or pg_catalog.date_part('year', a.happened_on) = (f ->> 'year')::int)
       and (nullif(f ->> 'partner_id', '') is null or a.partner_id = (f ->> 'partner_id')::uuid)
-      and (q is null or norm.fold(a.title) like '%' || q || '%')
+      and (q is null or norm.fold(a.title) like '%' || q || '%' or norm.fold(a.number) like '%' || q || '%')
   ), flagged as (
     select * from hits h
     where (f -> 'backfilled' is null or (h.fl ->> 'backfilled')::boolean = (f ->> 'backfilled')::boolean)
@@ -1224,14 +1337,20 @@ end
 $$;
 
 -- ================================================================ the Past work grid's door (V400, V491, V502, V504–V506)
--- The keys already held, for the grid's preview (OLD-PRF-045).
+-- The keys already held, for the grid's preview (OLD-PRF-045), each with its deal value and where that came from — a
+-- report, typed by a person, or blank — so the preview can say which held rows a newer report would update (V502;
+-- builder C on #148).
 create function perf.backfill_keys_held(p_keys text[]) returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
   me uuid := authz.require('kpis', 'view');
 begin
-  return coalesce((select pg_catalog.jsonb_agg(distinct a.import_key) from perf.achievement a
+  return coalesce((select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+                     'key', a.import_key, 'amount', a.deal_value, 'from_kind', a.value_report_kind,
+                     'from_period', a.value_report_period,
+                     'typed', a.deal_value is not null and a.value_report_kind is null) order by a.import_key)
+                   from perf.achievement a
                    where a.import_key = any (coalesce(p_keys, '{}')) and a.deleted_at is null
                      and perf.sees_department(me, a.department_id)), '[]'::jsonb);
 end
@@ -1274,6 +1393,7 @@ declare
   held jsonb := '[]'::jsonb;
   updated jsonb := '[]'::jsonb;
   kept jsonb := '[]'::jsonb;
+  repeats jsonb := '[]'::jsonb;
 begin
   if p_request is null or pg_catalog.jsonb_typeof(p_request -> 'rows') is distinct from 'array'
      or pg_catalog.jsonb_array_length(p_request -> 'rows') = 0 then
@@ -1369,10 +1489,10 @@ begin
       raise exception using errcode = 'P0002', message = 'common.not_found', detail = i::text;
     end if;
     begin
-      insert into perf.achievement (plan_id, department_id, category_id, partner_id, title, notes, deal_value,
+      insert into perf.achievement (number, plan_id, department_id, category_id, partner_id, title, notes, deal_value,
                                     value_report_kind, value_report_period, happened_on, owner_id, origin, source_kind,
                                     source_period, date_from_report, import_key)
-      values (pl, dept, c.id, pid, pg_catalog.btrim(r ->> 'title'), nullif(pg_catalog.btrim(r ->> 'notes'), ''), val,
+      values (perf.number_for(pg_catalog.date_part('year', day)::int), pl, dept, c.id, pid, pg_catalog.btrim(r ->> 'title'), nullif(pg_catalog.btrim(r ->> 'notes'), ''), val,
               case when val is not null then src ->> 'kind' end, case when val is not null then src ->> 'period' end,
               day, owner, 'backfill', src ->> 'kind', src ->> 'period', nullif(r ->> 'happened_on', '') is null,
               nullif(r ->> 'import_key', ''))
@@ -1388,6 +1508,12 @@ begin
     end;
     ids := ids || aid;
     first_day := least(coalesce(first_day, day), day);
+    -- V531: a paste never prompts; it names the rows that may repeat an earlier achievement.
+    if pid is not null then
+      repeats := repeats || (select pg_catalog.jsonb_build_object('row', i, 'id', aid, 'matches', m)
+                             from (select perf.repeats_for(me, pid, c.code, r ->> 'title', day, aid) as m) x
+                             where m <> '[]'::jsonb);
+    end if;
   end loop;
   if first_day is not null then
     perform audit.happened(least(first_day, core.riyadh_today() - 1));    -- past work tells nobody (V491)
@@ -1396,7 +1522,7 @@ begin
   return pg_catalog.jsonb_build_object(
     'request_id', case when pg_catalog.cardinality(ids) + pg_catalog.cardinality(touched) > 0 then req end,
     'saved', pg_catalog.cardinality(ids), 'ids', pg_catalog.to_jsonb(ids),
-    'held', held, 'updated', updated, 'kept', kept);
+    'held', held, 'updated', updated, 'kept', kept, 'repeats', repeats);
 end
 $$;
 
@@ -1410,7 +1536,7 @@ grant execute on function
   perf.achievement_participants_set(uuid, uuid[]), perf.achievement_ref_add(uuid, text, text, text),
   perf.achievement_refs_remove(uuid[], text), perf.achievements_remove(uuid[], text),
   perf.achievement_list(jsonb, int, int), perf.achievement_get(uuid), perf.backfill_keys_held(text[]),
-  perf.backfill_achievements(jsonb)
+  perf.backfill_achievements(jsonb), perf.achievement_repeats(uuid, text, text, date)
   to authenticated;
 
 create function api.plan_open(p_department uuid, p_year int, p_name text default null) returns jsonb
@@ -1460,7 +1586,12 @@ create function api.backfill_achievement_keys_held(p_keys text[]) returns jsonb
 language sql stable security invoker set search_path = '' as $$ select perf.backfill_keys_held(p_keys) $$;
 create function api.backfill_achievements(p_request jsonb) returns jsonb
 language sql volatile security invoker set search_path = '' as $$ select perf.backfill_achievements(p_request) $$;
+create function api.achievement_repeats(p_partner uuid, p_category text, p_title text, p_on date default null)
+  returns jsonb
+language sql stable security invoker set search_path = ''
+as $$ select perf.achievement_repeats(p_partner, p_category, p_title, p_on) $$;
 grant execute on function
+  api.achievement_repeats(uuid, text, text, date),
   api.plan_open(uuid, int, text), api.plans(uuid), api.achievement_category_save(uuid, uuid, jsonb, int),
   api.achievement_categories_remove(uuid[], text), api.achievement_categories(uuid, int, uuid),
   api.achievement_log(jsonb, jsonb, uuid[]), api.achievement_update(uuid, jsonb, int, text),

@@ -36,9 +36,9 @@ begin
   if src is null then
     null;
   else
-    insert into perf.achievement_category (plan_id, code, name_en, name_ar, is_money_link, has_deal_value,
+    insert into perf.achievement_category (plan_id, code, name_en, name_ar, is_money_link, has_deal_value, sets_prospect,
                                            required_ref_system_id, line_template_en, line_template_ar, sort, active)
-    select pid, c.code, c.name_en, c.name_ar, c.is_money_link, c.has_deal_value, c.required_ref_system_id,
+    select pid, c.code, c.name_en, c.name_ar, c.is_money_link, c.has_deal_value, c.sets_prospect, c.required_ref_system_id,
            c.line_template_en, c.line_template_ar, c.sort, c.active
     from perf.achievement_category c where c.plan_id = src and c.deleted_at is null;
     update perf.achievement_category n set parent_id = np.id
