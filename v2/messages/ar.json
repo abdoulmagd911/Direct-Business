@@ -328,6 +328,7 @@
     }
   },
   "activity": {
+    "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
         "code_sent": "تم التحقق من البريد"
@@ -390,6 +391,9 @@
     "reportsTo": "يتبع {name}"
   },
   "settings": {
+    "setting": {
+      "notSet": "غير محدد"
+    },
     "list": {
       "side": "الجانب",
       "status": "الحالة",
