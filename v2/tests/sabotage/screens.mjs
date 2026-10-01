@@ -598,4 +598,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'own-last-email-offers-remove',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "no Remove on one's own last email",
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '{admin && !(self && row.emails.length <= 1) ? (',
+        replace: '{admin ? (',
+      },
+    ],
+  },
+  {
+    name: 'remove-email-skips-the-ban',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'its auth user is banned',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
+        replace: '',
+      },
+    ],
+  },
 ];
