@@ -213,14 +213,14 @@ behaviour.
 
 - **Shell.** Side drawer **232 px pinned / 56 px collapsed** (V85 — what the owner was told; the artboards' 248 px is
 not used): collapsed, it is an icon rail with tooltips, and the content **reflows into the freed width**; unpinned it
-opens as an overlay on hover or focus and closes on Esc. Order: My day, Overview, **Clients**, **Suppliers & partners**
-(V98), Pipeline, Projects, Tasks, Finance, KPIs, Reports, Appraisal, Activity (V97); **Settings only for admins** (V97)
-at the foot above the person's profile (avatar, nickname, badge). Top bar 60 px: search (Ctrl K), Create, bell, the
-profile chip (avatar and nickname) — no page titles in it. Page header: breadcrumb, title, one primary button, at most
-two secondary, the rest in a ⋯ menu. Each area is one page: list on the start side, **detail panel 480 px** on the end
-side (full page under 900 px); every record has its own URL; at most one tab row, its state in the URL; filters are
-chips above the list (dashed = available, solid = applied with "field: value" and ✕; a chip keeps or drops rows and
-shows its count — M102/M89).
+opens as an overlay on hover or focus and closes on Esc. Order: My day, Overview, **Clients**, **Suppliers &
+partners** (labelled **Suppliers**, GC-1 cut 8 — V507) (V98), Pipeline, Projects, Tasks, Finance, KPIs, Reports,
+Appraisal, Activity (V97); **Settings only for admins** (V97) at the foot above the person's profile (avatar,
+nickname, badge). Top bar 60 px: search (Ctrl K), Create, bell, the profile chip (avatar and nickname) — no page
+titles in it. Page header: breadcrumb, title, one primary button, at most two secondary, the rest in a ⋯ menu. Each
+area is one page: list on the start side, **detail panel 480 px** on the end side (full page under 900 px); every
+record has its own URL; at most one tab row, its state in the URL; filters are chips above the list (dashed =
+available, solid = applied with "field: value" and ✕; a chip keeps or drops rows and shows its count — M102/M89).
 - **Layout rules** (V85). Breakpoints and page margins (the gutter on each side of the content): **phone** < 640 px —
   16 px; **tablet** 640–1,023 px — 24 px; **desktop** 1,024–1,439 px — 32 px; **wide** ≥ 1,440 px — 40 px. Content
   max-widths: lists, boards and tables use the full width up to **1,600 px**; a full-page record's main column up to
@@ -586,7 +586,7 @@ achievement, a logged meeting or call, or a reminder. The new record and the not
 
 ```
 my.note           STD SOFT; person_id (the author); kind ('sticky','meeting','checklist'); title; body;
-                  items jsonb [{text, done, owner_id, due_on}]   -- the checklist's rows; a meeting's points
+                  items jsonb [{text, done, owner_id, due_on, due_time, starred}]   -- checklist rows; a meeting's points
                   visibility ('private','team','workspace') default 'private'   -- who may see it: only me; my team; everyone
                   happened_on date not null; logged_at timestamptz not null default now();          -- V400
                   meeting_partner_id → partner.partner; meeting_on date; finished_at (Finish meeting);
@@ -598,6 +598,16 @@ my.note_mention   (note_id, person_id) pk                          -- the mentio
 core.reminder     STD SOFT; person_id; note_id → my.note; remind_at timestamptz not null; text; sent_at
                   -- a 'reminder' notification at its time, sent by the five-minute reminder job (V455); once
 ```
+
+**Importance and urgency** (V514). Every task, checklist line, action item and meeting follow-up may carry one
+**importance star** and a due date or date and time, both set from the capture bar on phone and web; a plain note
+carries neither until it is turned into a task. **Urgency is derived, never asked**: overdue or due within
+`work.urgent_within_days` (2) is urgent; the item's owner may override it (`urgency_override`). `work.item_box()`
+places each item in **Do now** (starred, urgent) · **Plan it** (starred) · **Quick or hand off** (urgent) · **Later**;
+the names are `core.wording` keys (`work.box.*`), and `work.importance_star` switches the star off. The **Today list**
+is sorted by box, then due; the four-box matrix is an optional view. The **starred share this week** (starred among
+open items due this week) shows as one line for the person and, on My team, per member, flagged above
+`work.star_share_flag_pct` (40). `work.priority` stays for executive directives.
 
 - **Doors** (`api.note_capture`, `api.note_update`, `api.note_turn_into(note, kind, …)`, `api.note_finish_meeting`,
 `api.note_wrap_up(day)`): every conversion is **one request** — the new record through its own door (`api.task_create`,
@@ -1133,10 +1143,12 @@ work.task            STD SOFT DEPT; number unique; title not null; notes; owner_
                      -- from stale (OLD-WRK-040/043). V465: every person column refuses a switched-off, left, system or
                      -- test-account person
                      -- trigger: a task's partner equals its project's partner when both are set
+                     -- V514: starred bool not null default false; due_time time; urgency_override ('urgent','not_urgent')
                      -- V438: no subtask records — a task's action items are its checklist; dependencies are out of v1
 work.task_helper     (task_id, person_id) pk; added_by; added_at
 work.action_item     STD SOFT; task_id; text not null; owner_id not null; due_on; done_on date (V400: the happened_on of its
                      completion); done_by; happened_on date not null; logged_at timestamptz not null; sort; source_note_id → core.note
+                     -- V514: starred, due_time and urgency_override as on work.task
 work.action_item_helper (action_item_id, person_id) pk
 work.task_ref        STD SOFT; task_id; system_id; value not null        unique (task_id, system_id, value)
 work.task_contact    (task_id, contact_id) pk
@@ -2217,6 +2229,12 @@ DPIN of 10,000 on a non-commission product is flagged; an expense typed on the b
 2026 reports and appraisals still show the 2026 plan; a December achievement re-mapped to 2027 is a logged include)
 and **FLOW-08 two people, one task** (both edit different fields → both kept; the same field → the second is told who
 changed it and when, and chooses).
+
+One more, from V514: **FLOW-12 the star and the due date** (Omar captures "call Test Co A back" with a star and due
+tomorrow → it is in **Do now** at the top of his Today list; a second item, starred and due in five days, is **Plan
+it**; an unstarred item due today is **Quick or hand off**; Omar marks the Plan it item urgent → Do now; the admin
+changes the 2-day rule to 1 → the order changes and no item is edited; 5 of Omar's 10 items this week are starred →
+his starred-share line and Sara's My team line both show the flag; the matrix view shows the same four boxes).
 
 ### 9.3 Other suites (IDs are prefixes; each has its sabotage)
 

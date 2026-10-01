@@ -316,6 +316,10 @@ Vercel (V13, V21, V84).
 88. **Owner decisions of 1 Oct 2026** (V500 confirmed, V513, V508's 30-second rule): every module behind one switch in
     Settings — off hides it and keeps its data; words and rules in Settings tables; modules meet only through shared
     tables or views; a screen the owner cannot understand in 30 seconds is EDIT by default.
+89. **The star and the due date** (V514, owner 1 Oct): one optional importance star and an optional due on every task,
+    checklist line, action item and meeting follow-up; urgency derived from the due (2 days, a setting); the Today
+    list sorted Do now · Plan it · Quick or hand off · Later; the matrix optional; a starred-share line flagged above
+    40%; the priority list kept for executive directives.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
