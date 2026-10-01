@@ -763,6 +763,7 @@ export const sabotages = [
       {
         file: 'src/modules/my-day/screens/SinceBlock.tsx',
         find: '            setSince(null);\n',
+        replace: '            void 0;\n',
       },
     ],
   },
