@@ -19,7 +19,7 @@ import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
 import { checklistCount, noteTitle } from '../logic';
 import { VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
-import { KIND_ICON, LinkChip, VisibilityChip, type Names } from './NoteBits';
+import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
 import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
 
@@ -51,19 +51,19 @@ const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
 export function NotePage({
   note,
   author,
-  names,
+  types,
   outcomes,
 }: {
   note: MyNote;
   author?: string;
-  names: Names;
+  types: ListEntry[];
   outcomes: ListEntry[];
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const router = useRouter();
-  const partner = note.meeting_partner_id ? (names.partners[note.meeting_partner_id] ?? null) : null;
+  const partner = note.meeting_partner;
   const fresh = () => draftOf(note, partner);
   const [d, setD] = useState<Draft>(fresh);
   // a newer version (my own save, or a refresh) restarts the form from it; the page and any open dialog stay
@@ -106,7 +106,7 @@ export function NotePage({
     setBusy(true);
     await command(
       words(t('pages.myDay.note.removed')),
-      () => rpc('note_remove', { p_ids: [note.id] }) as Promise<{ request_id?: string | null }>,
+      () => rpc('my_notes_remove', { p_ids: [note.id] }) as Promise<{ request_id?: string | null }>,
       {
         after: () => router.push('/my-day'),
       },
@@ -307,10 +307,10 @@ export function NotePage({
           ) : null}
           <div className="flex flex-col gap-2" data-note-links>
             <h3 className="text-sm font-medium">{t('pages.myDay.note.turnedInto')}</h3>
-            {note.turned_into.length ? (
+            {note.links.length ? (
               <span className="flex flex-wrap gap-1.5">
-                {note.turned_into.map((l) => (
-                  <LinkChip key={`${l.entity}-${l.id}`} link={l} names={names} />
+                {note.links.map((l) => (
+                  <LinkChip key={`${l.entity}-${l.id}`} link={l} />
                 ))}
               </span>
             ) : (
@@ -325,8 +325,7 @@ export function NotePage({
             note={note}
             open={turning === 'activity'}
             onOpenChange={(o) => setTurning(o ? 'activity' : null)}
-            partner={partner}
-            types={names.types}
+            types={types}
             outcomes={outcomes}
           />
           <LogFromNoteDialog
@@ -334,8 +333,7 @@ export function NotePage({
             finish
             open={turning === 'finish'}
             onOpenChange={(o) => setTurning(o ? 'finish' : null)}
-            partner={partner}
-            types={names.types}
+            types={types}
             outcomes={outcomes}
           />
           <ReminderDialog

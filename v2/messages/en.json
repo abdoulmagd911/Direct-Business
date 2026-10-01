@@ -221,7 +221,7 @@
       "tabsLabel": "Whose notes",
       "capture": {
         "label": "Capture",
-        "placeholder": "Capture a note — type / for a meeting or a checklist",
+        "placeholder": "Capture a note",
         "save": "Capture",
         "kind": "Kind",
         "captured": "Note filed in My notes"
@@ -241,7 +241,8 @@
         "me": "My notes",
         "team": "Shared with my team",
         "workspace": "Shared with everyone",
-        "reminders": "Reminders"
+        "reminders": "Reminders",
+        "since": "What's new"
       },
       "more": "Show all",
       "fewer": "Show fewer",
@@ -279,7 +280,6 @@
       },
       "turn": {
         "label": "Turn into",
-        "notYet": "not yet",
         "kinds": {
           "activity": "Logged meeting or call",
           "reminder": "Reminder",
@@ -304,13 +304,11 @@
         "label": "Finish meeting",
         "title": "Finish meeting",
         "logOn": "Log the meeting on the organisation",
-        "tasks": "Action items become tasks",
-        "tasksNotYet": "with Tasks — not yet",
         "save": "Log meeting",
         "done": "Meeting logged on {name}"
       },
       "wrap": {
-        "label": "Wrap up today",
+        "label": "Wrap up",
         "title": "Wrap up today",
         "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
         "carry": "Carry over to {date}",
@@ -323,6 +321,14 @@
       "reminder": {
         "removeTitle": "Remove the reminder “{name}”?",
         "removed": "Reminder removed"
+      },
+      "since": {
+        "at": "Last visit {when}",
+        "markSeen": "Mark seen",
+        "kinds": {
+          "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
+          "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
+        }
       }
     },
     "settings": {
@@ -1137,8 +1143,11 @@
       "not_open": "This note is already handled",
       "not_yours": "Only the author changes a note",
       "turn_into_needs_partner": "Choose the organisation first",
-      "turn_into_not_yet": "This arrives with its page — not yet",
-      "body_required": "A note needs words"
+      "turn_into_not_yet": "This arrives with its page",
+      "body_required": "A note needs words",
+      "turn_into_type_invalid": "Choose call or meeting",
+      "turn_into_invalid": "This cannot be turned into that",
+      "wrap_up_choice_invalid": "Choose carry over or done"
     },
     "password": {
       "too_short": "At least 10 characters",

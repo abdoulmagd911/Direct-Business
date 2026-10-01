@@ -1,4 +1,4 @@
-import type { MyNote, NoteKind, TurnKind, TurnedInto, WrapChoice } from './types';
+import { TURN_KINDS, type MyNote, type NoteKind, type NoteLink, type TurnKind, type WrapChoice } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -9,7 +9,7 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
 
 /**
  * Turn into (V433): a logged meeting or call and a reminder now; a task and an action item arrive with Tasks (P5-2), an
- * achievement with the KPIs page (P5-6). Until its page is built an option shows greyed, saying "not yet".
+ * achievement with the KPIs page (P5-6). Until its page is built the menu leaves it out.
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
   task: 'tasks',
@@ -21,6 +21,9 @@ export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
   const page = TURN_NEEDS[kind];
   return !page || built.has(page);
 }
+
+/** The Turn into kinds the menu offers: a kind whose page is not built is left out, never greyed (GC-1, cut 3). */
+export const liveKinds = (built: ReadonlySet<string>): TurnKind[] => TURN_KINDS.filter((k) => turnLive(k, built));
 
 /** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */
 export const SLASH: Record<string, NoteKind> = { '/note': 'sticky', '/meeting': 'meeting', '/checklist': 'checklist' };
@@ -49,8 +52,8 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 }
 
 /** Where a "turned into" chip leads: a logged call or meeting opens its organisation's record; a reminder has no page. */
-export function linkRoute(link: TurnedInto): string | null {
-  if (link.entity === 'note' && link.partner_id) return `/partners/${link.partner_id}`;
+export function linkRoute(link: NoteLink): string | null {
+  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
   return null;
 }
 
@@ -62,14 +65,14 @@ export const noteRoute = (id: string) => `/my-day/notes/${id}`;
  * what a meeting finished or a note turned into something has been handled.
  */
 export function openCaptures(notes: MyNote[]): MyNote[] {
-  return notes.filter((n) => n.mine && !n.finished_at && n.turned_into.length === 0);
+  return notes.filter((n) => n.mine && !n.finished_at && n.links.length === 0);
 }
 
-/** The steps api.note_wrap_up takes: only the choices made. */
-export function wrapUpSteps(choices: Record<string, WrapChoice | undefined>) {
+/** The choices api.note_wrap_up takes: only those made. */
+export function wrapUpChoices(choices: Record<string, WrapChoice | undefined>) {
   return Object.entries(choices)
     .filter((e): e is [string, WrapChoice] => e[1] === 'carry' || e[1] === 'done')
-    .map(([id, action]) => ({ id, action }));
+    .map(([note, choice]) => ({ note, choice }));
 }
 
 /** The next working day in Riyadh: Sunday after a Thursday (OLD-WRK-022; Friday and Saturday are the weekend). */

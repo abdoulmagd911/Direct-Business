@@ -5,11 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import { cn } from '@/ui/cn';
 import { checklistCount, linkRoute, noteRoute, noteTitle } from '../logic';
-import { nameOf, tradeName, type ListEntry } from '@/modules/partners/types';
-import type { FromNote, MyNote, NoteKind, PartnerRef, TurnedInto, Visibility } from '../types';
-
-/** The names a note's chips say: its organisations and the activity types (one read each on the page). */
-export type Names = { partners: Record<string, PartnerRef>; types: ListEntry[] };
+import { tradeName } from '@/modules/partners/types';
+import type { FromNote, MyNote, NoteKind, NoteLink, Visibility } from '../types';
 
 export const KIND_ICON: Record<NoteKind, LucideIcon> = {
   sticky: StickyNote,
@@ -34,25 +31,19 @@ export function VisibilityChip({ visibility }: { visibility: Visibility }) {
 }
 
 /** A "turned into" chip: the record a note became, and a link to it where it has a page (V433 — both ways). */
-export function LinkChip({ link, names }: { link: TurnedInto; names: Names }) {
+export function LinkChip({ link }: { link: NoteLink }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
-  const partner = link.partner_id ? names.partners[link.partner_id] : undefined;
-  const type = nameOf(
-    names.types.find((x) => x.key === link.type),
-    locale,
-  );
+  const name = (locale === 'ar' && link.partner_name_ar) || link.partner_name_en || '';
+  const type = (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
   const label =
     link.entity === 'reminder' && link.remind_at
       ? t('pages.myDay.note.linkReminder', {
           when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
         })
-      : partner
-        ? t('pages.myDay.note.linkActivity', {
-            type: type || t('pages.myDay.turn.kinds.activity'),
-            name: tradeName(partner, locale),
-          })
-        : type || t('pages.myDay.turn.kinds.activity');
+      : name
+        ? t('pages.myDay.note.linkActivity', { type, name })
+        : type;
   const route = linkRoute(link);
   const cls = cn(chipClass, 'border-accent/40 text-text');
   return route ? (
@@ -72,13 +63,13 @@ export function LinkChip({ link, names }: { link: TurnedInto; names: Names }) {
 }
 
 /** The "from note" chip on a record made from a note; it opens the note (spec §3.3a — hidden when the reader may not see it). */
-export function FromNoteChip({ note }: { note: Pick<FromNote, 'note_id' | 'title'> }) {
+export function FromNoteChip({ note }: { note: Pick<FromNote, 'id' | 'title'> }) {
   const t = useTranslations();
   return (
     <Link
-      href={noteRoute(note.note_id)}
+      href={noteRoute(note.id)}
       className={cn(chipClass, 'border-accent/40 text-text hover:bg-accent-soft')}
-      data-from-note={note.note_id}
+      data-from-note={note.id}
     >
       <StickyNote aria-hidden="true" />
       {t('pages.myDay.note.fromNote')}
@@ -88,13 +79,13 @@ export function FromNoteChip({ note }: { note: Pick<FromNote, 'note_id' | 'title
 }
 
 /** One note in a block: its kind, line, count, organisation and chips; the whole row opens the note. */
-export function NoteRow({ note, author, names }: { note: MyNote; author?: string; names: Names }) {
+export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const Icon = KIND_ICON[note.kind];
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
   const count = note.kind === 'checklist' ? checklistCount(note) : null;
-  const org = note.meeting_partner_id ? names.partners[note.meeting_partner_id] : undefined;
+  const org = note.meeting_partner;
   return (
     <li className="flex min-h-14 items-start gap-3 py-3" data-my-note={note.id} data-note-kind={note.kind}>
       <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -120,11 +111,9 @@ export function NoteRow({ note, author, names }: { note: MyNote; author?: string
                 : t('pages.myDay.note.draft')}
             </span>
           ) : null}
-          {note.turned_into.length ? (
-            <span className="text-xs text-muted">{t('pages.myDay.note.turnedInto')}</span>
-          ) : null}
-          {note.turned_into.map((l) => (
-            <LinkChip key={`${l.entity}-${l.id}`} link={l} names={names} />
+          {note.links.length ? <span className="text-xs text-muted">{t('pages.myDay.note.turnedInto')}</span> : null}
+          {note.links.map((l) => (
+            <LinkChip key={`${l.entity}-${l.id}`} link={l} />
           ))}
         </span>
       </div>

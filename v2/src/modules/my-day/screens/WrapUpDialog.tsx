@@ -10,7 +10,7 @@ import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
-import { nextWorkingDay, noteRoute, noteTitle, openCaptures, wrapUpSteps } from '../logic';
+import { nextWorkingDay, noteRoute, noteTitle, openCaptures, wrapUpChoices } from '../logic';
 import type { MyDayAnswer, MyNote, WrapChoice } from '../types';
 import { KIND_ICON } from './NoteBits';
 
@@ -59,7 +59,8 @@ export function WrapUpDialog({
     const all = Object.fromEntries(open_.map((n) => [n.id, choiceOf(n.id)]));
     await command(
       words(t('pages.myDay.wrap.saved')),
-      () => rpc('note_wrap_up', { p_day: day, p_steps: wrapUpSteps(all) }) as Promise<{ request_id?: string | null }>,
+      () =>
+        rpc('note_wrap_up', { p_day: day, p_choices: wrapUpChoices(all) }) as Promise<{ request_id?: string | null }>,
       {
         after: () => {
           onOpenChange(false);
