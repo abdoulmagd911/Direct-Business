@@ -739,7 +739,7 @@ export const sabotages = [
       {
         file: 'src/modules/partners/screens/PartnerRecord.tsx',
         find: '{n.from_note ? <FromNoteChip',
-        replace: '{null ? <FromNoteChip',
+        replace: '{n.from_note && n.id === "never" ? <FromNoteChip',
       },
     ],
   },
