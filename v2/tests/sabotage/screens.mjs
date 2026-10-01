@@ -695,4 +695,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'capture-starts-shared',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'private by default',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/CaptureRow.tsx',
+        find: "useState<Visibility>('private')",
+        replace: "useState<Visibility>('workspace')",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-defaults-to-done',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'data-wrap-choice',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "choices[id] ?? 'carry'",
+        replace: "choices[id] ?? 'done'",
+      },
+    ],
+  },
+  {
+    name: 'turned-into-chip-leads-nowhere',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'data-turned-into',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "if (link.entity === 'note' && link.partner_id) return `/partners/${link.partner_id}`;",
+        replace: 'if (link.partner_id === "never") return null;',
+      },
+    ],
+  },
+  {
+    name: 'from-note-chip-hidden',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'data-from-note',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerRecord.tsx',
+        find: '{(n.from_notes ?? []).map((f) => (',
+        replace: '{([] as NonNullable<typeof n.from_notes>).map((f) => (',
+      },
+    ],
+  },
 ];

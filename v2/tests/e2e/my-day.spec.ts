@@ -5,7 +5,6 @@
  * (V454); a note shared with the team is there under My team. Finish meeting logs the meeting on its organisation.
  * Wrap up today carries the open captures to the next working day, keeping the day they happened. Every block draws
  * 7 rows and a "more" link, at 400 and 1,500 px.
- * These wait by name for builder A's P3-13 (api.note_capture and the other note doors); their sabotages join then.
  * Every value is made up.
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
@@ -14,15 +13,6 @@ import { callAs, makePerson, removeAs, signIn, sql, type TestPerson } from './su
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
 const tag = () => Math.random().toString(36).slice(2, 8);
-
-async function notesLanded(): Promise<boolean> {
-  const [row] = await sql<{ ok: boolean }>(
-    `select exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                    where n.nspname = 'api' and p.proname = 'note_capture') as ok`,
-  );
-  return row?.ok === true;
-}
-const NEEDS_A = "waits for builder A's P3-13 (api.note_capture and the note doors)";
 
 async function createClient(context: BrowserContext, name: string) {
   const r = await callAs(context, 'partner_create', {
@@ -33,12 +23,7 @@ async function createClient(context: BrowserContext, name: string) {
 }
 
 async function capture(context: BrowserContext, title: string, visibility = 'private', kind = 'sticky') {
-  const r = await callAs(context, 'note_capture', {
-    p_kind: kind,
-    p_title: title,
-    p_items: [],
-    p_visibility: visibility,
-  });
+  const r = await callAs(context, 'note_capture', { p_kind: kind, p_values: { title, visibility } });
   expect(r.status, JSON.stringify(r.body)).toBe(200);
   return (r.body as { id: string }).id;
 }
@@ -56,7 +41,6 @@ async function sameTeam(people: TestPerson[]) {
 test('a note captured in one keystroke becomes a logged call; both chips lead to the other; deleting the call keeps the note', async ({
   page,
 }) => {
-  test.skip(!(await notesLanded()), NEEDS_A);
   const admin = await makePerson({ admin: true });
   const t = tag();
   const org = `Test Org ${t}`;
@@ -118,7 +102,6 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
 test('no colleague reads a private note — not on any tab, not at its address, not an admin; a team note is under My team', async ({
   browser,
 }) => {
-  test.skip(!(await notesLanded()), NEEDS_A);
   const author = await makePerson();
   const colleague = await makePerson();
   const admin = await makePerson({ admin: true });
@@ -147,14 +130,13 @@ test('no colleague reads a private note — not on any tab, not at its address, 
     await hydrated(page);
     await expect(page.locator('main'), 'reads as not there, never as "no access"').toContainText('not yours to read');
     await expect(page.locator('main')).not.toContainText(`Private thought ${t}`);
-    const read = await callAs(ctx, 'my_note', { p_id: hidden });
+    const read = await callAs(ctx, 'note', { p_id: hidden });
     expect(read.status, 'the door refuses too').not.toBe(200);
     await ctx.close();
   }
 });
 
 test('Finish meeting logs the meeting on its organisation and marks the note logged', async ({ page }) => {
-  test.skip(!(await notesLanded()), NEEDS_A);
   const admin = await makePerson({ admin: true });
   const t = tag();
   const org = `Test Org ${t}`;
@@ -187,7 +169,6 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
 test('Wrap up today carries the open captures to the next working day, keeping the day they happened', async ({
   page,
 }) => {
-  test.skip(!(await notesLanded()), NEEDS_A);
   const person = await makePerson();
   const t = tag();
   await signIn(page, person.email, '/my-day');
@@ -216,7 +197,6 @@ test('Wrap up today carries the open captures to the next working day, keeping t
 
 for (const width of [400, 1500])
   test(`every block draws 7 rows and a "more" link at ${width} px`, async ({ page }) => {
-    test.skip(!(await notesLanded()), NEEDS_A);
     const person = await makePerson();
     const t = tag();
     await page.setViewportSize({ width, height: 900 });
@@ -225,7 +205,7 @@ for (const width of [400, 1500])
     await page.goto('/my-day');
     await hydrated(page);
     await expect(page.locator('[data-block="me"] [data-block-rows] > li')).toHaveCount(7);
-    await expect(page.locator('[data-block-more]')).toHaveText('All 10');
+    await expect(page.locator('[data-block-more]')).toHaveText('Show all');
     expect(await page.evaluate(() => document.documentElement.scrollWidth), 'no sideways scroll').toBeLessThanOrEqual(
       width,
     );

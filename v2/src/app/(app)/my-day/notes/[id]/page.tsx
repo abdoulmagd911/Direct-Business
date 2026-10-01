@@ -1,9 +1,8 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { serverRpc } from '@/core/db/server-rpc';
 import { NotePage } from '@/modules/my-day/screens/NotePage';
-import { myNote } from '@/modules/my-day/server';
+import { activityOutcomes, activityTypes, myNote, partnersOf } from '@/modules/my-day/server';
 import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
-import type { ListEntry } from '@/modules/partners/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
@@ -22,10 +21,10 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         <DataState kind="empty" message={t('pages.myDay.note.notFound')} />
       </Page>
     );
-  const lists = async (name: string) => (await serverRpc('list', { p_list: name })) as unknown as ListEntry[];
-  const [types, outcomes, org] = await Promise.all([
-    lists('activity_type'),
-    lists('activity_outcome'),
+  const [types, outcomes, partners, org] = await Promise.all([
+    activityTypes(),
+    activityOutcomes(),
+    partnersOf([note]),
     note.mine ? null : (serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>),
   ]);
   const author = org?.people.find((p) => p.id === note.author_id);
@@ -35,7 +34,7 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         key={note.id}
         note={note}
         author={author ? personName(author, locale === 'ar' ? 'ar' : 'en') : undefined}
-        types={types}
+        names={{ partners, types }}
         outcomes={outcomes}
       />
     </Page>

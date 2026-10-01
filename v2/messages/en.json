@@ -241,24 +241,14 @@
         "me": "My notes",
         "team": "Shared with my team",
         "workspace": "Shared with everyone",
-        "since": "Since your last visit"
+        "reminders": "Reminders"
       },
-      "more": "All {count}",
+      "more": "Show all",
       "fewer": "Show fewer",
       "empty": {
         "me": "No notes yet. What you capture here stays yours until you share it.",
         "team": "Nothing shared with your team yet.",
         "workspace": "Nothing shared with everyone yet."
-      },
-      "since": {
-        "none": "Nothing new since your last visit.",
-        "at": "Last visit {when}",
-        "markSeen": "Mark all seen",
-        "seen": "Marked as seen",
-        "kinds": {
-          "note_mention": "{count, plural, one {# mention} other {# mentions}}",
-          "reminder": "{count, plural, one {# reminder} other {# reminders}}"
-        }
       },
       "note": {
         "untitled": "Untitled note",
@@ -329,6 +319,10 @@
         "save": "Done for today",
         "saved": "Day wrapped up",
         "none": "Nothing left to handle today."
+      },
+      "reminder": {
+        "removeTitle": "Remove the reminder “{name}”?",
+        "removed": "Reminder removed"
       }
     },
     "settings": {
@@ -1009,7 +1003,8 @@
       "unavailable": "The server did not answer. Try again.",
       "nothing_selected": "Nothing is selected",
       "reason_required": "A reason is required",
-      "bad_request": "The request was not understood: {detail}"
+      "bad_request": "The request was not understood: {detail}",
+      "date_in_future": "A note cannot happen after today"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -1134,7 +1129,16 @@
       "happened_in_future": "A note cannot happen after today",
       "next_step_before": "A next step is never before the activity",
       "outcome_required": "This type needs an outcome",
-      "outcome_of_other_type": "The outcome belongs to another type"
+      "outcome_of_other_type": "The outcome belongs to another type",
+      "items_invalid": "A checklist row needs words, and no more than 500 characters",
+      "meeting_finished": "This meeting is already logged",
+      "meeting_needs_partner": "A meeting needs its organisation",
+      "not_a_meeting": "Only a meeting note can be finished",
+      "not_open": "This note is already handled",
+      "not_yours": "Only the author changes a note",
+      "turn_into_needs_partner": "Choose the organisation first",
+      "turn_into_not_yet": "This arrives with its page — not yet",
+      "body_required": "A note needs words"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -1155,6 +1159,10 @@
       "has_one": "This person already has a password of their own — it is kept",
       "no_sign_in": "This person has no allowed email yet",
       "confirm_required": "A Reset replaces the password they hold — confirm it first"
+    },
+    "reminder": {
+      "time_required": "Choose when to be reminded",
+      "time_passed": "Choose a time in the future"
     }
   },
   "notifications": {

@@ -151,8 +151,8 @@ export type Note = {
   version: number;
   mine: boolean;
   mentions: string[];
-  /** The My day note it was made from (V433), when the reader may see that note; absent or null otherwise. */
-  from_note?: { id: string; title: string | null } | null;
+  /** The My day notes it was made from (V433) — only those the reader may see, so a private note's chip hides (V454). */
+  from_notes?: { note_id: string; title: string | null }[];
 };
 
 export type PartnerCard = {

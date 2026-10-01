@@ -1,17 +1,17 @@
 'use client';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { command } from '@/core/commands/command';
+import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
-import { door } from '../doors';
-import { nextWorkingDay, noteRoute, noteTitle, openCaptures, wrapUpChoices } from '../logic';
-import type { MyNote, WrapChoice } from '../types';
+import { nextWorkingDay, noteRoute, noteTitle, openCaptures, wrapUpSteps } from '../logic';
+import type { MyDayAnswer, MyNote, WrapChoice } from '../types';
 import { KIND_ICON } from './NoteBits';
 
 const choiceClass = (on: boolean) =>
@@ -25,12 +25,10 @@ const choiceClass = (on: boolean) =>
  * a Thursday, keeping the day it happened) or done; Turn into opens the note. One request for the lot; nothing is deleted.
  */
 export function WrapUpDialog({
-  notes,
   day,
   open,
   onOpenChange,
 }: {
-  notes: MyNote[];
   day: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -38,9 +36,22 @@ export function WrapUpDialog({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  const open_ = openCaptures(notes, day);
+  // the page shows seven notes; Wrap up reads every open one when it opens
+  const [notes, setNotes] = useState<MyNote[] | null>(null);
   const [choices, setChoices] = useState<Record<string, WrapChoice | undefined>>({});
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    rpc('my_day', { p_scope: 'me', p_limit: 200 })
+      .then((a) => live && setNotes((a as unknown as MyDayAnswer).notes))
+      .catch(() => live && setNotes([]));
+    return () => {
+      live = false;
+      setNotes(null);
+    };
+  }, [open]);
+  const open_ = notes ? openCaptures(notes) : [];
   const choiceOf = (id: string): WrapChoice => choices[id] ?? 'carry';
   const next = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
   const save = async () => {
@@ -48,7 +59,7 @@ export function WrapUpDialog({
     const all = Object.fromEntries(open_.map((n) => [n.id, choiceOf(n.id)]));
     await command(
       words(t('pages.myDay.wrap.saved')),
-      () => door('note_wrap_up', { p_day: day, p_choices: wrapUpChoices(all) }),
+      () => rpc('note_wrap_up', { p_day: day, p_steps: wrapUpSteps(all) }) as Promise<{ request_id?: string | null }>,
       {
         after: () => {
           onOpenChange(false);
@@ -74,7 +85,9 @@ export function WrapUpDialog({
         </>
       }
     >
-      {open_.length ? (
+      {notes === null ? (
+        <DataState kind="loading" />
+      ) : open_.length ? (
         <div className="flex flex-col gap-3" data-wrap-up>
           <h3 className="text-sm font-semibold">{t('pages.myDay.wrap.open', { count: open_.length })}</h3>
           <ul className="flex flex-col divide-y divide-border">

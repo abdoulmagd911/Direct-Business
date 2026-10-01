@@ -8,7 +8,7 @@ import { today, useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/ui/Menu';
-import { door } from '../doors';
+import { rpc } from '@/core/db/rpc';
 import { noteRoute, parseCapture, SLASH } from '../logic';
 import { NOTE_KINDS, VISIBILITIES, type NoteKind, type Visibility } from '../types';
 import { KIND_ICON } from './NoteBits';
@@ -57,15 +57,14 @@ export function CaptureRow() {
     await command(
       words(t('pages.myDay.capture.captured')),
       () =>
-        door<{ id: string; request_id?: string | null }>('note_capture', {
+        rpc('note_capture', {
           p_kind: made.kind,
-          p_title: made.title,
-          p_body: null,
-          p_items: [],
-          p_visibility: visibility,
-          p_happened_on: today(),
-          p_meeting_partner: null,
-        }),
+          // words past a title's length are the note's body
+          p_values:
+            made.title.length > 200
+              ? { body: made.title, visibility, happened_on: today() }
+              : { title: made.title, visibility, happened_on: today() },
+        }) as Promise<{ id: string; request_id?: string | null }>,
       {
         after: (r) => {
           setText('');
