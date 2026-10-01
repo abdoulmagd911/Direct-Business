@@ -359,7 +359,10 @@
             "alert_invoice_unpaid",
             "alert_kpi_checkin",
             "alert_activity_stale",
-            "alert_file_review"
+            "alert_file_review",
+            "escalated",
+            "alert_project_no_update",
+            "alert_due_tomorrow"
           ]
         }
       },
@@ -379,7 +382,10 @@
         "alert_invoice_unpaid",
         "alert_kpi_checkin",
         "alert_activity_stale",
-        "alert_file_review"
+        "alert_file_review",
+        "escalated",
+        "alert_project_no_update",
+        "alert_due_tomorrow"
       ],
       "effective_dated": false
     },
@@ -540,6 +546,19 @@
         "maximum": 100
       },
       "default": 1,
+      "effective_dated": true
+    },
+    {
+      "key": "work.project_update_days",
+      "group": "settings.work",
+      "label": "setting.work.project_update_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 90
+      },
+      "default": 14,
       "effective_dated": true
     },
     {

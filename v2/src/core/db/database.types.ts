@@ -121,6 +121,7 @@ export type Database = {
       device_sign_out: { Args: { p_device?: string }; Returns: number };
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
       device_touch: { Args: Record<PropertyKey, never>; Returns: string };
+      escalate: { Args: { p_entity: string; p_id: string; p_note: string; p_to: string }; Returns: Json };
       file_begin: {
         Args: {
           p_entity: string;
@@ -348,6 +349,7 @@ export type Database = {
       tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       tasks_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      team_load: { Args: { p_people?: string[] }; Returns: Json };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
       team_save: {
         Args: {

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
 // Projects. Levels: TECH-SPEC §8.
@@ -31,6 +32,17 @@ export default defineModule({
       owners: 'work.project_health_owners',
       level: 'work.row_level',
       history: true,
+    },
+  ],
+  settings: [
+    {
+      // V401: a live project with no health update for this many days tells its owner once (the daily job).
+      key: 'work.project_update_days',
+      group: 'settings.work',
+      label: 'setting.work.project_update_days',
+      schema: z.number().int().min(1).max(90),
+      default: 14,
+      effectiveDated: true,
     },
   ],
 });

@@ -19,6 +19,9 @@ export const NOTIFICATION_KINDS = [
   'alert_kpi_checkin',
   'alert_activity_stale',
   'alert_file_review',
+  'escalated',
+  'alert_project_no_update',
+  'alert_due_tomorrow',
 ] as const;
 
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like

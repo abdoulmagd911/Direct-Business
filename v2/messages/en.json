@@ -358,7 +358,8 @@
       "meeting_note_on_time_days": "Days to write meeting notes on time",
       "reminder_days_before_due": "Reminder, days before a due date",
       "pipeline_weekly_target": "Pipeline updates expected each week",
-      "late_days": "Days after which an entry is logged late"
+      "late_days": "Days after which an entry is logged late",
+      "project_update_days": "Days without a health update before a project's owner is reminded"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
@@ -598,7 +599,10 @@
       "alert_invoice_unpaid": "An invoice is unpaid",
       "alert_kpi_checkin": "KPI check-in day",
       "alert_activity_stale": "A partner has gone quiet",
-      "alert_file_review": "A file waits for review"
+      "alert_file_review": "A file waits for review",
+      "escalated": "Something escalated to me",
+      "alert_project_no_update": "A project of mine has no health update",
+      "alert_due_tomorrow": "A task of mine is coming due"
     },
     "devices": {
       "label": "Device",
@@ -1038,6 +1042,7 @@
       "alert_project_no_update": "{what} has no health update",
       "alert_activity_stale": "{what} has had no activity",
       "alert_file_review": "A file on {what} is due for review",
+      "alert_due_tomorrow": "{what} is coming due",
       "other": "{actor} · {what}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
