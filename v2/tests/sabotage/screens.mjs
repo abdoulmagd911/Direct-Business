@@ -734,7 +734,7 @@ export const sabotages = [
   {
     name: 'from-note-chip-hidden',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-from-note',
+    expect: 'where the call says where it came from',
     edits: [
       {
         file: 'src/modules/partners/screens/PartnerRecord.tsx',
