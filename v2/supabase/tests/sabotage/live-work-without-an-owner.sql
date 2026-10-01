@@ -63,8 +63,9 @@ begin
   begin
     insert into work.task (number, title, notes, owner_id, team_id, department_id, priority_id, status_id, type_id,
                            work_type, start_on, due_on, partner_id, project_id, origin, assigned_by, happened_on)
-    values (core.format_number('TSK', pg_catalog.date_part('year', core.riyadh_today())::int,
-                               core.next_number('task', pg_catalog.date_part('year', core.riyadh_today())::int)),
+    -- V531: numbered in the year it happened, so a 2025 entry is TSK-2025-… and an annual report agrees with it
+    values (core.format_number('TSK', pg_catalog.date_part('year', day)::int,
+                               core.next_number('task', pg_catalog.date_part('year', day)::int)),
             pg_catalog.btrim(v ->> 'title'), nullif(pg_catalog.btrim(v ->> 'notes'), ''), owner, team,
             (select t.department_id from core.team t where t.id = team),
             work.list_id('work.priority', v ->> 'priority'),
