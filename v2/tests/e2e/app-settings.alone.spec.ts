@@ -72,6 +72,9 @@ test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)',
     await page.goto('/profile');
     await hydrated(page);
     await expect(page.locator('main').getByText('Language', { exact: true })).toBeVisible();
+    // My profile keeps the language cookie as its own cache, so the cookie choice is tried on another page
+    await page.goto('/my-day');
+    await hydrated(page);
     await setPrefs(context, { locale: 'ar' });
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
