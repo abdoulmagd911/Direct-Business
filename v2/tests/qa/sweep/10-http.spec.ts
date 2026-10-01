@@ -65,16 +65,18 @@ test('W32 · QA-216: /api and unknown addresses answer 401 or 404, never the doo
       a.status === 401 || a.status === 404,
     );
   }
+  // Signed out, an unknown address may also go to the door: before sign-in the app cannot tell it from a deep link to a
+  // real page without saying which pages exist (as #145 chose); never a 200 sign-in page at the unknown address.
   const unknown = await answer(request.get('/no/such/address', { maxRedirects: 0 }));
   check(
     'W32 · QA-216',
-    'an address that does not exist answers 404 signed out',
+    'an address that does not exist answers 404 signed out, or goes to the door',
     {
       screen: '/no/such/address',
       user: 'signed out',
       detail: `${unknown.status}${unknown.to ? ` → ${unknown.to}` : ''}`,
     },
-    unknown.status === 404,
+    unknown.status === 404 || (unknown.status >= 300 && unknown.status < 400 && unknown.to.startsWith('/sign-in')),
   );
   await signIn(page, 'member', '/my-day');
   for (const path of ['/no/such/address', '/api/anything']) {

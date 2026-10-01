@@ -70,7 +70,16 @@ async function walk(browser: Browser, persona: string, lang: 'en' | 'ar') {
   const page = await ctx.newPage();
   const errors: string[] = [];
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text().slice(0, 200));
+    // a failed request is recorded with its address below, not as the browser's bare line
+    if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text().slice(0, 200));
+  });
+  page.on('response', (r) => {
+    const url = new URL(r.url());
+    // the Not found page answers 404 on purpose (QA-216)
+    if (r.status() >= 400 && !(r.status() === 404 && r.request().resourceType() === 'document'))
+      errors.push(
+        `${r.status()} ${r.request().method()} ${url.host === new URL(page.url()).host ? '' : url.host}${url.pathname}${url.search.slice(0, 60)}`,
+      );
   });
   page.on('pageerror', (e) => errors.push(`uncaught: ${e.message.slice(0, 200)}`));
   try {
