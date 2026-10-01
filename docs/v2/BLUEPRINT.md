@@ -294,7 +294,7 @@ Vercel (V13, V21, V84).
     an owner filter, past work never on My day and never notified but counted in its month; "referred by",
     public-reference consent and "Quote sent" dropped; no zodiac badge, optional profile photos with initials as the
     fallback, an admin switch, never in exports.
-84. **V500 (draft, the owner confirms)** — figures stay editable: every KPI reading and every Payments figure carries
+84. **V500 (confirmed by the owner, 1 Oct)** — figures stay editable: every KPI reading and every Payments figure carries
     "as of" and a Provisional or Final state; a change keeps its history and never silently changes an issued report
     ("revised since issue" with the difference; the next report lists it under "Added to earlier periods"); a
     past-work line's owner given later keeps the same history.
@@ -313,6 +313,9 @@ Vercel (V13, V21, V84).
 87. **Owner decisions of 30 Sep 2026, 13:30** (V511, V512): P5 (work and performance) before P4 (Finance), Finance
     straight after, the Past work grid and My day first inside P5; access comes from the role and the team level,
     never from the job title.
+88. **Owner decisions of 1 Oct 2026** (V500 confirmed, V513, V508's 30-second rule): every module behind one switch in
+    Settings — off hides it and keeps its data; words and rules in Settings tables; modules meet only through shared
+    tables or views; a screen the owner cannot understand in 30 seconds is EDIT by default.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and

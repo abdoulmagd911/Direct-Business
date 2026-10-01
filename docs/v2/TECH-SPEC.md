@@ -420,6 +420,13 @@ changes their own access; **only admins change access** (V97, V138 — the old M
 level" is retired). **Access comes from the role and the team level, never from the job title** (V512): a person titled
 BD Manager who holds the Team member role keeps Team member access — the title is a label on the card (V76).
 
+**Module switches** (V513). `core.module_switch (module_key, enabled, changed_by, changed_at, reason)` — one row per
+module (Tasks, My day, KPIs, Past work, Payments, Pipeline, Reports); admins switch it in Settings, logged and
+undoable. `moduleOn(key)` is the only place it is read, with the registry's `built` flag: off hides the module from
+the menu, the +, Ctrl K, My day's blocks and other modules' tabs, chips, buttons and notifications; its routes show
+"Switched off"; its doors refuse writes; nothing is deleted. Labels, stages, targets, thresholds and report rules are
+Settings rows, never code. A module reads another only through the core tables and published `api.*` views.
+
 The **sign-in allow-list** is the live `core.person_email` rows of persons with `can_sign_in and active and kind =
 'staff'`; a person may hold several allowed emails (a `.com` and a `.net`), each Supabase identity links to exactly
 one person through `core.person_auth`, and every sign-in is logged in `core.sign_in_log` (§4).
@@ -999,7 +1006,7 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        source ('manual','import'); src jsonb (per-field export time, imports only); first_batch_id; last_batch_id;
                        payments_as_of date not null (V401: the day the figures were read from Payments — typed: entered by
                        the typist, today by default; imported: the file's export time. Shown as "Payments · as of <date>")
-                       figure_state ('provisional','final') default 'provisional'   -- V500 (draft): Final is set by the month-end
+                       figure_state ('provisional','final') default 'provisional'   -- V500: Final is set by the month-end
                        -- Payments import or by a person with Full on Finance with a reason; a change to a Final figure, or to
                        -- any figure whose month's report is issued, needs a reason and is a revision (§3.9); the history is
                        -- audit.change (before, after, who, when, the request's reason)
@@ -1180,7 +1187,7 @@ action item ∪ tasks and action items I help on — the blueprint's "My work". 
   only): the **Needs an owner** filter lists those, and a manager or admin assigns one later — logged, one Undo (D7).
   The January report is generated, compared with the old issued PDF in Compare (V57), edited and issued. An owner
   given later to a past-work line keeps the same history (`audit.change`); once its month's report is issued, the
-  change shows as a revision (V500, draft).
+  change shows as a revision (V500).
 - **Blocked** (V401): a task In progress may be marked Blocked with a required reason (`blocked_reason`, `blocked_on`;
   cleared when work resumes); the board and the list show a Blocked chip inside In progress; it is a status change with
   its own `happened_on`.
@@ -1289,7 +1296,7 @@ perf.kpi_contributor id; kpi_id; scope ('department','team','person'); scope_id
 perf.kpi_reading     STD SOFT; kpi_id; period_kind; period_start; value numeric; passed bool (checklist);
                      happened_on date not null (V400: the reading's date); logged_at timestamptz not null; note
                      as_of date not null default today; figure_state ('provisional','final') default 'provisional'
-                     -- V500 (draft): the day the figure was read and whether it is final; Final set by a lead or a manager
+                     -- V500: the day the figure was read and whether it is final; Final set by a lead or a manager
                      -- with Full on KPIs with a reason; a change keeps its history (audit.change) and needs a reason once
                      -- Final or once the month's report is issued; a Provisional reading shows a chip
                      -- V459: the reading belongs to the period of period_start, never of happened_on
@@ -1542,7 +1549,7 @@ carried over), revenue by service. `report.draft_suggestions` lists achievements
   `issued_at` (`report.added_since_issue(id)`, each a link) — and the next report's template has the section **"Added
   to earlier periods"** listing them under their real period. The V36 correction stays available when a figure was
   wrong, not merely late.
-- **Revised since issue** (V500, draft — the owner confirms). A figure that *changed* after issue (a reading, a
+- **Revised since issue** (V500). A figure that *changed* after issue (a reading, a
   Payments figure, a past-work line's owner) is a **revision**: the change keeps its history (`audit.change`, with the
   request's reason — required once the figure is Final or its month's report is issued); the issued report's page
   shows **"revised since issue"** with each figure's difference (`report.drift`, surfaced on the page, not on demand);
@@ -1552,7 +1559,7 @@ carried over), revenue by service. `report.draft_suggestions` lists achievements
   correction stays for a figure that was wrong.
 - **Newest issued report wins** (V502): when a monthly and a quarterly report disagree, or a later report restates an
   earlier one, the figure in the newest issued report is the accurate one; the older stays in its snapshot and in the
-  history (V500, draft). The same for a legacy year: where a 2025 figure differs between the 2025 report and the 2025
+  history (V500). The same for a legacy year: where a 2025 figure differs between the 2025 report and the 2025
   column printed in a 2026 report, the 2026 column is used. Readings typed from legacy reports (§3.11) follow it: the
   loader takes the newest report's figure and notes the older one.
 - **Masked money for readers without Finance** (V458): an issued report's money tiles and money lines are hidden in the
