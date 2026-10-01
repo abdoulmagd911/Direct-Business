@@ -47,6 +47,7 @@ describe("the task doors' refusals are worded in the Tasks catalog", () => {
     expect(refusalKey('errors.task.open_action_items')).toBe('pages.tasks.errors.task.open_action_items');
     expect(refusalKey('errors.action_item.not_yours')).toBe('pages.tasks.errors.action_item.not_yours');
     expect(refusalKey('errors.person.unavailable')).toBe('pages.tasks.errors.person.unavailable');
+    expect(refusalKey('errors.common.date_in_future')).toBe('pages.tasks.errors.common.date_in_future');
     expect(refusalKey('errors.person.full_name_required')).toBe('errors.person.full_name_required');
     expect(refusalKey('errors.kind.RuleBroken')).toBe('errors.kind.RuleBroken');
   });
