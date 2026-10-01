@@ -1029,8 +1029,9 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Client and internal work:** client work needs an organisation or a project; internal work has none. With neither given, a task is internal.
 - **A contact** belongs to the task's organisation.
 - **A project with live tasks** keeps its organisation and is not removed.
-- **Who can be named:** a switched-off, departed, system or test-account person is refused (`person.unavailable`).
-- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`.
+- **Who can be named:** team members only (`core.is_team_member`). A switched-off, departed or system person, the test account and the owner's admin account are refused (`person.unavailable`), as owner, helper or item owner; a task the admin account makes cannot fall back to it as owner (QA-214, V444). The Past work grid's name matching (`api.people_match`) counts team members only, so the owner's name answers his employee account.
+- **The number** takes the year the task happened (Happened on) when it is made, never the year it was entered, in `api.task_create` and `api.backfill_tasks` alike: a 2025 past-work task is `TSK-2025-…`. It never changes afterwards, even if Happened on is edited (V531). Projects keep the year they were made.
+- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`, `the-admin-account-owns-a-task`, `the-admin-account-matches-a-name`, `a-past-task-numbered-this-year`.
 
 **V195 — The task reads** ACTIVE · 2026-10-01 (P5-1; builds V400, OLD-WRK-040/041/043).
 - **`api.tasks(filter)`** filters by `scope` (all · mine · my_work), meanings, owner, organisation, project, type, overdue, stale, blocked, past_work, needs_owner and words.
