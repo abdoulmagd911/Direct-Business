@@ -54,7 +54,10 @@ describe('the shell guard refuses force, deletion, production and the integratio
     'git -C . push --all origin',
     'git push origin v2/main',
     'git push -u origin v2/main',
-    'git -C . push origin v2/a-p3-15',
+    'git push origin v2/d-x',
+    'git push origin v2/architecture-x',
+    'git push origin v2/architectures',
+    'git push origin v2/a-',
     'git push origin HEAD',
     'git push origin refs/heads/v2/b-x:refs/heads/v2/main',
     'git push origin claude/new-session-9fhlp1',
@@ -79,6 +82,12 @@ describe('the shell guard refuses force, deletion, production and the integratio
     'git push -q origin v2/b-p3-7',
     'git -C /home/user/Direct-Business push -q -u origin v2/b-x',
     'git push origin v2/b-p3-7',
+    // every lane pushes its own branches: the guard ships in every checkout (the architect on #127, 30 Sep)
+    'git -C . push origin v2/a-p3-15',
+    'git push -u origin v2/c-ar-for-127',
+    'git push -q origin v2/q-round-15',
+    'git push origin v2/architecture',
+    'git push -q -u origin v2/architecture',
     'git commit -F -',
     'node scripts/sabotage.mjs --only x',
     'python3 scripts/qa/check.py',
@@ -134,15 +143,17 @@ describe('the allow list itself: no ask rule, the dangerous families denied, pus
   it('has no ask rule at all — nothing prompts the owner', () => {
     expect(settings.permissions.ask).toEqual([]);
   });
-  it('never allows a whole push family; pushes are explicit, non-forced, to this lane', () => {
+  it('never allows a whole push family; pushes are explicit, non-forced, to a lane branch', () => {
     for (const broad of ['Bash(git push:*)', 'Bash(git push origin v2/:*)', 'Bash(git push -u origin v2/:*)'])
       expect(settings.permissions.allow, broad).not.toContain(broad);
     for (const a of settings.permissions.allow)
       if (a.startsWith('Bash(git push'))
         expect(
           a,
-          "pushes are explicit, non-forced, to this lane's v2/b-* or the old app's claude/* work branches",
-        ).toMatch(/^Bash\(git push (-q )?(-u )?origin (v2\/b-|claude\/(?!new-session-9fhlp1))[\w-]*:\*\)$/);
+          "pushes are explicit, non-forced, to a lane's v2/<a|b|c|q>-* branch, v2/architecture or the old app's claude/* work branches",
+        ).toMatch(
+          /^Bash\(git push (-q )?(-u )?origin ((v2\/(a|b|c|q)-|claude\/(?!new-session-9fhlp1))[\w-]*:\*|v2\/architecture)\)$/,
+        );
   });
   it('denies the dangerous families outright', () => {
     for (const d of [

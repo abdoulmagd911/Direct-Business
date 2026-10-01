@@ -58,7 +58,14 @@ export const sabotages = [
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
     expect: '"Companies" on screen',
-    edits: [{ file: 'messages/en.json', find: '"clients": "Clients"', replace: '"clients": "Companies"' }],
+    // the navigation's label: the same words also name a start page under Settings → App
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"settings_home": "Settings",\n    "clients": "Clients"',
+        replace: '"settings_home": "Settings",\n    "clients": "Companies"',
+      },
+    ],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
   {
@@ -168,7 +175,8 @@ export const sabotages = [
     // page never draws — the spec waits for it and times out, which is the red the sabotage expects.
     name: 'settings-open-to-everyone',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
-    expect: 'page.waitForFunction: Test timeout',
+    // with the crash page inside the shell (V216) the refused read no longer hangs the page: the no-access line is missing
+    expect: 'Settings says no access in words',
     edits: [
       {
         file: 'src/app/(app)/settings/[group]/page.tsx',
@@ -251,8 +259,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/ListEditor.tsx',
-        find: 'draft.name_en.trim().length > 0 && draft.name_ar.trim().length > 0;',
-        replace: 'draft.name_en.trim().length > 0;',
+        find: '    draft.name_ar.trim().length > 0 &&\n',
+        replace: '',
       },
     ],
   },
@@ -442,6 +450,30 @@ export const sabotages = [
     ],
   },
   {
+    name: 'admins-start-page-ignored',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: "the admin's default start page applies to a person without their own",
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
+        replace: '  for (const key of [me.profile?.start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'arabic-never-switched-on',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'once Arabic is on, the switch shows and the cookie is honoured',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
+        replace: "  return 'en';",
+      },
+    ],
+  },
+  {
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
     expect: 'the door stays English',
@@ -486,6 +518,138 @@ export const sabotages = [
         file: 'src/ui/shell/BottomBar.tsx',
         find: '              href="/profile"\n              data-entity="person"',
         replace: '              href="/settings/profile"\n              data-entity="person"',
+      },
+    ],
+  },
+  {
+    name: 'no-role-reads-as-allowed',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'no role in words',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+      },
+    ],
+  },
+  {
+    name: 'not-found-shows-the-raw-path',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'never the raw path as a title',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: "      <PageHeader title={t('errors.notFound.title')} />",
+        replace: '      <PageHeader title={address} />',
+      },
+    ],
+  },
+  {
+    name: 'activity-shows-column-names',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'the field in words',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: '    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);\n',
+        replace: '    if (f) return f;\n',
+      },
+    ],
+  },
+  {
+    name: 'setting-value-shows-the-key',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'a word, not a key',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'account-read-from-kind',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'named from core.person.account',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: "  if (row.account === 'test_account')",
+        replace: "  if (row.account === 'not_an_account')",
+      },
+    ],
+  },
+  {
+    name: 'list-hides-its-side',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'Side type shows each side',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: '  const extra = EXTRA[entity];\n',
+        replace: '  const extra = undefined as (typeof EXTRA)[string] | undefined;\n',
+      },
+    ],
+  },
+  {
+    name: 'page-squeezes-its-tabs',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'the strip keeps its height',
+    edits: [
+      {
+        file: 'src/ui/shell/AppShell.tsx',
+        find: ' [&>*]:shrink-0 ${className}',
+        replace: ' ${className}',
+      },
+    ],
+  },
+  {
+    name: 'admin-account-gets-a-day',
+    breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
+    expect: 'the admin account starts on Settings (V444)',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: "  if ((await accountOf(me.person.id)) === 'admin_account') return '/settings';\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'prefsync-copies-the-default-as-a-choice',
+    breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
+    expect: 'the profile still wins over what was copied',
+    edits: [
+      {
+        file: 'src/ui/shell/PrefsSync.tsx',
+        find: "setPref('theme', theme, { cache: true });",
+        replace: "setPref('theme', theme);",
+      },
+    ],
+  },
+  {
+    name: 'own-last-email-offers-remove',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "no Remove on one's own last email",
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '{admin && !(self && row.emails.length <= 1) ? (',
+        replace: '{admin ? (',
+      },
+    ],
+  },
+  {
+    name: 'remove-email-skips-the-ban',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'its auth user is banned',
+    edits: [
+      {
+        file: 'src/core/auth/allow-list.ts',
+        find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
+        replace: '',
       },
     ],
   },
