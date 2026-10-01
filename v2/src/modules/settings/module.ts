@@ -23,13 +23,18 @@ export const NOTIFICATION_KINDS = [
   'note_mention',
 ] as const;
 
-/** The five a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
+/**
+ * What a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6): the five of the
+ * cut, and the two My day brings (V433) — their own reminder at its time, and being mentioned in a colleague's note.
+ */
 export const WORK_NOTIFICATION_KINDS = [
   'assigned',
   'helper_added',
   'mentioned',
   'decision_needed',
   'changed_by_other',
+  'reminder',
+  'note_mention',
 ] as const satisfies readonly (typeof NOTIFICATION_KINDS)[number][];
 
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like

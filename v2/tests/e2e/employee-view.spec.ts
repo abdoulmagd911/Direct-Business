@@ -311,7 +311,7 @@ test('11 · the avatar menu holds exactly My profile and Sign out', async ({ pag
   await expect(page.getByRole('menuitem')).toHaveText(['My profile', 'Sign out']);
 });
 
-test("12 · a member's My profile: five cards, five notification switches, none of the cut fields; a manager's sixteen", async ({
+test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's eighteen", async ({
   page,
   browser,
 }) => {
@@ -321,14 +321,14 @@ test("12 · a member's My profile: five cards, five notification switches, none 
     .locator('[data-profile-card]')
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-profile-card')));
   expect(cards).toEqual(['profile', 'preferences', 'notifications', 'password', 'devices']);
-  await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(5);
+  await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(7);
   for (const gone of ['Nickname', 'Badge', 'Start page', 'Drawer', 'Theme', 'Full name'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
 
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();
   await openAs(manager, 'manager', '/profile');
-  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(16);
+  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(18);
   await ctx.close();
 });
 
