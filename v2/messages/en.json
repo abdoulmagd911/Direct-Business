@@ -246,7 +246,8 @@
       "empty": {
         "owned": "You own no tasks yet",
         "helping": "You are not helping on any task",
-        "team": "Your team has no tasks yet"
+        "team": "Your team has no tasks yet",
+        "past": "No past work yet. Paste it from a report above."
       },
       "noNotes": "No notes",
       "statusHistory": "Status changes",
@@ -256,7 +257,8 @@
         "my_work": "My work",
         "owned": "Owned",
         "helping": "Helping",
-        "team": "Team"
+        "team": "Team",
+        "past": "Past work"
       },
       "chips": {
         "status": {
@@ -367,6 +369,67 @@
         "person": {
           "unavailable": "That person cannot be given work here"
         }
+      },
+      "past": {
+        "title": "Paste past work",
+        "source": "Source report",
+        "sourceKinds": {
+          "bd_monthly": "BD monthly",
+          "partnerships": "Partnerships",
+          "commercial_quarterly": "Commercial quarterly",
+          "improvements": "Improvements"
+        },
+        "period": "Which report",
+        "quarter": "Q{n} {year}",
+        "pickSource": "Pick the report these rows come from",
+        "fromReport": "the report's last day",
+        "pasteHere": "Paste rows from a spreadsheet",
+        "hasHeader": "The first row holds the headers",
+        "fields": {
+          "title": "Title",
+          "happened_on": "Date",
+          "kind": "Status",
+          "organisation": "Client",
+          "notes": "Notes",
+          "person": "Owner"
+        },
+        "noColumn": "Not in the paste",
+        "column": "Column {letter}",
+        "columnNamed": "Column {letter} · {header}",
+        "dateOrder": "Dates read",
+        "dayFirst": "Day first (29/09/2026)",
+        "monthFirst": "Month first (09/29/2026)",
+        "line": "Line",
+        "ready": "Backfilled",
+        "updatesSaved": "Updates a saved row",
+        "problems": {
+          "title_missing": "No title",
+          "date_missing": "No date",
+          "date_unreadable": "The date cannot be read",
+          "date_ambiguous": "The date could be two days",
+          "date_in_future": "The date is after today",
+          "date_before_start": "Before 1 January 2025, where past work starts",
+          "kind_missing": "No status",
+          "kind_unknown": "Unknown status",
+          "value_unreadable": "The value is not an amount",
+          "value_not_allowed": "This category has no deal value",
+          "organisation_unknown": "Unknown client",
+          "organisation_ambiguous": "More than one client has this name",
+          "organisation_checking": "Checking the client",
+          "person_checking": "Checking the name",
+          "repeated": "The same row twice",
+          "already_saved": "Saved before",
+          "saved_checking": "Checking whether it was saved before"
+        },
+        "ownerUnknown": {
+          "missing": "Owner unknown: no name",
+          "none": "Owner unknown: no one has this name",
+          "many": "Owner unknown: more than one person has this name"
+        },
+        "summary": "{ready} rows ready · {refused} refused",
+        "save": "Save {rows} rows",
+        "saved": "{rows} rows saved as past work",
+        "failed": "Could not check or save the rows. Try again."
       }
     }
   },

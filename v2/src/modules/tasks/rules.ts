@@ -45,8 +45,11 @@ export function dueState(t: Pick<TaskRow, 'due_on' | 'meaning' | 'past_work'>, t
 
 // ---------------------------------------------------------------- the list's views and chips (§3.7)
 
-/** My work (owned ∪ items ∪ helping — V195), Owned, Helping, Team (what the person may see: their departments, V96). */
-export const SCOPES = ['my_work', 'owned', 'helping', 'team'] as const;
+/**
+ * My work (owned ∪ items ∪ helping — V195), Owned, Helping, Team (what the person may see: their departments, V96), and
+ * Past work (V491, V506: never in the other four; where the grid pastes it — V276).
+ */
+export const SCOPES = ['my_work', 'owned', 'helping', 'team', 'past'] as const;
 export type Scope = (typeof SCOPES)[number];
 export const STATUS_CHIPS = ['open', 'blocked', 'done', 'cancelled'] as const;
 export type StatusChipKey = (typeof STATUS_CHIPS)[number];
@@ -99,8 +102,9 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
 /** What api.tasks is asked (V195's filter). What it cannot answer yet — Helping, due today or this week — is `keepRow`. */
 export function apiFilter(f: TaskFilters): Record<string, unknown> {
   const out: Record<string, unknown> = {
-    scope: f.scope === 'owned' ? 'mine' : f.scope === 'team' ? 'all' : 'my_work',
+    scope: f.scope === 'owned' ? 'mine' : f.scope === 'team' || f.scope === 'past' ? 'all' : 'my_work',
   };
+  if (f.scope === 'past') out.past_work = true;
   if (f.status === 'open') out.meanings = ['not_started', 'in_progress'];
   if (f.status === 'blocked') {
     out.meanings = ['in_progress'];
