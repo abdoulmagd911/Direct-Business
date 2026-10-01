@@ -648,8 +648,9 @@ logged meeting or call and a reminder in P3-13; a task and an action item with P
   Activity and View as; its readers see a small lock chip. The named list does not follow a change of record owner.
   Never on a person's record; the appraisal never reads it (V515).
 - **Ideas and Quick note** (V528, not in stage 0): a note may carry the **Ideas** label (`idea`), and My day filters
-  by it; the **+** offers **Quick note** on every screen to everyone with My day — a small capture over the current
-  page, saved as a private note through `api.note_capture`, the page underneath kept as it was.
+  by it; an idea is private to its writer by default, like every note (owner, 2 Oct); the **+** offers **Quick note**
+  on every screen to everyone with My day — a small capture over the current page, saved as a private note through
+  `api.note_capture`, the page underneath kept as it was.
 - **Tabs** on My day: **Me** (my notes and my work) · **My team** (what my team shares, and for a manager the team
   load — open, overdue and stale by priority, blocked items, escalations; the whole department for a head —
   OLD-WRK-008) · **Workspace** (what everyone shares); each block shows **5–7 rows** and a "more" link; Comfortable,
@@ -1493,10 +1494,11 @@ reason "MoU signed").
   tap — **This is a new one** (saved with `repeat_of`) or **Same as the earlier one** (nothing saved; the earlier one
   opens to take the new evidence). Never on tasks, never in a bulk paste (the grid marks a possible repeat in its
   preview), never blocking.
-- **The weekly nudge** (V529, after stage 2): once a week (`perf.nudge_day`, `perf.nudge_time`; default Friday as the
-  owner said) each person is told which of their tasks closed that week and are not yet linked to an achievement; one
-  tap opens a sheet that logs the ticked ones — a category each, the task as the evidence (`perf.achievement_ref`),
-  the done date as `happened_on` — as one request with one Undo; a task left unticked is not offered again.
+- **The weekly nudge** (V529, after stage 2): once a week (`perf.nudge_day`, `perf.nudge_time`; default Thursday
+  afternoon, the last working day — the Riyadh weekend is Friday and Saturday; owner, 2 Oct) each person is told which
+  of their tasks closed that week and are not yet linked to an achievement; one tap opens a sheet that logs the ticked
+  ones — a category each, the task as the evidence (`perf.achievement_ref`), the done date as `happened_on` — as one
+  request with one Undo; a task left unticked is not offered again.
 - **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
   ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
 it the

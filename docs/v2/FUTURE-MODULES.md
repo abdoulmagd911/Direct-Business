@@ -24,8 +24,8 @@ data in the repository) and never duplicates Direct's own systems (V515).
 
 | Item | Decision | When |
 |---|---|---|
-| **Ideas** label on My day notes; **Quick note** from the + on every screen | V528 | the simple + entry through the fast lane the week after stage 0; the label and the capture over any page with stage 1 (18 Oct) |
-| **The weekly nudge**: the week's closed tasks become achievements in one tap | V529 | after stage 2 (achievements), target early November |
+| **Ideas** label on My day notes (private to the writer by default); **Quick note** from the + on every screen | V528 | the simple + entry through the fast lane the week after stage 0; the label and the capture over any page with stage 1 (18 Oct) |
+| **The weekly nudge** (Thursday afternoon, a setting): the week's closed tasks become achievements in one tap | V529 | after stage 2 (achievements), target early November |
 | An **e-mail or message forwarded** into a private note | V530 | later, not dated; an inbound-mail service, its cost flagged first (V6) |
 
 A module leaves this list only by an owner decision that gives it a V-number, a brief and a step in `BUILD-PLAN.md`.
