@@ -509,6 +509,7 @@
   },
   "partners": {
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
+    "capped": "يظهر {shown} من {total} — ابحث أو استخدم التصفية لتضييق القائمة",
     "none": "لا جهات مطابقة",
     "search": "ابحث بالاسم أو الرقم",
     "newClient": "عميل جديد",
