@@ -97,6 +97,11 @@ const CATALOGUE_PEOPLE = {
   w_switch: { role: 'member', label: 'Test Walk Switch' },
   w_undo: { role: 'member', label: 'Test Walk Undo' },
   w_bell: { role: 'member', label: 'Test Walk Bell' },
+  // 09-my-day-notes.spec.ts (#138/#139): an admin who turns notes into calls, a colleague who reads the organisation,
+  // and a member whose browser keeps another day than Riyadh's
+  n_author: { role: 'admin', label: 'Test Notes Author' },
+  n_peer: { role: 'member', label: 'Test Notes Colleague' },
+  n_tz: { role: 'member', label: 'Test Notes Far Clock' },
 };
 /** Made-up, typed "in the dashboard" for the auth user ACC-031 makes outside the app; never a real password. */
 const DASHBOARD_PASSWORD = 'Test-QA-Dashboard-2026-Jeddah';
