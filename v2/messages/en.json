@@ -244,7 +244,6 @@
       "more": "Showing the first {shown} of {total}",
       "emptyFiltered": "No tasks match these filters",
       "empty": {
-        "my_work": "Nothing on your list. Add a task to start.",
         "owned": "You own no tasks yet",
         "helping": "You are not helping on any task",
         "team": "Your team has no tasks yet"
