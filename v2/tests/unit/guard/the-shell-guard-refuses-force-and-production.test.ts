@@ -54,7 +54,7 @@ describe('the shell guard refuses force, deletion, production and the integratio
     'git -C . push --all origin',
     'git push origin v2/main',
     'git push -u origin v2/main',
-    'git push origin v2/d-x',
+    'git push origin v2/z-x',
     'git push origin v2/architecture-x',
     'git push origin v2/architectures',
     'git push origin v2/a-',
@@ -150,9 +150,9 @@ describe('the allow list itself: no ask rule, the dangerous families denied, pus
       if (a.startsWith('Bash(git push'))
         expect(
           a,
-          "pushes are explicit, non-forced, to a lane's v2/<a|b|c|q>-* branch, v2/architecture or the old app's claude/* work branches",
+          "pushes are explicit, non-forced, to a lane's v2/<a|b|c|d|e|q>-* branch, v2/architecture or the old app's claude/* work branches",
         ).toMatch(
-          /^Bash\(git push (-q )?(-u )?origin ((v2\/(a|b|c|q)-|claude\/(?!new-session-9fhlp1))[\w-]*:\*|v2\/architecture)\)$/,
+          /^Bash\(git push (-q )?(-u )?origin ((v2\/(a|b|c|d|e|q)-|claude\/(?!new-session-9fhlp1))[\w-]*:\*|v2\/architecture)\)$/,
         );
   });
   it('denies the dangerous families outright', () => {
