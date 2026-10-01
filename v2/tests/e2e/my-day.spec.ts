@@ -85,7 +85,7 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await chip.click();
   await hydrated(page);
   const call = page.locator('[data-note-kind="activity"]', { has: page.locator('[data-from-note]') });
-  await expect(call).toBeVisible();
+  await expect(call, 'the chip opens the organisation, where the call says where it came from').toBeVisible();
   await call.locator('[data-from-note]').click();
   await expect(page).toHaveURL(/\/my-day\/notes\//);
 

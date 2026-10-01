@@ -722,7 +722,7 @@ export const sabotages = [
   {
     name: 'turned-into-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-turned-into',
+    expect: 'the chip opens the organisation',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
