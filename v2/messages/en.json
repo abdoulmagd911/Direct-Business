@@ -835,20 +835,6 @@
         "csv": "CSV",
         "xlsx": "Excel"
       },
-      "app.default_start_page": {
-        "my_day": "My day",
-        "overview": "Overview",
-        "clients": "Clients",
-        "suppliers_partners": "Suppliers & partners",
-        "pipeline": "Pipeline",
-        "projects": "Projects",
-        "tasks": "Tasks",
-        "finance": "Finance",
-        "kpis": "KPIs",
-        "reports": "Reports",
-        "appraisal": "Appraisal",
-        "activity": "Activity"
-      },
       "work": {
         "week_starts_on": {
           "saturday": "Saturday",
