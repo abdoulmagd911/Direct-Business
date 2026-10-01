@@ -60,8 +60,16 @@ select test.eq((select count(*)::int from perf.achievement a
   'every row Backfilled, its report its evidence, none logged late');
 
 select test.as_person(current_setting('t.mgr')::uuid);
-select test.eq(api.backfill_achievement_keys_held(array['made-up-a-1', 'made-up-a-9']), '["made-up-a-1"]'::jsonb,
+select test.eq((select jsonb_agg(x ->> 'key') from jsonb_array_elements(
+  api.backfill_achievement_keys_held(array['made-up-a-1', 'made-up-a-9'])) x), '["made-up-a-1"]'::jsonb,
   'the keys held are named');
+select test.eq((api.backfill_achievement_keys_held(array['made-up-a-1']) -> 0) - 'key',
+  '{"amount": 90000.00, "from_kind": "bd_monthly", "from_period": "2026-03", "typed": false}'::jsonb,
+  'each with its deal value and the report it came from (for the grid''s preview, V502)');
+select test.as_owner();
+select test.eq((select a.number from perf.achievement a where a.import_key = 'made-up-a-3') like 'ACH-2025-%', true,
+  'a 2025 row is numbered in 2025 (V531)');
+select test.as_person(current_setting('t.mgr')::uuid);
 select set_config('t.again', api.backfill_achievements(current_setting('t.req')::jsonb)::text, true);
 select test.eq((current_setting('t.again')::jsonb ->> 'saved')::int, 0, 'the same paste twice adds nothing');
 select test.eq(jsonb_array_length(current_setting('t.again')::jsonb -> 'held'), 3, 'and names what was held');

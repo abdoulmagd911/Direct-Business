@@ -49,6 +49,10 @@ export type Database = {
       achievement_participants_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       achievement_ref_add: { Args: { p_id: string; p_system: string; p_url?: string; p_value: string }; Returns: Json };
       achievement_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      achievement_repeats: {
+        Args: { p_category: string; p_on?: string; p_partner: string; p_title: string };
+        Returns: Json;
+      };
       achievement_update: {
         Args: { p_id: string; p_reason?: string; p_values: Json; p_version: number };
         Returns: Json;
