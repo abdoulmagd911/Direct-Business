@@ -230,6 +230,123 @@
       "kpis": "No KPIs yet. Targets and actuals appear here.",
       "reports": "No reports yet. Issued reports appear here.",
       "appraisal": "No appraisal yet. Your cycle appears here when it opens."
+    },
+    "achievements": {
+      "title": "Achievements",
+      "log": "Log achievement",
+      "logged": "Achievement logged",
+      "saved": "Achievement saved",
+      "removed": "Achievement removed",
+      "moved": "Achievement moved",
+      "assigned": "Owner given",
+      "refAdded": "Reference added",
+      "refRemoved": "Reference removed",
+      "empty": "No achievements yet",
+      "noMatch": "No achievements match",
+      "filters": {
+        "category": "Category",
+        "all": "All",
+        "mine": "Mine",
+        "month": "Month",
+        "backfilled": "Backfilled",
+        "past": "Past work",
+        "needsOwner": "Needs owner",
+        "clear": "Clear"
+      },
+      "cols": {
+        "achievement": "Achievement",
+        "category": "Category",
+        "owner": "Owner",
+        "date": "Date",
+        "value": "Deal value"
+      },
+      "marks": {
+        "backfilled": "Backfilled",
+        "draft": "Draft",
+        "noEvidence": "No evidence",
+        "moved": "Moved",
+        "late": "Logged late",
+        "past": "Past work",
+        "unknown": "Unknown"
+      },
+      "fields": {
+        "category": "Category",
+        "title": "What",
+        "date": "Date",
+        "organisation": "Organisation",
+        "value": "Deal value",
+        "notes": "Notes",
+        "count": "Count",
+        "owner": "Owner",
+        "participants": "Participants",
+        "reference": "Reference",
+        "system": "System",
+        "source": "Source report",
+        "logged": "Logged",
+        "movedFrom": "Moved from",
+        "moveReason": "Why moved",
+        "none": "None",
+        "link": "Link"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "activity": "Activity",
+        "related": "Related",
+        "evidence": "Evidence"
+      },
+      "actions": {
+        "edit": "Edit",
+        "remove": "Remove",
+        "move": "Move",
+        "assign": "Give owner",
+        "addRef": "Add reference",
+        "save": "Save",
+        "cancel": "Cancel",
+        "choose": "Choose"
+      },
+      "dialogs": {
+        "edit": "Edit achievement",
+        "remove": "Remove achievement",
+        "move": "Move to earlier",
+        "assign": "Give owner",
+        "addRef": "Add reference",
+        "reason": "Reason",
+        "reasonRequired": "Say why"
+      },
+      "notRevenue": "Not revenue",
+      "noDate": "No date yet",
+      "back": "Achievements",
+      "figures": {
+        "value": "Deal value",
+        "count": "Count",
+        "date": "Date",
+        "refs": "Evidence"
+      },
+      "evidenceNone": "No evidence yet",
+      "source": "{kind} · {period}",
+      "reports": {
+        "bd_monthly": "BD monthly",
+        "partnerships": "Partnerships",
+        "commercial_quarterly": "Commercial quarterly",
+        "improvements": "Improvements"
+      },
+      "errors": {
+        "achievement": {
+          "no_plan": "No {detail} plan yet",
+          "ref_required": "Add the {detail} reference first",
+          "no_deal_value": "This category has no deal value",
+          "category_retired": "This category is retired",
+          "move_earlier_only": "Only to an earlier month",
+          "owner_required": "An owner is needed",
+          "before_2025": "Dates start 1 Jan 2025",
+          "title_required": "Say what was achieved",
+          "ref_taken": "That reference is already here",
+          "ref_looks_secret": "That looks like a password"
+        },
+        "common": {
+          "reason_required": "Say why"
+        }
+      }
     }
   },
   "entity": {
