@@ -58,7 +58,14 @@ export const sabotages = [
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
     expect: '"Companies" on screen',
-    edits: [{ file: 'messages/en.json', find: '"clients": "Clients"', replace: '"clients": "Companies"' }],
+    // the navigation's label: the same words also name a start page under Settings → App
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"settings_home": "Settings",\n    "clients": "Clients"',
+        replace: '"settings_home": "Settings",\n    "clients": "Companies"',
+      },
+    ],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
   {
@@ -439,6 +446,30 @@ export const sabotages = [
         file: 'src/app/(app)/[[...path]]/page.tsx',
         find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
         replace: '  for (const key of [app.default_start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'admins-start-page-ignored',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: "the admin's default start page applies to a person without their own",
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: '  for (const key of [me.profile?.start_page, app.default_start_page]) {',
+        replace: '  for (const key of [me.profile?.start_page]) {',
+      },
+    ],
+  },
+  {
+    name: 'arabic-never-switched-on',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'once Arabic is on, the switch shows and the cookie is honoured',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
+        replace: "  return 'en';",
       },
     ],
   },
