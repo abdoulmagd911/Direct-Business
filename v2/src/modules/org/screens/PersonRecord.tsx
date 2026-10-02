@@ -1128,6 +1128,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="font-data"
+              autoComplete="off"
               autoFocus
             />
           )}
