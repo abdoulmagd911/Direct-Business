@@ -28,7 +28,7 @@ Every main page gets one registry field, `nav.tier`: **`work`** or **`manage`**.
 | Admin | Head's + Settings (foot) | as Manager | Head's + Settings |
 | Viewer | My day · Clients · KPIs · Reports | My day · Clients · KPIs · Reports (no More) | — (profile from the avatar) |
 
-Phone bar: the first four menu items, then More when anything is left. The floating + shows **on My day only** (#127),
+Phone bar: the first four menu items, then More when anything is left. The floating + shows ~~**on My day only** (#127)~~ **[SUPERSEDED — V217: on every page, the main area's 96 px bottom padding clear of it]**,
 above the bar, for a role with at least one Create item (none for a Viewer). `PRIMARY` in `BottomBar.tsx` goes; the
 bar follows the menu. Appraisal shows in the manager menus as today; hiding it outside an open cycle comes with the
 appraisal cycle step.
@@ -52,13 +52,13 @@ appraisal cycle step.
    New dialog open (#132). "Partner" becomes **Client** (and **Supplier** when the person has Full on suppliers). With
    one item left, the + and Create open it directly, no menu. With none, Create and the + are hidden.
 4. **Header** — "Search" at 390 is done (`searchShort`, #127). What remains: the placeholder "Search clients, tasks,
-   invoices" from 640, and the Ctrl K hint from 1024 instead of 640. (The phone shows only the + on My day — no change.)
+   invoices" from 640, and the Ctrl K hint from 1024 instead of 640. ~~(The phone shows only the + on My day — no change.)~~ **[SUPERSEDED — V217: the + stands on every page]**
 5. **Profile chip menu** — My profile · Sign out, nothing else. Theme leaves with the one-theme PR (29 Sep spec,
    section 0); Density, Language and Direction move into My profile; Recently deleted stays reachable from Activity.
 6. **My profile** — cards: Profile (Display name, photo or colour), Preferences (Language, Density), Notifications,
    Password, Devices. Gone from the screen: Full name and Nickname fields (admins edit names on the person's record),
-   Badge, Start page, Drawer, Theme. Notifications: a work-tier person sees five switches — Assigned to me, Added as a
-   helper, Mentioned, A decision is needed, My record changed by someone else; manage-tier roles see all sixteen.
+   Badge, Start page, Drawer, Theme. Notifications: a work-tier person sees ~~five switches~~ **[SUPERSEDED — V217: seven — these five, Reminders and Mentioned in a note]** — Assigned to me, Added as a
+   helper, Mentioned, A decision is needed, My record changed by someone else; manage-tier roles see all ~~sixteen~~ **[SUPERSEDED — V217: eighteen]**.
    New profiles start with only those five on for work-tier roles.
 7. **A person's record** — the ACCESS list in the rail becomes one line, "Access · Member (standard)" or
    "Access · Member + 1 change", with Show all; open by default only for admins.
@@ -111,7 +111,7 @@ Suppliers tab
 
 Create
 
-9. Member: the + on My day (390) and Create (1440) open New task directly, no menu. Manager: the menu lists only built
+9. Member: the + on My day (390) and Create (1440) ~~open New task directly, no menu~~ **[SUPERSEDED — V605: offer Task and Log achievement, both at Own or Full — a menu]**. Manager: the menu lists only built
    items at Full; Create › Client opens `/clients` with the New client dialog open. An item whose page is not built is
    absent (not greyed). "Partner" appears nowhere.
 
@@ -119,7 +119,7 @@ Header, profile, record
 
 10. 390: search placeholder "Search", no Ctrl K; 1440: "Search clients, tasks, invoices" and Ctrl K.
 11. The avatar menu has exactly My profile and Sign out.
-12. Member's My profile: 5 cards; 5 notification switches; no Nickname, Badge, Start page, Drawer, Theme. Manager: 16
+12. Member's My profile: 5 cards; ~~5 notification switches~~ **[SUPERSEDED — V217: 7]**; no Nickname, Badge, Start page, Drawer, Theme. Manager: ~~16~~ **[SUPERSEDED — V217: 18]**
     switches.
 13. A person's record as Manager: one Access line with Show all; as Admin: open.
 
@@ -128,7 +128,7 @@ Words and layout
 14. No page title, tab, crumb or menu item contains "Organization", "Suppliers & partners", "Plan & performance",
     "Head of department" or "Team member" (en).
 15. At 390, on every page reachable from the member's menu: no horizontal scroll (`scrollWidth ≤ 390`), nothing
-    clipped, every tap target ≥ 44 px; on My day the + never covers the last row (88 px bottom padding).
+    clipped, every tap target ≥ 44 px; ~~on My day~~ **[SUPERSEDED — V217: on every page of the member's menu]** the + never covers the last row (88 px bottom padding).
 16. The 3-job phone test (V509) is scripted as a smoke: My day → a client → Log activity with a next step;
     My day → tick today's task; search → client → the contact's phone link (`tel:`). Each completes within the tap
     counts of the test.
