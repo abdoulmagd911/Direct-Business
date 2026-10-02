@@ -398,7 +398,17 @@
     "my_note": "My day note",
     "my_note_link": "Turned into",
     "my_note_mention": "Note mention",
-    "reminder": "Reminder"
+    "reminder": "Reminder",
+    "task_status": "Task status",
+    "task_type": "Task type",
+    "project_status": "Project status",
+    "task_helper": "Task helper",
+    "action_item": "Action item",
+    "action_item_helper": "Action item helper",
+    "task_ref": "Task reference",
+    "task_contact": "Task contact",
+    "task_status_change": "Status change",
+    "project_health": "Project health"
   },
   "status": {
     "done": "Done",
