@@ -125,7 +125,7 @@ const NAV: { path: string; page: string; label: string }[] = [
   { path: '/my-day', page: 'my_day', label: 'My day' },
   { path: '/overview', page: 'overview', label: 'Overview' },
   { path: '/partners?view=clients', page: 'clients', label: 'Clients' },
-  { path: '/partners?view=suppliers', page: 'suppliers_partners', label: 'Suppliers & partners' },
+  { path: '/partners?view=suppliers', page: 'suppliers_partners', label: 'Suppliers' },
   { path: '/pipeline', page: 'pipeline', label: 'Pipeline' },
   { path: '/projects', page: 'projects', label: 'Projects' },
   { path: '/tasks', page: 'tasks', label: 'Tasks' },
@@ -134,6 +134,39 @@ const NAV: { path: string; page: string; label: string }[] = [
   { path: '/reports', page: 'reports', label: 'Reports' },
   { path: '/appraisal', page: 'appraisal', label: 'Appraisal' },
 ];
+
+/**
+ * V217's menu rule (`navFor` in ui/shell/nav.ts): the work pages (My day, Tasks, Clients, Pipeline) at any level above
+ * none; the manage pages for Manager, Head and Admin, a Viewer getting KPIs and Reports, Overview and Activity kept to
+ * Head and Admin; Suppliers is Clients' tab, in the menu itself only when Clients is none (QA-504); Settings for admins.
+ */
+const WORK_TIER = ['my_day', 'tasks', 'clients', 'pipeline'];
+function menuFor(key: string): string[] {
+  const role = PEOPLE[key]?.role ?? null;
+  const above = (page: string) => levelOf(key, page) !== 'none';
+  const managing = role === 'manager' || role === 'head' || role === 'admin';
+  const out: string[] = [];
+  for (const n of NAV) {
+    if (!above(n.page)) continue;
+    if (n.page === 'suppliers_partners') {
+      if (!above('clients')) out.push(n.label);
+    } else if (WORK_TIER.includes(n.page)) out.push(n.label);
+    else if (n.page === 'overview') {
+      if (role === 'head' || role === 'admin') out.push(n.label);
+    } else if (managing || (role === 'viewer' && (n.page === 'kpis' || n.page === 'reports'))) out.push(n.label);
+  }
+  if (above('activity') && (role === 'head' || role === 'admin')) out.push('Activity');
+  if (isAdmin(key)) out.push('Settings');
+  return out;
+}
+
+/** Ctrl K reaches every page the person may open (`reachableFor`), in the menu or not (V217: out of the menu is never locked). */
+function reachableFor(key: string): string[] {
+  const out = NAV.filter((n) => levelOf(key, n.page) !== 'none').map((n) => n.label);
+  if (levelOf(key, 'activity') !== 'none') out.push('Activity');
+  if (isAdmin(key)) out.push('Settings');
+  return out;
+}
 
 function routes(): Route[] {
   const f = fx();
@@ -260,11 +293,9 @@ async function sweep(page: Page, key: string) {
     differs.length === 0,
   );
 
-  // the drawer: an entry for each page above none; Settings for admins only (V209)
+  // the drawer: V217's menu rule; Settings for admins only (V209)
   const drawer = page.locator('[data-drawer]');
-  const expected = [...NAV.filter((n) => levelOf(key, n.page) !== 'none').map((n) => n.label)];
-  if (levelOf(key, 'activity') !== 'none') expected.push('Activity');
-  if (isAdmin(key)) expected.push('Settings');
+  const expected = menuFor(key);
   const shown: string[] = [];
   for (const label of [...NAV.map((n) => n.label), 'Activity', 'Settings'])
     // nav entries only: the logo (aria-label "My day") and the person at the foot carry an aria-label; entries do not
@@ -280,13 +311,13 @@ async function sweep(page: Page, key: string) {
       area: AREA,
       user: key,
       screen: '(drawer)',
-      check: 'the drawer shows exactly the pages above none (+ Settings for admins)',
+      check: "the drawer shows exactly V217's menu for the person (+ Settings for admins)",
       detail: `shown: ${shown.join(', ')} · expected: ${expected.join(', ')}`,
     },
     shown.sort().join('|') === [...expected].sort().join('|'),
   );
 
-  // Ctrl K lists the same pages
+  // Ctrl K lists every page the person may open (V217)
   await page.keyboard.press('Control+k');
   const palette = page.locator('[data-command-palette]');
   if (await palette.isVisible({ timeout: 5_000 }).catch(() => false)) {
@@ -298,10 +329,10 @@ async function sweep(page: Page, key: string) {
         area: AREA,
         user: key,
         screen: '(Ctrl K)',
-        check: 'Ctrl K offers exactly the drawer pages',
-        detail: `offered: ${items.join(', ')}`,
+        check: 'Ctrl K offers exactly the pages the person may open (V217)',
+        detail: `offered: ${items.join(', ')} · expected: ${reachableFor(key).join(', ')}`,
       },
-      items.sort().join('|') === [...expected].sort().join('|'),
+      items.sort().join('|') === reachableFor(key).sort().join('|'),
     );
     const clients = (await palette.getByText(/Clients|client/i).count()) > 0;
     if (levelOf(key, 'clients') === 'none')

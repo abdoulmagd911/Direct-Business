@@ -554,7 +554,7 @@ test('ACC-031 an auth user made outside the app is linked by its email: never a 
   const name = /\/profile/.test(pathOf(their))
     ? await their
         .getByLabel(say('profile.fullNameEn'), { exact: true })
-        .inputValue()
+        .inputValue({ timeout: 5_000 }) // My profile may show the display name only (V217): never wait the test out
         .catch(() => '')
     : '';
   note(id, 'the password typed outside the app still opens the door, as this person', {
@@ -581,24 +581,21 @@ test('ACC-048 a viewer: no Appraisal, Activity or Settings in the drawer; every 
     { screen: '(drawer)', user: 'viewer', detail: `drawer: ${entries.join(', ')}` },
     entries.length > 0 && shown.length === 0,
   );
-  const work = [
-    'My day',
-    'Overview',
-    'Clients',
-    'Suppliers & partners',
-    'Pipeline',
-    'Projects',
-    'Tasks',
-    'Finance',
-    'KPIs',
-    'Reports',
-  ];
+  // V217's menu rule: the work pages at any level above none, and of the manage pages only KPIs and Reports for a
+  // Viewer (the rest stay reachable by address and Ctrl K, never locked)
+  const work = ['My day', 'Clients', 'KPIs', 'Reports'];
+  const manage = ['Overview', 'Projects', 'Finance'];
   const absent = work.filter((l) => !entries.includes(l));
+  const extra = manage.filter((l) => entries.includes(l));
   check(
     id,
-    'the work pages are there (View)',
-    { screen: '(drawer)', user: 'viewer', detail: absent.length ? `missing: ${absent.join(', ')}` : 'all ten' },
-    absent.length === 0,
+    'the menu holds the work pages, KPIs and Reports, and no other manage page (V217)',
+    {
+      screen: '(drawer)',
+      user: 'viewer',
+      detail: `${absent.length ? `missing: ${absent.join(', ')}` : 'all there'}${extra.length ? `; also: ${extra.join(', ')}` : ''}`,
+    },
+    absent.length === 0 && extra.length === 0,
   );
 
   const offered: string[] = [];
@@ -941,20 +938,21 @@ test('ACC-094 an admin adds a second email: one person, and either email signs i
       .catch(() => undefined);
   }
   const landed = pathOf(their);
-  await their.goto('/profile');
-  const asName = await their
-    .getByLabel(say('profile.fullNameEn'), { exact: true })
-    .inputValue()
-    .catch(() => '');
+  // who the session belongs to, from the sign-in log (My profile no longer shows the full name — V217, cut 6)
+  const [last] = await sql<{ person_id: string | null }>(
+    `select person_id::text from core.sign_in_log where email = $1 and result = 'ok' order by at desc limit 1`,
+    [second],
+  );
+  const asWho = last?.person_id ?? '';
   check(
     id,
     'the second email signs in (the temporary password, then their own) — as the same person',
     {
       screen: '/sign-in',
       user: 'c_twomail',
-      detail: `landed ${landed}; My profile shows ${asName === who.name ? 'this person' : `"${asName}"`}${/\/sign-in/.test(landed) ? ` — "${await doorLine(their)}"` : ''}`,
+      detail: `landed ${landed}; signed in as ${asWho === who.id ? 'this person' : asWho || 'nobody'}${/\/sign-in/.test(landed) ? ` — "${await doorLine(their)}"` : ''}`,
     },
-    !/\/sign-in|\/set-password/.test(landed) && asName === who.name,
+    !/\/sign-in|\/set-password/.test(landed) && asWho === who.id,
   );
 
   await their.request.post('/auth/sign-out');
