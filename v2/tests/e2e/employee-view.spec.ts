@@ -254,38 +254,39 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Client, Supplier and Achievement (KPIs is built) are at Full; Task and Invoice are not built — absent
+  // a manager: Task, Client, Supplier and Achievement (Tasks and KPIs are built) are at Full; Invoice is not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Suppliers is View): Create and the + open it directly, no menu
+  // one item left (a member whose Clients and Suppliers are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
-  await sql(
-    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-     values ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1)`,
-    [member.id],
-  );
+  for (const key of ['clients', 'suppliers_partners'])
+    await sql(
+      `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+       values ($1, $2, 'view', 'Made up: read only', $1)`,
+      [member.id, key],
+    );
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
   const create = one.locator('[data-create]');
-  await expect(create).toHaveText('New client');
-  await expect(create).toHaveAttribute('data-create-direct', 'client');
+  await expect(create).toHaveText('New task');
+  await expect(create).toHaveAttribute('data-create-direct', 'task');
   await create.click();
-  await expect(one).toHaveURL(/\/clients\?new=1$/);
-  await expect(one.locator('[data-partner-form]'), 'the New dialog is open on arrival').toBeVisible();
+  await expect(one).toHaveURL(/\/tasks\?new=1$/);
+  await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
   await one.keyboard.press('Escape');
   await one.setViewportSize(PHONE);
   await one.goto('/my-day');
   await hydrated(one);
   const plus = one.locator('[data-create-floating]');
-  await expect(plus).toHaveAttribute('data-create-direct', 'client');
-  await expect(plus).toHaveAttribute('href', '/clients?new=1');
+  await expect(plus).toHaveAttribute('data-create-direct', 'task');
+  await expect(plus).toHaveAttribute('href', '/tasks/new');
   await ctx.close();
 });
 
