@@ -990,4 +990,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'activity-delete-has-no-words',
+    breaks: ['unit:tests/unit/shell/the-activity-log-has-words-for-a-deleted-record.test.tsx'],
+    expect: 'a deleted record has words',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '      "delete": "{what} deleted",\n',
+        replace: '',
+      },
+    ],
+  },
 ];
