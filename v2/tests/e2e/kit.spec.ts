@@ -87,12 +87,12 @@ test('Direct never puts text on the accent fill', async ({ page, context }) => {
   expect(offenders).toEqual([]);
 });
 
-test('a switched theme applies at once, without a reload', async ({ page, context }) => {
-  await setPrefs(context, { theme: 'light' });
+// The chip's theme switch left with the employee view (V217, cut 5; the one-theme change follows): a theme the profile
+// holds is drawn from the first paint and survives a reload.
+test('a chosen theme draws with its own tokens and survives a reload', async ({ page, context }) => {
+  await setPrefs(context, { theme: 'dark' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kit');
-  await page.locator('[data-profile-chip]').click();
-  await page.locator('[data-theme-option="dark"]').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(bg).toBe('rgb(22, 27, 27)');

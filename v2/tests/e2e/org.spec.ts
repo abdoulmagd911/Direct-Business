@@ -82,11 +82,12 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await expect(page.locator('[data-record-rail]').getByRole('combobox')).toHaveCount(0);
   await expect(page.locator('[data-person-edit]')).toHaveCount(0);
 
-  // the member's drawer before: no Overview (a member starts at none there)
+  // the member before: Overview says no access (a member starts at none there). Overview is a manage page, so it
+  // never joins a member's menu (V217) — the change is seen on the page itself.
   const theirs = await browser.newContext();
   const their = await theirs.newPage();
-  await signIn(their, member.email, '/my-day');
-  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toHaveCount(0);
+  await signIn(their, member.email, '/overview');
+  await expect(their.locator('[data-state="no-access"]')).toBeVisible();
 
   // the admin gives the member role View on Overview, with a reason
   const adminCtx = await browser.newContext();
@@ -102,7 +103,9 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await expect(toast(adminPage, 'Access changed')).toBeVisible();
   await their.reload();
   await their.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
-  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toBeVisible();
+  await expect(their.locator('[data-state="no-access"]')).toHaveCount(0);
+  await expect(their.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
+  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toHaveCount(0);
   // and back (one Undo), so the seed stays as it was for the other specs
   await toast(adminPage, 'Access changed').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(adminPage, 'Undone')).toBeVisible();

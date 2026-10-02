@@ -11,6 +11,8 @@ const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
 export default defineConfig<ClockOptions>({
   testDir: 'tests/e2e',
+  // the admin's access steps of the employee view (brief E, V217), as they stand once the oversight has made them
+  globalSetup: './tests/e2e/support/employee-view-access.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
@@ -32,7 +34,7 @@ export default defineConfig<ClockOptions>({
     // already the next day in Riyadh.
     {
       name: 'utc-arabic-browser',
-      testMatch: /(p3-7|settings|org|profile|access|door)\.spec\.ts/,
+      testMatch: /(p3-7|settings|org|profile|access|door|partners)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], locale: 'ar-SA', timezoneId: 'UTC', movedClock: true },
     },
     // A spec whose action reaches every person (one "Generate for everyone without a password", say) runs alone, after
