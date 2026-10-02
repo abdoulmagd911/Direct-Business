@@ -7,10 +7,11 @@ export default defineModule({
   key: 'partners',
   pages: [
     // One organisation record, two sides (V98): each side's list is its own page, with its own access and capabilities.
-    // The routes are builder B's list screen for now (/partners?view=…); record pages stay /partners/[id].
+    // P3-9: the lists live at /clients and /suppliers; a record opens as /clients/[id] or /suppliers/[id] (the same
+    // organisation, the opened side first), and /partners/[id] sends a link to the right one.
     {
       key: 'clients',
-      route: '/partners?view=clients',
+      route: '/clients',
       label: 'nav.clients',
       icon: 'building-2',
       nav: { group: 'main', order: 30 },
@@ -18,7 +19,7 @@ export default defineModule({
     },
     {
       key: 'suppliers_partners',
-      route: '/partners?view=suppliers',
+      route: '/suppliers',
       label: 'nav.suppliers_partners',
       icon: 'handshake',
       nav: { group: 'main', order: 31 },
@@ -90,6 +91,16 @@ export default defineModule({
     ).map(([key, table]) => ({ key, table, page: 'settings.partners', label: `entity.${key}`, list: true })),
   ],
   settings: [
+    {
+      // V95: the record page's header figures (up to five), which the hover card and the phone card reuse.
+      key: 'record.header_figures.partner',
+      group: 'settings.partners',
+      label: 'setting.record.header_figures.partner',
+      schema: z
+        .array(z.enum(['last_activity', 'next_step', 'contracts', 'contacts', 'files', 'notes', 'client_since']))
+        .max(5),
+      default: ['last_activity', 'next_step', 'contracts', 'contacts', 'files'],
+    },
     {
       key: 'partner.id_format',
       group: 'settings.partners',
