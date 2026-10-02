@@ -365,25 +365,13 @@ export const sabotages = [
     ],
   },
   {
-    name: 'menu-theme-stays-in-the-cookie',
+    name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the menu saves to the profile',
-    edits: [
-      {
-        file: 'src/ui/shell/ProfileMenu.tsx',
-        find: "onValueChange={(v) => choose('theme', v as typeof prefs.theme)}",
-        replace: "onValueChange={(v) => set('theme', v as typeof prefs.theme)}",
-      },
-    ],
-  },
-  {
-    name: 'profile-keeps-the-undone-theme',
-    breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the undone theme is gone from the page',
+    expect: 'the undone density is gone from the page',
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);\n",
+        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);\n",
         replace: '',
       },
     ],
@@ -522,6 +510,42 @@ export const sabotages = [
     ],
   },
   {
+    name: 'at-risk-needs-no-reason',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'At risk asks for a reason',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/SideDialogs.tsx',
+        find: "  const needsReason = f.status === 'at_risk' || f.status === 'lost';\n",
+        replace: '  const needsReason = false;\n',
+      },
+    ],
+  },
+  {
+    name: 'bulk-assign-one-by-one',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'every selected organisation is owned by the new owner',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: '          p_ids: ids,\n',
+        replace: '          p_ids: ids.slice(0, 1),\n',
+      },
+    ],
+  },
+  {
+    name: 'hover-card-shows-one-side',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the hover card names both sides',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerHover.tsx',
+        find: '              {p.sides.map((s) => (\n',
+        replace: '              {p.sides.slice(0, 1).map((s) => (\n',
+      },
+    ],
+  },
+  {
     name: 'no-role-reads-as-allowed',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
     expect: 'no role in words',
@@ -582,6 +606,43 @@ export const sabotages = [
     ],
   },
   {
+    // the brief's own sabotage (F7): a manage page given the work tier reaches a member's menu
+    name: 'menu-shows-own-manage-page',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'the member menu',
+    edits: [
+      {
+        file: 'src/modules/projects/module.ts',
+        find: "nav: { group: 'main', order: 60, tier: 'manage' },",
+        replace: "nav: { group: 'main', order: 60, tier: 'work' },",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-an-unbuilt-screen',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'Create offers only built screens',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
+        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+      },
+    ],
+  },
+  {
+    name: 'access-list-closed-for-admins',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'open with Show less',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);',
+        replace: '  const [allAccess, setAllAccess] = useState(false);',
+      },
+    ],
+  },
+  {
     name: 'list-hides-its-side',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
     expect: 'Side type shows each side',
@@ -618,6 +679,126 @@ export const sabotages = [
     ],
   },
   {
+    name: 'turn-into-offers-a-task-too-soon',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a task waits for Tasks',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  task: 'tasks',\n  action_item: 'tasks',\n",
+        replace: "  action_item: 'tasks',\n",
+      },
+    ],
+  },
+  {
+    name: 'block-draws-every-row',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'seven rows',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  return { rows: rows.slice(0, BLOCK_ROWS),',
+        replace: '  return { rows,',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-carries-to-a-friday',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Sunday after a Thursday',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  while (d.getUTCDay() === 5 || d.getUTCDay() === 6);',
+        replace: '  while (false);',
+      },
+    ],
+  },
+  {
+    name: 'private-note-reads-as-everyone',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Only me',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: '      {t(`pages.myDay.visibility.${visibility}`)}',
+        replace: "      {t('pages.myDay.visibility.workspace')}",
+      },
+    ],
+  },
+  {
+    name: 'capture-starts-shared',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'private by default',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/CaptureRow.tsx',
+        find: "useState<Visibility>('private')",
+        replace: "useState<Visibility>('workspace')",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-defaults-to-done',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'data-wrap-choice',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "choices[id] ?? 'carry'",
+        replace: "choices[id] ?? 'done'",
+      },
+    ],
+  },
+  {
+    name: 'turned-into-chip-leads-nowhere',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the chip opens the organisation',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;",
+        replace: 'if (link.partner_id === "never") return null;',
+      },
+    ],
+  },
+  {
+    name: 'from-note-chip-hidden',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'where the call says where it came from',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerRecord.tsx',
+        find: '{n.from_note ? <FromNoteChip',
+        replace: '{n.from_note && n.id === "never" ? <FromNoteChip',
+      },
+    ],
+  },
+  {
+    name: 'record-tabs-lose-their-words',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'Overview',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '    "tabs": {\n      "overview": "Overview",',
+        replace: '    "tabsGone": {\n      "overview": "Overview",',
+      },
+    ],
+  },
+  {
+    name: 'mark-seen-keeps-the-block',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'Mark seen clears the block',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/SinceBlock.tsx',
+        find: '            setSince(null);\n',
+        replace: '            void 0;\n',
+      },
+    ],
+  },
+  {
     name: 'prefsync-copies-the-default-as-a-choice',
     breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
     expect: 'the profile still wins over what was copied',
@@ -650,6 +831,42 @@ export const sabotages = [
         file: 'src/core/auth/allow-list.ts',
         find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'clients-none-reads-as-a-list',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'no-access',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/list-page.tsx',
+        find: "if ((me.levels[page] ?? 'none') === 'none')",
+        replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'suppliers-door-lost-when-clients-none',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'a person with Clients none still has a door to Suppliers',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: '(e.tabOf && canSee(me, e.tabOf))',
+        replace: 'e.tabOf',
+      },
+    ],
+  },
+  {
+    name: 'capped-list-says-nothing',
+    breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
+    expect: 'says how many it shows of how many',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/CappedNote.tsx',
+        find: 'if (total <= shown) return null;',
+        replace: 'if (total >= 0) return null;',
       },
     ],
   },

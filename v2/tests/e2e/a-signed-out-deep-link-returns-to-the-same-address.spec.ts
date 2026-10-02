@@ -5,9 +5,9 @@ import { makePerson, signIn } from './support/stack';
 // query included. Sabotage: tests/sabotage/e2e-sign-in.mjs "e2e-deep-links-forget-where".
 test('a signed-out deep link returns to the same address after sign-in', async ({ page }) => {
   const person = await makePerson();
-  await page.goto('/partners/some-partner?tab=files');
-  await expect(page).toHaveURL(/\/sign-in\?next=%2Fpartners%2Fsome-partner%3Ftab%3Dfiles$/);
-  await signIn(page, person.email, '/partners/some-partner?tab=files');
-  await expect(page).toHaveURL(/\/partners\/some-partner\?tab=files$/);
-  await expect(page.getByTestId('address')).toHaveText('/partners/some-partner');
+  await page.goto('/tasks/some-task?tab=files');
+  await expect(page).toHaveURL(/\/sign-in\?next=%2Ftasks%2Fsome-task%3Ftab%3Dfiles$/);
+  await signIn(page, person.email, '/tasks/some-task?tab=files');
+  await expect(page).toHaveURL(/\/tasks\/some-task\?tab=files$/);
+  await expect(page.getByTestId('address')).toHaveText('/tasks/some-task');
 });

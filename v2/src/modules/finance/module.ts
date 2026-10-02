@@ -9,7 +9,7 @@ export default defineModule({
       route: '/finance',
       label: 'nav.finance',
       icon: 'wallet',
-      nav: { group: 'main', order: 70 },
+      nav: { group: 'main', order: 70, tier: 'manage' },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
     {
