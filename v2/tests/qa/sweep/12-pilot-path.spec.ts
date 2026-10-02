@@ -109,9 +109,17 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
         { screen: 'Ctrl K', user: persona, detail: inPalette.join(', ') || `${palette.length} entries` },
         inPalette.length === 0,
       );
-      // every deferred address reads as the no-access state, never the module's content (QA-229)
-      for (const p of DEFERRED) {
-        await page.goto(`/${p}`);
+      // every deferred address reads as the no-access state, never the module's content (QA-229) — and a deferred
+      // module's deeper pages too once they exist (KPIs' achievements, #151)
+      const deferredAddresses = [
+        ...DEFERRED.map((d) => `/${d}`),
+        ...(existsSync(join(V2_DIR, 'src', 'app', '(app)', 'kpis', 'achievements', 'page.tsx'))
+          ? ['/kpis/achievements', '/kpis/achievements/new']
+          : []),
+      ];
+      for (const addr of deferredAddresses) {
+        const p = addr.slice(1);
+        await page.goto(addr);
         await hydrated(page);
         const text = (
           (await page

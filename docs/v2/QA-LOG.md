@@ -957,3 +957,21 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **Sabotages:** all 11 turn their test red.
 - **#147 re-confirmed at 035b22e.** It moved only by merging main 94ff70a. Its own diff against main matches the cleared head, except for where its DECISIONS section sits next to #148's.
 
+
+## Round 50 — 2026-10-02 16:25 (v2/main e1be906: #151 merged; #141 cleared at a035e30 with CI green; #147 re-confirmed at 8c69226)
+
+- **Main retake at e1be906** (#151, Builder E: the achievements screens `/kpis/achievements`, the record page and Log achievement; QA 2 cleared it):
+  - **SQL suite from zero:** 172 of 177, unchanged. The reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** the same failing tests as 94ff70a, and every area's totals are identical.
+  - **Routes:** `02-routes` now also opens `/kpis/achievements` and an achievement that does not exist, as every person, when those pages exist. 12 new checks, all PASS; routes 320 PASS, 13 FAIL as before.
+  - **Pilot path on a fresh main copy:** 42 PASS, 2 FAIL (QA-236, unchanged). It now also opens `/kpis/achievements` and `/kpis/achievements/new` as the pilot member and manager (KPIs at none). All four read "You do not have access".
+  - **Gallery:** retaken and republished (version 28, 279 pictures). It adds KPIs · Achievements and KPIs · Log achievement for every person. The local seed opens no plan, so the list is empty and Category offers nothing. That is the production blocker the Architect sent to Builder E at 13:10 UTC (plans opened by a migration, an empty state for Log achievement), and it is QA 2's to clear.
+  - **New:** QA-242 and QA-243 (Low, Builder E), seen in the gallery.
+- **#141 (Builder A):** CI is green on a035e30, end-to-end included, so the clearance has no condition left. Main e1be906 adds no migrations; #141 merges into it with no conflicts, and V600 still holds.
+- **#147 (Builder D) re-confirmed at 8c69226.** It moved only by merging main e1be906. The `en.json` conflict was settled by keeping both sides: the lines it adds to `en.json` and `ar.json` are the same as at the cleared head, both files parse, and no key appears twice. Its CI is green except build and end-to-end, still running at 16:25.
+- **Push hold:** the Architect's 13:10 note on #151 cites the oversight testing on production, so production looks deployed. QA 1 still waits for the oversight's word before pushing rounds 40–50.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-242 | 2026-10-02 16:25 | #151 (main e1be906); V216 | Low | Builder E (words: C) | **The achievements list's header shows a bare number.** `AchievementList` passes `String(page.total)` as the header's meta, so the page reads "Achievements" over a lone "0" (or "230"). Clients reads "{count} organisations". **Fix:** a `pages.achievements.count` line ("{count} achievements", with its Arabic) used as the meta. | Open |
+| QA-243 | 2026-10-02 16:25 | #151 (main e1be906) | Low | Builder E | **The month filter is the browser's own month box.** `<input type="month">` is the only one in the app. Chromium shows "--------- ----" when it is empty, and Safari on Mac and Firefox offer no month picker, only a text box that expects "2026-10". **Fix:** a select of months ("October 2026", the last 24 months and "Any month"), or the app's date picker set to months. The filter stays in the address as it is. | Open |

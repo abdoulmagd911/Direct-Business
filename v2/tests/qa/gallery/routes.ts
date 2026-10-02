@@ -1,7 +1,10 @@
 // The preview gallery's pages and people (the oversight's ask of 29 Sep 15:59: every route, every role, 1440 and 390,
 // with the empty, error and no-access states). Routes follow the sidebar and the settings groups; a route that needs
 // a record takes one from the run's made-up fixtures. Every person and value is made up (rule 7).
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Fixtures } from '../sweep/lib';
+import { V2_DIR } from '../sweep/paths.mjs';
 
 export type Persona = { key: string; label: string; note: string };
 
@@ -47,6 +50,24 @@ export const ROUTES: Route[] = [
   { id: 'tasks', group: 'Work', label: 'Tasks', path: () => '/tasks', list: true },
   { id: 'finance', group: 'Money and results', label: 'Finance', path: () => '/finance', list: true },
   { id: 'kpis', group: 'Money and results', label: 'KPIs', path: () => '/kpis', list: true },
+  // KPIs' achievements (#151), shown once its pages exist on the branch photographed
+  ...(existsSync(join(V2_DIR, 'src', 'app', '(app)', 'kpis', 'achievements', 'page.tsx'))
+    ? [
+        {
+          id: 'achievements',
+          group: 'Money and results',
+          label: 'KPIs · Achievements',
+          path: () => '/kpis/achievements',
+          list: true,
+        },
+        {
+          id: 'achievement-new',
+          group: 'Money and results',
+          label: 'KPIs · Log achievement',
+          path: () => '/kpis/achievements/new',
+        },
+      ]
+    : []),
   { id: 'reports', group: 'Money and results', label: 'Reports', path: () => '/reports', list: true },
   { id: 'appraisal', group: 'People', label: 'Appraisal', path: () => '/appraisal' },
   { id: 'activity', group: 'Activity', label: 'Activity', path: () => '/activity', list: true },

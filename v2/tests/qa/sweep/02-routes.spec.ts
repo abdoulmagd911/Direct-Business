@@ -5,7 +5,10 @@
  * none they are NOT BUILT, not PASS. The drawer, the phone bar's More, Ctrl K and the profile links are checked too.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { apiAs, fx, hydrated, info, notBuilt, shot, signIn, user, verdict } from './lib';
+import { V2_DIR } from './paths.mjs';
 
 const AREA = 'routes';
 type Level = 'none' | 'view' | 'own' | 'full';
@@ -214,6 +217,18 @@ function routes(): Route[] {
     ].map((g) => ({ path: `/settings/${g}`, expect: adminOnly })),
     { path: '/settings/no-such-group', expect: () => 'not-found' },
     { path: '/kit', expect: () => 'not-found', note: 'the kit gallery is not served by a production build (V202)' },
+    // KPIs' achievements (#151), once its pages exist: the list follows KPIs' level; an achievement that does not
+    // exist is Not found for anyone who may open KPIs
+    ...(existsSync(join(V2_DIR, 'src', 'app', '(app)', 'kpis', 'achievements', 'page.tsx'))
+      ? [
+          { path: '/kpis/achievements', expect: lvl('kpis'), placeholderPage: 'kpis' },
+          {
+            path: '/kpis/achievements/00000000-0000-4000-8000-00000000abcd',
+            expect: (k: string) => (levelOf(k, 'kpis') === 'none' ? 'no-access' : 'not-found') as Got,
+            hidden: true,
+          },
+        ]
+      : []),
     {
       path: `/partners/${f.orgs.alpha.id}`,
       expect: lvl('clients'),
