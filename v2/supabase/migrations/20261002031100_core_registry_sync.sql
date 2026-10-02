@@ -22,9 +22,9 @@ insert into core.page (key, module, route, nav_group, nav_order, levels_allowed,
   ('finance', 'finance', '/finance', 'main', 70, '{none,view,own,full}'::core.level[], true),
   ('kpis', 'perf', '/kpis', 'main', 80, '{none,view,own,full}'::core.level[], true),
   ('my_day', 'my_day', '/my-day', 'main', 10, '{none,view,own,full}'::core.level[], true),
-  ('overview', 'overview', '/overview', 'main', 20, '{none,view,own,full}'::core.level[], true),
+  ('overview', 'overview', '/overview', 'main', 50, '{none,view,own,full}'::core.level[], true),
   ('pipeline', 'pipeline', '/pipeline', 'main', 40, '{none,view,own,full}'::core.level[], true),
-  ('projects', 'projects', '/projects', 'main', 50, '{none,view,own,full}'::core.level[], true),
+  ('projects', 'projects', '/projects', 'main', 60, '{none,view,own,full}'::core.level[], true),
   ('reports', 'reports', '/reports', 'main', 90, '{none,view,own,full}'::core.level[], true),
   ('settings.app', 'settings', '/settings/app', 'settings', 70, '{none,full}'::core.level[], true),
   ('settings.finance', 'finance', '/settings/finance', 'settings', 50, '{none,full}'::core.level[], true),
@@ -34,7 +34,7 @@ insert into core.page (key, module, route, nav_group, nav_order, levels_allowed,
   ('settings.profile', 'settings', '/profile', null, null, '{own}'::core.level[], true),
   ('settings.work', 'tasks', '/settings/work', 'settings', 60, '{none,full}'::core.level[], true),
   ('suppliers_partners', 'partners', '/suppliers', 'main', 31, '{none,view,own,full}'::core.level[], true),
-  ('tasks', 'tasks', '/tasks', 'main', 60, '{none,view,own,full}'::core.level[], true)
+  ('tasks', 'tasks', '/tasks', 'main', 20, '{none,view,own,full}'::core.level[], true)
 on conflict (key) do update set module = excluded.module, route = excluded.route, nav_group = excluded.nav_group,
   nav_order = excluded.nav_order, levels_allowed = excluded.levels_allowed, active = true;
 update core.page set active = false where active and key not in ('activity', 'appraisal', 'clients', 'finance', 'kpis', 'my_day', 'overview', 'pipeline', 'projects', 'reports', 'settings.app', 'settings.finance', 'settings.org', 'settings.partners', 'settings.performance', 'settings.profile', 'settings.work', 'suppliers_partners', 'tasks');
