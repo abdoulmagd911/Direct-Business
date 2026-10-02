@@ -194,6 +194,10 @@ test('a member sees their department’s work, never another’s (V96)', async (
 
   await page.goto(`/tasks/${theirs}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Made-up other department task' })).toHaveCount(0);
+  // QA-233: a task one may not see, or none at that number, is the app's own Not found page (#145), never Next's bare 404
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  await page.goto('/tasks/TSK-2099-9999');
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await page.goto(`/tasks/${ours}`);
   await expect(page.locator('[data-mark-done]'), 'a colleague’s task is seen, not changed (Own)').toHaveCount(0);
   await expect(page.locator('span[data-task-status]').first()).toBeVisible();
