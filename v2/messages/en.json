@@ -555,7 +555,8 @@
         "added": "Task added: {title}",
         "title_required": "A title is required",
         "title_too_long": "At most {max} characters",
-        "due_invalid": "Pick a date"
+        "due_invalid": "Pick a date",
+        "owner_required": "Pick an owner"
       },
       "edit": {
         "title": "Edit {number}",

@@ -157,6 +157,35 @@ for (const w of WIDTHS) {
     await expect(page.locator('[data-blocked-reason]')).toHaveCount(0);
     await ctx.close();
   });
+
+  test(`${w.name}: an admin in no team must pick an owner (V277)`, async ({ browser }) => {
+    const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
+    const owner = await memberWithTeam();
+    const ownerName = `Aa Quick owner ${randomUUID().slice(0, 6)}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [ownerName, owner.id]);
+    const title = `Made-up no-team task ${randomUUID().slice(0, 6)}`;
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height);
+
+    await page.locator('[data-add-task]').click();
+    const form = page.locator('form[data-quick-add]');
+    const pickOwner = form.getByRole('combobox', { name: 'Owner' });
+    await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick an owner');
+    await form.locator('input[name="title"]').fill(title);
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert'), 'saving with no owner says what to do').toHaveText('Pick an owner');
+
+    await pickOwner.click();
+    await expect(page.getByRole('option', { name: 'Default' }), 'Default is not offered').toHaveCount(0);
+    await page.getByRole('option', { name: ownerName, exact: true }).click();
+    await expect(form.getByRole('alert')).toHaveCount(0);
+    await noSidewaysScroll(page, `${w.name} quick add, no team`);
+    await page.screenshot({ path: shot(`tasks-quick-add-no-team-${w.name}`) });
+    await form.locator('button[type="submit"]').click();
+    await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
+    const [task] = await sql<{ owner_id: string }>(`select owner_id from work.task where title = $1`, [title]);
+    expect(task?.owner_id, 'the task is the picked owner’s').toBe(owner.id);
+    await ctx.close();
+  });
 }
 
 test('phone: see what is due today and tick one off (V509)', async ({ browser }) => {

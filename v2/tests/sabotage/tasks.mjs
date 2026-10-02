@@ -64,6 +64,37 @@ export const sabotages = [
     expect: 'the owner is sent only when it is someone else',
     edits: [{ file: RULES, find: 'if (input.ownerId && input.ownerId !== me)', replace: 'if (input.ownerId)' }],
   },
+  // ---- quick add for someone in no team (V277)
+  {
+    name: 'tasks-no-team-offered-default',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'someone in no team gets no Default',
+    edits: [{ file: RULES, find: '  const offerDefault = myTeam !== null;', replace: '  const offerDefault = true;' }],
+  },
+  {
+    name: 'tasks-no-team-offers-people-in-no-team',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'someone in no team gets no Default',
+    edits: [{ file: RULES, find: 'assignable.filter((p) => p.team_id !== null)', replace: 'assignable' }],
+  },
+  {
+    name: 'tasks-no-team-saves-without-an-owner',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'with no Default, quick add refuses until an owner is picked',
+    edits: [
+      {
+        file: RULES,
+        find: "  if (opts.ownerRequired && !input.ownerId) return { error: 'owner_required' };\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'tasks-no-team-says-needs-a-team',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'reads as "Pick an owner"',
+    edits: [{ file: RULES, find: "key === 'errors.task.team_required' ?", replace: "key === 'errors.task.never' ?" }],
+  },
   {
     name: 'tasks-partner-beats-project',
     breaks: [unit('quick-add-leaves-the-owner-to-the-default')],
@@ -162,6 +193,18 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
         find: "{f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (",
         replace: "{f.scope === 'past' && !atLeastOwn('full') && atLeastOwn(me.levels.tasks) ? (",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-no-team-quick-add-keeps-default',
+    breaks: [e2e],
+    expect: 'an admin in no team must pick an owner',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '  const owners = quickAddOwners(me.person.team_id, org?.people ?? []);',
+        replace: "  const owners = quickAddOwners('anything', org?.people ?? []);",
       },
     ],
   },
