@@ -749,8 +749,8 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Fixed on #147 0355e9b (with #145's not-found page): an unknown task number is the app's Not found page with Go to My day. |
-| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Fixed on #147 (7140637 on): "That day is after today" on the Tasks screens. The shared key's own line is QA-239. |
+| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Fixed on main 417073f (#147, round 51; with #145's not-found page): an unknown task number is the app's Not found page with Go to My day. |
+| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Fixed on main 417073f (#147, round 51): "That day is after today" on the Tasks screens. The shared key's own line is QA-239. |
 | QA-235 | 2026-10-02 00:21 | #147; V464, V517 | Low | Architect (the runbook) | **A pilot member with no team cannot add a task** ("The task needs a team", V464). **Fix:** the runbook's pilot rows say every pilot member is in a team before stage 1. | Open |
 
 
@@ -765,7 +765,7 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-236 | 2026-10-02 00:38 | V517; BUILD-PLAN pilot row 7 | Low | Oversight (row 7) · Architect | **In stage 0 a pilot member's and a pilot manager's menu offers Tasks, which opens "Being built."** V517 brings Tasks in stage 1 (18 Oct); row 7 sets only the deferred modules (and, for QA-213, Member · Pipeline and Viewer · Tasks and Pipeline) to none. So for two weeks the pilot group meets a page that is empty, and if #140 and #147 merge before Sunday, Tasks would go live in stage 0 instead. **Fix:** row 7 adds Tasks at none on the member and manager roles for stage 0, lifted on 18 Oct (or the runbook accepts the "Being built" page). **Test:** `12-pilot-path.spec.ts`, "a page the pilot menu offers is not a 'Being built' page". | Open |
+| QA-236 | 2026-10-02 00:38 | V517; BUILD-PLAN pilot row 7 | Low | Oversight (row 7) · Architect | **In stage 0 a pilot member's and a pilot manager's menu offers Tasks, which opens "Being built."** V517 brings Tasks in stage 1 (18 Oct); row 7 sets only the deferred modules (and, for QA-213, Member · Pipeline and Viewer · Tasks and Pipeline) to none. So for two weeks the pilot group meets a page that is empty, and if #140 and #147 merge before Sunday, Tasks would go live in stage 0 instead. **Fix:** row 7 adds Tasks at none on the member and manager roles for stage 0, lifted on 18 Oct (or the runbook accepts the "Being built" page). **Test:** `12-pilot-path.spec.ts`, "a page the pilot menu offers is not a 'Being built' page". | Open: the decision only. The "Being built" page is gone on main 417073f (#147), so Tasks is now live for the pilot roles in stage 0 unless row 7 sets it to none until 18 Oct (round 51). |
 
 
 ## Round 36 — 2026-10-02 01:10 (v2/main 9fa2447; #139 at ab6e12e cleared; #147 at 7140637)
@@ -975,3 +975,24 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 |---|---|---|---|---|---|---|
 | QA-242 | 2026-10-02 16:25 | #151 (main e1be906); V216 | Low | Builder E (words: C) | **The achievements list's header shows a bare number.** `AchievementList` passes `String(page.total)` as the header's meta, so the page reads "Achievements" over a lone "0" (or "230"). Clients reads "{count} organisations". **Fix:** a `pages.achievements.count` line ("{count} achievements", with its Arabic) used as the meta. | Open |
 | QA-243 | 2026-10-02 16:25 | #151 (main e1be906) | Low | Builder E | **The month filter is the browser's own month box.** `<input type="month">` is the only one in the app. Chromium shows "--------- ----" when it is empty, and Safari on Mac and Firefox offer no month picker, only a text box that expects "2026-10". **Fix:** a select of months ("October 2026", the last 24 months and "Any month"), or the app's date picker set to months. The filter stays in the address as it is. | Open |
+
+## Round 51 — 2026-10-02 18:10 (v2/main 417073f: #147 merged, Tasks is live; gallery v30)
+
+- **Main retake at 417073f** (#147, Builder D: the Tasks screens). Its tree is identical to the head QA cleared and re-confirmed, 8c69226.
+  - **SQL suite from zero:** 172 of 177, unchanged (QA-02/03/04/121/208, other lanes).
+  - **Full browser sweep:**
+    - `13-tasks` runs for real: 7 PASS.
+    - Routes 322 PASS, 13 FAIL as before.
+    - Every other area matches e1be906, except the signed-in walk (W33).
+  - **The signed-in walk (W33)** grows with the new Tasks and achievements pages (1840 PASS, 526 FAIL; on a rerun 1843 and 523). None of its new FAILs is a regression:
+    - They are the known Arabic-off family, where the pages read in English with `app.arabic_enabled` off. That includes `common.search` and `common.all` missing in `ar.json`, already seen on Clients, until #104.
+    - QA-219's tab title is also missing on the two achievements pages.
+    - One /profile row showed raw catalogue keys once and did not come back on the rerun.
+  - **Pilot path on a fresh main copy:** 44 PASS, 0 FAIL. Tasks is no longer "Being built". **QA-236 is now only the oversight's decision:** the pilot roles see a live Tasks in stage 0 unless pilot row 7 sets Tasks to none until 18 Oct.
+  - **Gallery:** retaken and republished (version 30, 279 pictures). The gallery's data seed now gives the made-up people a team and adds four made-up tasks: one overdue, one due today, client work on Alpha and Beta, and the manager's own. The Tasks list therefore shows real rows, numbered TSK-2026-0001 onward.
+  - QA-233 and QA-234 are now fixed on main.
+- **#141 (Builder A, cleared at a035e30)** still merges into 417073f with no conflicts, and main added no migrations.
+- **Next for QA 1:**
+  - #150 (Builder D, the Past work grid on Tasks), once #105 lands and D posts "ready at".
+  - Then the Architect's integrated pass on the main that holds #151, #147 and #150 (asked on #147 at 12:23 UTC).
+

@@ -348,6 +348,53 @@ async function main() {
     }
   }
 
+  // A few made-up tasks (once Tasks exists, #140/#147), so the gallery's Tasks list is not only its empty state: the
+  // member's own (one client task due soon, one internal task overdue), the manager's and one for the team.
+  if (MORE) {
+    const day = (/** @type {number} */ n) => {
+      const d = new Date(`${today}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    };
+    /** @type {string[]} */
+    const taskIds = [];
+    extra.tasks = taskIds;
+    try {
+      // a task needs a home team (task.team_required): the gallery's people share one made-up team
+      const [team] = await sql(
+        `insert into core.team (department_id, code, name_en, name_ar, created_by)
+         values ((select id from core.department where code = 'commercial'), 'qa_gallery_desk', 'Test Desk',
+                 'فريق الاختبار', $1)
+         on conflict (department_id, code) do update set name_en = excluded.name_en returning id`,
+        [u('admin').id],
+      );
+      await sql('update core.person set team_id = $1 where id = any($2::uuid[]) and team_id is null', [
+        team.id,
+        ['member', 'member2', 'manager', 'head', 'admin'].map((k) => u(k).id),
+      ]);
+      const manager = await apiAs(u('manager'));
+      /** @type {[typeof member, Record<string, unknown>][]} */
+      const tasks = [
+        [
+          member,
+          { title: `Test task: send the rate sheet ${tag}`, work_type: 'client', partner_id: alpha.id, due_on: day(2) },
+        ],
+        [member, { title: `Test task: prepare the visit notes ${tag}`, work_type: 'internal', due_on: day(-1) }],
+        [manager, { title: `Test task: review the quarter ${tag}`, work_type: 'internal', due_on: day(5) }],
+        [
+          admin,
+          { title: `Test task: check the contracts ${tag}`, work_type: 'client', partner_id: beta.id, due_on: day(0) },
+        ],
+      ];
+      for (const [as, values] of tasks) {
+        const t = await as('task_create', { p_values: values });
+        taskIds.push(t.id);
+      }
+    } catch (e) {
+      extra.taskError = String(e);
+    }
+  }
+
   /** @type {Record<string, unknown> | undefined} */
   let catalogue;
   if (STAGE === 'all') {
