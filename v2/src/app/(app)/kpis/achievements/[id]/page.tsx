@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
+import type { FromNote } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import { AchievementRecord, type AchievementRecordData } from '@/modules/perf/screens/AchievementRecord';
 import type { AchievementDetail, Category } from '@/modules/perf/types';
@@ -39,7 +40,7 @@ export default async function AchievementPage({
       </Page>
     );
   }
-  const [org, history, categories, systems, partner] = await Promise.all([
+  const [org, history, categories, systems, partner, fromNote] = await Promise.all([
     maybe<OrgAnswer>('org', failed, () => serverRpc('org', {} as never)),
     maybe<RecordChange[]>('history', failed, () => serverRpc('record_history', { p_entity: 'achievement', p_id: id })),
     maybe<Category[]>('categories', failed, () => serverRpc('achievement_categories', { p_plan: a.plan_id })),
@@ -49,6 +50,7 @@ export default async function AchievementPage({
           serverRpc('hover_partner', { p_id: a.partner_id! }),
         )
       : Promise.resolve(null),
+    maybe<FromNote | null>('from_note', failed, () => serverRpc('from_note', { p_entity: 'achievement', p_id: id })),
   ]);
   const data: AchievementRecordData = {
     a,
@@ -60,6 +62,7 @@ export default async function AchievementPage({
     systems: (systems ?? []).map((s) => ({ key: s.key, name: lang === 'ar' ? s.name_ar : s.name_en })),
     full: (me.levels.kpis ?? 'none') === 'full',
     meId: me.person.id,
+    fromNote: fromNote ?? null,
     failed,
   };
   return (

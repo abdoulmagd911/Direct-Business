@@ -35,7 +35,10 @@ export function LinkChip({ link }: { link: NoteLink }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const name = (locale === 'ar' && link.partner_name_ar) || link.partner_name_en || '';
-  const type = (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
+  const type =
+    link.entity === 'achievement'
+      ? t('pages.myDay.turn.kinds.achievement')
+      : (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
   const label =
     link.entity === 'reminder' && link.remind_at
       ? t('pages.myDay.note.linkReminder', {
