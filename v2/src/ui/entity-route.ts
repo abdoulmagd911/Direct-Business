@@ -21,12 +21,23 @@ export function entityRoute(entity: string | null | undefined, id: string | null
     case 'role':
     case 'role_level':
     case 'role_capability':
-      return entity === 'role' ? '/settings/org?tab=roles' : '/settings/org?tab=access';
+      return '/settings/org?tab=access';
     case 'setting':
     case 'setting_def':
       return '/activity?tab=settings';
     case 'profile':
       return '/profile';
+    case 'partner':
+    case 'partner_side':
+    case 'side_status':
+    case 'side_owner':
+    case 'identifier':
+    case 'contact':
+    case 'reference':
+    case 'contract':
+    case 'credit_limit':
+      // One organisation, two doors: /partners/[id] opens the list's record page the reader may see (V98, V147).
+      return entity === 'partner' ? `/partners/${id}` : null;
     default:
       return null;
   }

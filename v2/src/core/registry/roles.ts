@@ -1,5 +1,5 @@
 // The five roles (D2, TECH-SPEC §8). Structure, not people: the sync seeds them once; names are edited in Settings →
-// Organization & access → Roles (P3-5), never overwritten by a later sync.
+// People & access → Access (P3-5), never overwritten by a later sync.
 import type { RoleKey } from './define-module';
 
 export const ROLE_SEED: readonly { key: RoleKey; name_en: string; name_ar: string; sort: number; is_admin: boolean }[] =
