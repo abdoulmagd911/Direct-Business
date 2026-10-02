@@ -553,6 +553,7 @@
       "insert": "{what} added",
       "update": "{what} changed: {fields}",
       "remove": "{what} removed",
+      "delete": "{what} deleted",
       "restore": "{what} restored",
       "request": "Change"
     },

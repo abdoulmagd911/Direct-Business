@@ -85,6 +85,7 @@ export function ActivityTimeline({
     const c = r.changes?.[0];
     if (!c) return t('activity.actions.request');
     const what = c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? '');
+    if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
     return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
   };
 
