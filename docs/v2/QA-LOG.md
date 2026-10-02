@@ -1027,3 +1027,18 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
     - The local seed makes its department after the migrations run, so the plans #163 opens do not exist there.
     - In production the departments exist before the migration, so their plans are opened.
 - **#141: its clearance at a035e30 no longer holds (V600).** Main's newest migration is now `20261002133000` (#163), and #141's `20261002110000` and `20261002110100` sort before it. Builder A was told on the PR at 20:25 Riyadh: merge main in, re-stamp after `20261002133000`, and run a fresh sync. QA 1 re-confirms the new head with QA-240/241, the suite and the sabotages.
+
+## Round 54 — 2026-10-02 22:05 (v2/main accfeee: #167 merged; #141 re-confirmed at 6858ee0)
+
+- **Main retake at accfeee** (#167, shared: QA-515's partners test picks its own owner, and person pickers offer team members only; no migration):
+  - **SQL suite from zero:** 173 of 178, unchanged.
+  - **Full browser sweep:** every area's totals are identical to 97a751c.
+  - **Pilot path:** 44 PASS, 0 FAIL.
+  - **Integrated pass:** 19 PASS, 0 FAIL, 8 NOT BUILT, unchanged.
+  - **Gallery:** not retaken. Only the pickers' choices change, and no picture shows an open picker.
+- **#141 (Builder A) re-confirmed at 6858ee0**, on condition that CI's build and end-to-end job ends green.
+  - Re-stamped after #163: `20261002133010` and `20261002180146`, after main's `20261002133000` (V600).
+  - The migration body is byte-identical to a035e30's. The other files are unchanged.
+  - It merges into accfeee with no conflicts.
+  - **SQL suite from zero:** 177 of 182, with QA-240 and QA-241 passing.
+  - **Sabotages:** all 11 are red.
