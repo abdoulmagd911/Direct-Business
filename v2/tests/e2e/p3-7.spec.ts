@@ -243,7 +243,7 @@ test('Ctrl K finds a person by name and opens their record', async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`/people/${other.id}$`));
 });
 
-test('a member removes a saved view and restores it from Recently deleted in the profile menu (QA-71)', async ({
+test('a member removes a saved view and restores it from Recently deleted, found with Ctrl K (QA-71)', async ({
   page,
 }) => {
   const member = await makePerson();
@@ -262,9 +262,11 @@ test('a member removes a saved view and restores it from Recently deleted in the
   await page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
   await expect(toast(page, `Member view ${tag} removed`)).toBeVisible();
   const [saved] = await sql<{ id: string }>(`select id from core.saved_view where name = $1`, [`Member view ${tag}`]);
-  // Activity is closed to a member; Recently deleted is theirs from the profile menu
-  await page.locator('[data-topbar] [data-profile-chip]').click();
-  await page.getByRole('menuitem', { name: 'Recently deleted' }).click();
+  // Activity is closed to a member; Recently deleted is theirs through Ctrl K (the chip holds My profile and Sign out
+  // only — V217, cut 5)
+  await page.keyboard.press('Control+k');
+  await page.locator('[data-command-palette]').getByPlaceholder('Go to a page or search…').fill('Recently');
+  await page.locator('[data-command-palette]').getByRole('option', { name: 'Recently deleted' }).click();
   await expect(page).toHaveURL(/\/recently-deleted$/);
   await hydrated(page);
   const row = page.locator(`[data-deleted-row="${saved!.id}"]`);
