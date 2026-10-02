@@ -343,6 +343,24 @@ Agreed, and kept out of stage 0 so it is not put at risk. The modules still to c
 | The Vision board: a read-only view over the plan, the KPIs with pace, the achievements and tasks, each person's goals (V527) | A + B | P5-4 and P5-6 live (deferred in the pilot); a brief and a gate card first | about November |
 | An e-mail or message forwarded into a private note (V530) | A | an inbound-mail service, its cost flagged first (V6) | later, not dated |
 
+## Stage L — linked records, one file library, one comments feature (V534, owner 2 Oct)
+
+After stage 0 (Sunday 4 Oct), never before it, and never holding up stages 1 and 2. The architect writes the stage's
+brief and its gate card first (Monday 5 Oct); each step lands behind its module switch (V513) and opens to the pilot
+when the card (signed by the oversight, V532) and the three-job phone test (V509) pass. Proposed opening: with stage 2
+(25 Oct). **Reused, never rebuilt**: `core.file`, `core.file_link` and the bucket (§3.4), the live names (V55), the
+numbers (V531), `core.note` and `core.mention`, the record page (V95), `ExportButton` (P3-12), Undo and Recently
+deleted (V61).
+
+| # | Step | Owner | What it needs | Tested by |
+|---|---|---|---|---|
+| L-1 | `api.record_related(entity, id)` and a `relations` entry per registry module: tasks, projects, achievements, KPIs and people that point at a record, grouped by type, with number, Happened on and owner, under each record's read rule | A | #140, #148 merged | SQL per role: an achievement on organisation X is in X's Related and in its owner's; a person who cannot see it gets no row; sabotage `related-ignores-read-rule` |
+| L-2 | The Related area on every record page (V95), counts per group, Show all, Export per group | B | L-1, #100 | browser at 390 and 1,440 px: log an achievement on a client, open the client — it is there, with its ACH- number |
+| L-3 | The library's data: `api.file_list` (search, sort, the five filters, archived), the source record of a comment's file, `api.file_purge` (admins), each kind's pattern led by `{number}`, the file's log from `audit.change` | A | L-1 | SQL: a member's list holds only files on records they see; a restricted file stays hidden; purge refused to a manager; sabotages |
+| L-4 | The Files page and the one upload control — achievement proof first, then project proof, task files and comment files | E | L-3, its achievements screens | browser: upload a proof on ACH-…, find it on Files under its computed name, archive, restore |
+| L-5 | Comments on every record: one shared component (comment, @mention, attach), notifications through the existing kinds; V524's Who can see joins it when P5-11 lands | A + B | L-3, L-4's upload control | browser: a manager's comment with an @mention reaches the member's bell; the attachment is on Files |
+| L-6 | Zip and sheet: one file, the selected files, or a client's or a project's files as one zip (computed names, the list inside as a sheet); the list alone as a sheet; Export on each record's Activity | C | L-3, #100 | E2E: a project's three test files come out as one zip of three files and a sheet of three rows |
+
 ## Order at a glance
 
 ```
