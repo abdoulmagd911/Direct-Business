@@ -1058,3 +1058,25 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **The integrated pass on this branch:** 24 PASS, 0 FAIL, 7 NOT BUILT. Two ready rows and one refused (dated in 2030), saved in one request, past work only, TSK- numbers, no sideways scroll at 390.
 - **The integrated pass (`14-integrated`)** now pastes three made-up rows into the Past work grid and checks the result. It also looks for the view by its address, since the Tasks views are links, not tabs.
 - **The combined test (Architect on #150, 15:14 UTC):** QA 1 runs option B, final main against a local stack built from zero. Option A, the hosted production database, needs the oversight's word, because QA 1's standing rule is never to touch any cloud Supabase project.
+
+## Round 56 — 2026-10-03 01:25 (v2/main 9afc2c8: #150 merged; the combined test; gallery v34)
+
+- **Main 9afc2c8** (#150, the Past work grid on Tasks with Builder C's grid). Its tree is identical to fc29654, the head QA 1 cleared its part of.
+- **The combined test.** The Architect asked for it on #147 at 12:23 UTC and on #150 at 15:14 UTC. It ran on a local stack built from zero (option B) and was posted in plain words on #150 and #147.
+  - **The integrated pass:** 24 PASS, 0 FAIL, 7 NOT BUILT.
+  - **Pilot path:** 44/0.
+  - **`13-tasks`:** 7 PASS.
+  - **SQL suite from zero:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** identical to e9378d5, except the signed-in walk. That walk now covers Tasks · Past work, which adds QA-219's tab title and the Arabic-off wording, both known kinds.
+  - **Not built:**
+    - a task from a note (A: the database step; B: the menu entry);
+    - an achievement from a task;
+    - the grid's achievements mode (E);
+    - KPIs reading the achievements.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 34, 287 pictures), adding Tasks · Past work for every person. The machine restarted during the run, so the Tasks spec, the sweep and the gallery were run again after `up.sh`.
+- **The `/profile` raw-key row** (member · ar, 1440) appeared again. Its cause: another spec in the same sweep briefly turns `app.arabic_enabled` on, and `ar.json` has no `profile.*` keys yet (QA-221's rest, #104). Arabic stays off for the pilot.
+- **#141 (Builder A) at ad34abb:**
+  - **The re-stamp is right:** `20261002170010` and `20261002195247` sort after main's `20261002170000`, and the body is identical.
+  - **The checks pass:** SQL 178 of 183 with QA-240/241 passing, and the 11 sabotages are red.
+  - **It conflicts with main 9afc2c8** in `docs/v2/DECISIONS.md` and `v2/messages/ar.json`. Builder A was told; no new re-stamp is needed.

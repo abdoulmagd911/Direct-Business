@@ -48,6 +48,10 @@ export const ROUTES: Route[] = [
   { id: 'pipeline', group: 'Work', label: 'Pipeline', path: () => '/pipeline', list: true },
   { id: 'projects', group: 'Work', label: 'Projects', path: () => '/projects', list: true },
   { id: 'tasks', group: 'Work', label: 'Tasks', path: () => '/tasks', list: true },
+  // Tasks' Past work view with the grid (#150), shown once its panel exists on the branch photographed
+  ...(existsSync(join(V2_DIR, 'src', 'modules', 'tasks', 'screens', 'PastWorkPanel.tsx'))
+    ? [{ id: 'tasks-past', group: 'Work', label: 'Tasks · Past work', path: () => '/tasks?view=past' }]
+    : []),
   { id: 'finance', group: 'Money and results', label: 'Finance', path: () => '/finance', list: true },
   { id: 'kpis', group: 'Money and results', label: 'KPIs', path: () => '/kpis', list: true },
   // KPIs' achievements (#151), shown once its pages exist on the branch photographed
