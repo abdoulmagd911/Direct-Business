@@ -174,7 +174,8 @@ test('an unknown address is Not found; an unbuilt page says it is being built; a
   await expect(page.locator('h1'), 'never the raw path as a title').not.toHaveText(/^\//);
   await expect(page.locator('[data-not-found-home]')).toHaveText('Go to My day');
   // an unbuilt page says so in two words (V217, cut 9)
-  for (const route of ['/tasks', '/finance', '/kpis']) {
+  // Tasks is built (builder D, #147, V270) and left this list
+  for (const route of ['/finance', '/kpis']) {
     await page.goto(route);
     await hydrated(page);
     await expect(page.locator('[data-state="empty"]'), `${route} says it is being built`).toContainText('Being built.');
