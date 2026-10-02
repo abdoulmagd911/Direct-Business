@@ -35,6 +35,8 @@ export function LogAchievement({
   systems,
   meId,
   full,
+  department,
+  canOpenPlan,
 }: {
   categories: Category[];
   year: number;
@@ -42,6 +44,10 @@ export function LogAchievement({
   systems: { key: string; name: string }[];
   meId: string;
   full: boolean;
+  /** The person's department, named in the empty state. */
+  department: { id: string; name: string };
+  /** An admin (Full on Settings → Targets) may open the year's plan from here (V380). */
+  canOpenPlan: boolean;
 }) {
   const t = useTranslations('pages.achievements');
   const locale = useLocale() as 'en' | 'ar';
@@ -68,10 +74,7 @@ export function LogAchievement({
   const needsSide = !!cat?.sets_prospect && !!partner;
 
   // The categories are the plan's of the date's year (§5a): another year reads that year's.
-  const onDay = async (next: string) => {
-    setDay(next);
-    const y = Number((next || riyadhToday()).slice(0, 4));
-    if (!y || y === loadedYear) return;
+  const loadYear = async (y: number) => {
     try {
       const rows = (await rpc('achievement_categories', { p_year: y })) as unknown as Category[];
       setCategories(rows);
@@ -82,6 +85,28 @@ export function LogAchievement({
       setLoadedYear(y);
     }
   };
+  const onDay = async (next: string) => {
+    setDay(next);
+    const y = Number((next || riyadhToday()).slice(0, 4));
+    if (!y || y === loadedYear) return;
+    await loadYear(y);
+  };
+
+  // V380: a year with no plan has no categories — never an empty list: one sentence, and an admin opens the plan here.
+  const openPlan = async () => {
+    setBusy(true);
+    await command(
+      words(t('plan.opened', { year: loadedYear })),
+      () =>
+        rpc('plan_open', { p_department: department.id, p_year: loadedYear }) as Promise<{
+          id: string;
+          request_id?: string | null;
+        }>,
+      { after: () => loadYear(loadedYear) },
+    );
+    setBusy(false);
+  };
+  const live = categories.filter((c) => c.active);
 
   // V531: before saving, an earlier achievement of the same organisation and category with a similar title is offered
   // as a one-tap choice — never blocking: no answer from the check saves as usual.
@@ -142,18 +167,39 @@ export function LogAchievement({
       }}
     >
       <PageHeader crumbs={[{ label: t('title'), href: '/kpis/achievements' }]} title={t('log')} />
-      <Field label={t('fields.category')}>
-        {(p) => (
-          <Select
-            id={p.id}
-            aria-label={t('fields.category')}
-            value={code || undefined}
-            placeholder={t('actions.choose')}
-            options={categories.filter((c) => c.active).map((c) => ({ value: c.code, label: name(c) }))}
-            onValueChange={setCode}
-          />
-        )}
-      </Field>
+      {live.length ? (
+        <Field label={t('fields.category')}>
+          {(p) => (
+            <Select
+              id={p.id}
+              aria-label={t('fields.category')}
+              value={code || undefined}
+              placeholder={t('actions.choose')}
+              options={live.map((c) => ({ value: c.code, label: name(c) }))}
+              onValueChange={setCode}
+            />
+          )}
+        </Field>
+      ) : (
+        <div
+          className="flex flex-col items-start gap-2 rounded-lg border border-border bg-raised p-4"
+          data-no-categories
+        >
+          {/* QA-516: no department, no plan to open — say what to fix instead. */}
+          {!department.id ? (
+            <p className="text-text">{t('plan.noDepartment')}</p>
+          ) : (
+            <p className="text-text">{t('plan.none', { department: department.name, year: loadedYear })}</p>
+          )}
+          {!department.id ? null : canOpenPlan ? (
+            <Button type="button" variant="primary" loading={busy} disabled={busy} onClick={() => void openPlan()}>
+              {t('plan.open', { year: loadedYear })}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted">{t('plan.askAdmin')}</p>
+          )}
+        </div>
+      )}
       <Field label={t('fields.title')}>
         {(p) => <Input {...p} value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
       </Field>
