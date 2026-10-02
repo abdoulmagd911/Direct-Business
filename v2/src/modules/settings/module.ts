@@ -23,6 +23,17 @@ export const NOTIFICATION_KINDS = [
   'note_mention',
 ] as const;
 
+/** The seven a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
+export const WORK_NOTIFICATION_KINDS = [
+  'assigned',
+  'helper_added',
+  'mentioned',
+  'decision_needed',
+  'changed_by_other',
+  'reminder',
+  'note_mention',
+] as const satisfies readonly (typeof NOTIFICATION_KINDS)[number][];
+
 // Settings: My profile (every person's own — it cannot be switched off) and App — admins only, levels none / Full, like
 // every Settings page (V97) — and Activity (the change log), whose key is not a Settings key, so heads and managers keep
 // their View; where its entry sits is the screens' (V138). Levels: TECH-SPEC §8.
@@ -51,7 +62,7 @@ export default defineModule({
       route: '/activity',
       label: 'nav.activity',
       icon: 'history',
-      nav: { group: 'main', order: 110 },
+      nav: { group: 'main', order: 110, tier: 'manage', from: 'head' },
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],

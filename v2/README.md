@@ -135,8 +135,32 @@ line and `effectiveLocale` keeps the app English while Arabic is off. Playwright
 re-runs the screen specs in an Arabic browser on UTC with a moved clock (`tests/e2e/support/fixtures.ts`). The QA
 preview gallery: `GALLERY=1 pnpm test:e2e tests/e2e/gallery.spec.ts --workers=1` (`docs/v2/PREVIEW-GALLERY.md`).
 
+P3-9a (V215): `src/modules/partners/` holds the two list pages (`/clients`, `/suppliers`: saved views, chips, More
+filters, search, the bulk assign as one command, New) and the organisation record (`/clients/[id]`, `/suppliers/[id]`;
+`/partners/[id]` redirects) on the record template — the sides' ⋯ door, Log activity, the rail with identifiers,
+contacts, references and contracts. `ui/HoverCard.tsx` is the hover card (organisations and people); Ctrl K finds
+organisations. Proof: `tests/e2e/partners.spec.ts`, `tests/e2e/screens-p3-9.spec.ts`; sabotages
+`at-risk-needs-no-reason`, `bulk-assign-one-by-one`, `hover-card-shows-one-side`.
+
 The visual review, round 1 (V216): words never keys (`settings.values.*`, `settings.fields.*`, `activity.fields.*`,
 `describeWith(org)` for ids), the People list's real status, the person record's Arabic fields and email controls, the
 Not found page (`ui/NotFoundBody.tsx`) and the crash page (`app/(app)/error.tsx`), every area page's own empty line.
 Proof: `tests/e2e/review-1.spec.ts`, `tests/unit/shell/the-crash-page-*.test.tsx`; sabotages `no-role-reads-as-allowed`,
 `not-found-shows-the-raw-path`, `activity-shows-column-names`, `setting-value-shows-the-key`.
+
+The employee view (V217): the menu rule lives in `navFor(me)` (`ui/shell/nav.ts`) — each main page's `nav.tier` is
+`work` (in the menu at any level above none) or `manage` (Manager, Head, Admin; `nav.viewer` for a Viewer's two,
+`nav.from: 'head'` for Overview and Activity); `barFor(me)` is the phone bar and More; `reachableFor(me)` is Ctrl K's
+pages, so out of the menu is never locked. Suppliers is Clients' second tab (`nav.tabOf`); Create reads the registry's
+`built` flag and the person's level (`createActionsFor`). The specs start from the oversight's access steps
+(`tests/e2e/support/employee-view-access.ts`). Proof: `tests/e2e/employee-view.spec.ts`,
+`tests/unit/shell/the-menu-shows-work-pages-to-all-and-manage-pages-by-role.test.ts`; sabotages
+`menu-shows-own-manage-page`, `create-offers-an-unbuilt-screen`, `access-list-closed-for-admins`.
+
+My day, Capture then Convert (V218, P3-14): `src/modules/my-day/` — the capture row ("/" anywhere on My day), the
+blocks of 7 (`logic.ts` `BLOCK_ROWS`), a note's own page (`/my-day/notes/<id>`) with Turn into, Finish meeting and the
+chips, Wrap up, What's new and the waiting reminders. The doors are builder A's P3-13 (V183–V188), described in `types.ts`
+and called through `rpc` / `server.ts`. Proof: `tests/unit/my-day/`, `tests/e2e/my-day.spec.ts`; sabotages
+`turn-into-offers-a-task-too-soon`, `block-draws-every-row`, `wrap-up-carries-to-a-friday`,
+`private-note-reads-as-everyone`, `capture-starts-shared`, `wrap-up-defaults-to-done`,
+`turned-into-chip-leads-nowhere`, `from-note-chip-hidden`, `mark-seen-keeps-the-block`.

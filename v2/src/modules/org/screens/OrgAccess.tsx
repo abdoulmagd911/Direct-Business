@@ -38,7 +38,9 @@ import {
 
 export type { MatrixAnswer, OrgAnswer, PeopleAnswer } from '../types';
 
-const TABS = ['people', 'teams', 'roles', 'access', 'settings'] as const;
+const TABS = ['people', 'teams', 'access'] as const;
+/** The old tab addresses land on Access, where Roles and the sign-in settings now live (V217, cut 10). */
+const FOLDED: Record<string, (typeof TABS)[number]> = { roles: 'access', settings: 'access' };
 
 /** The page labels of the registry, for the access matrix. */
 function pageLabels(): Record<string, string> {
@@ -53,7 +55,8 @@ function capLabels(): Record<string, string> {
 }
 
 /**
- * Organization & access (V97, V125, V132; admins only): one tab row — People · Teams · Roles · Access · Settings.
+ * People & access (V97, V125, V132, V217; admins only): one tab row — People · Teams · Access; Access carries the
+ * matrix, then Roles and Sign-in as its sections.
  * People are added here and opened on their record page; teams are retired with a move-to, never deleted (D11);
  * roles are renamed; the access matrix sets each role's starting level per page and its capabilities, every change
  * with its reason and one Undo.
@@ -79,7 +82,7 @@ export function OrgAccess({
   today: string;
 }) {
   const t = useTranslations();
-  const current = (TABS as readonly string[]).includes(tab) ? tab : 'people';
+  const current = (TABS as readonly string[]).includes(tab) ? tab : (FOLDED[tab] ?? 'people');
   return (
     <>
       <Tabs
@@ -94,20 +97,26 @@ export function OrgAccess({
               ? people.filter((p) => p.active).length
               : k === 'teams'
                 ? org.teams.filter((x) => x.active).length
-                : k === 'roles'
-                  ? org.roles.length
-                  : undefined,
+                : undefined,
         }))}
       />
       {current === 'people' ? <PeopleTab me={me} org={org} people={people} /> : null}
       {current === 'teams' ? <TeamsTab org={org} /> : null}
-      {current === 'roles' ? <RolesTab org={org} people={people} /> : null}
-      {current === 'access' ? <AccessTab matrix={matrix} /> : null}
-      {current === 'settings'
-        ? settings.map((def) => (
-            <SettingCard key={def.key} def={def} departments={org.departments} canEdit={canEdit} today={today} />
-          ))
-        : null}
+      {current === 'access' ? (
+        <>
+          <AccessTab matrix={matrix} />
+          <section className="flex flex-col gap-4" data-access-section="roles">
+            <h2 className="font-display text-lg font-semibold">{t('settings.tabs.roles')}</h2>
+            <RolesTab org={org} people={people} />
+          </section>
+          <section className="flex flex-col gap-4" data-access-section="sign-in">
+            <h2 className="font-display text-lg font-semibold">{t('settings.tabs.signIn')}</h2>
+            {settings.map((def) => (
+              <SettingCard key={def.key} def={def} departments={org.departments} canEdit={canEdit} today={today} />
+            ))}
+          </section>
+        </>
+      ) : null}
     </>
   );
 }

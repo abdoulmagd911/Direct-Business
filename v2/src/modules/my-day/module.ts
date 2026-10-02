@@ -9,7 +9,7 @@ export default defineModule({
       route: '/my-day',
       label: 'nav.my_day',
       icon: 'sun',
-      nav: { group: 'main', order: 10 },
+      nav: { group: 'main', order: 10, tier: 'work' },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],
