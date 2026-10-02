@@ -10,6 +10,8 @@ export default defineModule({
       route: '/tasks',
       label: 'nav.tasks',
       icon: 'check-square',
+      // The Tasks screens are built (#147, V605): the + offers Task at Own or Full. Turn into waits on `tasks.turn_into`.
+      built: true,
       nav: { group: 'main', order: 20, tier: 'work' },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },

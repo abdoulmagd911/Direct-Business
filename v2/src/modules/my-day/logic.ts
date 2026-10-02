@@ -12,8 +12,10 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
  * achievement with the KPIs page (P5-6). Until its page is built the menu leaves it out.
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
-  task: 'tasks',
-  action_item: 'tasks',
+  // Tasks is built (V605), but a note becomes a task or an action item only once the note → task door and its dialog
+  // land (`note_turn_into` answers `not_yet` for them): until then they wait on their own flag, never on `built` alone.
+  task: 'tasks.turn_into',
+  action_item: 'tasks.turn_into',
   achievement: 'kpis',
 };
 

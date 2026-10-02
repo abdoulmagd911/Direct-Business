@@ -45,9 +45,9 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   await setPrefs(context, { theme: 'colorful' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
-  // Clients and Suppliers are built; Task, Invoice and Achievement are not, so they are absent, never greyed
+  // Tasks, Clients and Suppliers are built (V605); Invoice and Achievement are not, so they are absent, never greyed
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier']);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');
   await expect(page.locator('h1')).toHaveText('Clients');

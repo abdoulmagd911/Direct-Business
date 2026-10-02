@@ -64,6 +64,87 @@ export const sabotages = [
     expect: 'the owner is sent only when it is someone else',
     edits: [{ file: RULES, find: 'if (input.ownerId && input.ownerId !== me)', replace: 'if (input.ownerId)' }],
   },
+  // ---- the + offers Task; Turn into waits on its own flag (V605)
+  {
+    name: 'tasks-page-not-built',
+    breaks: [unit('the-plus-offers-a-task-at-own-or-full')],
+    expect: 'the + offers Task first',
+    edits: [{ file: 'src/modules/tasks/module.ts', find: '      built: true,\n', replace: '' }],
+  },
+  {
+    name: 'tasks-built-offers-a-turn-into-nobody-can-take',
+    breaks: [unit('the-plus-offers-a-task-at-own-or-full')],
+    expect: 'offers no task or action item while only the Tasks page is built',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',",
+        replace: "  task: 'tasks',\n  action_item: 'tasks',",
+      },
+    ],
+  },
+  // ---- past work for someone in no team needs a named owner (V605)
+  {
+    name: 'past-work-no-team-sends-unowned-rows',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'with no Owner column and no owner picked, no row is sent',
+    edits: [
+      {
+        file: 'src/ui/grid/rows.ts',
+        find: "      else if (!person || person.unknown) problems.push('owner_needed');\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'past-work-no-team-ignores-the-picked-owner',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'one picked owner covers every row that names none',
+    edits: [
+      {
+        file: 'src/ui/grid/rows.ts',
+        find: "if ((!person || person.unknown === 'missing') && o.fallbackOwner)",
+        replace: "if (person && person.unknown === 'missing' && o.fallbackOwner)",
+      },
+    ],
+  },
+  {
+    name: 'past-work-says-could-not-save',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'reads "Pick an owner"',
+    edits: [
+      {
+        file: 'src/modules/tasks/pastWork.ts',
+        find: "e.key === 'task.team_required' ?",
+        replace: "e.key === 'task.never' ?",
+      },
+    ],
+  },
+  // ---- a locked area says why (V605)
+  {
+    name: 'locked-activity-says-only-activity',
+    breaks: [unit('a-locked-area-says-why')],
+    expect: 'a locked area with no reason',
+    edits: [
+      {
+        file: 'src/app/(app)/activity/page.tsx',
+        find: " message={t('activity.locked')} />",
+        replace: ' />',
+      },
+    ],
+  },
+  {
+    name: 'e2e-locked-activity-says-only-activity',
+    breaks: ['e2e:tests/e2e/locked-areas-say-why.spec.ts'],
+    expect: 'the Activity page says who it is for',
+    edits: [
+      {
+        file: 'src/app/(app)/activity/page.tsx',
+        find: " message={t('activity.locked')} />",
+        replace: " message={t('nav.activity')} />",
+      },
+    ],
+  },
   // ---- quick add for someone in no team (V277)
   {
     name: 'tasks-no-team-offered-default',
@@ -193,6 +274,30 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
         find: "{f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (",
         replace: "{f.scope === 'past' && !atLeastOwn('full') && atLeastOwn(me.levels.tasks) ? (",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-plus-leaves-out-task',
+    breaks: [e2e],
+    expect: "a member's + offers Task and opens quick add",
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "  { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['own', 'full'] },",
+        replace: "  { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['full'] },",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-past-work-no-team-offers-no-owner',
+    breaks: [e2e],
+    expect: 'an admin in no team pastes rows with no Owner column, picks one owner and saves',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/PastWorkPanel.tsx',
+        find: '        ownerNeeded={ownerNeeded}\n',
+        replace: '',
       },
     ],
   },

@@ -158,6 +158,21 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
+  test(`${w.name}: a member's + offers Task and opens quick add (V605)`, async ({ browser }) => {
+    const member = await memberWithTeam();
+    const { ctx, page } = await signedIn(browser, member, w.width, w.height, '/my-day');
+    // the + floats above the bottom bar on a phone; from 640 px it is the top bar's Create
+    await page.locator(w.width < 640 ? '[data-create-floating]' : '[data-create]').click();
+    const item = page.locator('[data-create-item="task"]');
+    await expect(item, 'the + offers Task').toHaveText('Task');
+    await item.click();
+    await expect(page).toHaveURL(/\/tasks\?new=1$/);
+    await expect(page.locator('form[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
+    await expect(page.locator('form[data-quick-add] input[name="title"]')).toBeFocused();
+    await noSidewaysScroll(page, `${w.name} quick add from the +`);
+    await ctx.close();
+  });
+
   test(`${w.name}: an admin in no team must pick an owner (V277)`, async ({ browser }) => {
     const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
     const owner = await memberWithTeam();
@@ -296,3 +311,49 @@ test('desk and phone: the Past work grid pastes 20 made-up rows as one request w
     await ctx.close();
   }
 });
+
+for (const w of WIDTHS) {
+  test(`${w.name}: an admin in no team pastes rows with no Owner column, picks one owner and saves (V605)`, async ({
+    browser,
+  }) => {
+    const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
+    const owner = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const ownerName = `Aa Past owner ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [ownerName, owner.id]);
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height, '/tasks?view=past');
+    const grid = page.locator('[data-past-work-grid="tasks"]');
+    await expect(grid).toBeVisible();
+    await grid.getByLabel('Source report').click();
+    await page.getByRole('option', { name: 'Commercial quarterly' }).click();
+    await grid.getByLabel('Which report').click();
+    await page.getByRole('option', { name: 'Q3 2026' }).click();
+    const rows = [1, 2, 3].map((i) => [`Made-up no-team past ${tag} ${i}`, `1${i}/07/2026`, 'Done'].join('\t'));
+    await grid.locator('[data-past-work-paste]').fill(['Title\tDate\tStatus', ...rows].join('\n'));
+
+    // no owner yet: the line says what to do, every row waits, and Save is off
+    const picker = page.locator('[data-past-owner]');
+    await expect(picker, 'the panel says how to give the rows an owner').toContainText(
+      'Add an Owner column, or pick an owner for these rows',
+    );
+    await expect(grid.locator('[data-past-work-summary]')).toContainText('0 rows ready · 3 refused');
+    await expect(grid.getByText('Pick an owner').first()).toBeVisible();
+    await expect(grid.locator('[data-past-work-save]'), 'no Save without an owner').toBeDisabled();
+
+    await picker.getByRole('combobox', { name: 'Owner for these rows' }).click();
+    await page.getByRole('option', { name: ownerName, exact: true }).click();
+    await expect(grid.locator('[data-past-work-summary]')).toContainText('3 rows ready · 0 refused');
+    await noSidewaysScroll(page, `${w.name} past work, no team`);
+    await page.screenshot({ path: shot(`tasks-past-work-no-team-${w.name}`), fullPage: true });
+    await grid.locator('[data-past-work-save]').click();
+    await expect(page.locator('[data-sonner-toast]', { hasText: '3 rows saved as past work' })).toBeVisible();
+    const saved = await sql<{ owner_id: string }>(`select owner_id from work.task where title like $1`, [
+      `Made-up no-team past ${tag} %`,
+    ]);
+    expect(
+      saved.map((r) => r.owner_id),
+      'every row is the picked owner’s',
+    ).toEqual([owner.id, owner.id, owner.id]);
+    await ctx.close();
+  });
+}
