@@ -1,7 +1,7 @@
 -- Sabotage: a-merge-keeps-two-open-ids
 -- Breaks: sql:IDN-06
--- Expect: the merged organisation's open postpaid ID is closed
--- A merge moves an open postpaid ID onto an organisation that already has one (OLD-029).
+-- Expect: identifier.open_client_id_limit
+-- A merge moves the merged organisation's open postpaid ID across as open, so the limit refuses the whole merge (OLD-029).
 create or replace function partner.partner_merge(p_kept uuid, p_merged uuid, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
