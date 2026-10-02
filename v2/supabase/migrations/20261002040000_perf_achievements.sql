@@ -88,7 +88,7 @@ create table perf.achievement (
   deal_value numeric(14,2) check (deal_value is null or deal_value >= 0),   -- V505: typed, never Finance money
   value_report_kind text check (value_report_kind in ('bd_monthly', 'partnerships', 'commercial_quarterly', 'improvements')),
   value_report_period text check (value_report_period ~ '^[0-9]{4}-(0[1-9]|1[0-2]|Q[1-4])$'),
-  draft boolean generated always as (happened_on is null) stored,       -- V68: no date yet — never counts
+  draft boolean not null default true,                               -- V68: no date yet — never counts (the guard keeps it)
   happened_on date check (happened_on >= date '2025-01-01'),            -- V400: the date on the evidence; V506
   logged_at timestamptz not null default core.clock(),
   period_moved_from date,
@@ -243,6 +243,8 @@ begin
     raise exception using errcode = 'P0001', message = 'achievement.category_retired', detail = c.code;
   end if;
   new.plan_id := pl;
+  -- kept by the guard, not generated, so that undo can write a row back whole (QA-513)
+  new.draft := new.happened_on is null;
   if tg_op = 'UPDATE' and new.number is distinct from old.number then
     raise exception using errcode = 'P0001', message = 'achievement.number_fixed';
   end if;
@@ -800,16 +802,16 @@ begin
 end
 $$;
 
--- Undoing an MoU achievement undoes the Prospect it set while the side is still Prospect from it — no other live status
--- change on that side; once the side has moved on, the side is left as it is (V601). Runs inside the undo's own request,
--- so a redo brings both back.
+-- Undoing an MoU achievement — or the change that dated it and set its Prospect (QA-513) — undoes the Prospect it set
+-- while the side is still Prospect from it — no other live status change on that side; once the side has moved on, the
+-- side is left as it is (V601). Runs inside the undo's own request, so a redo brings both back.
 create function perf.achievement_undo_prospect() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
   s partner.side_status_change;
 begin
-  select * into s from partner.side_status_change x where x.id = new.mou_status_id and x.deleted_at is null;
+  select * into s from partner.side_status_change x where x.id = old.mou_status_id and x.deleted_at is null;
   if s.id is not null and not exists (
        select 1 from partner.side_status_change o
        where o.partner_id = s.partner_id and o.side = s.side and o.deleted_at is null and o.id <> s.id) then
@@ -820,9 +822,10 @@ begin
   return new;
 end
 $$;
-create trigger undo_prospect after update of deleted_at on perf.achievement for each row
-  when (old.deleted_at is null and new.deleted_at is not null and new.delete_reason = 'undo'
-        and new.mou_status_id is not null)
+create trigger undo_prospect after update of deleted_at, mou_status_id on perf.achievement for each row
+  when (old.mou_status_id is not null
+        and ((old.deleted_at is null and new.deleted_at is not null and new.delete_reason = 'undo')
+             or new.mou_status_id is null))
   execute function perf.achievement_undo_prospect();
 
 -- ================================================================ the doors: log, change, move, assign, remove
@@ -875,6 +878,15 @@ $$;
 -- fields; happened_on is the date on the evidence (empty: a flagged draft that never counts, V68); the person's own,
 -- or — for a manager with Full on KPIs — someone else's (V467). References and participants come in the same request;
 -- a category that needs a reference (Technical integration: the Product ticket, V99) is refused without one.
+-- An MoU category, or one under it, sets its chosen side to Prospect (V521).
+create function perf.category_sets_prospect(p_category uuid) returns boolean
+language sql stable set search_path = ''
+as $$
+  select coalesce((select c.sets_prospect or coalesce(p.sets_prospect, false)
+                   from perf.achievement_category c left join perf.achievement_category p on p.id = c.parent_id
+                   where c.id = p_category), false)
+$$;
+
 create function perf.achievement_log(p_values jsonb, p_refs jsonb default null, p_participants uuid[] default null)
   returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -935,7 +947,7 @@ begin
     raise exception using errcode = 'P0002', message = 'common.not_found', detail = 'partner.partner';
   end if;
   -- V521: an MoU with an organisation names the side it was signed with.
-  prospect := c.sets_prospect or exists (select 1 from perf.achievement_category x where x.id = c.parent_id and x.sets_prospect);
+  prospect := perf.category_sets_prospect(c.id);
   if side is not null and side not in ('client', 'supplier_partner') then
     raise exception using errcode = 'P0001', message = 'achievement.side_required';
   end if;
@@ -989,7 +1001,8 @@ $$;
 -- Its own people, or a manager with Full on KPIs, change an achievement's own fields — a manager changing someone
 -- else's says why (§3.8). happened_on is the date on the evidence (V400): changing it moves the figures with it; a
 -- manager's move into an earlier period with its mark is achievement_move. A deal value typed here is a person's, so
--- it no longer names a report (V502).
+-- it no longer names a report (V502). An MoU sets its side to Prospect the first time it has its organisation, its side
+-- and its signing day, on this change as on the log — a draft dated later included; never for past work (QA-513, V601).
 create function perf.achievement_update(p_id uuid, p_values jsonb, p_version int, p_reason text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -1001,6 +1014,10 @@ declare
   cat uuid := a.category_id;
   pid uuid := a.partner_id;
   day date := a.happened_on;
+  side text := a.mou_side;
+  prospect boolean;
+  was_ready boolean;
+  sid uuid;
   req uuid;
   what text;
 begin
@@ -1009,7 +1026,7 @@ begin
   end if;
   for k in select pg_catalog.jsonb_object_keys(v) loop
     if k not in ('category', 'title', 'notes', 'happened_on', 'partner_id', 'count', 'deal_value', 'use_as_example',
-                 'before_value', 'after_value') then
+                 'before_value', 'after_value', 'side') then
       raise exception using errcode = 'P0001', message = 'common.unknown_field', detail = k;
     end if;
   end loop;
@@ -1017,7 +1034,8 @@ begin
     raise exception using errcode = 'P0001', message = 'common.reason_required';
   end if;
   perform core.check_version('perf.achievement', p_id, p_version,
-    array(select case x when 'category' then 'category_id' else x end from pg_catalog.jsonb_object_keys(v) x));
+    array(select case x when 'category' then 'category_id' when 'side' then 'mou_side' else x end
+          from pg_catalog.jsonb_object_keys(v) x));
   if v ? 'happened_on' then
     day := nullif(v ->> 'happened_on', '')::date;
     if day > core.riyadh_today() then
@@ -1039,8 +1057,27 @@ begin
       raise exception using errcode = 'P0002', message = 'common.not_found', detail = 'partner.partner';
     end if;
   end if;
+  -- V521: an MoU with an organisation names its side.
+  if v ? 'side' then
+    side := nullif(v ->> 'side', '');
+    if side is not null and side not in ('client', 'supplier_partner') then
+      raise exception using errcode = 'P0001', message = 'achievement.side_required';
+    end if;
+  end if;
+  was_ready := perf.category_sets_prospect(a.category_id) and a.partner_id is not null and a.mou_side is not null
+               and a.happened_on is not null;
+  prospect := perf.category_sets_prospect(cat);
+  if not prospect then
+    side := null;
+  elsif pid is not null and side is null and (v ? 'category' or v ? 'partner_id' or v ? 'side') and a.origin <> 'backfill' then
+    raise exception using errcode = 'P0001', message = 'achievement.side_required';
+  end if;
   req := audit.begin('ui', 'achievement.changed', null, nullif(pg_catalog.btrim(p_reason), ''));
   perform perf.quiet_if_past(array[p_id]);
+  if prospect and not was_ready and a.mou_status_id is null and a.origin <> 'backfill'
+     and pid is not null and side is not null and day is not null then
+    sid := perf.mou_prospect(p_id, a.number, pid, side, day);
+  end if;
   begin
     update perf.achievement x set
       category_id = cat,
@@ -1055,7 +1092,9 @@ begin
       use_as_example = case when v ? 'use_as_example' then coalesce((v ->> 'use_as_example')::boolean, false)
                             else x.use_as_example end,
       before_value = case when v ? 'before_value' then (v ->> 'before_value')::numeric else x.before_value end,
-      after_value = case when v ? 'after_value' then (v ->> 'after_value')::numeric else x.after_value end
+      after_value = case when v ? 'after_value' then (v ->> 'after_value')::numeric else x.after_value end,
+      mou_side = side,
+      mou_status_id = coalesce(sid, x.mou_status_id)
     where x.id = p_id;
   exception when check_violation or not_null_violation then
     get stacked diagnostics what = constraint_name;

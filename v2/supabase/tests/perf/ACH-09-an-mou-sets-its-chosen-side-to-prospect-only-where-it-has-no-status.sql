@@ -94,3 +94,67 @@ select test.as_owner();
 select test.eq(partner.status_of(current_setting('t.org2')::uuid, 'client'), 'active', 'the side stays Active');
 select test.eq((select count(*)::int from partner.side_status_change s where s.partner_id = current_setting('t.org2')::uuid
                 and s.status = 'prospect' and s.deleted_at is null), 1, 'and its Prospect history stays');
+
+-- QA-513 (V601): a draft MoU dated later sets its side to Prospect then — once, from its signing day
+select test.as_person(current_setting('t.mgr')::uuid);
+select set_config('t.org3', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Draft Co',
+  'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate',
+                                                'owner_id', current_setting('t.mgr'))))) ->> 'id', true);
+select test.as_owner();
+update partner.side_status_change set deleted_at = now() where partner_id = current_setting('t.org3')::uuid;
+select test.as_person(current_setting('t.mem')::uuid);
+select set_config('t.d', api.achievement_log(jsonb_build_object('category', 'MOU', 'title', 'Made-up draft MoU',
+  'partner_id', current_setting('t.org3'), 'side', 'client'))::text, true);
+select test.as_owner();
+select test.eq(partner.status_of(current_setting('t.org3')::uuid, 'client'), null::text, 'an undated draft waits');
+select test.as_person(current_setting('t.mem')::uuid);
+select set_config('t.d1', api.achievement_update((current_setting('t.d')::jsonb ->> 'id')::uuid,
+  '{"happened_on": "2026-09-20"}'::jsonb, 1)::text, true);
+select test.as_owner();
+select test.eq(partner.status_of(current_setting('t.org3')::uuid, 'client'), 'prospect', 'dated, the side is Prospect');
+select test.eq((select s.effective_on from partner.side_status_change s
+                where s.partner_id = current_setting('t.org3')::uuid and s.deleted_at is null), date '2026-09-20',
+               'from the signing day it was given');
+select test.eq((select s.note from partner.side_status_change s
+                where s.partner_id = current_setting('t.org3')::uuid and s.deleted_at is null),
+               'From MoU ' || (current_setting('t.d')::jsonb ->> 'number'), 'naming the MoU');
+-- undoing the change that dated it takes the Prospect back
+select test.as_person(current_setting('t.mem')::uuid);
+select test.runs(format('select api.undo(%L)', current_setting('t.d1')::jsonb ->> 'request_id'), 'the dating is undone');
+select test.as_owner();
+select test.eq(partner.status_of(current_setting('t.org3')::uuid, 'client'), null::text,
+  'undone, the dated draft''s side has no status again');
+-- dated again, then re-dated: one Prospect, never a second
+select set_config('t.dv', (select version from perf.achievement
+                           where id = (current_setting('t.d')::jsonb ->> 'id')::uuid)::text, true);
+select test.as_person(current_setting('t.mem')::uuid);
+select set_config('t.d2', api.achievement_update((current_setting('t.d')::jsonb ->> 'id')::uuid,
+  '{"happened_on": "2026-09-21"}'::jsonb, current_setting('t.dv')::int)::text, true);
+select api.achievement_update((current_setting('t.d')::jsonb ->> 'id')::uuid, '{"happened_on": "2026-09-22"}'::jsonb,
+  (current_setting('t.d2')::jsonb ->> 'version')::int);
+select test.as_owner();
+select test.eq((select count(*)::int from partner.side_status_change s where s.partner_id = current_setting('t.org3')::uuid
+                and s.deleted_at is null), 1, 'a changed date never sets it again');
+
+-- V601: the paste of past work never sets a side's status, not even when its MoU is later given a side
+select test.as_person(current_setting('t.mgr')::uuid);
+select set_config('t.org4', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Past Co',
+  'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate',
+                                                'owner_id', current_setting('t.mgr'))))) ->> 'id', true);
+select test.as_owner();
+update partner.side_status_change set deleted_at = now() where partner_id = current_setting('t.org4')::uuid;
+select test.as_person(current_setting('t.mgr')::uuid);
+select api.backfill_achievements(jsonb_build_object('mode', 'achievements', 'origin', 'backfill',
+  'source', jsonb_build_object('kind', 'bd_monthly', 'period', '2026-04', 'last_day', '2026-04-30'),
+  'rows', jsonb_build_array(jsonb_build_object('title', 'Made-up past MoU', 'happened_on', '2026-04-02',
+    'kind', 'MOU', 'organisation_id', current_setting('t.org4'), 'import_key', 'made-up-past-mou-1'))));
+select test.as_owner();
+select test.eq(partner.status_of(current_setting('t.org4')::uuid, 'client'), null::text, 'a pasted MoU sets no status');
+select set_config('t.pv', (select jsonb_build_object('id', a.id, 'version', a.version) from perf.achievement a
+                           where a.import_key = 'made-up-past-mou-1')::text, true);
+select test.as_person(current_setting('t.mgr')::uuid);
+select api.achievement_update((current_setting('t.pv')::jsonb ->> 'id')::uuid, '{"side": "client"}'::jsonb,
+  (current_setting('t.pv')::jsonb ->> 'version')::int, 'Made-up side for past work');
+select test.as_owner();
+select test.eq(partner.status_of(current_setting('t.org4')::uuid, 'client'), null::text,
+  'nor once its side is named');

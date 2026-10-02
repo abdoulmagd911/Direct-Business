@@ -8,7 +8,7 @@ as $$
 declare
   s partner.side_status_change;
 begin
-  select * into s from partner.side_status_change x where x.id = new.mou_status_id and x.deleted_at is null;
+  select * into s from partner.side_status_change x where x.id = old.mou_status_id and x.deleted_at is null;
   if false and s.id is not null and not exists (
        select 1 from partner.side_status_change o
        where o.partner_id = s.partner_id and o.side = s.side and o.deleted_at is null and o.id <> s.id) then
