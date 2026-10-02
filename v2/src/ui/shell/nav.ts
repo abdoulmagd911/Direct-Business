@@ -129,9 +129,13 @@ export function isManageTier(me: Me): boolean {
   return !!role && (role.is_admin || MANAGE_ROLES.includes(role.key));
 }
 
-/** Whether an entry is in this person's menu: work pages at any level above none; manage pages by role (V217). */
+/**
+ * Whether an entry is in this person's menu: work pages at any level above none; manage pages by role (V217). A tab
+ * (Suppliers) is reached from the page it is a tab of (Clients) — unless the person cannot see that page, and then it
+ * is their own door (QA-504).
+ */
 export function inMenu(me: Me, e: NavEntry): boolean {
-  if (!canSee(me, e.page) || e.tabOf) return false;
+  if (!canSee(me, e.page) || (e.tabOf && canSee(me, e.tabOf))) return false;
   if (e.tier === 'work') return true;
   const role = me.person.role;
   if (!role) return false;

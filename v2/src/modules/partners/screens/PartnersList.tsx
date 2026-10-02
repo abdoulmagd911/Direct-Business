@@ -1,4 +1,5 @@
 'use client';
+import { CappedNote } from './CappedNote';
 import * as RP from '@radix-ui/react-popover';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { Plus, SlidersHorizontal } from 'lucide-react';
@@ -364,6 +365,7 @@ export function PartnersList({
         ) : null}
       </div>
 
+      {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
       {failed ? (
         <DataState kind="failed" what={title} onRetry={() => router.refresh()} retryLabel={t('common.tryAgain')} />
       ) : answer && rows.length === 0 ? (

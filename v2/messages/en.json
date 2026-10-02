@@ -1265,6 +1265,7 @@
   },
   "partners": {
     "count": "{count} organisations",
+    "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
     "newClient": "New client",

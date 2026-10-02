@@ -510,18 +510,6 @@ export const sabotages = [
     ],
   },
   {
-    name: 'no-role-reads-as-allowed',
-    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
-    expect: 'no role in words',
-    edits: [
-      {
-        file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-      },
-    ],
-  },
-  {
     name: 'at-risk-needs-no-reason',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
     expect: 'At risk asks for a reason',
@@ -534,18 +522,6 @@ export const sabotages = [
     ],
   },
   {
-    name: 'not-found-shows-the-raw-path',
-    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
-    expect: 'never the raw path as a title',
-    edits: [
-      {
-        file: 'src/app/(app)/[[...path]]/page.tsx',
-        find: "      <PageHeader title={t('errors.notFound.title')} />",
-        replace: '      <PageHeader title={address} />',
-      },
-    ],
-  },
-  {
     name: 'bulk-assign-one-by-one',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
     expect: 'every selected organisation is owned by the new owner',
@@ -554,6 +530,42 @@ export const sabotages = [
         file: 'src/modules/partners/screens/PartnersList.tsx',
         find: '          p_ids: ids,\n',
         replace: '          p_ids: ids.slice(0, 1),\n',
+      },
+    ],
+  },
+  {
+    name: 'hover-card-shows-one-side',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the hover card names both sides',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerHover.tsx',
+        find: '              {p.sides.map((s) => (\n',
+        replace: '              {p.sides.slice(0, 1).map((s) => (\n',
+      },
+    ],
+  },
+  {
+    name: 'no-role-reads-as-allowed',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'no role in words',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+      },
+    ],
+  },
+  {
+    name: 'not-found-shows-the-raw-path',
+    breaks: ['e2e:tests/e2e/review-1.spec.ts'],
+    expect: 'never the raw path as a title',
+    edits: [
+      {
+        file: 'src/app/(app)/[[...path]]/page.tsx',
+        find: "      <PageHeader title={t('errors.notFound.title')} />",
+        replace: '      <PageHeader title={address} />',
       },
     ],
   },
@@ -578,18 +590,6 @@ export const sabotages = [
         file: 'src/modules/settings/screens/SchemaEditor.tsx',
         find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
         replace: '',
-      },
-    ],
-  },
-  {
-    name: 'hover-card-shows-one-side',
-    breaks: ['e2e:tests/e2e/partners.spec.ts'],
-    expect: 'the hover card names both sides',
-    edits: [
-      {
-        file: 'src/modules/partners/screens/PartnerHover.tsx',
-        find: '              {p.sides.map((s) => (\n',
-        replace: '              {p.sides.slice(0, 1).map((s) => (\n',
       },
     ],
   },
@@ -831,6 +831,42 @@ export const sabotages = [
         file: 'src/core/auth/allow-list.ts',
         find: 'for (const authUserId of removed.ban) await setBanned(authUserId, true);',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'clients-none-reads-as-a-list',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'no-access',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/list-page.tsx',
+        find: "if ((me.levels[page] ?? 'none') === 'none')",
+        replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'suppliers-door-lost-when-clients-none',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'a person with Clients none still has a door to Suppliers',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: '(e.tabOf && canSee(me, e.tabOf))',
+        replace: 'e.tabOf',
+      },
+    ],
+  },
+  {
+    name: 'capped-list-says-nothing',
+    breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
+    expect: 'says how many it shows of how many',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/CappedNote.tsx',
+        find: 'if (total <= shown) return null;',
+        replace: 'if (total >= 0) return null;',
       },
     ],
   },

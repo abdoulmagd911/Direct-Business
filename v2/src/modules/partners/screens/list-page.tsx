@@ -51,7 +51,7 @@ export async function PartnersListPage({
     return (
       <Page>
         <PageHeader title={title} />
-        <DataState kind="no-access" what={title} />
+        <DataState kind="no-access" what={title} message={t('state.noAccess', { what: title })} />
       </Page>
     );
   const filters = filtersOf(q);
