@@ -875,7 +875,8 @@
       "view.saved": "View saved",
       "record.restored": "Record restored",
       "list.removed": "List entry removed",
-      "list.retired": "List entry archived"
+      "list.retired": "List entry archived",
+      "tender.signed": "Contract signed, from tender {number}"
     },
     "signIn": {
       "at": "When",

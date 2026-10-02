@@ -1,7 +1,7 @@
--- Sabotage: a-skipped-optional-stage-is-passed
--- Breaks: sql:PIPE-02
--- Expect: skipping Clarification / negotiation records no pass
--- An optional stage skipped is recorded as passed (V99, V481).
+-- Sabotage: signed-logs-no-contract
+-- Breaks: sql:PIPE-08
+-- Expect: Signed logs the contract and offers New project alone
+-- A tender reaches Signed and no Contract signed is logged (V603, V503).
 create or replace function pipeline.move(p_entity text, p_id uuid, p_stage text, p_happened_on date default null,
                               p_values jsonb default null, p_version int default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -74,7 +74,7 @@ begin
   reached := array[s.meaning];
   if not backward and s.meaning not in ('lost', 'cancelled') then
     for x in select * from pipeline.stage y
-             where y.kind = v_kind and y.deleted_at is null and y.active
+             where y.kind = v_kind and y.deleted_at is null and y.active and not y.optional
                and y.meaning not in ('lost', 'cancelled') and y.sort > cur.sort and y.sort < s.sort
              order by y.sort loop
       passed := passed || x.id::text;
@@ -125,7 +125,7 @@ begin
       lost_reason_id = case when s.meaning in ('lost', 'cancelled') then lost else null end
     where t.id = p_id;
     if logs_contract then
-      contract := perf.contract_from_tender(p_id, d);
+      contract := null;
     end if;
     if s.meaning = 'signed' then
       offers := case when perf.tender_contract(p_id) is null then array['log_achievement', 'new_project']

@@ -1,7 +1,32 @@
--- Sabotage: a-skipped-optional-stage-is-passed
--- Breaks: sql:PIPE-02
--- Expect: skipping Clarification / negotiation records no pass
--- An optional stage skipped is recorded as passed (V99, V481).
+-- Sabotage: a-second-signed-logs-again
+-- Breaks: sql:PIPE-08
+-- Expect: a second Signed logs nothing new
+-- A tender signed again after a move back logs a second Contract signed (V603).
+drop index perf.achievement_one_per_tender;
+create or replace function perf.contract_from_tender(p_tender uuid, p_day date) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  t pipeline.tender;
+  cat uuid := perf.contract_category_for_tender(p_tender, p_day);
+  aid uuid := gen_random_uuid();
+  num text;
+begin
+  select * into t from pipeline.tender x where x.id = p_tender;
+  if cat is null then
+    return null;
+  end if;
+  num := perf.number_for(pg_catalog.date_part('year', p_day)::int);
+  insert into perf.achievement (id, number, plan_id, department_id, category_id, partner_id, title, deal_value,
+                                happened_on, owner_id, origin, tender_id)
+  select aid, num, c.plan_id, p.department_id, c.id, t.partner_id, t.title, t.awarded_value_sar, p_day, t.owner_id,
+         'pipeline', t.id
+  from perf.achievement_category c join core.person p on p.id = t.owner_id
+  where c.id = cat;
+  return pg_catalog.jsonb_build_object('id', aid, 'number', num);
+end
+$$;
+
 create or replace function pipeline.move(p_entity text, p_id uuid, p_stage text, p_happened_on date default null,
                               p_values jsonb default null, p_version int default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -74,7 +99,7 @@ begin
   reached := array[s.meaning];
   if not backward and s.meaning not in ('lost', 'cancelled') then
     for x in select * from pipeline.stage y
-             where y.kind = v_kind and y.deleted_at is null and y.active
+             where y.kind = v_kind and y.deleted_at is null and y.active and not y.optional
                and y.meaning not in ('lost', 'cancelled') and y.sort > cur.sort and y.sort < s.sort
              order by y.sort loop
       passed := passed || x.id::text;
@@ -93,7 +118,7 @@ begin
   -- V603: a tender moving forward into Signed logs its Contract signed in this request, unless it has one or its
   -- owner's department has no plan, or no Contract signed category, for the signing year
   logs_contract := v_kind = 'tender' and not backward and s.meaning = 'signed'
-                   and perf.tender_contract(p_id) is null and perf.contract_category_for_tender(p_id, d) is not null;
+                   and perf.contract_category_for_tender(p_id, d) is not null;
   req := audit.begin('ui', case when logs_contract then 'tender.signed' else 'pipeline.moved' end,
                      pg_catalog.jsonb_build_object('number', card ->> 'number', 'stage', s.key), reason);
   perform audit.happened(p_happened_on);

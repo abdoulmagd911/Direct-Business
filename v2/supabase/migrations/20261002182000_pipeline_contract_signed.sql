@@ -1,7 +1,75 @@
--- Sabotage: a-skipped-optional-stage-is-passed
--- Breaks: sql:PIPE-02
--- Expect: skipping Clarification / negotiation records no pass
--- An optional stage skipped is recorded as passed (V99, V481).
+-- V603 (P5-8 part 2; V503 refined) · a tender at Signed logs its Contract signed achievement. When a tender moves forward
+-- into Signed, the same request logs one achievement of the Contract signed category (code CONTRACT): the tender's
+-- owner's, in the plan of the owner's department for the signing year, dated at signing, with the awarded value as its
+-- deal value and the tender's title and organisation — origin 'pipeline', linked by tender_id, at most one live per
+-- tender. One Undo reverts the move and the achievement. It is a system act: no repeat question (V531); its history is
+-- the move's request, labelled tender.signed and naming the mover and the tender. Where the owner has no department, or
+-- the department no plan or no Contract signed category for that year, or the owner can no longer work here, the move
+-- still goes through and offers Log achievement instead. Moving back keeps the achievement; a second Signed logs
+-- nothing new. Partnerships only offer it (V89, V99). perf is builder E's: reviewed by E. Forward-only.
+
+-- ================================================================ perf: the tender's achievement
+alter table perf.achievement add column tender_id uuid references pipeline.tender (id);   -- V603: logged by its signing
+alter table perf.achievement drop constraint achievement_origin_check;
+alter table perf.achievement add constraint achievement_origin_check
+  check (origin in ('person', 'task', 'report', 'import', 'backfill', 'pipeline'));
+alter table perf.achievement add constraint achievement_from_a_tender check ((origin = 'pipeline') = (tender_id is not null));
+create index achievement_tender on perf.achievement (tender_id);
+create unique index achievement_one_per_tender on perf.achievement (tender_id)
+  where tender_id is not null and deleted_at is null;
+comment on column perf.achievement.tender_id is 'V603: the tender whose signing logged it (origin pipeline); one live per tender.';
+
+-- The live achievement a tender's signing logged, if any.
+create function perf.tender_contract(p_tender uuid) returns uuid
+language sql stable security definer set search_path = ''
+as $$ select a.id from perf.achievement a where a.tender_id = p_tender and a.deleted_at is null $$;
+
+-- The Contract signed category a tender signed on a day goes to: the CONTRACT category, live and in use, of the plan of
+-- its owner's department for that year — none when the owner has no department or can no longer work here, the
+-- department has no plan for the year, or the plan no such category.
+create function perf.contract_category_for_tender(p_tender uuid, p_day date) returns uuid
+language sql stable security definer set search_path = ''
+as $$
+  select c.id
+  from pipeline.tender t
+  join core.person p on p.id = t.owner_id
+  cross join lateral (select perf.plan_of(p.department_id, pg_catalog.date_part('year', p_day)::int) as plan_id) pl
+  join perf.achievement_category c on c.plan_id = pl.plan_id and c.code = 'CONTRACT' and c.deleted_at is null and c.active
+  where t.id = p_tender and p.department_id is not null and perf.person_ok(t.owner_id)
+    and p_day >= date '2025-01-01'
+$$;
+
+-- Logs the tender's Contract signed inside the caller's request (V603): its owner's, dated at signing, the awarded value
+-- as its deal value. Called by pipeline.move only, after contract_category_for_tender found its category.
+create function perf.contract_from_tender(p_tender uuid, p_day date) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  t pipeline.tender;
+  cat uuid := perf.contract_category_for_tender(p_tender, p_day);
+  aid uuid := gen_random_uuid();
+  num text;
+begin
+  select * into t from pipeline.tender x where x.id = p_tender;
+  if cat is null or perf.tender_contract(p_tender) is not null then
+    return null;
+  end if;
+  num := perf.number_for(pg_catalog.date_part('year', p_day)::int);
+  insert into perf.achievement (id, number, plan_id, department_id, category_id, partner_id, title, deal_value,
+                                happened_on, owner_id, origin, tender_id)
+  select aid, num, c.plan_id, p.department_id, c.id, t.partner_id, t.title, t.awarded_value_sar, p_day, t.owner_id,
+         'pipeline', t.id
+  from perf.achievement_category c join core.person p on p.id = t.owner_id
+  where c.id = cat;
+  return pg_catalog.jsonb_build_object('id', aid, 'number', num);
+end
+$$;
+revoke all on function perf.tender_contract(uuid), perf.contract_category_for_tender(uuid, date),
+  perf.contract_from_tender(uuid, date) from public;
+
+-- ================================================================ pipeline.move: Signed logs the contract
+-- As part 1's move, with V603: the request is labelled tender.signed when it logs the contract; the result names the
+-- achievement logged, and offers Log achievement only when the tender has none.
 create or replace function pipeline.move(p_entity text, p_id uuid, p_stage text, p_happened_on date default null,
                               p_values jsonb default null, p_version int default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -74,7 +142,7 @@ begin
   reached := array[s.meaning];
   if not backward and s.meaning not in ('lost', 'cancelled') then
     for x in select * from pipeline.stage y
-             where y.kind = v_kind and y.deleted_at is null and y.active
+             where y.kind = v_kind and y.deleted_at is null and y.active and not y.optional
                and y.meaning not in ('lost', 'cancelled') and y.sort > cur.sort and y.sort < s.sort
              order by y.sort loop
       passed := passed || x.id::text;
@@ -174,3 +242,4 @@ begin
     'offers', pg_catalog.to_jsonb(offers), 'achievement', contract, 'request_id', req);
 end
 $$;
+
