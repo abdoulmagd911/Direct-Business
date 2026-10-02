@@ -15,3 +15,4 @@ partner.partner_role.field_values — a partner's values for its role's own fiel
 partner.side_field.options — a select field's options, each {key, en, ar} (V76) — §3.4, V98
 partner.partner_side.field_values — an organisation's values for its side's own fields; the fields are a setting (V62, V98) — §3.4
 partner.code_terms.tiers — volume tiers [{from_bookings, fee_percent}] of a code's terms (V65) — §3.4
+my.note.items — a note's checklist rows or a meeting's points [{text, done, owner_id, due_on}] (V433) — §3.3a

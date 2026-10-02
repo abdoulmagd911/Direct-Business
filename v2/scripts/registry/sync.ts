@@ -113,17 +113,17 @@ function migrationOf(s: Snapshot): string {
   out.push('', '-- entities: the tables whose records are logged, undone and followed (V127)');
   if (s.entities.length)
     out.push(
-      'insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, level, history, active) values',
+      'insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, level, history, rule_only, active) values',
       s.entities
         .map(
           (e) =>
             `  (${text(e.key)}, ${text(e.table)}, ${text(e.page)}, ${text(e.owners)}, ${e.list}, ${e.private}, ${text(e.visible)}, ` +
-            `${text(e.level)}, ${e.history}, true)`,
+            `${text(e.level)}, ${e.history}, ${e.rule_only}, true)`,
         )
         .join(',\n'),
       'on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,',
       '  owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,',
-      '  level = excluded.level, history = excluded.history, active = true;',
+      '  level = excluded.level, history = excluded.history, rule_only = excluded.rule_only, active = true;',
       `update core.entity set active = false where active and key not in (${list(s.entities.map((e) => e.key))});`,
     );
   else out.push('update core.entity set active = false where active;');
