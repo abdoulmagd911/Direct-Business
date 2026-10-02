@@ -1487,7 +1487,8 @@ signatory and title, our signatory (person), event, signing date, announced (yes
 **never counts as a new client** (`partner.new_clients` reads Finance only); logging it sets **the side chosen on it**
 (a client MoU the Client side, a partner MoU the Supplier & partner side — V521) to **Prospect** from the signing date
 **only when the side has no status yet** — never over Active, At risk, Lost, On hold or Ended (V461; one request,
-reason "MoU signed").
+reason "MoU signed"). The step is a system act (V601): a logger without `partner.*` rights still saves the MoU and
+sets Prospect; the history names the logger and the achievement; the achievement's Undo reverts it while unchanged.
 - **Awards**: an optional entry cost (amount).
 - **Repeats, not duplicates** (V531): logging an achievement for the same organisation and category as one in the
   last 12 months with a similar title (`norm` folding, a trigram score over `perf.repeat_similarity`, 0.6) offers one
