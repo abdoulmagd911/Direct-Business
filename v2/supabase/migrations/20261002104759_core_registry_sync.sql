@@ -96,6 +96,10 @@ update core.setting_def set active = false where active and key not in ('app.ara
 
 -- entities: the tables whose records are logged, undone and followed (V127)
 insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, level, history, rule_only, active) values
+  ('achievement', 'perf.achievement', 'kpis', 'perf.achievement_owners', false, false, null, 'perf.row_level', false, false, true),
+  ('achievement_category', 'perf.achievement_category', 'settings.performance', null, false, false, null, null, false, false, true),
+  ('achievement_participant', 'perf.achievement_participant', 'kpis', 'perf.achievement_participant_owners', false, false, null, 'perf.row_level', false, false, true),
+  ('achievement_ref', 'perf.achievement_ref', 'kpis', 'perf.achievement_ref_owners', false, false, null, 'perf.row_level', false, false, true),
   ('action_item', 'work.action_item', 'tasks', 'work.action_item_owners', false, false, null, 'work.row_level', false, false, true),
   ('action_item_helper', 'work.action_item_helper', 'tasks', 'work.action_item_helper_owners', false, false, null, 'work.row_level', false, false, true),
   ('activity_outcome', 'partner.activity_outcome', 'settings.partners', null, true, false, null, null, false, false, true),
@@ -133,6 +137,7 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('person_email', 'core.person_email', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_level', 'core.person_page_level', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_team', 'core.person_team_assist', 'settings.org', 'person_id', false, false, null, null, false, false, true),
+  ('plan', 'perf.plan', 'settings.performance', null, false, false, null, null, false, false, true),
   ('priority', 'work.priority', 'settings.work', null, true, false, null, null, false, false, true),
   ('profile', 'core.person_profile', 'settings.profile', 'person_id', false, false, null, null, false, false, true),
   ('project', 'work.project', 'projects', 'owner_id', false, false, null, 'work.row_level', false, false, true),
@@ -165,7 +170,7 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
 on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,
   owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,
   level = excluded.level, history = excluded.history, rule_only = excluded.rule_only, active = true;
-update core.entity set active = false where active and key not in ('action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'campaign_code', 'capability', 'code_terms', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'department', 'entity', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'individual_name', 'mention', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'priority', 'profile', 'project', 'project_health', 'project_status', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'task', 'task_contact', 'task_helper', 'task_ref', 'task_status', 'task_status_change', 'task_type', 'team', 'wording');
+update core.entity set active = false where active and key not in ('achievement', 'achievement_category', 'achievement_participant', 'achievement_ref', 'action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'campaign_code', 'capability', 'code_terms', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'department', 'entity', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'individual_name', 'mention', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'plan', 'priority', 'profile', 'project', 'project_health', 'project_status', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'task', 'task_contact', 'task_helper', 'task_ref', 'task_status', 'task_status_change', 'task_type', 'team', 'wording');
 
 -- each role's starting level on each page, where it has none
 insert into core.role_page_level (role_id, page_key, level)
