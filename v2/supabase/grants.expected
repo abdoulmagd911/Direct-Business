@@ -27,6 +27,10 @@ function api.achievement_update(p_id uuid, p_values jsonb, p_version integer, p_
 function api.achievements(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.achievements_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.achievements_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.action_item_add(p_task uuid, p_values jsonb) execute authenticated
+function api.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
+function api.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[]) execute authenticated
 function api.app_settings() execute authenticated
@@ -35,6 +39,8 @@ function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execut
 function api.auth_user_of(p_email text) execute service_role
 function api.backfill_achievement_keys_held(p_keys text[]) execute authenticated
 function api.backfill_achievements(p_request jsonb) execute authenticated
+function api.backfill_keys_held(p_keys text[]) execute authenticated
+function api.backfill_tasks(p_request jsonb) execute authenticated
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
@@ -102,6 +108,7 @@ function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.password_changed(p_auth_user uuid) execute service_role
 function api.people() execute authenticated
+function api.people_match(p_names text[]) execute authenticated
 function api.people_without_password() execute authenticated
 function api.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function api.person_auth_found(p_auth_user uuid) execute authenticated
@@ -119,6 +126,11 @@ function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reas
 function api.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function api.plans(p_department uuid) execute authenticated
 function api.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
+function api.project(p_id uuid) execute authenticated
+function api.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
+function api.project_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.projects(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
+function api.projects_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
@@ -142,6 +154,18 @@ function api.sign_in_log(p_person uuid, p_before timestamp with time zone, p_lim
 function api.sign_in_methods() execute service_role
 function api.sign_in_password_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
+function api.task(p_id uuid) execute authenticated
+function api.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
+function api.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
+function api.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function api.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
+function api.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
+function api.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
+function api.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.tasks(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
+function api.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
 function api.undo(p_request uuid) execute authenticated
@@ -207,6 +231,7 @@ function core.own_password_set(p_auth_user uuid, p_keep_session uuid) execute se
 function core.page_seen(p_page text) execute authenticated
 function core.password_changed(p_auth_user uuid) execute service_role
 function core.people() execute authenticated
+function core.people_match(p_names text[]) execute authenticated
 function core.people_without_password() execute authenticated
 function core.person_account_set(p_id uuid, p_account text, p_reason text) execute authenticated
 function core.person_auth_found(p_auth_user uuid) execute authenticated
@@ -312,6 +337,29 @@ function perf.categories_remove(p_ids uuid[], p_reason text) execute authenticat
 function perf.category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function perf.plans(p_department uuid) execute authenticated
+function work.action_item_add(p_task uuid, p_values jsonb) execute authenticated
+function work.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
+function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function work.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.backfill_keys_held(p_keys text[]) execute authenticated
+function work.backfill_tasks(p_request jsonb) execute authenticated
+function work.project_get(p_id uuid) execute authenticated
+function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
+function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
+function work.project_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function work.projects_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
+function work.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
+function work.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function work.task_get(p_id uuid) execute authenticated
+function work.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
+function work.task_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
+function work.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
+function work.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
+function work.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated
@@ -322,4 +370,5 @@ schema my usage authenticated
 schema notify usage authenticated
 schema partner usage authenticated
 schema perf usage authenticated
+schema work usage authenticated
 type core.level usage public
