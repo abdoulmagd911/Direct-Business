@@ -72,6 +72,7 @@ create table perf.achievement (
   number text not null unique check (number ~ '^ACH-[0-9]{4}-[0-9]{4,}$'),   -- V531: written by the app, never changed
   repeat_of uuid references perf.achievement (id),                    -- V531: "This is a new one" of an earlier one
   mou_side text check (mou_side in ('client', 'supplier_partner')),   -- V521: the side an MoU was signed with
+  mou_status_id uuid references partner.side_status_change (id),      -- V601: the Prospect this MoU set, if it set one
   plan_id uuid not null references perf.plan (id),                     -- the plan of happened_on's year (set by trigger)
   department_id uuid not null references core.department (id),
   category_id uuid not null references perf.achievement_category (id),
@@ -763,20 +764,66 @@ begin
 end
 $$;
 
--- An MoU sets the side chosen on it to Prospect from its signing day, only where that side has no status at all yet
--- (V461, V521) — through the side's own door, in the same request, so the side's rules and its log hold; never a new
--- client (C4).
-create function perf.mou_prospect(p_partner uuid, p_side text, p_on date) returns void
+-- An MoU sets the side chosen on it to Prospect from its signing day, only where that side is on and has no status at
+-- all yet (V461, V521), and never a new client (C4). It is a consequence the rules attach to the member's own
+-- achievement, not the member editing the side (V601, QA-512): no partner rights are asked, no owner is assigned, and it
+-- is its own entry in the log — the logger as its person, "Prospect, from MoU ACH-…" as its words — so that undoing the
+-- achievement never needs rights on the side. Returns the status change it made, or null.
+create function perf.mou_prospect(p_achievement uuid, p_number text, p_partner uuid, p_side text, p_on date)
+returns uuid
 language plpgsql volatile security definer set search_path = ''
 as $$
+declare
+  outer_id text := pg_catalog.current_setting('app.request_id', true);
+  outer_depth text := pg_catalog.current_setting('app.request_depth', true);
+  sid uuid;
 begin
-  if p_partner is null or p_side is null or exists (
-       select 1 from partner.side_status_change s where s.partner_id = p_partner and s.side = p_side and s.deleted_at is null) then
-    return;
+  if p_partner is null or p_side is null
+     or not exists (select 1 from partner.partner_side s
+                    where s.partner_id = p_partner and s.side = p_side and s.deleted_at is null)
+     or exists (select 1 from partner.side_status_change s
+                where s.partner_id = p_partner and s.side = p_side and s.deleted_at is null) then
+    return null;
   end if;
-  perform partner.side_status_set(p_partner, p_side, 'prospect', coalesce(p_on, core.riyadh_today()), null, 'MoU signed');
+  perform pg_catalog.set_config('app.request_depth', '0', true);
+  perform pg_catalog.set_config('app.request_id', '', true);
+  perform audit.begin('ui', 'perf.mou_prospect', pg_catalog.jsonb_build_object('side', p_side, 'status', 'prospect',
+                      'achievement', p_number, 'achievement_id', p_achievement));
+  perform audit.happened(p_on);
+  insert into partner.side_status_change (partner_id, side, status, effective_on, note)
+  values (p_partner, p_side, 'prospect', p_on, 'From MoU ' || p_number)
+  returning id into sid;
+  perform audit.end();
+  perform pg_catalog.set_config('app.request_id', coalesce(outer_id, ''), true);
+  perform pg_catalog.set_config('app.request_depth', coalesce(nullif(outer_depth, ''), '0'), true);
+  return sid;
 end
 $$;
+
+-- Undoing an MoU achievement undoes the Prospect it set while the side is still Prospect from it — no other live status
+-- change on that side; once the side has moved on, the side is left as it is (V601). Runs inside the undo's own request,
+-- so a redo brings both back.
+create function perf.achievement_undo_prospect() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  s partner.side_status_change;
+begin
+  select * into s from partner.side_status_change x where x.id = new.mou_status_id and x.deleted_at is null;
+  if s.id is not null and not exists (
+       select 1 from partner.side_status_change o
+       where o.partner_id = s.partner_id and o.side = s.side and o.deleted_at is null and o.id <> s.id) then
+    update partner.side_status_change
+    set deleted_at = pg_catalog.now(), deleted_by = authz.me(), delete_reason = 'undo'
+    where id = s.id;
+  end if;
+  return new;
+end
+$$;
+create trigger undo_prospect after update of deleted_at on perf.achievement for each row
+  when (old.deleted_at is null and new.deleted_at is not null and new.delete_reason = 'undo'
+        and new.mou_status_id is not null)
+  execute function perf.achievement_undo_prospect();
 
 -- ================================================================ the doors: log, change, move, assign, remove
 create function perf.achievement_refused(p_constraint text) returns text
@@ -847,7 +894,9 @@ declare
   rep uuid := nullif(v ->> 'repeat_of', '')::uuid;
   side text := nullif(v ->> 'side', '');
   prospect boolean;
-  aid uuid;
+  aid uuid := gen_random_uuid();
+  num text;
+  sid uuid;
   req uuid;
   r jsonb;
   pp uuid;
@@ -908,15 +957,18 @@ begin
   end if;
   req := audit.begin('ui', 'achievement.logged', pg_catalog.jsonb_build_object('category', c.code));
   perform audit.happened(day);
+  num := perf.number_for(yr);
+  if prospect and day is not null then
+    sid := perf.mou_prospect(aid, num, pid, side, day);
+  end if;
   begin
-    insert into perf.achievement (number, plan_id, department_id, category_id, partner_id, title, notes, count,
+    insert into perf.achievement (id, number, plan_id, department_id, category_id, partner_id, title, notes, count,
                                   before_value, after_value, deal_value, happened_on, owner_id, use_as_example, origin,
-                                  repeat_of, mou_side)
-    values (perf.number_for(yr), pl, dept, c.id, pid, pg_catalog.btrim(v ->> 'title'),
+                                  repeat_of, mou_side, mou_status_id)
+    values (aid, num, pl, dept, c.id, pid, pg_catalog.btrim(v ->> 'title'),
             nullif(pg_catalog.btrim(v ->> 'notes'), ''), coalesce((v ->> 'count')::int, 1),
             (v ->> 'before_value')::numeric, (v ->> 'after_value')::numeric, (v ->> 'deal_value')::numeric, day, owner,
-            coalesce((v ->> 'use_as_example')::boolean, false), 'person', rep, case when prospect then side end)
-    returning id into aid;
+            coalesce((v ->> 'use_as_example')::boolean, false), 'person', rep, case when prospect then side end, sid);
   exception when check_violation or not_null_violation then
     get stacked diagnostics what = constraint_name;
     raise exception using errcode = 'P0001', message = perf.achievement_refused(coalesce(what, 'achievement_title_check'));
@@ -928,9 +980,6 @@ begin
     continue when pp = owner;
     insert into perf.achievement_participant (achievement_id, person_id) values (aid, pp) on conflict do nothing;
   end loop;
-  if prospect and day is not null then
-    perform perf.mou_prospect(pid, side, day);
-  end if;
   perform audit.end();
   return pg_catalog.jsonb_build_object('id', aid, 'version', 1, 'request_id', req,
                                        'number', (select a.number from perf.achievement a where a.id = aid));
