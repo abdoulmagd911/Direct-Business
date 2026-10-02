@@ -20,10 +20,12 @@ test('each page names itself in the tab (W37)', async ({ page }) => {
   await expect(page).toHaveTitle('My day · Commercial');
   for (const [route, title] of [
     ['/tasks', 'Tasks · Commercial'],
+    ['/clients', 'Clients · Commercial'],
+    ['/suppliers', 'Suppliers · Commercial'],
     ['/finance', 'Finance · Commercial'],
     ['/activity', 'Activity · Commercial'],
     ['/profile', 'My profile · Commercial'],
-    ['/settings/org', 'Organization & access · Commercial'],
+    ['/settings/org', 'People & access · Commercial'],
   ] as const) {
     await page.goto(route);
     await expect(page, route).toHaveTitle(title);
