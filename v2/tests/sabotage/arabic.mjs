@@ -12,7 +12,14 @@ export const sabotages = [
     name: 'ar-drops-a-placeholder',
     breaks: [CATALOG],
     expect: 'settings.people.added: [] ≠ [name]',
-    edits: [{ file: AR, find: '"added": "تمت إضافة {name}"', replace: '"added": "تمت الإضافة"' }],
+    edits: [
+      {
+        file: AR,
+        // Anchored on the line before it: another record's `added` line reads the same.
+        find: '"signedOutEverywhere": "تم تسجيل خروج {name} من كل الأجهزة",\n      "added": "تمت إضافة {name}"',
+        replace: '"signedOutEverywhere": "تم تسجيل خروج {name} من كل الأجهزة",\n      "added": "تمت الإضافة"',
+      },
+    ],
   },
   {
     name: 'ar-breaks-a-plural',
