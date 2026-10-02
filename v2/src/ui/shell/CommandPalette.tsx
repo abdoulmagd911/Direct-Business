@@ -4,13 +4,25 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, Search, UserRound } from 'lucide-react';
+import { Building2, History, Search, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
-import { paletteActions } from '@/core/commands/actions';
+import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
-import { SETTINGS_ENTRY, isAdmin, navFor } from './nav';
-import { CREATE_ACTIONS } from './CreateMenu';
+import { reachableFor } from './nav';
+import { createActionsFor } from './CreateMenu';
+
+// Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
+// person without Activity reaches it here.
+registerActions([
+  {
+    key: 'recently_deleted',
+    label: 'palette.recentlyDeleted',
+    icon: History,
+    page: 'settings.profile',
+    route: '/recently-deleted',
+  },
+]);
 
 type Hit = { id: string; full_name_en: string; full_name_ar: string | null; job_title_en: string | null };
 type OrgHit = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null; matched_by: string };
@@ -81,11 +93,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   // cmdk's own filter is off (QA-72): a person the server found by a nickname or a folded Arabic spelling stays; the
   // pages and actions are filtered here, on the words as shown
   const matches = (label: string) => !term || label.toLowerCase().includes(term.toLowerCase());
-  const pages = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])].filter((p) => matches(t(p.label)));
+  const pages = reachableFor(me).filter((p) => matches(t(p.label)));
   const actions = paletteActions().filter((a) => canSee(me, a.page) && matches(t(a.label)));
-  const createActions = CREATE_ACTIONS.filter(
-    (a) => a.built && canSee(me, a.page) && matches(`${t('top.create')} ${t(`create.${a.key}`)}`),
-  );
+  const createActions = createActionsFor(me).filter((a) => matches(`${t('top.create')} ${t(`create.${a.key}`)}`));
   const personName = (p: Hit) => (locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en);
 
   return (

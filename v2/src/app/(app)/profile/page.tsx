@@ -1,3 +1,4 @@
+import { getAppSettings } from '@/core/settings/app';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { MyProfile, type Device } from '@/modules/org/screens/MyProfile';
@@ -9,7 +10,7 @@ export default async function ProfilePage() {
   const devices = (await serverRpc('my_devices', {} as never)) as unknown as Device[];
   return (
     <Page bare>
-      <MyProfile me={me} devices={devices} />
+      <MyProfile me={me} devices={devices} arabicEnabled={(await getAppSettings()).arabic_enabled} />
     </Page>
   );
 }

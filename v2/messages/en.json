@@ -97,20 +97,20 @@
     "activity": "Activity",
     "settings": {
       "profile": "My profile",
-      "org": "Organization & access",
-      "partners": "Clients & suppliers",
-      "performance": "Plan & performance",
+      "org": "People & access",
+      "partners": "Organisations",
+      "performance": "Targets",
       "finance": "Finance",
       "work": "Work",
       "app": "App"
     },
     "settings_home": "Settings",
     "clients": "Clients",
-    "suppliers_partners": "Suppliers & partners",
+    "suppliers_partners": "Suppliers",
     "profile": "My profile"
   },
   "top": {
-    "search": "Search partners, tasks, INV-, DRS-",
+    "search": "Search clients, tasks, invoices",
     "searchLabel": "Search",
     "create": "Create",
     "notifications": "Notifications",
@@ -125,7 +125,8 @@
     "empty": "Nothing matches",
     "openInSettings": "Open Settings",
     "people": "People",
-    "organisations": "Organisations"
+    "organisations": "Organisations",
+    "recentlyDeleted": "Recently deleted"
   },
   "profileMenu": {
     "theme": "Theme",
@@ -157,10 +158,10 @@
   },
   "create": {
     "task": "Task",
-    "partner": "Partner",
+    "client": "Client",
+    "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement",
-    "project": "Project"
+    "achievement": "Achievement"
   },
   "common": {
     "cancel": "Cancel",
@@ -210,28 +211,131 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "Good day, {name}",
-      "greetingMorning": "Good morning, {name}",
-      "greetingAfternoon": "Good afternoon, {name}",
-      "greetingEvening": "Good evening, {name}",
       "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
-      "goSettings": "Go to Settings"
+      "goSettings": "Go to Settings",
+      "tabs": {
+        "me": "Me",
+        "team": "My team",
+        "workspace": "Workspace"
+      },
+      "tabsLabel": "Whose notes",
+      "capture": {
+        "label": "Capture",
+        "placeholder": "Capture a note",
+        "save": "Capture",
+        "kind": "Kind",
+        "captured": "Note filed in My notes"
+      },
+      "kinds": {
+        "sticky": "Note",
+        "meeting": "Meeting",
+        "checklist": "Checklist"
+      },
+      "visibility": {
+        "label": "Who sees it",
+        "private": "Only me",
+        "team": "My team",
+        "workspace": "Everyone"
+      },
+      "blocks": {
+        "me": "My notes",
+        "team": "Shared with my team",
+        "workspace": "Shared with everyone",
+        "reminders": "Reminders",
+        "since": "What's new"
+      },
+      "more": "Show all",
+      "fewer": "Show fewer",
+      "empty": {
+        "me": "No notes yet. What you capture here stays yours until you share it.",
+        "team": "Nothing shared with your team yet.",
+        "workspace": "Nothing shared with everyone yet."
+      },
+      "note": {
+        "untitled": "Untitled note",
+        "title": "Title",
+        "body": "Notes",
+        "items": "Checklist",
+        "addItem": "Add a row",
+        "itemLabel": "Row {n}",
+        "removeItem": "Remove row {n}",
+        "organisation": "Organisation",
+        "meetingOn": "Meeting day",
+        "happenedOn": "Happened on",
+        "by": "by {name}",
+        "draft": "Not logged",
+        "logged": "Logged {date}",
+        "carried": "Carried to {date}",
+        "turnedInto": "Turned into",
+        "fromNote": "From note",
+        "saved": "Note saved",
+        "remove": "Delete note",
+        "removeTitle": "Delete the note “{name}”?",
+        "removeBody": "What it was turned into stays.",
+        "removed": "Note deleted",
+        "notFound": "This note is not there, or it is not yours to read.",
+        "details": "Details",
+        "linkActivity": "{type} · {name}",
+        "linkReminder": "Reminder · {when}"
+      },
+      "turn": {
+        "label": "Turn into",
+        "kinds": {
+          "activity": "Logged meeting or call",
+          "reminder": "Reminder",
+          "task": "Task",
+          "action_item": "Action item",
+          "achievement": "Achievement"
+        },
+        "activityTitle": "Log a meeting or call",
+        "reminderTitle": "Set a reminder",
+        "organisation": "Organisation",
+        "searchOrg": "Search organisations by name or number",
+        "noOrg": "No organisation found",
+        "type": "Type",
+        "outcome": "Outcome",
+        "line": "What happened",
+        "when": "When",
+        "text": "Remind me to",
+        "logged": "{type} logged on {name}",
+        "reminded": "Reminder set for {when}"
+      },
+      "finish": {
+        "label": "Finish meeting",
+        "title": "Finish meeting",
+        "logOn": "Log the meeting on the organisation",
+        "save": "Log meeting",
+        "done": "Meeting logged on {name}"
+      },
+      "wrap": {
+        "label": "Wrap up",
+        "title": "Wrap up today",
+        "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
+        "carry": "Carry over to {date}",
+        "done": "Done",
+        "turn": "Turn into",
+        "save": "Done for today",
+        "saved": "Day wrapped up",
+        "none": "Nothing left to handle today."
+      },
+      "reminder": {
+        "removeTitle": "Remove the reminder “{name}”?",
+        "removed": "Reminder removed"
+      },
+      "since": {
+        "at": "Last visit {when}",
+        "markSeen": "Mark seen",
+        "kinds": {
+          "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
+          "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
+        }
+      }
     },
     "settings": {
       "myProfile": "My profile",
       "find": "Find a setting"
     },
-    "empty": {
-      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
-      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
-      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
-      "projects": "No projects yet. Projects and their milestones appear here.",
-      "tasks": "No tasks yet. Tasks you own or follow appear here.",
-      "finance": "No invoices yet. Invoices, cost and profit appear here.",
-      "kpis": "No KPIs yet. Targets and actuals appear here.",
-      "reports": "No reports yet. Issued reports appear here.",
-      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
-    }
+    "beingBuilt": "Being built."
   },
   "entity": {
     "partner": "Partner",
@@ -339,7 +443,7 @@
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Supplier & partner side's status, owner and priority"
+      "assign": "Set the Supplier side's status, owner and priority"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
@@ -571,7 +675,8 @@
       "appearance": "Appearance",
       "notifications": "Notifications",
       "devices": "Devices",
-      "password": "Password"
+      "password": "Password",
+      "preferences": "Preferences"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -650,7 +755,8 @@
       "roles": "Roles",
       "access": "Access",
       "settings": "Settings",
-      "lists": "Lists"
+      "lists": "Lists",
+      "signIn": "Sign-in"
     },
     "noAccess": "Settings is for admins",
     "setting": {
@@ -713,7 +819,7 @@
       "values": {
         "side": {
           "client": "Client",
-          "supplier_partner": "Supplier & partner"
+          "supplier_partner": "Supplier"
         },
         "status": {
           "at_risk": "At risk",
@@ -794,7 +900,11 @@
       "nicknameAr": "Nickname (Arabic)",
       "fullNameAr": "Full name (Arabic)",
       "switchedOn": "{name} switched on",
-      "switchedOff": "{name} switched off"
+      "switchedOff": "{name} switched off",
+      "accessStandard": "{role} (standard)",
+      "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
+      "accessShowAll": "Show all",
+      "accessHide": "Show less"
     },
     "teams": {
       "add": "Add team",
@@ -928,7 +1038,8 @@
       "unavailable": "The server did not answer. Try again.",
       "nothing_selected": "Nothing is selected",
       "reason_required": "A reason is required",
-      "bad_request": "The request was not understood: {detail}"
+      "bad_request": "The request was not understood: {detail}",
+      "date_in_future": "A note cannot happen after today"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -1053,7 +1164,19 @@
       "happened_in_future": "A note cannot happen after today",
       "next_step_before": "A next step is never before the activity",
       "outcome_required": "This type needs an outcome",
-      "outcome_of_other_type": "The outcome belongs to another type"
+      "outcome_of_other_type": "The outcome belongs to another type",
+      "items_invalid": "A checklist row needs words, and no more than 500 characters",
+      "meeting_finished": "This meeting is already logged",
+      "meeting_needs_partner": "A meeting needs its organisation",
+      "not_a_meeting": "Only a meeting note can be finished",
+      "not_open": "This note is already handled",
+      "not_yours": "Only the author changes a note",
+      "turn_into_needs_partner": "Choose the organisation first",
+      "turn_into_not_yet": "This arrives with its page",
+      "body_required": "A note needs words",
+      "turn_into_type_invalid": "Choose call or meeting",
+      "turn_into_invalid": "This cannot be turned into that",
+      "wrap_up_choice_invalid": "Choose carry over or done"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -1074,6 +1197,10 @@
       "has_one": "This person already has a password of their own — it is kept",
       "no_sign_in": "This person has no allowed email yet",
       "confirm_required": "A Reset replaces the password they hold — confirm it first"
+    },
+    "reminder": {
+      "time_required": "Choose when to be reminded",
+      "time_passed": "Choose a time in the future"
     }
   },
   "notifications": {
@@ -1153,6 +1280,7 @@
   },
   "partners": {
     "count": "{count} organisations",
+    "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
     "newClient": "New client",
@@ -1180,11 +1308,11 @@
     },
     "side": {
       "client": "Client",
-      "supplier_partner": "Supplier & partner"
+      "supplier_partner": "Supplier"
     },
     "sides": {
       "client": "Client side",
-      "supplier_partner": "Supplier & partner side"
+      "supplier_partner": "Supplier side"
     },
     "status": {
       "prospect": "Prospect",
@@ -1226,6 +1354,7 @@
       "notes": "Notes",
       "client_since": "Client since"
     },
+    "sideTabs": "Clients and suppliers",
     "tabs": {
       "overview": "Overview",
       "activity": "Activity",
@@ -1382,5 +1511,12 @@
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
+  },
+  "createNew": {
+    "task": "New task",
+    "client": "New client",
+    "supplier": "New supplier",
+    "invoice": "New invoice",
+    "achievement": "New achievement"
   }
 }

@@ -145,7 +145,7 @@ jobs:
     name: build and end-to-end
     runs-on: ubuntu-latest
     # one build per end-to-end sabotage (over 50 now): 30 minutes no longer covers the suite and them
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

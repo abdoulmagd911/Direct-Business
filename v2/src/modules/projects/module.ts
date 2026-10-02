@@ -10,7 +10,7 @@ export default defineModule({
       route: '/projects',
       label: 'nav.projects',
       icon: 'folder-kanban',
-      nav: { group: 'main', order: 50 },
+      nav: { group: 'main', order: 60, tier: 'manage' },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],

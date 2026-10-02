@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <MeProvider me={me}>
       <PrefsSync {...prefs} />
-      <AppShell arabicEnabled={app.arabic_enabled}>{children}</AppShell>
+      <AppShell>{children}</AppShell>
     </MeProvider>
   );
 }
