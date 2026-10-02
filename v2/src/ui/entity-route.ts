@@ -21,7 +21,7 @@ export function entityRoute(entity: string | null | undefined, id: string | null
     case 'role':
     case 'role_level':
     case 'role_capability':
-      return entity === 'role' ? '/settings/org?tab=roles' : '/settings/org?tab=access';
+      return '/settings/org?tab=access';
     case 'setting':
     case 'setting_def':
       return '/activity?tab=settings';

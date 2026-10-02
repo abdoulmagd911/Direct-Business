@@ -9,7 +9,7 @@ export default defineModule({
       route: '/appraisal',
       label: 'nav.appraisal',
       icon: 'clipboard-check',
-      nav: { group: 'main', order: 100 },
+      nav: { group: 'main', order: 100, tier: 'manage' },
       defaults: { admin: 'full', head: 'own', manager: 'own', member: 'own' },
     },
   ],
