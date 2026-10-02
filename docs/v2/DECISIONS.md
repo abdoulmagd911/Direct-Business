@@ -8,13 +8,14 @@ change that taught it.
 **ID ranges** (so two sessions never collide — spec A18): V1–V99 architect and oversight · V100–V199 builder A ·
 V200–V299 builder B · **V300–V399 builder C** (Arabic, exports, the Past work grid — V410) · **V400–V499 owner
 decisions relayed by the oversight** (from 29 Sep, once V1–V99 were used up; filled to V493 on 30 Sep) · **V500–V599
-owner decisions and the oversight's rulings from 30 Sep 2026** · **V600–V699 the architect**, when a rule of its own
-is needed · **numbers 270–299 builder D** and **370–399 builder E** (V519) — the `v2-ids` check widens to V1–V699 in
-the same step (builder A). **The QA session records no decisions**: its findings are QA-nn in its log, and a ruling on
-one becomes a V-number here, written by the architect (V410). A ruled open question of the first round keeps its
-number inside its ID: question Qn (Q1–Q31) became **V(20+n)** (Q7 → V27), so an old "Q7" still finds its answer here.
-Later questions (Q32 on) take the next free V number when ruled, and the decision names its question (Q32 → V126, Q33
-→ V73, Q34–Q36 → V99).
+owner decisions and the oversight's rulings from 30 Sep 2026** · **V600 onward the architect** (to number 649), when a
+rule of its own is needed · **numbers 650–699 builder A** (from 2 Oct, once V100–V199 were used up) · **numbers
+270–299 builder D** and **370–399 builder E** (V519) — the `v2-ids` check widens to V1–V699 in the same step (builder
+A). **The QA session records no decisions**: its findings are QA-nn in its log, and a ruling on one becomes a V-number
+here, written by the architect (V410). A ruled open question of the first round keeps its number inside its ID:
+question Qn (Q1–Q31) became **V(20+n)** (Q7 → V27), so an old "Q7" still finds its answer here. Later questions (Q32
+on) take the next free V number when ruled, and the decision names its question (Q32 → V126, Q33 → V73, Q34–Q36 →
+V99).
 
 ## Owner decisions, 28 Sep 2026 (relayed by the oversight)
 
@@ -504,7 +505,7 @@ Operations, Quality, refunds); the internal findings file stays with the oversig
 
 **V531 — Every task and achievement carries an automatic number; a repeat is marked, never mistaken for a duplicate** ACTIVE · 2026-10-01 (owner, relayed by the oversight; the architect's limits so nothing new is typed or learned). (1) **The number:** every task (`TSK-2026-0042`, already in P5-1) and every achievement (`ACH-2026-0042`, new) gets a short number written by the app from `core.next_number` — never typed, never changed, never reused. Its year is the **Happened on year when the record is made** (a 2025 past-work line is `ACH-2025-…`), so an annual report and its numbers agree. (2) **Shown everywhere beside Happened on and the organisation**: lists, record headers, report lines, exports and the search results — so a reviewer, an export or an AI reading them sees two items, not one. (3) **The repeat check — achievements only:** when a person logs an achievement and one already exists for the **same organisation and category** within the last 12 months with a similar title, a gentle one-tap choice appears: **This is a new one** (saved, linked to the earlier one as a repeat — `repeat_of`) or **Same as the earlier one** (nothing is saved; the earlier one opens, to add the new evidence there). Never on tasks (look-alike tasks are normal work — the prompt would fire all day); never in a bulk paste (the grid's preview marks a possible repeat in a column instead); never blocking. (4) **Reports** show each cited achievement's number and date, and list repeats with their dates under the same line ("again on …"), never folded into one. A report line is referred to by the report's number and its place (`RPT-…` · line 12), not a third numbering. (5) **Past work:** a row's register key (the PW- number in the past-work register) stays as its import key — searchable and shown on the record — while the app number is the one shown in lists. Steps: P5-1 (A — the year from Happened on, before #140 merges), P5-2 (D — the number in the list and the header), P5-4 and P5-6 (E — the achievement number, `repeat_of`, the check), P3-12 (exports), P6-1 (report lines). Refines V400, V491, V506. Spec §3.0, §3.8, §3.9.
 
-## The architect (V600–V699)
+## The architect (V600 onward, to number 649)
 
 **V600 — The merge train: a PR merges only on an up-to-date head** ACTIVE · 2026-10-01 (architect, after QA-501). Before the architect merges a PR into `v2/main`: (1) `v2/main` is merged into it (a merge commit, never a rebase of someone else's branch); (2) a PR carrying a registry sync deletes its old sync migration and runs `pnpm registry:sync` fresh, dated after `v2/main`'s newest migration — each sync switches off what it does not list, so a stale sync landing late switches modules off (QA-501); (3) every migration it adds is newer than `v2/main`'s newest (the production job refuses out-of-order); (4) CI is green on that head and QA's clearance names it ("cleared at <sha>") — a push after clearance needs a new one. The fast lane (V518) keeps (1)–(3). Refines V517, V518, V519. Plan "How the sessions work together".
 
