@@ -26,7 +26,7 @@
     {
       "key": "clients",
       "module": "partners",
-      "route": "/partners?view=clients",
+      "route": "/clients",
       "nav_group": "main",
       "nav_order": 30,
       "levels": ["none", "view", "own", "full"]
@@ -146,7 +146,7 @@
     {
       "key": "suppliers_partners",
       "module": "partners",
-      "route": "/partners?view=suppliers",
+      "route": "/suppliers",
       "nav_group": "main",
       "nav_order": 31,
       "levels": ["none", "view", "own", "full"]
@@ -517,6 +517,22 @@
         "maximum": 365
       },
       "default": 21,
+      "effective_dated": false
+    },
+    {
+      "key": "record.header_figures.partner",
+      "group": "settings.partners",
+      "label": "setting.record.header_figures.partner",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "maxItems": 5,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["last_activity", "next_step", "contracts", "contacts", "files", "notes", "client_since"]
+        }
+      },
+      "default": ["last_activity", "next_step", "contracts", "contacts", "files"],
       "effective_dated": false
     },
     {
