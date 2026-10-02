@@ -9,7 +9,7 @@ export default defineModule({
       route: '/kpis',
       label: 'nav.kpis',
       icon: 'target',
-      nav: { group: 'main', order: 80 },
+      nav: { group: 'main', order: 80, tier: 'manage', viewer: true },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
     {

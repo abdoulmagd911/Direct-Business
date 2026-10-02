@@ -14,7 +14,8 @@ export default defineModule({
       route: '/clients',
       label: 'nav.clients',
       icon: 'building-2',
-      nav: { group: 'main', order: 30 },
+      nav: { group: 'main', order: 30, tier: 'work' },
+      built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
     {
@@ -22,7 +23,8 @@ export default defineModule({
       route: '/suppliers',
       label: 'nav.suppliers_partners',
       icon: 'handshake',
-      nav: { group: 'main', order: 31 },
+      nav: { group: 'main', order: 31, tier: 'work', tabOf: 'clients' },
+      built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
     {

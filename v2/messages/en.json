@@ -97,20 +97,20 @@
     "activity": "Activity",
     "settings": {
       "profile": "My profile",
-      "org": "Organization & access",
-      "partners": "Clients & suppliers",
-      "performance": "Plan & performance",
+      "org": "People & access",
+      "partners": "Organisations",
+      "performance": "Targets",
       "finance": "Finance",
       "work": "Work",
       "app": "App"
     },
     "settings_home": "Settings",
     "clients": "Clients",
-    "suppliers_partners": "Suppliers & partners",
+    "suppliers_partners": "Suppliers",
     "profile": "My profile"
   },
   "top": {
-    "search": "Search partners, tasks, INV-, DRS-",
+    "search": "Search clients, tasks, invoices",
     "searchLabel": "Search",
     "create": "Create",
     "notifications": "Notifications",
@@ -125,7 +125,8 @@
     "empty": "Nothing matches",
     "openInSettings": "Open Settings",
     "people": "People",
-    "organisations": "Organisations"
+    "organisations": "Organisations",
+    "recentlyDeleted": "Recently deleted"
   },
   "profileMenu": {
     "theme": "Theme",
@@ -157,10 +158,10 @@
   },
   "create": {
     "task": "Task",
-    "partner": "Partner",
+    "client": "Client",
+    "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement",
-    "project": "Project"
+    "achievement": "Achievement"
   },
   "common": {
     "cancel": "Cancel",
@@ -210,10 +211,6 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "Good day, {name}",
-      "greetingMorning": "Good morning, {name}",
-      "greetingAfternoon": "Good afternoon, {name}",
-      "greetingEvening": "Good evening, {name}",
       "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
       "goSettings": "Go to Settings"
     },
@@ -221,17 +218,7 @@
       "myProfile": "My profile",
       "find": "Find a setting"
     },
-    "empty": {
-      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
-      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
-      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
-      "projects": "No projects yet. Projects and their milestones appear here.",
-      "tasks": "No tasks yet. Tasks you own or follow appear here.",
-      "finance": "No invoices yet. Invoices, cost and profit appear here.",
-      "kpis": "No KPIs yet. Targets and actuals appear here.",
-      "reports": "No reports yet. Issued reports appear here.",
-      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
-    }
+    "beingBuilt": "Being built."
   },
   "entity": {
     "partner": "Partner",
@@ -329,7 +316,7 @@
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Supplier & partner side's status, owner and priority"
+      "assign": "Set the Supplier side's status, owner and priority"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
@@ -560,7 +547,8 @@
       "appearance": "Appearance",
       "notifications": "Notifications",
       "devices": "Devices",
-      "password": "Password"
+      "password": "Password",
+      "preferences": "Preferences"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -636,7 +624,8 @@
       "roles": "Roles",
       "access": "Access",
       "settings": "Settings",
-      "lists": "Lists"
+      "lists": "Lists",
+      "signIn": "Sign-in"
     },
     "noAccess": "Settings is for admins",
     "setting": {
@@ -699,7 +688,7 @@
       "values": {
         "side": {
           "client": "Client",
-          "supplier_partner": "Supplier & partner"
+          "supplier_partner": "Supplier"
         },
         "status": {
           "at_risk": "At risk",
@@ -780,7 +769,11 @@
       "nicknameAr": "Nickname (Arabic)",
       "fullNameAr": "Full name (Arabic)",
       "switchedOn": "{name} switched on",
-      "switchedOff": "{name} switched off"
+      "switchedOff": "{name} switched off",
+      "accessStandard": "{role} (standard)",
+      "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
+      "accessShowAll": "Show all",
+      "accessHide": "Show less"
     },
     "teams": {
       "add": "Add team",
@@ -1138,6 +1131,7 @@
   },
   "partners": {
     "count": "{count} organisations",
+    "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
     "newClient": "New client",
@@ -1165,11 +1159,11 @@
     },
     "side": {
       "client": "Client",
-      "supplier_partner": "Supplier & partner"
+      "supplier_partner": "Supplier"
     },
     "sides": {
       "client": "Client side",
-      "supplier_partner": "Supplier & partner side"
+      "supplier_partner": "Supplier side"
     },
     "status": {
       "prospect": "Prospect",
@@ -1211,6 +1205,7 @@
       "notes": "Notes",
       "client_since": "Client since"
     },
+    "sideTabs": "Clients and suppliers",
     "tabs": {
       "overview": "Overview",
       "activity": "Activity",
@@ -1367,5 +1362,12 @@
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
+  },
+  "createNew": {
+    "task": "New task",
+    "client": "New client",
+    "supplier": "New supplier",
+    "invoice": "New invoice",
+    "achievement": "New achievement"
   }
 }

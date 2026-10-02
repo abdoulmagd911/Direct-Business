@@ -377,10 +377,31 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                     ) : null}
                   </span>
                   <span className="text-xs text-muted">
-                    {[listName(lists.roles, c.role_id, true), c.job_title, c.email, c.phone]
-                      .filter(Boolean)
-                      .join(' · ')}
+                    {[listName(lists.roles, c.role_id, true), c.job_title].filter(Boolean).join(' · ')}
                   </span>
+                  {/* one tap calls or writes (the 3-job phone test, V217): 44 px tall on a phone */}
+                  {c.phone || c.email ? (
+                    <span className="flex flex-wrap gap-x-3 text-sm">
+                      {c.phone ? (
+                        <a
+                          href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}
+                          className="inline-flex min-h-11 items-center font-data text-link sm:min-h-0"
+                          data-contact-phone
+                        >
+                          {c.phone}
+                        </a>
+                      ) : null}
+                      {c.email ? (
+                        <a
+                          href={`mailto:${c.email}`}
+                          className="inline-flex min-h-11 items-center truncate text-link sm:min-h-0"
+                          data-contact-email
+                        >
+                          {c.email}
+                        </a>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </span>
                 {mayWrite ? (
                   <Menu>
