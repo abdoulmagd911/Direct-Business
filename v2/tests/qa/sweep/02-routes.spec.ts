@@ -117,6 +117,8 @@ type Route = {
   /** Where the address should land (a redirect), when not on itself. */
   lands?: RegExp;
   note?: string;
+  /** A record: one the reader may not see may read as Not found instead of no access (it does not say it exists). */
+  hidden?: boolean;
 };
 
 const NAV: { path: string; page: string; label: string }[] = [
@@ -145,6 +147,7 @@ function routes(): Route[] {
       expect: (k) =>
         levelOf(k, 'clients') === 'none' && levelOf(k, 'suppliers_partners') === 'none' ? 'no-access' : 'renders',
       placeholderPage: 'clients',
+      note: 'QA-237: the old address lands on the list the person may see',
     },
     { path: '/activity', expect: lvl('activity') },
     { path: '/activity?tab=settings', expect: lvl('activity') },
@@ -182,9 +185,15 @@ function routes(): Route[] {
       path: `/partners/${f.orgs.alpha.id}`,
       expect: lvl('clients'),
       placeholderPage: 'clients',
+      hidden: true,
       note: 'the organisation page is P3-9',
     },
-    { path: `/partners/${f.orgs.beta.id}`, expect: lvl('suppliers_partners'), placeholderPage: 'suppliers_partners' },
+    {
+      path: `/partners/${f.orgs.beta.id}`,
+      expect: lvl('suppliers_partners'),
+      placeholderPage: 'suppliers_partners',
+      hidden: true,
+    },
     { path: '/no/such/address', expect: () => 'renders', note: 'the catch-all placeholder (P3-2) keeps a deep link' },
     { path: '/sign-in', expect: () => 'renders', lands: /\/my-day$/, note: 'a signed-in person is sent on' },
     { path: '/set-password', expect: () => 'renders', lands: /\/my-day$/, note: 'nothing to change: sent on' },
@@ -368,7 +377,8 @@ async function sweep(page: Page, key: string) {
     const want = r.expect(key);
     const landed = new URL(page.url());
     const landOk = !r.lands || r.lands.test(landed.pathname);
-    const expectedNotFound = want === 'not-found';
+    const hiddenOk = !!r.hidden && want === 'no-access' && got === 'not-found';
+    const expectedNotFound = want === 'not-found' || hiddenOk;
     const errs = errors.filter((e) => !(expectedNotFound && /status of 404|HTTP 404/.test(e)));
     const detail = `expected ${want}${r.lands ? ` at ${r.lands.source}` : ''}, got ${got} at ${landed.pathname}${landed.search}${errs.length ? ` · ${errs.slice(0, 3).join(' | ')}` : ''}${r.note ? ` · ${r.note}` : ''}`;
     const base = {
@@ -391,7 +401,9 @@ async function sweep(page: Page, key: string) {
       });
       continue;
     }
-    const ok = got === want && landOk && errs.length === 0;
+    if (hiddenOk)
+      info({ ...base, check: 'a record the reader may not see reads as Not found, not as no access', detail });
+    const ok = (got === want || hiddenOk) && landOk && errs.length === 0;
     verdict(
       {
         ...base,

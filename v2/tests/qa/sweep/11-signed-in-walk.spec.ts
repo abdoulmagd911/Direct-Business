@@ -28,13 +28,21 @@ const LATIN_OK = new Set(
     ' ',
   ),
 );
+/** "Save view" is not one: a viewer's own saved view is personal (V61); sharing it needs Full (core.view_save). */
 const WRITE_BUTTON =
-  /^(\+|Add(?! filter)|Create|New|Edit|Remove|Delete|Archive|Save|Switch|Import|Upload|Merge|Assign|Restore)\b/;
+  /^(\+|Add(?! filter)|Create|New|Edit|Remove|Delete|Archive|Save(?! view)|Switch|Import|Upload|Merge|Assign|Restore)\b/;
 
 /** The fixtures' names and the org names: data, not wording, on any page. */
 function dataWords(): Set<string> {
   const f = fx();
-  const names = [...Object.values(f.users).map((u) => u.name), f.orgs.alpha.name, f.orgs.beta.name, f.tag];
+  // the seed's saved views are named "Test saved view …"
+  const names = [
+    ...Object.values(f.users).map((u) => u.name),
+    f.orgs.alpha.name,
+    f.orgs.beta.name,
+    f.tag,
+    'Test saved view',
+  ];
   return new Set(
     names
       .join(' ')

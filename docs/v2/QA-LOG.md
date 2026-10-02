@@ -789,3 +789,19 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **`09-my-day-notes` read "built" on main once #139 merged**, then waited for screens that come with #138 and timed out. It now needs both halves: the data doors and My day's screens (`TurnDialogs.tsx`). On main it reads NOT BUILT, as it should. The pilot spec's notes part uses the same check.
   - **The pilot spec no longer runs in a full sweep.** It changes role levels, so it runs alone: `QA_PILOT=1 run.sh -- --grep "pilot path"`.
 - **The merge train after #139:** #138 (655b170) still carries #139's old head, and three branches still have registry syncs older than main's newest (`20261001211629`): #138 `20261001154833`, #123 `20261001155024`, #132 `20261001155145`. Each re-stamps after main as it merges (V600).
+
+
+## Round 38 — 2026-10-02 03:40 (v2/main a181f54: #123 merged)
+
+- **Main retake at a181f54** (#123, P3-9a: the Clients and Suppliers & partners lists, the organisation record, hover cards, Ctrl K organisations):
+  - **SQL suite from zero:** 150 of 156, the same fail-until-built reds (QA-02/03/04/121/208/214).
+  - **Full browser sweep:** 9 rows newly red against 7460739; once QA's checks were brought up to date, only one finding is new: QA-237.
+    - A viewer's "Save view" on the lists is a personal saved view (V61; sharing needs Full in `core.view_save`), not a write. QA's walk no longer counts it.
+    - "saved view" on the Arabic Clients page is the seed's own view name, not wording.
+    - An organisation the reader may not see now reads as Not found rather than no access, as a private note does. It does not say the record exists. QA's routes spec accepts it and logs it as INFO.
+  - **Gallery republished** as version 23 (261 pictures). The #123 and #132 previews are dropped now that #123 is on main.
+- **The stage-0 trial no longer builds:** #138 (655b170) conflicts with main in 27 files. #123 went in as one squashed commit while #138 still carries #123's older commits (to fbf2977). Builder B has been asked on #138 to merge main, taking main's side for #123's files. #132 merges with main cleanly.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-237 | 2026-10-02 03:40 | #123 (main a181f54); V98, V207, V214 | Low | Builder B | **The old `/partners` address always goes to Clients.** A person who may see Suppliers & partners but not Clients lands on "You do not have access to Clients". The record redirect (`/partners/[id]`) already picks the side the reader may see; the list redirect does not. **Fix:** in `(app)/partners/page.tsx`, go to `/suppliers` when the reader's Clients level is none and their Suppliers & partners level is not. **Test:** `02-routes.spec.ts`, `/partners` as `noclients`. | Open |
