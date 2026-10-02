@@ -54,4 +54,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-offers-no-categories',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'the seven starting categories',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: 'const live = categories.filter((c) => c.active);',
+        replace: 'const live = categories.filter(() => false);',
+      },
+    ],
+  },
+  {
+    name: 'no-plan-offers-no-way-on',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'an admin opens the plan here',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{!department.id ? null : false ? (',
+      },
+    ],
+  },
+  {
+    name: 'no-department-offers-a-dead-button',
+    breaks: ['unit:tests/unit/achievements/log-says-what-to-fix-when-there-is-no-plan.test.tsx'],
+    expect: 'no Open button without a department',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{canOpenPlan ? (',
+      },
+    ],
+  },
 ];

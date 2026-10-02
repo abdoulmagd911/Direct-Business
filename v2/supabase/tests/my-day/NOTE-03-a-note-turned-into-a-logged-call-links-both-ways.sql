@@ -2,8 +2,8 @@
 -- Log activity, carrying the note's words and its mentions, and the link — the note shows "turned into", the call
 -- "from note" — and one Undo reverts both. The call follows its own rule: a colleague who sees the organisation but not
 -- the note sees the call without the chip. Removing the call leaves the note and clears the chip; Undo of the removal
--- brings it back. A reminder is made the same way; a task, an action item and an achievement are not there yet. Every
--- value is made up.
+-- brings it back. A reminder is made the same way; a task and an action item are not there yet (an achievement:
+-- ACH-10). Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-removed-record-keeps-its-chip.sql, a-from-note-chip-shows-a-private-note.sql.
 select set_config('t.dep', test.department('commercial')::text, true);
 insert into core.team (department_id, code, name_en, name_ar)
@@ -100,7 +100,7 @@ select test.raises(format('select api.note_turn_into(%L, %L, %L::jsonb)', curren
 select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'task'), 'P0001',
   'a task arrives with tasks', 'note.turn_into_not_yet');
 select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'achievement'), 'P0001',
-  'an achievement with achievements', 'note.turn_into_not_yet');
+  'an achievement goes through its own door (ACH-10) — here, no plan yet', 'achievement.no_plan');
 select test.as_person(current_setting('t.am2')::uuid);
 select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'reminder'), '42501',
   'only its author converts a note', 'note.not_yours');
