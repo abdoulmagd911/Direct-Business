@@ -859,3 +859,8 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
 | QA-238 | 2026-10-02 06:30 | #138 (main 2cd9fad); V214, V433 | Medium | Builder B | **My day crashes for a person at none on My day.** `(app)/my-day/page.tsx` calls `myDay(…)` before any level check. The door refuses with `access.needs_level` (`my_day`, `view`), nothing catches it, and the page answers HTTP 500 (React #441) instead of "You do not have access to My day". Sign-in lands everyone on `/my-day`, so such a person meets the crash right after signing in. The pilot roles keep My day, so stage 0 is not affected. **Fix:** check `me.levels['my_day']` first and, at none, render the page's no-access state (`<Page page="my_day">`), or catch `PermissionDenied`. **Test:** `02-routes.spec.ts`, every screen as `nolevels` (`/`, `/my-day`, `/sign-in`, `/set-password`). | Open |
+
+
+## Round 42 — 2026-10-02 06:52 (v2/main 97b049a: #135 merged)
+
+- **Main moved to 97b049a** (#135, QA 2's: the production job runs in the GitHub environment "production", QA-186). It changes only CI checks, their tests and sabotages, and two documents. There are no app files, migrations or screens, so round 41's results on 2cd9fad stand for 97b049a: SQL suite, full sweep, pilot path (38 PASS, 2 FAIL = QA-236) and gallery v25.
