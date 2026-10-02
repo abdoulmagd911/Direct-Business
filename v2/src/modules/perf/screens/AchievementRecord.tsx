@@ -220,7 +220,15 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             {a.mou_side ? <RailField label={t('fields.side')}>{t(`sides.${a.mou_side}`)}</RailField> : null}
             <RailField label={t('fields.owner')}>{nameFor(a.owner_id)}</RailField>
             <RailField label={t('fields.organisation')} empty={!data.partnerName}>
-              {data.partnerName}
+              {a.partner_id && data.partnerName ? (
+                <Link
+                  href={`/partners/${a.partner_id}`}
+                  className="text-link hover:underline"
+                  data-achievement-organisation
+                >
+                  {data.partnerName}
+                </Link>
+              ) : null}
             </RailField>
             <RailField label={t('fields.date')}>
               {a.happened_on ? formatDate(a.happened_on, locale) : t('noDate')}
@@ -270,7 +278,15 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         {tab === 'related' ? (
           <section className="flex flex-col gap-2" data-tab="related">
             <RailField label={t('fields.organisation')} empty={!data.partnerName}>
-              {data.partnerName}
+              {a.partner_id && data.partnerName ? (
+                <Link
+                  href={`/partners/${a.partner_id}`}
+                  className="text-link hover:underline"
+                  data-achievement-organisation
+                >
+                  {data.partnerName}
+                </Link>
+              ) : null}
             </RailField>
             <RailField label={t('fields.participants')} empty={!a.participants.length}>
               {a.participants.map((id) => nameFor(id)).join(' · ')}
