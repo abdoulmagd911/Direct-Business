@@ -241,6 +241,7 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
@@ -306,6 +307,20 @@ export type Database = {
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      pipeline_board: { Args: { p_entity: string; p_filter?: Json }; Returns: Json };
+      pipeline_card: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      pipeline_move: {
+        Args: {
+          p_entity: string;
+          p_happened_on?: string;
+          p_id: string;
+          p_stage: string;
+          p_values?: Json;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      pipeline_remove: { Args: { p_entity: string; p_ids: string[]; p_reason?: string }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
@@ -401,6 +416,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };
