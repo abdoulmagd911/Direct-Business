@@ -2,17 +2,22 @@
  * The Tasks screens (#147, P5-2's first PR on #140's tables; V270–V275, V189–V196), tried the way people get them wrong:
  * a member with no team yet adds a task, a double click on quick add's save, a colleague opening someone else's task,
  * a viewer looking for Add task, a status moved to a day still to come, and a task number that does not exist.
- * NOT BUILT where api.task_create is missing (v2/main before #140). Made-up people only (seed.mjs).
+ * NOT BUILT until both the data (api.task_create, #140) and the screens (QuickAdd, #147) are on the build. Made-up people only (seed.mjs).
  */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { apiAs, fx, hydrated, notBuilt, said, signIn, sql, user, verdict } from './lib';
+import { V2_DIR } from './paths.mjs';
 
 const AREA = 'tasks';
 type Where = { screen?: string; user?: string; detail?: string };
 const check = (expected: string, w: Where, ok: boolean) => verdict({ area: AREA, ...w, check: expected }, ok);
 const RAW_KEY = /\b(task|common|person|access)\.[a-z_]+\b/;
 
+/** Built when both halves are in: the data (P5-1, #140) and the Tasks screens with quick add (P5-2, #147). */
 async function built(): Promise<boolean> {
+  if (!existsSync(join(V2_DIR, 'src', 'modules', 'tasks', 'screens', 'QuickAdd.tsx'))) return false;
   const [r] = await sql<{ ok: boolean }>(`select to_regprocedure('api.task_create(jsonb,uuid[])') is not null as ok`);
   return !!r?.ok;
 }
@@ -23,7 +28,8 @@ test('Tasks: a teamless member, a double click, a colleague, a viewer, a future 
   page,
 }) => {
   test.setTimeout(300_000);
-  if (!(await built())) return notBuilt({ area: AREA, check: 'Tasks (P5-1/P5-2 not on this build)' });
+  if (!(await built()))
+    return notBuilt({ area: AREA, check: "Tasks (P5-1's data or P5-2's screens not on this build)" });
   const tag = `${fx().tag}${Math.random().toString(36).slice(2, 5)}`;
   const member = user('member');
   const colleague = user('member2');

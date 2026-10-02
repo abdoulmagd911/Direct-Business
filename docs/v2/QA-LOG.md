@@ -613,7 +613,7 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-214 | 2026-10-01 16:40 | #140; V444, V465, V196 | Medium | Builder A | **#140 lets the owner's admin account own and help on work, and counts it when matching pasted names.** V444: the admin account is "never counted as a team member"; his own work is on his employee account. `work.person_ok` refuses only the test account. So another admin can name the admin account a task's owner (saved) or helper (saved), and a task the admin account makes falls back to it as owner (the creator, last in V464's chain). `api.people_match` counts both accounts, so the owner's name, which both his accounts carry, answers `many` in the Past work grid instead of his employee account. The test account also still matches (`one`), then fails on save. **Fix:** `work.person_ok` takes team members only (`account = 'team_member'`), which also refuses the creator fallback through `task_create`'s check. `core.people_match` matches team members only. A scratch sketch of exactly that makes the test pass, and TSK-01/02/03, BACK-01 and NAMEMATCH-01 stay green. **Test:** `v2/supabase/tests/qa/QA-214-the-admin-account-is-never-named-on-work.sql`, which fails until built. | Open |
+| QA-214 | 2026-10-01 16:40 | #140; V444, V465, V196 | Medium | Builder A | **#140 lets the owner's admin account own and help on work, and counts it when matching pasted names.** V444: the admin account is "never counted as a team member"; his own work is on his employee account. `work.person_ok` refuses only the test account. So another admin can name the admin account a task's owner (saved) or helper (saved), and a task the admin account makes falls back to it as owner (the creator, last in V464's chain). `api.people_match` counts both accounts, so the owner's name, which both his accounts carry, answers `many` in the Past work grid instead of his employee account. The test account also still matches (`one`), then fails on save. **Fix:** `work.person_ok` takes team members only (`account = 'team_member'`), which also refuses the creator fallback through `task_create`'s check. `core.people_match` matches team members only. A scratch sketch of exactly that makes the test pass, and TSK-01/02/03, BACK-01 and NAMEMATCH-01 stay green. **Test:** `v2/supabase/tests/qa/QA-214-the-admin-account-is-never-named-on-work.sql`, which fails until built. | Fixed on #140 90b7de8: work.person_ok and people_match take team members only; QA-214 passes there (round 44). |
 
 
 ## Round 27 — 2026-10-01 17:56 (v2/main af7972e: #142 merged; retaken)
@@ -874,3 +874,12 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - `docs/v2/` adds V520–V531 and V600, refines V98, V404, V433, V454, V461 and V506, and carries main's V183–V188, V215, V217 and V218 (324 decisions, no number twice).
   - CI is green except end-to-end, which was still running on a docs-only change.
 - **Next:** #145 (a18183c, QA 2's lane) and #140 (90b7de8) need a re-clear once their CI finishes (oversight, 07:10).
+
+
+## Round 44 — 2026-10-02 07:55 (v2/main 97b049a; #140 at 90b7de8 cleared)
+
+- **#140 (Builder A, P5-1: projects and tasks, the Past work grid's door) at 90b7de8: clear from QA** (the oversight's request, 07:10). It merges once CI's end-to-end and Postgres 17 jobs are green.
+  - **Merge train (V600):** it contains main 97b049a and merges with no conflicts; its migrations and fresh registry sync are newer than main's newest.
+  - **SQL suite from zero:** 161 of 166. QA-214 is fixed; the reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** no new failure against main 2cd9fad.
+  - **QA's own fix:** `13-tasks` read "built" once the data was in and then waited for #147's screens; it now needs both halves (`QuickAdd.tsx`) and reads NOT BUILT here.
