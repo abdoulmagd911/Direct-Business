@@ -430,7 +430,8 @@
         "owned": "لا تملك أي مهمة بعد",
         "helping": "لا تساعد في أي مهمة",
         "team": "لا مهام لفريقك بعد",
-        "my_work": "لا مهام بعد. تظهر هنا المهام التي تملكها أو تتابعها."
+        "my_work": "لا مهام بعد. تظهر هنا المهام التي تملكها أو تتابعها.",
+        "past": "لا عمل سابق بعد. الصقه من تقرير في الأعلى."
       },
       "noNotes": "لا ملاحظات",
       "statusHistory": "تغييرات الحالة",
@@ -440,7 +441,8 @@
         "my_work": "عملي",
         "owned": "ما أملكه",
         "helping": "ما أساعد فيه",
-        "team": "الفريق"
+        "team": "الفريق",
+        "past": "العمل السابق"
       },
       "chips": {
         "status": {
@@ -554,6 +556,67 @@
         "common": {
           "date_in_future": "هذا اليوم بعد تاريخ اليوم"
         }
+      },
+      "past": {
+        "title": "لصق العمل السابق",
+        "source": "التقرير المصدر",
+        "sourceKinds": {
+          "bd_monthly": "تطوير الأعمال (شهري)",
+          "partnerships": "الشراكات",
+          "commercial_quarterly": "التجاري (ربع سنوي)",
+          "improvements": "التحسينات"
+        },
+        "period": "أي تقرير",
+        "quarter": "الربع {n} {year}",
+        "pickSource": "اختر التقرير الذي جاءت منه هذه الصفوف",
+        "fromReport": "آخر يوم في التقرير",
+        "pasteHere": "الصق صفوفًا من جدول بيانات",
+        "hasHeader": "الصف الأول يحمل العناوين",
+        "fields": {
+          "title": "العنوان",
+          "happened_on": "التاريخ",
+          "kind": "الحالة",
+          "organisation": "العميل",
+          "notes": "الملاحظات",
+          "person": "المالك"
+        },
+        "noColumn": "ليس ضمن ما لصقته",
+        "column": "العمود {letter}",
+        "columnNamed": "العمود {letter} · {header}",
+        "dateOrder": "قراءة التواريخ",
+        "dayFirst": "اليوم أولًا (29/09/2026)",
+        "monthFirst": "الشهر أولًا (09/29/2026)",
+        "line": "السطر",
+        "ready": "بأثر رجعي",
+        "updatesSaved": "يحدّث صفًا محفوظًا",
+        "problems": {
+          "title_missing": "لا عنوان",
+          "date_missing": "لا تاريخ",
+          "date_unreadable": "تعذّرت قراءة التاريخ",
+          "date_ambiguous": "قد يُقرأ التاريخ على يومين",
+          "date_in_future": "التاريخ بعد اليوم",
+          "date_before_start": "قبل 1 يناير 2025، وهو بداية العمل السابق",
+          "kind_missing": "لا حالة",
+          "kind_unknown": "حالة غير معروفة",
+          "value_unreadable": "القيمة ليست مبلغًا",
+          "value_not_allowed": "هذه الفئة بلا قيمة صفقة",
+          "organisation_unknown": "عميل غير معروف",
+          "organisation_ambiguous": "أكثر من عميل بهذا الاسم",
+          "organisation_checking": "جارٍ التحقق من العميل",
+          "person_checking": "جارٍ التحقق من الاسم",
+          "repeated": "الصف نفسه مرتين",
+          "already_saved": "محفوظ من قبل",
+          "saved_checking": "جارٍ التحقق مما إذا كان محفوظًا من قبل"
+        },
+        "ownerUnknown": {
+          "missing": "المالك غير معروف: لا اسم",
+          "none": "المالك غير معروف: لا أحد بهذا الاسم",
+          "many": "المالك غير معروف: أكثر من شخص بهذا الاسم"
+        },
+        "summary": "{ready, plural, one {صف واحد جاهز} two {صفان جاهزان} few {# صفوف جاهزة} many {# صفًا جاهزًا} other {# صف جاهز}} · {refused, plural, one {مرفوض واحد} two {مرفوضان} few {# مرفوضة} many {# مرفوضًا} other {# مرفوض}}",
+        "save": "حفظ {rows, plural, one {صف واحد} two {صفين} few {# صفوف} many {# صفًا} other {# صف}}",
+        "saved": "{rows, plural, one {حُفظ صف واحد} two {حُفظ صفان} few {حُفظت # صفوف} many {حُفظ # صفًا} other {حُفظ # صف}} كعمل سابق",
+        "failed": "تعذّر فحص الصفوف أو حفظها. حاول مرة أخرى."
       }
     }
   },
@@ -732,6 +795,134 @@
       }
     }
   },
+  "activity": {
+    "signIn": {
+      "results": {
+        "code_sent": "تم التحقق من البريد"
+      }
+    },
+    "fields": {
+      "full_name_en": "الاسم الكامل",
+      "full_name_ar": "الاسم الكامل (بالعربية)",
+      "nickname_en": "اسم الشهرة",
+      "nickname_ar": "اسم الشهرة (بالعربية)",
+      "job_title_en": "المسمى الوظيفي",
+      "job_title_ar": "المسمى الوظيفي (بالعربية)",
+      "department_id": "الإدارة",
+      "team_id": "الفريق",
+      "manager_id": "يتبع",
+      "role_id": "الدور",
+      "can_sign_in": "يمكنه تسجيل الدخول",
+      "joined_on": "تاريخ الالتحاق",
+      "left_on": "تاريخ المغادرة",
+      "active": "نشط",
+      "email": "البريد الإلكتروني",
+      "is_primary": "أساسي",
+      "display_name_en": "اسم العرض",
+      "display_name_ar": "اسم العرض (بالعربية)",
+      "theme": "المظهر",
+      "density": "الكثافة",
+      "locale": "اللغة",
+      "start_page": "صفحة البداية",
+      "drawer_pinned": "القائمة",
+      "notify": "الإشعارات",
+      "avatar_color": "اللون",
+      "badge_kind": "الشارة",
+      "badge_value": "قيمة الشارة",
+      "name_en": "الاسم",
+      "name_ar": "الاسم (بالعربية)",
+      "key": "المفتاح",
+      "sort": "الترتيب",
+      "value": "القيمة",
+      "valid_from": "يسري من",
+      "reason": "السبب",
+      "level": "المستوى",
+      "page_key": "الصفحة",
+      "capability_key": "الإذن",
+      "granted": "ممنوح",
+      "trade_name_en": "الاسم التجاري",
+      "trade_name_ar": "الاسم التجاري (بالعربية)",
+      "status": "الحالة",
+      "owner_id": "المالك",
+      "priority_id": "الأولوية",
+      "key_partner": "شريك رئيسي",
+      "type_id": "النوع",
+      "tier_id": "المستوى",
+      "side": "الجانب",
+      "on": "مفعّل",
+      "since": "منذ",
+      "until": "حتى"
+    },
+    "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
+    "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
+    "reportsTo": "يتبع {name}"
+  },
+  "profile": {
+    "sections": {
+      "preferences": "التفضيلات"
+    },
+    "notify": {
+      "reminder": "تذكيراتي",
+      "note_mention": "الإشارة إليّ في ملاحظة"
+    }
+  },
+  "settings": {
+    "tabs": {
+      "signIn": "تسجيل الدخول"
+    },
+    "list": {
+      "side": "الجانب",
+      "status": "الحالة",
+      "values": {
+        "side": {
+          "client": "عميل",
+          "supplier_partner": "مورد"
+        },
+        "status": {
+          "at_risk": "مهددة",
+          "lost": "مفقودة"
+        }
+      }
+    },
+    "people": {
+      "noRole": "بلا دور",
+      "adminAccount": "حساب مسؤول النظام",
+      "testAccount": "حساب الاختبار",
+      "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني",
+      "addEmailFor": "إضافة بريد إلكتروني لـ {name}",
+      "removeEmailTitle": "إزالة {email}؟",
+      "removeEmailBody": "لن يتمكن {email} من تسجيل الدخول بعد الآن. يُسجَّل كل تغيير مع سببه.",
+      "pagesGroup": "الصفحات",
+      "settingsGroup": "أقسام الإعدادات",
+      "nicknameEn": "اسم الشهرة",
+      "nicknameAr": "اسم الشهرة (بالعربية)",
+      "fullNameAr": "الاسم الكامل (بالعربية)",
+      "switchedOn": "تم تفعيل {name}",
+      "switchedOff": "تم إيقاف {name}",
+      "accessStandard": "{role} (دون تغيير)",
+      "accessChanged": "{role} + {count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
+      "accessShowAll": "عرض الكل",
+      "accessHide": "عرض أقل"
+    },
+    "values": {
+      "partner": {
+        "logo_fallback": {
+          "monogram": "الأحرف الأولى",
+          "blank": "فارغ"
+        }
+      }
+    },
+    "emptyGroup": "لا إعدادات هنا بعد. تصل مع الخطوة التي تبني هذا القسم.",
+    "fields": {
+      "width": "عدد الخانات",
+      "prefix": "البادئة",
+      "followers": "المتابعون",
+      "account_manager": "مدير الحساب",
+      "commercial_manager": "المدير التجاري",
+      "in_app": "داخل التطبيق",
+      "email": "البريد الإلكتروني"
+    }
+  },
   "errors": {
     "common": {
       "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
@@ -810,6 +1001,13 @@
       "time_required": "اختر موعد التذكير",
       "time_passed": "اختر وقتًا في المستقبل"
     }
+  },
+  "notifications": {
+    "kinds": {
+      "reminder": "تذكير: {what}",
+      "note_mention": "أشار {actor} إليك في ملاحظة"
+    },
+    "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   },
   "partners": {
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
@@ -1040,141 +1238,6 @@
     "stale": "راكدة منذ {date}",
     "nextStepDue": "الخطوة التالية {date}",
     "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة"
-  },
-  "activity": {
-    "signIn": {
-      "results": {
-        "code_sent": "تم التحقق من البريد"
-      }
-    },
-    "fields": {
-      "full_name_en": "الاسم الكامل",
-      "full_name_ar": "الاسم الكامل (بالعربية)",
-      "nickname_en": "اسم الشهرة",
-      "nickname_ar": "اسم الشهرة (بالعربية)",
-      "job_title_en": "المسمى الوظيفي",
-      "job_title_ar": "المسمى الوظيفي (بالعربية)",
-      "department_id": "الإدارة",
-      "team_id": "الفريق",
-      "manager_id": "يتبع",
-      "role_id": "الدور",
-      "can_sign_in": "يمكنه تسجيل الدخول",
-      "joined_on": "تاريخ الالتحاق",
-      "left_on": "تاريخ المغادرة",
-      "active": "نشط",
-      "email": "البريد الإلكتروني",
-      "is_primary": "أساسي",
-      "display_name_en": "اسم العرض",
-      "display_name_ar": "اسم العرض (بالعربية)",
-      "theme": "المظهر",
-      "density": "الكثافة",
-      "locale": "اللغة",
-      "start_page": "صفحة البداية",
-      "drawer_pinned": "القائمة",
-      "notify": "الإشعارات",
-      "avatar_color": "اللون",
-      "badge_kind": "الشارة",
-      "badge_value": "قيمة الشارة",
-      "name_en": "الاسم",
-      "name_ar": "الاسم (بالعربية)",
-      "key": "المفتاح",
-      "sort": "الترتيب",
-      "value": "القيمة",
-      "valid_from": "يسري من",
-      "reason": "السبب",
-      "level": "المستوى",
-      "page_key": "الصفحة",
-      "capability_key": "الإذن",
-      "granted": "ممنوح",
-      "trade_name_en": "الاسم التجاري",
-      "trade_name_ar": "الاسم التجاري (بالعربية)",
-      "status": "الحالة",
-      "owner_id": "المالك",
-      "priority_id": "الأولوية",
-      "key_partner": "شريك رئيسي",
-      "type_id": "النوع",
-      "tier_id": "المستوى",
-      "side": "الجانب",
-      "on": "مفعّل",
-      "since": "منذ",
-      "until": "حتى"
-    },
-    "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
-    "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
-    "reportsTo": "يتبع {name}"
-  },
-  "profile": {
-    "sections": {
-      "preferences": "التفضيلات"
-    },
-    "notify": {
-      "reminder": "تذكيراتي",
-      "note_mention": "الإشارة إليّ في ملاحظة"
-    }
-  },
-  "settings": {
-    "tabs": {
-      "signIn": "تسجيل الدخول"
-    },
-    "list": {
-      "side": "الجانب",
-      "status": "الحالة",
-      "values": {
-        "side": {
-          "client": "عميل",
-          "supplier_partner": "مورد"
-        },
-        "status": {
-          "at_risk": "مهددة",
-          "lost": "مفقودة"
-        }
-      }
-    },
-    "people": {
-      "noRole": "بلا دور",
-      "adminAccount": "حساب مسؤول النظام",
-      "testAccount": "حساب الاختبار",
-      "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني",
-      "addEmailFor": "إضافة بريد إلكتروني لـ {name}",
-      "removeEmailTitle": "إزالة {email}؟",
-      "removeEmailBody": "لن يتمكن {email} من تسجيل الدخول بعد الآن. يُسجَّل كل تغيير مع سببه.",
-      "pagesGroup": "الصفحات",
-      "settingsGroup": "أقسام الإعدادات",
-      "nicknameEn": "اسم الشهرة",
-      "nicknameAr": "اسم الشهرة (بالعربية)",
-      "fullNameAr": "الاسم الكامل (بالعربية)",
-      "switchedOn": "تم تفعيل {name}",
-      "switchedOff": "تم إيقاف {name}",
-      "accessStandard": "{role} (دون تغيير)",
-      "accessChanged": "{role} + {count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
-      "accessShowAll": "عرض الكل",
-      "accessHide": "عرض أقل"
-    },
-    "values": {
-      "partner": {
-        "logo_fallback": {
-          "monogram": "الأحرف الأولى",
-          "blank": "فارغ"
-        }
-      }
-    },
-    "emptyGroup": "لا إعدادات هنا بعد. تصل مع الخطوة التي تبني هذا القسم.",
-    "fields": {
-      "width": "عدد الخانات",
-      "prefix": "البادئة",
-      "followers": "المتابعون",
-      "account_manager": "مدير الحساب",
-      "commercial_manager": "المدير التجاري",
-      "in_app": "داخل التطبيق",
-      "email": "البريد الإلكتروني"
-    }
-  },
-  "notifications": {
-    "kinds": {
-      "reminder": "تذكير: {what}",
-      "note_mention": "أشار {actor} إليك في ملاحظة"
-    },
-    "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   },
   "createNew": {
     "task": "مهمة جديدة",
