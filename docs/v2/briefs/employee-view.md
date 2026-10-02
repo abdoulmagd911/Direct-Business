@@ -46,7 +46,7 @@ appraisal cycle step.
 1. **Menu** — A and B above.
 2. **Suppliers tab** — C above.
 3. **Create menu** — an item shows only if its page is built and the person may create there: Task at Own or Full;
-   Client, Supplier, Invoice, Achievement at Full. `built` is a registry field (`define-module.ts`, read by
+   Client, Supplier, Invoice~~, Achievement~~ at Full **[SUPERSEDED — V605: Log achievement at Own or Full, like a task]**. `built` is a registry field (`define-module.ts`, read by
    `CreateMenu.tsx`), set by whoever lands a page; Clients and Suppliers are built, so Create › Client
    (`/clients?new=1`) and Create › Supplier (`/suppliers?new=1`) are on, and both addresses open their page with the
    New dialog open (#132). "Partner" becomes **Client** (and **Supplier** when the person has Full on suppliers). With
