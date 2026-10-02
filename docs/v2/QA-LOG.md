@@ -821,3 +821,18 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **Fail:** My day reads "Being built." until #138 brings its screens, and Tasks reads "Being built." (QA-236).
   - **Not built:** the note turned into a call, until #138.
 - **#138 is the last stage-0 PR.** It is still at 655b170 and conflicts with main; Builder B was asked at 00:20 UTC to merge main.
+
+
+## Round 40 — 2026-10-02 05:25 (v2/main e334f04; #138 at dc4a75f cleared — the last stage-0 PR)
+
+- **#138 (Builder B, P3-14 My day: Capture, then Convert) at dc4a75f: clear from QA.** It merges once CI's end-to-end job is green; the other jobs are green already.
+  - It contains main e334f04 and merges with no conflicts. It adds no migrations and no registry change, so no sync is needed (V600).
+  - **QA's My day notes spec:** 14 PASS and 2 INFO, the same as on the earlier trial.
+- **The Friday pilot path, stage 0 complete** (main + #138, `QA_PILOT=1`): 38 PASS and 2 FAIL.
+  - **Pass:**
+    - with the deferred modules at none, a pilot member and manager see none of them in the menu (1440 and 390) or in Ctrl K;
+    - every deferred address says "You do not have access to …";
+    - Clients lists and opens a client;
+    - a capture is filed, and Turn into offers a call or a reminder only; the note becomes a call on the client;
+    - the admin keeps every module.
+  - **Fail:** the 2 fails are QA-236, Tasks "Being built." in stage 0, which is the runbook's to settle.
