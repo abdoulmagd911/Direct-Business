@@ -147,3 +147,12 @@ The visual review, round 1 (V216): words never keys (`settings.values.*`, `setti
 Not found page (`ui/NotFoundBody.tsx`) and the crash page (`app/(app)/error.tsx`), every area page's own empty line.
 Proof: `tests/e2e/review-1.spec.ts`, `tests/unit/shell/the-crash-page-*.test.tsx`; sabotages `no-role-reads-as-allowed`,
 `not-found-shows-the-raw-path`, `activity-shows-column-names`, `setting-value-shows-the-key`.
+
+The employee view (V217): the menu rule lives in `navFor(me)` (`ui/shell/nav.ts`) — each main page's `nav.tier` is
+`work` (in the menu at any level above none) or `manage` (Manager, Head, Admin; `nav.viewer` for a Viewer's two,
+`nav.from: 'head'` for Overview and Activity); `barFor(me)` is the phone bar and More; `reachableFor(me)` is Ctrl K's
+pages, so out of the menu is never locked. Suppliers is Clients' second tab (`nav.tabOf`); Create reads the registry's
+`built` flag and the person's level (`createActionsFor`). The specs start from the oversight's access steps
+(`tests/e2e/support/employee-view-access.ts`). Proof: `tests/e2e/employee-view.spec.ts`,
+`tests/unit/shell/the-menu-shows-work-pages-to-all-and-manage-pages-by-role.test.ts`; sabotages
+`menu-shows-own-manage-page`, `create-offers-an-unbuilt-screen`, `access-list-closed-for-admins`.
