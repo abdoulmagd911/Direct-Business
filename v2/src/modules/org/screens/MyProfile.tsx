@@ -1,15 +1,15 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { run } from '@/core/commands/run';
 import type { Me } from '@/core/auth/me';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { DENSITIES, PREF_DEFS, THEMES, readPrefs, setPref } from '@/core/prefs';
-import { NOTIFICATION_KINDS } from '@/modules/settings/module';
+import { DENSITIES, DIRS, PREF_DEFS, readPrefs, setPref } from '@/core/prefs';
+import { usePrefs } from '@/core/prefs/usePrefs';
+import { NOTIFICATION_KINDS, WORK_NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar, type AvatarColor } from '@/ui/Avatar';
-import { BADGE_ICONS } from '@/ui/badges';
 import { Button } from '@/ui/Button';
 import { changePassword, type PasswordError } from '@/core/auth/password-actions';
 import { MIN_PASSWORD } from '@/core/auth/password-rules';
@@ -23,7 +23,7 @@ import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { toast } from '@/ui/Toast';
 import { PageFrame } from '@/ui/shell/AppShell';
-import { navFor } from '@/ui/shell/nav';
+import { isManageTier } from '@/ui/shell/nav';
 
 export type Device = {
   id: string;
@@ -102,6 +102,8 @@ export function MyProfile({
     if (readPrefs().locale !== before.locale) router.refresh();
   }, [me, router]);
   const [deviceRows, setDeviceRows] = useState(devices);
+  const { prefs, set: setPrefs } = usePrefs();
+  const dev = process.env.NODE_ENV !== 'production';
   const person = personOf({ ...me, person: state.person, profile: state.profile });
   const words = {
     done: t('profile.saved'),
@@ -188,16 +190,15 @@ export function MyProfile({
   };
 
   const notify = (state.profile?.notify as Record<string, { in_app?: boolean }> | null) ?? {};
-  const startPages = navFor(me).map((e) => ({ value: e.page, label: t(e.label) }));
-  const theme = state.profile?.theme ?? 'direct';
   const density = state.profile?.density ?? 'comfortable';
-  const badgeKind = state.profile?.badge_kind ?? 'none';
+  // a work-tier person sees the five that are about their own work; Manager, Head and Admin see every kind (V217)
+  const notifyKinds = isManageTier(me) ? NOTIFICATION_KINDS : WORK_NOTIFICATION_KINDS;
 
   return (
     <PageFrame className="[&>*]:!max-w-[720px]">
       <PageHeader title={t('profile.title')} />
 
-      <Section title={t('profile.sections.profile')}>
+      <Section title={t('profile.sections.profile')} data-profile-card="profile">
         <div className="flex items-center gap-5">
           <Avatar person={person} size="2xl" />
           <div className="flex flex-col gap-2">
@@ -223,35 +224,13 @@ export function MyProfile({
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            label={t('profile.fullNameEn')}
-            value={state.person.full_name_en}
-            onSave={(v) => save({ full_name_en: v })}
-            required
-          />
-          <TextField
-            label={t('profile.nicknameEn')}
-            value={state.person.nickname_en ?? ''}
-            onSave={(v) => save({ nickname_en: v || null })}
-          />
+          {/* the full name and the nickname are edited by admins on the person's record (V217, cut 6) */}
           <TextField
             label={t('profile.displayNameEn')}
             value={state.profile?.display_name_en ?? ''}
             onSave={(v) => save({ display_name_en: v || null })}
           />
-          {/* the Arabic names are data, editable whatever app.arabic_enabled says (W22, QA-179) */}
-          <TextField
-            label={t('profile.fullNameAr')}
-            value={state.person.full_name_ar ?? ''}
-            onSave={(v) => save({ full_name_ar: v || null })}
-            dir="rtl"
-          />
-          <TextField
-            label={t('profile.nicknameAr')}
-            value={state.person.nickname_ar ?? ''}
-            onSave={(v) => save({ nickname_ar: v || null })}
-            dir="rtl"
-          />
+          {/* the Arabic display name is data, editable whatever app.arabic_enabled says (QA-179) */}
           <TextField
             label={t('profile.displayNameAr')}
             value={state.profile?.display_name_ar ?? ''}
@@ -259,53 +238,10 @@ export function MyProfile({
             dir="rtl"
           />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('profile.badge')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={badgeKind}
-                onValueChange={(v) =>
-                  void save({
-                    badge_kind: v as Profile['badge_kind'],
-                    badge_value: v === 'none' ? null : Object.keys(BADGE_ICONS)[0]!,
-                  })
-                }
-                // the zodiac sign is no longer offered (owner, 30 Sep 00:07); a stored one stays until changed
-                options={(['none', 'icon'] as const).map((k) => ({
-                  value: k,
-                  label: t(`profile.badgeKind.${k}`),
-                }))}
-              />
-            )}
-          </Field>
-          {badgeKind === 'icon' ? (
-            <Field label={t('profile.badgeValue')}>
-              {(p) => (
-                <Select
-                  {...p}
-                  value={state.profile?.badge_value ?? ''}
-                  onValueChange={(v) => void save({ badge_value: v })}
-                  options={Object.keys(BADGE_ICONS).map((k) => ({ value: k, label: k }))}
-                />
-              )}
-            </Field>
-          ) : null}
-        </div>
       </Section>
 
-      <Section title={t('profile.sections.appearance')}>
+      <Section title={t('profile.sections.preferences')} data-profile-card="preferences">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('profile.theme')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={theme}
-                onValueChange={(v) => void save({ theme: v as Profile['theme'] })}
-                options={THEMES.map((th) => ({ value: th, label: t(`theme.${th}`) }))}
-              />
-            )}
-          </Field>
           <Field label={t('profile.density')}>
             {(p) => (
               <Select
@@ -331,35 +267,24 @@ export function MyProfile({
               )}
             </Field>
           ) : null}
-          <Field label={t('profile.startPage')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={state.profile?.start_page ?? 'my_day'}
-                onValueChange={(v) => void save({ start_page: v })}
-                options={startPages}
-              />
-            )}
-          </Field>
-          <Field label={t('profile.drawer')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={state.profile?.drawer_pinned === false ? 'collapsed' : 'pinned'}
-                onValueChange={(v) => void save({ drawer_pinned: v === 'pinned' })}
-                options={[
-                  { value: 'pinned', label: t('profile.drawerPinned') },
-                  { value: 'collapsed', label: t('profile.drawerCollapsed') },
-                ]}
-              />
-            )}
-          </Field>
+          {dev ? (
+            <Field label={t('profileMenu.direction')}>
+              {(p) => (
+                <Select
+                  {...p}
+                  value={prefs.dir}
+                  onValueChange={(v) => setPrefs('dir', v as typeof prefs.dir)}
+                  options={DIRS.map((d) => ({ value: d, label: t(`dir.${d}`) }))}
+                />
+              )}
+            </Field>
+          ) : null}
         </div>
       </Section>
 
-      <Section title={t('profile.sections.notifications')}>
+      <Section title={t('profile.sections.notifications')} data-profile-card="notifications">
         <ul className="divide-y divide-border">
-          {NOTIFICATION_KINDS.map((kind) => (
+          {notifyKinds.map((kind) => (
             <li key={kind} className="flex items-center justify-between gap-4 py-2.5">
               <span className="text-base">{t(`profile.notify.${kind}`)}</span>
               <Switch
@@ -376,6 +301,7 @@ export function MyProfile({
 
       <Section
         title={t('profile.sections.devices')}
+        data-profile-card="devices"
         actions={
           deviceRows.some((d) => !d.this_device) ? (
             <Button size="sm" onClick={() => void signOutOthers()} data-sign-out-others>
@@ -444,7 +370,7 @@ function PasswordSection() {
   };
   const onCurrent = error === 'wrong_current' || error === 'not_signed_in';
   return (
-    <Section title={t('profile.sections.password')}>
+    <Section title={t('profile.sections.password')} data-profile-card="password">
       <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
@@ -506,9 +432,18 @@ function PasswordSection() {
   );
 }
 
-function Section({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+function Section({
+  title,
+  actions,
+  children,
+  ...rest
+}: { title: string; actions?: ReactNode; children: ReactNode } & HTMLAttributes<HTMLElement>) {
   return (
-    <section className="flex flex-col gap-5 rounded-lg border border-border bg-raised p-5 sm:p-6" data-profile-section>
+    <section
+      className="flex flex-col gap-5 rounded-lg border border-border bg-raised p-5 sm:p-6"
+      data-profile-section
+      {...rest}
+    >
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-display text-lg font-semibold">{title}</h2>
         {actions}
