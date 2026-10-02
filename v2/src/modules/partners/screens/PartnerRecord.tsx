@@ -8,6 +8,7 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
+import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
@@ -591,6 +592,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             {who ? (
               <span className="text-xs text-muted">{t('partners.activity.by', { name: personName(who, locale) })}</span>
             ) : null}
+            {n.from_note ? <FromNoteChip note={n.from_note} /> : null}
           </span>
           {n.body ? <span className="whitespace-pre-wrap text-sm">{n.body}</span> : null}
           {n.next_step ? (

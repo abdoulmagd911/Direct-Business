@@ -679,6 +679,102 @@ export const sabotages = [
     ],
   },
   {
+    name: 'turn-into-offers-a-task-too-soon',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a task waits for Tasks',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  task: 'tasks',\n  action_item: 'tasks',\n",
+        replace: "  action_item: 'tasks',\n",
+      },
+    ],
+  },
+  {
+    name: 'block-draws-every-row',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'seven rows',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  return { rows: rows.slice(0, BLOCK_ROWS),',
+        replace: '  return { rows,',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-carries-to-a-friday',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Sunday after a Thursday',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: '  while (d.getUTCDay() === 5 || d.getUTCDay() === 6);',
+        replace: '  while (false);',
+      },
+    ],
+  },
+  {
+    name: 'private-note-reads-as-everyone',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'Only me',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: '      {t(`pages.myDay.visibility.${visibility}`)}',
+        replace: "      {t('pages.myDay.visibility.workspace')}",
+      },
+    ],
+  },
+  {
+    name: 'capture-starts-shared',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'private by default',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/CaptureRow.tsx',
+        find: "useState<Visibility>('private')",
+        replace: "useState<Visibility>('workspace')",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-defaults-to-done',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'data-wrap-choice',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "choices[id] ?? 'carry'",
+        replace: "choices[id] ?? 'done'",
+      },
+    ],
+  },
+  {
+    name: 'turned-into-chip-leads-nowhere',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the chip opens the organisation',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;",
+        replace: 'if (link.partner_id === "never") return null;',
+      },
+    ],
+  },
+  {
+    name: 'from-note-chip-hidden',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'where the call says where it came from',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerRecord.tsx',
+        find: '{n.from_note ? <FromNoteChip',
+        replace: '{n.from_note && n.id === "never" ? <FromNoteChip',
+      },
+    ],
+  },
+  {
     name: 'record-tabs-lose-their-words',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
     expect: 'Overview',
@@ -687,6 +783,18 @@ export const sabotages = [
         file: 'messages/en.json',
         find: '    "tabs": {\n      "overview": "Overview",',
         replace: '    "tabsGone": {\n      "overview": "Overview",',
+      },
+    ],
+  },
+  {
+    name: 'mark-seen-keeps-the-block',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'Mark seen clears the block',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/SinceBlock.tsx',
+        find: '            setSince(null);\n',
+        replace: '            void 0;\n',
       },
     ],
   },
