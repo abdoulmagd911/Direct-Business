@@ -156,7 +156,8 @@ async function walk(browser: Browser, persona: string, lang: 'en' | 'ar') {
             !r.wide,
           );
         if (lang === 'ar') {
-          const left = [...new Set(r.latin.filter((w) => !LATIN_OK.has(w) && !data.has(w)))];
+          // a word that starts with the run's tag is made-up data another spec saved (a title, a note), not wording
+          const left = [...new Set(r.latin.filter((w) => !LATIN_OK.has(w) && !data.has(w) && !w.startsWith(fx().tag)))];
           verdict(
             {
               area: AREA,

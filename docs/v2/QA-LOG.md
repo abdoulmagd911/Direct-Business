@@ -836,3 +836,26 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
     - a capture is filed, and Turn into offers a call or a reminder only; the note becomes a call on the client;
     - the admin keeps every module.
   - **Fail:** the 2 fails are QA-236, Tasks "Being built." in stage 0, which is the runbook's to settle.
+
+
+## Round 41 — 2026-10-02 06:30 (v2/main 2cd9fad: #138 merged; stage 0 complete on main)
+
+- **Main retake at 2cd9fad** (#138, P3-14 My day: Capture, then Convert):
+  - **SQL suite from zero:** 150 of 156, the same fail-until-built reds.
+  - **Full browser sweep:** 3 rows newly red against e334f04.
+    - **QA-238 (new):** a person at none on My day gets a 500 on `/my-day`, and `/`, `/sign-in` and `/set-password` all send them there.
+    - **ACC-094's first email** taking the password chosen through the second is red on a181f54 too; on e334f04 the test stopped before it.
+    - **An Arabic "leftover"** was a made-up title carrying the run's tag; QA's walk now leaves such words out.
+  - **My day notes spec:** 14 PASS, 2 INFO.
+  - **Gallery republished** as version 25.
+- **The Friday pilot path on a fresh main copy, stage 0 complete** (`QA_PILOT=1`): 38 PASS and 2 FAIL.
+  - With the seven deferred modules at none, a pilot member and manager see none of them in the menu (1440 and 390) or in Ctrl K, and every deferred address says "You do not have access to …".
+  - Clients lists and opens a client.
+  - A capture is filed, Turn into offers a call or a reminder only, and the note becomes a call on the client.
+  - The admin keeps every module.
+  - The 2 fails are QA-236, Tasks "Being built." in stage 0 (pilot row 7, the oversight's).
+- **Pushes held:** Vercel's daily build limit was hit again at 02:19 UTC. QA's commits stay local until production has deployed main.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-238 | 2026-10-02 06:30 | #138 (main 2cd9fad); V214, V433 | Medium | Builder B | **My day crashes for a person at none on My day.** `(app)/my-day/page.tsx` calls `myDay(…)` before any level check. The door refuses with `access.needs_level` (`my_day`, `view`), nothing catches it, and the page answers HTTP 500 (React #441) instead of "You do not have access to My day". Sign-in lands everyone on `/my-day`, so such a person meets the crash right after signing in. The pilot roles keep My day, so stage 0 is not affected. **Fix:** check `me.levels['my_day']` first and, at none, render the page's no-access state (`<Page page="my_day">`), or catch `PermissionDenied`. **Test:** `02-routes.spec.ts`, every screen as `nolevels` (`/`, `/my-day`, `/sign-in`, `/set-password`). | Open |
