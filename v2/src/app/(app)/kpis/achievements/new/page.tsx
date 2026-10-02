@@ -9,7 +9,6 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 
 type ListEntry = { key: string; name_en: string; name_ar: string };
-type PartnerRows = { rows: { id: string; trade_name_en: string; trade_name_ar: string | null }[] };
 
 /** Log achievement (GC-4): from the + and from the list, for everyone with Own on KPIs (a Member logs their own). */
 export default async function NewAchievementPage() {
@@ -28,10 +27,8 @@ export default async function NewAchievementPage() {
   const year = Number(
     new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric' }).format(new Date()),
   );
-  const [categories, partners, org, systems] = await Promise.all([
+  const [categories, org, systems] = await Promise.all([
     (serverRpc('achievement_categories', { p_year: year }) as Promise<unknown>).catch(() => []),
-    // the organisations a person may see (Clients, or Suppliers); none when they see neither
-    (serverRpc('partners', { p_filters: {} as never, p_limit: 500 }) as Promise<unknown>).catch(() => null),
     (serverRpc('org', {} as never) as Promise<unknown>).catch(() => null),
     (serverRpc('list', { p_list: 'ref_system' }) as Promise<unknown>).catch(() => []),
   ]);
@@ -43,10 +40,6 @@ export default async function NewAchievementPage() {
       <LogAchievement
         categories={categories as Category[]}
         year={year}
-        partners={((partners as PartnerRows | null)?.rows ?? []).map((p) => ({
-          id: p.id,
-          name: (lang === 'ar' && p.trade_name_ar) || p.trade_name_en,
-        }))}
         people={people}
         systems={(systems as ListEntry[]).map((s) => ({ key: s.key, name: lang === 'ar' ? s.name_ar : s.name_en }))}
         meId={me.person.id}

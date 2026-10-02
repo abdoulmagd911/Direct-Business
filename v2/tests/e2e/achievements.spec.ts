@@ -130,8 +130,11 @@ test('logging the same award again for an organisation offers the one-tap repeat
     await page.getByRole('combobox', { name: 'Category' }).click();
     await page.getByRole('option', { name: 'Awards' }).click();
     await page.getByLabel('What').fill(`Made-up travel award ${tag}`);
-    await page.getByRole('combobox', { name: 'Organisation' }).click();
-    await page.getByRole('option', { name: `Made Up Repeat ${tag}` }).click();
+    await page.locator('[data-partner-search]').fill(`Made Up Repeat ${tag}`);
+    await page
+      .locator('[data-partner-hits]')
+      .getByRole('button', { name: `Made Up Repeat ${tag}` })
+      .click();
     await page.getByRole('button', { name: 'Save' }).click();
   };
   await log();

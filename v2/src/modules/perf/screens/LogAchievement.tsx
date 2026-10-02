@@ -12,10 +12,10 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { Dialog } from '@/ui/Dialog';
 import { formatDate } from '@/core/i18n/format';
+import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
+import type { PartnerRef } from '@/modules/my-day/types';
 import type { Category, RepeatMatch } from '../types';
 import { useCommandWords } from './words';
-
-const NONE = '__none';
 
 /** Today in Riyadh as `YYYY-MM-DD` (D20): the date an achievement takes unless its evidence says another. */
 export function riyadhToday(now = new Date()): string {
@@ -31,7 +31,6 @@ export function riyadhToday(now = new Date()): string {
 export function LogAchievement({
   categories: first,
   year,
-  partners,
   people,
   systems,
   meId,
@@ -39,7 +38,6 @@ export function LogAchievement({
 }: {
   categories: Category[];
   year: number;
-  partners: { id: string; name: string }[];
   people: { id: string; name: string }[];
   systems: { key: string; name: string }[];
   meId: string;
@@ -54,7 +52,7 @@ export function LogAchievement({
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [day, setDay] = useState(riyadhToday());
-  const [partner, setPartner] = useState(NONE);
+  const [partner, setPartner] = useState<PartnerRef | null>(null);
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
   const [owner, setOwner] = useState(meId);
@@ -67,7 +65,7 @@ export function LogAchievement({
   const cat = categories.find((c) => c.code === code);
   const needsRef = cat?.required_ref_system ?? null;
   // V521: an MoU with an organisation names the side it was signed with.
-  const needsSide = !!cat?.sets_prospect && partner !== NONE;
+  const needsSide = !!cat?.sets_prospect && !!partner;
 
   // The categories are the plan's of the date's year (§5a): another year reads that year's.
   const onDay = async (next: string) => {
@@ -88,12 +86,12 @@ export function LogAchievement({
   // V531: before saving, an earlier achievement of the same organisation and category with a similar title is offered
   // as a one-tap choice — never blocking: no answer from the check saves as usual.
   const check = async () => {
-    if (partner === NONE) return save(null);
+    if (!partner) return save(null);
     setBusy(true);
     let found: RepeatMatch[] = [];
     try {
       found = (await rpc('achievement_repeats', {
-        p_partner: partner,
+        p_partner: partner.id,
         p_category: code,
         p_title: title.trim(),
         ...(day ? { p_on: day } : {}),
@@ -118,7 +116,7 @@ export function LogAchievement({
             category: code,
             title: title.trim(),
             happened_on: day || null,
-            partner_id: partner === NONE ? null : partner,
+            partner_id: partner?.id ?? null,
             ...(cat?.has_deal_value && value.trim() ? { deal_value: Number(value.replace(/,/g, '')) } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
@@ -165,18 +163,7 @@ export function LogAchievement({
         )}
       </Field>
       <Field label={t('fields.organisation')}>
-        {(p) => (
-          <Select
-            id={p.id}
-            aria-label={t('fields.organisation')}
-            value={partner}
-            options={[
-              { value: NONE, label: t('fields.none') },
-              ...partners.map((x) => ({ value: x.id, label: x.name })),
-            ]}
-            onValueChange={setPartner}
-          />
-        )}
+        {(p) => <PartnerPicker id={p.id} value={partner} onChange={setPartner} />}
       </Field>
       {needsSide ? (
         <Field label={t('fields.side')}>
