@@ -466,6 +466,12 @@
         "body": "{number} · {date} looks the same.",
         "new": "This is a new one",
         "same": "Same as the earlier one"
+      },
+      "plan": {
+        "none": "No categories for {department} in {year} yet.",
+        "open": "Open the {year} plan",
+        "askAdmin": "Ask an admin to open it.",
+        "opened": "The {year} plan is open"
       }
     },
     "beingBuilt": "Being built."

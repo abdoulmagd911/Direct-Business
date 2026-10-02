@@ -54,4 +54,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-offers-no-categories',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'the seven starting categories',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: 'const live = categories.filter((c) => c.active);',
+        replace: 'const live = categories.filter(() => false);',
+      },
+    ],
+  },
+  {
+    name: 'no-plan-offers-no-way-on',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'an admin opens the plan here',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{canOpenPlan ? (',
+        replace: '{false ? (',
+      },
+    ],
+  },
 ];
