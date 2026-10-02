@@ -210,6 +210,139 @@
     "confirm": "إزالة"
   },
   "pages": {
+    "achievements": {
+      "title": "الإنجازات",
+      "log": "تسجيل إنجاز",
+      "logged": "تم تسجيل الإنجاز",
+      "saved": "تم حفظ الإنجاز",
+      "removed": "تمت إزالة الإنجاز",
+      "moved": "تم نقل الإنجاز",
+      "assigned": "تم تحديد المالك",
+      "refAdded": "تمت إضافة المرجع",
+      "refRemoved": "تمت إزالة المرجع",
+      "empty": "لا إنجازات بعد",
+      "noMatch": "لا إنجازات مطابقة",
+      "filters": {
+        "category": "الفئة",
+        "all": "الكل",
+        "mine": "إنجازاتي",
+        "month": "الشهر",
+        "backfilled": "بأثر رجعي",
+        "past": "العمل السابق",
+        "needsOwner": "بلا مالك",
+        "clear": "مسح"
+      },
+      "cols": {
+        "achievement": "الإنجاز",
+        "category": "الفئة",
+        "owner": "المالك",
+        "date": "التاريخ",
+        "value": "قيمة الصفقة"
+      },
+      "marks": {
+        "backfilled": "بأثر رجعي",
+        "draft": "مسودة",
+        "noEvidence": "بلا دليل",
+        "moved": "منقول",
+        "late": "سُجّل متأخرًا",
+        "past": "عمل سابق",
+        "unknown": "غير معروف"
+      },
+      "fields": {
+        "category": "الفئة",
+        "title": "ما الذي تحقق",
+        "date": "التاريخ",
+        "organisation": "الجهة",
+        "value": "قيمة الصفقة",
+        "notes": "الملاحظات",
+        "count": "العدد",
+        "owner": "المالك",
+        "participants": "المشاركون",
+        "reference": "المرجع",
+        "system": "النظام",
+        "source": "التقرير المصدر",
+        "logged": "تاريخ التسجيل",
+        "movedFrom": "نُقل من",
+        "moveReason": "سبب النقل",
+        "none": "لا شيء",
+        "link": "الرابط",
+        "number": "الرقم",
+        "repeatOf": "تكرار لـ",
+        "side": "وُقّع مع"
+      },
+      "tabs": {
+        "overview": "نظرة عامة",
+        "activity": "النشاط",
+        "related": "ذات صلة",
+        "evidence": "الأدلة"
+      },
+      "actions": {
+        "edit": "تعديل",
+        "remove": "إزالة",
+        "move": "نقل",
+        "assign": "تحديد مالك",
+        "addRef": "إضافة مرجع",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "choose": "اختيار"
+      },
+      "dialogs": {
+        "edit": "تعديل الإنجاز",
+        "remove": "إزالة الإنجاز",
+        "move": "النقل إلى فترة أسبق",
+        "assign": "تحديد مالك",
+        "addRef": "إضافة مرجع",
+        "reason": "السبب",
+        "reasonRequired": "اذكر السبب"
+      },
+      "notRevenue": "ليس إيرادًا",
+      "noDate": "بلا تاريخ بعد",
+      "back": "الإنجازات",
+      "figures": {
+        "value": "قيمة الصفقة",
+        "count": "العدد",
+        "date": "التاريخ",
+        "refs": "الأدلة"
+      },
+      "evidenceNone": "لا أدلة بعد",
+      "source": "{kind} · {period}",
+      "reports": {
+        "bd_monthly": "تطوير الأعمال (شهري)",
+        "partnerships": "الشراكات",
+        "commercial_quarterly": "التجاري (ربع سنوي)",
+        "improvements": "التحسينات"
+      },
+      "errors": {
+        "achievement": {
+          "no_plan": "لا توجد خطة لعام {detail} بعد",
+          "ref_required": "أضف مرجع {detail} أولًا",
+          "no_deal_value": "هذه الفئة بلا قيمة صفقة",
+          "category_retired": "هذه الفئة مؤرشفة",
+          "move_earlier_only": "النقل إلى شهر أسبق فقط",
+          "owner_required": "المالك مطلوب",
+          "before_2025": "التواريخ تبدأ من 1 يناير 2025",
+          "title_required": "اذكر ما تحقق",
+          "ref_taken": "هذا المرجع موجود هنا بالفعل",
+          "ref_looks_secret": "يبدو هذا كلمة مرور",
+          "side_required": "اختر من وقّع",
+          "repeat_invalid": "الإنجاز السابق لا يطابق",
+          "number_fixed": "لا يتغير الرقم أبدًا"
+        },
+        "common": {
+          "reason_required": "اذكر السبب"
+        }
+      },
+      "sides": {
+        "client": "عميل",
+        "supplier_partner": "مورد"
+      },
+      "repeat": {
+        "title": "سُجّل من قبل؟",
+        "body": "{number} · {date} يبدو مطابقًا.",
+        "new": "هذا إنجاز جديد",
+        "same": "مطابق للإنجاز السابق"
+      }
+    },
     "myDay": {
       "adminAccount": "هذا حساب مسؤول النظام، وهو مخصّص للإعدادات. أما عملك أنت فعلى حسابك كموظف.",
       "goSettings": "الانتقال إلى الإعدادات",
