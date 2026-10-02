@@ -162,4 +162,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'blind-production-job',
+    breaks: [unit('the-production-job-check-refuses-a-job-without-its-guards')],
+    expect: '> refuses a job that does not wait for the checks and both databases',
+    edits: [
+      {
+        file: 'scripts/checks/production-job.mjs',
+        find: 'const missing = NEEDS.filter(',
+        replace: 'const missing = [].filter(',
+      },
+    ],
+  },
 ];
