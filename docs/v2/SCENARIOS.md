@@ -45,9 +45,10 @@ only records the rulings and the placements; builders and the QA session change 
 - **Rulings** (recommended; each applies unless the owner says no): V462 (OLD-001), V463 (OLD-004/005, OLD-ACC-008/101/102,
   OLD-WRK-053/093), V464 (OLD-013, OLD-WRK-049), V465 (OLD-015, OLD-WRK-092, OLD-PRF-049), V466 (OLD-016/017,
   OLD-WRK-024), V467 (OLD-019/020), V468 (OLD-023, OLD-WRK-010), V469 (OLD-024, OLD-WRK-112), V470 (OLD-003/009/010/011).
-- **Questions for the owner** (`OPEN-QUESTIONS.md`): Q37 manager-only notes (OLD-022), Q38 a record owner's Undo on money
-  (OLD-038), Q39 a contact's sides (OLD-WRK-106), Q40 which side an MoU sets (OLD-PRF-030), Q41 the KPI sheet's status
-  column (OLD-PRF-135).
+- **Questions for the owner** (`OPEN-QUESTIONS.md`): Q37 manager-only notes (OLD-022), Q38 a record owner's Undo on
+  money (OLD-038), Q39 a contact's sides (OLD-WRK-106), Q40 which side an MoU sets (OLD-PRF-030), Q41 the KPI sheet's
+  status column (OLD-PRF-135) — all answered: Q41 V473 (29 Sep); Q39 V520, Q40 V521, Q37 V524 and Q38 parked as V525
+  (owner, 1 Oct night).
 - **Missed rows** placed in `BUILD-PLAN.md` by step, each cited as `OLD-0nn` in its row.
 - **Answered open-question rows** folded into the decisions and the spec where they add a rule (the V-number or the
   spec section is cited on the row's subject: check-in day 1–28, only Active and Prospect go stale, overdue = not Done and
