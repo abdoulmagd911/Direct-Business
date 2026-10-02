@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { formatDate, formatMoney } from '@/core/i18n/format';
+import { CappedNote } from '@/modules/partners/screens/CappedNote';
 import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
@@ -18,7 +19,8 @@ const ALL = '__all';
 /**
  * Achievements under KPIs (GC-4): one lean list — category, mine or all, month, and the Backfilled, Past work and
  * Needs owner switches, all kept in the address. Each row is the achievement's own line, its category, owner, date and
- * marks; it opens the record page. Log achievement is the one primary action.
+ * marks; it opens the record page. Log achievement is the one primary action. The list reads the door's first 200;
+ * past them, a line says how many it shows of how many (QA-514, as Clients does, QA-506).
  */
 export function AchievementList({
   page,
@@ -131,6 +133,7 @@ export function AchievementList({
           ))}
         </ul>
       )}
+      {page ? <CappedNote shown={page.rows.length} total={page.total} /> : null}
     </>
   );
 }

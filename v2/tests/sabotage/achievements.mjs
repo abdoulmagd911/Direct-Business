@@ -42,4 +42,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'capped-achievements-say-nothing',
+    breaks: ['unit:tests/unit/achievements/the-list-says-when-it-shows-only-the-first-rows.test.tsx'],
+    expect: 'says it shows 200 of 230',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{page ? <CappedNote shown={page.rows.length} total={page.total} /> : null}',
+        replace: '{null}',
+      },
+    ],
+  },
 ];
