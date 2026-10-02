@@ -563,7 +563,8 @@ export const sabotages = [
     expect: 'never the raw path as a title',
     edits: [
       {
-        file: 'src/app/(app)/[[...path]]/page.tsx',
+        // W32: the Not found page is (app)/not-found.tsx, answered with status 404
+        file: 'src/app/(app)/not-found.tsx',
         find: "      <PageHeader title={t('errors.notFound.title')} />",
         replace: '      <PageHeader title={address} />',
       },

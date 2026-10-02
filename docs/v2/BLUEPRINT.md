@@ -294,6 +294,53 @@ Vercel (V13, V21, V84).
     an owner filter, past work never on My day and never notified but counted in its month; "referred by",
     public-reference consent and "Quote sent" dropped; no zodiac badge, optional profile photos with initials as the
     fallback, an admin switch, never in exports.
+84. **V500 (confirmed by the owner, 1 Oct)** — figures stay editable: every KPI reading and every Payments figure carries
+    "as of" and a Provisional or Final state; a change keeps its history and never silently changes an issued report
+    ("revised since issue" with the difference; the next report lists it under "Added to earlier periods"); a
+    past-work line's owner given later keeps the same history.
+85. **Owner decisions of 30 Sep 2026** (V501–V506): supplier commissions are Revenue; the newest issued report wins, a
+    2026 report's 2025 column included; a government tender is a contract at signing, not award; an undated item from
+    a monthly report is dated the month's last day; Deal revenue is its own KPI apart from Finance revenue; 2025 fully
+    registered as past work from 1 January 2025 — Backfilled, owner Unknown until assigned, never on My day, counted
+    in its month and its appraisal period — from the BD monthly, Partnerships, Commercial quarterly and improvements
+    reports only.
+86. **The employee view** (V507–V510, owner-delegated to the oversight from the Design lead's brief): a Member's menu
+    is My day, Tasks, Clients and the +; Suppliers & partners a tab inside Clients; Reports out of the member menu;
+    Pipeline for the Business Development and Business Solutions teams and managers up; every screen PR names its
+    simplicity gate card or is not merged; three real jobs on a phone at 390 px before any module goes live; access by
+    team — a team level between the role default and the person override, inherited by new joiners, one migration by
+    builder A.
+87. **Owner decisions of 30 Sep 2026, 13:30** (V511, V512): P5 (work and performance) before P4 (Finance), Finance
+    straight after, the Past work grid and My day first inside P5; access comes from the role and the team level,
+    never from the job title.
+88. **Owner decisions of 1 Oct 2026** (V500 confirmed, V513, V508's 30-second rule): every module behind one switch in
+    Settings — off hides it and keeps its data; words and rules in Settings tables; modules meet only through shared
+    tables or views; a screen the owner cannot understand in 30 seconds is EDIT by default.
+89. **The star and the due date** (V514, owner 1 Oct): one optional importance star and an optional due on every task,
+    checklist line, action item and meeting follow-up; urgency derived from the due (2 days, a setting); the Today
+    list sorted Do now · Plan it · Quick or hand off · Later; the matrix optional; a starred-share line flagged above
+    40%; the priority list kept for executive directives.
+90. **Direct HR** (V515, owner 1 Oct, corrected the same day): HR owns people, job, attendance, leave, payslips,
+    training, news and its own final appraisal decision — never duplicated here; the appraisal (stages, weights,
+    grades, sign-off, evidence) stays in this workspace and each locked appraisal gives HR one fixed-column export;
+    names follow HR, with a profile link; contact details reveal-and-copy on a phone. **91. The Direct theme** (V516):
+    Direct's real brand — orange accent and buttons, slate sidebar and header, gold highlight — at WCAG AA; the other
+    themes untouched.
+92. **The pilot cut** (V517): Clients, My day, Tasks and Past work first — stage 0 on Sunday 4 Oct, stage 1 on Sunday
+    18 Oct; the rest deferred, not dropped. **93. The fast lane and two more builders** (V518, V519): small edits
+    after go-live get one review; builder D builds the Tasks screens, builder E achievements.
+94. **The owner's answers of 1 Oct night** (V520–V526): a contact's sides only sort it; an MoU sets the side chosen on
+    it; "B2C" is banned; the Partnerships and improvements reports are monthly; a note on a record says who can see it
+    (everyone on the record, only me, or me and the people I name — after stage 1 opens); undo on money is parked with
+    Finance's redesign around transactions; the Vision board joins the later modules (`FUTURE-MODULES.md`).
+95. **Later, agreed the same night** (V527–V530): the Vision board is a read-only view over what is recorded
+    (about November); an Ideas label and a quick note from the + (stage 1; the simple + entry the week after stage
+    0); a weekly nudge that turns the week's closed tasks into achievements in one tap (early November); later, an
+    e-mail or message forwarded into a note.
+96. **Numbers, and repeats that are not duplicates** (V531): every task and achievement shows an app-written number
+    (TSK-/ACH-, the Happened on year) beside its date and organisation everywhere; logging an achievement like one in
+    the last 12 months for the same organisation offers "This is a new one" or "Same as the earlier one"; reports list
+    repeats with their dates.
 
 **Finance finding (the oversight's read-only sample of Payments, 28 Sep)** — the unit of revenue is the transaction
 invoice (a standalone invoice with no consolidation link counts as itself); billing invoices re-bill transactions and
