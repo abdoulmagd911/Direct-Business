@@ -11,6 +11,7 @@ import type { Me } from '@/core/auth/me';
 import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
+import { assignablePeople } from '@/modules/org/pickers';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { BulkBar } from '@/ui/BulkBar';
 import { Button } from '@/ui/Button';
@@ -717,7 +718,7 @@ function AssignDialog({
               value={owner}
               onValueChange={setOwner}
               placeholder={t('partners.bulk.keepOwner')}
-              options={org.people.map((x) => ({ value: x.id, label: personName(x, locale) }))}
+              options={assignablePeople(org.people).map((x) => ({ value: x.id, label: personName(x, locale) }))}
             />
           )}
         </Field>
