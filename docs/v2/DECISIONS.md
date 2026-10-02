@@ -1150,7 +1150,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **A task coming due.** A live task tells its owner once for its due day, `work.reminder_days_before_due` days before it (1: the day before; 0: the day itself), through `notify.alert_due_tomorrow()`.
   - Done, cancelled and past work are never reminded.
 - **The kind is `alert_due_tomorrow`, not the spec's `due_tomorrow`.** The daily job names each kind after its function, and every function it runs starts with `alert_`.
-- **The notice kinds are now every kind the spec names:** `escalated`, `alert_project_no_update` and `alert_due_tomorrow` are on by default (`notify.kinds_enabled`) with their My profile labels. P3-13's `reminder` and `note_mention` are in the list, so the merge order does not matter.
+- **The notice kinds are now every kind the spec names:** `escalated`, `alert_project_no_update` and `alert_due_tomorrow` are on by default (`notify.kinds_enabled`) with their My profile labels. P3-13's `reminder` and `note_mention` are in the list, so the merge order does not matter. A manager, head or admin now sees twenty-one switches on My profile (V217's eighteen and these three); a work-tier person keeps V217's seven, so a member is still told of an escalation and a due day but has no switch for them — whether those two join the seven is builder B's and the Architect's call.
 - Test ALR-03. Sabotages `a-silent-project-reminded-every-day`, `a-done-task-reminded`.
 - **Builder A's range V100–V199 is used up with this entry.** The next decision needs a new range from the oversight.
 
