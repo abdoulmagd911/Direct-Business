@@ -89,7 +89,7 @@ export const sabotages = [
   {
     name: 'e2e-deep-links-forget-where',
     breaks: [e2e('a-signed-out-deep-link-returns-to-the-same-address')],
-    expect: 'next=%2Fpartners%2Fsome-partner',
+    expect: 'next=%2Ftasks%2Fsome-task',
     edits: [
       {
         file: 'src/core/db/proxy-session.ts',

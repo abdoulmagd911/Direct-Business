@@ -9,7 +9,7 @@ export default defineModule({
       route: '/overview',
       label: 'nav.overview',
       icon: 'layout-dashboard',
-      nav: { group: 'main', order: 20 },
+      nav: { group: 'main', order: 50, tier: 'manage', from: 'head' },
       defaults: { admin: 'full', head: 'full', manager: 'view', viewer: 'view' },
     },
   ],

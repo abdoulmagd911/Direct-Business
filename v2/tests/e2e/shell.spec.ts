@@ -38,21 +38,23 @@ test('Ctrl K opens the palette and goes to a page', async ({ page, context }) =>
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Tasks');
 });
 
-test('the Create menu offers nothing until a create screen is built (W4/W28); the top bar carries no page title', async ({
+test('the Create menu offers only built screens (W4/W28, V217); the top bar carries no page title', async ({
   page,
   context,
 }) => {
   await setPrefs(context, { theme: 'colorful' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
-  // no create screen has landed yet: no Create button, so no raw address is ever offered
-  await expect(page.locator('[data-create]'), 'no Create button before a create screen is built').toHaveCount(0);
+  // Clients and Suppliers are built; Task, Invoice and Achievement are not, so they are absent, never greyed
+  await page.locator('[data-create]').click();
+  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier']);
+  await page.keyboard.press('Escape');
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');
   await expect(page.locator('h1')).toHaveText('Clients');
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Clients');
 });
 
-test('under 640 px the bottom bar carries My day · Tasks · Clients · KPIs · More, and More opens the rest', async ({
+test('under 640 px the bottom bar carries the first four of the menu and More, and More opens the rest', async ({
   page,
   context,
 }) => {
@@ -62,17 +64,17 @@ test('under 640 px the bottom bar carries My day · Tasks · Clients · KPIs · 
   await expect(page.locator('[data-drawer]')).toBeHidden();
   const bar = page.locator('[data-bottom-bar]');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'KPIs', 'More']);
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
   await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('link', { name: 'Pipeline' })).toBeVisible();
+  await expect(sheet.getByRole('link', { name: 'KPIs' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
-  // the floating + is My day's, and only once a create screen is built (item 16, W4)
-  await expect(page.locator('[data-create-floating]')).toHaveCount(0);
+  // the floating + stands in for Create on a phone (V217)
+  await expect(page.locator('[data-create-floating]')).toBeVisible();
   await expect(page.locator('[data-create]')).toBeHidden();
 });
 
@@ -90,7 +92,7 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  await expect(links).toHaveCount(15); // logo, 12 entries (Partners is Clients + Suppliers & partners; Activity — V97), Settings, the profile
+  await expect(links).toHaveCount(14); // logo, the admin's 11 entries (Suppliers is a tab of Clients — V217), Settings, the profile
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 
@@ -98,25 +100,15 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   page,
   context,
 }) => {
-  // A member's role starts at none on Overview (src/modules/overview/module.ts) and Settings is the admin's door.
+  // The employee view (V217): a member's menu is the work pages at a level above none — Pipeline is none for a member
+  // (brief E) — and Settings is the admin's door.
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   const member = await makePerson();
   await signIn(page, member.email, '/my-day');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   const labels = await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts();
-  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual([
-    'My day',
-    'Clients',
-    'Suppliers & partners',
-    'Pipeline',
-    'Projects',
-    'Tasks',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-  ]); // no Activity either: a member starts at none there
+  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual(['My day', 'Tasks', 'Clients']);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
   await page.locator('[data-profile-chip]').click();
   await expect(page.getByRole('menuitem', { name: 'My profile' })).toBeVisible();
