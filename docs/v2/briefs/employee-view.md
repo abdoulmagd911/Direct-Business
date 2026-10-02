@@ -46,11 +46,11 @@ appraisal cycle step.
 1. **Menu** — A and B above.
 2. **Suppliers tab** — C above.
 3. **Create menu** — an item shows only if its page is built and the person may create there: Task at Own or Full;
-   Client, Supplier, Invoice, Achievement at Full. The `built` flag already exists on `CREATE_ACTIONS` (#127) and every
-   item is off until its page lands; whoever lands a page sets it. "Partner" becomes **Client** (and **Supplier** when
-   the person has Full on suppliers). Create › Client opens `/clients?new=1`, and `/clients` opens its own New client
-   dialog when it reads `?new=1` (it does not read it yet after #123). With one item left, the + and Create open it
-   directly, no menu. With none, Create and the + are hidden.
+   Client, Supplier, Invoice, Achievement at Full. `built` is a registry field (`define-module.ts`, read by
+   `CreateMenu.tsx`), set by whoever lands a page; Clients and Suppliers are built, so Create › Client
+   (`/clients?new=1`) and Create › Supplier (`/suppliers?new=1`) are on, and both addresses open their page with the
+   New dialog open (#132). "Partner" becomes **Client** (and **Supplier** when the person has Full on suppliers). With
+   one item left, the + and Create open it directly, no menu. With none, Create and the + are hidden.
 4. **Header** — "Search" at 390 is done (`searchShort`, #127). What remains: the placeholder "Search clients, tasks,
    invoices" from 640, and the Ctrl K hint from 1024 instead of 640. (The phone shows only the + on My day — no change.)
 5. **Profile chip menu** — My profile · Sign out, nothing else. Theme leaves with the one-theme PR (29 Sep spec,
