@@ -922,3 +922,23 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - No gallery change: #140 adds no screens.
 - **#147 re-confirmed at 7f01903.** It moved only by merging main f110a10 (#140, squash-merged). Its own diff against main is identical to the head QA cleared (0355e9b), and it merges with no conflicts.
 - **#148 (Builder E) is still a draft** (473c50b). QA starts when it leaves draft.
+
+## Round 48 — 2026-10-02 12:15 (#141 at f2733e5: not cleared — QA-241, QA-240)
+
+- **Main is unchanged at f110a10.** #147 is still at 7f01903, cleared. #148 and #151 (Builder E) went to QA 2 (Architect, 07:27 UTC).
+- **#141 (Builder A: next-step tasks, Escalate, team load, daily reminders) at f2733e5: not cleared.** It moved from c5d807e only by taking Builder C's Arabic (`ar.json`, 6 lines). Nobody had claimed it, so QA 1 took it.
+  - **SQL suite from zero:** 165 of 170. The reds are QA-02/03/04/121/208, the same five as on main. ACT-02, ESC-01, LOAD-01 and ALR-03 pass.
+  - **Sabotages:** all nine turn their test red.
+  - **V600:** its migrations `20261002031000` and `20261002060700` sort after main's newest (`20261002030111`). #148's are `20261002040000` and `20261002060548`, so whichever of #141 and #148 merges second re-stamps and re-syncs. #147 has no migrations.
+  - **CI on f2733e5:** green except build and end-to-end, still running at 12:15.
+  - **Adversarial pass:**
+    - `api.escalate` holds: refused to yourself, to someone blind, without a note, and on another record type.
+    - `api.team_load` counts only live work in the reader's departments.
+    - **Two findings:** QA-241 (blocks merging while Tasks is none on the pilot roles) and QA-240.
+    - **Note for the screens:** `api.team_load` needs View on Tasks (V198). A Clients picker in stage 0 that shows load must treat the refusal as "no load", or pilot members get an error.
+  - **Tests (fail until fixed):** QA-240 and QA-241. Both pass on main, fail on f2733e5, and pass on f2733e5 with the one-line fix each finding names. ACT-02 and ALR-03 still pass with those fixes.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-241 | 2026-10-02 12:15 | #141 f2733e5; V197, V151, V517 (pilot stage 0) | High | Builder A · Architect | **A next step makes a task its author cannot open.** In the pilot's stage 0, Tasks is none on the member and manager roles while Log activity is live. An activity logged there with a next step still makes the task (`work.next_step_task` asks only for a team and V465). The member can neither open nor close it (`api.task`: `common.not_found`), yet the day before it is due they are told `alert_due_tomorrow`: the daily job's guard lets it through because an owner always "sees" their record (`authz.can_see_as` → `core.owners_of`). While the task stays open, the organisation never goes stale (V151 after P5-1): 25 days on it still reads fresh, so the stale alert never comes for any pilot organisation with a next step. **Fix:** treat an author below Own on Tasks like "nobody can take it" (V197): add `or authz.level_of(new.created_by, 'tasks') < 'own'` to the no-task test, so the next step stays on the activity. Otherwise the Architect holds #141 until Tasks opens to the pilot roles on 18 Oct. **Test:** `QA-241-a-next-step-leaves-no-task-its-author-cannot-open.sql`. | Open |
+| QA-240 | 2026-10-02 12:15 | #141 f2733e5; V199, V491, V506 | Medium | Builder A | **A project dated before go-live is reminded.** `notify.alert_project_no_update()` never asks `work.is_past`, so an Active project dated before the go-live day tells its owner "no health update" on the first daily run. The silence is counted from its old date. Past work tells nobody (#140's rule), and ALR-03 already keeps past tasks out of the due-day reminder. **Fix:** add `and not work.is_past(p.happened_on)` to its `where`. If a still-running project from before go-live should be reminded, the Architect says so and its silence counts from the go-live day instead. **Test:** `QA-240-a-project-dated-before-go-live-is-never-reminded.sql`. | Open |
