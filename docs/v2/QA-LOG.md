@@ -749,8 +749,8 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Open — expected fixed by #145 |
-| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Fixed on #147 7140637: "That day is after today" under `pages.tasks.errors.common.date_in_future`. The Arabic line is missing (Builder C; Arabic is deferred in the pilot). |
+| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Fixed on #147 0355e9b (with #145's not-found page): an unknown task number is the app's Not found page with Go to My day. |
+| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Fixed on #147 (7140637 on): "That day is after today" on the Tasks screens. The shared key's own line is QA-239. |
 | QA-235 | 2026-10-02 00:21 | #147; V464, V517 | Low | Architect (the runbook) | **A pilot member with no team cannot add a task** ("The task needs a team", V464). **Fix:** the runbook's pilot rows say every pilot member is in a team before stage 1. | Open |
 
 
@@ -895,3 +895,19 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **Gallery republished** as version 26 (the Not found page).
   - **QA-223 is addressed:** the runbook marks the two test people for the owner's review, then removal.
 - **#137 re-confirmed at 674a87f, #140 at 053f937.** Each moved only by merging main 9c54322. Their own diffs against main are identical to the heads QA cleared, and they merge with no conflicts. #145 has no migration, so #140's migrations stay the newest.
+
+
+## Round 46 — 2026-10-02 08:55 (v2/main 4d496c2: #137 merged; #140 re-confirmed at 4037867; #147 cleared at 0355e9b)
+
+- **Main 4d496c2** (#137): docs, guard settings and the guard's unit test only, so there is no retake.
+- **#140 re-confirmed at 4037867.** It moved only by merging main 4d496c2, and its own diff against main is unchanged.
+- **#147 (Builder D, the Tasks screens) at 0355e9b: clear from QA.** It contains main and #140 and merges after #140. If #140 is squash-merged, it merges main again first.
+  - **SQL suite from zero:** 161 of 166 (the other lanes' fail-until-built reds).
+  - **Full browser sweep:** no new failure against main 9c54322.
+  - **`13-tasks` runs for real:** 7 PASS. QA-233 and QA-234 are fixed.
+- **New:** QA-239.
+- **Pilot (QA-236):** once #147 merges, Tasks is real on main. Pilot row 7 should set Tasks to none for the pilot roles until 18 Oct if it is not meant to open early.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-239 | 2026-10-02 08:55 | #138 (main); V216 | Low | Builder B (words) | **The shared refusal for a day in the future talks about notes.** `errors.common.date_in_future` reads "A note cannot happen after today", but the activity door (`20260929090200`) and round 6 raise the same key. A call logged on a future day would therefore read "A note …". The Tasks screens map it to their own line, so they are fine. **Fix:** a generic shared line ("That day is after today"), with the notes screen keeping its own if wanted. | Open |
