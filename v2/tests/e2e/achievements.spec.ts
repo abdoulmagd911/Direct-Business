@@ -3,8 +3,11 @@
  * and lands on its record page, the reference on the Evidence tab; the list shows it; a colleague in the same
  * department sees it, someone in another department does not (V96); at 390 px the form fits the phone; the same award
  * logged again for the same organisation asks "This is a new one" or "Same as the earlier one", and the new one carries
- * its number and names the earlier one (V531). Every value is made up (rule 7).
- * Sabotage: tests/sabotage/achievements.mjs "log-sends-no-reference".
+ * its number and names the earlier one (V531). The form offers the department's seven starting categories; a
+ * department with no plan for the year says so in one sentence, and an admin opens the plan from there (V380). Every
+ * value is made up (rule 7).
+ * Sabotages: tests/sabotage/achievements.mjs "log-sends-no-reference", "log-skips-the-repeat-check",
+ * "log-offers-no-categories", "no-plan-offers-no-way-on".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -109,6 +112,50 @@ test('Log achievement fits a phone at 390 px', async ({ page }) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow, 'no sideways scroll').toBeLessThanOrEqual(0);
   await expect(page.getByRole('button', { name: 'Save' })).toBeVisible();
+});
+
+test("Log achievement offers the department's seven starting categories", async ({ page }) => {
+  const member = await makePerson();
+  await signIn(page, member.email, '/kpis/achievements/new');
+  await hydrated(page);
+  const category = page.getByRole('combobox', { name: 'Category' });
+  await expect(category, 'the seven starting categories').toBeVisible();
+  await category.click();
+  await expect(page.getByRole('option'), 'the seven starting categories').toHaveCount(7);
+});
+
+test("a department with no plan says so; an admin opens the year's plan from the form", async ({ page, browser }) => {
+  const admin = await makePerson({ admin: true });
+  const member = await makePerson();
+  const tag = admin.id.slice(0, 8);
+  const code = `unplanned_${tag}`;
+  const year = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric' }).format(new Date());
+  await sql(`insert into core.department (code, name_en, name_ar) values ($1, $2, 'قسم بلا خطة')`, [
+    code,
+    `Made Up Unplanned ${tag}`,
+  ]);
+  await sql(
+    `update core.person set department_id = (select id from core.department where code = $1) where id = any($2::uuid[])`,
+    [code, [admin.id, member.id]],
+  );
+
+  const theirs = await (await browser.newContext()).newPage();
+  await signIn(theirs, member.email, '/kpis/achievements/new');
+  await hydrated(theirs);
+  await expect(theirs.locator('[data-no-categories]')).toContainText(
+    `No categories for Made Up Unplanned ${tag} in ${year} yet.`,
+  );
+  await expect(theirs.getByText('Ask an admin to open it.')).toBeVisible();
+  await expect(theirs.getByRole('combobox', { name: 'Category' }), 'never an empty list').toHaveCount(0);
+
+  await signIn(page, admin.email, '/kpis/achievements/new');
+  await hydrated(page);
+  const open = page.getByRole('button', { name: `Open the ${year} plan` });
+  await expect(open, 'an admin opens the plan here').toBeVisible();
+  await open.click();
+  await expect(toast(page, `The ${year} plan is open`)).toBeVisible();
+  await page.getByRole('combobox', { name: 'Category' }).click();
+  await expect(page.getByRole('option', { name: 'Awards' })).toBeVisible();
 });
 
 test('logging the same award again for an organisation offers the one-tap repeat choice', async ({ page, context }) => {
