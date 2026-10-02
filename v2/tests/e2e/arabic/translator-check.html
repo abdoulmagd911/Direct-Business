@@ -1,0 +1,193 @@
+<!doctype html>
+<!--
+  The translator quality check of plan P3-10 (V76, V86, V302). Open this file in desktop Chrome (138 or later),
+  press "Translate all", and mark each of the 30 made-up report lines usable / needs edits / wrong. "Copy the
+  results" puts a table on the clipboard for the P3-10 pull request. Everything runs on this computer: the page loads
+  nothing from anywhere, and Chrome's built-in Translator translates on the device (the first run downloads its
+  Arabic language pack, about 100 MB, once). Made-up names and figures only (rule 7).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Translator check</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --text: #303848;
+        --muted: #646d79;
+        --border: #e6e8ec;
+        --surface: #fafbfc;
+        --primary: #c94c14;
+        --on-primary: #ffffff;
+      }
+      body {
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        color: var(--text);
+        background: var(--surface);
+        margin: 0;
+        padding: 24px 16px;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      #status {
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #fff;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--primary);
+        color: var(--on-primary);
+        border-color: transparent;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        background: #fff;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 8px;
+        vertical-align: top;
+        text-align: start;
+      }
+      td.ar {
+        font-size: 15px;
+      }
+      td.marks label {
+        display: block;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Translate to Arabic — quality check</h1>
+      <p id="status">Checking whether this browser can translate on the device…</p>
+      <button class="primary" id="run" disabled>Translate all</button>
+      <button id="copy">Copy the results</button>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>English (made up)</th>
+            <th>Arabic draft</th>
+            <th>Mark</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+    <script>
+      const LINES = [
+        'Signed a three-month pilot agreement with Test Co A.',
+        'Sent a revised made-up price list to Sample Travel LLC after their feedback.',
+        'Held a kickoff call with Madeup Airlines about the new request form.',
+        'Invoice INV-T-0001 for Test Co A was paid in full on 12 July 2026.',
+        'Weekly requests grew from 140 to 175, up 25%.',
+        'Added 18 new partner contacts to the directory.',
+        'Closed a support ticket about duplicate confirmations for Test Co B.',
+        'Prepared a comparison of three made-up offers for a sample client.',
+        'Visited Sample Holding to present the booking portal.',
+        'Opened a test account with Sample Transfers for a trial run.',
+        'Cut the average reply time to partners from 9 hours to 6 hours.',
+        'Submitted one tender this month; the result is expected in October.',
+        'Agreed a pilot worth 15,000 SAR with Test Co C.',
+        'Shared the monthly newsletter with 60 partner contacts.',
+        'Ran a short workshop on the new approval steps for the team.',
+        'Test Co D has not confirmed the meeting date yet.',
+        'The pilot with Sample Transfers is waiting for their technical contact.',
+        'The sample contract template still needs a legal review.',
+        'The shared calendar did not sync for two days last week.',
+        'One proposal to Test Co A was put on hold by the client.',
+        'Follow up the pilot results with Test Co C.',
+        'Hold two partner visits before the end of next month.',
+        'Finish cleaning up the partner directory.',
+        'Prepare the made-up price list for the next quarter.',
+        'Review contract DK-P-0001 before it expires in 30 days.',
+        'Partner satisfaction reached 88% in the made-up survey, against a target of 85%.',
+        'Average days to reply to a partner fell from 4 to 3.',
+        'The owner of the Test Co A account changes on 1 November 2026.',
+        'Cost savings are not revenue and are reported separately.',
+        'The MoU with Sample Holding was signed on 20 October 2026; the partner is now a prospect.',
+      ];
+      const rows = document.getElementById('rows');
+      const status = document.getElementById('status');
+      const run = document.getElementById('run');
+      const MARKS = ['usable', 'needs edits', 'wrong'];
+      LINES.forEach((line, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          (i + 1) +
+          '</td><td></td><td class="ar" dir="rtl" lang="ar"></td><td class="marks">' +
+          MARKS.map((m) => '<label><input type="radio" name="m' + i + '" value="' + m + '"> ' + m + '</label>').join(
+            '',
+          ) +
+          '</td>';
+        tr.children[1].textContent = line;
+        rows.appendChild(tr);
+      });
+      const PAIR = { sourceLanguage: 'en', targetLanguage: 'ar' };
+      (async () => {
+        if (!('Translator' in self)) {
+          status.textContent =
+            'This browser has no on-device Translator (Chrome 138+ on a computer has it). In the app the button would be hidden here.';
+          return;
+        }
+        const a = await Translator.availability(PAIR);
+        status.textContent = 'English → Arabic on this device: ' + a + '.';
+        run.disabled = a === 'unavailable';
+      })();
+      run.addEventListener('click', async () => {
+        run.disabled = true;
+        const started = performance.now();
+        const t = await Translator.create({
+          ...PAIR,
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              status.textContent = 'Downloading the Arabic language pack: ' + Math.round(e.loaded * 100) + '%';
+            });
+          },
+        });
+        for (const [i, line] of LINES.entries()) {
+          status.textContent = 'Translating ' + (i + 1) + ' of ' + LINES.length + '…';
+          rows.children[i].children[2].textContent = await t.translate(line);
+        }
+        status.textContent =
+          'Done: ' + LINES.length + ' lines in ' + Math.round(performance.now() - started) + ' ms. Mark each line.';
+      });
+      document.getElementById('copy').addEventListener('click', async () => {
+        const lines = ['| # | English | Arabic draft | Mark |', '|---|---|---|---|'];
+        LINES.forEach((line, i) => {
+          const ar = rows.children[i].children[2].textContent || '';
+          const mark = (document.querySelector('input[name="m' + i + '"]:checked') || {}).value || '';
+          lines.push('| ' + (i + 1) + ' | ' + line + ' | ' + ar + ' | ' + mark + ' |');
+        });
+        const counts = MARKS.map(
+          (m) => m + ': ' + document.querySelectorAll('input[value="' + m + '"]:checked').length,
+        );
+        lines.push('', counts.join(' · ') + ' · ' + navigator.userAgent);
+        await navigator.clipboard.writeText(lines.join('\n'));
+        status.textContent = 'Copied. Paste it into the P3-10 pull request.';
+      });
+    </script>
+  </body>
+</html>
