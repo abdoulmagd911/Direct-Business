@@ -2451,7 +2451,7 @@ invoices in the browser; imports follow later. All data in the old app is test d
 
 **Cut-over — a staged pilot** (V71): rehearse on the staging project; reset it (a v2 `golive_reset`, backup first, only
 on the owner's word — D9) — the domain already serves v2 (§10, V13); then **a small pilot group** named by the
-owner signs in first — ~~including Finance colleagues with View on Finance — and types and checks a first month~~ **[SUPERSEDED — V517: a manager and three to five Commercial members, in English; stage 0 (4 Oct) Clients and My day's notes, stage 1 (18 Oct) Tasks and Past work; Finance deferred]**; when the
+owner signs in first — ~~including Finance colleagues with View on Finance — and types and checks a first month~~ **[SUPERSEDED — V517: a manager and three to five Commercial members, in English; stage 0 (4 Oct) Clients, My day's notes, Tasks, Past work and achievements (V605); Finance deferred]**; when the
 owner says so, **everyone** is switched on (each person's `can_sign_in`; no code change). **Training** (V408): the pilot
 group gets one live session; after it, every third or fourth update ships with a short video (minutes long, recorded
 in the app on made-up data) instead of another session.
