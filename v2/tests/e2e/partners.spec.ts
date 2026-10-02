@@ -29,7 +29,9 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/suppliers');
   await hydrated(page);
-  await expect(page.getByRole('heading', { level: 1, name: 'Suppliers & partners' })).toBeVisible();
+  // Suppliers is the second tab of Clients (V217): the title is Clients, the Suppliers tab is the one on
+  await expect(page.getByRole('heading', { level: 1, name: 'Clients' })).toBeVisible();
+  await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
 
   // New supplier & partner: trade name, Arabic name, type — the record opens once saved
   await page.locator('[data-partner-new]').click();
@@ -44,6 +46,10 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await hydrated(page);
   const id = page.url().split('/').pop()!;
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+  // the record's tab row says its tabs in words — never the catalogue's key (the side-tabs label once took the key)
+  const tabs = page.locator('main [data-tabs]');
+  for (const label of ['Overview', 'Activity', 'Related'])
+    await expect(tabs.getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
   const figures = page.locator('[data-key-figures]');
   for (const label of ['Last activity', 'Next step', 'Contracts', 'Contacts', 'Files']) {
     await expect(figures.getByText(label, { exact: true }), `the ${label} figure`).toBeVisible();
@@ -93,7 +99,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   const [row] = await sql<{ number: string }>(`select number from partner.partner where id = $1`, [id]);
   await expect(hover).toContainText(row!.number);
   await expect(hover, 'the hover card names both sides').toContainText('Client · Corporate · At risk');
-  await expect(hover, 'the hover card names both sides').toContainText('Supplier & partner · Hotel supplier');
+  await expect(hover, 'the hover card names both sides').toContainText('Supplier · Hotel supplier');
 });
 
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {

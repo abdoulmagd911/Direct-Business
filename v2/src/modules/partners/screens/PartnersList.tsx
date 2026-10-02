@@ -1,11 +1,12 @@
 'use client';
+import { CappedNote } from './CappedNote';
 import * as RP from '@radix-ui/react-popover';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
@@ -91,6 +92,8 @@ export function PartnersList({
   sideTypes,
   tiers,
   priorities,
+  tabs,
+  startCreating = false,
 }: {
   me: Me;
   side: Side;
@@ -104,6 +107,10 @@ export function PartnersList({
   sideTypes: ListEntry[];
   tiers: ListEntry[];
   priorities: ListEntry[];
+  /** Clients · Suppliers, one page with two tabs (V217); absent when the reader has only one side. */
+  tabs?: ReactNode;
+  /** Opened from Create (`?new=1`): the New dialog is open on arrival, for a reader with Full. */
+  startCreating?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -117,7 +124,7 @@ export function PartnersList({
   const [selected, setSelected] = useState<RowSelectionState>({});
   const [assignIds, setAssignIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(startCreating && full);
   const [assigning, setAssigning] = useState(false);
   const [q, setQ] = useState(filters.q);
   const go = (f: ListFilters) => router.push(addressOf(base, f));
@@ -261,6 +268,7 @@ export function PartnersList({
           ) : null
         }
       />
+      {tabs}
       <SavedViewsBar
         page={page}
         fixed={fixedViews}
@@ -357,6 +365,7 @@ export function PartnersList({
         ) : null}
       </div>
 
+      {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
       {failed ? (
         <DataState kind="failed" what={title} onRetry={() => router.refresh()} retryLabel={t('common.tryAgain')} />
       ) : answer && rows.length === 0 ? (
@@ -370,7 +379,12 @@ export function PartnersList({
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-2.5">
                     <PartnerLogo name={r.trade_name_en} size="sm" />
-                    <Link href={`${base}/${r.id}`} className="truncate font-medium text-link" data-entity="partner">
+                    <Link
+                      href={`${base}/${r.id}`}
+                      className="inline-flex min-h-11 min-w-0 items-center truncate font-medium text-link"
+                      data-entity="partner"
+                      data-partner-link={r.id}
+                    >
                       {tradeName(r, locale)}
                     </Link>
                   </span>
@@ -454,7 +468,11 @@ export function PartnersList({
       />
       <NewPartnerDialog
         open={creating}
-        onOpenChange={setCreating}
+        onOpenChange={(open) => {
+          setCreating(open);
+          // Create's address (?new=1) is spent once the dialog closes, so a reload does not open it again
+          if (!open && startCreating) window.history.replaceState(null, '', window.location.pathname);
+        }}
         side={side}
         me={me}
         org={org}

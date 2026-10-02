@@ -14,7 +14,8 @@ test.skip(!process.env.GALLERY, 'the gallery runs on demand: GALLERY=1');
 test.describe.configure({ mode: 'serial' });
 
 const OUT = 'test-results/gallery';
-const ROLES = ['admin', 'head', 'manager', 'member', 'viewer', 'none'] as const;
+// bd_member: a member in Business Development or Business Solutions, Pipeline Own by a person change (V217, brief E)
+const ROLES = ['admin', 'head', 'manager', 'member', 'bd_member', 'viewer', 'none'] as const;
 type Role = (typeof ROLES)[number];
 
 type Shot = { role: Role; route: string; state: string; width: number; file: string };
@@ -39,15 +40,21 @@ async function snap(page: Page, role: Role, route: string, state: string) {
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
-/** A person in the role; `none` is a role with no level anywhere. */
+/** A person in the role; `none` is a role with no level anywhere; `bd_member` a member with Pipeline Own. */
 async function personIn(role: Role) {
   const person = await makePerson({ admin: role === 'admin' });
+  if (role === 'bd_member')
+    await sql(
+      `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+       values ($1, 'pipeline', 'own', 'Made up: BD/BS team, ruling 30 Sep', $1)`,
+      [person.id],
+    );
   if (role === 'none')
     await sql(
       `insert into core.role (key, name_en, name_ar, is_admin) values ('test_none', 'Test None', 'بلا صلاحية', false)
        on conflict (key) do nothing`,
     );
-  if (role !== 'admin' && role !== 'member')
+  if (role !== 'admin' && role !== 'member' && role !== 'bd_member')
     await sql(`update core.person set role_id = (select id from core.role where key = $2) where id = $1`, [
       person.id,
       role === 'none' ? 'test_none' : role,
@@ -74,7 +81,8 @@ async function seedFilled() {
 const ROUTES = [
   '/my-day',
   '/overview',
-  '/partners?view=clients',
+  '/clients',
+  '/suppliers',
   '/partners?view=suppliers',
   '/pipeline',
   '/projects',
@@ -89,7 +97,6 @@ const ROUTES = [
   '/settings',
   '/settings/org',
   '/settings/org?tab=teams',
-  '/settings/org?tab=roles',
   '/settings/org?tab=access',
   '/settings/org?tab=lists',
   '/settings/app',
@@ -129,8 +136,8 @@ test('the gallery: every route as every role, in every reachable state', async (
     await page.goto('/profile');
     await hydrated(page);
     await page.route('**/rest/v1/rpc/**', (r) => r.abort());
-    await page.getByLabel('Nickname').fill('Gallery');
-    await page.getByLabel('Nickname').press('Enter');
+    await page.getByLabel('Display name', { exact: true }).fill('Gallery');
+    await page.getByLabel('Display name', { exact: true }).press('Enter');
     await page
       .locator('[data-sonner-toast]')
       .first()
