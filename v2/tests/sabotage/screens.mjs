@@ -878,7 +878,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/entity-route.ts',
-        find: "      return `/kpis/achievements/${id}`;",
+        find: '      return `/kpis/achievements/${id}`;',
         replace: '      return null;',
       },
     ],

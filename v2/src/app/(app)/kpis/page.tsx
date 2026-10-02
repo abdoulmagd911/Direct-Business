@@ -12,7 +12,11 @@ export default async function AreaPage() {
       <PageHeader
         title={t('nav.kpis')}
         actions={
-          <Link href="/kpis/achievements" className="inline-flex h-[var(--control-h)] items-center rounded-md border border-border-strong bg-raised px-4 text-base font-medium text-text hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" data-achievements-link>
+          <Link
+            href="/kpis/achievements"
+            className="inline-flex h-[var(--control-h)] items-center rounded-md border border-border-strong bg-raised px-4 text-base font-medium text-text hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            data-achievements-link
+          >
             {t('pages.achievements.title')}
           </Link>
         }
