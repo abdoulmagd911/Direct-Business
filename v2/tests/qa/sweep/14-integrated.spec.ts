@@ -202,14 +202,84 @@ test('integrated pass: the work loop with the pilot levels — notes, tasks, ach
       }
     }
 
-    // ---------------------------------------------------------------- the Past work grid
+    // ---------------------------------------------------------------- the Past work grid (tasks mode, #150)
+    await page.goto('/tasks');
+    await hydrated(page);
+    const pastLink = await page.locator('a[href="/tasks?view=past"]').count();
     await page.goto('/tasks?view=past');
     await hydrated(page);
-    const pastTab = await page.getByRole('tab', { name: /Past work/ }).count();
-    if (pastTab === 0) gap('the Past work grid for tasks (#150)', { screen: '/tasks?view=past', user: 'member' });
+    const grid = page.locator('[data-past-work-grid="tasks"]');
+    if ((await grid.count()) === 0)
+      gap('the Past work grid for tasks (#150)', { screen: '/tasks?view=past', user: 'member' });
     else {
-      const grid = await page.locator('[data-past-work-grid], table, [role=grid]').count();
-      check('the Past work view opens its grid', { screen: '/tasks?view=past', user: 'member' }, grid > 0);
+      check('Tasks offers the Past work view', { screen: '/tasks', user: 'member' }, pastLink > 0);
+      // three made-up rows from the Commercial quarterly for Q3 2026; the third is dated after the quarter's report day
+      const rows = [
+        [`Test past one ${tag}`, '14/07/2026', 'Done'],
+        [`Test past two ${tag}`, '21/08/2026', 'Done'],
+        [`Test past late ${tag}`, '25/12/2030', 'Done'],
+      ].map((r) => r.join('\t'));
+      const calls: string[] = [];
+      page.on('request', (r) => {
+        if (r.url().includes('/rpc/backfill_tasks')) calls.push(r.method());
+      });
+      await grid.getByLabel('Source report').click();
+      await page.getByRole('option', { name: 'Commercial quarterly' }).click();
+      await grid.getByLabel('Which report').click();
+      await page.getByRole('option', { name: 'Q3 2026' }).click();
+      await grid.locator('[data-past-work-paste]').fill(['Title\tDate\tStatus', ...rows].join('\n'));
+      // the grid checks names and saved keys before it settles; wait for its summary to say so
+      await expect(grid.locator('[data-past-work-summary]'))
+        .toContainText(/2 rows ready/, { timeout: 15_000 })
+        .catch(() => undefined);
+      const summary = (
+        await grid
+          .locator('[data-past-work-summary]')
+          .innerText()
+          .catch(() => '')
+      ).trim();
+      check(
+        'the grid reads the paste: two rows ready, the one dated in the future refused',
+        { screen: '/tasks?view=past', user: 'member', detail: summary },
+        /2 rows ready/.test(summary) && /1 refused/.test(summary),
+      );
+      await grid.locator('[data-past-work-save]').click();
+      await page.waitForTimeout(3_000);
+      const saved = await sql<{ number: string; past: boolean }>(
+        `select number, work.task_is_past(t) as past from work.task t where title like $1 order by number`,
+        [`Test past % ${tag}`],
+      );
+      check(
+        'saved as one request: the ready rows only, each with a TSK- number, all past work',
+        {
+          screen: '/tasks?view=past',
+          user: 'member',
+          detail: `${calls.length} call(s); ${saved.map((r) => `${r.number}${r.past ? '' : ' (live!)'}`).join(', ')}`,
+        },
+        calls.length === 1 && saved.length === 2 && saved.every((r) => r.past && TSK.test(r.number)),
+      );
+      await page.goto('/tasks?view=past');
+      await hydrated(page);
+      const inPast = await page.locator('li[data-task-row]', { hasText: `Test past` }).count();
+      await page.goto('/tasks');
+      await hydrated(page);
+      const inMyWork = await page.locator('li[data-task-row]', { hasText: `Test past` }).count();
+      check(
+        'past work is listed under Past work, never in My work',
+        { screen: '/tasks', user: 'member', detail: `Past work ${inPast}, My work ${inMyWork}` },
+        inPast >= 2 && inMyWork === 0,
+      );
+      // the phone: the view opens without sideways scroll
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto('/tasks?view=past');
+      await hydrated(page);
+      const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      check(
+        'Past work at 390: no sideways scroll',
+        { screen: '/tasks?view=past @390', user: 'member', detail: `${wide}px` },
+        wide <= 1,
+      );
+      await page.setViewportSize({ width: 1440, height: 1000 });
     }
     gap("the Past work grid for achievements (the grid's achievements mode, after #105)", {
       screen: '/kpis/achievements',

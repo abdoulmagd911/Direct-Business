@@ -1042,3 +1042,19 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - It merges into accfeee with no conflicts.
   - **SQL suite from zero:** 177 of 182, with QA-240 and QA-241 passing.
   - **Sabotages:** all 11 are red.
+
+## Round 55 — 2026-10-02 23:25 (v2/main e9378d5; #150 cleared for QA 1's part at fc29654; #141 needs a second V600 re-stamp)
+
+- **Main retake at e9378d5** (#158, Builder E: My day's note into an achievement, the database door only; #156 docs; #171 CI):
+  - **SQL suite from zero:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** identical to accfeee.
+  - **Pilot path:** 44/0.
+  - **Integrated pass:** 19/0/8.
+- **#141 (Builder A), V600 again.** Its CI is fully green on 6858ee0. But #158's `20261002170000` is now main's newest, and #141's `20261002133010_work_follow_ups` sorts before it. Builder A was told on the PR to re-stamp after it.
+- **#150 (Builder D, the Past work grid on Tasks) at fc29654: QA 1's part (the Tasks mount and the GC-3 path) is cleared**, on condition that CI's build and end-to-end job ends green. QA 2 reviews the grid files (Architect's split).
+  - **SQL suite from zero:** 174 of 179.
+  - **`13-tasks`:** 7 PASS.
+  - **Pilot path:** 44/0.
+  - **The integrated pass on this branch:** 24 PASS, 0 FAIL, 7 NOT BUILT. Two ready rows and one refused (dated in 2030), saved in one request, past work only, TSK- numbers, no sideways scroll at 390.
+- **The integrated pass (`14-integrated`)** now pastes three made-up rows into the Past work grid and checks the result. It also looks for the view by its address, since the Tasks views are links, not tabs.
+- **The combined test (Architect on #150, 15:14 UTC):** QA 1 runs option B, final main against a local stack built from zero. Option A, the hosted production database, needs the oversight's word, because QA 1's standing rule is never to touch any cloud Supabase project.
