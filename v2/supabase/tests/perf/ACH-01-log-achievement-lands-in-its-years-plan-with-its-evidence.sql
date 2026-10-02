@@ -77,3 +77,9 @@ select test.raises(format($$update perf.achievement set happened_on = '2024-12-3
   'P0001', 'nothing is dated before 1 January 2025', 'achievement.no_plan');
 select test.raises(format($$insert into perf.plan (department_id, year, name) values (%L, 2024, 'Made up')$$,
   test.department('commercial')), '23514', 'and no plan is opened for a year before 2025');
+
+-- a project or task it names must exist (V376: work.project and work.task landed first, #140)
+select test.raises(format($$update perf.achievement set project_id = gen_random_uuid() where id = %L$$,
+  current_setting('t.a')), '23503', 'no made-up project');
+select test.raises(format($$update perf.achievement set source_task_id = gen_random_uuid() where id = %L$$,
+  current_setting('t.a')), '23503', 'no made-up task');

@@ -10,9 +10,9 @@
 -- sets the side chosen on it to Prospect where that side has no status yet (V521). V370–V376, V378. Every function the
 -- Data API reaches is a security-invoker wrapper (V124). Forward-only (V103).
 --
--- Links to tables other steps build — project_id → work.project and source_task_id → work.task (P5-1, #140),
--- service_id → finance.service (P4), origin_report_id → report.report (P6-1) — are plain columns here; the step that
--- lands second adds the foreign key (spec §3.0).
+-- project_id → work.project and source_task_id → work.task (P5-1, #140, already on v2/main) are foreign keys here;
+-- links to tables other steps build — service_id → finance.service (P4), origin_report_id → report.report (P6-1) —
+-- are plain columns, and the step that lands second adds the foreign key (spec §3.0).
 
 create schema perf;   -- plans, KPIs, achievements, challenges, period targets (§3.8)
 create extension if not exists pg_trgm with schema extensions;   -- the repeat check's title similarity (V531)
@@ -76,8 +76,8 @@ create table perf.achievement (
   department_id uuid not null references core.department (id),
   category_id uuid not null references perf.achievement_category (id),
   partner_id uuid references partner.partner (id),
-  project_id uuid,                                                       -- → work.project, added by the later step
-  source_task_id uuid,                                                   -- → work.task, added by the later step
+  project_id uuid references work.project (id),
+  source_task_id uuid references work.task (id),
   service_id uuid,                                                       -- → finance.service (P4)
   title text not null check (pg_catalog.btrim(title) <> '' and pg_catalog.length(title) <= 300),
   notes text check (notes is null or pg_catalog.length(notes) <= 20000),
