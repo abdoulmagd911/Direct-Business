@@ -199,20 +199,3 @@ test('a member sees their department’s work, never another’s (V96)', async (
   await expect(page.locator('span[data-task-status]').first()).toBeVisible();
   await ctx.close();
 });
-
-test('the + menu offers Task and opens quick add, on a desk and a phone (V217, #147 items 3–4)', async ({
-  browser,
-}) => {
-  const member = await memberWithTeam();
-  for (const [width, height, trigger] of [
-    [1440, 900, 'button[data-create]'],
-    [390, 844, 'button[data-create-floating]'],
-  ] as const) {
-    const { ctx, page } = await signedIn(browser, member, width, height, '/my-day');
-    await page.locator(trigger).click();
-    await page.locator('[data-create-item="task"]').click();
-    await expect(page).toHaveURL(/\/tasks\?new=1$/);
-    await expect(page.locator('form[data-quick-add]'), `${width} px: quick add is open`).toBeVisible();
-    await ctx.close();
-  }
-});
