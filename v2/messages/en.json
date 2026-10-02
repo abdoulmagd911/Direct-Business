@@ -474,7 +474,149 @@
         "opened": "The {year} plan is open"
       }
     },
-    "beingBuilt": "Being built."
+    "beingBuilt": "Being built.",
+    "tasks": {
+      "unknownOwner": "Unknown",
+      "blocked": "Blocked",
+      "blockedSince": "Blocked since {date}",
+      "internalWork": "Internal",
+      "markDone": "Mark “{title}” done",
+      "markDoneShort": "Done",
+      "dueToday": "Due today",
+      "dueOn": "Due {date}",
+      "lookups": "Names of people, clients and projects",
+      "more": "Showing the first {shown} of {total}",
+      "emptyFiltered": "No tasks match these filters",
+      "empty": {
+        "owned": "You own no tasks yet",
+        "helping": "You are not helping on any task",
+        "team": "Your team has no tasks yet",
+        "my_work": "No tasks yet. Tasks you own or follow appear here."
+      },
+      "noNotes": "No notes",
+      "statusHistory": "Status changes",
+      "noStatusChanges": "No status changes yet",
+      "views": {
+        "label": "Task views",
+        "my_work": "My work",
+        "owned": "Owned",
+        "helping": "Helping",
+        "team": "Team"
+      },
+      "chips": {
+        "status": {
+          "open": "Open",
+          "blocked": "Blocked",
+          "done": "Done",
+          "cancelled": "Cancelled"
+        },
+        "due": {
+          "overdue": "Overdue",
+          "today": "Today",
+          "week": "This week",
+          "none": "No date"
+        }
+      },
+      "fields": {
+        "title": "Title",
+        "owner": "Owner",
+        "helpers": "Helpers",
+        "due": "Due",
+        "start": "Start",
+        "status": "Status",
+        "client": "Client",
+        "project": "Project",
+        "type": "Type",
+        "raised": "Raised",
+        "number": "Number",
+        "notes": "Notes",
+        "lastActivity": "Last update",
+        "references": "References"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "activity": "Activity",
+        "related": "Related",
+        "items": "Action items"
+      },
+      "flags": {
+        "stale": "No update",
+        "pastWork": "Past work"
+      },
+      "add": {
+        "open": "Add task",
+        "title": "New task",
+        "save": "Add task",
+        "defaultOwner": "Default",
+        "internal": "Internal",
+        "added": "Task added: {title}",
+        "title_required": "A title is required",
+        "title_too_long": "At most {max} characters",
+        "due_invalid": "Pick a date"
+      },
+      "edit": {
+        "title": "Edit {number}",
+        "saved": "{number} saved"
+      },
+      "status": {
+        "change": "Status: {status}. Change",
+        "movedLine": "{number}: {status}",
+        "blockedLine": "{number}: Blocked",
+        "blockTitle": "Block {number}",
+        "blockReason": "What is it waiting for?",
+        "block": "Block",
+        "reasonRequired": "A reason is required",
+        "closeItemsTitle": "{count, plural, one {# action item is} other {# action items are}} still open on {number}",
+        "closeItemsBody": "Marking it done closes them too, on the same day.",
+        "closeItems": "Close them and finish"
+      },
+      "items": {
+        "count": "{open} open of {total}",
+        "figure": "{open} open of {total}",
+        "empty": "No action items",
+        "new": "New action item",
+        "added": "Added: {item}",
+        "ticked": "Done: {item}",
+        "unticked": "Reopened: {item}",
+        "textRequired": "Write the action item",
+        "textTooLong": "At most {max} characters"
+      },
+      "errors": {
+        "task": {
+          "title_required": "A title is required",
+          "owner_required": "Live work needs an owner",
+          "open_action_items": "{detail} action items are still open",
+          "only_in_progress_blocks": "Only a task in progress can be blocked",
+          "blocked_needs_reason": "Blocked needs a reason",
+          "status_before_raised": "That day is before the task was raised",
+          "status_unchanged": "The task already has this status",
+          "created_closed": "A new task cannot start closed",
+          "client_work_needs_partner": "Client work needs a client or a project",
+          "internal_has_no_partner": "Internal work has no client",
+          "due_before_start": "The due day is before the start",
+          "team_required": "The task needs a team",
+          "team_inactive": "That team is retired",
+          "partner_not_projects": "The client is not the project's client",
+          "work_type_not_projects": "The work type is the project's",
+          "contact_not_partners": "That contact is not the client's",
+          "notes_too_long": "The notes are too long",
+          "ref_value_required": "The reference needs a value",
+          "ref_taken": "That reference is already on the task",
+          "origin_invalid": "This kind of task cannot be added here"
+        },
+        "action_item": {
+          "text_required": "Write the action item",
+          "not_yours": "Only its owner, a helper or the task's owner can tick this",
+          "done_before_raised": "That day is before the item was added"
+        },
+        "person": {
+          "unavailable": "That person cannot be given work here"
+        },
+        "common": {
+          "date_in_future": "That day is after today"
+        }
+      }
+    }
   },
   "entity": {
     "partner": "Partner",
