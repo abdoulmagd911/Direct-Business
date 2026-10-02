@@ -26,6 +26,8 @@ function api.backfill_keys_held(p_keys text[]) execute authenticated
 function api.backfill_tasks(p_request jsonb) execute authenticated
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
+function api.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
+function api.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
@@ -275,6 +277,8 @@ function partner.activity_log(p_partner uuid, p_type text, p_outcome text, p_hap
 function partner.block_add(p_kind text, p_match text, p_value text, p_reason text) execute authenticated
 function partner.bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
 function partner.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
+function partner.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
+function partner.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function partner.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function partner.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function partner.contacts_remove(p_ids uuid[], p_reason text) execute authenticated

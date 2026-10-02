@@ -496,6 +496,7 @@
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner",
+      "open_client_ids": "Open client IDs an organisation may hold, per kind",
       "contract_reminder_days": "Contract reminders, days before the end",
       "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
       "contract_notify": "Who is told a contract is expiring",
@@ -1140,7 +1141,11 @@
       "name_follows_partner": "Names change from the record's names; add an alias instead",
       "one_code_per_partner": "One live discount code per organisation; a second needs a manager",
       "taken": "Another organisation already holds {detail}",
-      "blocked": "This value can never be an identifier: {detail}"
+      "blocked": "This value can never be an identifier: {detail}",
+      "open_client_id_limit": "This organisation already has its open client IDs of this kind — give one a close date first",
+      "not_client_id": "Only a Payments client ID has a close date",
+      "close_date_required": "Choose the close date",
+      "not_closed": "This client ID is not closed"
     },
     "contact": {
       "unknown_field": "Unknown field: {detail}",

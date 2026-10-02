@@ -165,6 +165,21 @@ export default defineModule({
       schema: z.boolean(),
       default: true,
     },
+    {
+      // How many Payments client IDs of each kind an organisation may hold without a close date (V422, V434); a kind
+      // left out is unlimited — tender IDs, by default.
+      key: 'partner.open_client_ids',
+      group: 'settings.partners',
+      label: 'setting.partner.open_client_ids',
+      schema: z
+        .object({
+          prepaid: z.number().int().min(1).optional(),
+          postpaid: z.number().int().min(1).optional(),
+          tender: z.number().int().min(1).optional(),
+        })
+        .strict(),
+      default: { prepaid: 1, postpaid: 1 },
+    },
   ],
   capabilities: [
     // Per side (V98): the same three powers on the Client side and on the Supplier & partner side.
