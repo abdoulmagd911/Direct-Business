@@ -18,6 +18,23 @@ describe('the catalog check refuses a key missing from either catalog and a hard
     ]);
   });
 
+  it('refuses a key written twice in one catalog object, at any depth, and not the same name in two places', async () => {
+    const root = fixture({
+      'messages/en.json': '{"a":"A","b":{"c":"C","d":{"e":"E"}}}',
+      'messages/ar.json':
+        '{"a":"أ","b":{"c":"ج","d":{"e":"هـ"}},"errors":{"x":"س"},"errors":{"y":"ص"},"p":{"q":{"r":"ر","r":"ز"}}}',
+    });
+    const got = (await findings(check, root)).map((f) => f.message);
+    expect(got).toContain('"errors" is written twice — the later block hides the earlier one');
+    expect(got).toContain('"p.q.r" is written twice — the later block hides the earlier one');
+    // Two files that each hold `a`, and two objects that each hold `c`, are not duplicates.
+    const clean = fixture({
+      'messages/en.json': '{"a":"A","b":{"a":"A"},"c":{"a":"A"}}',
+      'messages/ar.json': '{"a":"أ","b":{"a":"أ"},"c":{"a":"أ"}}',
+    });
+    expect(await findings(check, clean)).toEqual([]);
+  });
+
   it('allows single words, the Ctrl K label, catalog calls, and the kit gallery', async () => {
     const root = fixture({
       'messages/en.json': JSON.stringify({ a: 'A' }),
