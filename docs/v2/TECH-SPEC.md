@@ -232,7 +232,7 @@ available, solid = applied with "field: value" and ✕; a chip keeps or drops ro
   a Member's bar is My day · Tasks · Clients · + — V507) — replaces the drawer; the top bar keeps search, the bell and
   the profile chip; records open **full screen** with a back arrow; tables show as **two-line cards** (line 1: the
   title and its key figure; line 2: two or three secondary fields and the status chip); a **floating +** above the
-  bottom bar (end side) opens quick add — task, Log call, achievement. The same data and actions as on a desktop;
+  bottom bar (end side) opens quick add — ~~task, Log call, achievement~~ **[SUPERSEDED — V217 cut 3, V605: Task and Log achievement at Own or Full; Client, Supplier and Invoice at Full]**. The same data and actions as on a desktop;
   nothing is phone-only.
 - **Four themes** (owner, 28 Sep): **Light**, **Dark**, **Colorful** (the blueprint's values, unchanged) and
   **Direct** — **the official brand palette** (V60, replacing the first Direct values): bg #F6F7F9, surface #FAFBFC,
