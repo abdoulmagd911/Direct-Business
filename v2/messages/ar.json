@@ -347,6 +347,8 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
+    "task_template": "قالب مهمة",
+    "task_occurrence": "مهمة من قالب",
     "project_health": "صحة المشروع"
   },
   "status": {
