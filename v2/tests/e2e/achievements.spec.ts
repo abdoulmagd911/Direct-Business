@@ -77,8 +77,9 @@ test("a colleague sees the department's achievement; another department does not
   );
   const tag = owner.id.slice(0, 8);
   const [row] = await sql<{ id: string }>(
-    `insert into perf.achievement (plan_id, department_id, category_id, title, happened_on, owner_id)
-     select c.plan_id, d.id, c.id, $2, (now() at time zone 'Asia/Riyadh')::date, $1
+    `insert into perf.achievement (plan_id, department_id, category_id, number, title, happened_on, owner_id)
+     select c.plan_id, d.id, c.id, perf.number_for(extract(year from now() at time zone 'Asia/Riyadh')::int),
+            $2, (now() at time zone 'Asia/Riyadh')::date, $1
      from core.department d
      join perf.achievement_category c on c.plan_id = perf.plan_of(d.id, extract(year from now() at time zone 'Asia/Riyadh')::int)
      where d.code = 'commercial' and c.code = 'AWARD' and c.deleted_at is null
