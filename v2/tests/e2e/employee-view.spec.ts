@@ -254,10 +254,10 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Client and Supplier are built and at Full; Task, Invoice and Achievement are not built — absent
+  // a manager: Client, Supplier and Achievement (KPIs is built) are at Full; Task and Invoice are not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 

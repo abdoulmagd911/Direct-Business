@@ -871,4 +871,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'achievement-record-has-no-address',
+    breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
+    expect: 'an achievement opens on its record page',
+    edits: [
+      {
+        file: 'src/ui/entity-route.ts',
+        find: "      return `/kpis/achievements/${id}`;",
+        replace: '      return null;',
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-hides-the-achievements-link',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the KPIs page links to Achievements',
+    edits: [
+      {
+        file: 'src/app/(app)/kpis/page.tsx',
+        find: 'data-achievements-link',
+        replace: 'data-achievements-gone',
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-not-built-for-create',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'Create menu offers only built screens',
+    edits: [
+      {
+        file: 'src/modules/perf/module.ts',
+        find: '      built: true,\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the KPIs page alone does not offer an achievement',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  achievement: 'kpis.turn_into',",
+        replace: "  achievement: 'kpis',",
+      },
+    ],
+  },
 ];
