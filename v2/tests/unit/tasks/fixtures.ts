@@ -1,0 +1,93 @@
+// Made-up tasks and statuses for the Tasks screens' unit tests (rule 7: nothing real).
+import type { TaskRow, TaskStatus } from '@/modules/tasks/types';
+
+export const ME = '00000000-0000-4000-8000-000000000001';
+export const OTHER = '00000000-0000-4000-8000-000000000002';
+
+export const STATUSES: TaskStatus[] = [
+  {
+    id: 's1',
+    key: 'not_started',
+    name_en: 'Not started',
+    name_ar: 'لم تبدأ',
+    sort: 10,
+    active: true,
+    meaning: 'not_started',
+    is_default: true,
+  },
+  {
+    id: 's2',
+    key: 'in_progress',
+    name_en: 'In progress',
+    name_ar: 'قيد التنفيذ',
+    sort: 20,
+    active: true,
+    meaning: 'in_progress',
+    is_default: false,
+  },
+  {
+    id: 's3',
+    key: 'done',
+    name_en: 'Done',
+    name_ar: 'منجزة',
+    sort: 30,
+    active: true,
+    meaning: 'done',
+    is_default: false,
+  },
+  {
+    id: 's4',
+    key: 'cancelled',
+    name_en: 'Cancelled',
+    name_ar: 'ملغاة',
+    sort: 40,
+    active: true,
+    meaning: 'cancelled',
+    is_default: false,
+  },
+];
+
+export function row(over: Partial<TaskRow> = {}): TaskRow {
+  return {
+    id: 't1',
+    number: 'TSK-2026-0001',
+    title: 'Made-up task',
+    owner_id: ME,
+    team_id: 'team',
+    priority: null,
+    priority_en: null,
+    priority_ar: null,
+    executive_directive: false,
+    status: 'not_started',
+    status_en: 'Not started',
+    status_ar: 'لم تبدأ',
+    meaning: 'not_started',
+    type: null,
+    type_en: null,
+    type_ar: null,
+    work_type: 'internal',
+    start_on: null,
+    due_on: null,
+    partner_id: null,
+    project_id: null,
+    origin: 'manual',
+    happened_on: '2026-10-01',
+    logged_at: '2026-10-01T06:00:00Z',
+    closed_at: null,
+    blocked_reason: null,
+    blocked_on: null,
+    version: 1,
+    can_edit: true,
+    open_action_items: 0,
+    helpers: [],
+    past_work: false,
+    needs_owner: false,
+    overdue: false,
+    stale: false,
+    blocked: false,
+    logged_late: false,
+    backfilled: false,
+    last_activity_on: '2026-10-01',
+    ...over,
+  };
+}

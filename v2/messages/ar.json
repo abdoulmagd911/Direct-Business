@@ -149,6 +149,145 @@
     "confirm": "إزالة"
   },
   "pages": {
+    "achievements": {
+      "title": "الإنجازات",
+      "log": "تسجيل إنجاز",
+      "logged": "تم تسجيل الإنجاز",
+      "saved": "تم حفظ الإنجاز",
+      "removed": "تمت إزالة الإنجاز",
+      "moved": "تم نقل الإنجاز",
+      "assigned": "تم تحديد المالك",
+      "refAdded": "تمت إضافة المرجع",
+      "refRemoved": "تمت إزالة المرجع",
+      "empty": "لا إنجازات بعد",
+      "noMatch": "لا إنجازات مطابقة",
+      "filters": {
+        "category": "الفئة",
+        "all": "الكل",
+        "mine": "إنجازاتي",
+        "month": "الشهر",
+        "backfilled": "بأثر رجعي",
+        "past": "العمل السابق",
+        "needsOwner": "بلا مالك",
+        "clear": "مسح"
+      },
+      "cols": {
+        "achievement": "الإنجاز",
+        "category": "الفئة",
+        "owner": "المالك",
+        "date": "التاريخ",
+        "value": "قيمة الصفقة"
+      },
+      "marks": {
+        "backfilled": "بأثر رجعي",
+        "draft": "مسودة",
+        "noEvidence": "بلا دليل",
+        "moved": "منقول",
+        "late": "سُجّل متأخرًا",
+        "past": "عمل سابق",
+        "unknown": "غير معروف"
+      },
+      "fields": {
+        "category": "الفئة",
+        "title": "ما الذي تحقق",
+        "date": "التاريخ",
+        "organisation": "الجهة",
+        "value": "قيمة الصفقة",
+        "notes": "الملاحظات",
+        "count": "العدد",
+        "owner": "المالك",
+        "participants": "المشاركون",
+        "reference": "المرجع",
+        "system": "النظام",
+        "source": "التقرير المصدر",
+        "logged": "تاريخ التسجيل",
+        "movedFrom": "نُقل من",
+        "moveReason": "سبب النقل",
+        "none": "لا شيء",
+        "link": "الرابط",
+        "number": "الرقم",
+        "repeatOf": "تكرار لـ",
+        "side": "وُقّع مع"
+      },
+      "tabs": {
+        "overview": "نظرة عامة",
+        "activity": "النشاط",
+        "related": "ذات صلة",
+        "evidence": "الأدلة"
+      },
+      "actions": {
+        "edit": "تعديل",
+        "remove": "إزالة",
+        "move": "نقل",
+        "assign": "تحديد مالك",
+        "addRef": "إضافة مرجع",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "choose": "اختيار"
+      },
+      "dialogs": {
+        "edit": "تعديل الإنجاز",
+        "remove": "إزالة الإنجاز",
+        "move": "النقل إلى فترة أسبق",
+        "assign": "تحديد مالك",
+        "addRef": "إضافة مرجع",
+        "reason": "السبب",
+        "reasonRequired": "اذكر السبب"
+      },
+      "notRevenue": "ليس إيرادًا",
+      "noDate": "بلا تاريخ بعد",
+      "back": "الإنجازات",
+      "figures": {
+        "value": "قيمة الصفقة",
+        "count": "العدد",
+        "date": "التاريخ",
+        "refs": "الأدلة"
+      },
+      "evidenceNone": "لا أدلة بعد",
+      "source": "{kind} · {period}",
+      "reports": {
+        "bd_monthly": "تطوير الأعمال (شهري)",
+        "partnerships": "الشراكات",
+        "commercial_quarterly": "التجاري (ربع سنوي)",
+        "improvements": "التحسينات"
+      },
+      "errors": {
+        "achievement": {
+          "no_plan": "لا توجد خطة لعام {detail} بعد",
+          "ref_required": "أضف مرجع {detail} أولًا",
+          "no_deal_value": "هذه الفئة بلا قيمة صفقة",
+          "category_retired": "هذه الفئة مؤرشفة",
+          "move_earlier_only": "النقل إلى شهر أسبق فقط",
+          "owner_required": "المالك مطلوب",
+          "before_2025": "التواريخ تبدأ من 1 يناير 2025",
+          "title_required": "اذكر ما تحقق",
+          "ref_taken": "هذا المرجع موجود هنا بالفعل",
+          "ref_looks_secret": "يبدو هذا كلمة مرور",
+          "side_required": "اختر من وقّع",
+          "repeat_invalid": "الإنجاز السابق لا يطابق",
+          "number_fixed": "لا يتغير الرقم أبدًا"
+        },
+        "common": {
+          "reason_required": "اذكر السبب"
+        }
+      },
+      "sides": {
+        "client": "عميل",
+        "supplier_partner": "مورد"
+      },
+      "repeat": {
+        "title": "سُجّل من قبل؟",
+        "body": "{number} · {date} يبدو مطابقًا.",
+        "new": "هذا إنجاز جديد",
+        "same": "مطابق للإنجاز السابق"
+      },
+      "plan": {
+        "none": "لا توجد فئات بعد في {department} لعام {year}.",
+        "open": "فتح خطة {year}",
+        "askAdmin": "اطلب من مسؤول النظام فتحها.",
+        "opened": "خطة {year} مفتوحة"
+      }
+    },
     "myDay": {
       "adminAccount": "هذا حساب مسؤول النظام، وهو مخصّص للإعدادات. أما عملك أنت فعلى حسابك كموظف.",
       "goSettings": "الانتقال إلى الإعدادات",
@@ -274,7 +413,149 @@
       "myProfile": "ملفي",
       "find": "ابحث عن إعداد"
     },
-    "beingBuilt": "قيد الإنشاء."
+    "beingBuilt": "قيد الإنشاء.",
+    "tasks": {
+      "unknownOwner": "غير معروف",
+      "blocked": "متوقفة",
+      "blockedSince": "متوقفة منذ {date}",
+      "internalWork": "داخلي",
+      "markDone": "تعليم “{title}” كمنجزة",
+      "markDoneShort": "منجزة",
+      "dueToday": "مستحقة اليوم",
+      "dueOn": "مستحقة في {date}",
+      "lookups": "أسماء الأشخاص والعملاء والمشاريع",
+      "more": "عرض أول {shown} من {total}",
+      "emptyFiltered": "لا مهام تطابق هذه التصفية",
+      "empty": {
+        "owned": "لا تملك أي مهمة بعد",
+        "helping": "لا تساعد في أي مهمة",
+        "team": "لا مهام لفريقك بعد",
+        "my_work": "لا مهام بعد. تظهر هنا المهام التي تملكها أو تتابعها."
+      },
+      "noNotes": "لا ملاحظات",
+      "statusHistory": "تغييرات الحالة",
+      "noStatusChanges": "لا تغييرات في الحالة بعد",
+      "views": {
+        "label": "عروض المهام",
+        "my_work": "عملي",
+        "owned": "ما أملكه",
+        "helping": "ما أساعد فيه",
+        "team": "الفريق"
+      },
+      "chips": {
+        "status": {
+          "open": "مفتوحة",
+          "blocked": "متوقفة",
+          "done": "منجزة",
+          "cancelled": "ملغاة"
+        },
+        "due": {
+          "overdue": "متأخرة",
+          "today": "اليوم",
+          "week": "هذا الأسبوع",
+          "none": "بلا تاريخ"
+        }
+      },
+      "fields": {
+        "title": "العنوان",
+        "owner": "المالك",
+        "helpers": "المساعدون",
+        "due": "الاستحقاق",
+        "start": "البداية",
+        "status": "الحالة",
+        "client": "العميل",
+        "project": "المشروع",
+        "type": "النوع",
+        "raised": "تاريخ الإنشاء",
+        "number": "الرقم",
+        "notes": "الملاحظات",
+        "lastActivity": "آخر تحديث",
+        "references": "المراجع"
+      },
+      "tabs": {
+        "overview": "نظرة عامة",
+        "activity": "النشاط",
+        "related": "ذات صلة",
+        "items": "بنود العمل"
+      },
+      "flags": {
+        "stale": "بلا تحديث",
+        "pastWork": "عمل سابق"
+      },
+      "add": {
+        "open": "إضافة مهمة",
+        "title": "مهمة جديدة",
+        "save": "إضافة مهمة",
+        "defaultOwner": "الافتراضي",
+        "internal": "داخلي",
+        "added": "أُضيفت المهمة: {title}",
+        "title_required": "العنوان مطلوب",
+        "title_too_long": "الحد الأقصى للأحرف: {max}",
+        "due_invalid": "اختر تاريخًا"
+      },
+      "edit": {
+        "title": "تعديل {number}",
+        "saved": "تم حفظ {number}"
+      },
+      "status": {
+        "change": "الحالة: {status}. تغيير",
+        "movedLine": "{number}: {status}",
+        "blockedLine": "{number}: متوقفة",
+        "blockTitle": "إيقاف {number}",
+        "blockReason": "ما الذي تنتظره؟",
+        "block": "إيقاف",
+        "reasonRequired": "السبب مطلوب",
+        "closeItemsTitle": "{count, plural, one {بند عمل واحد لا يزال مفتوحًا} two {بندا عمل لا يزالان مفتوحين} few {# بنود عمل لا تزال مفتوحة} many {# بند عمل لا يزال مفتوحًا} other {# بند عمل لا يزال مفتوحًا}} في {number}",
+        "closeItemsBody": "تعليم المهمة منجزة يغلق هذه البنود أيضًا في اليوم نفسه.",
+        "closeItems": "إغلاقها وإنهاء المهمة"
+      },
+      "items": {
+        "count": "{open} مفتوح من {total}",
+        "figure": "{open} مفتوح من {total}",
+        "empty": "لا بنود عمل",
+        "new": "بند عمل جديد",
+        "added": "أُضيف: {item}",
+        "ticked": "تم إنجاز: {item}",
+        "unticked": "أُعيد فتح: {item}",
+        "textRequired": "اكتب بند العمل",
+        "textTooLong": "الحد الأقصى للأحرف: {max}"
+      },
+      "errors": {
+        "task": {
+          "title_required": "العنوان مطلوب",
+          "owner_required": "العمل الجاري يحتاج إلى مالك",
+          "open_action_items": "{detail} من بنود العمل لا تزال مفتوحة",
+          "only_in_progress_blocks": "لا يمكن إيقاف إلا مهمة قيد التنفيذ",
+          "blocked_needs_reason": "الإيقاف يحتاج إلى سبب",
+          "status_before_raised": "هذا اليوم قبل إنشاء المهمة",
+          "status_unchanged": "المهمة في هذه الحالة بالفعل",
+          "created_closed": "لا يمكن أن تبدأ مهمة جديدة وهي مغلقة",
+          "client_work_needs_partner": "عمل العميل يحتاج إلى عميل أو مشروع",
+          "internal_has_no_partner": "العمل الداخلي لا عميل له",
+          "due_before_start": "يوم الاستحقاق قبل البداية",
+          "team_required": "المهمة تحتاج إلى فريق",
+          "team_inactive": "هذا الفريق مؤرشف",
+          "partner_not_projects": "العميل ليس عميل المشروع",
+          "work_type_not_projects": "نوع العمل يتبع المشروع",
+          "contact_not_partners": "جهة الاتصال هذه ليست من جهات اتصال العميل",
+          "notes_too_long": "الملاحظات طويلة جدًا",
+          "ref_value_required": "المرجع يحتاج إلى قيمة",
+          "ref_taken": "هذا المرجع موجود على المهمة بالفعل",
+          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا"
+        },
+        "action_item": {
+          "text_required": "اكتب بند العمل",
+          "not_yours": "لا يضع علامة الإنجاز عليه إلا مالكه أو مساعد أو مالك المهمة",
+          "done_before_raised": "هذا اليوم قبل إضافة البند"
+        },
+        "person": {
+          "unavailable": "لا يمكن إسناد عمل إلى هذا الشخص هنا"
+        },
+        "common": {
+          "date_in_future": "هذا اليوم بعد تاريخ اليوم"
+        }
+      }
+    }
   },
   "entity": {
     "partner": "شريك",
@@ -452,6 +733,9 @@
     }
   },
   "errors": {
+    "common": {
+      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
+    },
     "partner": {
       "unknown_side": "جانب غير معروف: {detail}",
       "side_required": "تحتاج الجهة إلى جانب واحد على الأقل",
@@ -497,7 +781,19 @@
       "happened_in_future": "لا تكون الملاحظة بعد اليوم",
       "next_step_before": "لا تسبق الخطوة التالية النشاط أبدًا",
       "outcome_required": "يحتاج هذا النوع إلى نتيجة",
-      "outcome_of_other_type": "هذه النتيجة تخص نوعًا آخر"
+      "outcome_of_other_type": "هذه النتيجة تخص نوعًا آخر",
+      "items_invalid": "يحتاج كل صف في قائمة المراجعة إلى كلمات، وبحد أقصى 500 حرف",
+      "meeting_finished": "تم تسجيل هذا الاجتماع بالفعل",
+      "meeting_needs_partner": "يحتاج الاجتماع إلى جهة",
+      "not_a_meeting": "لا يمكن إنهاء إلا ملاحظة الاجتماع",
+      "not_open": "تمت معالجة هذه الملاحظة بالفعل",
+      "not_yours": "لا يغيّر الملاحظة إلا كاتبها",
+      "turn_into_needs_partner": "اختر الجهة أولًا",
+      "turn_into_not_yet": "يتوفر مع صفحته",
+      "body_required": "تحتاج الملاحظة إلى كلمات",
+      "turn_into_type_invalid": "اختر مكالمة أو اجتماعًا",
+      "turn_into_invalid": "لا يمكن التحويل إلى هذا النوع",
+      "wrap_up_choice_invalid": "اختر الترحيل أو تم"
     },
     "crash": {
       "title": "حدث خطأ ما",
@@ -509,6 +805,10 @@
       "title": "الصفحة غير موجودة",
       "body": "لا شيء على العنوان <address></address>.",
       "goMyDay": "الانتقال إلى «يومي»"
+    },
+    "reminder": {
+      "time_required": "اختر موعد التذكير",
+      "time_passed": "اختر وقتًا في المستقبل"
     }
   },
   "partners": {
@@ -540,11 +840,11 @@
     },
     "side": {
       "client": "عميل",
-      "supplier_partner": "مورد وشريك"
+      "supplier_partner": "مورد"
     },
     "sides": {
       "client": "جانب العميل",
-      "supplier_partner": "جانب المورد والشريك"
+      "supplier_partner": "جانب المورد"
     },
     "status": {
       "prospect": "محتملة",
@@ -586,6 +886,7 @@
       "notes": "الملاحظات",
       "client_since": "عميل منذ"
     },
+    "sideTabs": "العملاء والموردون",
     "tabs": {
       "overview": "نظرة عامة",
       "activity": "النشاط",
@@ -868,321 +1169,12 @@
       "email": "البريد الإلكتروني"
     }
   },
-  "errors": {
-    "common": {
-      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
-    },
-    "partner": {
-      "unknown_side": "جانب غير معروف: {detail}",
-      "side_required": "تحتاج الجهة إلى جانب واحد على الأقل",
-      "side_type_required": "يحتاج جانب {detail} إلى نوع",
-      "side_not_on": "الجانب غير مفعّل: {detail}",
-      "last_side": "يبقى الجانب الأخير مفعّلًا",
-      "side_off_before_on": "لا يُوقف جانب قبل تاريخ تفعيله",
-      "side_fixed": "لا يتغير الجانب بعد تحديده",
-      "owner_has_its_own_door": "يُحدَّد المالك من «تحديد المالك» في السجل",
-      "status_reason_required": "تحتاج حالتا «مهددة» و«مفقودة» إلى سبب",
-      "trade_name_required": "الاسم التجاري مطلوب",
-      "unknown_field": "حقل غير معروف: {detail}",
-      "nothing_to_change": "لا شيء لتغييره",
-      "archived": "هذه الجهة مؤرشفة",
-      "unknown_activity_type": "نوع نشاط غير معروف: {detail}",
-      "demo_day_required": "يحتاج «تحديد عرض توضيحي» إلى يوم العرض",
-      "unknown_side_entry": "بند غير معروف لهذا الجانب: {detail}",
-      "side_field_required": "الحقل {detail} مطلوب",
-      "side_field_invalid": "قيمة الحقل {detail} غير صالحة",
-      "unknown_side_field": "حقل غير معروف: {detail}"
-    },
-    "identifier": {
-      "name_follows_partner": "تتغير الأسماء من أسماء السجل؛ أضف اسمًا آخر بدلًا من ذلك",
-      "one_code_per_partner": "رمز خصم فعّال واحد لكل جهة؛ ويحتاج الرمز الثاني إلى مدير",
-      "taken": "جهة أخرى تحمل {detail} بالفعل",
-      "blocked": "لا تصلح هذه القيمة معرّفًا أبدًا: {detail}"
-    },
-    "contact": {
-      "unknown_field": "حقل غير معروف: {detail}",
-      "unknown_role": "دور جهة اتصال غير معروف"
-    },
-    "contract": {
-      "unknown_field": "حقل غير معروف: {detail}",
-      "terms_list_expected": "يجب أن تكون الشروط قائمة",
-      "side_required": "يحتاج العقد إلى جانبه"
-    },
-    "reference": {
-      "unknown_field": "حقل غير معروف: {detail}",
-      "unknown_system": "نظام غير معروف: {detail}",
-      "no_secrets": "يبدو هذا كلمة مرور أو سرًّا؛ البطاقات تحمل المراجع فقط"
-    },
-    "note": {
-      "happened_in_future": "لا تكون الملاحظة بعد اليوم",
-      "next_step_before": "لا تسبق الخطوة التالية النشاط أبدًا",
-      "outcome_required": "يحتاج هذا النوع إلى نتيجة",
-      "outcome_of_other_type": "هذه النتيجة تخص نوعًا آخر",
-      "items_invalid": "يحتاج كل صف في قائمة المراجعة إلى كلمات، وبحد أقصى 500 حرف",
-      "meeting_finished": "تم تسجيل هذا الاجتماع بالفعل",
-      "meeting_needs_partner": "يحتاج الاجتماع إلى جهة",
-      "not_a_meeting": "لا يمكن إنهاء إلا ملاحظة الاجتماع",
-      "not_open": "تمت معالجة هذه الملاحظة بالفعل",
-      "not_yours": "لا يغيّر الملاحظة إلا كاتبها",
-      "turn_into_needs_partner": "اختر الجهة أولًا",
-      "turn_into_not_yet": "يتوفر مع صفحته",
-      "body_required": "تحتاج الملاحظة إلى كلمات",
-      "turn_into_type_invalid": "اختر مكالمة أو اجتماعًا",
-      "turn_into_invalid": "لا يمكن التحويل إلى هذا النوع",
-      "wrap_up_choice_invalid": "اختر الترحيل أو تم"
-    },
-    "crash": {
-      "title": "حدث خطأ ما",
-      "body": "تعذّر عرض هذه الصفحة. حاول مجددًا، أو عُد إلى «يومي».",
-      "goMyDay": "الانتقال إلى «يومي»",
-      "bodyNoData": "تعذّر الوصول إلى بيانات التطبيق الآن. حاول مجددًا بعد قليل، أو عُد إلى «يومي»."
-    },
-    "notFound": {
-      "title": "الصفحة غير موجودة",
-      "body": "لا شيء على العنوان <address></address>.",
-      "goMyDay": "الانتقال إلى «يومي»"
-    },
-    "reminder": {
-      "time_required": "اختر موعد التذكير",
-      "time_passed": "اختر وقتًا في المستقبل"
-    }
-  },
   "notifications": {
     "kinds": {
       "reminder": "تذكير: {what}",
       "note_mention": "أشار {actor} إليك في ملاحظة"
     },
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
-  },
-  "partners": {
-    "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
-    "none": "لا جهات مطابقة",
-    "search": "ابحث بالاسم أو الرقم",
-    "newClient": "عميل جديد",
-    "newSupplier": "مورد وشريك جديد",
-    "created": "تمت إضافة {name}",
-    "updated": "تم تحديث {name}",
-    "edit": "تعديل {name}",
-    "keyPartner": "شريك رئيسي",
-    "keyPartnerOnly": "الشركاء الرئيسيون فقط",
-    "staleOnly": "الراكدة فقط",
-    "showArchived": "إظهار المؤرشفة",
-    "archived": "مؤرشفة",
-    "moreFilters": "مرشحات أخرى",
-    "tier": "المستوى",
-    "priority": "الأولوية",
-    "accountManager": "مدير الحساب",
-    "relationshipOwner": "مالك العلاقة",
-    "columns": {
-      "name": "الجهة",
-      "type": "النوع",
-      "status": "الحالة",
-      "owner": "المالك",
-      "lastActivity": "آخر نشاط",
-      "flags": "العلامات"
-    },
-    "side": {
-      "client": "عميل",
-      "supplier_partner": "مورد"
-    },
-    "sides": {
-      "client": "جانب العميل",
-      "supplier_partner": "جانب المورد"
-    },
-    "status": {
-      "prospect": "محتملة",
-      "active": "نشطة",
-      "at_risk": "مهددة",
-      "lost": "مفقودة",
-      "none": "بلا حالة"
-    },
-    "flags": {
-      "stale": "راكدة",
-      "contract_expiring": "عقد يقترب من الانتهاء"
-    },
-    "bulk": {
-      "assign": "تحديد المالك والأولوية",
-      "assigned": "{count, plural, one {تم تحديد جهة واحدة} two {تم تحديد جهتين} few {تم تحديد # جهات} many {تم تحديد # جهة} other {تم تحديد # جهة}}",
-      "title": "{count, plural, one {تحديد جهة واحدة} two {تحديد جهتين} few {تحديد # جهات} many {تحديد # جهة} other {تحديد # جهة}}",
-      "keepOwner": "إبقاء المالك",
-      "keepPriority": "إبقاء الأولوية"
-    },
-    "fields": {
-      "tradeNameEn": "الاسم التجاري",
-      "tradeNameAr": "الاسم التجاري (بالعربية)",
-      "officialNameEn": "الاسم الرسمي",
-      "officialNameAr": "الاسم الرسمي (بالعربية)",
-      "website": "الموقع الإلكتروني",
-      "city": "المدينة",
-      "country": "الدولة",
-      "address": "العنوان",
-      "notes": "ملاحظات",
-      "clientSince": "عميل منذ",
-      "number": "الرقم"
-    },
-    "figures": {
-      "last_activity": "آخر نشاط",
-      "next_step": "الخطوة التالية",
-      "contracts": "العقود",
-      "contacts": "جهات الاتصال",
-      "files": "الملفات",
-      "notes": "الملاحظات",
-      "client_since": "عميل منذ"
-    },
-    "sideTabs": "العملاء والموردون",
-    "tabs": {
-      "overview": "نظرة عامة",
-      "activity": "النشاط",
-      "related": "ذات صلة"
-    },
-    "activity": {
-      "log": "تسجيل نشاط",
-      "logged": "تم تسجيل {type}",
-      "type": "النوع",
-      "outcome": "النتيجة",
-      "happenedOn": "تاريخ الحدوث",
-      "line": "ما الذي حدث",
-      "nextStep": "الخطوة التالية",
-      "nextStepOn": "موعد الخطوة التالية",
-      "demoDay": "يوم العرض التوضيحي",
-      "loggedLate": "سُجّل متأخرًا",
-      "timeline": "الملاحظات والأنشطة",
-      "none": "لم يُسجَّل شيء بعد",
-      "by": "بواسطة {name}"
-    },
-    "note": {
-      "add": "إضافة ملاحظة",
-      "added": "تمت إضافة الملاحظة",
-      "kind": "النوع",
-      "body": "الملاحظة",
-      "kinds": {
-        "comment": "تعليق",
-        "update": "تحديث",
-        "meeting_note": "محضر اجتماع",
-        "activity": "نشاط",
-        "escalation": "تصعيد"
-      }
-    },
-    "sideDialog": {
-      "onTitle": "تفعيل جانب {side}",
-      "editTitle": "تغيير جانب {side}",
-      "on": "تم تفعيل جانب {side}",
-      "changed": "تم تغيير جانب {side}",
-      "offTitle": "إيقاف جانب {side}؟",
-      "off": "تم إيقاف جانب {side}",
-      "switchOff": "إيقاف",
-      "since": "منذ",
-      "until": "حتى",
-      "switchOn": "تفعيل جانب {side}",
-      "switchOffAction": "إيقاف جانب {side}",
-      "change": "تغيير جانب {side}"
-    },
-    "statusDialog": {
-      "title": "تحديد حالة جانب {side}",
-      "set": "تم تحديد الحالة: {status}",
-      "effectiveOn": "تسري من",
-      "reasonRequired": "تحتاج حالتا «مهددة» و«مفقودة» إلى سبب",
-      "note": "ملاحظة",
-      "action": "تحديد الحالة",
-      "history": "سجل الحالات"
-    },
-    "ownerDialog": {
-      "titleClient": "تحديد مدير الحساب",
-      "titleSupplier": "تحديد مالك العلاقة",
-      "set": "تم تحديد المالك: {name}",
-      "from": "من",
-      "action": "تحديد المالك",
-      "history": "المالكون"
-    },
-    "identifier": {
-      "title": "المعرّفات",
-      "add": "إضافة معرّف",
-      "added": "تمت إضافة المعرّف",
-      "removed": "تمت إزالة المعرّف",
-      "remove": "إزالة المعرّف",
-      "removeTitle": "إزالة {value}؟",
-      "kind": "النوع",
-      "subkind": "نوع العميل",
-      "value": "القيمة",
-      "validFrom": "صالح من",
-      "validTo": "صالح حتى",
-      "kinds": {
-        "vat": "الرقم الضريبي",
-        "cr": "رقم السجل التجاري",
-        "email": "البريد الإلكتروني",
-        "phone": "الهاتف",
-        "payments_client_id": "رقم العميل",
-        "discount_code": "رمز الخصم",
-        "name": "اسم آخر"
-      },
-      "subkinds": {
-        "prepaid": "دفع مسبق",
-        "postpaid": "دفع آجل",
-        "tender": "مناقصة"
-      }
-    },
-    "contact": {
-      "title": "جهات الاتصال",
-      "add": "إضافة جهة اتصال",
-      "added": "تمت إضافة {name}",
-      "updated": "تم تحديث {name}",
-      "removed": "تمت إزالة {name}",
-      "edit": "تعديل {name}",
-      "nameEn": "الاسم",
-      "nameAr": "الاسم (بالعربية)",
-      "role": "الدور",
-      "jobTitle": "المسمى الوظيفي",
-      "email": "البريد الإلكتروني",
-      "phone": "الهاتف",
-      "sides": "يتبع",
-      "primary": "جهة الاتصال الأساسية",
-      "removeTitle": "إزالة {name}؟"
-    },
-    "reference": {
-      "title": "مراجع دايركت",
-      "add": "إضافة مرجع",
-      "edit": "تعديل المرجع",
-      "saved": "تم حفظ المرجع",
-      "removed": "تمت إزالة المرجع",
-      "system": "النظام",
-      "value": "القيمة",
-      "url": "الرابط",
-      "side": "الجانب",
-      "shared": "الجانبان",
-      "removeTitle": "إزالة {value}؟"
-    },
-    "contract": {
-      "title": "العقود",
-      "add": "إضافة عقد",
-      "edit": "تعديل {title}",
-      "added": "تمت إضافة {title}",
-      "updated": "تم تحديث {title}",
-      "removed": "تمت إزالة {title}",
-      "kind": "النوع",
-      "kinds": {
-        "contract": "عقد",
-        "agreement": "اتفاقية"
-      },
-      "side": "الجانب",
-      "startOn": "يبدأ",
-      "endOn": "ينتهي",
-      "reminders": "التذكير في",
-      "removeTitle": "إزالة {title}؟",
-      "state": {
-        "active": "ساري",
-        "expiring": "{days, plural, one {ينتهي بعد يوم واحد} two {ينتهي بعد يومين} few {ينتهي بعد # أيام} many {ينتهي بعد # يومًا} other {ينتهي بعد # يوم}}",
-        "expired": "منتهٍ",
-        "not_started": "لم يبدأ",
-        "open": "مفتوح المدة"
-      }
-    },
-    "details": "التفاصيل",
-    "noSide": "الجانب موقوف",
-    "sideFields": "الحقول",
-    "since": "منذ",
-    "stale": "راكدة منذ {date}",
-    "nextStepDue": "الخطوة التالية {date}",
-    "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة"
   },
   "createNew": {
     "task": "مهمة جديدة",
