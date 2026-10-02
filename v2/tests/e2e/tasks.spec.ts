@@ -203,3 +203,67 @@ test('a member sees their department’s work, never another’s (V96)', async (
   await expect(page.locator('span[data-task-status]').first()).toBeVisible();
   await ctx.close();
 });
+
+test('desk and phone: the Past work grid pastes 20 made-up rows as one request with one Undo (V276)', async ({
+  browser,
+}) => {
+  for (const [width, height] of [
+    [1440, 900],
+    [390, 844],
+  ] as const) {
+    const member = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const { ctx, page } = await signedIn(browser, member, width, height, '/tasks?view=past');
+    const calls: string[] = [];
+    page.on('request', (r) => {
+      if (r.url().includes('/rpc/backfill_tasks')) calls.push(r.method());
+    });
+    const count = async () =>
+      (
+        await sql<{ n: number }>(
+          `select count(*)::int as n from work.task where title like $1 and deleted_at is null`,
+          [`Made-up past ${tag} %`],
+        )
+      )[0]!.n;
+    // 20 made-up rows, dated in Q3 (July and August) with a day past 12 (never read two ways)
+    const rows = Array.from({ length: 20 }, (_, i) =>
+      [`Made-up past ${tag} ${i + 1}`, `${13 + (i % 10)}/0${7 + Math.floor(i / 10)}/2026`, 'Done'].join('\t'),
+    );
+    const pasteAndSave = async () => {
+      const grid = page.locator('[data-past-work-grid="tasks"]');
+      await expect(grid).toBeVisible();
+      // the report the rows come from (V506): the Commercial quarterly for Q3 2026 (its list is short enough to show
+      // whole on a phone); the trigger must say so — a test that picks some other report proves nothing
+      await grid.getByLabel('Source report').click();
+      await page.getByRole('option', { name: 'Commercial quarterly' }).click();
+      await grid.getByLabel('Which report').click();
+      await page.getByRole('option', { name: 'Q3 2026' }).click();
+      await expect(grid.getByLabel('Which report')).toContainText('Q3 2026');
+      await grid.locator('[data-past-work-paste]').fill(['Title\tDate\tStatus', ...rows].join('\n'));
+      await expect(grid.locator('[data-past-work-summary]')).toContainText('20 rows ready · 0 refused');
+      await noSidewaysScroll(page, `${width} px past work`);
+      await page.screenshot({ path: shot(`tasks-past-work-${width}`), fullPage: true });
+      await grid.locator('[data-past-work-save]').click();
+    };
+
+    await pasteAndSave();
+    const done = page.locator('[data-sonner-toast]', { hasText: '20 rows saved as past work' });
+    await expect(done).toBeVisible();
+    expect(calls, 'one paste is one request').toHaveLength(1);
+    expect(await count(), 'all twenty saved').toBe(20);
+
+    // one Undo takes the whole paste back
+    await done.getByRole('button', { name: 'Undo' }).click();
+    await expect.poll(count, { message: 'one Undo removes all twenty' }).toBe(0);
+
+    // pasted again, they are past work: in the Past work view, never in My work (V491)
+    await page.goto('/tasks?view=past');
+    await pasteAndSave();
+    await expect.poll(count).toBe(20);
+    await page.goto('/tasks?view=past');
+    await expect(page.locator('li[data-task-row]', { hasText: `Made-up past ${tag}` })).toHaveCount(20);
+    await page.goto('/tasks');
+    await expect(page.locator('li[data-task-row]', { hasText: `Made-up past ${tag}` })).toHaveCount(0);
+    await ctx.close();
+  }
+});

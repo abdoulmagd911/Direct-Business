@@ -28,6 +28,7 @@ import {
 } from '../rules';
 import type { TaskList, TaskRow } from '../types';
 import type { TaskLookups } from '../load';
+import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
 import { DoneTick } from './StatusControl';
 import { useNames } from './words';
@@ -164,6 +165,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
             : null}
       </div>
 
+      {f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (
+        <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} />
+      ) : null}
       {lookups.failed.length ? (
         <DataState
           kind="failed"

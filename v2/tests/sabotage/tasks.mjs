@@ -33,8 +33,8 @@ export const sabotages = [
     edits: [
       {
         file: RULES,
-        find: "f.scope === 'team' ? 'all' : 'my_work'",
-        replace: "f.scope === 'team' ? 'mine' : 'my_work'",
+        find: "f.scope === 'team' || f.scope === 'past' ? 'all' : 'my_work'",
+        replace: "f.scope === 'team' ? 'mine' : f.scope === 'past' ? 'all' : 'my_work'",
       },
     ],
   },
@@ -133,7 +133,36 @@ export const sabotages = [
     breaks: [e2e],
     expect: 'a colleague’s task is not My work',
     edits: [
-      { file: RULES, find: "f.scope === 'team' ? 'all' : 'my_work'", replace: "f.scope === 'team' ? 'all' : 'all'" },
+      {
+        file: RULES,
+        find: "f.scope === 'team' || f.scope === 'past' ? 'all' : 'my_work'",
+        replace: "f.scope === 'team' || f.scope === 'past' ? 'all' : 'all'",
+      },
+    ],
+  },
+  // ---- the Past work grid on Tasks (V276)
+  {
+    name: 'tasks-past-view-shows-live-work',
+    breaks: [unit('past-work-names-are-matched-exactly-never-guessed')],
+    expect: 'the Past work view asks for past work only',
+    edits: [{ file: RULES, find: "  if (f.scope === 'past') out.past_work = true;\n", replace: '' }],
+  },
+  {
+    name: 'tasks-past-work-guesses-a-client',
+    breaks: [unit('past-work-names-are-matched-exactly-never-guessed')],
+    expect: 'one client is a match, none is unknown, two are ambiguous',
+    edits: [{ file: 'src/modules/tasks/pastWork.ts', find: ': hits.size === 1', replace: ': hits.size >= 1' }],
+  },
+  {
+    name: 'e2e-tasks-past-work-grid-not-mounted',
+    breaks: [e2e],
+    expect: 'the Past work grid pastes 20 made-up rows as one request with one Undo',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "{f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (",
+        replace: "{f.scope === 'past' && !atLeastOwn('full') && atLeastOwn(me.levels.tasks) ? (",
+      },
     ],
   },
 ];
