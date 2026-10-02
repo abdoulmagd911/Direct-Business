@@ -22,7 +22,10 @@ export const CREATE_ACTIONS: { key: string; page: string; route: string; icon: L
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['full'] },
 ];
 
-const BUILT = new Set(modules.flatMap((m) => (m.pages ?? []).filter((p) => p.built).map((p) => p.key)));
+/** The pages whose screens are built (registry `built`): Create offers them; My day's Turn into opens them (V433). */
+export const BUILT: ReadonlySet<string> = new Set(
+  modules.flatMap((m) => (m.pages ?? []).filter((p) => p.built).map((p) => p.key)),
+);
 
 /** The Create items this person gets, in order. */
 export function createActionsFor(me: Me) {
