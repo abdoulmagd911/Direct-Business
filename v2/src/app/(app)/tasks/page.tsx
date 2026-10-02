@@ -11,7 +11,7 @@ export default async function AreaPage() {
   return (
     <Page page="tasks" title={t('nav.tasks')}>
       <PageHeader title={t('nav.tasks')} />
-      <DataState kind="empty" message={t('pages.empty.tasks')} />
+      <DataState kind="empty" message={t('pages.beingBuilt')} />
     </Page>
   );
 }

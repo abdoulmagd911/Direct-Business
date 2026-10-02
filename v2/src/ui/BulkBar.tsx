@@ -11,12 +11,19 @@ export type BulkAction = {
   key: string;
   label: string;
   icon?: ReactNode;
-  /** One api.* call for every selected id — one request, one Undo (§3.3). */
-  run: (ids: string[]) => Promise<Written>;
-  /** The done line, e.g. "12 assigned to Sara". */
-  done: (count: number) => string;
   variant?: 'primary' | 'secondary' | 'danger';
-};
+} & (
+  | {
+      /** One api.* call for every selected id — one request, one Undo (§3.3). */
+      run: (ids: string[]) => Promise<Written>;
+      /** The done line, e.g. "12 assigned to Sara". */
+      done: (count: number) => string;
+    }
+  | {
+      /** Opens a dialog that asks first and runs the one command itself, over the ids as they stand now. */
+      open: (ids: string[]) => void;
+    }
+);
 
 /**
  * The bulk bar over a list with rows selected (§3.3, V61): the count, the actions, Clear. An action is one command for
@@ -44,6 +51,10 @@ export function BulkBar({
     failed: (k, d) => t(k, { detail: d }),
   });
   const fire = async (a: BulkAction) => {
+    if ('open' in a) {
+      a.open(ids);
+      return;
+    }
     setBusy(a.key);
     await command(words(a.done(ids.length)), () => a.run(ids), { after: onClear });
     setBusy(null);

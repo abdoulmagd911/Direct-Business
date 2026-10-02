@@ -365,25 +365,13 @@ export const sabotages = [
     ],
   },
   {
-    name: 'menu-theme-stays-in-the-cookie',
+    name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the menu saves to the profile',
-    edits: [
-      {
-        file: 'src/ui/shell/ProfileMenu.tsx',
-        find: "onValueChange={(v) => choose('theme', v as typeof prefs.theme)}",
-        replace: "onValueChange={(v) => set('theme', v as typeof prefs.theme)}",
-      },
-    ],
-  },
-  {
-    name: 'profile-keeps-the-undone-theme',
-    breaks: ['e2e:tests/e2e/profile.spec.ts'],
-    expect: 'the undone theme is gone from the page',
+    expect: 'the undone density is gone from the page',
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);\n",
+        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);\n",
         replace: '',
       },
     ],
@@ -522,6 +510,42 @@ export const sabotages = [
     ],
   },
   {
+    name: 'at-risk-needs-no-reason',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'At risk asks for a reason',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/SideDialogs.tsx',
+        find: "  const needsReason = f.status === 'at_risk' || f.status === 'lost';\n",
+        replace: '  const needsReason = false;\n',
+      },
+    ],
+  },
+  {
+    name: 'bulk-assign-one-by-one',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'every selected organisation is owned by the new owner',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: '          p_ids: ids,\n',
+        replace: '          p_ids: ids.slice(0, 1),\n',
+      },
+    ],
+  },
+  {
+    name: 'hover-card-shows-one-side',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the hover card names both sides',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnerHover.tsx',
+        find: '              {p.sides.map((s) => (\n',
+        replace: '              {p.sides.slice(0, 1).map((s) => (\n',
+      },
+    ],
+  },
+  {
     name: 'no-role-reads-as-allowed',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
     expect: 'no role in words',
@@ -582,6 +606,43 @@ export const sabotages = [
     ],
   },
   {
+    // the brief's own sabotage (F7): a manage page given the work tier reaches a member's menu
+    name: 'menu-shows-own-manage-page',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'the member menu',
+    edits: [
+      {
+        file: 'src/modules/projects/module.ts',
+        find: "nav: { group: 'main', order: 60, tier: 'manage' },",
+        replace: "nav: { group: 'main', order: 60, tier: 'work' },",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-an-unbuilt-screen',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'Create offers only built screens',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
+        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+      },
+    ],
+  },
+  {
+    name: 'access-list-closed-for-admins',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'open with Show less',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PersonRecord.tsx',
+        find: '  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);',
+        replace: '  const [allAccess, setAllAccess] = useState(false);',
+      },
+    ],
+  },
+  {
     name: 'list-hides-its-side',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
     expect: 'Side type shows each side',
@@ -614,6 +675,18 @@ export const sabotages = [
         file: 'src/app/(app)/[[...path]]/page.tsx',
         find: "  if ((await accountOf(me.person.id)) === 'admin_account') return '/settings';\n",
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'record-tabs-lose-their-words',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'Overview',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '    "tabs": {\n      "overview": "Overview",',
+        replace: '    "tabsGone": {\n      "overview": "Overview",',
       },
     ],
   },
@@ -666,6 +739,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'clients-none-reads-as-a-list',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'no-access',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/list-page.tsx',
+        find: "if ((me.levels[page] ?? 'none') === 'none')",
+        replace: 'if (!me)',
+      },
+    ],
+  },
+  {
     name: 'no-access-has-no-way-out',
     breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
     expect: 'data-no-access-home',
@@ -674,6 +759,18 @@ export const sabotages = [
         file: 'src/ui/DataState.tsx',
         find: '{goHome ? (',
         replace: '{goHome && false ? (',
+      },
+    ],
+  },
+  {
+    name: 'suppliers-door-lost-when-clients-none',
+    breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
+    expect: 'a person with Clients none still has a door to Suppliers',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: '(e.tabOf && canSee(me, e.tabOf))',
+        replace: 'e.tabOf',
       },
     ],
   },
@@ -770,6 +867,18 @@ export const sabotages = [
         file: 'src/ui/record/history.ts',
         find: 'if (run.length === 1) {',
         replace: 'if (run.length >= 1) {',
+      },
+    ],
+  },
+  {
+    name: 'capped-list-says-nothing',
+    breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
+    expect: 'says how many it shows of how many',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/CappedNote.tsx',
+        find: 'if (total <= shown) return null;',
+        replace: 'if (total >= 0) return null;',
       },
     ],
   },

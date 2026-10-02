@@ -7,21 +7,21 @@ import { makePerson, signIn, sql } from './support/stack';
 const CONTENT = 'data-testid="address"';
 
 test('no content is drawn before me is known', async ({ page, request }) => {
-  const signedOut = await request.get('/partners/7', { maxRedirects: 0 });
+  const signedOut = await request.get('/tasks/7', { maxRedirects: 0 });
   expect(signedOut.status()).toBe(307);
-  expect(signedOut.headers()['location']).toMatch(/^\/sign-in\?next=%2Fpartners%2F7$/);
-  expect(await signedOut.text()).not.toContain('/partners/7<');
+  expect(signedOut.headers()['location']).toMatch(/^\/sign-in\?next=%2Ftasks%2F7$/);
+  expect(await signedOut.text()).not.toContain('/tasks/7<');
 
   const person = await makePerson();
-  await signIn(page, person.email, '/partners/7');
-  await expect(page.getByTestId('address')).toHaveText('/partners/7');
+  await signIn(page, person.email, '/tasks/7');
+  await expect(page.getByTestId('address')).toHaveText('/tasks/7');
   await sql(`update core.person set can_sign_in = false where id = $1`, [person.id]);
 
   for (const headers of [{}, { rsc: '1' }] as Record<string, string>[]) {
-    const refused = await page.request.get('/partners/8', { maxRedirects: 0, headers });
+    const refused = await page.request.get('/tasks/8', { maxRedirects: 0, headers });
     const body = await refused.text();
     expect(body, 'a refused session gets no content').not.toContain(CONTENT);
-    expect(body, 'a refused session gets no content').not.toContain('/partners/8');
+    expect(body, 'a refused session gets no content').not.toContain('/tasks/8');
   }
 
   const bodies: string[] = [];
@@ -29,8 +29,8 @@ test('no content is drawn before me is known', async ({ page, request }) => {
     if (r.request().resourceType() === 'document' || r.headers()['content-type']?.includes('text/x-component'))
       bodies.push(await r.text().catch(() => ''));
   });
-  await page.goto('/partners/9');
+  await page.goto('/tasks/9');
   await expect(page).toHaveURL(/\/sign-in\?/);
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('Your account is switched off');
-  for (const body of bodies) expect(body, 'a refused session gets no content').not.toContain('/partners/9<');
+  for (const body of bodies) expect(body, 'a refused session gets no content').not.toContain('/tasks/9<');
 });

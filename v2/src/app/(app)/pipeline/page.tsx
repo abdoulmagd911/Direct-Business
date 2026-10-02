@@ -11,7 +11,7 @@ export default async function AreaPage() {
   return (
     <Page page="pipeline" title={t('nav.pipeline')}>
       <PageHeader title={t('nav.pipeline')} />
-      <DataState kind="empty" message={t('pages.empty.pipeline')} />
+      <DataState kind="empty" message={t('pages.beingBuilt')} />
     </Page>
   );
 }
