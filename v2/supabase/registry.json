@@ -615,6 +615,54 @@
   ],
   "entities": [
     {
+      "key": "achievement",
+      "table": "perf.achievement",
+      "page": "kpis",
+      "owners": "perf.achievement_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_category",
+      "table": "perf.achievement_category",
+      "page": "settings.performance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_participant",
+      "table": "perf.achievement_participant",
+      "page": "kpis",
+      "owners": "perf.achievement_participant_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_ref",
+      "table": "perf.achievement_ref",
+      "page": "kpis",
+      "owners": "perf.achievement_ref_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "action_item",
       "table": "work.action_item",
       "page": "tasks",
@@ -1051,6 +1099,18 @@
       "table": "core.person_team_assist",
       "page": "settings.org",
       "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "plan",
+      "table": "perf.plan",
+      "page": "settings.performance",
+      "owners": null,
       "list": false,
       "private": false,
       "visible": null,
