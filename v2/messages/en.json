@@ -212,7 +212,124 @@
   "pages": {
     "myDay": {
       "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
-      "goSettings": "Go to Settings"
+      "goSettings": "Go to Settings",
+      "tabs": {
+        "me": "Me",
+        "team": "My team",
+        "workspace": "Workspace"
+      },
+      "tabsLabel": "Whose notes",
+      "capture": {
+        "label": "Capture",
+        "placeholder": "Capture a note",
+        "save": "Capture",
+        "kind": "Kind",
+        "captured": "Note filed in My notes"
+      },
+      "kinds": {
+        "sticky": "Note",
+        "meeting": "Meeting",
+        "checklist": "Checklist"
+      },
+      "visibility": {
+        "label": "Who sees it",
+        "private": "Only me",
+        "team": "My team",
+        "workspace": "Everyone"
+      },
+      "blocks": {
+        "me": "My notes",
+        "team": "Shared with my team",
+        "workspace": "Shared with everyone",
+        "reminders": "Reminders",
+        "since": "What's new"
+      },
+      "more": "Show all",
+      "fewer": "Show fewer",
+      "empty": {
+        "me": "No notes yet. What you capture here stays yours until you share it.",
+        "team": "Nothing shared with your team yet.",
+        "workspace": "Nothing shared with everyone yet."
+      },
+      "note": {
+        "untitled": "Untitled note",
+        "title": "Title",
+        "body": "Notes",
+        "items": "Checklist",
+        "addItem": "Add a row",
+        "itemLabel": "Row {n}",
+        "removeItem": "Remove row {n}",
+        "organisation": "Organisation",
+        "meetingOn": "Meeting day",
+        "happenedOn": "Happened on",
+        "by": "by {name}",
+        "draft": "Not logged",
+        "logged": "Logged {date}",
+        "carried": "Carried to {date}",
+        "turnedInto": "Turned into",
+        "fromNote": "From note",
+        "saved": "Note saved",
+        "remove": "Delete note",
+        "removeTitle": "Delete the note “{name}”?",
+        "removeBody": "What it was turned into stays.",
+        "removed": "Note deleted",
+        "notFound": "This note is not there, or it is not yours to read.",
+        "details": "Details",
+        "linkActivity": "{type} · {name}",
+        "linkReminder": "Reminder · {when}"
+      },
+      "turn": {
+        "label": "Turn into",
+        "kinds": {
+          "activity": "Logged meeting or call",
+          "reminder": "Reminder",
+          "task": "Task",
+          "action_item": "Action item",
+          "achievement": "Achievement"
+        },
+        "activityTitle": "Log a meeting or call",
+        "reminderTitle": "Set a reminder",
+        "organisation": "Organisation",
+        "searchOrg": "Search organisations by name or number",
+        "noOrg": "No organisation found",
+        "type": "Type",
+        "outcome": "Outcome",
+        "line": "What happened",
+        "when": "When",
+        "text": "Remind me to",
+        "logged": "{type} logged on {name}",
+        "reminded": "Reminder set for {when}"
+      },
+      "finish": {
+        "label": "Finish meeting",
+        "title": "Finish meeting",
+        "logOn": "Log the meeting on the organisation",
+        "save": "Log meeting",
+        "done": "Meeting logged on {name}"
+      },
+      "wrap": {
+        "label": "Wrap up",
+        "title": "Wrap up today",
+        "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
+        "carry": "Carry over to {date}",
+        "done": "Done",
+        "turn": "Turn into",
+        "save": "Done for today",
+        "saved": "Day wrapped up",
+        "none": "Nothing left to handle today."
+      },
+      "reminder": {
+        "removeTitle": "Remove the reminder “{name}”?",
+        "removed": "Reminder removed"
+      },
+      "since": {
+        "at": "Last visit {when}",
+        "markSeen": "Mark seen",
+        "kinds": {
+          "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
+          "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
+        }
+      }
     },
     "settings": {
       "myProfile": "My profile",
@@ -1040,7 +1157,8 @@
       "unavailable": "The server did not answer. Try again.",
       "nothing_selected": "Nothing is selected",
       "reason_required": "A reason is required",
-      "bad_request": "The request was not understood: {detail}"
+      "bad_request": "The request was not understood: {detail}",
+      "date_in_future": "A note cannot happen after today"
     },
     "person": {
       "full_name_required": "A full name is required",
@@ -1165,7 +1283,19 @@
       "happened_in_future": "A note cannot happen after today",
       "next_step_before": "A next step is never before the activity",
       "outcome_required": "This type needs an outcome",
-      "outcome_of_other_type": "The outcome belongs to another type"
+      "outcome_of_other_type": "The outcome belongs to another type",
+      "items_invalid": "A checklist row needs words, and no more than 500 characters",
+      "meeting_finished": "This meeting is already logged",
+      "meeting_needs_partner": "A meeting needs its organisation",
+      "not_a_meeting": "Only a meeting note can be finished",
+      "not_open": "This note is already handled",
+      "not_yours": "Only the author changes a note",
+      "turn_into_needs_partner": "Choose the organisation first",
+      "turn_into_not_yet": "This arrives with its page",
+      "body_required": "A note needs words",
+      "turn_into_type_invalid": "Choose call or meeting",
+      "turn_into_invalid": "This cannot be turned into that",
+      "wrap_up_choice_invalid": "Choose carry over or done"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -1186,6 +1316,10 @@
       "has_one": "This person already has a password of their own — it is kept",
       "no_sign_in": "This person has no allowed email yet",
       "confirm_required": "A Reset replaces the password they hold — confirm it first"
+    },
+    "reminder": {
+      "time_required": "Choose when to be reminded",
+      "time_passed": "Choose a time in the future"
     }
   },
   "notifications": {
