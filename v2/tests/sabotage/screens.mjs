@@ -21,10 +21,10 @@ export const sabotages = [
   {
     name: 'plant-white-on-accent',
     breaks: ['check:accent-fill-only'],
-    expect: 'src/ui/Button.tsx',
+    expect: 'src/ui/button-variants.ts',
     edits: [
       {
-        file: 'src/ui/Button.tsx',
+        file: 'src/ui/button-variants.ts',
         find: 'bg-primary text-on-primary hover:bg-primary-hover',
         replace: 'bg-accent text-on-accent hover:bg-accent-hover',
       },
@@ -836,6 +836,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'page-titles-lost',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'My day · Commercial',
+    edits: [
+      {
+        file: 'src/ui/shell/page-title.ts',
+        find: 'title: (await getTranslations())(key)',
+        replace: "title: 'Commercial'",
+      },
+    ],
+  },
+  {
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
     expect: 'no-access',
@@ -844,6 +856,18 @@ export const sabotages = [
         file: 'src/modules/partners/screens/list-page.tsx',
         find: "if ((me.levels[page] ?? 'none') === 'none')",
         replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'no-access-has-no-way-out',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-no-access-home',
+    edits: [
+      {
+        file: 'src/ui/DataState.tsx',
+        find: '{goHome ? (',
+        replace: '{goHome && false ? (',
       },
     ],
   },
@@ -860,6 +884,102 @@ export const sabotages = [
     ],
   },
   {
+    name: 'phone-search-too-short',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a finger-sized Search box',
+    edits: [
+      {
+        file: 'src/ui/shell/TopBar.tsx',
+        find: "'flex h-11 min-w-0",
+        replace: "'flex h-[38px] min-w-0",
+      },
+    ],
+  },
+  {
+    name: 'setting-default-shows-a-date',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a setting nobody changed says Default',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: "companyRow && companyRow.reason !== 'default'",
+        replace: 'companyRow',
+      },
+    ],
+  },
+  {
+    name: 'file-types-without-extensions',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Word (.docx)',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        find: "wordprocessingml.document': 'Word (.docx)'",
+        replace: "wordprocessingml.document': 'Word'",
+      },
+    ],
+  },
+  {
+    name: 'list-key-stays-in-the-table',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the key sits behind Details',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: '<details className="rounded-md border border-border px-3 py-2" data-list-details>',
+        replace: '<details open className="rounded-md border border-border px-3 py-2" data-list-details>',
+      },
+    ],
+  },
+  {
+    name: 'list-key-needs-typing',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-list-save',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: 'draft.key.trim() ||',
+        replace: 'draft.key.trim() &&',
+      },
+    ],
+  },
+  {
+    name: 'settings-empty-group-explains-the-build',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Nothing to set up here yet.',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"emptyGroup": "Nothing to set up here yet."',
+        replace: '"emptyGroup": "No settings here yet. They arrive with the step that builds this area."',
+      },
+    ],
+  },
+  {
+    name: 'sign-in-boxes-turn-autofill-off',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Expected: "username"',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: 'autoComplete="username"',
+        replace: 'autoComplete="off"',
+      },
+    ],
+  },
+  {
+    name: 'preference-runs-stay-separate',
+    breaks: ['unit:tests/unit/shell/a-run-of-theme-and-density-changes-is-one-row-in-the-log.test.ts'],
+    expect: 'three changes, one row',
+    edits: [
+      {
+        file: 'src/ui/record/history.ts',
+        find: 'if (run.length === 1) {',
+        replace: 'if (run.length >= 1) {',
+      },
+    ],
+  },
+  {
     name: 'capped-list-says-nothing',
     breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
     expect: 'says how many it shows of how many',
@@ -868,6 +988,18 @@ export const sabotages = [
         file: 'src/modules/partners/screens/CappedNote.tsx',
         find: 'if (total <= shown) return null;',
         replace: 'if (total >= 0) return null;',
+      },
+    ],
+  },
+  {
+    name: 'activity-delete-has-no-words',
+    breaks: ['unit:tests/unit/shell/the-activity-log-has-words-for-a-deleted-record.test.tsx'],
+    expect: 'a deleted record has words',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '      "delete": "{what} deleted",\n',
+        replace: '',
       },
     ],
   },

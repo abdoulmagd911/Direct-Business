@@ -8,8 +8,11 @@ import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { isAdmin } from '@/ui/shell/nav';
+import { pageTitle } from '@/ui/shell/page-title';
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
+
+export const generateMetadata = pageTitle('nav.activity');
 
 /** Activity (V97): the change log, the settings log with Revert and the sign-in log, for Activity · View. */
 export default async function ActivityPage({
@@ -25,7 +28,12 @@ export default async function ActivityPage({
     return (
       <Page>
         <PageHeader title={t('nav.activity')} />
-        <DataState kind="no-access" what={t('nav.activity')} />
+        <DataState
+          kind="no-access"
+          what={t('nav.activity')}
+          message={t('state.noAccess', { what: t('nav.activity') })}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </Page>
     );
   const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;

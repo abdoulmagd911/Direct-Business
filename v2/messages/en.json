@@ -537,6 +537,7 @@
     "none": "No changes yet",
     "undone": "Undone",
     "undoneChip": "Undone",
+    "groupedChanges": "{count} changes",
     "revert": "Revert",
     "reverted": "Setting reverted",
     "revertTitle": "Revert {setting}?",
@@ -552,6 +553,7 @@
       "insert": "{what} added",
       "update": "{what} changed: {fields}",
       "remove": "{what} removed",
+      "delete": "{what} deleted",
       "restore": "{what} restored",
       "request": "Change"
     },
@@ -769,6 +771,7 @@
       "clear": "Back to the value for all departments",
       "cleared": "Department value cleared",
       "default": "Default",
+      "notSet": "Not set",
       "edit": "Change {setting}",
       "values": {
         "true": "On",
@@ -991,7 +994,7 @@
         }
       }
     },
-    "emptyGroup": "No settings here yet. They arrive with the step that builds this area.",
+    "emptyGroup": "Nothing to set up here yet.",
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
