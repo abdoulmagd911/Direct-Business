@@ -1304,6 +1304,10 @@
     }
   },
   "errors": {
+    "overview": {
+      "period_invalid": "The period ends before it starts",
+      "unknown_period": "Choose month, quarter or year to date, or your own dates"
+    },
     "opportunity": {
       "handover_needs_ticket": "Handed to Product needs the Direct ticket",
       "partner_fixed": "An opportunity stays with its organisation",

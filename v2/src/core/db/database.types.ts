@@ -244,6 +244,7 @@ export type Database = {
       opportunity_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
+      overview: { Args: { p_from?: string; p_period?: string; p_segment?: string; p_to?: string }; Returns: Json };
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };

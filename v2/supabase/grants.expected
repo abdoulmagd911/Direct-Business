@@ -95,6 +95,7 @@ function api.notifications_unread() execute authenticated
 function api.opportunity_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.opportunity_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.org() execute authenticated
+function api.overview(p_period text, p_from date, p_to date, p_segment text) execute authenticated
 function api.own_password_set(p_auth_user uuid, p_keep_session uuid) execute service_role
 function api.page_seen(p_page text) execute authenticated
 function api.partner(p_id uuid) execute authenticated
@@ -351,6 +352,7 @@ function pipeline.bulk_assign(p_entity text, p_ids uuid[], p_owner uuid, p_reaso
 function pipeline.card(p_entity text, p_id uuid) execute authenticated
 function pipeline.move(p_entity text, p_id uuid, p_stage text, p_happened_on date, p_values jsonb, p_version integer) execute authenticated
 function pipeline.opportunity_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function pipeline.overview(p_period text, p_from date, p_to date, p_segment text) execute authenticated
 function pipeline.partner_cards(p_partner uuid) execute authenticated
 function pipeline.remove(p_entity text, p_ids uuid[], p_reason text) execute authenticated
 function pipeline.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
