@@ -1111,6 +1111,89 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - The daily alerts' first-run-on-or-after rule was already built (WRK-124, test ALR-02). V455's "a kind whose run failed is shown to admins" stays with P3-6e part 2.
 - Test NOTE-06. Sabotages `a-reminder-sent-twice`, `a-reminder-sent-early`.
 
+**V189 — Projects and tasks, the core as built** ACTIVE · 2026-10-01 (P5-1, first PR; spec §3.7).
+- **Lists:**
+  - `work.task_status`: one row per locked meaning (Not started · In progress · Done · Cancelled; Not started is the default). Names stay editable; a fifth status is refused.
+  - `work.project_status`: each status in a category (planned, active, on hold, done, cancelled).
+  - `work.task_type`: seeded Follow-up, Meeting, Request, Report, Other.
+- **Numbers:** `TSK-2026-0001` and `PRJ-2026-001`.
+- **Link tables have an id and soft removal.** Helpers, item helpers, references and contacts each have an id; the pair is unique among live rows (§2's link-table rule).
+- **Segment:** a project's segment override points at a Client side type, since `partner.segment` became the side types (V98).
+- **Later P5-1 PRs:** templates and recurring generation, team load, Escalate, next-step and follow-up tasks, the measures, and the Past work grid's door.
+- Tests TSK-01 to TSK-05, DATE-02, PAST-01, PRJ-01.
+
+**V190 — Who sees and who changes work** ACTIVE · 2026-10-01 (P5-1; builds §5, V96).
+- **Who sees:** a task or project is seen by the whole team of its department, plus the departments an admin lets a person see. `work.row_level` gives the Tasks or Projects page's level there, and none elsewhere.
+- **Who changes a task:** Full, or Own and its owner or creator. Helpers add notes (`core.note_add`) and tick the action items they own or help on.
+- **Who changes a project:** its owner with Own, or Full.
+- **Who is told of changes:** a task's owner, creator and helpers.
+- **Giving work to someone else needs `tasks.assign`.** That covers naming another owner at creation, reassigning, and naming another owner for an action item. An Unknown owner is given only with the capability.
+- Sabotages:
+  - `a-member-assigns-to-anyone`, `a-task-seen-by-another-department`;
+  - `a-helper-ticks-any-item`, `my-work-forgets-the-helpers`.
+
+**V191 — Status moves, Blocked and closing** ACTIVE · 2026-10-01 (P5-1; builds V401, V400).
+- **One door for every move:** `api.task_status_set(id, status, happened_on, reason, close_items)`.
+- **Blocked** is In progress with a reason, recorded with its day; moving to In progress without a reason resumes the task.
+- **Done with open action items** is refused with `task.open_action_items` (the count) until `close_items` is true. Then the items close on the same day, or on the day they were raised if that is later.
+- Done or Cancelled records who closed the task and when; reopening clears it.
+- Every move goes into `work.task_status_change` with its day. A move dated before the task was raised is refused.
+- Sabotages: `blocked-forgets-its-reason`, `done-leaves-items-open`.
+
+**V192 — Past work, as built** ACTIVE · 2026-10-01 (P5-1; builds V491, V506).
+- **What counts:** a task dated before `app.go_live_on`, or any backfilled task, is past work.
+- **Owner:** its owner may be Unknown (`owner_unknown`). Live work is refused one (`task.owner_required`).
+- **Where it shows:** it has no overdue or stale flag, and stays out of the live list and My work. It sits under the `past_work` and `needs_owner` filters.
+- **No notices:** a change to past work tells nobody, not even through the change fan-out. The request is dated on the work's own day, never later than yesterday (`work.quiet_if_past`).
+- Sabotages: `live-work-without-an-owner`, `past-work-flagged-overdue`.
+
+**V193 — "Assigned" and "helper added" reach the person on back-dated live work** ACTIVE · 2026-10-01 (P5-1; builds V456).
+- `notify.push_assigned` ignores the request's day: only the actor, the person's notice choices and whether they may see the record decide.
+- Every other notice still follows the past-dated rule.
+- A project's new owner is told too.
+- Sabotage `a-back-dated-assignment-tells-nobody`.
+
+**V194 — The rules every task meets** ACTIVE · 2026-10-01 (P5-1; builds V464, V465, V466; OLD-014, OLD-018).
+- **Owner:** the one named, else the project's owner, else the Client side's account manager (while they can work here), else the maker.
+- **Team and department:** the team is the one named, else the owner's home team, else the maker's. The department is the team's. A task keeps its team on reassignment.
+- **Organisation and work type** are the project's.
+- **Client and internal work:** client work needs an organisation or a project; internal work has none. With neither given, a task is internal.
+- **A contact** belongs to the task's organisation.
+- **A project with live tasks** keeps its organisation and is not removed.
+- **Who can be named:** team members only (`core.is_team_member`). A switched-off, departed or system person, the test account and the owner's admin account are refused (`person.unavailable`), as owner, helper or item owner; a task the admin account makes cannot fall back to it as owner (QA-214, V444). The Past work grid's name matching (`api.people_match`) counts team members only, so the owner's name answers his employee account.
+- **The number** takes the year the task happened (Happened on) when it is made, never the year it was entered, in `api.task_create` and `api.backfill_tasks` alike: a 2025 past-work task is `TSK-2025-…`. It never changes afterwards, even if Happened on is edited (V531). Projects keep the year they were made.
+- Sabotages: `the-owner-chain-skips-the-project`, `a-task-on-another-organisations-project`, `a-switched-off-person-owns-a-task`, `the-admin-account-owns-a-task`, `the-admin-account-matches-a-name`, `a-past-task-numbered-this-year`.
+
+**V195 — The task reads** ACTIVE · 2026-10-01 (P5-1; builds V400, OLD-WRK-040/041/043).
+- **`api.tasks(filter)`** filters by `scope` (all · mine · my_work), meanings, owner, organisation, project, type, overdue, stale, blocked, past_work, needs_owner and words.
+- **Order:** the Executive directive first, then open before closed, then by due day. The answer carries `total` and `more`.
+- **Flags, judged today:**
+  - *overdue* — due before Riyadh today, and not Done or Cancelled;
+  - *stale* — In progress, Blocked included, with no activity for `work.no_update_days`, judged on each entry's `happened_on`;
+  - *logged late* — after go-live, never on backfilled work.
+- **Single records:** `api.task(id)` with its checklist, helpers, references, contacts and status history; `api.projects(filter)`; `api.project(id)` with the latest health and its history.
+- Sabotages: `stale-judged-on-the-logged-day`, `the-directive-sorts-anywhere`, `late-before-go-live`, `the-oldest-health-shows`.
+
+**V196 — The Past work grid's door** ACTIVE · 2026-10-01 (P5-1; builds V400, V491, V504, V506; OLD-059, OLD-PRF-045; for Builder C's grid, P5-2c #105).
+- **`api.backfill_tasks(request)`** takes C's shape: `{ mode: 'tasks', origin: 'backfill', source: { kind, period, last_day }, rows: [...] }`.
+- **One paste is one request**, and one Undo takes it back.
+- **Each row** becomes a Backfilled task:
+  - its day is its own, or the report's last day when it has none (`date_from_report`);
+  - it keeps the report as evidence (`source_kind`, `source_period`);
+  - its owner is the person named, Unknown (`owner_unknown`), or else the paster;
+  - its status is the one given, Done when none.
+- **Never noisy:** it tells nobody and is never logged late.
+- **Refused:**
+  - a row before 1 January 2025 (`backfill.before_2025`);
+  - a paste with no report;
+  - a row for someone else without `tasks.assign`.
+
+  Each refusal names the row's index.
+- **Saved once:** a live task holds one `import_key`. A key already held is left out and returned as `held`; `api.backfill_keys_held(keys)` answers the grid's "saved before".
+- **`api.people_match(names)`** answers each pasted name with one person, none, or several. Real names in either language beat nicknames, which beat e-mail prefixes. Spellings are folded.
+- **Not built here:** the place in the profile for the grid's mapping and last report, and V502's figure (no task row carries one).
+- Tests BACK-01, NAMEMATCH-01. Sabotages `a-pasted-row-saved-twice`, `an-undated-row-dated-today`, `a-nickname-beats-a-real-name`.
+
 ## Builder B (V200–V299)
 
 **V200 — `tokens.css` is checked against the design system table** ACTIVE · 2026-09-28. The four themes' values (V60 for Direct; BUILD-PLAN "Design tokens" for the rest) live once in `src/ui/tokens.css`; `tests/unit/tokens.test.ts` holds the same table and fails on any drift (sabotage `tokens-drift`). Beside the colours the file declares the type scale, the 4 px spacing grid, the radii, the shadows and the density sizes (Comfortable default; `[data-density='compact']` tightens table rows to 32 px only — V8). Tailwind v4 maps utilities to the tokens and its stock palette is removed, so `text-red-500` does not exist.
@@ -1177,3 +1260,23 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Every Arabic text box is right to left**: the Arabic deck marks each text box (`rtlCol="1"`) and each paragraph (`rtl="1"`), the change chips included — a left-to-right mark keeps "+18.5%" in its order inside them. Found on the way and fixed: pptxgenjs writes a paragraph's settings before every run of a paragraph made of several runs (a tile's figure and its «ريال»), which the file format does not allow; `writePptx` keeps one settings tag per paragraph, first, for every deck, the template path's included.
 - **QA on #95 (QA-79 to QA-81), fixed 29 Sep:** the sample report and the translator page carried figures and lines echoing the department's real November 2025 report — every figure and line is now invented and every golden redrawn (rule 7; V34 reads the real reports for their layout only); whether to clean the branch's history is the owner's call. The golden budget is **10 pixels a page** (it was 0.02 %, about 100): one broken Arabic join in a body word differs by about 40 and now fails, proved by the sabotage `pdf-breaks-an-arabic-join`. Between two percentages a tile's change is in **points** («+2.5 نقطة» / "+2.5 pts"), not a percent of a percent; in the PDF the figure and the word are two pieces ordered by the language, since a direction mark would pull in a built-in font. A filled template's removed slide takes its notes page with it, and every deck lists only the parts it holds (pptxgenjs lists slide masters it never writes).
 - **Every time zone (PRF-139, the scenario catalogue; 29 Sep, evening):** a report prints the same whatever the computer's zone — its period and dates are Riyadh calendar days, so December, January, a leap February and the quarters keep their names in UTC, Riyadh, Los Angeles, Kiritimati and Pago Pago, in both languages, and the PDF and the PPTX are the same bytes in every zone (the moved clock was proved already: two renderings a day apart are identical). Proof: `a-report-prints-the-same-in-every-time-zone` and the sabotages `period-read-in-the-computers-zone`, `pdf-dated-in-the-computers-zone`, `pptx-dated-in-the-computers-zone`.
+
+## Builder E (V370–V399)
+
+**V370 — Achievements live in `perf`, and a plan exists for its categories** ACTIVE · 2026-10-01 (builder E, brief `briefs/achievements.md`). `perf.plan` holds one row per department and year (from 2025); `api.plan_open(department, year)` (admins — Full on Settings → Targets) opens one: the department's first plan starts with the seven starting categories (Problem solving, Cost savings, MoU / strategic signing, Contract signed, Technical integration, Supplier cashback, Awards — each with its Arabic name and line sentence, V76), a later one copies the nearest year's categories, sub-categories under their copied parents; a second plan for the same year is refused, naming the one held. Builder A's plan editor and `api.plan_copy` add objectives, KPIs and targets to these rows. An achievement belongs to the plan of its day's year in its owner's department (no plan: refused, naming the year); re-dated into another year it takes the same category code in that year's plan. Spec §3.8, §5a.
+
+**V371 — The deal value is a typed column, not a field** ACTIVE · 2026-10-01 (builder E). `perf.achievement.deal_value` (SAR, never Finance money — V505) is allowed only on categories with `has_deal_value` (Contract signed, MoU and their sub-categories); `value_report_kind` and `value_report_period` name the report it was last taken from, and a value a person types clears them. A typed column because the Past work grid's door compares and replaces it (V502) and no json column is needed; when category fields (`perf.category_field`) and mappings arrive, the Deal revenue KPI's `field_sum` reads it by the key `deal_value`. Spec §3.8.
+
+**V372 — The newest report wins inside the grid's door** ACTIVE · 2026-10-01 (builder E; the Architect's reading of V502 on #105). `api.backfill_achievements` takes the grid's request (#105) with an optional `value` per row. A row whose import key is already held is left out and named under `held` — unless it brings a deal value and either the stored value is blank (filled) or it came from an older report (a later last day; on the same day the Commercial quarterly beats a monthly): then the value is replaced and the key named under `updated`; the older value stays in `audit.change` (V500). A value a person typed is never replaced by a report: named under `kept`. Spec §3.11.
+
+**V373 — Who changes an achievement** ACTIVE · 2026-10-01 (builder E; §3.8, V467, V491). Its own people — owner, the person who logged it, participants — change it with Own on KPIs; a manager with Full changes anyone's, and must give a reason when it is not theirs. Removing always needs a reason. Logging for someone else, giving Unknown work its owner (Needs an owner) and moving into an earlier period (with a reason; the "moved" mark keeps the first day it had, who and why) need Full on KPIs. An Unknown owner is allowed on past work only (backfilled, or dated before go-live), checked by the database. Spec §3.8.
+
+**V374 — A draft is an achievement with no day; "no evidence yet" is computed** ACTIVE · 2026-10-01 (builder E; V68, V99, V506). `draft` is stored as "happened_on is empty" (a generated column) — such an achievement sits in the plan of the year it was logged and never counts; once dated it is not a draft. "No evidence yet" is read, never stored: no live reference, no file linked to it, and no source report (a backfilled row's report is its evidence). Spec §3.8.
+
+**V375 — A category may require a reference** ACTIVE · 2026-10-01 (builder E; V99, V407). `required_ref_system_id` names the Direct system a reference must point into: Technical integration requires a ticket. Live work is refused without it when logged, when re-filed under such a category, and when its last such reference is removed; backfilled rows are exempt (their report is the evidence, V506). Spec §3.8.
+
+**V376 — What waits for other lanes** ACTIVE · 2026-10-01 (builder E). `project_id` and `source_task_id` are foreign keys to `work.project` and `work.task` (#140 landed first, so this step adds them, 2 Oct); `service_id` and `origin_report_id` stay plain columns until `finance.service` (P4) and `report.report` (P6-1) are on `v2/main`, and the step landing second adds the foreign key (§3.0). The record types plan and category are labelled with `nav.settings.performance`, and an achievement's references and participants with `entity.achievement`, until builder C writes the Arabic for their own words (the brief keeps E out of `ar.json`). The grid asks which achievement keys are held through its own door, `api.backfill_achievement_keys_held`; people are matched by `api.people_match` (#140). Spec §3.0, §3.11.
+
+**V377 — The achievements screens: one list, one record page, one form; the + and the KPIs page are the shell's** ACTIVE · 2026-10-02 (builder E; GC-4). `/kpis/achievements` is one lean list — category, Mine or All, month, and the Backfilled, Past work and Needs owner switches, all in the address so a filtered list reopens from its link; each row is the achievement's own line (V76) with its category, owner (or Unknown), date, deal value and marks in words (Draft, Backfilled, Unknown, No evidence, Moved, Logged late). `/kpis/achievements/<id>` is the V95 record page: up to four figures (deal value labelled "Not revenue", count, date, evidence), tabs Overview · Activity · Related · Evidence (the type tab, V99), Edit for its own people (a reason asked of a manager editing someone else's), Move and Give owner for Full, Remove with a reason, each with Undo. `/kpis/achievements/new` is Log achievement: category first, then what, date (today by default; empty is a draft), organisation, deal value where the category carries one, a reference (its system fixed where the category requires one), the owner for Full. The achievement's own refusal words live under `pages.achievements.errors` (the brief keeps E's catalog keys there). **Handed to builder B (the shell):** switching the + menu's `achievement` entry to built (`CREATE_ACTIONS` in `ui/shell/CreateMenu.tsx`), linking the record type in `ui/entity-route.ts`, and the Achievements link on the `/kpis` page. Spec §2.5, §3.8; plan P5-6.
+
+**V378 — Numbers, repeats and the MoU's side in the data** ACTIVE · 2026-10-02 (builder E; V531, V521, builder C's ask on #148). (1) `perf.achievement.number` is `ACH-<year>-0042` from `core.next_number('achievement', year)` — the year of Happened on when the achievement is made, a draft's the year it is logged — written by `achievement_log` and `backfill_achievements`, refused if anything changes it; the list's search finds it. (2) `repeat_of → perf.achievement`; `api.achievement_repeats(organisation, category, title, day)` returns the live achievements the person sees for that organisation and category code dated in the 12 months up to the day whose folded title scores at least the threshold (`pg_trgm` similarity, best first) — no organisation, no check; `achievement_log` takes `repeat_of` only for one of the same organisation and code; a paste never prompts and returns `repeats` (row, id, matches). The threshold is the setting `perf.repeat_similarity` (0.6) once its words exist in both catalogs — until builder C's Arabic, 0.6 fixed (the brief keeps E out of `ar.json`). (3) A category's `sets_prospect` (seeded on MoU) makes an achievement of it — or of its sub-categories — with an organisation name its side (`side`: client or supplier_partner, kept as `mou_side`); when dated, it sets that side to Prospect from its day, only where the side is on and has no status at all (V461) — as a consequence of the achievement, not the logger editing the side (the Architect's ruling on QA-512, to be recorded as V601): no partner rights asked, no owner assigned, in the same call but as its own log entry (`perf.mou_prospect`, the logger as its person, note "From MoU ACH-…"), kept on the achievement as `mou_status_id`; undoing the achievement undoes that Prospect while the side has no other live status change, and leaves a side that has moved on alone. It runs the first time the MoU has its organisation, side and signing day — on the log or on a later change, a draft dated later included (QA-513) — once per MoU; undoing that change undoes the Prospect under the same rule. The paste of past work never sets a status, nor does a pasted MoU given a side later (V491, V506; the Architect's rulings of 2 Oct on #148). `draft` is kept by the guard rather than generated, so undo can write a dated draft back. (4) `api.backfill_achievement_keys_held` returns, per held key, `{ key, amount, from_kind, from_period, typed }` for the grid's V502 preview. Spec §3.8, §3.11.

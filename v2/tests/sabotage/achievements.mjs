@@ -1,0 +1,57 @@
+// Sabotages for the achievements screens (builder E, GC-4): each breaks one promise, and the named test must go red.
+export const sabotages = [
+  {
+    name: 'filter-forgets-the-month',
+    breaks: ['unit:tests/unit/achievements/the-list-filters-live-in-the-address-and-reach-the-door.test.ts'],
+    expect: 'reads an address back into the same filter',
+    edits: [{ file: 'src/modules/perf/types.ts', find: "  if (f.month) q.set('month', f.month);", replace: '' }],
+  },
+  {
+    name: 'log-sends-no-reference',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'MADE-UP-',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: 'const refs = ref.trim() ?',
+        replace: 'const refs = false ?',
+      },
+    ],
+  },
+  {
+    name: 'log-skips-the-repeat-check',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'Logged before?',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '    if (found.length) setRepeats(found);',
+        replace: '    if (false) setRepeats(found);',
+      },
+    ],
+  },
+  {
+    name: 'held-typed-read-as-a-report',
+    breaks: ['unit:tests/unit/achievements/the-grid-reads-held-keys-and-categories-as-the-door-answers.test.ts'],
+    expect: 'reads a report, a typed value and a blank one apart',
+    edits: [
+      {
+        file: 'src/modules/perf/backfill.ts',
+        find: "from: r.typed ? 'typed' :",
+        replace: "from: false ? 'typed' :",
+      },
+    ],
+  },
+  {
+    name: 'capped-achievements-say-nothing',
+    breaks: ['unit:tests/unit/achievements/the-list-says-when-it-shows-only-the-first-rows.test.tsx'],
+    expect: 'says it shows 200 of 230',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{page ? <CappedNote shown={page.rows.length} total={page.total} /> : null}',
+        replace: '{null}',
+      },
+    ],
+  },
+];
