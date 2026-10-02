@@ -613,7 +613,7 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-214 | 2026-10-01 16:40 | #140; V444, V465, V196 | Medium | Builder A | **#140 lets the owner's admin account own and help on work, and counts it when matching pasted names.** V444: the admin account is "never counted as a team member"; his own work is on his employee account. `work.person_ok` refuses only the test account. So another admin can name the admin account a task's owner (saved) or helper (saved), and a task the admin account makes falls back to it as owner (the creator, last in V464's chain). `api.people_match` counts both accounts, so the owner's name, which both his accounts carry, answers `many` in the Past work grid instead of his employee account. The test account also still matches (`one`), then fails on save. **Fix:** `work.person_ok` takes team members only (`account = 'team_member'`), which also refuses the creator fallback through `task_create`'s check. `core.people_match` matches team members only. A scratch sketch of exactly that makes the test pass, and TSK-01/02/03, BACK-01 and NAMEMATCH-01 stay green. **Test:** `v2/supabase/tests/qa/QA-214-the-admin-account-is-never-named-on-work.sql`, which fails until built. | Fixed on #140 90b7de8: work.person_ok and people_match take team members only; QA-214 passes there (round 44). |
+| QA-214 | 2026-10-01 16:40 | #140; V444, V465, V196 | Medium | Builder A | **#140 lets the owner's admin account own and help on work, and counts it when matching pasted names.** V444: the admin account is "never counted as a team member"; his own work is on his employee account. `work.person_ok` refuses only the test account. So another admin can name the admin account a task's owner (saved) or helper (saved), and a task the admin account makes falls back to it as owner (the creator, last in V464's chain). `api.people_match` counts both accounts, so the owner's name, which both his accounts carry, answers `many` in the Past work grid instead of his employee account. The test account also still matches (`one`), then fails on save. **Fix:** `work.person_ok` takes team members only (`account = 'team_member'`), which also refuses the creator fallback through `task_create`'s check. `core.people_match` matches team members only. A scratch sketch of exactly that makes the test pass, and TSK-01/02/03, BACK-01 and NAMEMATCH-01 stay green. **Test:** `v2/supabase/tests/qa/QA-214-the-admin-account-is-never-named-on-work.sql`, which fails until built. | Fixed on main f110a10 (#140): work.person_ok and people_match take team members only; QA-214 passes on main. |
 
 
 ## Round 27 — 2026-10-01 17:56 (v2/main af7972e: #142 merged; retaken)
@@ -911,3 +911,14 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
 | QA-239 | 2026-10-02 08:55 | #138 (main); V216 | Low | Builder B (words) | **The shared refusal for a day in the future talks about notes.** `errors.common.date_in_future` reads "A note cannot happen after today", but the activity door (`20260929090200`) and round 6 raise the same key. A call logged on a future day would therefore read "A note …". The Tasks screens map it to their own line, so they are fine. **Fix:** a generic shared line ("That day is after today"), with the notes screen keeping its own if wanted. | Open |
+
+
+## Round 47 — 2026-10-02 09:35 (v2/main f110a10: #140 merged; #147 re-confirmed at 7f01903)
+
+- **Main retake at f110a10** (#140, Builder A: P5-1 projects and tasks, the core and the Past work grid's door; migrations, no screens):
+  - **SQL suite from zero:** 161 of 166. **QA-214 is fixed on main.** The reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** no new failure against 9c54322.
+  - **The pilot path on a fresh main copy:** 38 PASS, 2 FAIL (QA-236), unchanged.
+  - No gallery change: #140 adds no screens.
+- **#147 re-confirmed at 7f01903.** It moved only by merging main f110a10 (#140, squash-merged). Its own diff against main is identical to the head QA cleared (0355e9b), and it merges with no conflicts.
+- **#148 (Builder E) is still a draft** (473c50b). QA starts when it leaves draft.
