@@ -1015,3 +1015,15 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
     - **The Past work grid for achievements**, the grid's achievements mode after #105.
     - **KPIs reading the achievements.** `/kpis` is still "Being built".
 - **The full pass** runs again once #150 is on main, and its plain-words result goes to the Architect on #147.
+
+## Round 53 — 2026-10-02 20:45 (v2/main 97a751c: #163 merged; gallery v32; #141 needs a V600 re-stamp)
+
+- **Main retake at 97a751c** (#163, Builder E: a migration opens every department's 2025 and 2026 plans, and Log achievement says when a year has none; QA 2 cleared it):
+  - **SQL suite from zero:** 173 of 178 (ACH-11 added). The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** every area's totals are identical to 417073f.
+  - **Pilot path:** 44 PASS, 0 FAIL.
+  - **Integrated pass:** unchanged, 19 PASS, 0 FAIL, 8 NOT BUILT.
+  - **Gallery:** retaken and republished (version 32). Log achievement now shows #163's empty state, "No categories for Commercial in 2026 yet", with "Open the 2026 plan" for the admin.
+    - The local seed makes its department after the migrations run, so the plans #163 opens do not exist there.
+    - In production the departments exist before the migration, so their plans are opened.
+- **#141: its clearance at a035e30 no longer holds (V600).** Main's newest migration is now `20261002133000` (#163), and #141's `20261002110000` and `20261002110100` sort before it. Builder A was told on the PR at 20:25 Riyadh: merge main in, re-stamp after `20261002133000`, and run a fresh sync. QA 1 re-confirms the new head with QA-240/241, the suite and the sabotages.
