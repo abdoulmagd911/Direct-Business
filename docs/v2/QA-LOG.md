@@ -996,3 +996,22 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - #150 (Builder D, the Past work grid on Tasks), once #105 lands and D posts "ready at".
   - Then the Architect's integrated pass on the main that holds #151, #147 and #150 (asked on #147 at 12:23 UTC).
 
+
+## Round 52 — 2026-10-02 19:20 (an early read of the Architect's integrated pass on v2/main 417073f)
+
+- **New test:** `14-integrated.spec.ts` covers the work loop the Architect asked for on #147 (12:23 UTC). It runs with the pilot's levels (the deferred modules at none on the member and manager roles) and Arabic off, at 1440 and 390, as a pilot member and a pilot manager. It puts every level back afterwards. It stays out of the full sweep and runs with `QA_INTEGRATED=1 … --grep "integrated pass"`.
+- **Early read on main 417073f** (before #150): 19 PASS, 0 FAIL, 8 NOT BUILT.
+  - **Works:**
+    - My day opens with Capture.
+    - The employee view offers My day, Tasks and Clients, with no deferred module, at 1440 and 390.
+    - A task added from Tasks is listed in My work with its number (TSK-2026-0001 onward).
+    - The row links to the task's record, which shows the number and the title.
+    - KPIs read "no access" for a pilot member.
+    - An achievement is logged with its number (ACH-2026-0001), and the achievements list shows it.
+  - **Not built:**
+    - **A task made from a note.** Turn into offers only a call and a reminder. `api.note_turn_into(…, 'task')` still answers `note.turn_into_not_yet`, although Tasks is live on main. It waits for the task case in `note_turn_into` (Builder A, a new migration, as the Architect ruled for the achievement case) and the menu entry on My day (Builder B).
+    - **An achievement from a task.** The task record has no achievement action.
+    - **The Past work grid for tasks**, which is #150.
+    - **The Past work grid for achievements**, the grid's achievements mode after #105.
+    - **KPIs reading the achievements.** `/kpis` is still "Being built".
+- **The full pass** runs again once #150 is on main, and its plain-words result goes to the Architect on #147.

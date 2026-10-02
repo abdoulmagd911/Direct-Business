@@ -1,0 +1,282 @@
+/**
+ * The integrated pass the Architect asked for on #147 (2 Oct, 12:23 UTC): once #151, #147 and #150 are on v2/main,
+ * one walk through the work loop with the pilot's access levels (the deferred modules at none on the member and manager
+ * roles, V517) and Arabic off, at 1440 and 390:
+ *   a task made from a note · an achievement from a task · the Past work grid for tasks and achievements · KPIs reading
+ *   the achievements · the numbers (TSK-, ACH-) · My day and the employee view.
+ * A step whose screen or door is not on the build is NOT BUILT, never FAIL. Kept out of the full sweep (it changes role
+ * levels, then puts them back): run with QA_INTEGRATED=1 tests/qa/sweep/run.sh -- --grep "integrated pass".
+ * Made-up people and values only (seed.mjs).
+ */
+import { expect, test, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { apiAs, fx, hydrated, info, notBuilt, said, signIn, sql, user, verdict } from './lib';
+import { V2_DIR } from './paths.mjs';
+
+const AREA = 'integrated';
+const DEFERRED = ['finance', 'kpis', 'pipeline', 'projects', 'overview', 'reports', 'appraisal'];
+const PILOT_ROLES = ['member', 'manager'];
+const REASON = 'QA integrated pass: made up';
+const TSK = /\bTSK-\d{4}-\d{3,}\b/;
+const ACH = /\bACH-\d{4}-\d{3,}\b/;
+type Where = { screen?: string; user?: string; detail?: string };
+const check = (expected: string, w: Where, ok: boolean) => verdict({ area: AREA, ...w, check: expected }, ok);
+const gap = (what: string, w: Where = {}) => notBuilt({ area: AREA, ...w, check: what });
+const has = (...parts: string[]) => existsSync(join(V2_DIR, 'src', ...parts));
+const mainText = async (page: Page) =>
+  (
+    (await page
+      .getByRole('main')
+      .innerText()
+      .catch(() => '')) ?? ''
+  ).replace(/\s+/g, ' ');
+
+async function menuLinks(page: Page, phone: boolean): Promise<string[]> {
+  if (phone) {
+    const more = page.getByRole('button', { name: /More/ }).last();
+    if (await more.isVisible().catch(() => false)) await more.click();
+  }
+  const hrefs = await page
+    .locator('nav a[href], [role=dialog] a[href]')
+    .evaluateAll((as) => [...new Set(as.map((a) => new URL((a as HTMLAnchorElement).href).pathname))]);
+  await page.keyboard.press('Escape').catch(() => undefined);
+  return hrefs;
+}
+
+test.describe.configure({ mode: 'serial' });
+
+test('integrated pass: the work loop with the pilot levels — notes, tasks, achievements, numbers, My day', async ({
+  page,
+}) => {
+  test.setTimeout(900_000);
+  if (!has('modules', 'tasks', 'screens', 'QuickAdd.tsx'))
+    return gap('the integrated pass needs the Tasks screens (#147) on the build');
+  const tag = `${fx().tag}${Math.random().toString(36).slice(2, 5)}`;
+  const admin = await apiAs('admin');
+  const roles = await sql<{ id: string; key: string }>(`select id::text, key from core.role where key = any($1)`, [
+    PILOT_ROLES,
+  ]);
+  const before = await sql<{ role_id: string; page_key: string; level: string }>(
+    `select role_id::text, page_key, level::text from core.role_page_level
+      where role_id = any($1::uuid[]) and page_key = any($2) and deleted_at is null`,
+    [roles.map((r) => r.id), DEFERRED],
+  );
+  // one made-up home team for the pilot people (a task needs one: task.team_required)
+  const [team] = await sql<{ id: string }>(
+    `insert into core.team (department_id, code, name_en, name_ar)
+       select department_id, $2, $3, 'فريق اختبار' from core.person where id = $1 returning id::text`,
+    [user('member').id, `qa_i_${tag}`, `Test Team ${tag}`],
+  );
+  await sql(`update core.person set team_id = $2 where id = any($1::uuid[])`, [
+    [user('member').id, user('manager').id],
+    team!.id,
+  ]);
+  const [tasksLevel] = await sql<{ level: string }>(`select authz.level_of($1, 'tasks')::text as level`, [
+    user('member').id,
+  ]);
+  info({
+    area: AREA,
+    check: `Tasks for a pilot member stays at ${tasksLevel?.level} here: whether stage 0 opens it is QA-236 (pilot row 7)`,
+  });
+  for (const r of roles)
+    for (const p of DEFERRED) {
+      const a = await admin('access_set_role_level', { p_role: r.id, p_page: p, p_level: 'none', p_reason: REASON });
+      if (!a.ok) info({ area: AREA, check: `set ${r.key} · ${p} to none: ${said(a)}` });
+    }
+
+  try {
+    // ---------------------------------------------------------------- My day, the employee view, a task and its number
+    for (const persona of PILOT_ROLES) {
+      await page.context().clearCookies();
+      await signIn(page, persona, '/my-day');
+      await hydrated(page);
+      for (const width of [1440, 390]) {
+        const phone = width < 600;
+        const at = (s: string) => ({ screen: `${s} @${width}`, user: persona });
+        await page.setViewportSize({ width, height: phone ? 844 : 1000 });
+        await page.goto('/my-day');
+        await hydrated(page);
+        const day = await mainText(page);
+        check(
+          'My day opens with its day and Capture',
+          { ...at('/my-day'), detail: day.slice(0, 120) },
+          /Capture/.test(day),
+        );
+        const links = await menuLinks(page, phone);
+        const deferred = links.filter((l) => DEFERRED.some((d) => l === `/${d}` || l.startsWith(`/${d}/`)));
+        check(
+          'the employee view: My day, Tasks and Clients, no deferred module',
+          { ...at('menu'), detail: links.join(' ') },
+          ['/my-day', '/tasks'].every((l) => links.includes(l)) &&
+            links.some((l) => l.startsWith('/clients') || l.startsWith('/partners')) &&
+            deferred.length === 0,
+        );
+
+        // quick add a task; it lands in My work with its TSK- number, and its record shows the number
+        const title = `Test task ${persona} ${width} ${tag}`;
+        await page.goto('/tasks');
+        await hydrated(page);
+        await page.locator('[data-add-task]').first().click();
+        const form = page.locator('form[data-quick-add]');
+        await form.locator('input[name="title"]').fill(title);
+        await form.locator('button[type="submit"]').click();
+        // the saved task (the toast also names it, so the list's own row is what is waited for)
+        let made: { number: string } | undefined;
+        for (let i = 0; i < 30 && !made; i++) {
+          [made] = await sql<{ number: string }>(`select number from work.task where title = $1`, [title]);
+          if (!made) await page.waitForTimeout(500);
+        }
+        const row = page.locator(`[data-task-row="${made?.number ?? 'none'}"]`);
+        const listed = await row
+          .waitFor({ timeout: 15_000 })
+          .then(() => true)
+          .catch(() => false);
+        check(
+          'a task added from Tasks is listed in My work with a TSK- number',
+          { ...at('/tasks'), detail: `listed ${listed}; number ${made?.number ?? 'none'}` },
+          listed && TSK.test(made?.number ?? ''),
+        );
+        if (listed && made) {
+          // the row links to the record by its number; the record is opened by that address
+          const linked = await row.locator(`a[href="/tasks/${made.number}"]`).count();
+          await page.goto(`/tasks/${made.number}`);
+          await hydrated(page);
+          const rec = await mainText(page);
+          check(
+            "the task's row links to its record, and the record shows its number and title",
+            { ...at(`/tasks/${made.number}`), detail: `row links ${linked}; ${rec.slice(0, 120)}` },
+            linked > 0 && rec.includes(made.number) && rec.includes(title) && !/My work/.test(rec.slice(0, 60)),
+          );
+          // an achievement from a task: an action on the task's record
+          const fromTask = await page
+            .getByRole('button', { name: /achievement/i })
+            .or(page.getByRole('link', { name: /achievement/i }))
+            .count();
+          if (fromTask === 0)
+            gap('an achievement from a task: the task record offers no achievement action', at('/tasks/:number'));
+          else info({ area: AREA, ...at('/tasks/:number'), check: `the task record offers an achievement action` });
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------- a task made from a note (desktop, the member)
+    await page.context().clearCookies();
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await signIn(page, 'member', '/my-day');
+    await hydrated(page);
+    const member = await apiAs('member');
+    const cap = await member('note_capture', {
+      p_kind: 'sticky',
+      p_values: { title: `Test note: chase the rate sheet ${tag}`, visibility: 'private' },
+    });
+    if (!cap.ok) gap(`a task made from a note: note_capture ${said(cap)}`, { user: 'member' });
+    else {
+      const noteId = (cap.data as { id: string }).id;
+      await page.goto(`/my-day/notes/${noteId}`);
+      await hydrated(page);
+      await page.locator('[data-turn-into]').click();
+      const kinds = await page
+        .locator('[data-turn-kind]')
+        .evaluateAll((els) => els.map((e) => e.getAttribute('data-turn-kind') ?? ''));
+      await page.keyboard.press('Escape');
+      const door = await member('note_turn_into', { p_note: noteId, p_kind: 'task', p_values: { title: 'probe' } });
+      if (!kinds.includes('task'))
+        gap('a task made from a note: Turn into offers no Task', {
+          screen: '/my-day/notes/:id',
+          user: 'member',
+          detail: `offered ${kinds.join(', ')}; the door: ${door.ok ? 'answers' : `${door.key} ${door.detail ?? ''}`}`,
+        });
+      else {
+        // offered: the menu path is exercised by the screen's own tests; here the record and its number
+        const [t] = await sql<{ number: string }>(
+          `select t.number from my.note_link l join work.task t on t.id = l.entity_id
+            where l.note_id = $1 and l.entity_table = 'work.task' and l.deleted_at is null`,
+          [noteId],
+        );
+        check(
+          'a task made from a note is a task with its TSK- number, linked to the note',
+          { screen: '/my-day/notes/:id', user: 'member', detail: t?.number ?? said(door) },
+          TSK.test(t?.number ?? ''),
+        );
+      }
+    }
+
+    // ---------------------------------------------------------------- the Past work grid
+    await page.goto('/tasks?view=past');
+    await hydrated(page);
+    const pastTab = await page.getByRole('tab', { name: /Past work/ }).count();
+    if (pastTab === 0) gap('the Past work grid for tasks (#150)', { screen: '/tasks?view=past', user: 'member' });
+    else {
+      const grid = await page.locator('[data-past-work-grid], table, [role=grid]').count();
+      check('the Past work view opens its grid', { screen: '/tasks?view=past', user: 'member' }, grid > 0);
+    }
+    gap("the Past work grid for achievements (the grid's achievements mode, after #105)", {
+      screen: '/kpis/achievements',
+    });
+
+    // ---------------------------------------------------------------- KPIs, achievements and their ACH- numbers
+    await page.goto('/kpis');
+    await hydrated(page);
+    const pilotKpis = await mainText(page);
+    check(
+      'KPIs read as no access for a pilot member (deferred)',
+      { screen: '/kpis', user: 'member', detail: pilotKpis.slice(0, 100) },
+      /do not have access|not available to you/i.test(pilotKpis),
+    );
+    if (!has('app', '(app)', 'kpis', 'achievements', 'page.tsx')) gap('achievements (#151) on the build');
+    else {
+      const dept = user('admin');
+      const [d] = await sql<{ id: string }>(`select department_id::text as id from core.person where id = $1`, [
+        dept.id,
+      ]);
+      const year = Number(fx().today.slice(0, 4));
+      const opened = await admin('plan_open', { p_department: d!.id, p_year: year });
+      if (!opened.ok && !/exists|held|already/i.test(opened.key ?? ''))
+        info({ area: AREA, check: `plan_open ${year}: ${said(opened)}` });
+      const logged = await admin('achievement_log', {
+        p_values: { category: 'PROBLEM', title: `Test achievement ${tag}`, happened_on: fx().today },
+      });
+      const number = (logged.data as { number?: string } | null)?.number ?? '';
+      check(
+        'an achievement is logged with its ACH- number',
+        { screen: 'api.achievement_log', user: 'admin', detail: logged.ok ? number : said(logged) },
+        logged.ok && ACH.test(number),
+      );
+      await page.context().clearCookies();
+      await signIn(page, 'admin', '/kpis/achievements');
+      await hydrated(page);
+      const list = await mainText(page);
+      check(
+        'the achievements list shows it with its number',
+        { screen: '/kpis/achievements', user: 'admin', detail: list.slice(0, 160) },
+        !!number && list.includes(number),
+      );
+      await page.goto('/kpis');
+      await hydrated(page);
+      const kpis = await mainText(page);
+      if (/Being built/i.test(kpis))
+        gap('KPIs reading the achievements: /kpis is still "Being built"', { screen: '/kpis', user: 'admin' });
+      else
+        check(
+          'KPIs read the achievements (the count or the logged one is shown)',
+          { screen: '/kpis', user: 'admin', detail: kpis.slice(0, 160) },
+          /achievement/i.test(kpis),
+        );
+    }
+  } finally {
+    for (const r of roles)
+      for (const p of DEFERRED) {
+        const was = before.find((b) => b.role_id === r.id && b.page_key === p);
+        if (was)
+          await admin('access_set_role_level', { p_role: r.id, p_page: p, p_level: was.level, p_reason: REASON });
+        else
+          await sql(
+            `update core.role_page_level set deleted_at = now(), delete_reason = $3
+              where role_id = $1 and page_key = $2 and deleted_at is null`,
+            [r.id, p, REASON],
+          );
+      }
+  }
+  expect(user('admin').id).toBeTruthy();
+});

@@ -11,7 +11,11 @@ export default defineConfig({
   testDir: '.',
   testMatch: /\.spec\.ts$/,
   // the pilot path changes role levels, so it runs alone: QA_PILOT=1 run.sh -- --grep "pilot path"
-  grepInvert: process.env.QA_PILOT ? undefined : /pilot path/,
+  // the pilot path and the integrated pass change role levels (then put them back): run only when asked for
+  grepInvert: [
+    ...(process.env.QA_PILOT ? [] : [/pilot path/]),
+    ...(process.env.QA_INTEGRATED ? [] : [/integrated pass/]),
+  ],
   outputDir: join(RUN_DIR, 'test-results'),
   fullyParallel: true,
   workers: Number(process.env.QA_WORKERS || 4),
