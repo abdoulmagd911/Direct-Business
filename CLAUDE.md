@@ -149,7 +149,7 @@ identical before and after); the QA login is `test@directksa.com`; staff passwor
   `v2/main`, a branch outside the five lanes or a raw ref — with or without `-C <dir>`, first flag or last, even inside
   `$( )` or `node -e`; `branch -D`, `reset --hard`, `clean`, `filter-branch`. What it cannot read at all it denies too.
   Pushes go up only as explicit, non-forced `git push [-q] [-u] origin v2/<lane>-…` — the lanes' own branches
-  (`v2/a-`, `v2/b-`, `v2/c-`, `v2/q-`, `v2/architecture`; the architect, 30 Sep) and the old app's `claude/…` ones. **The database guard** (`.claude/hooks/sql-guard.mjs`) denies destructive SQL on
+  (`v2/a-` … `v2/e-`, `v2/q-`, `v2/architecture`; D and E added 1 Oct, V519) and the old app's `claude/…` ones. **The database guard** (`.claude/hooks/sql-guard.mjs`) denies destructive SQL on
   the v2 project, every call on the old app's project, and live writes elsewhere outside a rolled-back dry run. Proof:
   `v2/tests/unit/guard/the-shell-guard-refuses-force-and-production.test.ts` and
   `v2/tests/unit/guard/the-database-guard-refuses-only-destructive-statements.test.ts`.
