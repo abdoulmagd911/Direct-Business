@@ -751,6 +751,7 @@
       "partner_required": "اختر الجهة الحكومية"
     },
     "pipeline": {
+      "owner_required": "اختر من يتسلّم البطاقات",
       "value_invalid": "لا يمكن أن تقل القيمة عن صفر",
       "title_required": "العنوان مطلوب",
       "date_is_the_moves": "تواريخ البطاقة تأتي من نقلها بين المراحل",

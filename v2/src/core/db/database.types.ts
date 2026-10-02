@@ -241,6 +241,7 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      opportunity_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
@@ -256,6 +257,7 @@ export type Database = {
         Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_pipeline: { Args: { p_partner: string }; Returns: Json };
       partner_references: { Args: { p_partner: string }; Returns: Json };
       partner_side_off: { Args: { p_id: string; p_reason?: string; p_side: string; p_until?: string }; Returns: Json };
       partner_side_set: { Args: { p_id: string; p_reason?: string; p_side: string; p_values: Json }; Returns: Json };
@@ -416,6 +418,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      tender_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };

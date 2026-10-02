@@ -898,7 +898,94 @@ begin
 end
 $$;
 
+-- ================================================================ bulk assign (V472, V456)
+-- Cards given to one owner in one request, each new owner told once per card, one Undo; pipeline.assign, and every card
+-- one the caller sees. A card the owner already holds is left alone.
+create function pipeline.bulk_assign(p_entity text, p_ids uuid[], p_owner uuid, p_reason text default null) returns jsonb
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.me();
+  tbl text := case p_entity when 'tender' then 'pipeline.tender' when 'opportunity' then 'pipeline.opportunity' end;
+  i uuid;
+  req uuid;
+  k int := 0;
+  changed boolean;
+begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  if tbl is null then
+    raise exception using errcode = 'P0001', message = 'pipeline.unknown_board', detail = p_entity;
+  end if;
+  if p_ids is null or pg_catalog.cardinality(p_ids) = 0 then
+    raise exception using errcode = 'P0001', message = 'common.nothing_selected';
+  end if;
+  if p_owner is null then
+    raise exception using errcode = 'P0001', message = 'pipeline.owner_required';
+  end if;
+  perform authz.require_capability('pipeline.assign');
+  foreach i in array p_ids loop
+    if pipeline.row_level(tbl, i, me) < 'view' then
+      raise exception using errcode = 'P0002', message = 'common.not_found';
+    end if;
+  end loop;
+  req := audit.begin('ui', case p_entity when 'tender' then 'tender.assigned' else 'opportunity.assigned' end,
+                     pg_catalog.jsonb_build_object('count', pg_catalog.cardinality(p_ids)), p_reason);
+  foreach i in array p_ids loop
+    execute pg_catalog.format('update %s set owner_id = $1 where id = $2 and deleted_at is null and owner_id <> $1',
+                              tbl::regclass) using p_owner, i;
+    get diagnostics changed = row_count;
+    if changed then
+      perform notify.push_assigned(p_owner, 'assigned', tbl, i);
+      k := k + 1;
+    end if;
+  end loop;
+  perform audit.end();
+  return pg_catalog.jsonb_build_object('count', k, 'request_id', req);
+end
+$$;
+
+-- An organisation's tenders and opportunities for its card's Work tab (§3.7a): those the reader sees, open first.
+create function pipeline.partner_cards(p_partner uuid) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.me();
+begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  if not authz.can_see_as(me, 'partner.partner', p_partner) then
+    raise exception using errcode = 'P0002', message = 'common.not_found';
+  end if;
+  return coalesce((
+    select pg_catalog.jsonb_agg(x.r || pg_catalog.jsonb_build_object('entity', x.entity)
+                                order by x.r ->> 'meaning' in ('lost', 'cancelled', 'signed', 'onboarded'), x.r ->> 'number')
+    from (select 'tender' as entity, pipeline.card_row('pipeline.tender', t.id, me) as r
+          from pipeline.tender t
+          where t.partner_id = p_partner and t.deleted_at is null and pipeline.row_level('pipeline.tender', t.id, me) >= 'view'
+          union all
+          select 'opportunity', pipeline.card_row('pipeline.opportunity', o.id, me)
+          from pipeline.opportunity o
+          where o.partner_id = p_partner and o.deleted_at is null
+            and pipeline.row_level('pipeline.opportunity', o.id, me) >= 'view') x), '[]'::jsonb);
+end
+$$;
+
 -- ================================================================ the doors (V124)
+revoke all on function pipeline.bulk_assign(text, uuid[], uuid, text), pipeline.partner_cards(uuid) from public;
+grant execute on function pipeline.bulk_assign(text, uuid[], uuid, text), pipeline.partner_cards(uuid) to authenticated;
+create function api.opportunity_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text default null) returns jsonb
+language sql volatile security invoker set search_path = ''
+as $$ select pipeline.bulk_assign('opportunity', p_ids, p_owner, p_reason) $$;
+create function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text default null) returns jsonb
+language sql volatile security invoker set search_path = ''
+as $$ select pipeline.bulk_assign('tender', p_ids, p_owner, p_reason) $$;
+create function api.partner_pipeline(p_partner uuid) returns jsonb
+language sql stable security invoker set search_path = '' as $$ select pipeline.partner_cards(p_partner) $$;
+grant execute on function api.opportunity_bulk_assign(uuid[], uuid, text), api.tender_bulk_assign(uuid[], uuid, text),
+  api.partner_pipeline(uuid) to authenticated;
 revoke all on function pipeline.kind_fixed(), pipeline.card_guard(), pipeline.row_of(text, uuid),
   pipeline.row_level(text, uuid, uuid), pipeline.card_owners(text, uuid), pipeline.tender_owners(uuid),
   pipeline.opportunity_owners(uuid), pipeline.stage_change_owners(uuid), pipeline.card_editable(text, uuid),

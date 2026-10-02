@@ -1312,6 +1312,7 @@
       "partner_required": "Choose the government entity"
     },
     "pipeline": {
+      "owner_required": "Choose who takes the cards",
       "value_invalid": "A value cannot be below zero",
       "title_required": "A title is required",
       "date_is_the_moves": "A card's dates come from its moves",
