@@ -73,8 +73,20 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/perf/screens/LogAchievement.tsx',
-        find: '{canOpenPlan ? (',
-        replace: '{false ? (',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{!department.id ? null : false ? (',
+      },
+    ],
+  },
+  {
+    name: 'no-department-offers-a-dead-button',
+    breaks: ['unit:tests/unit/achievements/log-says-what-to-fix-when-there-is-no-plan.test.tsx'],
+    expect: 'no Open button without a department',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{canOpenPlan ? (',
       },
     ],
   },

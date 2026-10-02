@@ -185,8 +185,13 @@ export function LogAchievement({
           className="flex flex-col items-start gap-2 rounded-lg border border-border bg-raised p-4"
           data-no-categories
         >
-          <p className="text-text">{t('plan.none', { department: department.name, year: loadedYear })}</p>
-          {canOpenPlan ? (
+          {/* QA-516: no department, no plan to open — say what to fix instead. */}
+          {!department.id ? (
+            <p className="text-text">{t('plan.noDepartment')}</p>
+          ) : (
+            <p className="text-text">{t('plan.none', { department: department.name, year: loadedYear })}</p>
+          )}
+          {!department.id ? null : canOpenPlan ? (
             <Button type="button" variant="primary" loading={busy} disabled={busy} onClick={() => void openPlan()}>
               {t('plan.open', { year: loadedYear })}
             </Button>
