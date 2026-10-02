@@ -27,7 +27,7 @@ export function segmentsOf(command) {
 
 // `git` at the start, after whitespace, or after $( ' " ` — a push hidden in a subshell or in node -e is read too
 /** The five lanes' work branches (the architect, 30 Sep): builders A, B and C, QA, and the architecture branch. */
-export const LANE_BRANCH = /^v2\/(?:(?:a|b|c|q)-[\w.-]+|architecture)$/;
+export const LANE_BRANCH = /^v2\/(?:(?:a|b|c|d|e|q)-[\w.-]+|architecture)$/;
 
 const git = (s) => /(^|[\s(`'"])git\s/.test(` ${s} `) || /^(sudo\s+)?git\s/.test(s);
 
