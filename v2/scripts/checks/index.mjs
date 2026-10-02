@@ -13,6 +13,7 @@ import normRebuildCalled from './norm-rebuild-called.mjs';
 import normalizedText from './normalized-text.mjs';
 import oneClient from './one-client.mjs';
 import oneCopy from './one-copy.mjs';
+import productionJob from './production-job.mjs';
 import rule7 from './rule-7.mjs';
 import screenWords from './screen-words.mjs';
 import uiNoHints from './ui-no-hints.mjs';
@@ -37,4 +38,5 @@ export const checks = [
   uiNoHints,
   accentFillOnly,
   i18nCatalogs,
+  productionJob,
 ];
