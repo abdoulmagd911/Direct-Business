@@ -227,7 +227,11 @@ function routes(): Route[] {
       placeholderPage: 'suppliers_partners',
       hidden: true,
     },
-    { path: '/no/such/address', expect: () => 'renders', note: 'the catch-all placeholder (P3-2) keeps a deep link' },
+    {
+      path: '/no/such/address',
+      expect: () => 'not-found',
+      note: 'an address that does not exist is the Not found page, with status 404 (QA-216, #145)',
+    },
     { path: '/sign-in', expect: () => 'renders', lands: /\/my-day$/, note: 'a signed-in person is sent on' },
     { path: '/set-password', expect: () => 'renders', lands: /\/my-day$/, note: 'nothing to change: sent on' },
   ];
