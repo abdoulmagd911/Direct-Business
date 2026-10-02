@@ -470,11 +470,12 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   await expect(page.locator('[data-sonner-toast]', { hasText: 'Call logged' })).toBeVisible();
   expect(Date.now() - started, 'saved within 60 s').toBeLessThan(60_000);
 
-  // Job 2 — what is due today, one ticked off: Tasks is being built, so the job waits for it (P5)
+  // Job 2 — what is due today, one ticked off: Tasks is built (P5-2, #147) and opens from the bottom bar; the
+  // tick-off itself is tests/e2e/tasks.spec.ts "phone: see what is due today and tick one off (V509)"
   await page.goto('/my-day');
   await hydrated(page);
   await page.locator('[data-bottom-bar]').getByRole('link', { name: 'Tasks' }).click();
-  await expect(page.locator('[data-state="empty"]')).toContainText('Being built.');
+  await expect(page.locator('[data-tasks-list]')).toBeVisible();
 
   // Job 3 — find a client and call their contact: search → client → the phone link, ≤ 30 s
   await page.goto('/my-day');
