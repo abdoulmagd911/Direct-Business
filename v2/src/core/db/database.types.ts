@@ -17,6 +17,7 @@ export type Database = {
         Returns: Json;
       };
       access_clear_person_level: { Args: { p_page: string; p_person: string; p_reason: string }; Returns: Json };
+      access_clear_team_level: { Args: { p_page: string; p_reason: string; p_team: string }; Returns: Json };
       access_matrix: { Args: Record<PropertyKey, never>; Returns: Json };
       access_of_person: { Args: { p_person: string }; Returns: Json };
       access_set_person_capability: {
@@ -34,6 +35,10 @@ export type Database = {
       };
       access_set_role_level: {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      access_set_team_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_team: string };
         Returns: Json;
       };
       action_item_add: { Args: { p_task: string; p_values: Json }; Returns: Json };

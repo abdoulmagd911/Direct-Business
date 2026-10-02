@@ -358,6 +358,7 @@
     "person_level": "Page level",
     "person_capability": "Capability",
     "role_level": "Role's page level",
+    "team_level": "Team's page level",
     "role_capability": "Role's capability",
     "page": "Page",
     "capability": "Capability definition",

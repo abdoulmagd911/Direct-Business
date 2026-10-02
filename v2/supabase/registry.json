@@ -1395,6 +1395,18 @@
       "rule_only": false
     },
     {
+      "key": "team_level",
+      "table": "core.team_page_level",
+      "page": "settings.org",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "wording",
       "table": "core.wording",
       "page": "settings.app",
