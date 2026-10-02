@@ -1,6 +1,6 @@
 'use client';
 import * as RD from '@radix-ui/react-dialog';
-import { MoreHorizontal, X } from 'lucide-react';
+import { LogOut, MoreHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -11,10 +11,10 @@ import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { personOf } from '../person';
 import { CreateMenu } from './CreateMenu';
-import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
+import { barFor, isActiveEntry, type NavEntry } from './nav';
+import { signOut } from './ProfileMenu';
 
-/** The phone's five (< 640 px, V85; owner, 29 Sep): My day · Tasks · Clients · KPIs · More; More opens a sheet with the rest. */
-const PRIMARY = ['my_day', 'tasks', 'clients', 'kpis'];
+/** The phone's bar (< 640 px, V85) follows the menu: `barFor` in nav.ts says what it holds (V217). */
 
 export function BottomBar() {
   const t = useTranslations();
@@ -24,9 +24,7 @@ export function BottomBar() {
   const [more, setMore] = useState(false);
   // The More button is the sheet's Radix trigger, so Escape returns focus to it (M93).
   const person = personOf(me);
-  const visible = [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];
-  const primary = PRIMARY.map((k) => visible.find((p) => p.key === k)).filter((p): p is NavEntry => !!p);
-  const rest = visible.filter((p) => !PRIMARY.includes(p.key));
+  const { bar: primary, rest, more: withMore } = barFor(me);
   const isActive = (p: NavEntry) => isActiveEntry(p, pathname, view);
   const restActive = rest.some(isActive);
 
@@ -58,21 +56,25 @@ export function BottomBar() {
             </Link>
           );
         })}
-        <RD.Trigger asChild>
-          <button
-            type="button"
-            data-bottom-more
-            className={cn(
-              'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
-              restActive ? 'text-nav-active-text' : 'text-nav-muted',
-            )}
-          >
-            <span className={cn('inline-grid h-7 w-12 place-items-center rounded-pill', restActive && 'bg-nav-active')}>
-              <MoreHorizontal className="size-5" aria-hidden="true" />
-            </span>
-            <span className="truncate">{t('nav.more')}</span>
-          </button>
-        </RD.Trigger>
+        {withMore ? (
+          <RD.Trigger asChild>
+            <button
+              type="button"
+              data-bottom-more
+              className={cn(
+                'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
+                restActive ? 'text-nav-active-text' : 'text-nav-muted',
+              )}
+            >
+              <span
+                className={cn('inline-grid h-7 w-12 place-items-center rounded-pill', restActive && 'bg-nav-active')}
+              >
+                <MoreHorizontal className="size-5" aria-hidden="true" />
+              </span>
+              <span className="truncate">{t('nav.more')}</span>
+            </button>
+          </RD.Trigger>
+        ) : null}
       </nav>
 
       <RD.Portal>
@@ -122,6 +124,15 @@ export function BottomBar() {
                 ) : null}
               </span>
             </Link>
+            <button
+              type="button"
+              onClick={signOut}
+              data-more-sign-out
+              className="flex h-11 items-center gap-3 rounded-md px-3 text-start text-base focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+            >
+              <LogOut className="size-[18px]" aria-hidden="true" />
+              {t('profileMenu.signOut')}
+            </button>
           </div>
         </RD.Content>
       </RD.Portal>

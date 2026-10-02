@@ -90,7 +90,7 @@ export async function makePerson(
   // is already there.
   await sql(
     `insert into core.role (key, name_en, name_ar, is_admin) values ($1, $2, $3, $4) on conflict (key) do nothing`,
-    [roleKey, isAdmin ? 'Admin' : 'Team member', isAdmin ? 'مدير النظام' : 'عضو الفريق', isAdmin],
+    [roleKey, isAdmin ? 'Admin' : 'Member', isAdmin ? 'مدير النظام' : 'عضو الفريق', isAdmin],
   );
   await sql(
     `insert into core.person (id, full_name_en, department_id, role_id, can_sign_in, kind)
