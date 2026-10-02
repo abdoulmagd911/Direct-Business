@@ -809,7 +809,10 @@
     },
     "notify": {
       "reminder": "تذكيراتي",
-      "note_mention": "الإشارة إليّ في ملاحظة"
+      "note_mention": "الإشارة إليّ في ملاحظة",
+      "escalated": "أمر تم تصعيده إليّ",
+      "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
+      "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها"
     }
   },
   "settings": {
@@ -951,7 +954,8 @@
   "notifications": {
     "kinds": {
       "reminder": "تذكير: {what}",
-      "note_mention": "أشار {actor} إليك في ملاحظة"
+      "note_mention": "أشار {actor} إليك في ملاحظة",
+      "alert_due_tomorrow": "يقترب موعد استحقاق {what}"
     },
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
   },
