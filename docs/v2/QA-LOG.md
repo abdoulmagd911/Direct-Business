@@ -864,3 +864,13 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 ## Round 42 — 2026-10-02 06:52 (v2/main 97b049a: #135 merged)
 
 - **Main moved to 97b049a** (#135, QA 2's: the production job runs in the GitHub environment "production", QA-186). It changes only CI checks, their tests and sabotages, and two documents. There are no app files, migrations or screens, so round 41's results on 2cd9fad stand for 97b049a: SQL suite, full sweep, pilot path (38 PASS, 2 FAIL = QA-236) and gallery v25.
+
+
+## Round 43 — 2026-10-02 07:25 (v2/main 97b049a; #137 cleared at a4813fc, at the Architect's request)
+
+- **#137 (Architect: V500–V531, V600; the allow list and guard lanes D/E): cleared at a4813fc.** Builders D and E were waiting on it.
+  - The guard files are identical to f3380ea, QA's last clearance: `.claude/hooks/bash-guard.mjs`, `.claude/settings.json`, `CLAUDE.md` and the shell-guard unit test.
+  - Every other change outside `docs/v2/` came in with v2/main; the head contains main 97b049a and merges with no conflicts.
+  - `docs/v2/` adds V520–V531 and V600, refines V98, V404, V433, V454, V461 and V506, and carries main's V183–V188, V215, V217 and V218 (324 decisions, no number twice).
+  - CI is green except end-to-end, which was still running on a docs-only change.
+- **Next:** #145 (a18183c, QA 2's lane) and #140 (90b7de8) need a re-clear once their CI finishes (oversight, 07:10).
