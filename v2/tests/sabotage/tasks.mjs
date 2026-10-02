@@ -133,7 +133,11 @@ export const sabotages = [
     breaks: [e2e],
     expect: 'a colleague’s task is not My work',
     edits: [
-      { file: RULES, find: "f.scope === 'team' ? 'all' : 'my_work'", replace: "f.scope === 'team' ? 'all' : 'all'" },
+      {
+        file: RULES,
+        find: "f.scope === 'team' || f.scope === 'past' ? 'all' : 'my_work'",
+        replace: "f.scope === 'team' || f.scope === 'past' ? 'all' : 'all'",
+      },
     ],
   },
   // ---- the Past work grid on Tasks (V276)
