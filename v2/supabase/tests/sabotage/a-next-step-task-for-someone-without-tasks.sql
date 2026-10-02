@@ -1,7 +1,7 @@
--- Sabotage: a-next-step-edit-makes-another-task
+-- Sabotage: a-next-step-task-for-someone-without-tasks
 -- Breaks: sql:ACT-02
--- Expect: an edit makes no second task
--- Every edit of a next step makes a new task.
+-- Expect: an author who cannot open Tasks gets no task
+-- A next step makes a task for an author who cannot open Tasks, so they can neither see nor close it (QA-241).
 create or replace function work.next_step_task() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
@@ -18,7 +18,7 @@ begin
     return new;
   end if;
   heading := pg_catalog.left(coalesce(new.next_step, 'Demo'), 300);
-  if false then
+  if new.next_step_task_id is not null then
     update work.task t set title = heading, due_on = new.next_step_on
     where t.id = new.next_step_task_id and t.closed_at is null and t.deleted_at is null
       and (t.title is distinct from heading or t.due_on is distinct from new.next_step_on);
@@ -26,7 +26,7 @@ begin
   end if;
   select p.team_id, p.manager_id into team, mgr from core.person p where p.id = new.created_by;
   -- QA-241: an author below Own on Tasks (the pilot's stage 0) could neither open nor close it — no task for them
-  if team is null or not work.person_ok(new.created_by) or authz.level_of(new.created_by, 'tasks') < 'own' then
+  if team is null or not work.person_ok(new.created_by) then
     return new;
   end if;
   insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, partner_id, due_on,
