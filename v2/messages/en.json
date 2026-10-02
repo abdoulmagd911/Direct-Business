@@ -97,20 +97,20 @@
     "activity": "Activity",
     "settings": {
       "profile": "My profile",
-      "org": "Organization & access",
-      "partners": "Clients & suppliers",
-      "performance": "Plan & performance",
+      "org": "People & access",
+      "partners": "Organisations",
+      "performance": "Targets",
       "finance": "Finance",
       "work": "Work",
       "app": "App"
     },
     "settings_home": "Settings",
     "clients": "Clients",
-    "suppliers_partners": "Suppliers & partners",
+    "suppliers_partners": "Suppliers",
     "profile": "My profile"
   },
   "top": {
-    "search": "Search partners, tasks, INV-, DRS-",
+    "search": "Search clients, tasks, invoices",
     "searchLabel": "Search",
     "create": "Create",
     "notifications": "Notifications",
@@ -124,7 +124,9 @@
     "actions": "Actions",
     "empty": "Nothing matches",
     "openInSettings": "Open Settings",
-    "people": "People"
+    "people": "People",
+    "organisations": "Organisations",
+    "recentlyDeleted": "Recently deleted"
   },
   "profileMenu": {
     "theme": "Theme",
@@ -156,10 +158,10 @@
   },
   "create": {
     "task": "Task",
-    "partner": "Partner",
+    "client": "Client",
+    "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement",
-    "project": "Project"
+    "achievement": "Achievement"
   },
   "common": {
     "cancel": "Cancel",
@@ -209,10 +211,6 @@
   },
   "pages": {
     "myDay": {
-      "greeting": "Good day, {name}",
-      "greetingMorning": "Good morning, {name}",
-      "greetingAfternoon": "Good afternoon, {name}",
-      "greetingEvening": "Good evening, {name}",
       "adminAccount": "This is the admin account: it keeps the settings. Your own work is on your employee account.",
       "goSettings": "Go to Settings"
     },
@@ -220,17 +218,7 @@
       "myProfile": "My profile",
       "find": "Find a setting"
     },
-    "empty": {
-      "my_day": "Nothing due today. Your tasks, reminders and updates appear here.",
-      "overview": "No figures yet. The month’s revenue, cost and profit appear here once work is logged.",
-      "pipeline": "No opportunities yet. Leads and deals in progress appear here.",
-      "projects": "No projects yet. Projects and their milestones appear here.",
-      "tasks": "No tasks yet. Tasks you own or follow appear here.",
-      "finance": "No invoices yet. Invoices, cost and profit appear here.",
-      "kpis": "No KPIs yet. Targets and actuals appear here.",
-      "reports": "No reports yet. Issued reports appear here.",
-      "appraisal": "No appraisal yet. Your cycle appears here when it opens."
-    }
+    "beingBuilt": "Being built."
   },
   "entity": {
     "partner": "Partner",
@@ -328,7 +316,7 @@
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Supplier & partner side's status, owner and priority"
+      "assign": "Set the Supplier side's status, owner and priority"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
@@ -390,6 +378,11 @@
     "core": {
       "file_download_display_name": "Downloads use the file's display name",
       "file_keep_original_name": "Show a file's original name in its details"
+    },
+    "record": {
+      "header_figures": {
+        "partner": "Figures in an organisation's header"
+      }
     }
   },
   "levels": {
@@ -554,7 +547,8 @@
       "appearance": "Appearance",
       "notifications": "Notifications",
       "devices": "Devices",
-      "password": "Password"
+      "password": "Password",
+      "preferences": "Preferences"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -630,7 +624,8 @@
       "roles": "Roles",
       "access": "Access",
       "settings": "Settings",
-      "lists": "Lists"
+      "lists": "Lists",
+      "signIn": "Sign-in"
     },
     "noAccess": "Settings is for admins",
     "setting": {
@@ -693,7 +688,7 @@
       "values": {
         "side": {
           "client": "Client",
-          "supplier_partner": "Supplier & partner"
+          "supplier_partner": "Supplier"
         },
         "status": {
           "at_risk": "At risk",
@@ -774,7 +769,11 @@
       "nicknameAr": "Nickname (Arabic)",
       "fullNameAr": "Full name (Arabic)",
       "switchedOn": "{name} switched on",
-      "switchedOff": "{name} switched off"
+      "switchedOff": "{name} switched off",
+      "accessStandard": "{role} (standard)",
+      "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
+      "accessShowAll": "Show all",
+      "accessHide": "Show less"
     },
     "teams": {
       "add": "Add team",
@@ -988,6 +987,53 @@
       "snooze_in_the_past": "Pick a time that is still to come",
       "snooze_too_far": "Snooze for a shorter time"
     },
+    "partner": {
+      "unknown_side": "Unknown side: {detail}",
+      "side_required": "An organisation needs at least one side",
+      "side_type_required": "The {detail} side needs a type",
+      "side_not_on": "The side is not on: {detail}",
+      "last_side": "The last side stays on",
+      "side_off_before_on": "A side cannot be switched off before it was on",
+      "side_fixed": "A side never changes once set",
+      "owner_has_its_own_door": "The owner is set from the record's Set owner",
+      "status_reason_required": "At risk and Lost need a reason",
+      "trade_name_required": "A trade name is required",
+      "unknown_field": "Unknown field: {detail}",
+      "nothing_to_change": "Nothing to change",
+      "archived": "This organisation is archived",
+      "unknown_activity_type": "Unknown activity type: {detail}",
+      "demo_day_required": "Demo set needs the demo's day",
+      "unknown_side_entry": "Unknown entry for this side: {detail}",
+      "side_field_required": "The field {detail} is required",
+      "side_field_invalid": "The field {detail} has an invalid value",
+      "unknown_side_field": "Unknown field: {detail}"
+    },
+    "identifier": {
+      "name_follows_partner": "Names change from the record's names; add an alias instead",
+      "one_code_per_partner": "One live discount code per organisation; a second needs a manager",
+      "taken": "Another organisation already holds {detail}",
+      "blocked": "This value can never be an identifier: {detail}"
+    },
+    "contact": {
+      "unknown_field": "Unknown field: {detail}",
+      "unknown_role": "Unknown contact role"
+    },
+    "contract": {
+      "unknown_field": "Unknown field: {detail}",
+      "terms_list_expected": "Terms must be a list",
+      "side_required": "A contract needs its side"
+    },
+    "reference": {
+      "unknown_field": "Unknown field: {detail}",
+      "unknown_system": "Unknown system: {detail}",
+      "no_secrets": "That looks like a password or a secret; cards hold references only"
+    },
+    "note": {
+      "happened_in_future": "A note cannot happen after today",
+      "next_step_before": "A next step is never before the activity",
+      "outcome_required": "This type needs an outcome",
+      "outcome_of_other_type": "The outcome belongs to another type"
+    },
     "password": {
       "too_short": "At least 10 characters",
       "no_email": "This person has no allowed email yet"
@@ -1083,7 +1129,245 @@
     "menu": "{name}: more",
     "label": "Views"
   },
+  "partners": {
+    "count": "{count} organisations",
+    "capped": "Showing {shown} of {total} — search or filter to narrow the list",
+    "none": "No organisations match",
+    "search": "Search by name or number",
+    "newClient": "New client",
+    "newSupplier": "New supplier & partner",
+    "created": "{name} added",
+    "updated": "{name} updated",
+    "edit": "Edit {name}",
+    "keyPartner": "Key partner",
+    "keyPartnerOnly": "Key partners only",
+    "staleOnly": "Stale only",
+    "showArchived": "Show archived",
+    "archived": "Archived",
+    "moreFilters": "More filters",
+    "tier": "Tier",
+    "priority": "Priority",
+    "accountManager": "Account manager",
+    "relationshipOwner": "Relationship owner",
+    "columns": {
+      "name": "Organisation",
+      "type": "Type",
+      "status": "Status",
+      "owner": "Owner",
+      "lastActivity": "Last activity",
+      "flags": "Flags"
+    },
+    "side": {
+      "client": "Client",
+      "supplier_partner": "Supplier"
+    },
+    "sides": {
+      "client": "Client side",
+      "supplier_partner": "Supplier side"
+    },
+    "status": {
+      "prospect": "Prospect",
+      "active": "Active",
+      "at_risk": "At risk",
+      "lost": "Lost",
+      "none": "No status"
+    },
+    "flags": {
+      "stale": "Stale",
+      "contract_expiring": "Contract expiring"
+    },
+    "bulk": {
+      "assign": "Assign owner and priority",
+      "assigned": "{count} assigned",
+      "title": "Assign {count} organisations",
+      "keepOwner": "Keep the owner",
+      "keepPriority": "Keep the priority"
+    },
+    "fields": {
+      "tradeNameEn": "Trade name",
+      "tradeNameAr": "Trade name (Arabic)",
+      "officialNameEn": "Official name",
+      "officialNameAr": "Official name (Arabic)",
+      "website": "Website",
+      "city": "City",
+      "country": "Country",
+      "address": "Address",
+      "notes": "Notes",
+      "clientSince": "Client since",
+      "number": "Number"
+    },
+    "figures": {
+      "last_activity": "Last activity",
+      "next_step": "Next step",
+      "contracts": "Contracts",
+      "contacts": "Contacts",
+      "files": "Files",
+      "notes": "Notes",
+      "client_since": "Client since"
+    },
+    "sideTabs": "Clients and suppliers",
+    "tabs": {
+      "overview": "Overview",
+      "activity": "Activity",
+      "related": "Related"
+    },
+    "activity": {
+      "log": "Log activity",
+      "logged": "{type} logged",
+      "type": "Type",
+      "outcome": "Outcome",
+      "happenedOn": "Happened on",
+      "line": "What happened",
+      "nextStep": "Next step",
+      "nextStepOn": "Next step on",
+      "demoDay": "Demo day",
+      "loggedLate": "Logged late",
+      "timeline": "Notes and activities",
+      "none": "Nothing logged yet",
+      "by": "by {name}"
+    },
+    "note": {
+      "add": "Add note",
+      "added": "Note added",
+      "kind": "Kind",
+      "body": "Note",
+      "kinds": {
+        "comment": "Comment",
+        "update": "Update",
+        "meeting_note": "Meeting note",
+        "activity": "Activity",
+        "escalation": "Escalation"
+      }
+    },
+    "sideDialog": {
+      "onTitle": "Switch the {side} side on",
+      "editTitle": "Change the {side} side",
+      "on": "{side} side switched on",
+      "changed": "{side} side changed",
+      "offTitle": "Switch the {side} side off?",
+      "off": "{side} side switched off",
+      "switchOff": "Switch off",
+      "since": "Since",
+      "until": "Until",
+      "switchOn": "Switch the {side} side on",
+      "switchOffAction": "Switch the {side} side off",
+      "change": "Change the {side} side"
+    },
+    "statusDialog": {
+      "title": "Set the {side} side's status",
+      "set": "Status set to {status}",
+      "effectiveOn": "Effective on",
+      "reasonRequired": "At risk and Lost need a reason",
+      "note": "Note",
+      "action": "Set status",
+      "history": "Status history"
+    },
+    "ownerDialog": {
+      "titleClient": "Set the account manager",
+      "titleSupplier": "Set the relationship owner",
+      "set": "Owner set to {name}",
+      "from": "From",
+      "action": "Set owner",
+      "history": "Owners"
+    },
+    "identifier": {
+      "title": "Identifiers",
+      "add": "Add identifier",
+      "added": "Identifier added",
+      "removed": "Identifier removed",
+      "remove": "Remove identifier",
+      "removeTitle": "Remove {value}?",
+      "kind": "Kind",
+      "subkind": "Kind of client",
+      "value": "Value",
+      "validFrom": "Valid from",
+      "validTo": "Valid to",
+      "kinds": {
+        "vat": "VAT number",
+        "cr": "CR number",
+        "email": "Email",
+        "phone": "Phone",
+        "payments_client_id": "Client ID",
+        "discount_code": "Discount code",
+        "name": "Other name"
+      },
+      "subkinds": {
+        "prepaid": "Prepaid",
+        "postpaid": "Postpaid",
+        "tender": "Tender"
+      }
+    },
+    "contact": {
+      "title": "Contacts",
+      "add": "Add contact",
+      "added": "{name} added",
+      "updated": "{name} updated",
+      "removed": "{name} removed",
+      "edit": "Edit {name}",
+      "nameEn": "Name",
+      "nameAr": "Name (Arabic)",
+      "role": "Role",
+      "jobTitle": "Job title",
+      "email": "Email",
+      "phone": "Phone",
+      "sides": "Belongs to",
+      "primary": "Primary contact",
+      "removeTitle": "Remove {name}?"
+    },
+    "reference": {
+      "title": "Direct references",
+      "add": "Add reference",
+      "edit": "Edit reference",
+      "saved": "Reference saved",
+      "removed": "Reference removed",
+      "system": "System",
+      "value": "Value",
+      "url": "Link",
+      "side": "Side",
+      "shared": "Both sides",
+      "removeTitle": "Remove {value}?"
+    },
+    "contract": {
+      "title": "Contracts",
+      "add": "Add contract",
+      "edit": "Edit {title}",
+      "added": "{title} added",
+      "updated": "{title} updated",
+      "removed": "{title} removed",
+      "kind": "Kind",
+      "kinds": {
+        "contract": "Contract",
+        "agreement": "Agreement"
+      },
+      "side": "Side",
+      "startOn": "Starts",
+      "endOn": "Ends",
+      "reminders": "Reminders on",
+      "removeTitle": "Remove {title}?",
+      "state": {
+        "active": "Active",
+        "expiring": "Expires in {days} days",
+        "expired": "Expired",
+        "not_started": "Not started",
+        "open": "Open-ended"
+      }
+    },
+    "details": "Details",
+    "noSide": "Side off",
+    "sideFields": "Fields",
+    "since": "Since",
+    "stale": "Stale since {date}",
+    "nextStepDue": "Next step {date}",
+    "noAccess": "You do not have access to this organisation"
+  },
   "recentlyDeleted": {
     "title": "Recently deleted"
+  },
+  "createNew": {
+    "task": "New task",
+    "client": "New client",
+    "supplier": "New supplier",
+    "invoice": "New invoice",
+    "achievement": "New achievement"
   }
 }
