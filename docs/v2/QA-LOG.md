@@ -1162,3 +1162,13 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **The merge:** it merges aacf3ea cleanly. Every one of its own files is identical to a32b2b2, and its DECISIONS change is the same lines.
   - **Rulings:** the Architect ruled WRK-023: the existing rule stands, and NOTE-08 proves it.
   - **Next:** it stays a draft. QA 1 re-confirms when A posts "ready at" with CI green.
+
+## Round 62 — 2026-10-03 18:55 (v2/main 6300bc6: #169, words only; #175 cleared at 6a5fc70; #149 re-confirmed at b1d9be6)
+
+- **Main 6300bc6** (#169: the no-department line and its Arabic). It changes words only, with no migration, so there is no retake.
+- **#175 (builder E): cleared at 6a5fc70,** on condition that CI's end-to-end job ends green.
+  - **V600:** it contains main 6300bc6.
+  - **Since d6eeb83:** only `ar.json` (QA-520's line, which now matches main's English) and DECISIONS (V381 after V380; no V-number twice). No app code changed, so the walks on d6eeb83 hold.
+- **#149 (builder A): re-confirmed at b1d9be6.** Its files are identical to a32b2b2, and CI is green.
+  - **V600:** it doesn't contain 6300bc6. That move is words only, the migration still sorts after main's newest, and a trial merge is clean.
+  - **Next:** the Architect decides whether it must be re-levelled.
