@@ -38,6 +38,9 @@ export function entityRoute(entity: string | null | undefined, id: string | null
     case 'credit_limit':
       // One organisation, two doors: /partners/[id] opens the list's record page the reader may see (V98, V147).
       return entity === 'partner' ? `/partners/${id}` : null;
+    case 'task':
+      // The record page takes the id or the TSK-number (V271).
+      return `/tasks/${id}`;
     case 'achievement':
       return `/kpis/achievements/${id}`;
     default:
