@@ -41,7 +41,7 @@ describe('Log achievement with no categories', () => {
   });
   it('says to set a department when the person has none, with no Open button', () => {
     const out = html({ id: '', name: '' }, true);
-    expect(out).toContain('Your profile has no department yet.');
+    expect(out).toContain('Your account has no department yet.');
     expect(out, 'no Open button without a department').not.toContain('Open the 2026 plan');
     expect(out).not.toContain('No categories for');
   });
