@@ -282,4 +282,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // QA-521: someone in no team without tasks.assign got a form that could only be refused
+    name: 'no-team-without-assign-gets-a-dead-form',
+    breaks: ['unit:tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx'],
+    expect: 'Quick add says to ask for a team',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: 'myTeam === null && !canAssign;',
+        replace: 'false && myTeam === null && !canAssign;',
+      },
+    ],
+  },
 ];
