@@ -113,7 +113,27 @@ begin
     return a || pg_catalog.jsonb_build_object('entity', 'action_item', 'task_id', rid,
                                               'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
   elsif p_kind = 'achievement' then
-    raise exception using errcode = 'P0001', message = 'note.turn_into_not_yet', detail = p_kind;
+    -- V433, P5-4: the achievement through its own door — the person's own achievement rights, its category, its
+    -- evidence rules, its number and an MoU's Prospect (V601) — dated by the note's day unless told; the note's mentions
+    -- who may still be named carry over as its participants.
+    select pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
+             filter (where core.person_available(m.person_id)),
+           pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
+             filter (where not core.person_available(m.person_id))
+      into carried, left_out
+    from my.note_mention m where m.note_id = n.id and m.deleted_at is null;
+    a := perf.achievement_log(
+      (v - 'refs' - 'type')
+      || pg_catalog.jsonb_build_object(
+           'title', coalesce(nullif(pg_catalog.btrim(v ->> 'title'), ''), n.title,
+                             pg_catalog.left(pg_catalog.btrim(my.note_text(n)), 300)),
+           'notes', coalesce(nullif(pg_catalog.btrim(v ->> 'notes'), ''), nullif(pg_catalog.btrim(n.body), '')),
+           'happened_on', case when v ? 'happened_on' then v -> 'happened_on' else pg_catalog.to_jsonb(n.happened_on) end,
+           'partner_id', coalesce(v -> 'partner_id', pg_catalog.to_jsonb(n.meeting_partner_id))),
+      v -> 'refs', carried);
+    insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'perf.achievement', (a ->> 'id')::uuid);
+    return a || pg_catalog.jsonb_build_object('entity', 'achievement',
+                                              'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
   end if;
   raise exception using errcode = 'P0001', message = 'note.turn_into_invalid', detail = p_kind;
 end

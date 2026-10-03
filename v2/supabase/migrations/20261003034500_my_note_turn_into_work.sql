@@ -1,8 +1,8 @@
 -- P5-1 · Turn into task and Turn into action item (V433, TECH-SPEC §3.3a): a My day note becomes a task through
 -- api.task_create, or an action item on a task through api.action_item_add, in one request with its link and its
 -- mentions — one Undo takes back both; the note's "turned into" chip names the task (number, title) or the item (its
--- text and its task). Finish meeting's points become action items on the task it names or a new one. An achievement
--- still answers note.turn_into_not_yet until P5-4. Forward-only (V103).
+-- text and its task). Finish meeting's points become action items on the task it names or a new one. The
+-- achievement case #158 added (20261002170000) is kept word for word. Forward-only (V103).
 
 -- ================================================================ a note's first words: its title, else the first line
 -- of its words, else its first checklist item — what a task's title or an action item's text starts from
@@ -33,8 +33,8 @@ begin
 end
 $$;
 
--- ================================================================ the conversion (my.turn_into_inner as P3-13 wrote it,
--- with the task and the action item; Wrap up's "turn into" choice goes through it too)
+-- ================================================================ the conversion (my.turn_into_inner as P3-13 wrote it
+-- and #158 gave it the achievement, with the task and the action item; Wrap up's "turn into" choice goes through it too)
 create or replace function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -147,7 +147,27 @@ begin
     return a || pg_catalog.jsonb_build_object('entity', 'action_item', 'task_id', rid,
                                               'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
   elsif p_kind = 'achievement' then
-    raise exception using errcode = 'P0001', message = 'note.turn_into_not_yet', detail = p_kind;
+    -- V433, P5-4: the achievement through its own door — the person's own achievement rights, its category, its
+    -- evidence rules, its number and an MoU's Prospect (V601) — dated by the note's day unless told; the note's mentions
+    -- who may still be named carry over as its participants.
+    select pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
+             filter (where core.person_available(m.person_id)),
+           pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
+             filter (where not core.person_available(m.person_id))
+      into carried, left_out
+    from my.note_mention m where m.note_id = n.id and m.deleted_at is null;
+    a := perf.achievement_log(
+      (v - 'refs' - 'type')
+      || pg_catalog.jsonb_build_object(
+           'title', coalesce(nullif(pg_catalog.btrim(v ->> 'title'), ''), n.title,
+                             pg_catalog.left(pg_catalog.btrim(my.note_text(n)), 300)),
+           'notes', coalesce(nullif(pg_catalog.btrim(v ->> 'notes'), ''), nullif(pg_catalog.btrim(n.body), '')),
+           'happened_on', case when v ? 'happened_on' then v -> 'happened_on' else pg_catalog.to_jsonb(n.happened_on) end,
+           'partner_id', coalesce(v -> 'partner_id', pg_catalog.to_jsonb(n.meeting_partner_id))),
+      v -> 'refs', carried);
+    insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'perf.achievement', (a ->> 'id')::uuid);
+    return a || pg_catalog.jsonb_build_object('entity', 'achievement',
+                                              'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
   end if;
   raise exception using errcode = 'P0001', message = 'note.turn_into_invalid', detail = p_kind;
 end
@@ -163,7 +183,8 @@ declare
   r jsonb;
 begin
   req := audit.begin('ui', case p_kind when 'activity' then 'partner.activity_logged' when 'task' then 'task.created'
-                                     when 'action_item' then 'action_item.added' else 'reminder.set' end,
+                                     when 'action_item' then 'action_item.added'
+                                     when 'achievement' then 'achievement.logged' else 'reminder.set' end,
                      pg_catalog.jsonb_build_object('kind', p_kind));
   r := my.turn_into_inner(n, p_kind, p_values);
   perform audit.end();
@@ -198,8 +219,10 @@ as $$
 $$;
 
 -- ================================================================ Finish meeting: the meeting, then its points as action
--- items (TECH-SPEC §3.3a, WRK-023) — on the task `task_id` names (one its author may change), else on a new task made
--- from the note as Turn into task makes it (`task` holds its fields, if any); each point keeps its owner and due day
+-- items (TECH-SPEC §3.3a, WRK-023), when asked — on the task `task_id` names (one its author may change), or on a new
+-- task made from the note as Turn into task makes it (`task`, an object of its fields, `{}` for the note's own).
+-- Unasked, it logs the meeting alone, as before: the live screen asks neither yet, and its call keeps its answers
+-- (V602). Each point keeps its owner and due day
 -- under the task door's rules (a point owned by someone else needs tasks.assign), a ticked point is a done item, and
 -- each item shows the note it came from. A meeting with no points makes no task. One request, one Undo.
 create or replace function my.note_finish_meeting(p_note uuid, p_values jsonb default null) returns jsonb
@@ -229,7 +252,8 @@ begin
   req := audit.begin('ui', 'partner.activity_logged', pg_catalog.jsonb_build_object('type', 'meeting'));
   a := my.turn_into_inner(n, 'activity', (v - 'task_id' - 'task') || pg_catalog.jsonb_build_object('type', 'meeting',
          'outcome', coalesce(v ->> 'outcome', 'meeting_held')));
-  if pg_catalog.jsonb_array_length(n.items) > 0 then
+  if pg_catalog.jsonb_array_length(n.items) > 0
+     and (nullif(v ->> 'task_id', '') is not null or pg_catalog.jsonb_typeof(v -> 'task') = 'object') then
     tid := nullif(v ->> 'task_id', '')::uuid;
     if tid is null then
       t := my.turn_into_inner(n, 'task', pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(

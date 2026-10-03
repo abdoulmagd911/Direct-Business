@@ -2,9 +2,10 @@
 -- an organisation makes one task for its author, due on the next step's day, dated the activity's day, linked to the
 -- organisation and the activity, in the same request; editing the next step changes that task while it is open and
 -- never makes another; "demo set" makes the demo task with the author's manager as helper, who is told; one Undo takes
--- back both; an open next-step task keeps the organisation fresh, a done one no longer does. Every value is made up.
+-- back both; an open next-step task keeps the organisation fresh, a done one no longer does; an author below Own on
+-- Tasks gets no task (QA-241). Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-next-step-edit-makes-another-task.sql, the-demo-task-has-no-helper.sql,
---            a-done-next-step-keeps-it-fresh.sql.
+--            a-done-next-step-keeps-it-fresh.sql, a-next-step-task-for-someone-without-tasks.sql.
 select set_config('v2.test_now', now()::text, true);
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار');
@@ -83,3 +84,17 @@ select test.as_owner();
 select test.eq((select count(*)::int from work.task where id = current_setting('t.dt')::uuid and deleted_at is null)
                + (select count(*)::int from core.note where id = (current_setting('t.d')::jsonb ->> 'id')::uuid
                   and deleted_at is null), 0, 'takes back the activity and its task');
+
+-- QA-241: an author below Own on Tasks (the pilot's stage 0) gets no task — they could neither open nor close it; the
+-- next step stays on the activity and keeps the organisation fresh only until its day
+select set_config('t.am2', test.person('Test Pilot Member', 'member')::text, true);
+update core.person set team_id = (select id from core.team where code = 'test_desk') where id = current_setting('t.am2')::uuid;
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am2')::uuid, 'tasks', 'none', 'Made-up: Tasks not open to the pilot yet');
+select test.as_person(current_setting('t.am2')::uuid);
+select set_config('t.n2', api.activity_log(current_setting('t.p')::uuid, 'call', 'answered', null, null,
+  'Made-up: call back', core.riyadh_today() + 2) ->> 'id', true);
+select test.as_owner();
+select test.eq((select row(next_step_task_id is null, next_step)::text from core.note where id = current_setting('t.n2')::uuid),
+  row(true, 'Made-up: call back')::text, 'an author who cannot open Tasks gets no task; the next step stays on the activity');
+select test.eq((select count(*)::int from work.task where owner_id = current_setting('t.am2')::uuid), 0, 'and owns none');

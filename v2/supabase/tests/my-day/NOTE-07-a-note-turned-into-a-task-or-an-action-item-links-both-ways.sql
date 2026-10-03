@@ -126,7 +126,3 @@ select test.eq(api.my_note(current_setting('t.n2')::uuid) -> 'links' -> 0 ->> 'i
   'and the note shows it');
 select test.raises(format('select api.note_turn_into(%L, %L, %L::jsonb)', current_setting('t.n2'), 'task',
   '{"item": 2}'), 'P0001', 'a row that is not there', 'note.item_not_found');
-
--- what is not there yet
-select test.raises(format('select api.note_turn_into(%L, %L)', current_setting('t.n'), 'achievement'), 'P0001',
-  'an achievement arrives with achievements', 'note.turn_into_not_yet');

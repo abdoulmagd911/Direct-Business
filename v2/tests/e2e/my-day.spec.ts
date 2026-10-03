@@ -137,8 +137,6 @@ test('no colleague reads a private note — not on any tab, not at its address, 
 
 test('Finish meeting logs the meeting on its organisation and marks the note logged', async ({ page }) => {
   const admin = await makePerson({ admin: true });
-  // the meeting's point becomes an action item on a new task, and a task needs its owner's team (V186)
-  await sameTeam([admin]);
   const t = tag();
   const org = `Test Org ${t}`;
   await page.setViewportSize({ width: 1500, height: 1000 });

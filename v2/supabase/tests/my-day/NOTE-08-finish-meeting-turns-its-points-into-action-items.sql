@@ -1,9 +1,11 @@
--- NOTE-08 — Finish meeting's points (V433; TECH-SPEC §3.3a; WRK-023). One request logs the meeting and turns each point
--- into an action item — on the task the author names, or on a new task made from the note — each with its owner and due
+-- NOTE-08 — Finish meeting's points (V433; TECH-SPEC §3.3a; WRK-023). Asked, one request logs the meeting and turns each
+-- point into an action item — on the task the author names, or on a new task made from the note — each with its owner and due
 -- day, a ticked point as a done item, each showing the note it came from; one Undo takes it all back. The task door's
 -- rules hold: a member without the assign capability cannot give a point to someone else, and then nothing is logged.
--- A meeting with no points makes no task. Every value is made up.
--- Sabotages: supabase/tests/sabotage/finish-meeting-forgets-the-owners.sql, finish-meeting-leaves-ticked-points-open.sql.
+-- A meeting with no points makes no task. Unasked, it logs the meeting alone — the live screen's call, unchanged (V602).
+-- Every value is made up.
+-- Sabotages: supabase/tests/sabotage/finish-meeting-forgets-the-owners.sql, finish-meeting-leaves-ticked-points-open.sql,
+-- finish-meeting-makes-a-task-unasked.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار');
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
@@ -26,7 +28,8 @@ select set_config('t.m', api.note_capture('meeting', jsonb_build_object('title',
                        'due_on', core.riyadh_today() + 3),
     jsonb_build_object('text', 'Made-up: book the hall', 'owner_id', current_setting('t.mgr')),
     jsonb_build_object('text', 'Made-up: agree the date', 'done', true)))) ->> 'id', true);
-select set_config('t.f', api.note_finish_meeting(current_setting('t.m')::uuid)::text, true);
+select set_config('t.f', api.note_finish_meeting(current_setting('t.m')::uuid,
+  jsonb_build_object('task', jsonb_build_object()))::text, true);
 select set_config('t.t', current_setting('t.f')::jsonb ->> 'task_id', true);
 select test.eq((current_setting('t.f')::jsonb ->> 'task_made')::boolean, true, 'a new task holds the points');
 select test.eq(api.task(current_setting('t.t')::uuid) ->> 'title', 'Made-up review with the client', 'titled by the note');
@@ -68,7 +71,8 @@ select set_config('t.m2', api.note_capture('meeting', jsonb_build_object('title'
   'meeting_partner_id', current_setting('t.p'), 'meeting_on', core.riyadh_today(),
   'items', jsonb_build_array(jsonb_build_object('text', 'Made-up: call back', 'owner_id', current_setting('t.am2')))))
   ->> 'id', true);
-select test.raises(format('select api.note_finish_meeting(%L)', current_setting('t.m2')), '42501',
+select test.raises(format('select api.note_finish_meeting(%L, %L::jsonb)', current_setting('t.m2'), '{"task": {}}'),
+  '42501',
   'a member does not give a point to someone else', 'access.needs_capability');
 select test.eq(api.my_note(current_setting('t.m2')::uuid) ->> 'finished_at', null, 'the meeting stays open');
 select test.as_owner();
@@ -91,5 +95,19 @@ select test.eq(api.task(current_setting('t.own')::uuid) -> 'action_items' -> 0 -
 -- no points, no task
 select set_config('t.m4', api.note_capture('meeting', jsonb_build_object('title', 'Made-up coffee',
   'meeting_partner_id', current_setting('t.p'), 'meeting_on', core.riyadh_today())) ->> 'id', true);
-select set_config('t.f4', api.note_finish_meeting(current_setting('t.m4')::uuid)::text, true);
+select set_config('t.f4', api.note_finish_meeting(current_setting('t.m4')::uuid,
+  jsonb_build_object('task', jsonb_build_object()))::text, true);
 select test.eq(current_setting('t.f4')::jsonb ->> 'task_id', null, 'a meeting with no points makes no task');
+
+-- unasked, the meeting alone: the live screen's call answers as before (V602) — even for someone in no team
+select test.as_person(current_setting('t.head')::uuid);
+select set_config('t.m5', api.note_capture('meeting', jsonb_build_object('title', 'Made-up visit',
+  'meeting_partner_id', current_setting('t.p'), 'meeting_on', core.riyadh_today(),
+  'items', jsonb_build_array(jsonb_build_object('text', 'Made-up: send the minutes')))) ->> 'id', true);
+select set_config('t.f5', api.note_finish_meeting(current_setting('t.m5')::uuid,
+  jsonb_build_object('outcome', 'meeting_held'))::text, true);
+select test.eq(current_setting('t.f5')::jsonb ->> 'task_id', null, 'unasked, no task');
+select test.eq(current_setting('t.f5')::jsonb -> 'action_item_ids', '[]'::jsonb, 'and no action item');
+select test.eq(jsonb_array_length(api.my_note(current_setting('t.m5')::uuid) -> 'links'), 1,
+  'the note shows the meeting alone');
+select test.ok(api.my_note(current_setting('t.m5')::uuid) ->> 'finished_at' is not null, 'and is finished');

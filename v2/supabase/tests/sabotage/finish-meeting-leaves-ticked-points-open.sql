@@ -29,7 +29,8 @@ begin
   req := audit.begin('ui', 'partner.activity_logged', pg_catalog.jsonb_build_object('type', 'meeting'));
   a := my.turn_into_inner(n, 'activity', (v - 'task_id' - 'task') || pg_catalog.jsonb_build_object('type', 'meeting',
          'outcome', coalesce(v ->> 'outcome', 'meeting_held')));
-  if pg_catalog.jsonb_array_length(n.items) > 0 then
+  if pg_catalog.jsonb_array_length(n.items) > 0
+     and (nullif(v ->> 'task_id', '') is not null or pg_catalog.jsonb_typeof(v -> 'task') = 'object') then
     tid := nullif(v ->> 'task_id', '')::uuid;
     if tid is null then
       t := my.turn_into_inner(n, 'task', pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
