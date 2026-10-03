@@ -1172,3 +1172,16 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
 - **#149 (builder A): re-confirmed at b1d9be6.** Its files are identical to a32b2b2, and CI is green.
   - **V600:** it doesn't contain 6300bc6. That move is words only, the migration still sorts after main's newest, and a trial merge is clean.
   - **Next:** the Architect decides whether it must be re-levelled.
+
+## Round 63 — 2026-10-03 20:10 (v2/main 519f915: #176 docs and #177's amount reader; then 8e1e649, #178 docs)
+
+- **Main 519f915** (#177, QA-518: an amount's thousands separator only between groups of three, V382; #176 docs). Retaken from zero on local stacks.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to aacf3ea, by test name and by every area's totals.
+  - **Gallery:** not retaken. The change is how a pasted amount is read, so no screen changes.
+  - **No new bug.**
+- **Main 8e1e649** (#178): docs only (V602 retired; V608: a docs-only merge does not make a code PR stale). Noted, no retake.
+- **#175 (builder E): cleared at 21b07ae** (CI fully green at 20:31 UTC). It merges 519f915. Every file it changes since 6a5fc70 carries main's delta exactly. DECISIONS now reads V380, V381, V382, with no V-number twice.
+- **#149 (builder A) at 58577e6:** it merges c3ea146. Its own files are identical to a32b2b2, and its DECISIONS lines are the same. It lacks 519f915 (#177); the Architect re-levels it onto main after #175 lands.
