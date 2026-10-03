@@ -14,7 +14,7 @@ import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
-import { liveKinds, noteText, noteTitle } from '../logic';
+import { liveKinds, noteText, noteTitle, TURN_READY } from '../logic';
 import type { MyNote, TurnKind } from '../types';
 import { PartnerPicker } from './PartnerPicker';
 
@@ -22,8 +22,8 @@ import { PartnerPicker } from './PartnerPicker';
 const CALL_OR_MEETING = ['call', 'meeting'];
 
 /**
- * Turn into (V433): a logged meeting or call and a reminder now. A task and an action item join with Tasks (P5-2), an
- * achievement with the KPIs page (P5-6): a kind whose page is not built is left out, never greyed (GC-1, cut 3).
+ * Turn into (V433): a logged meeting or call and a reminder now. A task, an action item and an achievement join when their
+ * own flag is set (TURN_READY — the achievement's is, V381); a kind still waiting is left out, never greyed (GC-1, cut 3).
  */
 export function TurnIntoMenu({ onPick, hide = [] }: { onPick: (k: TurnKind) => void; hide?: TurnKind[] }) {
   const t = useTranslations();
@@ -36,7 +36,7 @@ export function TurnIntoMenu({ onPick, hide = [] }: { onPick: (k: TurnKind) => v
         </Button>
       </MenuTrigger>
       <MenuContent>
-        {liveKinds(BUILT)
+        {liveKinds(new Set([...BUILT, ...TURN_READY]))
           .filter((k) => !hide.includes(k))
           .map((k) => (
             <MenuItem key={k} onSelect={() => onPick(k)} data-turn-kind={k}>

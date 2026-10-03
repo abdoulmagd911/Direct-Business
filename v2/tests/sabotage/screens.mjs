@@ -682,12 +682,12 @@ export const sabotages = [
   {
     name: 'turn-into-offers-a-task-too-soon',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
-    expect: 'a task waits for Tasks',
+    expect: 'a task waits for its Turn into',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks',\n  action_item: 'tasks',\n",
-        replace: "  action_item: 'tasks',\n",
+        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
   },
@@ -932,16 +932,50 @@ export const sabotages = [
     ],
   },
   {
-    // V379, QA-517: the dialog and the door are in, so the KPIs page offers Turn into an achievement (it waited on its
-    // own flag, `kpis.turn_into`, while neither was — V222)
-    name: 'achievement-turn-into-waits-on-a-flag-nobody-sets',
+    name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
-    expect: 'the KPIs page offers an achievement',
+    expect: 'the Tasks and KPIs pages alone do not offer',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  achievement: 'kpis',",
-        replace: "  achievement: 'kpis.turn_into',",
+        find: "  achievement: 'kpis.turn_into',",
+        replace: "  achievement: 'kpis',",
+      },
+    ],
+  },
+  {
+    name: 'task-record-has-no-address',
+    breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
+    expect: 'a task opens on its record page',
+    edits: [
+      {
+        file: 'src/ui/entity-route.ts',
+        find: '      return `/tasks/${id}`;',
+        replace: '      return null;',
+      },
+    ],
+  },
+  {
+    name: 'tasks-page-not-built-for-create',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'Create menu offers only built screens',
+    edits: [
+      {
+        file: 'src/modules/tasks/module.ts',
+        find: '      built: true,\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'tasks-built-offers-a-turn-into-nobody-can-take',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the Tasks and KPIs pages alone do not offer',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
       },
     ],
   },
