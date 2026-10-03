@@ -93,7 +93,10 @@ function api.notifications(p_tab text, p_before timestamp with time zone, p_limi
 function api.notifications_mark_read(p_ids uuid[]) execute authenticated
 function api.notifications_snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
 function api.notifications_unread() execute authenticated
+function api.opportunity_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function api.opportunity_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.org() execute authenticated
+function api.overview(p_period text, p_from date, p_to date, p_segment text) execute authenticated
 function api.own_password_set(p_auth_user uuid, p_keep_session uuid) execute service_role
 function api.page_seen(p_page text) execute authenticated
 function api.partner(p_id uuid) execute authenticated
@@ -101,6 +104,7 @@ function api.partner_bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_prio
 function api.partner_create(p_partner jsonb, p_reason text) execute authenticated
 function api.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute authenticated
 function api.partner_owner_set(p_id uuid, p_side text, p_person uuid, p_from date, p_reason text) execute authenticated
+function api.partner_pipeline(p_partner uuid) execute authenticated
 function api.partner_references(p_partner uuid) execute authenticated
 function api.partner_side_off(p_id uuid, p_side text, p_until date, p_reason text) execute authenticated
 function api.partner_side_set(p_id uuid, p_side text, p_values jsonb, p_reason text) execute authenticated
@@ -124,6 +128,10 @@ function api.person_password_set(p_person uuid, p_reason text, p_replace boolean
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
+function api.pipeline_board(p_entity text, p_filter jsonb) execute authenticated
+function api.pipeline_card(p_entity text, p_id uuid) execute authenticated
+function api.pipeline_move(p_entity text, p_id uuid, p_stage text, p_happened_on date, p_values jsonb, p_version integer) execute authenticated
+function api.pipeline_remove(p_entity text, p_ids uuid[], p_reason text) execute authenticated
 function api.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function api.plans(p_department uuid) execute authenticated
 function api.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
@@ -170,6 +178,8 @@ function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.team_load(p_people uuid[]) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
+function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function api.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.undo(p_request uuid) execute authenticated
 function api.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function api.view_default_set(p_page text, p_view uuid) execute authenticated
@@ -340,6 +350,15 @@ function perf.categories_remove(p_ids uuid[], p_reason text) execute authenticat
 function perf.category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function perf.plans(p_department uuid) execute authenticated
+function pipeline.board(p_entity text, p_filter jsonb) execute authenticated
+function pipeline.bulk_assign(p_entity text, p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function pipeline.card(p_entity text, p_id uuid) execute authenticated
+function pipeline.move(p_entity text, p_id uuid, p_stage text, p_happened_on date, p_values jsonb, p_version integer) execute authenticated
+function pipeline.opportunity_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function pipeline.overview(p_period text, p_from date, p_to date, p_segment text) execute authenticated
+function pipeline.partner_cards(p_partner uuid) execute authenticated
+function pipeline.remove(p_entity text, p_ids uuid[], p_reason text) execute authenticated
+function pipeline.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.action_item_add(p_task uuid, p_values jsonb) execute authenticated
 function work.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
 function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
@@ -374,5 +393,6 @@ schema my usage authenticated
 schema notify usage authenticated
 schema partner usage authenticated
 schema perf usage authenticated
+schema pipeline usage authenticated
 schema work usage authenticated
 type core.level usage public
