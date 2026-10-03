@@ -709,6 +709,21 @@
         "failed": "Could not check or save the rows. Try again.",
         "ownerLine": "Add an Owner column, or pick an owner for these rows",
         "ownerFor": "Owner for these rows"
+      },
+      "layout": {
+        "label": "Show tasks as",
+        "list": "List",
+        "board": "Board",
+        "calendar": "Calendar"
+      },
+      "board": {
+        "emptyColumn": "Nothing here"
+      },
+      "calendar": {
+        "previous": "Previous month",
+        "next": "Next month",
+        "emptyMonth": "Nothing is due this month",
+        "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       }
     }
   },
