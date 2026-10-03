@@ -1122,3 +1122,25 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **Full browser sweep:** the same tests fail as on a04ad8a. The signed-in walk is back to 1898/542: round 58's filter fix removed the two "Startsjhbr" rows.
   - **No new bug.**
 - **Gallery:** retaken and republished (version 38, 287 pictures). It shows the new Work setting (a live project's days without a health update) and the three new notice kinds in My profile.
+
+## Round 60 — 2026-10-03 16:30 (#149 cleared at a32b2b2; #175 reviewed at e8fcd8f; main still fc3c18f)
+
+The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149, then #175.
+
+- **#149 (Builder A) at a32b2b2: cleared.** It adds Turn into → task and action item, and Finish meeting's points step when asked.
+  - **Merge rules:**
+    - It contains main fc3c18f, and the migration `20261003034500` sorts after main's newest.
+    - No app code changes. CI is green (workflow_dispatch after the base change).
+  - **From zero:** SQL 180 of 185 with the known reds; NOTE-07, NOTE-08, ACH-10 and QA-240/241 pass. All ten sabotages are red.
+  - **Probed:**
+    - A note captured before go-live makes a past task. Its mentions and helpers are never told. A note captured today does notify, which shows the probe can tell the two apart.
+    - Tasks at none refuses the conversion and leaves no link.
+    - Values passed to the task door are still checked: origin, a stray key, and assigning without the right are all refused.
+    - One Undo takes back the task and its link.
+  - **For the Architect:** most of V605 (3) "note → task" is already in #149. What it lacks is the checklist becoming action items on Turn into → task.
+- **#175 (Builder E) at e8fcd8f: no blocking findings.** It puts Turn into → achievement on screen (QA-517, V381). It clears when CI is green on e8fcd8f; 429a162 was green, and the change since is `ar.json` only.
+  - **Pilot path:** 46/0. A new check: a pilot member at KPIs none is not offered Achievement in Turn into.
+  - **The integrated pass:** 28/0/7 on the branch against 26/0/8 on main. A new step, an achievement from a note, checks the ACH- number and the link both ways; it is NOT BUILT on main.
+  - **Wrap up:** its Turn into opens the note page, so the new rule covers it.
+  - **From note:** shown only to a reader who may see the note. A manager opening a member's achievement made from a private note gets nothing from `api.from_note`.
+- **No new finding.**

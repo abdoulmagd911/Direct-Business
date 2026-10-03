@@ -385,6 +385,57 @@ test('integrated pass: the work loop with the pilot levels — notes, tasks, ach
         { screen: '/kpis/achievements', user: 'admin', detail: list.slice(0, 160) },
         !!number && list.includes(number),
       );
+      // an achievement from a note (V379, V381; QA-517): Turn into offers it to KPIs Own or Full, one request makes it with
+      // its ACH- number, and the two link both ways
+      const cap = await admin('note_capture', {
+        p_kind: 'sticky',
+        p_values: { title: `Test note: a made-up win ${tag}`, visibility: 'private' },
+      });
+      if (!cap.ok) gap(`an achievement from a note: note_capture ${said(cap)}`, { user: 'admin' });
+      else {
+        const noteId = (cap.data as { id: string }).id;
+        await page.goto(`/my-day/notes/${noteId}`);
+        await hydrated(page);
+        await page.locator('[data-turn-into]').click();
+        const kinds = await page
+          .locator('[data-turn-kind]')
+          .evaluateAll((els) => els.map((e) => e.getAttribute('data-turn-kind') ?? ''));
+        await page.keyboard.press('Escape');
+        if (!kinds.includes('achievement'))
+          gap('an achievement from a note: Turn into offers no Achievement', {
+            screen: '/my-day/notes/:id',
+            user: 'admin',
+            detail: `offered ${kinds.join(', ')}`,
+          });
+        else {
+          const made = await admin('note_turn_into', {
+            p_note: noteId,
+            p_kind: 'achievement',
+            p_values: { category: 'PROBLEM' },
+          });
+          const a = (made.data as { id?: string; number?: string } | null) ?? {};
+          check(
+            'a note turned into an achievement has its ACH- number',
+            { screen: '/my-day/notes/:id', user: 'admin', detail: made.ok ? a.number : said(made) },
+            made.ok && ACH.test(a.number ?? ''),
+          );
+          if (a.id) {
+            await page.goto(`/my-day/notes/${noteId}`);
+            await hydrated(page);
+            const chip = page.locator(`[data-note-links] a[href="/kpis/achievements/${a.id}"]`);
+            await page.goto(`/kpis/achievements/${a.id}`);
+            await hydrated(page);
+            const back = await page.locator('[data-from-note]').count();
+            await page.goto(`/my-day/notes/${noteId}`);
+            await hydrated(page);
+            check(
+              'the note and the achievement link both ways (the chip opens it, From note leads back)',
+              { screen: '/my-day/notes/:id ↔ /kpis/achievements/:id', user: 'admin' },
+              (await chip.count()) > 0 && back > 0,
+            );
+          }
+        }
+      }
       await page.goto('/kpis');
       await hydrated(page);
       const kpis = await mainText(page);

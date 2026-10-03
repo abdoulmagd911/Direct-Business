@@ -209,9 +209,9 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
         .locator('[data-turn-kind]')
         .evaluateAll((e) => e.map((x) => x.getAttribute('data-turn-kind')));
       check(
-        'Turn into offers only what the pilot has (a call or a reminder; no task before stage 1)',
+        'Turn into offers only what the pilot has (a call or a reminder; no task before stage 1, no achievement while KPIs is at none)',
         { screen: '/my-day/notes/:id', user: 'member', detail: kinds.join(', ') },
-        !kinds.includes('task') && kinds.includes('activity'),
+        !kinds.includes('task') && !kinds.includes('achievement') && kinds.includes('activity'),
       );
       await page.locator('[data-turn-kind="activity"]').click();
       const dialog = page.getByRole('dialog');
