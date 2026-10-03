@@ -17,7 +17,8 @@
 // A .mjs file exports `sabotages`: [{ name, breaks: [...], expect, edits?: [{ file, find, replace }],
 // writes?: [{ file, content }] }] — paths relative to v2/; `find` must occur exactly once.
 // A .sql file under supabase/tests/sabotage/ has the same header as `-- ` comments and breaks the database: the SQL
-// suite applies it after the migrations (V2_DB_AFTER) of a database built from zero; targets are sql:<test ID>.
+// suite applies it after the migrations (V2_DB_AFTER) of a database built from zero (a copy of one such build, kept
+// while the migrations stay the same: test.mjs --reuse); targets are sql:<test ID>.
 //
 // Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]... [--list]
 // If it is killed half-way, the tree may still hold a sabotage: `git status` shows it; `git checkout -- <file>` and
@@ -114,7 +115,8 @@ function command(target) {
         ],
       ];
     case 'sql':
-      return ['node', ['scripts/db/test.mjs', '--only', arg]];
+      // --reuse: a copy of one from-zero build, not a fresh replay of every migration per run (see test.mjs)
+      return ['node', ['scripts/db/test.mjs', '--reuse', '--only', arg]];
     default:
       throw new Error(`unknown target kind in "${target}"`);
   }
