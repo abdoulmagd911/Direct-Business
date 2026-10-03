@@ -884,14 +884,38 @@ export const sabotages = [
     ],
   },
   {
-    name: 'kpis-page-hides-the-achievements-link',
+    name: 'kpis-page-no-longer-opens-achievements',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
-    expect: 'the KPIs page links to Achievements',
+    expect: 'the KPIs page opens on Achievements',
     edits: [
       {
         file: 'src/app/(app)/kpis/page.tsx',
-        find: 'data-achievements-link',
-        replace: 'data-achievements-gone',
+        find: "redirect('/kpis/achievements');",
+        replace: "redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'achievements-short-address-lost',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the short address goes to the list',
+    edits: [
+      {
+        file: 'src/app/(app)/achievements/page.tsx',
+        find: "  redirect('/kpis/achievements');",
+        replace: "  redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-achievement-at-full-only',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'a person at Own may log one',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] }",
+        replace: "route: '/kpis/achievements/new', icon: Trophy, at: ['full'] }",
       },
     ],
   },

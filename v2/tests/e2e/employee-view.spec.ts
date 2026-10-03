@@ -171,14 +171,14 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   page,
 }) => {
   await openAs(page, 'member');
-  for (const [route, title] of [
-    ['/kpis', 'KPIs'],
-    ['/finance', 'Finance'],
-    ['/reports', 'Reports'],
+  for (const [route, heading, title] of [
+    ['/kpis', 'Achievements', 'KPIs'], // /kpis opens the Achievements list until the KPIs page is built (V605)
+    ['/finance', 'Finance', 'Finance'],
+    ['/reports', 'Reports', 'Reports'],
   ] as const) {
     await page.goto(route);
     await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
     await expect(page.locator('[data-state="no-access"]'), `${route} opens at the member's level`).toHaveCount(0);
     await expect(page.locator('[data-drawer]').getByRole('link', { name: title }), 'yet not in the menu').toHaveCount(
       0,
@@ -190,7 +190,7 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   const palette = page.locator('[data-command-palette]');
   await palette.getByPlaceholder('Go to a page or search…').fill('KPIs');
   await palette.getByRole('option', { name: 'KPIs' }).click();
-  await expect(page).toHaveURL(/\/kpis$/);
+  await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
   // An invoice by "INV" and a client's Finance tab come with Finance's own screens (P4); nothing to find yet.
 });
 
@@ -261,16 +261,17 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Clients and Suppliers are View): Create and the + open it directly, no menu
+  // one item left (a member whose Clients, Suppliers and KPIs are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
-  for (const key of ['clients', 'suppliers_partners'])
-    await sql(
-      `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-       values ($1, $2, 'view', 'Made up: read only', $1)`,
-      [member.id, key],
-    );
+  await sql(
+    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+     values ($1, 'clients', 'view', 'Made up: clients read only', $1),
+            ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
+            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
+    [member.id],
+  );
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
