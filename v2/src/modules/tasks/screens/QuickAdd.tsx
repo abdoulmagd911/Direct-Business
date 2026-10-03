@@ -9,6 +9,7 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
+import { assignablePeople } from '@/modules/org/pickers';
 import type { OrgAnswer } from '@/modules/org/types';
 import { nameOf } from '@/modules/org/types';
 import { quickAddValues, TITLE_MAX, type QuickAddInput } from '../rules';
@@ -86,8 +87,7 @@ function QuickAddForm({
   const canAssign = me.capabilities.includes('tasks.assign');
   const locale = useLocale() as 'en' | 'ar';
   const pick = (x: NamePick) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
-  const people = (org?.people ?? [])
-    .filter((p) => !p.account || p.account === 'team_member')
+  const people = assignablePeople(org?.people ?? [])
     .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
