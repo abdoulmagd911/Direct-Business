@@ -327,6 +327,14 @@ test('integrated pass: the work loop with the pilot levels — notes, tasks, ach
       const kpis = await mainText(page);
       if (/Being built/i.test(kpis))
         gap('KPIs reading the achievements: /kpis is still "Being built"', { screen: '/kpis', user: 'admin' });
+      else if (/\/kpis\/achievements(\?|$)/.test(new URL(page.url()).pathname + new URL(page.url()).search))
+        gap(
+          'KPIs reading the achievements: /kpis opens the achievements list (V605); the KPI page itself is not built',
+          {
+            screen: '/kpis → /kpis/achievements',
+            user: 'admin',
+          },
+        );
       else
         check(
           'KPIs read the achievements (the count or the logged one is shown)',

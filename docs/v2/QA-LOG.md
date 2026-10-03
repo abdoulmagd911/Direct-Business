@@ -1091,3 +1091,16 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
     - A sabotage on the copy still turns ACT-02 red, and the next run starts clean.
     - Nothing in the migrations or the stand-ins sets database-level options or grants that a template copy would drop.
   - **It conflicts with 2f186c6** in `docs/v2/DECISIONS.md` only. Builder A was told; QA 1 re-confirms the merged head.
+
+## Round 58 — 2026-10-03 03:20 (v2/main a04ad8a: #162 achievements doors and #173 docs; #141 cleared at 83e794a; gallery v36)
+
+- **Main a04ad8a** (#162: Log achievement in the + at Own or Full, `/kpis` opens the achievements list, the `/achievements` redirect; #173: docs). Retaken on local stacks built from zero.
+  - **SQL suite:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Pilot path:** 46/0. It now also checks that the + offers no deferred module, so there is no Log achievement while KPIs is at none. That check passes for the pilot member and manager.
+  - **The integrated pass:** 24 PASS, 0 FAIL, 7 NOT BUILT. "KPIs reading the achievements" is still not built: `/kpis` now opens the achievements list (V605), and the KPI page itself does not exist yet.
+  - **Full browser sweep:** the same tests fail as on 9afc2c8.
+    - **Routes:** `/kpis` lands on `/kpis/achievements` for every role above none, and a person at none still gets no access.
+    - **One new row, not an app bug.** The Arabic walk flagged "Startsjhbr" on Log achievement and Activity for the manager and the admin. It is the made-up nickname that OLD-009 saves (`Start` + the run's tag). The walk ignored only words that *start* with the tag; it now ignores any word that holds it.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 36, 287 pictures). It shows the new `/kpis` landing and the + menu.
+- **#141 (Builder A) at 83e794a.** It merges main a04ad8a cleanly, and its migrations still sort after main's newest, `20261002170000`. QA 1 re-confirmed at 02:42 on condition that CI's end-to-end job ended green. It did at 02:52, so #141 is cleared from QA 1's side. QA-240/241 flip to fixed on main when it merges.

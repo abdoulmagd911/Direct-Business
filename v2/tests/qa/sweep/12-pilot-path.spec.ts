@@ -96,6 +96,23 @@ test('pilot path: stage 0 as a pilot member and manager — the menus, the defer
         );
       }
       await page.setViewportSize({ width: 1440, height: 1000 });
+      // the + (Create) offers nothing of a deferred module: no Log achievement while KPIs is at none (#162, V605)
+      const create = page.getByRole('button', { name: /^Create$/ }).first();
+      if (await create.isVisible().catch(() => false)) {
+        await create.click();
+        const items = (
+          await page
+            .getByRole('menuitem')
+            .allInnerTexts()
+            .catch(() => [] as string[])
+        ).map((s) => s.trim());
+        await page.keyboard.press('Escape');
+        check(
+          'the + offers no deferred module (no Log achievement while KPIs is at none)',
+          { screen: '+ Create', user: persona, detail: items.join(', ') || 'no items' },
+          !items.some((s) => /achievement|invoice/i.test(s)),
+        );
+      }
       // Ctrl K and the + name no deferred module
       await page.keyboard.press('Control+k');
       const palette = await page
