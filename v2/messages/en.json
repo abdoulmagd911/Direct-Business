@@ -807,6 +807,7 @@
   },
   "setting": {
     "work": {
+      "handover_follow_days": "Days the previous owner follows an organisation after a hand-over",
       "no_update_days": "Days without an update before a task goes stale",
       "week_starts_on": "The week starts on",
       "meeting_note_on_time_days": "Days to write meeting notes on time",

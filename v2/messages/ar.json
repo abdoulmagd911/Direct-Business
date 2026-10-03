@@ -745,6 +745,7 @@
   },
   "setting": {
     "work": {
+      "handover_follow_days": "أيام متابعة المالك السابق للجهة بعد تسليمها",
       "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة متأخرة",
       "week_starts_on": "بداية الأسبوع",
       "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
