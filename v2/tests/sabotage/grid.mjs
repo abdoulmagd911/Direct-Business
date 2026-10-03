@@ -462,4 +462,17 @@ export const sabotages = [
       { file: COMPONENT, find: 'held instanceof Map ? (held.get(k) ?? false) : held.has(k)', replace: 'held.has(k)' },
     ],
   },
+  {
+    // V382, QA-518: a decimal comma was read as a thousands separator ("12,50" as 1250)
+    name: 'amount-reads-a-decimal-comma-as-thousands',
+    breaks: [VALUE_TEST],
+    expect: 'a decimal comma or a stray separator is refused',
+    edits: [
+      {
+        file: ROWS,
+        find: '(?:\\d+|\\d{1,3}(?:[\\s\\u00a0,٬]\\d{3})+)',
+        replace: '[\\d\\s\\u00a0,٬]+',
+      },
+    ],
+  },
 ];
