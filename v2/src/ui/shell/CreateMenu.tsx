@@ -12,14 +12,14 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 
 /**
  * The Create items (V217, cut 3): an item shows only once its page is built (registry `built`) and the person may
- * create there — a task at Own or Full, the rest at Full. Never a raw address, never a greyed item (W4/W28).
+ * create there — a task or an achievement at Own or Full (V605: an employee logs their own, V68), the rest at Full. Never a raw address, never a greyed item (W4/W28).
  */
 export const CREATE_ACTIONS: { key: string; page: string; route: string; icon: LucideIcon; at: Level[] }[] = [
   { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['own', 'full'] },
   { key: 'client', page: 'clients', route: '/clients?new=1', icon: Building2, at: ['full'] },
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
-  { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['full'] },
+  { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
 ];
 
 /** The pages whose screens are built (registry `built`): Create offers them; My day's Turn into opens them (V433). */
