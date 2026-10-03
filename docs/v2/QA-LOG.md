@@ -1080,3 +1080,14 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **The re-stamp is right:** `20261002170010` and `20261002195247` sort after main's `20261002170000`, and the body is identical.
   - **The checks pass:** SQL 178 of 183 with QA-240/241 passing, and the 11 sabotages are red.
   - **It conflicts with main 9afc2c8** in `docs/v2/DECISIONS.md` and `v2/messages/ar.json`. Builder A was told; no new re-stamp is needed.
+
+## Round 57 — 2026-10-03 04:40 (v2/main 2f186c6: #172, docs only; #141 at 7903606)
+
+- **Main 2f186c6** (#172, the owner's consistency pass): docs only, so there is no retake.
+- **#141 (Builder A) at 7903606.** It merged #150 and carries a new tooling commit, `--reuse` for SQL sabotage runs (V106).
+  - **The migrations:** they still sort after main's `20261002170000`, and the body is unchanged since ad34abb.
+  - **`--reuse` checked locally:**
+    - The first run builds `<db>_built` from zero. Later runs copy it in about 1 s.
+    - A sabotage on the copy still turns ACT-02 red, and the next run starts clean.
+    - Nothing in the migrations or the stand-ins sets database-level options or grants that a template copy would drop.
+  - **It conflicts with 2f186c6** in `docs/v2/DECISIONS.md` only. Builder A was told; QA 1 re-confirms the merged head.
