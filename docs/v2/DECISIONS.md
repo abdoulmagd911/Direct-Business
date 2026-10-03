@@ -539,7 +539,7 @@ Operations, Quality, refunds); the internal findings file stays with the oversig
 
 **V105 — One clock, with a test clock** ACTIVE · 2026-09-29. Every "now" of a business rule comes from `core.clock()`, and "today" from `core.riyadh_today()` (D20); a test moves time by setting `v2.test_now` inside its own transaction (stale tasks, due dates, contract reminders). A request cannot set it: PostgREST passes only JWT claims and headers.
 
-**V106 — The SQL suite** ACTIVE · 2026-09-29. A test is `v2/supabase/tests/<area>/<ID>-<its promise as a sentence>.sql`, run by `node scripts/db/test.mjs` in its own transaction and rolled back; it fails when any statement errors (`test.ok`, `test.eq`, `test.raises(sql, sqlstate, what, message_like)`; `test.as_anon()`, `test.as_auth(uid)`, `test.as_owner()` switch the caller as PostgREST does). The database is built from zero for every run: on plain Postgres (the builders' containers, and CI) the Supabase stand-ins, then every migration in order; on the Supabase stack in CI, `supabase start`. A database sabotage is `supabase/tests/sabotage/<name>.sql`, applied after the migrations of a fresh build. `supabase/grants.expected` lists every privilege a request role (public, anon, authenticated, service_role, authenticator) holds on v2's schemas, tables, columns, functions and types, and the migration role's default privileges; GRANTS-01 compares it with the catalog, and it is rewritten only on purpose (`--write-grants`, said in the PR).
+**V106 — The SQL suite** ACTIVE · 2026-09-29. A test is `v2/supabase/tests/<area>/<ID>-<its promise as a sentence>.sql`, run by `node scripts/db/test.mjs` in its own transaction and rolled back; it fails when any statement errors (`test.ok`, `test.eq`, `test.raises(sql, sqlstate, what, message_like)`; `test.as_anon()`, `test.as_auth(uid)`, `test.as_owner()` switch the caller as PostgREST does). The database is built from zero for every run: on plain Postgres (the builders' containers, and CI) the Supabase stand-ins, then every migration in order; on the Supabase stack in CI, `supabase start`. A database sabotage is `supabase/tests/sabotage/<name>.sql`, applied after the migrations of a fresh build. *(2 Oct, P5-8a: the sabotage runs — several hundred, one build each — take a copy of one from-zero build instead, kept as `<test database>_built` and built again whenever the stand-ins or any migration changes by name or content (`test.mjs --reuse`); the plain suite still builds from zero every run. Before this, CI's 30-minute limit cut the job off.)* `supabase/grants.expected` lists every privilege a request role (public, anon, authenticated, service_role, authenticator) holds on v2's schemas, tables, columns, functions and types, and the migration role's default privileges; GRANTS-01 compares it with the catalog, and it is rewritten only on purpose (`--write-grants`, said in the PR).
 
 **V107 — `core.person_auth` arrives with P3-1, not P3-2** ACTIVE · 2026-09-29. `api.me()` (P3-1) resolves the person through it, so the table comes first; P3-2 fills it from the allow-list and adds `core.person_email` and `core.sign_in_log`. Only a staff person can be linked (trigger): System and Import can never be a login (V44).
 
@@ -1081,7 +1081,7 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - **Numbers:** `TSK-2026-0001` and `PRJ-2026-001`.
 - **Link tables have an id and soft removal.** Helpers, item helpers, references and contacts each have an id; the pair is unique among live rows (§2's link-table rule).
 - **Segment:** a project's segment override points at a Client side type, since `partner.segment` became the side types (V98).
-- **Later P5-1 PRs:** templates and recurring generation, team load, Escalate, next-step and follow-up tasks, the measures, and the Past work grid's door.
+- **Later P5-1 PRs:** templates and recurring generation, team load, Escalate, next-step and follow-up tasks, the measures, and the Past work grid's door. (Team load, Escalate and the next-step task: V197–V199.)
 - Tests TSK-01 to TSK-05, DATE-02, PAST-01, PRJ-01.
 
 **V190 — Who sees and who changes work** ACTIVE · 2026-10-01 (P5-1; builds §5, V96).
@@ -1209,6 +1209,43 @@ Sabotages: `plant-banned-seed`, `blind-seed-words`, `words-lists-drift`, `seeds-
 - `reminder` and `note_mention` join the notification kinds (the check and `NOTIFICATION_KINDS`), so an admin or a person can switch them off.
 - The daily alerts' first-run-on-or-after rule was already built (WRK-124, test ALR-02). V455's "a kind whose run failed is shown to admins" stays with P3-6e part 2.
 - Test NOTE-06. Sabotages `a-reminder-sent-twice`, `a-reminder-sent-early`.
+
+**V197 — An activity's next step becomes one task** ACTIVE · 2026-10-01 (P5-1; builds V401, V406, V151).
+- **One task per next step.** An activity on an organisation, logged with a next step, makes one task in the activity's own request, so one Undo takes back both:
+  - owned by the activity's author, on that organisation (client work), due on the next step's day, dated the day the activity happened, origin `next_step`;
+  - linked both ways: `core.note.next_step_task_id` is now a foreign key to `work.task`.
+- **"Demo set"** makes the demo task the same way, titled from the next step or "Demo", with the author's manager as helper; the manager is told (`helper_added`) unless the activity is past work.
+- **Editing the next step** (its words or its day) changes that task while it is open. It never makes a second one. A next step taken off leaves its task to its owner.
+- **No task when nobody can take it:** an import, a person with no home team or one who cannot be named (V465). The next step stays on the activity.
+- **Built as a trigger on `core.note`**, so Log activity, the note edit and later doors all follow it. It stands aside inside an Undo, which restores each row itself.
+- **Stale (V151 after P5-1):** a next step with a task keeps the organisation fresh while the task is open, then no longer. One without a task counts until its day, as before.
+- **Not done:** the organisation card's "open next step" still reads the day only; "demo held" offering to close the demo task is the screen's.
+- Test ACT-02. Sabotages `a-next-step-edit-makes-another-task`, `the-demo-task-has-no-helper`, `a-done-next-step-keeps-it-fresh`.
+
+**V198 — Escalate and the team load** ACTIVE · 2026-10-01 (P5-1; builds V401, V91, V491).
+- **`api.escalate(entity, id, to_person, note)`** on a task or an organisation, in one request:
+  - the person is told (`escalated`) at once, whatever the work's date;
+  - they follow the record from then on;
+  - the note is the record's timeline entry, kind `escalation`.
+- **Who:** whoever may add a note to the record. The person must be someone else, able to be named (V465) and able to see the record. A note is required.
+- **Refused:** `escalation.note_required`, `escalation.to_yourself`, `escalation.cannot_see`, `person.unavailable`, `escalation.not_here` (any other kind of record; a challenge joins with P5-6).
+- **Undo** takes back the note. The follow stays: follows are personal and not in the change log.
+- **`api.team_load(people?)`** answers per person, beside every assign picker and as the managers' Team load view:
+  - `open_tasks`, `overdue`, `open_action_items`;
+  - `partners_owned` (the Client side's account manager) and `prospects_assigned` (a side of theirs at Prospect).
+- **Only live work counts:** done, cancelled and past work (V491) are not load. It lists the people of the reader's departments who can be named, needs View on Tasks, and takes an optional list of people.
+- Tests ESC-01, LOAD-01. Sabotages `an-escalation-follows-nobody`, `an-escalation-to-someone-blind`, `past-work-is-load`, `a-done-task-is-load`.
+
+**V199 — The daily reminders of work** ACTIVE · 2026-10-01 (P5-1; builds V401, OLD-WRK-044, WRK-124).
+- **A silent project.** A project in the Active category with no health update for `work.project_update_days` (new setting, 14, per department, effective-dated) tells its owner once, through `notify.alert_project_no_update()`.
+  - The silence counts from its latest update, or from the day it was made.
+  - It fires on the first run on or after that day, once for that silence. A new update starts the count again.
+- **A task coming due.** A live task tells its owner once for its due day, `work.reminder_days_before_due` days before it (1: the day before; 0: the day itself), through `notify.alert_due_tomorrow()`.
+  - Done, cancelled and past work are never reminded.
+- **The kind is `alert_due_tomorrow`, not the spec's `due_tomorrow`.** The daily job names each kind after its function, and every function it runs starts with `alert_`.
+- **The notice kinds are now every kind the spec names:** `escalated`, `alert_project_no_update` and `alert_due_tomorrow` are on by default (`notify.kinds_enabled`) with their My profile labels. P3-13's `reminder` and `note_mention` are in the list, so the merge order does not matter. A manager, head or admin now sees twenty-one switches on My profile (V217's eighteen and these three); a work-tier person keeps V217's seven, so a member is still told of an escalation and a due day but has no switch for them — whether those two join the seven is builder B's and the Architect's call.
+- Test ALR-03. Sabotages `a-silent-project-reminded-every-day`, `a-done-task-reminded`.
+- **Builder A's range V100–V199 is used up with this entry.** The next decision needs a new range from the oversight.
 
 ## Builder B (V200–V269)
 
