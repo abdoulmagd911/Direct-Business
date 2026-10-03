@@ -940,8 +940,8 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
 
 | ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
 |---|---|---|---|---|---|---|
-| QA-241 | 2026-10-02 12:15 | #141 f2733e5; V197, V151, V517 (pilot stage 0) | High | Builder A · Architect | **A next step makes a task its author cannot open.** In the pilot's stage 0, Tasks is none on the member and manager roles while Log activity is live. An activity logged there with a next step still makes the task (`work.next_step_task` asks only for a team and V465). The member can neither open nor close it (`api.task`: `common.not_found`), yet the day before it is due they are told `alert_due_tomorrow`: the daily job's guard lets it through because an owner always "sees" their record (`authz.can_see_as` → `core.owners_of`). While the task stays open, the organisation never goes stale (V151 after P5-1): 25 days on it still reads fresh, so the stale alert never comes for any pilot organisation with a next step. **Fix:** treat an author below Own on Tasks like "nobody can take it" (V197): add `or authz.level_of(new.created_by, 'tasks') < 'own'` to the no-task test, so the next step stays on the activity. Otherwise the Architect holds #141 until Tasks opens to the pilot roles on 18 Oct. **Test:** `QA-241-a-next-step-leaves-no-task-its-author-cannot-open.sql`. | Fixed in #141 a035e30 (round 49); on main when #141 merges |
-| QA-240 | 2026-10-02 12:15 | #141 f2733e5; V199, V491, V506 | Medium | Builder A | **A project dated before go-live is reminded.** `notify.alert_project_no_update()` never asks `work.is_past`, so an Active project dated before the go-live day tells its owner "no health update" on the first daily run. The silence is counted from its old date. Past work tells nobody (#140's rule), and ALR-03 already keeps past tasks out of the due-day reminder. **Fix:** add `and not work.is_past(p.happened_on)` to its `where`. If a still-running project from before go-live should be reminded, the Architect says so and its silence counts from the go-live day instead. **Test:** `QA-240-a-project-dated-before-go-live-is-never-reminded.sql`. | Fixed in #141 a035e30 (round 49); on main when #141 merges |
+| QA-241 | 2026-10-02 12:15 | #141 f2733e5; V197, V151, V517 (pilot stage 0) | High | Builder A · Architect | **A next step makes a task its author cannot open.** In the pilot's stage 0, Tasks is none on the member and manager roles while Log activity is live. An activity logged there with a next step still makes the task (`work.next_step_task` asks only for a team and V465). The member can neither open nor close it (`api.task`: `common.not_found`), yet the day before it is due they are told `alert_due_tomorrow`: the daily job's guard lets it through because an owner always "sees" their record (`authz.can_see_as` → `core.owners_of`). While the task stays open, the organisation never goes stale (V151 after P5-1): 25 days on it still reads fresh, so the stale alert never comes for any pilot organisation with a next step. **Fix:** treat an author below Own on Tasks like "nobody can take it" (V197): add `or authz.level_of(new.created_by, 'tasks') < 'own'` to the no-task test, so the next step stays on the activity. Otherwise the Architect holds #141 until Tasks opens to the pilot roles on 18 Oct. **Test:** `QA-241-a-next-step-leaves-no-task-its-author-cannot-open.sql`. | Fixed on main fc3c18f (#141, round 59) |
+| QA-240 | 2026-10-02 12:15 | #141 f2733e5; V199, V491, V506 | Medium | Builder A | **A project dated before go-live is reminded.** `notify.alert_project_no_update()` never asks `work.is_past`, so an Active project dated before the go-live day tells its owner "no health update" on the first daily run. The silence is counted from its old date. Past work tells nobody (#140's rule), and ALR-03 already keeps past tasks out of the due-day reminder. **Fix:** add `and not work.is_past(p.happened_on)` to its `where`. If a still-running project from before go-live should be reminded, the Architect says so and its silence counts from the go-live day instead. **Test:** `QA-240-a-project-dated-before-go-live-is-never-reminded.sql`. | Fixed on main fc3c18f (#141, round 59) |
 
 ## Round 49 — 2026-10-02 14:45 (v2/main 94ff70a: #148 merged; #141 cleared at a035e30; #147 re-confirmed at 035b22e)
 
@@ -1104,3 +1104,21 @@ The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W
   - **No new bug.**
 - **Gallery:** retaken and republished (version 36, 287 pictures). It shows the new `/kpis` landing and the + menu.
 - **#141 (Builder A) at 83e794a.** It merges main a04ad8a cleanly, and its migrations still sort after main's newest, `20261002170000`. QA 1 re-confirmed at 02:42 on condition that CI's end-to-end job ended green. It did at 02:52, so #141 is cleared from QA 1's side. QA-240/241 flip to fixed on main when it merges.
+
+## Round 59 — 2026-10-03 04:10 (v2/main fc3c18f: #141 merged; QA-240/241 fixed on main; gallery v38)
+
+- **Main fc3c18f** (#141, Builder A: next-step tasks, Escalate, team load, daily reminders, V197–V199). Retaken on local stacks built from zero.
+  - **SQL suite:** 178 of 183. The reds are QA-02/03/04/121/208, as before. QA-240 and QA-241 pass, so both are flipped to fixed on main.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26 PASS, 0 FAIL, 7 NOT BUILT. It has a new step, a task from a next step.
+    - **What it does:** the pilot member logs a call on their client with a next step three days out.
+    - **What it checks:** the activity makes the author a task. The task has a TSK- number, the step's day as its due day and origin `next_step`, and it is listed in Tasks · My work.
+    - **It can fail:** on a04ad8a (before #141) the same step saves the activity but makes no task, and the check is red.
+  - **Still not built:**
+    - a task from a note (Turn into offers activity and reminder only);
+    - an achievement from a task;
+    - the grid's achievements mode;
+    - the KPI page itself.
+  - **Full browser sweep:** the same tests fail as on a04ad8a. The signed-in walk is back to 1898/542: round 58's filter fix removed the two "Startsjhbr" rows.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 38, 287 pictures). It shows the new Work setting (a live project's days without a health update) and the three new notice kinds in My profile.

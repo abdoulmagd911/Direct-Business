@@ -2,8 +2,8 @@
  * The integrated pass the Architect asked for on #147 (2 Oct, 12:23 UTC): once #151, #147 and #150 are on v2/main,
  * one walk through the work loop with the pilot's access levels (the deferred modules at none on the member and manager
  * roles, V517) and Arabic off, at 1440 and 390:
- *   a task made from a note · an achievement from a task · the Past work grid for tasks and achievements · KPIs reading
- *   the achievements · the numbers (TSK-, ACH-) · My day and the employee view.
+ *   a task made from a note · a task from a next step (#141) · an achievement from a task · the Past work grid for
+ *   tasks and achievements · KPIs reading the achievements · the numbers (TSK-, ACH-) · My day and the employee view.
  * A step whose screen or door is not on the build is NOT BUILT, never FAIL. Kept out of the full sweep (it changes role
  * levels, then puts them back): run with QA_INTEGRATED=1 tests/qa/sweep/run.sh -- --grep "integrated pass".
  * Made-up people and values only (seed.mjs).
@@ -198,6 +198,69 @@ test('integrated pass: the work loop with the pilot levels — notes, tasks, ach
           'a task made from a note is a task with its TSK- number, linked to the note',
           { screen: '/my-day/notes/:id', user: 'member', detail: t?.number ?? said(door) },
           TSK.test(t?.number ?? ''),
+        );
+      }
+    }
+
+    // ---------------------------------------------------------------- a next step makes a task (#141, V197; the member)
+    const alpha = fx().orgs.alpha;
+    const step = `Test next step: send the made-up offer ${tag}`;
+    const due = new Date(`${fx().today}T00:00:00Z`);
+    due.setUTCDate(due.getUTCDate() + 3);
+    const stepOn = due.toISOString().slice(0, 10);
+    await page.goto(`/clients/${alpha.id}`);
+    await hydrated(page);
+    const logButton = page.locator('[data-activity-log]').first();
+    if ((await logButton.count()) === 0)
+      gap('a next step makes a task: the client record offers no Log activity', {
+        screen: '/clients/:id',
+        user: 'member',
+      });
+    else {
+      await logButton.click();
+      const form = page.locator('[data-activity-form]');
+      await form.getByLabel('Type').click();
+      await page.getByRole('option', { name: 'Call' }).click();
+      const outcome = form.getByLabel('Outcome');
+      if (await outcome.isEnabled()) {
+        await outcome.click();
+        await page.getByRole('option').first().click();
+      }
+      await form.getByLabel('Next step', { exact: true }).fill(step);
+      await form.getByLabel('Next step on').fill(stepOn);
+      await page.locator('[data-activity-save]').click();
+      type Made = { number: string | null; due_on: string | null; owner: string | null; origin: string | null };
+      const made = async () =>
+        (
+          await sql<Made>(
+            `select t.number, t.due_on::text, t.owner_id::text as owner, t.origin
+               from core.note n left join work.task t on t.id = n.next_step_task_id
+              where n.next_step = $1 and n.deleted_at is null`,
+            [step],
+          )
+        )[0];
+      await expect
+        .poll(async () => (await made())?.number ?? '', { timeout: 15_000 })
+        .toMatch(TSK)
+        .catch(() => undefined);
+      const t = await made();
+      check(
+        'a next step logged on a client makes its author a task: a TSK- number, the step’s day, origin next_step',
+        { screen: '/clients/:id → Log activity', user: 'member', detail: t ? JSON.stringify(t) : 'no activity saved' },
+        TSK.test(t?.number ?? '') &&
+          t?.due_on === stepOn &&
+          t?.owner === user('member').id &&
+          t?.origin === 'next_step',
+      );
+      if (t?.number) {
+        await page.goto('/tasks');
+        await hydrated(page);
+        const row = page.locator(`[data-task-row="${t.number}"]`);
+        await row.waitFor({ timeout: 10_000 }).catch(() => undefined);
+        check(
+          'the next step’s task is listed in Tasks · My work',
+          { screen: '/tasks', user: 'member', detail: t.number },
+          (await row.count()) > 0,
         );
       }
     }
