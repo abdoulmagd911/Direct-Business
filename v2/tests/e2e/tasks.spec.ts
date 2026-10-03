@@ -158,21 +158,6 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
-  test(`${w.name}: a member's + offers Task and opens quick add (V605)`, async ({ browser }) => {
-    const member = await memberWithTeam();
-    const { ctx, page } = await signedIn(browser, member, w.width, w.height, '/my-day');
-    // the + floats above the bottom bar on a phone; from 640 px it is the top bar's Create
-    await page.locator(w.width < 640 ? '[data-create-floating]' : '[data-create]').click();
-    const item = page.locator('[data-create-item="task"]');
-    await expect(item, 'the + offers Task').toHaveText('Task');
-    await item.click();
-    await expect(page).toHaveURL(/\/tasks\?new=1$/);
-    await expect(page.locator('form[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
-    await expect(page.locator('form[data-quick-add] input[name="title"]')).toBeFocused();
-    await noSidewaysScroll(page, `${w.name} quick add from the +`);
-    await ctx.close();
-  });
-
   test(`${w.name}: an admin in no team must pick an owner (V277)`, async ({ browser }) => {
     const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
     const owner = await memberWithTeam();

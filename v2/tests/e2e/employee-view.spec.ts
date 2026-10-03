@@ -254,21 +254,20 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Task, Client, Supplier and Achievement are built and theirs to add (V605); Invoice is not built — absent
+  // a manager: Client, Supplier and Achievement (KPIs is built) are at Full; Task and Invoice are not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Suppliers, Tasks and KPIs are View): Create and the + open it directly, no menu
+  // one item left (a member whose Suppliers and KPIs are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
   await sql(
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
      values ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
-            ($1, 'tasks', 'view', 'Made up: tasks read only', $1),
             ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
     [member.id],
   );

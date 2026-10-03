@@ -76,12 +76,14 @@ const note = (over: Partial<MyNote> = {}): MyNote => ({
 describe('Turn into', () => {
   it('the menu leaves out a kind whose page is not built — never greyed (GC-1)', () => {
     expect(liveKinds(new Set())).toEqual(['activity', 'reminder']);
-    expect(liveKinds(new Set(['tasks.turn_into']))).toEqual(['activity', 'reminder', 'task', 'action_item']);
-    expect(
-      liveKinds(new Set(['tasks.turn_into', 'kpis'])),
-      'the KPIs page alone does not offer an achievement',
-    ).toEqual(['activity', 'reminder', 'task', 'action_item']);
-    expect(liveKinds(new Set(['tasks.turn_into', 'kpis.turn_into']))).toHaveLength(5);
+    expect(liveKinds(new Set(['tasks']))).toEqual(['activity', 'reminder', 'task', 'action_item']);
+    expect(liveKinds(new Set(['tasks', 'kpis'])), 'the KPIs page alone does not offer an achievement').toEqual([
+      'activity',
+      'reminder',
+      'task',
+      'action_item',
+    ]);
+    expect(liveKinds(new Set(['tasks', 'kpis.turn_into']))).toHaveLength(5);
   });
   it('offers a logged meeting or call and a reminder now', () => {
     expect(turnLive('activity', new Set())).toBe(true);
@@ -91,7 +93,7 @@ describe('Turn into', () => {
     expect(turnLive('task', new Set()), 'a task waits for Tasks').toBe(false);
     expect(turnLive('action_item', new Set())).toBe(false);
     expect(turnLive('achievement', new Set(['tasks']))).toBe(false);
-    expect(turnLive('task', new Set(['tasks.turn_into']))).toBe(true);
+    expect(turnLive('task', new Set(['tasks']))).toBe(true);
     expect(turnLive('achievement', new Set(['kpis']))).toBe(false);
     expect(turnLive('achievement', new Set(['kpis.turn_into']))).toBe(true);
   });

@@ -64,25 +64,6 @@ export const sabotages = [
     expect: 'the owner is sent only when it is someone else',
     edits: [{ file: RULES, find: 'if (input.ownerId && input.ownerId !== me)', replace: 'if (input.ownerId)' }],
   },
-  // ---- the + offers Task; Turn into waits on its own flag (V605)
-  {
-    name: 'tasks-page-not-built',
-    breaks: [unit('the-plus-offers-a-task-at-own-or-full')],
-    expect: 'the + offers Task first',
-    edits: [{ file: 'src/modules/tasks/module.ts', find: '      built: true,\n', replace: '' }],
-  },
-  {
-    name: 'tasks-built-offers-a-turn-into-nobody-can-take',
-    breaks: [unit('the-plus-offers-a-task-at-own-or-full')],
-    expect: 'offers no task or action item while only the Tasks page is built',
-    edits: [
-      {
-        file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',",
-        replace: "  task: 'tasks',\n  action_item: 'tasks',",
-      },
-    ],
-  },
   // ---- past work for someone in no team needs a named owner (V605)
   {
     name: 'past-work-no-team-sends-unowned-rows',
@@ -274,18 +255,6 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
         find: "{f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (",
         replace: "{f.scope === 'past' && !atLeastOwn('full') && atLeastOwn(me.levels.tasks) ? (",
-      },
-    ],
-  },
-  {
-    name: 'e2e-tasks-plus-leaves-out-task',
-    breaks: [e2e],
-    expect: "a member's + offers Task and opens quick add",
-    edits: [
-      {
-        file: 'src/ui/shell/CreateMenu.tsx',
-        find: "  { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['own', 'full'] },",
-        replace: "  { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['full'] },",
       },
     ],
   },
