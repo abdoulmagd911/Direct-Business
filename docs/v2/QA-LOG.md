@@ -1185,3 +1185,16 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
 - **Main 8e1e649** (#178): docs only (V602 retired; V608: a docs-only merge does not make a code PR stale). Noted, no retake.
 - **#175 (builder E): cleared at 21b07ae** (CI fully green at 20:31 UTC). It merges 519f915. Every file it changes since 6a5fc70 carries main's delta exactly. DECISIONS now reads V380, V381, V382, with no V-number twice.
 - **#149 (builder A) at 58577e6:** it merges c3ea146. Its own files are identical to a32b2b2, and its DECISIONS lines are the same. It lacks 519f915 (#177); the Architect re-levels it onto main after #175 lands.
+
+## Round 64 — 2026-10-03 22:00 (v2/main 4161753: #179, the owner picker and locked areas; #175 re-levelled at 4db3c95)
+
+- **Main 4161753** (#179: someone in no team picks an owner in Quick add and Past work, V277; locked areas say why, V278; builder D's work landed by E). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to 519f915 apart from one row, and that row is QA's own wording.
+    - **What changed:** `13-tasks` "a member in no team" read the form's new words, "Pick an owner", where it expected "team".
+    - **Why it isn't a bug:** that is #179's rule (V277), the words are plain, and nothing is saved silently. The check now accepts a team or an owner and passes 7/7 on main.
+  - **Gallery:** waits for #175, which is next, so both screen changes are shot together.
+  - **No new bug.**
+- **#175 (builder E) at 4db3c95:** the Architect merged 4161753 into it. Every file the merge touched carries exactly main's change, and #175's own diff against main is unchanged (14 files, 386+/15−). Cleared at 4db3c95 at 22:4x UTC, once CI was green.

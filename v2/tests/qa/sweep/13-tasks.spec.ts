@@ -50,9 +50,9 @@ test('Tasks: a teamless member, a double click, a colleague, a viewer, a future 
     .join(' | ')
     .replace(/\s+/g, ' ');
   check(
-    'a member in no team: the task is added, or the refusal is said in words (never a raw key, never a silent no)',
+    'a member in no team: the task is added, or the form says in words what it needs — a team, or since #179 an owner to pick (V277) — never a raw key, never a silent no',
     { screen: '/tasks · quick add', user: 'member', detail: `added ${made!.n}; on screen: ${said1.slice(0, 200)}` },
-    made!.n === 1 || (said1.length > 0 && !RAW_KEY.test(said1) && /team/i.test(said1)),
+    made!.n === 1 || (said1.length > 0 && !RAW_KEY.test(said1) && /team|owner/i.test(said1)),
   );
 
   // the rest in one made-up team
