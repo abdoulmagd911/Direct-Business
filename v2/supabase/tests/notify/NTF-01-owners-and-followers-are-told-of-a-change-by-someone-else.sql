@@ -58,14 +58,19 @@ select test.done();
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am2')::uuid
                 and request_id = current_setting('t.r3')::uuid), 0,
   'a kind a person turned off in My profile does not reach them');
-update core.person set can_sign_in = false where id = current_setting('t.head')::uuid;
+-- (a follower switched off: a department's head is never switched off before a new head is chosen — V463)
+update core.person_profile set notify = '{"followed_change": {"in_app": true}}'
+where person_id = current_setting('t.am2')::uuid;
+update core.person set can_sign_in = false where id = current_setting('t.am2')::uuid;
 select set_config('t.r4', test.act(current_setting('t.admin')::uuid)::text, true);
 update core.department set name_en = 'Notify Renamed Thrice' where id = current_setting('t.dep')::uuid;
 select test.done();
-select test.eq((select count(*)::int from notify.notification where request_id = current_setting('t.r4')::uuid), 0,
+select test.eq((select count(*)::int from notify.notification where request_id = current_setting('t.r4')::uuid
+                and person_id = current_setting('t.am2')::uuid), 0,
   'a person who may not sign in is not told');
-update core.person set can_sign_in = true, department_id = current_setting('t.dep')::uuid
-where id = current_setting('t.head')::uuid;
+select test.eq((select count(*)::int from notify.notification where request_id = current_setting('t.r4')::uuid
+                and person_id = current_setting('t.head')::uuid), 1, 'while one who may still is');
+update core.person set department_id = current_setting('t.dep')::uuid where id = current_setting('t.head')::uuid;
 insert into core.setting (key, department_id, value, valid_from, reason)
 values ('notify.kinds_enabled', current_setting('t.dep')::uuid, '["assigned", "mentioned"]', core.riyadh_today(),
         'made up for a test');

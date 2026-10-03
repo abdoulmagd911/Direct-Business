@@ -120,9 +120,11 @@ function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
 function api.person_emails_unlinked(p_person uuid) execute authenticated
+function api.person_leave(p_id uuid, p_reason text, p_left_on date, p_reassign_to uuid) execute authenticated
+function api.person_open_work(p_id uuid) execute authenticated
 function api.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
-function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
+function api.person_switch(p_id uuid, p_on boolean, p_reason text, p_reassign_to uuid) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function api.plans(p_department uuid) execute authenticated
@@ -245,9 +247,11 @@ function core.person_devices(p_person uuid) execute authenticated
 function core.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function core.person_email_remove(p_id uuid, p_reason text) execute authenticated
 function core.person_emails_unlinked(p_person uuid) execute authenticated
+function core.person_leave(p_id uuid, p_left_on date, p_reassign_to uuid, p_reason text) execute authenticated
+function core.person_open_work(p_id uuid) execute authenticated
 function core.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
-function core.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
+function core.person_switch(p_id uuid, p_on boolean, p_reason text, p_reassign_to uuid) execute authenticated
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
