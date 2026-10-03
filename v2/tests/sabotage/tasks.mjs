@@ -304,9 +304,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: '<ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
+        find: 'className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"\n              data-task-rows',
         replace:
-          '<ul className="flex min-w-[600px] flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
+          'className="flex min-w-[600px] flex-col divide-y divide-border rounded-lg border border-border bg-raised"\n              data-task-rows',
       },
     ],
   },
