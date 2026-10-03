@@ -171,14 +171,14 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   page,
 }) => {
   await openAs(page, 'member');
-  for (const [route, title] of [
-    ['/kpis', 'KPIs'],
-    ['/finance', 'Finance'],
-    ['/reports', 'Reports'],
+  for (const [route, heading, title] of [
+    ['/kpis', 'Achievements', 'KPIs'], // /kpis opens the Achievements list until the KPIs page is built (V605)
+    ['/finance', 'Finance', 'Finance'],
+    ['/reports', 'Reports', 'Reports'],
   ] as const) {
     await page.goto(route);
     await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
     await expect(page.locator('[data-state="no-access"]'), `${route} opens at the member's level`).toHaveCount(0);
     await expect(page.locator('[data-drawer]').getByRole('link', { name: title }), 'yet not in the menu').toHaveCount(
       0,
@@ -190,7 +190,7 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   const palette = page.locator('[data-command-palette]');
   await palette.getByPlaceholder('Go to a page or search…').fill('KPIs');
   await palette.getByRole('option', { name: 'KPIs' }).click();
-  await expect(page).toHaveURL(/\/kpis$/);
+  await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
   // An invoice by "INV" and a client's Finance tab come with Finance's own screens (P4); nothing to find yet.
 });
 
@@ -254,20 +254,21 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Client and Supplier are built and at Full; Task, Invoice and Achievement are not built — absent
+  // a manager: Client, Supplier and Achievement (KPIs is built) are at Full; Task and Invoice are not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Suppliers is View): Create and the + open it directly, no menu
+  // one item left (a member whose Suppliers and KPIs are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
   await sql(
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-     values ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1)`,
+     values ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
+            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
     [member.id],
   );
   await one.setViewportSize(DESKTOP);
@@ -311,7 +312,7 @@ test('11 · the avatar menu holds exactly My profile and Sign out', async ({ pag
   await expect(page.getByRole('menuitem')).toHaveText(['My profile', 'Sign out']);
 });
 
-test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's eighteen", async ({
+test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-one", async ({
   page,
   browser,
 }) => {
@@ -328,7 +329,8 @@ test("12 · a member's My profile: five cards, seven notification switches, none
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();
   await openAs(manager, 'manager', '/profile');
-  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(18);
+  // V217's eighteen and P5-1's escalated, alert_project_no_update and alert_due_tomorrow (V199)
+  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(21);
   await ctx.close();
 });
 
