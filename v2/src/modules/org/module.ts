@@ -70,6 +70,8 @@ export default defineModule({
       owners: 'person_id',
     },
     { key: 'role_level', table: 'core.role_page_level', page: 'settings.org', label: 'entity.role_level' },
+    // V510: a team's level on a page, between the role's default and the person's override.
+    { key: 'team_level', table: 'core.team_page_level', page: 'settings.org', label: 'entity.team_level' },
     { key: 'role_capability', table: 'core.role_capability', page: 'settings.org', label: 'entity.role_capability' },
     { key: 'page', table: 'core.page', page: 'settings.org', label: 'entity.page' },
     { key: 'capability', table: 'core.capability', page: 'settings.org', label: 'entity.capability' },
