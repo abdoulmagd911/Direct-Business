@@ -745,6 +745,7 @@
   },
   "setting": {
     "work": {
+      "project_update_days": "أيام بلا تحديث للحالة قبل تذكير مالك المشروع",
       "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة متأخرة",
       "week_starts_on": "بداية الأسبوع",
       "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
@@ -862,6 +863,9 @@
       "preferences": "التفضيلات"
     },
     "notify": {
+      "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
+      "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
+      "escalated": "أمر تم تصعيده إليّ",
       "reminder": "تذكيراتي",
       "note_mention": "الإشارة إليّ في ملاحظة"
     }
@@ -1004,6 +1008,7 @@
   },
   "notifications": {
     "kinds": {
+      "alert_due_tomorrow": "يقترب موعد استحقاق {what}",
       "reminder": "تذكير: {what}",
       "note_mention": "أشار {actor} إليك في ملاحظة"
     },
