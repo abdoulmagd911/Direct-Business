@@ -932,14 +932,16 @@ export const sabotages = [
     ],
   },
   {
-    name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
+    // V379, QA-517: the dialog and the door are in, so the KPIs page offers Turn into an achievement (it waited on its
+    // own flag, `kpis.turn_into`, while neither was — V222)
+    name: 'achievement-turn-into-waits-on-a-flag-nobody-sets',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
-    expect: 'the KPIs page alone does not offer an achievement',
+    expect: 'the KPIs page offers an achievement',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  achievement: 'kpis.turn_into',",
-        replace: "  achievement: 'kpis',",
+        find: "  achievement: 'kpis',",
+        replace: "  achievement: 'kpis.turn_into',",
       },
     ],
   },

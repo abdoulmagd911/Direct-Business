@@ -25,7 +25,7 @@ const CALL_OR_MEETING = ['call', 'meeting'];
  * Turn into (V433): a logged meeting or call and a reminder now. A task and an action item join with Tasks (P5-2), an
  * achievement with the KPIs page (P5-6): a kind whose page is not built is left out, never greyed (GC-1, cut 3).
  */
-export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
+export function TurnIntoMenu({ onPick, hide = [] }: { onPick: (k: TurnKind) => void; hide?: TurnKind[] }) {
   const t = useTranslations();
   return (
     <Menu>
@@ -36,11 +36,13 @@ export function TurnIntoMenu({ onPick }: { onPick: (k: TurnKind) => void }) {
         </Button>
       </MenuTrigger>
       <MenuContent>
-        {liveKinds(BUILT).map((k) => (
-          <MenuItem key={k} onSelect={() => onPick(k)} data-turn-kind={k}>
-            {t(`pages.myDay.turn.kinds.${k}`)}
-          </MenuItem>
-        ))}
+        {liveKinds(BUILT)
+          .filter((k) => !hide.includes(k))
+          .map((k) => (
+            <MenuItem key={k} onSelect={() => onPick(k)} data-turn-kind={k}>
+              {t(`pages.myDay.turn.kinds.${k}`)}
+            </MenuItem>
+          ))}
       </MenuContent>
     </Menu>
   );

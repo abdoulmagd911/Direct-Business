@@ -8,15 +8,14 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
 }
 
 /**
- * Turn into (V433): a logged meeting or call and a reminder now; a task and an action item arrive with Tasks (P5-2), an
- * achievement when its Turn into dialog and the database door accept it (`note_turn_into` answers `not_yet` for it until
- * then) — not when the KPIs page is built, which only gives the + menu and the record address (V377). Until its page is
- * built the menu leaves it out.
+ * Turn into (V433): a logged meeting or call and a reminder now; a task and an action item arrive with Tasks (P5-2); an
+ * achievement with the KPIs page, now that its dialog and its database door are in (V379, QA-517 — it waited on its own
+ * flag until then, V222). Until its page is built the menu leaves it out.
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
   task: 'tasks',
   action_item: 'tasks',
-  achievement: 'kpis.turn_into',
+  achievement: 'kpis',
 };
 
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
@@ -56,6 +55,7 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 /** Where a "turned into" chip leads: a logged call or meeting opens its organisation's record; a reminder has no page. */
 export function linkRoute(link: NoteLink): string | null {
   if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
+  if (link.entity === 'achievement') return `/kpis/achievements/${link.id}`;
   return null;
 }
 
