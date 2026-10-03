@@ -145,6 +145,14 @@ export default defineModule({
       default: { account_manager: true, followers: true, commercial_manager: false },
     },
     {
+      // At a contract's first reminder the daily job makes its renewal task for the side's owner (V56).
+      key: 'partner.contract_renewal_task',
+      group: 'settings.partners',
+      label: 'setting.partner.contract_renewal_task',
+      schema: z.boolean(),
+      default: true,
+    },
+    {
       key: 'partner.logo_fallback',
       group: 'settings.partners',
       label: 'setting.partner.logo_fallback',

@@ -46,6 +46,7 @@ function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.contract_renewal_task(p_contract uuid) execute authenticated
 function api.contract_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.contracts(p_partner uuid, p_side text) execute authenticated
 function api.contracts_remove(p_ids uuid[], p_reason text) execute authenticated
@@ -346,6 +347,7 @@ function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) e
 function work.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.backfill_keys_held(p_keys text[]) execute authenticated
 function work.backfill_tasks(p_request jsonb) execute authenticated
+function work.contract_renewal_task(p_contract uuid) execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
 function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
