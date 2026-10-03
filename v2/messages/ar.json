@@ -493,7 +493,8 @@
         "added": "أُضيفت المهمة: {title}",
         "title_required": "العنوان مطلوب",
         "title_too_long": "الحد الأقصى للأحرف: {max}",
-        "due_invalid": "اختر تاريخًا"
+        "due_invalid": "اختر تاريخًا",
+        "owner_required": "اختر مالكًا"
       },
       "edit": {
         "title": "تعديل {number}",
@@ -606,7 +607,8 @@
           "person_checking": "جارٍ التحقق من الاسم",
           "repeated": "الصف نفسه مرتين",
           "already_saved": "محفوظ من قبل",
-          "saved_checking": "جارٍ التحقق مما إذا كان محفوظًا من قبل"
+          "saved_checking": "جارٍ التحقق مما إذا كان محفوظًا من قبل",
+          "owner_needed": "اختر مالكًا"
         },
         "ownerUnknown": {
           "missing": "المالك غير معروف: لا اسم",
@@ -616,7 +618,9 @@
         "summary": "{ready, plural, one {صف واحد جاهز} two {صفان جاهزان} few {# صفوف جاهزة} many {# صفًا جاهزًا} other {# صف جاهز}} · {refused, plural, one {مرفوض واحد} two {مرفوضان} few {# مرفوضة} many {# مرفوضًا} other {# مرفوض}}",
         "save": "حفظ {rows, plural, one {صف واحد} two {صفين} few {# صفوف} many {# صفًا} other {# صف}}",
         "saved": "{rows, plural, one {حُفظ صف واحد} two {حُفظ صفان} few {حُفظت # صفوف} many {حُفظ # صفًا} other {حُفظ # صف}} كعمل سابق",
-        "failed": "تعذّر فحص الصفوف أو حفظها. حاول مرة أخرى."
+        "failed": "تعذّر فحص الصفوف أو حفظها. حاول مرة أخرى.",
+        "ownerLine": "أضف عمودًا باسم «المالك»، أو اختر مالكًا لهذه الصفوف",
+        "ownerFor": "المالك لهذه الصفوف"
       }
     }
   },
@@ -856,7 +860,8 @@
     },
     "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
-    "reportsTo": "يتبع {name}"
+    "reportsTo": "يتبع {name}",
+    "locked": "النشاط للمديرين ورؤساء الإدارات ومسؤولي النظام"
   },
   "profile": {
     "sections": {
@@ -1250,5 +1255,9 @@
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",
     "achievement": "إنجاز جديد"
+  },
+  "record": {
+    "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
+    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
   }
 }
