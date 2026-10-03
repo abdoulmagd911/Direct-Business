@@ -213,15 +213,19 @@ export function guessMapping(table: readonly string[][], fields: readonly Field[
 /**
  * An amount in SAR as a sheet has it (V502): Latin, Arabic-Indic or Eastern digits, thousands separators of either
  * script, a decimal point of either, at most two decimals (the database keeps numeric(14,2)), never negative. A
- * trailing SAR or ريال is ignored. Null when it is not an amount — never a guess.
+ * trailing SAR or ريال is ignored. A thousands separator stands only between groups of three digits (`1,250` ·
+ * `12,500.5`), so a decimal comma (`12,50`, `1,5`) is refused, never read as 1250 or 15 (V382, QA-518). Null when it
+ * is not an amount — never a guess.
  */
 export function readAmount(cell: string): number | null {
-  const plain = cell
+  const written = cell
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/(?:sar|ريال|ر\.\s?س)/gi, '')
-    .replace(/[\s\u00a0,٬]/g, '')
+    .trim()
     .replace('٫', '.');
+  if (!/^(?:\d+|\d{1,3}(?:[\s\u00a0,٬]\d{3})+)(?:\.\d{1,2})?$/.test(written)) return null;
+  const plain = written.replace(/[\s\u00a0,٬]/g, '');
   if (!/^\d{1,12}(?:\.\d{1,2})?$/.test(plain)) return null;
   return Number(plain);
 }

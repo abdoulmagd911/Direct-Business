@@ -472,7 +472,7 @@
         "open": "Open the {year} plan",
         "askAdmin": "Ask an admin to open it.",
         "opened": "The {year} plan is open",
-        "noDepartment": "Your profile has no department yet. Ask an admin to set it in People & access."
+        "noDepartment": "Your account has no department yet. Ask an admin to set it."
       }
     },
     "beingBuilt": "Being built.",

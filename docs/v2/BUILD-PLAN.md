@@ -360,6 +360,11 @@ deleted (V61).
 | L-4 | The Files page and the one upload control — achievement proof first, then project proof, task files and comment files | E | L-3, its achievements screens | browser: upload a proof on ACH-…, find it on Files under its computed name, archive, restore |
 | L-5 | Comments on every record: one shared component (comment, @mention, attach), notifications through the existing kinds; V524's Who can see joins it when P5-11 lands | A + B | L-3, L-4's upload control | browser: a manager's comment with an @mention reaches the member's bell; the attachment is on Files |
 | L-6 | Zip and sheet: one file, the selected files, or a client's or a project's files as one zip (computed names, the list inside as a sheet); the list alone as a sheet; Export on each record's Activity | C | L-3, #100 | E2E: a project's three test files come out as one zip of three files and a sheet of three rows |
+| L-7 | On an organisation, Related shows open tasks first, then offers, activities and achievements (V606 (1)) | B | L-2 | browser: a client with two open tasks and an achievement shows the tasks first |
+| L-8 | The Lost / Ended question: "N open tasks — Close · Move · Keep", asked without blocking; one save, one Undo; an import or system act does not ask (V606 (3)) | A (the choice on `api.partner_status_set`) + B (the dialog) | P3-8c | SQL: Close and Move in the status request, one Undo restores both; browser: set a client Lost with three open tasks, Move them, Undo |
+| L-9 | The Tasks list groups by organisation (V606 (2)) | D | — | browser: Group by organisation, the client's tasks under its name, counts per group |
+
+**The four-week review (V607)**, before the first review (about four weeks after day one): where each field shows (main · Details · archived) as an admin setting per record type, logged and undoable (A + B), and one read of the change log per field and action for the review (A). Never before day one.
 
 ## Order at a glance
 
