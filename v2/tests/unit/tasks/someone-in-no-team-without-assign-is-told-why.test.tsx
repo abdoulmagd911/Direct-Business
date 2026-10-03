@@ -2,7 +2,8 @@
  * QA-521 (the Architect on #179): someone in no team who may not give tasks to others can neither own a task nor pick
  * another owner. Quick add says "You're not in a team yet. Ask an admin to add you to one." with no picker and no save;
  * the admin account (no team, with `tasks.assign`) keeps its owner picker (V277). Every value is made up (rule 7).
- * Sabotage: tests/sabotage/tasks.mjs "no-team-without-assign-gets-a-dead-form".
+ * Past work says the same line, with no grid to paste into.
+ * Sabotages: tests/sabotage/tasks.mjs "no-team-without-assign-gets-a-dead-form", "past-work-no-team-without-assign-offers-a-dead-grid".
  */
 import { NextIntlClientProvider } from 'next-intl';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -18,6 +19,7 @@ vi.mock('@/core/auth/me-context', () => ({
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
 
 const { QuickAddForm } = await import('../../../src/modules/tasks/screens/QuickAdd');
+const { PastWorkPanel } = await import('../../../src/modules/tasks/screens/PastWorkPanel');
 
 const TEAM = '33333333-3333-4333-8333-333333333333';
 const html = (team: string | null, capabilities: string[]) => {
@@ -25,6 +27,15 @@ const html = (team: string | null, capabilities: string[]) => {
   return renderToStaticMarkup(
     <NextIntlClientProvider locale="en" messages={en} timeZone="Asia/Riyadh">
       <QuickAddForm org={null} partners={[]} projects={[]} onClose={() => {}} />
+    </NextIntlClientProvider>,
+  );
+};
+
+const pastWork = (team: string | null, capabilities: string[]) => {
+  me.current = { team, capabilities };
+  return renderToStaticMarkup(
+    <NextIntlClientProvider locale="en" messages={en} timeZone="Asia/Riyadh">
+      <PastWorkPanel statuses={[]} partners={[]} org={null} />
     </NextIntlClientProvider>,
   );
 };
@@ -45,5 +56,12 @@ describe('someone in no team who may not assign is told why (QA-521)', () => {
   it('someone in a team, and the admin account, still get the form', () => {
     expect(html(TEAM, [])).toContain('Add task');
     expect(html(null, ['tasks.assign'])).toContain('Pick an owner');
+  });
+
+  it('Past work says so too, with no grid to paste into', () => {
+    const out = pastWork(null, []);
+    expect(out, 'Past work says to ask for a team').toContain('not in a team yet. Ask an admin to add you to one.');
+    expect(out).not.toContain('data-past-work-grid');
+    expect(pastWork(TEAM, []), 'someone in a team keeps the grid').toContain('data-past-work-grid');
   });
 });
