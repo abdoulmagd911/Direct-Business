@@ -21,6 +21,9 @@ export const NOTIFICATION_KINDS = [
   'alert_file_review',
   'reminder',
   'note_mention',
+  'escalated',
+  'alert_project_no_update',
+  'alert_due_tomorrow',
 ] as const;
 
 /** The seven a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
