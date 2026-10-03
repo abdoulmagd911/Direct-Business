@@ -17,8 +17,8 @@ Achievements become real records the owner and the team can load, including 2025
    and the MoU's **side**, chosen on it (V521), a newer report's value replacing an older one's with the history kept
    (V502, V500); the **number** `ACH-<Happened on year>-0042` from `core.next_number`, and `repeat_of` (V531).
 2. **The screens PR — the achievements part of P5-6**: the list (category, person, month, Backfilled), the record page
-   (V95 template), **Log achievement** from the + and from the record pages that offer it (V503's tender Signed comes
-   later, with Pipeline); the **repeat check** on Log achievement (V531: same organisation and category in the last 12
+   (V95 template), **Log achievement** from the + and from the record pages that offer it (~~V503's tender Signed comes
+   later, with Pipeline~~ **[SUPERSEDED — V603: a tender moved to Signed logs its Contract signed achievement itself, as a system act, in builder A's P5-8 reviewed by E; it offers Log achievement only when it cannot]**); the **repeat check** on Log achievement (V531: same organisation and category in the last 12
    months, a similar title — This is a new one / Same as the earlier one, one tap, never blocking); the number beside
    Happened on and the organisation everywhere.
 3. **The grid's achievements mode** — builder C's component (#105) wired to `api.backfill_achievements`, with the
@@ -34,7 +34,7 @@ V500 (history) · V503, V505 (Contract signed, deal value) · V521 (the MoU's si
 (numbers and repeats) · V507–V509 · V513 · V515 (the appraisal reads these) · V517 · V519 · builder A's V189–V196
 (#140) for the request, Undo and import-key patterns to copy.
 
-## The gate card — GC-4 (to be signed before the screens PR merges)
+## The gate card — GC-4 ~~(to be signed before the screens PR merges)~~ **[SUPERSEDED — V508: signed by the owner on 2 Oct 2026; passed by #151]**
 
 1. **Screen and spot:** Achievements under KPIs (`/kpis/achievements`, `/kpis/achievements/<id>`) and Log achievement
    in the +; no new menu item.
