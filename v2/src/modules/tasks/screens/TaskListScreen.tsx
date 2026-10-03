@@ -166,7 +166,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       </div>
 
       {f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (
-        <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} />
+        <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} org={lookups.org} />
       ) : null}
       {lookups.failed.length ? (
         <DataState

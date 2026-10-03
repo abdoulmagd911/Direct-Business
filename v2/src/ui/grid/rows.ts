@@ -63,6 +63,8 @@ export type Problem =
   | 'organisation_ambiguous'
   | 'organisation_checking'
   | 'person_checking'
+  /** No one owns the row, and the signed-in person is in no team to fall back on (V605): pick an owner. */
+  | 'owner_needed'
   | 'repeated'
   | 'already_saved'
   | 'saved_checking';
@@ -120,6 +122,14 @@ export interface ReadOptions {
    * "checking". Without it the person column is not read and every row is the signed-in person's own.
    */
   people?: ReadonlyMap<string, PersonMatch>;
+  /**
+   * Every row needs a named owner (V605): the signed-in person is in no team, so an Unknown owner or their own default
+   * cannot be placed (V464). A row with no owner takes `fallbackOwner` when one is picked, else it is refused; a pasted
+   * name that matches no one, or more than one, is refused — never a guess.
+   */
+  ownerNeeded?: boolean;
+  /** The owner picked for every row that names none (V605). */
+  fallbackOwner?: { id: string; name: string } | null;
   /**
    * Which rows' keys the database already holds (OLD-PRF-045): `true` is saved before, `false` is new, a key not yet
    * asked is "checking". Without it only repeats inside the paste are caught. A held key may come with what its deal
@@ -288,6 +298,11 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
           ? match.kind
           : null;
       person = { name, id: match?.kind === 'one' ? match.id : null, unknown };
+    }
+    if (o.ownerNeeded) {
+      if ((!person || person.unknown === 'missing') && o.fallbackOwner)
+        person = { name: o.fallbackOwner.name, id: o.fallbackOwner.id, unknown: null };
+      else if (!person || person.unknown) problems.push('owner_needed');
     }
 
     // The same row twice (OLD-PRF-045): whose, title, day, status or category and organisation — the matched person and
