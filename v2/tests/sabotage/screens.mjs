@@ -871,4 +871,76 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'achievement-record-has-no-address',
+    breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
+    expect: 'an achievement opens on its record page',
+    edits: [
+      {
+        file: 'src/ui/entity-route.ts',
+        find: '      return `/kpis/achievements/${id}`;',
+        replace: '      return null;',
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-no-longer-opens-achievements',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the KPIs page opens on Achievements',
+    edits: [
+      {
+        file: 'src/app/(app)/kpis/page.tsx',
+        find: "redirect('/kpis/achievements');",
+        replace: "redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'achievements-short-address-lost',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the short address goes to the list',
+    edits: [
+      {
+        file: 'src/app/(app)/achievements/page.tsx',
+        find: "  redirect('/kpis/achievements');",
+        replace: "  redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-achievement-at-full-only',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'a person at Own may log one',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] }",
+        replace: "route: '/kpis/achievements/new', icon: Trophy, at: ['full'] }",
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-not-built-for-create',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'Create menu offers only built screens',
+    edits: [
+      {
+        file: 'src/modules/perf/module.ts',
+        find: '      built: true,\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the KPIs page alone does not offer an achievement',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  achievement: 'kpis.turn_into',",
+        replace: "  achievement: 'kpis',",
+      },
+    ],
+  },
 ];

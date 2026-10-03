@@ -9,14 +9,16 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
 
 /**
  * Turn into (V433): a logged meeting or call and a reminder now; a task and an action item arrive with Tasks (P5-2), an
- * achievement with the KPIs page (P5-6). Until its page is built the menu leaves it out.
+ * achievement when its Turn into dialog and the database door accept it (`note_turn_into` answers `not_yet` for it until
+ * then) — not when the KPIs page is built, which only gives the + menu and the record address (V377). Until its page is
+ * built the menu leaves it out.
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
   // Tasks is built (V605), but a note becomes a task or an action item only once the note → task door and its dialog
   // land (`note_turn_into` answers `not_yet` for them): until then they wait on their own flag, never on `built` alone.
   task: 'tasks.turn_into',
   action_item: 'tasks.turn_into',
-  achievement: 'kpis',
+  achievement: 'kpis.turn_into',
 };
 
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {

@@ -1,6 +1,6 @@
 /**
  * My day's rules without a browser (V433, V454): Turn into offers a logged meeting or call and a reminder now, and greys
- * a task and an action item until Tasks is built, an achievement until the KPIs page is; every block draws seven rows
+ * a task and an action item until Tasks is built, an achievement until its own Turn into is; every block draws seven rows
  * and a "more" link; "/meeting" and "/checklist" pick the kind; Wrap up walks only the open captures of the day and
  * carries them to the next working day — Sunday after a Thursday; a private note's chip says "Only me"; a "turned
  * into" chip opens the organisation and a "from note" chip opens the note. The browser half is tests/e2e/my-day.spec.ts.
@@ -77,18 +77,23 @@ describe('Turn into', () => {
   it('the menu leaves out a kind whose page is not built — never greyed (GC-1)', () => {
     expect(liveKinds(new Set())).toEqual(['activity', 'reminder']);
     expect(liveKinds(new Set(['tasks.turn_into']))).toEqual(['activity', 'reminder', 'task', 'action_item']);
-    expect(liveKinds(new Set(['tasks.turn_into', 'kpis']))).toHaveLength(5);
+    expect(
+      liveKinds(new Set(['tasks.turn_into', 'kpis'])),
+      'the KPIs page alone does not offer an achievement',
+    ).toEqual(['activity', 'reminder', 'task', 'action_item']);
+    expect(liveKinds(new Set(['tasks.turn_into', 'kpis.turn_into']))).toHaveLength(5);
   });
   it('offers a logged meeting or call and a reminder now', () => {
     expect(turnLive('activity', new Set())).toBe(true);
     expect(turnLive('reminder', new Set())).toBe(true);
   });
-  it('a task waits for Tasks, an achievement for the KPIs page', () => {
+  it('a task waits for Tasks, an achievement for its own Turn into (not the KPIs page)', () => {
     expect(turnLive('task', new Set()), 'a task waits for Tasks').toBe(false);
     expect(turnLive('action_item', new Set())).toBe(false);
     expect(turnLive('achievement', new Set(['tasks']))).toBe(false);
     expect(turnLive('task', new Set(['tasks.turn_into']))).toBe(true);
-    expect(turnLive('achievement', new Set(['kpis']))).toBe(true);
+    expect(turnLive('achievement', new Set(['kpis']))).toBe(false);
+    expect(turnLive('achievement', new Set(['kpis.turn_into']))).toBe(true);
   });
 });
 
