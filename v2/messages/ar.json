@@ -963,11 +963,15 @@
       "unknown_role": "دور جهة اتصال غير معروف"
     },
     "contract": {
+      "term_takes_numbers": "يأخذ هذا الشرط أرقامًا لا كلمات",
+      "term_takes_words": "يأخذ هذا الشرط كلمات لا أرقامًا",
       "unknown_field": "حقل غير معروف: {detail}",
       "terms_list_expected": "يجب أن تكون الشروط قائمة",
       "side_required": "يحتاج العقد إلى جانبه"
     },
     "reference": {
+      "mailbox_invalid": "يجب أن تكون وجهة الرموز عنوان بريد إلكتروني",
+      "unknown_department": "لا يوجد قسم نشط: {detail}",
       "unknown_field": "حقل غير معروف: {detail}",
       "unknown_system": "نظام غير معروف: {detail}",
       "no_secrets": "يبدو هذا كلمة مرور أو سرًّا؛ البطاقات تحمل المراجع فقط"

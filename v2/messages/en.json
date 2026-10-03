@@ -1496,11 +1496,15 @@
       "unknown_role": "Unknown contact role"
     },
     "contract": {
+      "term_takes_words": "This term takes words, not numbers",
+      "term_takes_numbers": "This term takes numbers, not words",
       "unknown_field": "Unknown field: {detail}",
       "terms_list_expected": "Terms must be a list",
       "side_required": "A contract needs its side"
     },
     "reference": {
+      "unknown_department": "No active department: {detail}",
+      "mailbox_invalid": "Where the codes go must be an email address",
       "unknown_field": "Unknown field: {detail}",
       "unknown_system": "Unknown system: {detail}",
       "no_secrets": "That looks like a password or a secret; cards hold references only"
