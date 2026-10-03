@@ -130,6 +130,14 @@ export interface PastWorkGridProps {
   savedKeys?: (keys: string[]) => Promise<ReadonlySet<string> | ReadonlyMap<string, HeldKey>>;
   /** Builder A's `api.backfill_tasks` / `api.backfill_achievements` (P5-1, P5-4): one request, one Undo. */
   save: (request: BackfillRequest) => Promise<{ requestId: string | null }>;
+  /**
+   * Every row needs a named owner (V605): the screen says so when the signed-in person is in no team. A row with no
+   * owner takes `fallbackOwner` (one picker for the paste, the screen's) or is refused until one is picked.
+   */
+  ownerNeeded?: boolean;
+  fallbackOwner?: { id: string; name: string } | null;
+  /** The words for a refused save, when the screen has better ones than `labels.failed` (V605). */
+  failedSaying?: (error: unknown) => string | null;
   undo?: (requestId: string) => Promise<void>;
   onSaved?: (result: { requestId: string | null; rows: number }) => void;
   /** Riyadh's today; tests pass one. */
@@ -244,7 +252,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
   );
   const [people] = useLookup(peopleNames, props.resolvePeople, labels.failed);
 
-  const { choices, defaultKind, resolvePeople } = props;
+  const { choices, defaultKind, resolvePeople, ownerNeeded, fallbackOwner } = props;
   const read = useCallback(
     (saved: ReadonlyMap<string, boolean | HeldKey> | undefined) =>
       readRows(table, {
@@ -256,6 +264,8 @@ export function PastWorkGrid(props: PastWorkGridProps) {
         valueKinds: offersValue ? props.valueKinds : undefined,
         organisations: orgs,
         people: resolvePeople ? people : undefined,
+        ownerNeeded,
+        fallbackOwner,
         saved,
         source,
       }),
@@ -269,6 +279,8 @@ export function PastWorkGrid(props: PastWorkGridProps) {
       orgs,
       people,
       resolvePeople,
+      ownerNeeded,
+      fallbackOwner,
       source,
       offersValue,
       props.valueKinds,
@@ -311,8 +323,8 @@ export function PastWorkGrid(props: PastWorkGridProps) {
       });
       props.onSaved?.({ requestId, rows: request.rows.length });
       setText('');
-    } catch {
-      toast.failed(labels.failed);
+    } catch (e) {
+      toast.failed(props.failedSaying?.(e) ?? labels.failed);
     } finally {
       setSaving(false);
     }

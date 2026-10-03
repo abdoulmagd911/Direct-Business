@@ -555,7 +555,8 @@
         "added": "Task added: {title}",
         "title_required": "A title is required",
         "title_too_long": "At most {max} characters",
-        "due_invalid": "Pick a date"
+        "due_invalid": "Pick a date",
+        "owner_required": "Pick an owner"
       },
       "edit": {
         "title": "Edit {number}",
@@ -666,6 +667,7 @@
           "organisation_ambiguous": "More than one client has this name",
           "organisation_checking": "Checking the client",
           "person_checking": "Checking the name",
+          "owner_needed": "Pick an owner",
           "repeated": "The same row twice",
           "already_saved": "Saved before",
           "saved_checking": "Checking whether it was saved before"
@@ -678,7 +680,9 @@
         "summary": "{ready} rows ready · {refused} refused",
         "save": "Save {rows} rows",
         "saved": "{rows} rows saved as past work",
-        "failed": "Could not check or save the rows. Try again."
+        "failed": "Could not check or save the rows. Try again.",
+        "ownerLine": "Add an Owner column, or pick an owner for these rows",
+        "ownerFor": "Owner for these rows"
       }
     }
   },
@@ -873,10 +877,13 @@
     "tabs": "Record sections",
     "back": "Back",
     "details": "Details",
-    "noActivity": "No changes yet"
+    "noActivity": "No changes yet",
+    "lockedPerson": "A person's history is for admins, and for the person themselves",
+    "lockedPartner": "An organisation's history is for the people who may open it"
   },
   "activity": {
     "title": "Activity",
+    "locked": "Activity is for managers, heads of department and admins",
     "tabs": {
       "changes": "Changes",
       "settings": "Settings log",
