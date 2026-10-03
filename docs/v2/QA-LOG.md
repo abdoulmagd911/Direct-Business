@@ -1144,3 +1144,21 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **Wrap up:** its Turn into opens the note page, so the new rule covers it.
   - **From note:** shown only to a reader who may see the note. A manager opening a member's achievement made from a private note gets nothing from `api.from_note`.
 - **No new finding.**
+
+## Round 61 — 2026-10-03 17:50 (v2/main aacf3ea: #166 Tasks doors; #175 at d6eeb83 and #149 at b1d9be6 re-levelled)
+
+- **Main aacf3ea** (#166, builder B: the + menu's Task, the task record address, My day's Turn into flags, V223, V605). Retaken from zero on local stacks.
+  - **SQL:** 178 of 183, with the known reds QA-02/03/04/121/208.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8, as on fc3c18f.
+  - **Full sweep:** identical to fc3c18f, by test name and by every area's totals.
+  - **Gallery:** retaken (287 pictures) but not republished. #166's changes are a menu item, link addresses and flags; none of them shows in a gallery picture.
+  - **No new bug.**
+- **#175 (builder E) at d6eeb83:**
+  - **The merge:** it merges aacf3ea. The conflict with #166 in `my-day/logic.ts` is resolved as the Architect asked. Main's `TURN_NEEDS` keeps one flag per kind, and a new `TURN_READY` switches on `kpis.turn_into` only. The menu offers `liveKinds(BUILT ∪ TURN_READY)`, still hiding Achievement below KPIs Own.
+  - **Walks on the branch:** pilot path 46/0 (Turn into offers a call or a reminder only); the integrated pass 28/0/7, with the achievement from a note and its link both ways.
+  - **Next:** the Architect has asked E for one more push (main with #169, plus QA-520's Arabic line). QA 1 re-checks that head when E posts "ready at".
+- **#149 (builder A) at b1d9be6:**
+  - **The merge:** it merges aacf3ea cleanly. Every one of its own files is identical to a32b2b2, and its DECISIONS change is the same lines.
+  - **Rulings:** the Architect ruled WRK-023: the existing rule stands, and NOTE-08 proves it.
+  - **Next:** it stays a draft. QA 1 re-confirms when A posts "ready at" with CI green.
