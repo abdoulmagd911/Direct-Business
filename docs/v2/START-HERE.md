@@ -1,8 +1,14 @@
 # Start here — Direct's Commercial app (v2)
 
-Updated **3 Oct 2026, 20:45 Riyadh** (17:45 UTC). This page replaces every older start page. It is written whole each
-time: nothing below is a patch on older text. Where it and an older page disagree, this page wins; where it and
-`DECISIONS.md` disagree, `DECISIONS.md` wins and this page is fixed.
+**Read this first.** Updated **3 Oct 2026, 20:45 Riyadh** (17:45 UTC). This page replaces every older start page and
+is written whole each time — nothing below is a patch on older text. Where it disagrees with any other Drive file, this
+page wins; where it disagrees with `DECISIONS.md`, `DECISIONS.md` wins and this page is fixed.
+
+**Where the files are.** The repository is public: <https://github.com/abdoulmagd911/Direct-Business>, branch
+`v2/main`, folder `docs/v2/`. Any file opens as plain text at
+`https://raw.githubusercontent.com/abdoulmagd911/Direct-Business/refs/heads/v2/main/<path>` — for example
+<https://raw.githubusercontent.com/abdoulmagd911/Direct-Business/refs/heads/v2/main/docs/v2/DECISIONS.md>. If a session
+cannot open web addresses, a Claude Code session can read them and answer for it.
 
 ## What this is
 
@@ -51,7 +57,7 @@ time: nothing below is a patch on older text. Where it and an older page disagre
 
 ## Where the truth lives
 
-| Subject | The one place |
+| Subject | The one place (paths under the repository above) |
 |---|---|
 | Every rule, with its reason (newest wins; overruled text is struck and names what replaced it) | `docs/v2/DECISIONS.md` |
 | How the app is built | `docs/v2/TECH-SPEC.md` |
@@ -61,6 +67,7 @@ time: nothing below is a patch on older text. Where it and an older page disagre
 | Questions still open for the owner | `docs/v2/OPEN-QUESTIONS.md` |
 | Real names, figures, the team list, call findings | the Drive knowledge base — never this repository |
 | The owner's original blueprint (history, not rules) | `docs/v2/BLUEPRINT.md` |
+| The Drive's other numbered files (06, 08, 11, 20 …) | background; each carries a banner, and this page wins over them |
 
 ## Who does what
 
