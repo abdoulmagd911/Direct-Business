@@ -28,36 +28,42 @@ export default async function ActivityPage({
         <DataState kind="no-access" what={t('nav.activity')} />
       </Page>
     );
-  const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;
-  let rows: HistoryRow[] = [];
-  let signIns: SignInRow[] = [];
-  let deleted: DeletedRow[] = [];
-  if (tab === 'deleted') {
-    // Recently deleted (V401): what the viewer may see, inside audit.recently_deleted_days.
-    deleted = ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [];
-  } else if (tab === 'signIns') {
-    signIns =
-      ((await serverRpc('sign_in_log', {
-        p_person: filters.person || me.person.id,
-        p_limit: 100,
-      } as never)) as unknown as SignInRow[]) ?? [];
-  } else if (tab === 'settings' && isAdmin(me)) {
-    // The settings log (api.settings_log — V97, P3-6d): every request that touched a settings page, with each change's
-    // before and after, so Revert knows the value that stood before without another read.
-    const log =
-      ((await serverRpc('settings_log', { p_limit: 100 })) as unknown as (Omit<HistoryRow, 'undone'> & {
-        undone_by: string | null;
-      })[]) ?? [];
-    rows = log.map(({ undone_by, ...r }) => ({ ...r, undone: undone_by !== null }));
-  } else {
-    rows =
-      ((await serverRpc('activity', {
-        p_actor: filters.actor || undefined,
-        p_entity: tab === 'settings' ? 'setting' : filters.entity || undefined,
-        p_since: filters.since ? new Date(filters.since).toISOString() : undefined,
-        p_limit: 100,
-      })) as unknown as HistoryRow[]) ?? [];
-  }
+  // W47: the organisation and the tab's own read go out together, one round after me — not one after the other.
+  const tabRead = async (): Promise<{ rows?: HistoryRow[]; signIns?: SignInRow[]; deleted?: DeletedRow[] }> => {
+    if (tab === 'deleted') {
+      // Recently deleted (V401): what the viewer may see, inside audit.recently_deleted_days.
+      return { deleted: ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [] };
+    }
+    if (tab === 'signIns') {
+      return {
+        signIns:
+          ((await serverRpc('sign_in_log', {
+            p_person: filters.person || me.person.id,
+            p_limit: 100,
+          } as never)) as unknown as SignInRow[]) ?? [],
+      };
+    }
+    if (tab === 'settings' && isAdmin(me)) {
+      // The settings log (api.settings_log — V97, P3-6d): every request that touched a settings page, with each
+      // change's before and after, so Revert knows the value that stood before without another read.
+      const log =
+        ((await serverRpc('settings_log', { p_limit: 100 })) as unknown as (Omit<HistoryRow, 'undone'> & {
+          undone_by: string | null;
+        })[]) ?? [];
+      return { rows: log.map(({ undone_by, ...r }) => ({ ...r, undone: undone_by !== null })) };
+    }
+    return {
+      rows:
+        ((await serverRpc('activity', {
+          p_actor: filters.actor || undefined,
+          p_entity: tab === 'settings' ? 'setting' : filters.entity || undefined,
+          p_since: filters.since ? new Date(filters.since).toISOString() : undefined,
+          p_limit: 100,
+        })) as unknown as HistoryRow[]) ?? [],
+    };
+  };
+  const [org, read] = await Promise.all([serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, tabRead()]);
+  const { rows = [], signIns = [], deleted = [] } = read;
   return (
     <Page bare>
       <ActivityScreen me={me} tab={tab} org={org} rows={rows} signIns={signIns} deleted={deleted} filters={filters} />
