@@ -342,3 +342,77 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 }
+
+// ---- P5-2's second PR: Escalate on the task page (V401) and the team's load on Tasks › Team (V91)
+for (const w of WIDTHS) {
+  test(`${w.name}: Escalate tells a colleague about a task, with a note (V401)`, async ({ browser }) => {
+    const member = await memberWithTeam();
+    const colleague = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const colleagueName = `Ab Escalate to ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [colleagueName, colleague.id]);
+    const number = await taskIn('commercial', member.id, `Made-up escalated ${tag}`);
+    const { ctx, page } = await signedIn(browser, member, w.width, w.height, `/tasks/${number}`);
+
+    await page.locator('[data-escalate-open]').click();
+    const form = page.locator('form[data-escalate]');
+    await expect(form).toBeVisible();
+    // a person and a note are both required
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert')).toHaveText('Pick who to tell');
+    await form.getByRole('combobox', { name: 'Escalate to' }).click();
+    await page.getByRole('option', { name: colleagueName, exact: true }).click();
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert')).toHaveText('Write what they need to know');
+    await form.locator('textarea[name="note"]').fill('Made-up: the client has not answered for a week');
+    await noSidewaysScroll(page, `${w.name} escalate`);
+    await page.screenshot({ path: shot(`tasks-escalate-${w.name}`), fullPage: true });
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-sonner-toast]', { hasText: `Escalated to ${colleagueName}` })).toBeVisible();
+
+    // the colleague is told, follows the task, and the note is on its timeline
+    const [told] = await sql<{ n: number }>(
+      `select count(*)::int as n from notify.notification n join work.task t on t.id = n.entity_id
+       where n.person_id = $1 and n.kind = 'escalated' and t.number = $2`,
+      [colleague.id, number],
+    );
+    expect(told!.n, 'the colleague is told').toBe(1);
+    const [follows] = await sql<{ n: number }>(
+      `select count(*)::int as n from notify.follow f join work.task t on t.id = f.entity_id
+       where f.person_id = $1 and t.number = $2`,
+      [colleague.id, number],
+    );
+    expect(follows!.n, 'the colleague follows the task').toBe(1);
+    const [note] = await sql<{ body: string }>(
+      `select c.body from core.note c join work.task t on t.id = c.entity_id where c.kind = 'escalation' and t.number = $1`,
+      [number],
+    );
+    expect(note?.body).toBe('Made-up: the client has not answered for a week');
+    await ctx.close();
+  });
+
+  test(`${w.name}: a manager's Team view shows the team's load; a member's does not (V91)`, async ({ browser }) => {
+    const admin = await makePerson({ admin: true }); // gives work to others (tasks.assign)
+    const busy = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const busyName = `Test Load ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [busyName, busy.id]);
+    for (const i of [1, 2, 3]) {
+      const n = await taskIn('commercial', busy.id, `Made-up load ${tag} ${i}`);
+      if (i < 3) await sql(`update work.task set due_on = current_date - 3 where number = $1`, [n]);
+    }
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height, '/tasks?view=team');
+    const card = page.locator(`[data-team-load] [data-load-person="${busyName}"]`);
+    await expect(card, 'the team’s load names the busy colleague').toBeVisible();
+    await expect(card.locator('[data-load-open]')).toHaveText('3 open tasks');
+    await expect(card.locator('[data-load-overdue]')).toHaveText('2 overdue');
+    await noSidewaysScroll(page, `${w.name} team load`);
+    await page.screenshot({ path: shot(`tasks-team-load-${w.name}`), fullPage: true });
+    await ctx.close();
+
+    const member = await signedIn(browser, busy, w.width, w.height, '/tasks?view=team');
+    await expect(member.page.locator('[data-task-rows], [data-tasks-list]').first()).toBeVisible();
+    await expect(member.page.locator('[data-team-load]'), 'a member is shown no load').toHaveCount(0);
+    await member.ctx.close();
+  });
+}
