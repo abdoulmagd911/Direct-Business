@@ -251,6 +251,44 @@ export function quickAddValues(
   return { values };
 }
 
+// ---------------------------------------------------------------- Escalate (V401)
+
+/** Whom a task is escalated to: someone else who can be given work (V465) — never me, never the admin or test account. */
+export function escalateTargets<P extends { id: string; account?: string | null }>(
+  people: readonly P[],
+  me: string,
+): P[] {
+  return assignablePeople(people).filter((p) => p.id !== me);
+}
+
+/** What api.escalate is sent: a person and a note — both required, and never myself (the door refuses the same). */
+export function escalateValues(
+  input: { to?: string; note: string },
+  me: string,
+): { values: { p_to: string; p_note: string } } | { error: 'to_required' | 'note_required' | 'to_yourself' } {
+  if (!input.to) return { error: 'to_required' };
+  if (input.to === me) return { error: 'to_yourself' };
+  const note = input.note.trim();
+  if (!note) return { error: 'note_required' };
+  return { values: { p_to: input.to, p_note: note } };
+}
+
+// ---------------------------------------------------------------- the team's load (V91)
+
+/** The load figures show on the Team view, to someone who gives work to others (`tasks.assign`): a manager or a head. */
+export function showsTeamLoad(scope: Scope, capabilities: readonly string[]): boolean {
+  return scope === 'team' && capabilities.includes('tasks.assign');
+}
+
+/** The load in my departments, the most overdue first, then the most open work, then by name — who needs help leads. */
+export function byLoad<L extends { overdue: number; open_tasks: number; full_name_en: string }>(
+  rows: readonly L[],
+): L[] {
+  return [...rows].sort(
+    (a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en.localeCompare(b.full_name_en),
+  );
+}
+
 // ---------------------------------------------------------------- the checklist (V438, V190)
 
 /** Who ticks an action item: the task's editors, the item's owner, or a helper on it (V190). */
@@ -270,6 +308,6 @@ export function canTick(
  * `pages.tasks.errors.*` (builder D's part of the catalog); every other key is the shared `errors.*` one.
  */
 export function refusalKey(key: string): string {
-  const m = /^errors\.((?:task|action_item)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
+  const m = /^errors\.((?:task|action_item|escalation)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
   return m ? `pages.tasks.errors.${m[1]}` : key;
 }
