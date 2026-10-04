@@ -1210,3 +1210,16 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **No new bug.**
 - **#175 (cleared at 4db3c95) is not merged yet** and is now behind main dffc4e5. QA 1 re-checks it whenever it is re-levelled.
 - **Go-live is postponed** (the Architect, 21:31 UTC on #175).
+
+## Round 66 — 2026-10-04 02:50 (v2/main deceb9c: #180, QA-521; #149 re-levelled at a6ab946)
+
+- **Main deceb9c** (#180, builder E: someone in no team who may not assign is told "You're not in a team yet. Ask an admin to add you to one.", with no picker and no save, in Quick add and Past work; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to dffc4e5 in every area but tasks.
+    - **What changed:** `13-tasks` "a member in no team" waited for the Quick add form, which #180 no longer opens for that person. It timed out, and the test's other six checks never ran.
+    - **Why it isn't a bug:** that is QA-521's rule. The check now accepts the form or the one-line box, and passes 7/7 on main with "You're not in a team yet…".
+  - **No new bug.**
+- **#149 (builder A) at a6ab946:** it merges deceb9c. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-confirmed at a6ab946 once CI was green.
+- **#175 (cleared at 4db3c95)** is behind main and waits for the Architect's re-level.

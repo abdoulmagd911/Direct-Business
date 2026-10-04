@@ -40,20 +40,32 @@ test('Tasks: a teamless member, a double click, a colleague, a viewer, a future 
   await hydrated(page);
   await page.locator('[data-add-task]').click();
   const form = page.locator('form[data-quick-add]');
-  await form.locator('input[name="title"]').fill(`QA teamless ${tag}`);
-  await form.locator('button[type="submit"]').click();
-  await page.waitForTimeout(2_000);
+  const title = form.locator('input[name="title"]');
+  // since #180 (QA-521) someone in no team who may not assign gets one line and no form; before it, the form
+  await title
+    .or(page.getByRole('dialog'))
+    .first()
+    .waitFor({ timeout: 15_000 })
+    .catch(() => undefined);
+  if ((await title.count()) > 0) {
+    await title.fill(`QA teamless ${tag}`);
+    await form.locator('button[type="submit"]').click();
+    await page.waitForTimeout(2_000);
+  }
   const [made] = await sql<{ n: number }>(`select count(*)::int as n from work.task where title = $1`, [
     `QA teamless ${tag}`,
   ]);
-  const said1 = ((await page.locator('[data-sonner-toast], [role=alert], form[data-quick-add]').allInnerTexts()) ?? [])
+  const said1 = (
+    (await page.locator('[data-sonner-toast], [role=alert], form[data-quick-add], [role=dialog]').allInnerTexts()) ?? []
+  )
     .join(' | ')
     .replace(/\s+/g, ' ');
   check(
-    'a member in no team: the task is added, or the form says in words what it needs — a team, or since #179 an owner to pick (V277) — never a raw key, never a silent no',
+    'a member in no team: the task is added, or the screen says in words what is missing — a team, or an owner to pick (V277; QA-521) — never a raw key, never a silent no',
     { screen: '/tasks · quick add', user: 'member', detail: `added ${made!.n}; on screen: ${said1.slice(0, 200)}` },
     made!.n === 1 || (said1.length > 0 && !RAW_KEY.test(said1) && /team|owner/i.test(said1)),
   );
+  await page.keyboard.press('Escape');
 
   // the rest in one made-up team
   const [team] = await sql<{ id: string }>(
