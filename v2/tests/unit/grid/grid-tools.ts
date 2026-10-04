@@ -88,6 +88,7 @@ export const LABELS: PastWorkLabels = {
     organisation_ambiguous: 'More than one organisation has this name',
     organisation_checking: 'Checking the organisation',
     person_checking: 'Checking the name',
+    owner_needed: 'Pick an owner',
     repeated: 'The same row twice',
     already_saved: 'Saved before',
     saved_checking: 'Checking whether it was saved before',

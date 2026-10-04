@@ -63,6 +63,8 @@ export type Problem =
   | 'organisation_ambiguous'
   | 'organisation_checking'
   | 'person_checking'
+  /** No one owns the row, and the signed-in person is in no team to fall back on (V605): pick an owner. */
+  | 'owner_needed'
   | 'repeated'
   | 'already_saved'
   | 'saved_checking';
@@ -120,6 +122,14 @@ export interface ReadOptions {
    * "checking". Without it the person column is not read and every row is the signed-in person's own.
    */
   people?: ReadonlyMap<string, PersonMatch>;
+  /**
+   * Every row needs a named owner (V605): the signed-in person is in no team, so an Unknown owner or their own default
+   * cannot be placed (V464). A row with no owner takes `fallbackOwner` when one is picked, else it is refused; a pasted
+   * name that matches no one, or more than one, is refused — never a guess.
+   */
+  ownerNeeded?: boolean;
+  /** The owner picked for every row that names none (V605). */
+  fallbackOwner?: { id: string; name: string } | null;
   /**
    * Which rows' keys the database already holds (OLD-PRF-045): `true` is saved before, `false` is new, a key not yet
    * asked is "checking". Without it only repeats inside the paste are caught. A held key may come with what its deal
@@ -203,15 +213,19 @@ export function guessMapping(table: readonly string[][], fields: readonly Field[
 /**
  * An amount in SAR as a sheet has it (V502): Latin, Arabic-Indic or Eastern digits, thousands separators of either
  * script, a decimal point of either, at most two decimals (the database keeps numeric(14,2)), never negative. A
- * trailing SAR or ريال is ignored. Null when it is not an amount — never a guess.
+ * trailing SAR or ريال is ignored. A thousands separator stands only between groups of three digits (`1,250` ·
+ * `12,500.5`), so a decimal comma (`12,50`, `1,5`) is refused, never read as 1250 or 15 (V382, QA-518). Null when it
+ * is not an amount — never a guess.
  */
 export function readAmount(cell: string): number | null {
-  const plain = cell
+  const written = cell
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/(?:sar|ريال|ر\.\s?س)/gi, '')
-    .replace(/[\s\u00a0,٬]/g, '')
+    .trim()
     .replace('٫', '.');
+  if (!/^(?:\d+|\d{1,3}(?:[\s\u00a0,٬]\d{3})+)(?:\.\d{1,2})?$/.test(written)) return null;
+  const plain = written.replace(/[\s\u00a0,٬]/g, '');
   if (!/^\d{1,12}(?:\.\d{1,2})?$/.test(plain)) return null;
   return Number(plain);
 }
@@ -284,6 +298,11 @@ export function readRows(table: readonly string[][], o: ReadOptions): PastRow[] 
           ? match.kind
           : null;
       person = { name, id: match?.kind === 'one' ? match.id : null, unknown };
+    }
+    if (o.ownerNeeded) {
+      if ((!person || person.unknown === 'missing') && o.fallbackOwner)
+        person = { name: o.fallbackOwner.name, id: o.fallbackOwner.id, unknown: null };
+      else if (!person || person.unknown) problems.push('owner_needed');
     }
 
     // The same row twice (OLD-PRF-045): whose, title, day, status or category and organisation — the matched person and

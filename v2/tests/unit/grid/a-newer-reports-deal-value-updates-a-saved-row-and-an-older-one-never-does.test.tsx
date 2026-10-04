@@ -79,6 +79,14 @@ describe('V502 — an amount as a sheet writes it', () => {
     for (const bad of ['abc', '-5', '1.234', '12.', '1e6', '1,2,x', '1234567890123', '', '٣٫٥٫٥'])
       expect(readAmount(bad), `“${bad}” is not an amount`).toBeNull();
   });
+
+  it('a thousands separator stands only between groups of three digits (V382, QA-518)', () => {
+    expect(readAmount('1,250')).toBe(1250);
+    expect(readAmount('12,500.5')).toBe(12500.5);
+    expect(readAmount('١٢٬٥٠٠')).toBe(12500);
+    for (const bad of ['12,50', '1,5', '1,2345', '12,500,5', ',500', '500,', '1,,250', '1 25 000'])
+      expect(readAmount(bad), `a decimal comma or a stray separator is refused: “${bad}”`).toBeNull();
+  });
 });
 
 describe('V502 — which report is newer', () => {

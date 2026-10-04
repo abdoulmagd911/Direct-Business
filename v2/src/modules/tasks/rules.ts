@@ -1,6 +1,7 @@
 // The rules the Tasks screens apply (P5-2, first PR; builder D, V270–V275). Pure functions, so each is unit-tested
 // and sabotaged (tests/unit/tasks, tests/sabotage/tasks.mjs). The database decides access and every write rule
 // (#140, V189–V196); these only shape what is asked and how it reads on screen.
+import { assignablePeople } from '@/modules/org/pickers';
 import type { Meaning, TaskRow, TaskStatus } from './types';
 
 // ---------------------------------------------------------------- the day (V40, V400)
@@ -201,17 +202,44 @@ export const TITLE_MAX = 300;
 
 export type QuickAddInput = { title: string; ownerId?: string; due?: string; partnerId?: string; projectId?: string };
 export type QuickAddResult =
-  { values: Record<string, unknown> } | { error: 'title_required' | 'title_too_long' | 'due_invalid' };
+  | { values: Record<string, unknown> }
+  | { error: 'title_required' | 'title_too_long' | 'due_invalid' | 'owner_required' };
+
+/**
+ * Quick add's Owner choice (V277). A task's team is its owner's, else mine (V194, V464), so someone in no team — the
+ * owner's admin account, by design (V444) — is offered **no Default**: they must pick an owner, and only people in a
+ * team are offered, since anyone else would leave the task with no team. Everyone else keeps Default and every
+ * assignable person (V465).
+ */
+export function quickAddOwners<P extends { team_id: string | null; account?: string | null }>(
+  myTeam: string | null,
+  people: readonly P[],
+): { offerDefault: boolean; people: P[] } {
+  const offerDefault = myTeam !== null;
+  const assignable = assignablePeople(people);
+  return { offerDefault, people: offerDefault ? assignable : assignable.filter((p) => p.team_id !== null) };
+}
+
+/** Quick add's refusal in words: the database's "needs a team" (a race with a team change) reads as "Pick an owner". */
+export function quickAddRefusalKey(key: string): string {
+  return key === 'errors.task.team_required' ? 'pages.tasks.add.owner_required' : refusalKey(key);
+}
 
 /**
  * The values quick add sends api.task_create: the title, a due day, a partner or a project. The owner is sent only
  * when it is someone else — left out, the database names it (V464: the project's owner, else the client's account
- * manager, else me). A project wins over a partner: the task takes the project's organisation (V194).
+ * manager, else me). A project wins over a partner: the task takes the project's organisation (V194). With
+ * `ownerRequired` (no Default, V277) an owner must be picked.
  */
-export function quickAddValues(input: QuickAddInput, me: string): QuickAddResult {
+export function quickAddValues(
+  input: QuickAddInput,
+  me: string,
+  opts: { ownerRequired?: boolean } = {},
+): QuickAddResult {
   const title = input.title.trim();
   if (!title) return { error: 'title_required' };
   if (title.length > TITLE_MAX) return { error: 'title_too_long' };
+  if (opts.ownerRequired && !input.ownerId) return { error: 'owner_required' };
   const values: Record<string, unknown> = { title };
   if (input.ownerId && input.ownerId !== me) values.owner_id = input.ownerId;
   if (input.due) {
@@ -221,6 +249,44 @@ export function quickAddValues(input: QuickAddInput, me: string): QuickAddResult
   if (input.projectId) values.project_id = input.projectId;
   else if (input.partnerId) values.partner_id = input.partnerId;
   return { values };
+}
+
+// ---------------------------------------------------------------- Escalate (V401)
+
+/** Whom a task is escalated to: someone else who can be given work (V465) — never me, never the admin or test account. */
+export function escalateTargets<P extends { id: string; account?: string | null }>(
+  people: readonly P[],
+  me: string,
+): P[] {
+  return assignablePeople(people).filter((p) => p.id !== me);
+}
+
+/** What api.escalate is sent: a person and a note — both required, and never myself (the door refuses the same). */
+export function escalateValues(
+  input: { to?: string; note: string },
+  me: string,
+): { values: { p_to: string; p_note: string } } | { error: 'to_required' | 'note_required' | 'to_yourself' } {
+  if (!input.to) return { error: 'to_required' };
+  if (input.to === me) return { error: 'to_yourself' };
+  const note = input.note.trim();
+  if (!note) return { error: 'note_required' };
+  return { values: { p_to: input.to, p_note: note } };
+}
+
+// ---------------------------------------------------------------- the team's load (V91)
+
+/** The load figures show on the Team view, to someone who gives work to others (`tasks.assign`): a manager or a head. */
+export function showsTeamLoad(scope: Scope, capabilities: readonly string[]): boolean {
+  return scope === 'team' && capabilities.includes('tasks.assign');
+}
+
+/** The load in my departments, the most overdue first, then the most open work, then by name — who needs help leads. */
+export function byLoad<L extends { overdue: number; open_tasks: number; full_name_en: string }>(
+  rows: readonly L[],
+): L[] {
+  return [...rows].sort(
+    (a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en.localeCompare(b.full_name_en),
+  );
 }
 
 // ---------------------------------------------------------------- the checklist (V438, V190)
@@ -242,6 +308,6 @@ export function canTick(
  * `pages.tasks.errors.*` (builder D's part of the catalog); every other key is the shared `errors.*` one.
  */
 export function refusalKey(key: string): string {
-  const m = /^errors\.((?:task|action_item)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
+  const m = /^errors\.((?:task|action_item|escalation)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
   return m ? `pages.tasks.errors.${m[1]}` : key;
 }

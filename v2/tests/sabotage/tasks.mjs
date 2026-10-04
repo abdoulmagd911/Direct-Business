@@ -64,6 +64,99 @@ export const sabotages = [
     expect: 'the owner is sent only when it is someone else',
     edits: [{ file: RULES, find: 'if (input.ownerId && input.ownerId !== me)', replace: 'if (input.ownerId)' }],
   },
+  // ---- past work for someone in no team needs a named owner (V605)
+  {
+    name: 'past-work-no-team-sends-unowned-rows',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'with no Owner column and no owner picked, no row is sent',
+    edits: [
+      {
+        file: 'src/ui/grid/rows.ts',
+        find: "      else if (!person || person.unknown) problems.push('owner_needed');\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'past-work-no-team-ignores-the-picked-owner',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'one picked owner covers every row that names none',
+    edits: [
+      {
+        file: 'src/ui/grid/rows.ts',
+        find: "if ((!person || person.unknown === 'missing') && o.fallbackOwner)",
+        replace: "if (person && person.unknown === 'missing' && o.fallbackOwner)",
+      },
+    ],
+  },
+  {
+    name: 'past-work-says-could-not-save',
+    breaks: [unit('past-work-in-no-team-needs-a-named-owner')],
+    expect: 'reads "Pick an owner"',
+    edits: [
+      {
+        file: 'src/modules/tasks/pastWork.ts',
+        find: "e.key === 'task.team_required' ?",
+        replace: "e.key === 'task.never' ?",
+      },
+    ],
+  },
+  // ---- a locked area says why (V605)
+  {
+    name: 'locked-activity-says-only-activity',
+    breaks: [unit('a-locked-area-says-why')],
+    expect: 'a locked area with no reason',
+    edits: [
+      {
+        file: 'src/app/(app)/activity/page.tsx',
+        find: " message={t('activity.locked')} />",
+        replace: ' />',
+      },
+    ],
+  },
+  {
+    name: 'e2e-locked-activity-says-only-activity',
+    breaks: ['e2e:tests/e2e/locked-areas-say-why.spec.ts'],
+    expect: 'the Activity page says who it is for',
+    edits: [
+      {
+        file: 'src/app/(app)/activity/page.tsx',
+        find: " message={t('activity.locked')} />",
+        replace: " message={t('nav.activity')} />",
+      },
+    ],
+  },
+  // ---- quick add for someone in no team (V277)
+  {
+    name: 'tasks-no-team-offered-default',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'someone in no team gets no Default',
+    edits: [{ file: RULES, find: '  const offerDefault = myTeam !== null;', replace: '  const offerDefault = true;' }],
+  },
+  {
+    name: 'tasks-no-team-offers-people-in-no-team',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'someone in no team gets no Default',
+    edits: [{ file: RULES, find: 'assignable.filter((p) => p.team_id !== null)', replace: 'assignable' }],
+  },
+  {
+    name: 'tasks-no-team-saves-without-an-owner',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'with no Default, quick add refuses until an owner is picked',
+    edits: [
+      {
+        file: RULES,
+        find: "  if (opts.ownerRequired && !input.ownerId) return { error: 'owner_required' };\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'tasks-no-team-says-needs-a-team',
+    breaks: [unit('someone-in-no-team-must-pick-an-owner')],
+    expect: 'reads as "Pick an owner"',
+    edits: [{ file: RULES, find: "key === 'errors.task.team_required' ?", replace: "key === 'errors.task.never' ?" }],
+  },
   {
     name: 'tasks-partner-beats-project',
     breaks: [unit('quick-add-leaves-the-owner-to-the-default')],
@@ -74,6 +167,52 @@ export const sabotages = [
         find: '  if (input.projectId) values.project_id = input.projectId;\n  else if (input.partnerId)',
         replace:
           '  if (input.projectId && !input.partnerId) values.project_id = input.projectId;\n  if (input.partnerId)',
+      },
+    ],
+  },
+  // ---- Escalate (V401)
+  {
+    name: 'tasks-escalate-offers-me',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'offers everyone who can be given work except me',
+    edits: [
+      { file: RULES, find: 'assignablePeople(people).filter((p) => p.id !== me)', replace: 'assignablePeople(people)' },
+    ],
+  },
+  {
+    name: 'tasks-escalate-without-a-note',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'a person and a note are both required',
+    edits: [{ file: RULES, find: "  if (!note) return { error: 'note_required' };\n", replace: '' }],
+  },
+  {
+    name: 'tasks-escalate-refusal-in-shared-words',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: "the door's refusals read in the Tasks catalog's words",
+    edits: [{ file: RULES, find: '(?:task|action_item|escalation)', replace: '(?:task|action_item)' }],
+  },
+  // ---- the team's load (V91)
+  {
+    name: 'tasks-load-shown-to-everyone',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'shows only on the Team view, and only with tasks.assign',
+    edits: [
+      {
+        file: RULES,
+        find: "return scope === 'team' && capabilities.includes('tasks.assign');",
+        replace: "return scope === 'team';",
+      },
+    ],
+  },
+  {
+    name: 'tasks-load-by-name-only',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'the most overdue first, then the most open work, then by name',
+    edits: [
+      {
+        file: RULES,
+        find: '(a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en',
+        replace: '(a, b) => a.full_name_en',
       },
     ],
   },
@@ -129,6 +268,30 @@ export const sabotages = [
     ],
   },
   {
+    name: 'e2e-tasks-escalate-sends-no-note',
+    breaks: [e2e],
+    expect: 'Escalate tells a colleague about a task, with a note',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/Escalate.tsx',
+        find: "rpc('escalate', { p_entity: 'task', p_id: task.id, ...r.values })",
+        replace: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: r.values.p_to, p_note: '' })",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-team-load-never-read',
+    breaks: [e2e],
+    expect: "a manager's Team view shows the team's load",
+    edits: [
+      {
+        file: 'src/app/(app)/tasks/page.tsx',
+        find: 'showsTeamLoad(filters.scope, me.capabilities)',
+        replace: 'showsTeamLoad(filters.scope, [])',
+      },
+    ],
+  },
+  {
     name: 'e2e-tasks-my-work-shows-the-whole-team',
     breaks: [e2e],
     expect: 'a colleague’s task is not My work',
@@ -162,6 +325,30 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
         find: "{f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (",
         replace: "{f.scope === 'past' && !atLeastOwn('full') && atLeastOwn(me.levels.tasks) ? (",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-past-work-no-team-offers-no-owner',
+    breaks: [e2e],
+    expect: 'an admin in no team pastes rows with no Owner column, picks one owner and saves',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/PastWorkPanel.tsx',
+        find: '        ownerNeeded={ownerNeeded}\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-no-team-quick-add-keeps-default',
+    breaks: [e2e],
+    expect: 'an admin in no team must pick an owner',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '  const owners = quickAddOwners(me.person.team_id, org?.people ?? []);',
+        replace: "  const owners = quickAddOwners('anything', org?.people ?? []);",
       },
     ],
   },
