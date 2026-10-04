@@ -419,4 +419,30 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // QA-521: someone in no team without tasks.assign got a form that could only be refused
+    name: 'no-team-without-assign-gets-a-dead-form',
+    breaks: ['unit:tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx'],
+    expect: 'Quick add says to ask for a team',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: 'myTeam === null && !canAssign;',
+        replace: 'false && myTeam === null && !canAssign;',
+      },
+    ],
+  },
+  {
+    // QA-521: Past work's half — someone in no team without tasks.assign got a grid whose every row was refused
+    name: 'past-work-no-team-without-assign-offers-a-dead-grid',
+    breaks: ['unit:tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx'],
+    expect: 'Past work says to ask for a team',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/PastWorkPanel.tsx',
+        find: 'if (noTeamToWorkIn(me.person.team_id, forOthers))',
+        replace: 'if (false && noTeamToWorkIn(me.person.team_id, forOthers))',
+      },
+    ],
+  },
 ];

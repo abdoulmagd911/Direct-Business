@@ -20,7 +20,7 @@ import {
   readPeopleMatch,
   statusChoices,
 } from '../pastWork';
-import { quickAddOwners } from '../rules';
+import { noTeamToWorkIn, quickAddOwners } from '../rules';
 import type { NamePick, TaskStatus } from '../types';
 
 const PROBLEMS: Problem[] = [
@@ -137,6 +137,14 @@ export function PastWorkPanel({
     await undoRequest(requestId);
     refetchAll();
   }, []);
+
+  if (noTeamToWorkIn(me.person.team_id, forOthers))
+    return (
+      <section className="flex min-w-0 flex-col gap-3" data-past-work-panel data-no-team aria-label={t('title')}>
+        <h2 className="text-lg font-semibold">{t('title')}</h2>
+        <p className="text-base text-muted">{tc('pages.tasks.noTeam')}</p>
+      </section>
+    );
 
   return (
     <section className="flex min-w-0 flex-col gap-3" data-past-work-panel aria-label={t('title')}>

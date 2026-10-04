@@ -232,6 +232,13 @@ export function quickAddOwners<P extends { team_id: string | null; account?: str
   return { offerDefault, people: offerDefault ? assignable : assignable.filter((p) => p.team_id !== null) };
 }
 
+/**
+ * Someone in no team who may not give tasks to others (no `tasks.assign`) can neither own a task — a task's team is its
+ * owner's — nor pick another owner (QA-521): Quick add and Past work say so in one line, with no picker and no save,
+ * the way a locked area says why (V605 (5)).
+ */
+export const noTeamToWorkIn = (myTeam: string | null, canAssign: boolean): boolean => myTeam === null && !canAssign;
+
 /** Quick add's refusal in words: the database's "needs a team" (a race with a team change) reads as "Pick an owner". */
 export function quickAddRefusalKey(key: string): string {
   return key === 'errors.task.team_required' ? 'pages.tasks.add.owner_required' : refusalKey(key);
