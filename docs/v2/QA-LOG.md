@@ -1223,3 +1223,14 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **No new bug.**
 - **#149 (builder A) at a6ab946:** it merges deceb9c. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-confirmed at a6ab946 once CI was green.
 - **#175 (cleared at 4db3c95)** is behind main and waits for the Architect's re-level.
+
+## Round 67 — 2026-10-04 05:15 (v2/main 285de35: #182, List / Board / Calendar on Tasks; #149 re-levelled at 64ce9aa)
+
+- **Main 285de35** (#182, builder D: List / Board / Calendar on Tasks, and a long picker stays on screen, V280; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to dffc4e5 by test name and by every area's totals; tasks 7/0.
+  - **No new bug.**
+- **#149 (builder A) at 64ce9aa:** the Architect merged 285de35 into it. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-cleared at 64ce9aa once CI was green.
+- **#175 (cleared at 4db3c95)** is still behind main and waits for its re-level.
