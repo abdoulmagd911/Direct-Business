@@ -558,6 +558,7 @@
         "due_invalid": "Pick a date",
         "owner_required": "Pick an owner"
       },
+      "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
       "edit": {
         "title": "Edit {number}",
         "saved": "{number} saved"
@@ -709,6 +710,21 @@
         "failed": "Could not check or save the rows. Try again.",
         "ownerLine": "Add an Owner column, or pick an owner for these rows",
         "ownerFor": "Owner for these rows"
+      },
+      "layout": {
+        "label": "Show tasks as",
+        "list": "List",
+        "board": "Board",
+        "calendar": "Calendar"
+      },
+      "board": {
+        "emptyColumn": "Nothing here"
+      },
+      "calendar": {
+        "previous": "Previous month",
+        "next": "Next month",
+        "emptyMonth": "Nothing is due this month",
+        "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       }
     }
   },
