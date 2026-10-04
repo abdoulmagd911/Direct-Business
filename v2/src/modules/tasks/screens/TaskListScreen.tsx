@@ -26,10 +26,11 @@ import {
   statusView,
   type TaskFilters,
 } from '../rules';
-import type { TaskList, TaskRow } from '../types';
+import type { TaskList, TaskRow, TeamLoad } from '../types';
 import type { TaskLookups } from '../load';
 import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
+import { TeamLoadPanel } from './TeamLoadPanel';
 import { DoneTick } from './StatusControl';
 import { useNames } from './words';
 
@@ -37,6 +38,8 @@ export type TaskListData = {
   filters: TaskFilters;
   list: TaskList | null;
   lookups: TaskLookups;
+  /** The team's load on the Team view (V91): absent when not shown, null when the read failed. */
+  load?: TeamLoad[] | null;
   /** Quick add opens on arrival (the + menu's Task, /tasks/new). */
   adding: boolean;
 };
@@ -165,8 +168,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
             : null}
       </div>
 
+      {data.load !== undefined ? <TeamLoadPanel load={data.load} /> : null}
       {f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (
-        <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} />
+        <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} org={lookups.org} />
       ) : null}
       {lookups.failed.length ? (
         <DataState

@@ -99,3 +99,15 @@ export type TaskStatus = {
 
 /** A name to pick: an organisation (api.partners) or a project (api.projects). */
 export type NamePick = { id: string; name_en: string; name_ar: string | null; number: string };
+
+/** api.team_load: per person in my departments, their live load (V91) — past work is never load (V491). */
+export type TeamLoad = {
+  person_id: string;
+  full_name_en: string;
+  full_name_ar: string | null;
+  open_tasks: number;
+  overdue: number;
+  open_action_items: number;
+  partners_owned: number;
+  prospects_assigned: number;
+};

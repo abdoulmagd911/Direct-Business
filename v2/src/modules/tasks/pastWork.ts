@@ -1,6 +1,7 @@
 // The Past work grid on Tasks (P5-2c mounted by builder D; V276): what the screen hands builder C's grid. Pure, so
 // each rule is unit-tested and sabotaged (tests/unit/tasks, tests/sabotage/tasks.mjs). The database decides every
 // row when it saves (api.backfill_tasks, V196); these only prepare the lookups and read its answers.
+import { DbError } from '@/core/db/errors';
 import type { Choice, OrgMatch, PersonMatch } from '@/ui/grid/rows';
 import type { NamePick, TaskStatus } from './types';
 
@@ -70,4 +71,12 @@ export function statusChoices(statuses: readonly TaskStatus[]): Choice[] {
 /** The status a row with none takes: Done (a past task was done — V196's own default). */
 export function defaultPastStatus(statuses: readonly TaskStatus[]): string | null {
   return statuses.find((s) => s.active && s.meaning === 'done')?.key ?? null;
+}
+
+/**
+ * A refused Past work save in the Tasks catalog's words (V605): the database's "needs a team" — someone in no team
+ * saving rows with no owner, or a race with a team change — reads "Pick an owner", never the general "could not save".
+ */
+export function pastWorkRefusalKey(e: unknown): string | null {
+  return e instanceof DbError && e.key === 'task.team_required' ? 'pages.tasks.add.owner_required' : null;
 }
