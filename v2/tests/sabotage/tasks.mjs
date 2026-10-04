@@ -170,6 +170,52 @@ export const sabotages = [
       },
     ],
   },
+  // ---- Escalate (V401)
+  {
+    name: 'tasks-escalate-offers-me',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'offers everyone who can be given work except me',
+    edits: [
+      { file: RULES, find: 'assignablePeople(people).filter((p) => p.id !== me)', replace: 'assignablePeople(people)' },
+    ],
+  },
+  {
+    name: 'tasks-escalate-without-a-note',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'a person and a note are both required',
+    edits: [{ file: RULES, find: "  if (!note) return { error: 'note_required' };\n", replace: '' }],
+  },
+  {
+    name: 'tasks-escalate-refusal-in-shared-words',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: "the door's refusals read in the Tasks catalog's words",
+    edits: [{ file: RULES, find: '(?:task|action_item|escalation)', replace: '(?:task|action_item)' }],
+  },
+  // ---- the team's load (V91)
+  {
+    name: 'tasks-load-shown-to-everyone',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'shows only on the Team view, and only with tasks.assign',
+    edits: [
+      {
+        file: RULES,
+        find: "return scope === 'team' && capabilities.includes('tasks.assign');",
+        replace: "return scope === 'team';",
+      },
+    ],
+  },
+  {
+    name: 'tasks-load-by-name-only',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'the most overdue first, then the most open work, then by name',
+    edits: [
+      {
+        file: RULES,
+        find: '(a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en',
+        replace: '(a, b) => a.full_name_en',
+      },
+    ],
+  },
   // ---- the checklist (V438, V190)
   {
     name: 'tasks-anyone-ticks',
@@ -218,6 +264,30 @@ export const sabotages = [
         find: '<ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
         replace:
           '<ul className="flex min-w-[600px] flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-escalate-sends-no-note',
+    breaks: [e2e],
+    expect: 'Escalate tells a colleague about a task, with a note',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/Escalate.tsx',
+        find: "rpc('escalate', { p_entity: 'task', p_id: task.id, ...r.values })",
+        replace: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: r.values.p_to, p_note: '' })",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-team-load-never-read',
+    breaks: [e2e],
+    expect: "a manager's Team view shows the team's load",
+    edits: [
+      {
+        file: 'src/app/(app)/tasks/page.tsx',
+        find: 'showsTeamLoad(filters.scope, me.capabilities)',
+        replace: 'showsTeamLoad(filters.scope, [])',
       },
     ],
   },

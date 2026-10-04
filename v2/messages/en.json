@@ -563,6 +563,26 @@
         "title": "Edit {number}",
         "saved": "{number} saved"
       },
+      "load": {
+        "title": "Team load",
+        "empty": "Nobody in your departments has live work yet",
+        "open": "{count, plural, one {# open task} other {# open tasks}}",
+        "overdue": "{count} overdue",
+        "items": "{count, plural, one {# action item} other {# action items}}",
+        "clients": "{count, plural, one {# client} other {# clients}}",
+        "prospects": "{count, plural, one {# prospect} other {# prospects}}"
+      },
+      "escalate": {
+        "open": "Escalate",
+        "title": "Escalate {number}",
+        "to": "Escalate to",
+        "to_required": "Pick who to tell",
+        "to_yourself": "Pick someone other than yourself",
+        "note": "What do they need to know?",
+        "note_required": "Write what they need to know",
+        "send": "Escalate",
+        "done": "Escalated to {name}"
+      },
       "status": {
         "change": "Status: {status}. Change",
         "movedLine": "{number}: {status}",
@@ -613,6 +633,12 @@
           "text_required": "Write the action item",
           "not_yours": "Only its owner, a helper or the task's owner can tick this",
           "done_before_raised": "That day is before the item was added"
+        },
+        "escalation": {
+          "not_here": "This cannot be escalated",
+          "note_required": "Write what they need to know",
+          "to_yourself": "Pick someone other than yourself",
+          "cannot_see": "That person cannot see this task"
         },
         "person": {
           "unavailable": "That person cannot be given work here"
