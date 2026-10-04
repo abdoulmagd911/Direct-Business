@@ -1198,3 +1198,15 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **Gallery:** waits for #175, which is next, so both screen changes are shot together.
   - **No new bug.**
 - **#175 (builder E) at 4db3c95:** the Architect merged 4161753 into it. Every file the merge touched carries exactly main's change, and #175's own diff against main is unchanged (14 files, 386+/15−). Cleared at 4db3c95 at 22:4x UTC, once CI was green.
+
+## Round 65 — 2026-10-04 01:30 (v2/main dffc4e5: #181, Escalate on the task page and the team's load)
+
+- **Main dffc4e5** (#181, builder D: Escalate on the task page and the team's load on Tasks › Team, V279, over #141's doors; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to 4161753 by test name and by every area's totals; tasks 7/0 with round 64's check.
+  - **Gallery:** still waits for #175, so the screen changes since v38 are shot once.
+  - **No new bug.**
+- **#175 (cleared at 4db3c95) is not merged yet** and is now behind main dffc4e5. QA 1 re-checks it whenever it is re-levelled.
+- **Go-live is postponed** (the Architect, 21:31 UTC on #175).
