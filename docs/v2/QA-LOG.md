@@ -1247,4 +1247,13 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
 - **PAUSE (the owner's order at 07:10 UTC, relayed by the Architect at 07:11 on #175 and #149):** no work until the weekly credit resets on Thu 8 Oct, 14:00 Riyadh. QA 1 finished round 68 and cancelled its hourly check-in.
   - **On restart:** builder E merges main (289fa46 or later; #149 carries a migration) into #175, then CI runs, then QA 1 re-clears.
   - **What doesn't carry over:** QA 1's clearance at 4db3c95 was against main 4161753, so it doesn't cover that merge. Re-check the merge file by file and wait for green CI. After #175 lands, retake main and the gallery.
-  - **Still local:** QA pushes (rounds 40–68) wait for the oversight's word.
+  - **Pushed (4 Oct, on the owner's go-ahead):** the QA pushes for rounds 40–68, 28 commits, as one push.
+- **Live-site check, signed out and read-only (4 Oct, on the owner's go-ahead; the Architect's 15-minute check of 2 Oct, the half that needs no sign-in):**
+  - **Live version:** production serves v2/main 289fa46. Vercel's production deploy completed at 07:03 UTC, and the production database job passed at 07:07.
+  - **Result: 32 of 32 pass.**
+    - Every protective setting main declares is on the live site (W31).
+    - Eleven locked addresses send a signed-out visitor to sign-in and remember where the person was going.
+    - An off-site link isn't echoed onto the page, and the bare domain moves to www.
+    - The sign-in page renders at 390 px and 1,440 px, with no sideways scroll, no script errors, no raw keys, and no database call before anyone types.
+  - **Not done:** the signed-in half (sign-in, /tasks, Log achievement's categories, the three phone jobs, V509). QA 1 has no production password and may not create an account.
+  - **Posted:** the result is on #150.
