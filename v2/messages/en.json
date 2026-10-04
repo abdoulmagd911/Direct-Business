@@ -558,6 +558,7 @@
         "due_invalid": "Pick a date",
         "owner_required": "Pick an owner"
       },
+      "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
       "edit": {
         "title": "Edit {number}",
         "saved": "{number} saved"
