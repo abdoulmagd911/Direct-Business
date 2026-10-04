@@ -1234,3 +1234,17 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **No new bug.**
 - **#149 (builder A) at 64ce9aa:** the Architect merged 285de35 into it. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-cleared at 64ce9aa once CI was green.
 - **#175 (cleared at 4db3c95)** is still behind main and waits for its re-level.
+
+## Round 68 — 2026-10-04 07:40 (v2/main 289fa46: #149 merged, Turn into task and action item, Finish meeting's points)
+
+- **Main 289fa46** (#149, builder A; QA 1 cleared it at a32b2b2 and re-cleared it at each re-level up to 64ce9aa). It brings migration `20261003034500`. Retaken from zero.
+  - **SQL:** 180 of 185: NOTE-07 and NOTE-08 join, and the known reds are QA-02/03/04/121/208.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8. "A task made from a note" now reads "the door: answers": the database makes the task, and Turn into's menu still offers only a call or a reminder. It stays NOT BUILT until a Turn into task dialog switches on `tasks.turn_into`.
+  - **Full sweep:** identical to 285de35 by test name and by every area's totals.
+  - **No new bug.**
+- **#175 (cleared at 4db3c95):** the Architect asked builder E (07:03) to merge 289fa46 and push. QA 1 re-clears it on green CI.
+- **PAUSE (the owner's order at 07:10 UTC, relayed by the Architect at 07:11 on #175 and #149):** no work until the weekly credit resets on Thu 8 Oct, 14:00 Riyadh. QA 1 finished round 68 and cancelled its hourly check-in.
+  - **On restart:** builder E merges main (289fa46 or later; #149 carries a migration) into #175, then CI runs, then QA 1 re-clears.
+  - **What doesn't carry over:** QA 1's clearance at 4db3c95 was against main 4161753, so it doesn't cover that merge. Re-check the merge file by file and wait for green CI. After #175 lands, retake main and the gallery.
+  - **Still local:** QA pushes (rounds 40–68) wait for the oversight's word.
