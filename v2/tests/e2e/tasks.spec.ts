@@ -416,3 +416,57 @@ for (const w of WIDTHS) {
     await member.ctx.close();
   });
 }
+
+// ---- List / Board / Calendar (§8 Tasks): one view of the same rows
+for (const w of WIDTHS) {
+  test(`${w.name}: the board and the calendar count the same tasks as the list`, async ({ browser }) => {
+    const member = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const dueToday = await taskIn('commercial', member.id, `Made-up board today ${tag}`);
+    const started = await taskIn('commercial', member.id, `Made-up board started ${tag}`);
+    await taskIn('commercial', member.id, `Made-up board undated ${tag}`);
+    await sql(`update work.task set due_on = $1 where number = $2`, [riyadhToday(), dueToday]);
+    const { ctx, page } = await signedIn(browser, member, w.width, w.height, '/tasks?view=owned');
+    const listed = await page.locator('li[data-task-row]').count();
+    expect(listed, 'the list shows the three made-up tasks').toBe(3);
+
+    // the board: every listed task in exactly one column; a card's status menu moves it
+    await page.locator('[data-layouts] [data-layout="board"]').click();
+    await expect(page).toHaveURL(/layout=board/);
+    const board = page.locator('[data-task-board]');
+    await expect(board).toBeVisible();
+    const counts = await board
+      .locator('[data-board-column]')
+      .evaluateAll((cols) => cols.map((c) => Number(c.getAttribute('data-count'))));
+    expect(
+      counts.reduce((a, b) => a + b, 0),
+      'the board counts what the list counts',
+    ).toBe(listed);
+    await board.locator(`[data-board-card="${started}"] button[data-task-status]`).click();
+    await page.locator('[data-move="in_progress"]').click();
+    await expect(
+      board.locator(`[data-board-column="in_progress"] [data-board-card="${started}"]`),
+      'the card moves to In progress',
+    ).toBeVisible();
+    await noSidewaysScroll(page, `${w.name} board`);
+    await page.screenshot({ path: shot(`tasks-board-${w.name}`), fullPage: true });
+
+    // the calendar: the dated task on its day, the undated one apart
+    await page.locator('[data-layouts] [data-layout="calendar"]').click();
+    await expect(page).toHaveURL(/layout=calendar/);
+    await expect(
+      page.locator(`[data-calendar-day="${riyadhToday()}"] [data-calendar-task="${dueToday}"]`),
+      'the task due today is on today',
+    ).toBeVisible();
+    await expect(page.locator('[data-calendar-undated]')).toContainText('2 tasks with no due day');
+    await noSidewaysScroll(page, `${w.name} calendar`);
+    await page.screenshot({ path: shot(`tasks-calendar-${w.name}`), fullPage: true });
+    // the month after holds none of them, and Back to the list keeps the view
+    await page.locator('[data-calendar-next]').click();
+    await expect(page.locator(`[data-calendar-task="${dueToday}"]`)).toHaveCount(0);
+    await page.locator('[data-layouts] [data-layout="list"]').click();
+    await expect(page).toHaveURL(/view=owned$/);
+    await expect(page.locator('li[data-task-row]')).toHaveCount(listed);
+    await ctx.close();
+  });
+}
