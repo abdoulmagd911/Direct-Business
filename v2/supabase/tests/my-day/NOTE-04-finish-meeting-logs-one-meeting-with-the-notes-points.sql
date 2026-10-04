@@ -1,7 +1,7 @@
 -- NOTE-04 — Finish meeting (V433; TECH-SPEC §3.3a): a meeting note's points and words are logged as one meeting on
 -- its organisation (type meeting, held unless said otherwise), linked both ways, and the note is marked finished — once;
 -- a sticky is no meeting, a meeting needs its organisation, and a meeting that has not happened yet is not logged. The
--- points become action items once tasks exist (P5-1). Every value is made up.
+-- points become action items when asked (NOTE-08). Every value is made up.
 -- Sabotage: supabase/tests/sabotage/finish-meeting-drops-the-points.sql.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
