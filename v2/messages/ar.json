@@ -562,6 +562,26 @@
         "title": "تعديل {number}",
         "saved": "تم حفظ {number}"
       },
+      "load": {
+        "title": "عبء عمل الفريق",
+        "empty": "لا أحد في إداراتك لديه عمل جارٍ بعد",
+        "open": "{count, plural, one {مهمة مفتوحة واحدة} two {مهمتان مفتوحتان} few {# مهام مفتوحة} many {# مهمة مفتوحة} other {# مهمة مفتوحة}}",
+        "overdue": "{count} متأخرة",
+        "items": "{count, plural, one {بند عمل واحد} two {بندا عمل} few {# بنود عمل} many {# بند عمل} other {# بند عمل}}",
+        "clients": "{count, plural, one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلًا} other {# عميل}}",
+        "prospects": "{count, plural, one {عميل محتمل واحد} two {عميلان محتملان} few {# عملاء محتملين} many {# عميلًا محتملًا} other {# عميل محتمل}}"
+      },
+      "escalate": {
+        "open": "تصعيد",
+        "title": "تصعيد {number}",
+        "to": "تصعيد إلى",
+        "to_required": "اختر من تُبلغه",
+        "to_yourself": "اختر شخصًا غير نفسك",
+        "note": "ما الذي يجب أن يعرفه؟",
+        "note_required": "اكتب ما يجب أن يعرفه",
+        "send": "تصعيد",
+        "done": "تم التصعيد إلى {name}"
+      },
       "status": {
         "change": "الحالة: {status}. تغيير",
         "movedLine": "{number}: {status}",
@@ -612,6 +632,12 @@
           "text_required": "اكتب بند العمل",
           "not_yours": "لا يضع علامة الإنجاز عليه إلا مالكه أو مساعد أو مالك المهمة",
           "done_before_raised": "هذا اليوم قبل إضافة البند"
+        },
+        "escalation": {
+          "not_here": "لا يمكن تصعيد هذا",
+          "note_required": "اكتب ما يجب أن يعرفه",
+          "to_yourself": "اختر شخصًا غير نفسك",
+          "cannot_see": "لا يستطيع هذا الشخص رؤية هذه المهمة"
         },
         "person": {
           "unavailable": "لا يمكن إسناد عمل إلى هذا الشخص هنا"
@@ -667,10 +693,10 @@
           "organisation_ambiguous": "أكثر من عميل بهذا الاسم",
           "organisation_checking": "جارٍ التحقق من العميل",
           "person_checking": "جارٍ التحقق من الاسم",
+          "owner_needed": "اختر مالكًا",
           "repeated": "الصف نفسه مرتين",
           "already_saved": "محفوظ من قبل",
-          "saved_checking": "جارٍ التحقق مما إذا كان محفوظًا من قبل",
-          "owner_needed": "اختر مالكًا"
+          "saved_checking": "جارٍ التحقق مما إذا كان محفوظًا من قبل"
         },
         "ownerUnknown": {
           "missing": "المالك غير معروف: لا اسم",
@@ -877,10 +903,13 @@
     "tabs": "أقسام السجل",
     "back": "رجوع",
     "details": "التفاصيل",
-    "noActivity": "لا تغييرات بعد"
+    "noActivity": "لا تغييرات بعد",
+    "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
+    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
   },
   "activity": {
     "title": "سجل النشاط",
+    "locked": "النشاط للمديرين ورؤساء الإدارات ومسؤولي النظام",
     "tabs": {
       "changes": "التغييرات",
       "settings": "سجل الإعدادات",
@@ -1037,8 +1066,7 @@
     },
     "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
-    "reportsTo": "يتبع {name}",
-    "locked": "النشاط للمديرين ورؤساء الإدارات ومسؤولي النظام"
+    "reportsTo": "يتبع {name}"
   },
   "profile": {
     "title": "ملفي",
@@ -1881,9 +1909,5 @@
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",
     "achievement": "إنجاز جديد"
-  },
-  "record": {
-    "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
-    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
   }
 }
