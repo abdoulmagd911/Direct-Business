@@ -91,6 +91,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'blind-catalog-duplicates',
+    breaks: [unit('the-catalog-check-refuses-a-missing-key-and-a-hard-coded-sentence')],
+    expect: 'refuses a key written twice',
+    edits: [
+      {
+        file: 'scripts/checks/i18n-catalogs.mjs',
+        find: 'if (top.keys.has(str)) found.push(',
+        replace: 'if (false) found.push(',
+      },
+    ],
+  },
+  {
     name: 'blind-screen-words',
     breaks: [unit('the-screen-words-check-refuses-company-and-margin')],
     expect: 'refuses them in a catalog and in JSX text',
