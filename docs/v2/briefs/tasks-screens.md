@@ -6,7 +6,7 @@ decisions numbered **270–299** in `docs/v2/DECISIONS.md` (its own section, "Bu
 
 ## The goal
 
-The pilot's stage 1 (V517, Sunday 18 Oct): a person sees and works their tasks on a phone and at a desk.
+The pilot's ~~stage 1 (V517, Sunday 18 Oct)~~ **[SUPERSEDED — V605 (6): day one, stage 0, Sunday 4 Oct]**: a person sees and works their tasks on a phone and at a desk.
 
 1. **The first PR — P5-2's first half, on P5-1's tables** (#140, builder A): the **Tasks list** (My work, owned,
    helping, team; chips status · due · partner · project), the **task record page** (V95 template: header, Overview ·
@@ -30,7 +30,7 @@ work) · V507 (the member's menu) · V508 (gate card) · V509 (the phone test) �
 V517 (the pilot cut) · V519 (this lane) · V531 (the number) · builder A's V189–V196 (#140) for the doors' names and
 refusals.
 
-## The gate card — GC-3 (to be signed before the PR merges)
+## The gate card — GC-3 ~~(to be signed before the PR merges)~~ **[SUPERSEDED — V508, V532: signed by the oversight under the owner's standing instruction, 2 Oct, after QA 1 cleared #147]**
 
 1. **Screen and spot:** Tasks (`/tasks`, `/tasks/[number]`), already in the member's menu (V507); no new menu item.
 2. **Role, used weekly:** every Member and up, daily; asked by the owner (V517).
@@ -60,4 +60,4 @@ the shell and the drawer (builder B), `ar.json` (builder C), `.claude/**`, the o
   go on the same branch.
 - Build against #140 before it merges (stack on `v2/a-p5-1`, merge it in, never rebase); adjust when it lands.
 - Each PR lists its V-numbers, "Gate card: GC-3", and "checked against DECISIONS.md at <commit>"; the architect merges
-  when QA clears it (V517's merge train).
+  when QA clears it (~~V517's merge train~~ **[SUPERSEDED — V600: the merge train — QA clears the up-to-date head, CI green]**).

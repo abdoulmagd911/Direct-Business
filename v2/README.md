@@ -51,6 +51,7 @@ Migrations are forward-only (`supabase/migrations/YYYYMMDDHHMMSS_<module>_<what>
 node scripts/db/test.mjs                    # plain Postgres (PGHOST/PGPORT/PGUSER/PGPASSWORD; default 127.0.0.1:5432)
 node scripts/db/test.mjs --only GRANTS-01   # one test
 node scripts/db/test.mjs --write-grants     # rewrite supabase/grants.expected — on purpose only, and say why
+node scripts/db/test.mjs --reuse            # copy a kept from-zero build of the same migrations (the sabotage runs)
 node scripts/db/test.mjs --target supabase  # after `supabase start` (CI)
 node scripts/sabotage.mjs --kind sql        # every SQL test fails under its sabotage (supabase/tests/sabotage/)
 ```
