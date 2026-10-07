@@ -57,9 +57,11 @@ test('a person at level none sees the no-access state on every area page, never 
 test('an admin sees every area page (empty until its step lands), not a refusal', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/my-day');
-  for (const [route, title] of AREAS) {
+  for (const [route, area] of AREAS) {
     await page.goto(route);
     await hydrated(page);
+    // /kpis opens the Achievements list until the KPIs page is built (V605 (2))
+    const title = route === '/kpis' ? 'Achievements' : area;
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
     await expect(page.locator('[data-state="no-access"]')).toHaveCount(0);
   }
