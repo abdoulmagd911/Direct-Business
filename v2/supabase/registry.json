@@ -386,7 +386,10 @@
             "alert_activity_stale",
             "alert_file_review",
             "reminder",
-            "note_mention"
+            "note_mention",
+            "escalated",
+            "alert_project_no_update",
+            "alert_due_tomorrow"
           ]
         }
       },
@@ -408,7 +411,10 @@
         "alert_activity_stale",
         "alert_file_review",
         "reminder",
-        "note_mention"
+        "note_mention",
+        "escalated",
+        "alert_project_no_update",
+        "alert_due_tomorrow"
       ],
       "effective_dated": false
     },
@@ -588,6 +594,19 @@
       "effective_dated": true
     },
     {
+      "key": "work.project_update_days",
+      "group": "settings.work",
+      "label": "setting.work.project_update_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 90
+      },
+      "default": 14,
+      "effective_dated": true
+    },
+    {
       "key": "work.reminder_days_before_due",
       "group": "settings.work",
       "label": "setting.work.reminder_days_before_due",
@@ -614,6 +633,78 @@
     }
   ],
   "entities": [
+    {
+      "key": "achievement",
+      "table": "perf.achievement",
+      "page": "kpis",
+      "owners": "perf.achievement_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_category",
+      "table": "perf.achievement_category",
+      "page": "settings.performance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_participant",
+      "table": "perf.achievement_participant",
+      "page": "kpis",
+      "owners": "perf.achievement_participant_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_ref",
+      "table": "perf.achievement_ref",
+      "page": "kpis",
+      "owners": "perf.achievement_ref_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "action_item",
+      "table": "work.action_item",
+      "page": "tasks",
+      "owners": "work.action_item_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "action_item_helper",
+      "table": "work.action_item_helper",
+      "page": "tasks",
+      "owners": "work.action_item_helper_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
     {
       "key": "activity_outcome",
       "table": "partner.activity_outcome",
@@ -1035,6 +1126,18 @@
       "rule_only": false
     },
     {
+      "key": "plan",
+      "table": "perf.plan",
+      "page": "settings.performance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "priority",
       "table": "work.priority",
       "page": "settings.work",
@@ -1052,6 +1155,42 @@
       "page": "settings.profile",
       "owners": "person_id",
       "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "project",
+      "table": "work.project",
+      "page": "projects",
+      "owners": "owner_id",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "project_health",
+      "table": "work.project_health",
+      "page": "projects",
+      "owners": "work.project_health_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": true,
+      "rule_only": false
+    },
+    {
+      "key": "project_status",
+      "table": "work.project_status",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
       "private": false,
       "visible": null,
       "level": null,
@@ -1230,6 +1369,90 @@
       "key": "side_type",
       "table": "partner.side_type",
       "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task",
+      "table": "work.task",
+      "page": "tasks",
+      "owners": "work.task_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_contact",
+      "table": "work.task_contact",
+      "page": "tasks",
+      "owners": "work.task_contact_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_helper",
+      "table": "work.task_helper",
+      "page": "tasks",
+      "owners": "work.task_helper_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_ref",
+      "table": "work.task_ref",
+      "page": "tasks",
+      "owners": "work.task_ref_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_status",
+      "table": "work.task_status",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_status_change",
+      "table": "work.task_status_change",
+      "page": "tasks",
+      "owners": "work.task_status_change_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": true,
+      "rule_only": false
+    },
+    {
+      "key": "task_type",
+      "table": "work.task_type",
+      "page": "settings.work",
       "owners": null,
       "list": true,
       "private": false,

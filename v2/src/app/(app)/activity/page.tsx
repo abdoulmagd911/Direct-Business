@@ -31,7 +31,7 @@ export default async function ActivityPage({
         <DataState
           kind="no-access"
           what={t('nav.activity')}
-          message={t('state.noAccess', { what: t('nav.activity') })}
+          message={t('activity.locked')}
           goHome={t('errors.notFound.goMyDay')}
         />
       </Page>
