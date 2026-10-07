@@ -11,20 +11,22 @@ Q42 and Q44 → V492 and V493; Q39 → V520, Q40 → V521, Q43 → V522, Q45 →
 Each is one plain question, the recommended answer the spec assumes until it is answered, and what the answer changes.
 None holds up the Finance build: the database is built for either answer (V610–V618).
 
-**Q46 — A tender at signing: revenue, or sales credit?** When a tender is signed, does its signed value count as
+**Answered 7 Oct, all as recommended: Q46 → V619, Q47 → V620, Q48 → V621.**
+
+**Q46 — A tender at signing: revenue, or sales credit?** **[Answered — V619: sales credit]** When a tender is signed, does its signed value count as
 **revenue and profit** in the signing month, or only as the account manager's **sales credit** (won business)?
 *Recommended:* sales credit at signing; revenue and profit come from its paid transactions as they happen.
 *Effect:* counted as revenue, the signing month shows the whole value as profit with no cost, and the following months
 show the costs with no revenue — losses. Setting `finance.tender_counts_as` (V614).
 
-**Q47 — Closing a month.** Who closes each month, and by when? And when a sale created in a closed month is paid later,
+**Q47 — Closing a month.** **[Answered — V620]** Who closes each month, and by when? And when a sale created in a closed month is paid later,
 or a paid sale is cancelled after the close, does the closed month change?
 *Recommended:* the finance lead closes each month by its 5th working day; a closed month never changes — every later
 change (late-paid, cancelled after payment, cost approved later) shows as a dated note on that month and in the next
 report's "Added to earlier periods".
 *Effect:* reported months stay fixed, and late news is never lost (V500, V610).
 
-**Q48 — Which products never carry a supplier cost?** Many paid invoices have no expense at all, mostly service and
+**Q48 — Which products never carry a supplier cost?** **[Answered — V621]** Many paid invoices have no expense at all, mostly service and
 visa fees. Under "cost 0 until approved" they would stay Provisional for ever.
 *Recommended:* finance names the products with no supplier cost (service fees and commissions at least; visa only if
 finance confirms); those are Final at cost 0, and only bookings that should have a cost stay Provisional.

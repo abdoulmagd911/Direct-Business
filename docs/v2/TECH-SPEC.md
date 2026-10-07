@@ -1001,7 +1001,9 @@ older line they change is struck below and names its V-number.
 | Cost (V611) | Every paid unit counts; cost = approved expenses, **0 and Provisional while none**; Provisional amount shown **beside** Profit; **Ready** (Final) when all expenses are Approved; products with no supplier cost are Ready at 0 | `invoice_cost`, `money_row`, `finance.product.no_supplier_cost` |
 | Commissions (V612) | Only through Payments invoice lines; the page says those paid outside Payments are not included | `money_row`, the Finance page |
 | Channel (V613) | Commercial · Direct · Promo on a transaction; an individual is credited only when tagged Commercial | `finance.invoice.channel_id`, `credit_row` |
-| Tenders (V614) | Signed value at signing, consumed by the tender's transactions, never added twice; Applied never counts; revenue or sales credit — Q46 | `finance.tender_use`, `finance.tender_counts_as` |
+| Tenders (V614, V619) | Signed value at signing is the account manager's **sales credit**, never revenue; revenue and profit come from the tender's paid transactions, which consume it; Applied never counts | `finance.tender_use`, the sales-credit figure |
+| Month close (V620) | The finance lead closes each month by its 5th working day; a closed month never changes — later news is a dated note on it and in the next report | `finance.month_close`, `finance.late_change` |
+| No supplier cost (V621) | Products finance names once (service and visa fees at least) are Final at cost 0; every other unit stays Provisional until an expense is approved; the list is a setting, never code | `finance.product.no_supplier_cost` |
 | SAR and VAT (V615) | The SAR figure Payments recorded; VAT never stored or shown anywhere | unchanged |
 | Monthly invoice (V616) | A credit client's monthly tax invoice is a zero-revenue link, but what it adds beyond its transactions (a fee per transaction) is revenue; never linked by line names | `finance.check`, `money_row` |
 | Wallets, bookings, numbers (V617) | No wallet balance shown as money; off-system bookings count as money, never as bookings; transaction no. and tax invoice no. always two fields | `partner_wallet` (not shown), every list and export |
@@ -1118,7 +1120,8 @@ finance.status_map     LIST: status_key; maps_to ('paid','pending','draft','void
 finance.product        LIST: the Payments products (Direct Flights, Direct Hotels …), each → a service (D24) and a
                        commission flag; the manual entry form offers this list
                        no_supplier_cost bool default false   -- V611: a unit whose every product has it is Ready at cost 0 with
-                       -- no expense (fees, commissions); which products — Q48; until answered, none is set
+                       -- no expense; V621: set in Settings by a person with Full on Finance from the list finance names
+                       -- (service and visa fees at least; the Scout drafts it, the owner confirms) — never in code or a migration
 finance.expense_status_word  LIST: word → ('approved','pending','under_review','cancelled','rejected','issued')
                        -- V611: an import maps the export's words through it; a blank transaction-level expense status in an
                        -- export reads 'issued' (done, Ready), never "not ready"
@@ -1139,10 +1142,9 @@ finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note
 finance.channel        LIST: Commercial · Direct · Promo (V613); credits_owner bool (only Commercial credits a person)
 finance.month_close    STD; month date pk (first day); closed_on; closed_by; snapshot jsonb (each counted unit's ref, revenue,
                        cost, cost status, credited people as at close); note
-                       -- V610: a closed month's snapshot never changes; who closes and when — Q47 (until answered, a person with
-                       -- Full on Finance closes it by hand); reopening is a logged request with a reason
-finance.tender_counts_as  setting ('sales_credit','revenue'), effective-dated — V614 / Q46; unset until the owner answers,
-                       and P4-2 does not ship unset
+                       -- V610, V620: the finance lead (Full on Finance) closes each month by its 5th working day; a closed
+                       -- month is never reopened and never changes — later news is a dated note (late_change)
+~~finance.tender_counts_as  setting~~ [SUPERSEDED — V619: not built; a tender's signed value is sales credit only]
 ```
 
 **Views — every money figure in the app comes from these (§1a):**

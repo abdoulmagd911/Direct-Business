@@ -33,7 +33,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
   re-check.
 - **Finance is being specified, not built into production yet**: the owner's money rules of 5 Oct are V610–V618 and
   spec §3.6 (read its first table); builder A builds the tables, the "what counts" view and the Payments export import
-  on a branch; the owner's open questions are Q46–Q51 in `OPEN-QUESTIONS.md`.
+  on a branch; the owner answered Q46–Q48 on 7 Oct (V619–V621); Q49–Q51 stay open in `OPEN-QUESTIONS.md`.
 - **Deferred, not dropped**: Finance and Payments, KPIs beyond achievements, Pipeline, Projects, Overview, Reports,
   Appraisal, Arabic (V517).
 - **Next after day one**: Stage L — linked records, one file library, one comments feature (V534) — and the
@@ -99,7 +99,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 3. A new rule is the next V-number in your range, recorded in the same PR as the change.
 4. Anything that needs the owner goes to the oversight, in plain words.
 
-## Decisions since V519 (the last ten are V609–V618)
+## Decisions since V519 (the newest are V609–V621)
 
 V520 A contact's sides sort it, never hide it · V521 An MoU sets the side chosen on the achievement · V522 A banned
 word for the consumer segment · V523 The Partnerships and improvements reports are monthly · V524 A note on a record
@@ -118,7 +118,8 @@ V611 Every paid transaction counts; cost 0 and Provisional until expenses are ap
 Payments invoice lines · V613 A channel tag; individuals credited only when Commercial · V614 A tender at its signed
 value, consumed by its transactions · V615 SAR as recorded; VAT never stored or shown · V616 A monthly tax invoice is a
 link, except what it adds · V617 No wallet balance shown as money; two numbers, never one · V618 The Payments export
-import is built first.
+import is built first · V619 A tender's signed value is sales credit, revenue comes from its bookings · V620 A closed
+month never changes · V621 Products with no supplier cost are a setting, Final at cost 0.
 
 ## Coming next
 
