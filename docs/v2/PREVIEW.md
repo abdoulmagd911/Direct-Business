@@ -6,19 +6,25 @@ This page is the whole preview: what to prepare, what to show in about 15 minute
 
 ## The day before (10 minutes)
 
-1. Sign in at www.directksab2b.com with **your own account**, on the laptop you will present from, in English.
-2. Open each screen once so you know it loads: **My day**, **Tasks**, **Clients**, **Past work**, **KPIs ›
+1. Sign in at www.directksab2b.com with **your employee account** — the one in the Commercial team — not the admin
+   account, on the laptop you will present from, in English. The admin account is never in a team (V444), so it can
+   hand tasks out but never own one; your own tasks and wins live on your employee account.
+2. Check, once, in Settings with the admin account: your employee account and every pilot member are **in a team**
+   (without one, a person cannot add a task); the Commercial department's **2026 plan is open** (without it, Log
+   achievement asks for an admin); Finance, Pipeline and the other deferred modules are **off** for members and
+   managers.
+3. Open each screen once so you know it loads: **My day**, **Tasks**, **Clients**, **Past work**, **KPIs ›
    Achievements**.
-3. Make three demo records (test data is allowed): one client organisation with one contact; two tasks — one due today,
+4. Make three demo records (test data is allowed): one client organisation with one contact; two tasks — one due today,
    one already overdue; one note from a call on My day.
-4. Read **Known issues** at the bottom and keep away from those spots.
+5. Read **Known issues** at the bottom and keep away from those spots.
 
 ## The preview (about 15 minutes, three jobs)
 
 The pilot asks three things of everyone: **log my day, run my tasks, record a win.** Show one job at a time.
 
-1. **Log my day — My day.** The day's list: overdue first, then today. Write a short note from a call. If the note
-   offers **Turn into**, turn it into a task with an owner and a due date; it appears on Tasks.
+1. **Log my day — My day.** The day's list: overdue first, then today. Write a short note from a call, then
+   **Turn into → reminder** (or a logged call). For a meeting, **Finish meeting** logs it on the client.
 2. **Run my tasks — Tasks.** **Quick add** a task (title, owner, due date). Switch between **List**, **Board** and
    **Calendar**. Open a task, tick an action item, and show **Escalate** on a stuck one. For managers: **Team** shows
    each person's load.
@@ -39,7 +45,17 @@ The pilot asks three things of everyone: **log my day, run my tasks, record a wi
 
 ## Known issues
 
-Filled in from the test round of 7–8 Oct (QA 1 on desktop, QA 2 at phone width) once their lists are posted on #87.
+From the test round of 7 Oct (QA 1 on desktop, QA 2 at phone width — both on a local copy of the production code;
+nothing blocks the three jobs). Steer around these:
+
+- **Turn into** on a note offers only a call or meeting and a reminder for now; a task and an achievement join
+  shortly (#183, #175). Use **Quick add** for a task and **+ › Log achievement** for a win.
+- A **member in no team** sees Task in the + but cannot add one (QA-245) — another reason every pilot member is in
+  a team.
+- The Clients page's second tab reads **Suppliers**; it becomes **Suppliers & partners** (QA-247, V517).
+- On a phone, a **long organisation or task name is cut off** in the page header, and the back links are small —
+  show the preview on the laptop.
+- Every browser tab is titled **Commercial** (QA-219).
 
 ## After the preview
 
