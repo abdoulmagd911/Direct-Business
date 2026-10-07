@@ -8,6 +8,9 @@ import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { isAdmin } from '@/ui/shell/nav';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.activity');
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 
@@ -25,7 +28,12 @@ export default async function ActivityPage({
     return (
       <Page>
         <PageHeader title={t('nav.activity')} />
-        <DataState kind="no-access" what={t('nav.activity')} message={t('activity.locked')} />
+        <DataState
+          kind="no-access"
+          what={t('nav.activity')}
+          message={t('activity.locked')}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </Page>
     );
   // W47: the organisation and the tab's own read go out together, one round after me — not one after the other.

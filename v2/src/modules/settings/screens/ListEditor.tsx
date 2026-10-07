@@ -83,10 +83,18 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     setReason('');
     setEditing(r);
   };
+  // the key is internal (W49): a new entry takes one from its English name unless Details gives another
+  const keyOf = () =>
+    draft.key.trim() ||
+    draft.name_en
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   const banned = bannedIn(draft.name_en) ?? bannedIn(draft.name_ar);
   const draftOk =
     !banned &&
-    draft.key.trim().length > 0 &&
+    keyOf().length > 0 &&
     draft.name_en.trim().length > 0 &&
     draft.name_ar.trim().length > 0 &&
     (!extra || editing !== 'new' || !!draft.extra);
@@ -102,7 +110,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     // checked per field it is asked to write); a new entry sends everything with its key.
     const values: Record<string, unknown> = {};
     if (editing === 'new') {
-      Object.assign(values, typed, { key: draft.key.trim() }, extra ? { [extra.col]: draft.extra } : {});
+      Object.assign(values, typed, { key: keyOf() }, extra ? { [extra.col]: draft.extra } : {});
     } else {
       for (const [k, v] of Object.entries(typed))
         if (JSON.stringify(v) !== JSON.stringify(editing[k] ?? null)) values[k] = v;
@@ -224,7 +232,6 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                   {t(`settings.list.${extra.col}`)}
                 </th>
               ) : null}
-              <th className="hidden py-2 text-start font-medium sm:table-cell">{t('settings.list.key')}</th>
               <th className="hidden py-2 text-end font-medium sm:table-cell">{t('settings.list.sort')}</th>
               <th className="py-2" />
             </tr>
@@ -246,7 +253,6 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                     {extraWord(extraOf(r))}
                   </td>
                 ) : null}
-                <td className="hidden py-2.5 font-data text-muted sm:table-cell">{r.key}</td>
                 <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
                 <td className="py-2.5 text-end">
                   <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
@@ -294,17 +300,6 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label={t('settings.list.key')}>
-            {(p) => (
-              <Input
-                {...p}
-                value={draft.key}
-                disabled={editing !== 'new'}
-                onChange={(e) => setDraft({ ...draft, key: e.target.value })}
-                className="font-data"
-              />
-            )}
-          </Field>
           {extra ? (
             <Field label={t(`settings.list.${extra.col}`)}>
               {(p) => (
@@ -341,17 +336,33 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               />
             )}
           </Field>
-          <Field label={t('settings.list.sort')}>
-            {(p) => (
-              <Input
-                {...p}
-                type="number"
-                value={draft.sort}
-                onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
-                className="max-w-32 font-data"
-              />
-            )}
-          </Field>
+          <details className="rounded-md border border-border px-3 py-2" data-list-details>
+            <summary className="cursor-pointer text-sm font-medium">{t('record.details')}</summary>
+            <div className="mt-3 flex flex-col gap-4">
+              <Field label={t('settings.list.key')}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    value={draft.key}
+                    disabled={editing !== 'new'}
+                    onChange={(e) => setDraft({ ...draft, key: e.target.value })}
+                    className="font-data"
+                  />
+                )}
+              </Field>
+              <Field label={t('settings.list.sort')}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="number"
+                    value={draft.sort}
+                    onChange={(e) => setDraft({ ...draft, sort: e.target.value })}
+                    className="max-w-32 font-data"
+                  />
+                )}
+              </Field>
+            </div>
+          </details>
           <Field label={`${t('common.reason')} (${t('common.optional')})`}>
             {(p) => <Textarea {...p} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />}
           </Field>

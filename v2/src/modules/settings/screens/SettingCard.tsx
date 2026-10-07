@@ -141,7 +141,7 @@ export function SettingCard({
             <SchemaValue settingKey={def.key} value={def.value} />
           </p>
           <p className="text-xs text-muted">
-            {companyRow
+            {companyRow && companyRow.reason !== 'default'
               ? `${t('settings.setting.appliesFrom')} ${formatDate(new Date(companyRow.valid_from), locale, { dateStyle: 'medium' })}${companyRow.reason ? ` · ${companyRow.reason}` : ''}`
               : t('settings.setting.default')}
           </p>
