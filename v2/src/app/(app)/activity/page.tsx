@@ -25,7 +25,7 @@ export default async function ActivityPage({
     return (
       <Page>
         <PageHeader title={t('nav.activity')} />
-        <DataState kind="no-access" what={t('nav.activity')} />
+        <DataState kind="no-access" what={t('nav.activity')} message={t('activity.locked')} />
       </Page>
     );
   // W47: the organisation and the tab's own read go out together, one round after me — not one after the other.

@@ -11,10 +11,15 @@
 //   --after <file>     apply this SQL after the migrations (repeatable; also V2_DB_AFTER, ':'-separated) — how a
 //                      sabotage breaks a migration without touching it
 //   --write-grants     write supabase/grants.expected from the database just built (a deliberate change: say why)
+//   --reuse            plain target: copy a from-zero build of the same stand-ins and migrations, kept as
+//                      <test database>_built and rebuilt when any of them changes, instead of replaying every
+//                      migration; --after files are applied to the copy. How the sabotage runner fits its several
+//                      hundred builds into CI (one build from zero takes seconds, a copy a fraction of one)
 //   --list             list the tests
 // Connection: PGHOST/PGPORT/PGUSER/PGPASSWORD (default 127.0.0.1:5432, postgres/postgres; the Supabase target defaults
 // to port 54322 and database postgres), test database V2_TEST_DB (default v2_test). Needs `psql`.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,9 +39,11 @@ const after = (process.env.V2_DB_AFTER || '').split(':').filter(Boolean);
 let target = 'plain';
 let writeGrants = false;
 let list = false;
+let reuse = false;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--only') only.push(/** @type {string} */ (argv[++i]));
+  else if (a === '--reuse') reuse = true;
   else if (a === '--after') after.push(path.resolve(/** @type {string} */ (argv[++i])));
   else if (a === '--target') target = /** @type {string} */ (argv[++i]);
   else if (a === '--write-grants') writeGrants = true;
@@ -48,6 +55,10 @@ for (let i = 0; i < argv.length; i++) {
 }
 if (!['plain', 'supabase'].includes(target)) {
   console.error('--target is plain or supabase');
+  process.exit(2);
+}
+if (target === 'supabase' && reuse) {
+  console.error('--reuse copies a plain build: the Supabase stack keeps what it applied');
   process.exit(2);
 }
 if (target === 'supabase' && after.length) {
@@ -126,17 +137,43 @@ function must(what, r) {
 // ---------------------------------------------------------------- build
 const t0 = Date.now();
 if (target === 'plain') {
-  must('dropping the test database', psql('postgres', ['-c', `drop database if exists ${DB} with (force)`]));
-  must('creating the test database', psql('postgres', ['-c', `create database ${DB}`]));
-  must('the Supabase stand-ins', psql(DB, ['-f', path.join(TESTS, '_harness', 'stubs.sql')]));
+  const stubs = path.join(TESTS, '_harness', 'stubs.sql');
   const migrations = fs
     .readdirSync(MIGRATIONS)
     .filter((f) => f.endsWith('.sql'))
     .sort();
-  for (const m of migrations) must(`migration ${m}`, psql(DB, ['-1', '-f', path.join(MIGRATIONS, m)]));
+  /** Drops `db`, creates it (from `template` when given) and, without a template, builds it from zero. */
+  const build = (/** @type {string} */ db, template = '') => {
+    must(`dropping ${db}`, psql('postgres', ['-c', `drop database if exists ${db} with (force)`]));
+    must(`creating ${db}`, psql('postgres', ['-c', `create database ${db}${template ? ` template ${template}` : ''}`]));
+    if (template) return;
+    must('the Supabase stand-ins', psql(db, ['-f', stubs]));
+    for (const m of migrations) must(`migration ${m}`, psql(db, ['-1', '-f', path.join(MIGRATIONS, m)]));
+  };
+  let how = 'from zero';
+  if (reuse) {
+    // The stand-ins and every migration, by name and content: any change to them builds the copy again.
+    const hash = createHash('sha256').update(fs.readFileSync(stubs));
+    for (const m of migrations) hash.update(`\0${m}\0`).update(fs.readFileSync(path.join(MIGRATIONS, m)));
+    const key = `v2 build ${hash.digest('hex')}`;
+    const BUILT = `${DB}_built`;
+    const r = psql('postgres', [
+      '-At',
+      '-c',
+      `select shobj_description(oid, 'pg_database') from pg_database where datname = '${BUILT}'`,
+    ]);
+    must(`reading ${BUILT}`, r);
+    if (r.out.trim() === key) how = `as a copy of ${BUILT}`;
+    else {
+      build(BUILT);
+      must(`marking ${BUILT}`, psql('postgres', ['-c', `comment on database ${BUILT} is '${key}'`]));
+      how = `from zero (kept as ${BUILT})`;
+    }
+    build(DB, BUILT);
+  } else build(DB);
   for (const f of after) must(`--after ${f}`, psql(DB, ['-1', '-f', f]));
   console.log(
-    `built ${DB} from zero: ${migrations.length} migration(s)${after.length ? `, then ${after.join(', ')}` : ''}`,
+    `built ${DB} ${how}: ${migrations.length} migration(s)${after.length ? `, then ${after.join(', ')}` : ''}`,
   );
 }
 must('the harness', psql(DB, ['-f', path.join(TESTS, '_harness', 'harness.sql')]));

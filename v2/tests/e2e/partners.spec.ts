@@ -105,6 +105,11 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
 test('twenty organisations are assigned in one command, with one Undo', async ({ page, context }) => {
   const admin = await makePerson({ admin: true });
   const t = tag();
+  // QA-515: the owner is this test's own person, never whoever the list offers first — a parallel test may switch
+  // that one off, and the server then refuses the assign (V465). The name sorts first, so the option is in view.
+  const fresh = await makePerson();
+  const ownerName = `Aa Bulk owner ${t}`;
+  await sql(`update core.person set full_name_en = $2 where id = $1`, [fresh.id, ownerName]);
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/clients');
   await hydrated(page);
@@ -121,15 +126,11 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
   const bulk = page.locator('[data-bulk-bar]');
   await expect(bulk.locator('[data-bulk-count]')).toHaveText('20 selected');
   await bulk.locator('[data-bulk-action="assign"]').click();
-  // the first person offered becomes the owner (the list holds every person; a far option sits off the viewport)
+  // this test's own person becomes the owner, picked by name
   await page.getByRole('combobox', { name: 'Owner' }).click();
-  const first = page.getByRole('option').first();
-  const ownerName = (await first.textContent())!.trim();
-  await first.click();
+  await page.getByRole('option', { name: ownerName, exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Owner' })).toHaveText(ownerName);
-  const owner = (
-    await sql<{ id: string }>(`select id from core.person where full_name_en = $1 limit 1`, [ownerName])
-  )[0]!.id;
+  const owner = fresh.id;
   await page.locator('[data-assign-save]').click();
   await expect(toast(page, '20 assigned')).toBeVisible();
   await expect(bulk).toHaveCount(0);

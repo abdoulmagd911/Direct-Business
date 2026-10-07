@@ -10,6 +10,7 @@ export default defineModule({
       route: '/tasks',
       label: 'nav.tasks',
       icon: 'check-square',
+      built: true,
       nav: { group: 'main', order: 20, tier: 'work' },
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
@@ -29,6 +30,76 @@ export default defineModule({
     { key: 'priority', table: 'work.priority', page: 'settings.work', label: 'entity.priority', list: true },
     // Direct's systems a reference points into, with each one's URL pattern (V98, V99, V154).
     { key: 'ref_system', table: 'work.ref_system', page: 'settings.work', label: 'entity.ref_system', list: true },
+    // Statuses on four locked meanings (V401), the task's category (V438), the projects' statuses.
+    { key: 'task_status', table: 'work.task_status', page: 'settings.work', label: 'entity.task_status', list: true },
+    { key: 'task_type', table: 'work.task_type', page: 'settings.work', label: 'entity.task_type', list: true },
+    {
+      key: 'project_status',
+      table: 'work.project_status',
+      page: 'settings.work',
+      label: 'entity.project_status',
+      list: true,
+    },
+    // A task and what hangs on it: seen by the whole team of its department (V96), changed by its owner or creator with
+    // Own, or anyone with Full (§5); its helpers are told of changes.
+    {
+      key: 'task',
+      table: 'work.task',
+      page: 'tasks',
+      label: 'entity.task',
+      owners: 'work.task_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'task_helper',
+      table: 'work.task_helper',
+      page: 'tasks',
+      label: 'entity.task_helper',
+      owners: 'work.task_helper_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'action_item',
+      table: 'work.action_item',
+      page: 'tasks',
+      label: 'entity.action_item',
+      owners: 'work.action_item_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'action_item_helper',
+      table: 'work.action_item_helper',
+      page: 'tasks',
+      label: 'entity.action_item_helper',
+      owners: 'work.action_item_helper_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'task_ref',
+      table: 'work.task_ref',
+      page: 'tasks',
+      label: 'entity.task_ref',
+      owners: 'work.task_ref_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'task_contact',
+      table: 'work.task_contact',
+      page: 'tasks',
+      label: 'entity.task_contact',
+      owners: 'work.task_contact_owners',
+      level: 'work.row_level',
+    },
+    {
+      key: 'task_status_change',
+      table: 'work.task_status_change',
+      page: 'tasks',
+      label: 'entity.task_status_change',
+      owners: 'work.task_status_change_owners',
+      level: 'work.row_level',
+      // What happened stays as it was logged: retiring a status leaves its history alone (V161).
+      history: true,
+    },
   ],
   settings: [
     {
