@@ -67,7 +67,7 @@ export function RecordPage({
               {crumbs.map((c, i) => (
                 <span key={i} className="flex items-center gap-2">
                   {i > 0 ? <span aria-hidden="true">/</span> : null}
-                  <Link href={c.href} className="hover:underline">
+                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline">
                     {c.label}
                   </Link>
                 </span>
@@ -79,7 +79,9 @@ export function RecordPage({
           <div className="flex min-w-0 items-center gap-4">
             {avatar ? <div className="shrink-0">{avatar}</div> : null}
             <div className="flex min-w-0 flex-col gap-1">
-              <h1 className="truncate text-3xl md:text-[27px]">{title}</h1>
+              <h1 className="line-clamp-2 break-words text-3xl md:text-[27px]" data-record-title>
+                {title}
+              </h1>
               {subtitle ? <p className="text-base text-muted">{subtitle}</p> : null}
               {chips ? <div className="flex flex-wrap items-center gap-1.5 pt-1">{chips}</div> : null}
             </div>

@@ -326,7 +326,7 @@ Vercel (V13, V21, V84).
     names follow HR, with a profile link; contact details reveal-and-copy on a phone. **91. The Direct theme** (V516):
     Direct's real brand — orange accent and buttons, slate sidebar and header, gold highlight — at WCAG AA; the other
     themes untouched.
-92. **The pilot cut** (V517): Clients, My day, Tasks and Past work first — stage 0 on Sunday 4 Oct, ~~stage 1 on Sunday
+92. **The pilot cut** (V517): Clients, My day, Tasks and Past work first — stage 0 on ~~Sunday 4 Oct~~ **[SUPERSEDED — V609: day one, date set by the owner]**, ~~stage 1 on Sunday
     18 Oct~~ **[SUPERSEDED — V605 (6): Tasks, the Past work grid and achievements all open on day one, stage 0]**; the rest deferred, not dropped. **93. The fast lane and two more builders** (V518, V519): small edits
     after go-live get one review; builder D builds the Tasks screens, builder E achievements.
 94. **The owner's answers of 1 Oct night** (V520–V526): a contact's sides only sort it; an MoU sets the side chosen on

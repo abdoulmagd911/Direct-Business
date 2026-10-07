@@ -992,6 +992,23 @@ person links the code.
 
 ### 3.6 Finance — the money model
 
+**Read first: the owner's money rules of 5 Oct (V610–V618).** They win over anything older in this section; each
+older line they change is struck below and names its V-number.
+
+| Rule | In one line | Where it lands |
+|---|---|---|
+| Month (V610) | A unit belongs to the month it was **created** in and counts only once **fully paid**; credit to the account manager on the same date; a unit paid after its month closed is a **late-paid** note against that month's snapshot | `invoice_fact.month_on`, `credit_row`, `finance.month_close`, `finance.late_change` |
+| Cost (V611) | Every paid unit counts; cost = approved expenses, **0 and Provisional while none**; Provisional amount shown **beside** Profit; **Ready** (Final) when all expenses are Approved; products with no supplier cost are Ready at 0 | `invoice_cost`, `money_row`, `finance.product.no_supplier_cost` |
+| Commissions (V612) | Only through Payments invoice lines; the page says those paid outside Payments are not included | `money_row`, the Finance page |
+| Channel (V613) | Commercial · Direct · Promo on a transaction; an individual is credited only when tagged Commercial | `finance.invoice.channel_id`, `credit_row` |
+| Tenders (V614, V619) | Signed value at signing is the account manager's **sales credit**, never revenue; revenue and profit come from the tender's paid transactions, which consume it; Applied never counts | `finance.tender_use`, the sales-credit figure |
+| Month close (V620) | The finance lead closes each month by its 5th working day; a closed month never changes — later news is a dated note on it and in the next report | `finance.month_close`, `finance.late_change` |
+| No supplier cost (V621) | Products finance names once (service and visa fees at least) are Final at cost 0; every other unit stays Provisional until an expense is approved; the list is a setting, never code | `finance.product.no_supplier_cost` |
+| SAR and VAT (V615) | The SAR figure Payments recorded; VAT never stored or shown anywhere | unchanged |
+| Monthly invoice (V616) | A credit client's monthly tax invoice is a zero-revenue link, but what it adds beyond its transactions (a fee per transaction) is revenue; never linked by line names | `finance.check`, `money_row` |
+| Wallets, bookings, numbers (V617) | No wallet balance shown as money; off-system bookings count as money, never as bookings; transaction no. and tax invoice no. always two fields | `partner_wallet` (not shown), every list and export |
+| Import first (V618, V622) | The 2026 money is imported from the Payments files; nothing hard-coded (column mapping `finance.import_map` and every list are settings); every imported row editable, addable and removable in the app (removed = archived, never re-imported; an edited field is the person's); a hand-entry round before Finance opens | §3.11, plan P4 |
+
 **How money is shaped in Direct Payments** (the oversight's read-only sample of 28 Sep: about 25 invoices, 7 billing
 invoices, 9 tax invoices — every reconcilable case matched):
 
@@ -1000,8 +1017,9 @@ invoices, 9 tax invoices — every reconcilable case matched):
   `consolidated_proforma_id`, and its separate *B2B transaction status* reads `consolidation_invoiced`) — one
   transaction or many. A **standalone invoice** (no consolidation link either way) is its own unit. The B2B
   transaction status is kept in its own column and never read as the payment status: a transaction's payment status
-  is its own *Invoice Status* (Fully Paid …), and its revenue date is its own paid date — or, when a billed
-  transaction carries none, the paid date of its billing invoice.
+  is its own *Invoice Status* (Fully Paid …), and ~~its revenue date is its own paid date — or, when a billed
+  transaction carries none, the paid date of its billing invoice~~ **[SUPERSEDED — V610: its month is its own
+  created date; it counts once its own status is fully paid]**.
 - **Billing invoices are never revenue.** Transactions and billing invoices both show *Fully Paid* with their own
   receipts, so counting both would count the money twice. **Collections are settled on billing invoices** (and on
   standalone invoices).
@@ -1013,17 +1031,27 @@ invoices, 9 tax invoices — every reconcilable case matched):
 - **The tax invoice (DPIN)** is a child of the billing invoice (or of a standalone invoice) and equals its total
   minus the approved expenses — Direct's fee, with VAT on that margin. It is the **check**, never a figure in a total:
   - a transaction's cost is **Provisional** while any of its expenses is pending or none is registered (a
-    commission-only invoice excepted), and **Final** once its billing (or own) invoice has a DPIN;
+    commission-only invoice excepted), and **Final** ~~once its billing (or own) invoice has a DPIN~~ **[SUPERSEDED —
+    V611: once all its expenses are Approved (Ready), or at 0 when every product on it has no supplier cost; a DPIN
+    belongs only to a Ready unit]**;
   - a DPIN equal to 100 % of the total on a non-commission product is flagged **"expenses missing"**;
-  - a billing invoice's total must equal the sum of its transactions — any difference is flagged.
+  - a billing invoice's total must equal the sum of its transactions — any difference is flagged **[V616: an excess
+    is revenue of the billing invoice — a fee per transaction billed at month end — flagged "fee on monthly invoice";
+    a shortfall stays a flag]**.
 - VAT is never shown (M1); margin = revenue − cost **as recorded**.
 
 This refines D21/D26 in one respect, recorded as **V1** in `docs/v2/DECISIONS.md`:
 where the old app kept the numbered side of a one-to-one re-bill (D26), v2 counts the **transaction** and treats the
-billing invoice as the zero-revenue link — the amount is the same; the month is the transaction's paid date, and the
-billing invoice's dates are shown beside it (D26's "both dates shown" stays).
+billing invoice as the zero-revenue link — the amount is the same; the month is ~~the transaction's paid date~~
+**[SUPERSEDED — V610: the transaction's created date]**, and the billing invoice's dates are shown beside it (D26's
+"both dates shown" stays). **Credit clients (V616):** they get daily receipts and one monthly tax invoice that finance
+makes by hand; finance may merge cost and fee into one line, so a billing invoice is linked to its transactions by
+Payments' `consolidated_proforma_id`, else by a person ticking an **amount** proposal — never by matching line names.
 
-**How money enters v2.** At go-live the 2026 invoices are **typed in the browser** by the team (owner, 28 Sep —
+**How money enters v2.** **[V618: the Payments export import — the B2B invoice export and the transaction-expense
+export — is built first, P4-1b, writing the same fact tables with `source = import`; typing stays (P4-4); whether
+the go-live data is imported or typed is the owner's, Q50.]** **[V622: imported, with every row editable, addable and
+removable in the app and a hand-entry round before Finance opens.]** At go-live the 2026 invoices are **typed in the browser** by the team (owner, 28 Sep —
 decision 4), so every person and every flow is tested while the data is added; Payments file imports come in a later
 phase (§3.11, P7). Both ways write the same fact tables; each row says which (`source`). An import later never touches
 a hand-entered row (D21) — it lists the differences for a person, who may **adopt** the row (its `source` becomes
@@ -1050,6 +1078,9 @@ finance.invoice        STD SOFT; ref text unique not null (the Payments referenc
                        -- Payments import or by a person with Full on Finance with a reason; a change to a Final figure, or to
                        -- any figure whose month's report is issued, needs a reason and is a revision (§3.9); the history is
                        -- audit.change (before, after, who, when, the request's reason)
+                       channel_id → finance.channel (V613: Commercial · Direct · Promo; null = not tagged; set by a person —
+                       -- Payments has no such field; tagging Commercial on an individual's unit asks who is credited and
+                       -- writes a one-share credit_split)
 finance.invoice_line   STD SOFT; invoice_id; line_no; product; name; qty; unit_price; discount_sar; taxable; total_sar
                        service_id → finance.service   -- V483: required on a typed invoice (each line names its service —
                        -- conferences and packages were misfiled under "activity"); an imported line keeps D24's item
@@ -1086,8 +1117,15 @@ finance.status_map     LIST: status_key; maps_to ('paid','pending','draft','void
                        -- starting words: Fully Paid → paid; Fully Paid (Audit Required) → paid + flag (the old app's bare "Paid" is
                        -- left out: the blueprint counts only Fully Paid, so a "Paid" is held until a person maps it); Pending, Pending Payment,
                        -- Partially Paid → pending; Draft; Void/Voided; Cancelled/Canceled. An unknown word on import → held (D21)
+                       -- V610: Fully Paid as receivable → paid; Published → pending (counts only once fully paid)
 finance.product        LIST: the Payments products (Direct Flights, Direct Hotels …), each → a service (D24) and a
                        commission flag; the manual entry form offers this list
+                       no_supplier_cost bool default false   -- V611: a unit whose every product has it is Ready at cost 0 with
+                       -- no expense; V621: set in Settings by a person with Full on Finance from the list finance names
+                       -- (service and visa fees at least; the Scout drafts it, the owner confirms) — never in code or a migration
+finance.expense_status_word  LIST: word → ('approved','pending','under_review','cancelled','rejected','issued')
+                       -- V611: an import maps the export's words through it; a blank transaction-level expense status in an
+                       -- export reads 'issued' (done, Ready), never "not ready"
 finance.wallet_rule    kind ('product','name_contains'); value            -- identifies wallet top-up lines (MF7)
 finance.commission_word  word                                              -- a line naming it makes the invoice a commission
 finance.service        LIST + counts_as_income bool                        -- D24 main services (Academies is one — V437)
@@ -1102,22 +1140,30 @@ finance.receivable_flag STD SOFT; invoice_id (billing or standalone); kind ('sen
 finance.credit_split   STD SOFT; invoice_id; person_id; share numeric(7,6); note not null
                        -- shares of an invoice sum to 1 within 0.000001; the credited amounts are rounded to the halala and any
                        -- remainder goes to the first person, so three equal shares add up exactly
+finance.channel        LIST: Commercial · Direct · Promo (V613); credits_owner bool (only Commercial credits a person)
+finance.month_close    STD; month date pk (first day); closed_on; closed_by; snapshot jsonb (each counted unit's ref, revenue,
+                       cost, cost status, credited people as at close); note
+                       -- V610, V620: the finance lead (Full on Finance) closes each month by its 5th working day; a closed
+                       -- month is never reopened and never changes — later news is a dated note (late_change)
+~~finance.tender_counts_as  setting~~ [SUPERSEDED — V619: not built; a tender's signed value is sales credit only]
 ```
 
 **Views — every money figure in the app comes from these (§1a):**
 
 | View | What it says |
 |---|---|
-| `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; **revenue date** = paid date (else created) |
-| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, **null when none** (empty, never 0 — D21, MF1; on screen and in every export too, OA4 — V428); pending count; estimate only when approved is null and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
-| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of the revenue date; **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart and flagged — **no "profit with estimates" figure exists**, V419), margin = revenue − cost where cost is known, as recorded (V51; **negative when cost is above revenue, and the unit is flagged Loss** — V414) (a commission's margin is its revenue) — **the main margin figure counts only units whose cost is Final; Provisional margins are shown apart** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units; a credit note never reduces revenue in v1** (V423) |
+| `finance.invoice_fact` | per invoice: kind (a top-up detected from wallet lines is confirmed as `wallet_topup`); status via `status_map`; line total; pass-through / fee / unclassed line sums (D23); commission flag (product list or commission word); the billing invoice it belongs to (for a transaction) or its transactions (for a billing invoice); its DPIN; ~~**revenue date** = paid date (else created)~~ **[SUPERSEDED — V610: `month_on` = the created date; the paid date is shown beside it and feeds days to pay]** |
+| `finance.invoice_cost` | for a transaction or standalone invoice: approved = sum of **approved** expenses, ~~**null when none** (empty, never 0 — D21, MF1; on screen and in every export too, OA4 — V428)~~ **[SUPERSEDED — V611: **0 when none**, and the unit is Provisional unless every product on it has `no_supplier_cost`]**; pending count; estimate only when no expense is approved (V611) and not a commission: the Revenue Report expense total once imports exist, else the pass-through lines (D23), always flagged; `cost_basis` ∈ approved · submitted_estimate · line_estimate · commission · none; **cost status** Provisional / Final (rules above) |
+| `finance.money_row` | one row per revenue unit (a transaction or a standalone invoice): partner, match state and level (§3.5); segment (V64); **payment type** (V87) — the subkind of the partner client ID the invoice carries (prepaid · postpaid · tender), else **code** when it carries a discount or campaign code, else none; month and quarter of ~~the revenue date~~ **`month_on` (V610)**; channel (V613); **revenue** = total − wallet part (D21) for a paid unit; cost, estimate (apart and flagged — **no "profit with estimates" figure exists**, V419), margin = revenue − cost where cost is known, as recorded (V51; **negative when cost is above revenue, and the unit is flagged Loss** — V414) (a commission's margin is its revenue) — ~~**the main margin figure counts only units whose cost is Final; Provisional margins are shown apart**~~ **[SUPERSEDED — V611: the main Profit counts every paid unit; the Provisional units' revenue and profit are shown beside it, never left out]** (the old M9 "one pending transaction holds back the whole invoice", carried as cost status); a billing invoice's excess over its transactions is a unit of its own here, flagged "fee on monthly invoice" (V616); counts = paid and not excluded; excluded/hidden with rule and reason; audit-required flag; cost status. **Billing invoices, credit notes and wallet top-ups never appear as revenue units; a credit note never reduces revenue in v1** (V423) |
 | `finance.money_service_row` | D24: each counted unit's lines to one service (item map, else the product's service, else "No service yet"); lines of "not income" services shown on their own row, never in a service's sums; the rest of the difference to revenue under "Not split by line", so services + not income + not split = the revenue tile and nothing hides; approved cost split by line share, the estimate by pass-through share |
-| `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the revenue date** (V27), else nobody ("uncredited", shown) |
+| `finance.credit_row` | counted unit × person × share: a credit split if present, else the partner's account manager **on the** ~~**revenue date**~~ **[SUPERSEDED — V610: created date]** (V27), else nobody ("uncredited", shown); an individual's unit (no organisation) is uncredited unless its channel is Commercial (V613) |
+| `finance.late_change` | V610: per closed month, each unit whose counted state differs from the month's snapshot — **late-paid** (counted now, not at close), **dropped** (counted at close, not now: cancelled or voided after payment), **cost changed** — with the riyals; shown on the month and listed in the next report's "Added to earlier periods" (V500) |
+| `finance.tender_use` | V614: per tender, its signed value, consumed so far (counted units carrying the tender's client ID) and what is left; a tender only Applied shows nothing; consumption above the signed value is listed |
 | `finance.receivable` | collections: billing and standalone invoices not void/cancelled/draft, **through the same exclusion rules as `money_row`** (a hidden row never appears; an excluded one is listed apart, never in outstanding — D16, MF5); outstanding = total − allocated receipts (V416); **due** = the invoice's own `due_on` when it has one, else created date + `finance.collection_due_days`, and each row says its `due_basis` (invoice · setting · payments — Payments' own overdue flag preferred once P7 brings it, V415); ageing 0–30, 31–60, 61–90, 90+, no date, dated in the future; **days to pay** = paid date − created date of each paid unit, averaged per client and overall (V401) |
-| `finance.check` | the reconciliation, per billing or standalone invoice: billing total vs sum of its transactions; DPIN total vs (total − approved expenses of its units) within 1 SAR; DPIN = 100 % of total on non-commission → "expenses missing"; expenses entered on a billing invoice (refused at write, listed if imported); transactions with no billing invoice after N days (setting) |
+| `finance.check` | the reconciliation, per billing or standalone invoice: billing total vs sum of its transactions (V616: an excess becomes the "fee on monthly invoice" unit; a shortfall stays a failed check); DPIN total vs (total − approved expenses of its units) within 1 SAR; DPIN = 100 % of total on non-commission → "expenses missing"; expenses entered on a billing invoice (refused at write, listed if imported); transactions with no billing invoice after N days (setting) |
 | `finance.partner_month` | partner × month: revenue, cost, estimate, margin, counted units, outstanding |
 | `finance.partner_credit` | V70: per partner, the credit limit in force (with who approved it) and outstanding against it |
-| `finance.partner_wallet` | V70: per partner, paid wallet top-ups − the wallet part of its counted invoices = the prepaid balance |
+| `finance.partner_wallet` | V70: per partner, paid wallet top-ups − the wallet part of its counted invoices = the prepaid balance — **[V617: an internal check only, never shown as money: Payments wallets hold drafts and cancelled transactions and are reconciled by hand]** |
 | `finance.sales_by_code` | V65: discount or campaign code × month: counted units, revenue, profit, the partner or campaign, the terms in force |
 | `finance.quiet_client` | V401: organisations with the Client side Active and no Fully Paid invoice in `finance.quiet_client_days` (60) — the alert `alert_quiet_client` to the account manager, the row chip Quiet |
 | `finance.not_invoiced` | V424: the Overview line **Not yet invoiced: Ready / Pending** — units not yet paid, **never in revenue** (only paid units count — V418): Ready = status maps to `draft`, Pending = status maps to `pending`; the oversight may re-point the feed (a one-line change); the line is switched by `finance.not_invoiced_line` (V434) |
@@ -1134,8 +1180,11 @@ revenue GMV where the strategy sheet does.
 
 **Ported rules that the tests must pin down:** a unit counts only when paid (Audit Required counts, flagged — MF10 read
 as "only paid units count", V418) · credit notes never count and never reduce revenue (V423) · wallet top-ups never
-revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue; collections measured on them · cost empty
-until an approved expense exists; the estimate always flagged and never in cost or margin · never estimate a commission
+revenue (MF7) · VOID never counts (MF9) · billing invoices never revenue, except their excess over their transactions
+(V616); collections measured on them · ~~cost empty until an approved expense exists~~ **[SUPERSEDED — V611: cost 0
+and Provisional until an approved expense exists; every paid unit counts]** · the month is the created date and a closed
+month's snapshot never changes (V610) · the transaction number and the tax invoice number are two fields everywhere
+(V617) · the estimate always flagged and never in cost or margin · never estimate a commission
 · income by service adds up to the revenue tile · VAT never stored or shown (DPIN totals only feed the check) ·
 exclusions win over everything and apply to past rows at once (D16) · verification products are a `hide` rule typed by a
 person, never a silent skip (MF5; nothing is lost).

@@ -23,11 +23,11 @@ export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
 export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into']);
 
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
-  const page = TURN_NEEDS[kind];
-  return !page || built.has(page);
+  const flag = TURN_NEEDS[kind];
+  return !flag || built.has(flag);
 }
 
-/** The Turn into kinds the menu offers: a kind whose page is not built is left out, never greyed (GC-1, cut 3). */
+/** The Turn into kinds the menu offers: a kind whose flag is not set is left out, never greyed (GC-1, cut 3). */
 export const liveKinds = (built: ReadonlySet<string>): TurnKind[] => TURN_KINDS.filter((k) => turnLive(k, built));
 
 /** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */

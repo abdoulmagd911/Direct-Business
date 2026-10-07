@@ -10,9 +10,9 @@ import { Page } from '@/ui/shell/Page';
 import { isAdmin } from '@/ui/shell/nav';
 import { pageTitle } from '@/ui/shell/page-title';
 
-const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
-
 export const generateMetadata = pageTitle('nav.activity');
+
+const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 
 /** Activity (V97): the change log, the settings log with Revert and the sign-in log, for Activity · View. */
 export default async function ActivityPage({

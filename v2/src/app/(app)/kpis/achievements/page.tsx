@@ -5,6 +5,9 @@ import { nameOf, type OrgAnswer } from '@/modules/org/types';
 import { AchievementList } from '@/modules/perf/screens/AchievementList';
 import { apiFilter, filterOf, type AchievementPage, type Category } from '@/modules/perf/types';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('pages.achievements.title');
 
 /** Achievements under KPIs (GC-4): `/kpis/achievements`, its filters in the address. */
 export default async function AchievementsPage({
