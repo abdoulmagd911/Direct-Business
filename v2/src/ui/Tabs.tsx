@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
+import { LinkPending } from './LinkPending';
 
 export type TabDef = { value: string; label: ReactNode; count?: number; href?: string };
 
@@ -43,6 +44,7 @@ export function Tabs({
           >
             {t.label}
             {count(t.count)}
+            <LinkPending />
           </Link>
         ))}
       </nav>

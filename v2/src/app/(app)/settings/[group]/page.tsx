@@ -40,7 +40,12 @@ export default async function SettingsGroupPage({
     return (
       <Page>
         <PageHeader title={t(def.label)} />
-        <DataState kind="no-access" what={t('settings.title')} message={t('settings.noAccess')} />
+        <DataState
+          kind="no-access"
+          what={t('settings.title')}
+          message={t('settings.noAccess')}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </Page>
     );
   const [settings, org] = await Promise.all([
