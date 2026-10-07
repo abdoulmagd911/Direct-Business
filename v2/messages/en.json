@@ -472,7 +472,11 @@
         "open": "Open the {year} plan",
         "askAdmin": "Ask an admin to open it.",
         "opened": "The {year} plan is open",
-        "noDepartment": "Your profile has no department yet. Ask an admin to set it in People & access."
+        "noDepartment": "Your account has no department yet. Ask an admin to set it."
+      },
+      "fromNote": {
+        "title": "Achievement from note",
+        "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       }
     },
     "beingBuilt": "Being built.",
@@ -492,7 +496,8 @@
         "owned": "You own no tasks yet",
         "helping": "You are not helping on any task",
         "team": "Your team has no tasks yet",
-        "my_work": "No tasks yet. Tasks you own or follow appear here."
+        "my_work": "No tasks yet. Tasks you own or follow appear here.",
+        "past": "No past work yet. Paste it from a report above."
       },
       "noNotes": "No notes",
       "statusHistory": "Status changes",
@@ -502,7 +507,8 @@
         "my_work": "My work",
         "owned": "Owned",
         "helping": "Helping",
-        "team": "Team"
+        "team": "Team",
+        "past": "Past work"
       },
       "chips": {
         "status": {
@@ -553,11 +559,33 @@
         "added": "Task added: {title}",
         "title_required": "A title is required",
         "title_too_long": "At most {max} characters",
-        "due_invalid": "Pick a date"
+        "due_invalid": "Pick a date",
+        "owner_required": "Pick an owner"
       },
+      "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
       "edit": {
         "title": "Edit {number}",
         "saved": "{number} saved"
+      },
+      "load": {
+        "title": "Team load",
+        "empty": "Nobody in your departments has live work yet",
+        "open": "{count, plural, one {# open task} other {# open tasks}}",
+        "overdue": "{count} overdue",
+        "items": "{count, plural, one {# action item} other {# action items}}",
+        "clients": "{count, plural, one {# client} other {# clients}}",
+        "prospects": "{count, plural, one {# prospect} other {# prospects}}"
+      },
+      "escalate": {
+        "open": "Escalate",
+        "title": "Escalate {number}",
+        "to": "Escalate to",
+        "to_required": "Pick who to tell",
+        "to_yourself": "Pick someone other than yourself",
+        "note": "What do they need to know?",
+        "note_required": "Write what they need to know",
+        "send": "Escalate",
+        "done": "Escalated to {name}"
       },
       "status": {
         "change": "Status: {status}. Change",
@@ -610,12 +638,97 @@
           "not_yours": "Only its owner, a helper or the task's owner can tick this",
           "done_before_raised": "That day is before the item was added"
         },
+        "escalation": {
+          "not_here": "This cannot be escalated",
+          "note_required": "Write what they need to know",
+          "to_yourself": "Pick someone other than yourself",
+          "cannot_see": "That person cannot see this task"
+        },
         "person": {
           "unavailable": "That person cannot be given work here"
         },
         "common": {
           "date_in_future": "That day is after today"
         }
+      },
+      "past": {
+        "title": "Paste past work",
+        "source": "Source report",
+        "sourceKinds": {
+          "bd_monthly": "BD monthly",
+          "partnerships": "Partnerships",
+          "commercial_quarterly": "Commercial quarterly",
+          "improvements": "Improvements"
+        },
+        "period": "Which report",
+        "quarter": "Q{n} {year}",
+        "pickSource": "Pick the report these rows come from",
+        "fromReport": "the report's last day",
+        "pasteHere": "Paste rows from a spreadsheet",
+        "hasHeader": "The first row holds the headers",
+        "fields": {
+          "title": "Title",
+          "happened_on": "Date",
+          "kind": "Status",
+          "organisation": "Client",
+          "notes": "Notes",
+          "person": "Owner"
+        },
+        "noColumn": "Not in the paste",
+        "column": "Column {letter}",
+        "columnNamed": "Column {letter} · {header}",
+        "dateOrder": "Dates read",
+        "dayFirst": "Day first (29/09/2026)",
+        "monthFirst": "Month first (09/29/2026)",
+        "line": "Line",
+        "ready": "Backfilled",
+        "updatesSaved": "Updates a saved row",
+        "problems": {
+          "title_missing": "No title",
+          "date_missing": "No date",
+          "date_unreadable": "The date cannot be read",
+          "date_ambiguous": "The date could be two days",
+          "date_in_future": "The date is after today",
+          "date_before_start": "Before 1 January 2025, where past work starts",
+          "kind_missing": "No status",
+          "kind_unknown": "Unknown status",
+          "value_unreadable": "The value is not an amount",
+          "value_not_allowed": "This category has no deal value",
+          "organisation_unknown": "Unknown client",
+          "organisation_ambiguous": "More than one client has this name",
+          "organisation_checking": "Checking the client",
+          "person_checking": "Checking the name",
+          "owner_needed": "Pick an owner",
+          "repeated": "The same row twice",
+          "already_saved": "Saved before",
+          "saved_checking": "Checking whether it was saved before"
+        },
+        "ownerUnknown": {
+          "missing": "Owner unknown: no name",
+          "none": "Owner unknown: no one has this name",
+          "many": "Owner unknown: more than one person has this name"
+        },
+        "summary": "{ready} rows ready · {refused} refused",
+        "save": "Save {rows} rows",
+        "saved": "{rows} rows saved as past work",
+        "failed": "Could not check or save the rows. Try again.",
+        "ownerLine": "Add an Owner column, or pick an owner for these rows",
+        "ownerFor": "Owner for these rows"
+      },
+      "layout": {
+        "label": "Show tasks as",
+        "list": "List",
+        "board": "Board",
+        "calendar": "Calendar"
+      },
+      "board": {
+        "emptyColumn": "Nothing here"
+      },
+      "calendar": {
+        "previous": "Previous month",
+        "next": "Next month",
+        "emptyMonth": "Nothing is due this month",
+        "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       }
     }
   },
@@ -749,7 +862,8 @@
       "meeting_note_on_time_days": "Days to write meeting notes on time",
       "reminder_days_before_due": "Reminder, days before a due date",
       "pipeline_weekly_target": "Pipeline updates expected each week",
-      "late_days": "Days after which an entry is logged late"
+      "late_days": "Days after which an entry is logged late",
+      "project_update_days": "Days without a health update before a project's owner is reminded"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
@@ -809,10 +923,13 @@
     "tabs": "Record sections",
     "back": "Back",
     "details": "Details",
-    "noActivity": "No changes yet"
+    "noActivity": "No changes yet",
+    "lockedPerson": "A person's history is for admins, and for the person themselves",
+    "lockedPartner": "An organisation's history is for the people who may open it"
   },
   "activity": {
     "title": "Activity",
+    "locked": "Activity is for managers, heads of department and admins",
     "tabs": {
       "changes": "Changes",
       "settings": "Settings log",
@@ -998,7 +1115,10 @@
       "alert_activity_stale": "A partner has gone quiet",
       "alert_file_review": "A file waits for review",
       "reminder": "My reminders",
-      "note_mention": "Mentioned in a note"
+      "note_mention": "Mentioned in a note",
+      "escalated": "Something escalated to me",
+      "alert_project_no_update": "A project of mine has no health update",
+      "alert_due_tomorrow": "A task of mine is coming due"
     },
     "devices": {
       "label": "Device",
@@ -1536,6 +1656,7 @@
       "alert_file_review": "A file on {what} is due for review",
       "reminder": "Reminder: {what}",
       "note_mention": "{actor} mentioned you in a note",
+      "alert_due_tomorrow": "{what} is coming due",
       "other": "{actor} · {what}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
