@@ -1,7 +1,7 @@
--- Sabotage: a-checklist-row-gives-the-whole-note
--- Breaks: sql:NOTE-07
--- Expect: a row becomes a task titled by the row
--- One checklist row turned into a task takes the whole note's title instead of the row (WRK-013).
+-- Sabotage: a-checklist-row-loses-its-owner
+-- Breaks: sql:NOTE-09
+-- Expect: with its owner
+-- A checklist row turned into an action item drops its owner.
 create or replace function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -83,7 +83,7 @@ begin
     end if;
     pid := coalesce(nullif(v ->> 'partner_id', '')::uuid, n.meeting_partner_id);
     a := work.task_create(pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-           'title', my.note_headline(n, 300),
+           'title', coalesce(pg_catalog.left(r ->> 'text', 300), my.note_headline(n, 300)),
            'notes', case when r is null then nullif(pg_catalog.btrim(my.note_text(n)), '') end,
            'owner_id', r ->> 'owner_id',
            'due_on', r ->> 'due_on',
@@ -105,7 +105,7 @@ begin
     if with_items then
       for p in select x from pg_catalog.jsonb_array_elements(n.items) with ordinality e(x, o) order by o loop
         ai := work.action_item_add(rid, pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-                'text', p ->> 'text', 'owner_id', p ->> 'owner_id', 'due_on', p ->> 'due_on',
+                'text', p ->> 'text', 'due_on', p ->> 'due_on',
                 'happened_on', n.happened_on)));
         insert into my.note_link (note_id, entity_table, entity_id)
         values (n.id, 'work.action_item', (ai ->> 'id')::uuid);
