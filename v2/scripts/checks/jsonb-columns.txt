@@ -16,3 +16,6 @@ partner.side_field.options — a select field's options, each {key, en, ar} (V76
 partner.partner_side.field_values — an organisation's values for its side's own fields; the fields are a setting (V62, V98) — §3.4
 partner.code_terms.tiers — volume tiers [{from_bookings, fee_percent}] of a code's terms (V65) — §3.4
 my.note.items — a note's checklist rows or a meeting's points [{text, done, owner_id, due_on}] (V433) — §3.3a
+finance.invoice.src — each field's export time from the Payments file it came from, so a newer file wins and an older one only fills blanks (V618) — §3.6, §3.11
+finance.expense_line.src — each field's export time from the Payments expense export it came from (V618) — §3.6, §3.11
+finance.month_close.snapshot — a closed month's counted units as at close, which never changes (V610) — §3.6
