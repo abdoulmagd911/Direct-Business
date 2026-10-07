@@ -836,6 +836,23 @@ export const sabotages = [
     ],
   },
   {
+    name: 'history-lists-a-field-twice',
+    breaks: ['unit:tests/unit/shell/a-request-that-changes-one-field-on-two-records-names-it-once.test.tsx'],
+    expect: 'one chip for the field',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'const seen = byField.get(f) ?? [];',
+        replace: 'const seen = byField.get(`${c.id}-${f}`) ?? [];',
+      },
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'byField.set(f, seen);',
+        replace: 'byField.set(`${c.id}-${f}`, seen);',
+      },
+    ],
+  },
+  {
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
     expect: 'no-access',
@@ -844,6 +861,19 @@ export const sabotages = [
         file: 'src/modules/partners/screens/list-page.tsx',
         find: "if ((me.levels[page] ?? 'none') === 'none')",
         replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'add-person-email-allows-autofill',
+    breaks: ['e2e:tests/e2e/work-email-fields-turn-autofill-off.spec.ts'],
+    expect: "Add person's Work email turns autofill off",
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n              autoComplete="off"\n',
+        replace:
+          '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n',
       },
     ],
   },

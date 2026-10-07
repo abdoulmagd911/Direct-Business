@@ -1,6 +1,6 @@
 # Start here — Direct's Commercial app (v2)
 
-**Read this first.** Updated **3 Oct 2026, 20:45 Riyadh** (17:45 UTC). This page replaces every older start page and
+**Read this first.** Updated **7 Oct 2026, 11:45 Riyadh** (08:45 UTC). This page replaces every older start page and
 is written whole each time — nothing below is a patch on older text. Where it disagrees with any other Drive file, this
 page wins; where it disagrees with `DECISIONS.md`, `DECISIONS.md` wins and this page is fixed.
 
@@ -22,9 +22,18 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 
 ## Where things stand
 
-- **Day one is Sunday 4 Oct 2026, morning (Riyadh).** Stage 0 opens Clients (Suppliers as its tab), My day, Tasks, the
-  Past work grid and achievements to the pilot group — a manager and three to five Commercial members, in English
-  (V517, V605 (6)).
+- **Go-live is postponed (V609).** Day one is the date the owner sets after one combined test round (QA 1 on desktop,
+  QA 2 at phone width, 7–8 Oct) and his go. Until then the team sees a preview the owner shows from his own account
+  (`PREVIEW.md`, his checklist).
+  Day one opens Clients (Suppliers as its tab), My day, Tasks, the Past work grid and achievements to the pilot group —
+  a manager and three to five Commercial members, in English (V517, V605 (6)).
+- **On production now** (`v2/main`): those screens, with Tasks as List, Board and Calendar, Escalate and the team's
+  load (#181, #182), an owner picker for someone in no team (#179, #180), and a My day note turned into a task or an
+  action item on the database side (#149). Turning a note into an achievement on screen (#175) lands after QA's
+  re-check.
+- **Finance is being specified, not built into production yet**: the owner's money rules of 5 Oct are V610–V618 and
+  spec §3.6 (read its first table); builder A builds the tables, the "what counts" view and the Payments export import
+  on a branch; the owner answered Q46–Q48 on 7 Oct (V619–V621); Q49–Q51 stay open in `OPEN-QUESTIONS.md`.
 - **Deferred, not dropped**: Finance and Payments, KPIs beyond achievements, Pipeline, Projects, Overview, Reports,
   Appraisal, Arabic (V517).
 - **Next after day one**: Stage L — linked records, one file library, one comments feature (V534) — and the
@@ -90,7 +99,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 3. A new rule is the next V-number in your range, recorded in the same PR as the change.
 4. Anything that needs the owner goes to the oversight, in plain words.
 
-## Decisions since V519
+## Decisions since V519 (the newest are V609–V623)
 
 V520 A contact's sides sort it, never hide it · V521 An MoU sets the side chosen on the achievement · V522 A banned
 word for the consumer segment · V523 The Partnerships and improvements reports are monthly · V524 A note on a record
@@ -102,9 +111,18 @@ entered in production until the wipe · V534 Linked records, one file library an
 The merge train · V601 An MoU still sets Prospect, as a system act · V602 While production could not be rebuilt, a
 merged migration only added (ended with the build of 3 Oct) · V603 A tender moved to Signed logs its Contract signed
 achievement · V604 A docs-only PR merges without a re-level · V605 Task and Log achievement in the +; day one opens
-Tasks, Past work and achievements · V606 The organisation is the home of its work · V607 A feature earns its place.
+Tasks, Past work and achievements · V606 The organisation is the home of its work · V607 A feature earns its place ·
+V608 A docs-only merge does not make a code PR stale; the architect brings a cleared PR level on GitHub · V609
+Go-live postponed, day one set by the owner · V610 A sale belongs to its created month and counts once fully paid ·
+V611 Every paid transaction counts; cost 0 and Provisional until expenses are approved · V612 Commissions only through
+Payments invoice lines · V613 A channel tag; individuals credited only when Commercial · V614 A tender at its signed
+value, consumed by its transactions · V615 SAR as recorded; VAT never stored or shown · V616 A monthly tax invoice is a
+link, except what it adds · V617 No wallet balance shown as money; two numbers, never one · V618 The Payments export
+import is built first · V619 A tender's signed value is sales credit, revenue comes from its bookings · V620 A closed
+month never changes · V621 Products with no supplier cost are a setting, Final at cost 0 · V622 The 2026 money is
+imported, every row editable in the app, after a hand-entry round · V623 The fee on a monthly invoice is revenue.
 
-## Coming next (5–8 Oct)
+## Coming next
 
 This page becomes the entry to about ten subject files, each rule stated once in its current form; `DECISIONS.md`
 becomes the dated history; the builders' build records move to a build log. V-numbers never change.
