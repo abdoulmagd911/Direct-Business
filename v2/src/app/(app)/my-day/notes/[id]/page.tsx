@@ -6,6 +6,9 @@ import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.my_day');
 
 /**
  * One note (V433). A note the reader may not see reads as not there — a private note is its author's alone, admins
