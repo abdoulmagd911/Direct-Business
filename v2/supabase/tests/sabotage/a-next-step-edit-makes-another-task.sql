@@ -25,7 +25,8 @@ begin
     return new;
   end if;
   select p.team_id, p.manager_id into team, mgr from core.person p where p.id = new.created_by;
-  if team is null or not work.person_ok(new.created_by) then
+  -- QA-241: an author below Own on Tasks (the pilot's stage 0) could neither open nor close it — no task for them
+  if team is null or not work.person_ok(new.created_by) or authz.level_of(new.created_by, 'tasks') < 'own' then
     return new;
   end if;
   insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, partner_id, due_on,

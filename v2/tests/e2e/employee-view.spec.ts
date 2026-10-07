@@ -171,14 +171,14 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   page,
 }) => {
   await openAs(page, 'member');
-  for (const [route, title] of [
-    ['/kpis', 'KPIs'],
-    ['/finance', 'Finance'],
-    ['/reports', 'Reports'],
+  for (const [route, heading, title] of [
+    ['/kpis', 'Achievements', 'KPIs'], // /kpis opens the Achievements list until the KPIs page is built (V605)
+    ['/finance', 'Finance', 'Finance'],
+    ['/reports', 'Reports', 'Reports'],
   ] as const) {
     await page.goto(route);
     await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
     await expect(page.locator('[data-state="no-access"]'), `${route} opens at the member's level`).toHaveCount(0);
     await expect(page.locator('[data-drawer]').getByRole('link', { name: title }), 'yet not in the menu').toHaveCount(
       0,
@@ -190,7 +190,7 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
   const palette = page.locator('[data-command-palette]');
   await palette.getByPlaceholder('Go to a page or search…').fill('KPIs');
   await palette.getByRole('option', { name: 'KPIs' }).click();
-  await expect(page).toHaveURL(/\/kpis$/);
+  await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
   // An invoice by "INV" and a client's Finance tab come with Finance's own screens (P4); nothing to find yet.
 });
 
@@ -254,38 +254,52 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Client and Supplier are built and at Full; Task, Invoice and Achievement are not built — absent
+  // a manager: Task, Client, Supplier and Achievement (Tasks and KPIs are built) are at Full; Invoice is not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Client', 'Supplier']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Suppliers is View): Create and the + open it directly, no menu
+  // one item left (a member whose Clients, Suppliers and KPIs are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
+  // in a team: someone in no team without tasks.assign is not offered Task in the + (QA-245)
+  await sql(
+    `insert into core.team (department_id, code, name_en, name_ar, created_by)
+     values ((select id from core.department where code = 'commercial'), 'test_create', 'Test create team', 'فريق تجريبي', $1)
+     on conflict (department_id, code) do nothing`,
+    [member.id],
+  );
+  await sql(
+    `update core.person set team_id = (select t.id from core.team t join core.department d on d.id = t.department_id
+                                       where d.code = 'commercial' and t.code = 'test_create') where id = $1`,
+    [member.id],
+  );
   await sql(
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-     values ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1)`,
+     values ($1, 'clients', 'view', 'Made up: clients read only', $1),
+            ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
+            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
     [member.id],
   );
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
   const create = one.locator('[data-create]');
-  await expect(create).toHaveText('New client');
-  await expect(create).toHaveAttribute('data-create-direct', 'client');
+  await expect(create).toHaveText('New task');
+  await expect(create).toHaveAttribute('data-create-direct', 'task');
   await create.click();
-  await expect(one).toHaveURL(/\/clients\?new=1$/);
-  await expect(one.locator('[data-partner-form]'), 'the New dialog is open on arrival').toBeVisible();
+  await expect(one).toHaveURL(/\/tasks\?new=1$/);
+  await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
   await one.keyboard.press('Escape');
   await one.setViewportSize(PHONE);
   await one.goto('/my-day');
   await hydrated(one);
   const plus = one.locator('[data-create-floating]');
-  await expect(plus).toHaveAttribute('data-create-direct', 'client');
-  await expect(plus).toHaveAttribute('href', '/clients?new=1');
+  await expect(plus).toHaveAttribute('data-create-direct', 'task');
+  await expect(plus).toHaveAttribute('href', '/tasks/new');
   await ctx.close();
 });
 
@@ -470,11 +484,12 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   await expect(page.locator('[data-sonner-toast]', { hasText: 'Call logged' })).toBeVisible();
   expect(Date.now() - started, 'saved within 60 s').toBeLessThan(60_000);
 
-  // Job 2 — what is due today, one ticked off: Tasks is being built, so the job waits for it (P5)
+  // Job 2 — what is due today, one ticked off: Tasks is built (P5-2, #147) and opens from the bottom bar; the
+  // tick-off itself is tests/e2e/tasks.spec.ts "phone: see what is due today and tick one off (V509)"
   await page.goto('/my-day');
   await hydrated(page);
   await page.locator('[data-bottom-bar]').getByRole('link', { name: 'Tasks' }).click();
-  await expect(page.locator('[data-state="empty"]')).toContainText('Being built.');
+  await expect(page.locator('[data-tasks-list]')).toBeVisible();
 
   // Job 3 — find a client and call their contact: search → client → the phone link, ≤ 30 s
   await page.goto('/my-day');

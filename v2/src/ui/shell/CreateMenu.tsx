@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { modules } from '@/core/registry';
+import { noTeamToWorkIn } from '@/modules/tasks/rules';
 import type { Level } from '@/core/registry/define-module';
 import { Button, buttonVariants } from '../Button';
 import { cn } from '../cn';
@@ -12,14 +13,30 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 
 /**
  * The Create items (V217, cut 3): an item shows only once its page is built (registry `built`) and the person may
- * create there — a task at Own or Full, the rest at Full. Never a raw address, never a greyed item (W4/W28).
+ * create there — a task or an achievement at Own or Full (V605: an employee logs their own, V68), the rest at Full. Never a raw address, never a greyed item (W4/W28).
  */
-export const CREATE_ACTIONS: { key: string; page: string; route: string; icon: LucideIcon; at: Level[] }[] = [
-  { key: 'task', page: 'tasks', route: '/tasks/new', icon: CheckSquare, at: ['own', 'full'] },
+export const CREATE_ACTIONS: {
+  key: string;
+  page: string;
+  route: string;
+  icon: LucideIcon;
+  at: Level[];
+  /** Leaves the item out for someone the level alone would let in (the item is never greyed, W4/W28). */
+  except?: (me: Me) => boolean;
+}[] = [
+  {
+    key: 'task',
+    page: 'tasks',
+    route: '/tasks/new',
+    icon: CheckSquare,
+    at: ['own', 'full'],
+    // Someone in no team without `tasks.assign` may not add a task (QA-521); Add task says so, the + never offers it (QA-245)
+    except: (me) => noTeamToWorkIn(me.person.team_id, me.capabilities.includes('tasks.assign')),
+  },
   { key: 'client', page: 'clients', route: '/clients?new=1', icon: Building2, at: ['full'] },
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
-  { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['full'] },
+  { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
 ];
 
 /** The pages whose screens are built (registry `built`): Create offers them; My day's Turn into opens them (V433). */
@@ -29,7 +46,9 @@ export const BUILT: ReadonlySet<string> = new Set(
 
 /** The Create items this person gets, in order. */
 export function createActionsFor(me: Me) {
-  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && a.at.includes(me.levels[a.page] ?? 'none'));
+  return CREATE_ACTIONS.filter(
+    (a) => BUILT.has(a.page) && a.at.includes(me.levels[a.page] ?? 'none') && !a.except?.(me),
+  );
 }
 
 const floatingClass =

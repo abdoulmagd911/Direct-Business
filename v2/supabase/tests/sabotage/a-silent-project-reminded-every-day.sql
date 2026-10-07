@@ -14,6 +14,7 @@ as $$
     cross join lateral (select greatest(p.happened_on, (select pg_catalog.max(h.happened_on) from work.project_health h
                                                         where h.project_id = p.id and h.deleted_at is null)) as last_on) x
     where p.deleted_at is null and p.owner_id is not null and s.category = 'active'
+      and not work.is_past(p.happened_on)                                  -- QA-240: past work tells nobody (V491)
       and x.last_on + coalesce((core.setting_at('work.project_update_days', p.department_id, core.riyadh_today())
                                 #>> '{}')::int, 14) <= core.riyadh_today()
   ) a (person_id, alert_key, entity_table, entity_id, label_key, label_args)
