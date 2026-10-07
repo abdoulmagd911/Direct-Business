@@ -2,9 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { loadLookups } from '@/modules/tasks/load';
-import { apiFilter, parseFilters } from '@/modules/tasks/rules';
+import { apiFilter, parseFilters, showsTeamLoad } from '@/modules/tasks/rules';
 import { TaskListScreen } from '@/modules/tasks/screens/TaskListScreen';
-import type { TaskList } from '@/modules/tasks/types';
+import type { TaskList, TeamLoad } from '@/modules/tasks/types';
 import { Page } from '@/ui/shell/Page';
 
 /** The Tasks list (§3.7; P5-2's first PR, V517): the view and chips are in the address, read here on the server. */
@@ -22,16 +22,23 @@ export default async function TasksPage({
       </Page>
     );
   const filters = parseFilters(params);
-  const [list, lookups] = await Promise.all([
+  const [list, lookups, load] = await Promise.all([
     serverRpc('tasks', { p_filter: apiFilter(filters) as never, p_limit: 200 }).then(
       (r) => r as unknown as TaskList,
       () => null,
     ),
     loadLookups(me),
+    // the team's load (V91): only on the Team view, for someone who gives work to others
+    showsTeamLoad(filters.scope, me.capabilities)
+      ? serverRpc('team_load', {} as never).then(
+          (r) => r as unknown as TeamLoad[],
+          () => null,
+        )
+      : Promise.resolve(undefined),
   ]);
   return (
     <Page page="tasks" title={title}>
-      <TaskListScreen data={{ filters, list, lookups, adding: params.new === '1' }} />
+      <TaskListScreen data={{ filters, list, lookups, load, adding: params.new === '1' }} />
     </Page>
   );
 }

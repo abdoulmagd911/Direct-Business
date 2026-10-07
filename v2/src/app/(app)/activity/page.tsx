@@ -25,7 +25,7 @@ export default async function ActivityPage({
     return (
       <Page>
         <PageHeader title={t('nav.activity')} />
-        <DataState kind="no-access" what={t('nav.activity')} />
+        <DataState kind="no-access" what={t('nav.activity')} message={t('activity.locked')} />
       </Page>
     );
   const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;
