@@ -27,10 +27,26 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
                 and request_id = current_setting('t.r1')::uuid and kind = 'changed_by_other'), 1,
   'switched on, the side''s owner is told of a colleague''s change');
 
--- switched off: still the owner, told nothing
-select test.as_person(current_setting('t.admin')::uuid);
-select api.person_switch(current_setting('t.own')::uuid, false, 'made up: switched off');
+-- switched off: still the owner, told nothing. Set as the switch sets it (can_sign_in). Since #160 (LEAVE-02) nobody
+-- who holds work can be switched off at all, whatever the writer (person.open_work): where that rule is in, a
+-- switched-off owner cannot exist, and the check is that the switch is refused.
 select test.as_owner();
+do $$
+begin
+  update core.person set can_sign_in = false where id = current_setting('t.own')::uuid;
+  perform set_config('t.held', 'no', true);
+exception when raise_exception then
+  if sqlerrm <> 'person.open_work' then
+    raise;
+  end if;
+  perform set_config('t.held', 'yes', true);
+end
+$$;
+select current_setting('t.held') = 'yes' as held \gset
+\if :held
+select test.ok(exists (select 1 from core.person where id = current_setting('t.own')::uuid and can_sign_in),
+  'an owner who still holds work cannot be switched off (LEAVE-02), so no switched-off owner is ever told anything');
+\else
 select test.ok(exists (select 1 from partner.side_owner m where m.partner_id = current_setting('t.p')::uuid
                        and m.side = 'client' and m.person_id = current_setting('t.own')::uuid and m.deleted_at is null
                        and m.effective_to is null),
@@ -55,3 +71,4 @@ select set_config('t.r3', api.partner_update(current_setting('t.p')::uuid, '{"no
 select test.as_owner();
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.own')::uuid
                 and request_id = current_setting('t.r3')::uuid), 1, 'switched on again, they are told again');
+\endif
