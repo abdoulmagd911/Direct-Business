@@ -1,5 +1,5 @@
 'use client';
-import { Check, Pencil } from 'lucide-react';
+import { Check, Megaphone, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,6 +22,7 @@ import type { TaskLookups } from '../load';
 import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView } from '../rules';
 import type { TaskDetail } from '../types';
 import { Checklist } from './Checklist';
+import { Escalate } from './Escalate';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
 import { useCommandWords, useNames } from './words';
 
@@ -45,6 +46,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const closed = task.meaning === 'done' || task.meaning === 'cancelled';
   const move = useStatusMove(task, lookups.statuses);
   const [editing, setEditing] = useState(false);
+  const [escalating, setEscalating] = useState(false);
   const status = lookups.statuses.find((s) => s.key === task.status);
   const statusLabel =
     view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
@@ -98,6 +100,11 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       <Button icon={<Pencil />} onClick={() => setEditing(true)}>
         {t('common.edit')}
       </Button>
+      {!closed ? (
+        <Button icon={<Megaphone />} onClick={() => setEscalating(true)} data-escalate-open>
+          {t('pages.tasks.escalate.open')}
+        </Button>
+      ) : null}
       {move.dialogs}
     </>
   ) : null;
@@ -239,6 +246,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         {tab === 'items' ? <Checklist task={task} personName={names.person} locale={names.locale} /> : null}
       </RecordPage>
       <EditTask open={editing} onOpenChange={setEditing} task={task} />
+      <Escalate open={escalating} onOpenChange={setEscalating} task={task} org={lookups.org} />
     </>
   );
 }

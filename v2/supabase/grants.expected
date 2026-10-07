@@ -56,6 +56,7 @@ function api.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar t
 function api.device_sign_out(p_device uuid) execute authenticated
 function api.device_sign_out_others() execute authenticated
 function api.device_touch() execute authenticated
+function api.escalate(p_entity text, p_id uuid, p_to uuid, p_note text) execute authenticated
 function api.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
 function api.file_download(p_id uuid, p_locale text) execute authenticated
 function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
@@ -168,6 +169,7 @@ function api.task_update(p_id uuid, p_values jsonb, p_version integer) execute a
 function api.tasks(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.team_load(p_people uuid[]) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
 function api.undo(p_request uuid) execute authenticated
@@ -207,6 +209,7 @@ function core.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar 
 function core.device_sign_out(p_device uuid) execute authenticated
 function core.device_sign_out_others() execute authenticated
 function core.device_touch() execute authenticated
+function core.escalate(p_entity text, p_id uuid, p_to uuid, p_note text) execute authenticated
 function core.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
 function core.file_download(p_id uuid, p_locale text) execute authenticated
 function core.file_finish(p_id uuid, p_sha256 text) execute authenticated
@@ -364,6 +367,7 @@ function work.task_status_set(p_id uuid, p_status text, p_happened_on date, p_re
 function work.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.team_load(p_people uuid[]) execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated
