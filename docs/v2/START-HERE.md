@@ -1,6 +1,6 @@
 # Start here — Direct's Commercial app (v2)
 
-**Read this first.** Updated **7 Oct 2026, 11:45 Riyadh** (08:45 UTC). This page replaces every older start page and
+**Read this first.** Updated **7 Oct 2026, 21:20 Riyadh** (18:20 UTC). This page replaces every older start page and
 is written whole each time — nothing below is a patch on older text. Where it disagrees with any other Drive file, this
 page wins; where it disagrees with `DECISIONS.md`, `DECISIONS.md` wins and this page is fixed.
 
@@ -28,9 +28,13 @@ cannot open web addresses, a Claude Code session can read them and answer for it
   Day one opens Clients (Suppliers as its tab), My day, Tasks, the Past work grid and achievements to the pilot group —
   a manager and three to five Commercial members, in English (V517, V605 (6)).
 - **On production now** (`v2/main`): those screens, with Tasks as List, Board and Calendar, Escalate and the team's
-  load (#181, #182), an owner picker for someone in no team (#179, #180), and a My day note turned into a task or an
-  action item on the database side (#149). Turning a note into an achievement on screen (#175) lands after QA's
-  re-check.
+  load (#181, #182), an owner picker for someone in no team (#179, #180), a My day note turned into an achievement
+  (#175), and the fixes from the 7 Oct test round — Task out of the + for someone in no team, every browser tab named,
+  the phone header (#188).
+- **Production's database is behind by one change** (#183's, merged 7 Oct). A change made in production outside the
+  repository on 6 Oct (another project's storage folder) stops the job that applies merged database changes. The fix
+  is a small PR from builder A and waits for the owner's yes; until then no PR with a database change merges (#157 is
+  next). Screens and docs keep merging.
 - **Finance is being specified, not built into production yet**: the owner's money rules of 5 Oct are V610–V618 and
   spec §3.6 (read its first table); builder A builds the tables, the "what counts" view and the Payments export import
   on a branch; the owner answered Q46–Q48 on 7 Oct (V619–V621); Q49–Q51 stay open in `OPEN-QUESTIONS.md`.
