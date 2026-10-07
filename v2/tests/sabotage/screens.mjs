@@ -682,12 +682,12 @@ export const sabotages = [
   {
     name: 'turn-into-offers-a-task-too-soon',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
-    expect: 'a task waits for Tasks',
+    expect: 'a task waits for its Turn into',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks',\n  action_item: 'tasks',\n",
-        replace: "  action_item: 'tasks',\n",
+        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
   },
@@ -898,6 +898,114 @@ export const sabotages = [
         file: 'src/modules/partners/screens/CappedNote.tsx',
         find: 'if (total <= shown) return null;',
         replace: 'if (total >= 0) return null;',
+      },
+    ],
+  },
+  {
+    name: 'achievement-record-has-no-address',
+    breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
+    expect: 'an achievement opens on its record page',
+    edits: [
+      {
+        file: 'src/ui/entity-route.ts',
+        find: '      return `/kpis/achievements/${id}`;',
+        replace: '      return null;',
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-no-longer-opens-achievements',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the KPIs page opens on Achievements',
+    edits: [
+      {
+        file: 'src/app/(app)/kpis/page.tsx',
+        find: "redirect('/kpis/achievements');",
+        replace: "redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'achievements-short-address-lost',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'the short address goes to the list',
+    edits: [
+      {
+        file: 'src/app/(app)/achievements/page.tsx',
+        find: "  redirect('/kpis/achievements');",
+        replace: "  redirect('/my-day');",
+      },
+    ],
+  },
+  {
+    name: 'create-offers-achievement-at-full-only',
+    breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
+    expect: 'a person at Own may log one',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] }",
+        replace: "route: '/kpis/achievements/new', icon: Trophy, at: ['full'] }",
+      },
+    ],
+  },
+  {
+    name: 'kpis-page-not-built-for-create',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'Create menu offers only built screens',
+    edits: [
+      {
+        file: 'src/modules/perf/module.ts',
+        find: '      built: true,\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the Tasks and KPIs pages alone do not offer',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  achievement: 'kpis.turn_into',",
+        replace: "  achievement: 'kpis',",
+      },
+    ],
+  },
+  {
+    name: 'task-record-has-no-address',
+    breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
+    expect: 'a task opens on its record page',
+    edits: [
+      {
+        file: 'src/ui/entity-route.ts',
+        find: '      return `/tasks/${id}`;',
+        replace: '      return null;',
+      },
+    ],
+  },
+  {
+    name: 'tasks-page-not-built-for-create',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'Create menu offers only built screens',
+    edits: [
+      {
+        file: 'src/modules/tasks/module.ts',
+        find: '      built: true,\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'tasks-built-offers-a-turn-into-nobody-can-take',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the Tasks and KPIs pages alone do not offer',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
       },
     ],
   },

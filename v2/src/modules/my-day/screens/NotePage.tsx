@@ -22,6 +22,8 @@ import { VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKin
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
 import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
+import { useMe } from '@/core/auth/me-context';
+import { AchievementFromNoteDialog } from '@/modules/perf/screens/AchievementFromNote';
 
 type Draft = {
   title: string;
@@ -62,6 +64,9 @@ export function NotePage({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
+  // an achievement is logged by its own people: Own or Full on KPIs (V377); anyone else is not offered it
+  const kpis = useMe().levels.kpis ?? 'none';
+  const canAchieve = kpis === 'own' || kpis === 'full';
   const router = useRouter();
   const partner = note.meeting_partner;
   const fresh = () => draftOf(note, partner);
@@ -147,7 +152,7 @@ export function NotePage({
                   {t('pages.myDay.finish.label')}
                 </Button>
               ) : null}
-              <TurnIntoMenu onPick={setTurning} />
+              <TurnIntoMenu onPick={setTurning} hide={canAchieve ? [] : ['achievement']} />
               <Menu>
                 <MenuTrigger asChild>
                   <IconButton label={t('common.actions')} icon={<MoreHorizontal />} data-note-menu />
@@ -340,6 +345,11 @@ export function NotePage({
             note={note}
             open={turning === 'reminder'}
             onOpenChange={(o) => setTurning(o ? 'reminder' : null)}
+          />
+          <AchievementFromNoteDialog
+            note={note}
+            open={turning === 'achievement'}
+            onOpenChange={(o) => setTurning(o ? 'achievement' : null)}
           />
           <Confirm
             open={removing}
