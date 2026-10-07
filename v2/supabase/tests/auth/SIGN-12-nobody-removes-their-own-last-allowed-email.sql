@@ -1,8 +1,10 @@
--- SIGN-12 — nobody removes their own last allowed e-mail (QA-208, the database half; V219). An admin removing their
--- only allowed e-mail is refused, whatever the screen offers; with a second one, the first may go; the one left is
--- refused again; an Undo of its adding — through the admin route, with its ticket — is refused too. Another person's
--- last e-mail may still be removed: that is how a sign-in is taken away. Every value is made up.
--- Sabotage: supabase/tests/sabotage/an-admin-removes-their-own-last-email.sql.
+-- SIGN-12 — nobody removes their own last allowed e-mail they can sign in with (QA-208, the database half; V219). An
+-- admin removing their only allowed e-mail is refused, whatever the screen offers; a spare e-mail nobody can sign in
+-- with does not change that; once the second has a sign-in of its own, the first may go; the one left is refused
+-- again; an Undo of its adding — through the admin route, with its ticket — is refused too. Another person's last
+-- e-mail may still be removed: that is how a sign-in is taken away. Every value is made up.
+-- Sabotages: supabase/tests/sabotage/an-admin-removes-their-own-last-email.sql,
+-- a-spare-email-without-a-sign-in-counts.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.u1', test.sign_in(current_setting('t.admin')::uuid)::text, true);
@@ -16,10 +18,15 @@ select test.as_auth(current_setting('t.u1')::uuid, test.start_session(current_se
 select test.raises(format('select api.person_email_remove(%L, %L)', current_setting('t.e1'), 'Made-up: tidying up'),
   'P0001', 'an admin cannot remove their own last allowed e-mail', 'people.own_last_email');
 
--- a second e-mail, linked to a sign-in of its own
+-- a second e-mail nobody can sign in with yet does not count: the first is still refused (QA 1, 7 Oct)
 select set_config('t.r2', api.person_email_add(current_setting('t.admin')::uuid, 'made.up.second@example.test', false,
   'Made-up: a second mailbox')::text, true);
 select set_config('t.e2', current_setting('t.r2')::jsonb ->> 'id', true);
+select test.raises(format('select api.person_email_remove(%L, %L)', current_setting('t.e1'), 'Made-up: the old one'),
+  'P0001', 'a spare e-mail with no sign-in keeps nobody in: the one they sign in with is still refused',
+  'people.own_last_email');
+
+-- once the second has a sign-in of its own
 select test.as_owner();
 insert into auth.users (id, email) values ('00000000-0000-4000-8000-0000000002b2', 'made.up.second@example.test');
 select test.as_auth(current_setting('t.u1')::uuid, test.start_session(current_setting('t.u1')::uuid));
