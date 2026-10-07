@@ -1117,4 +1117,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'new-supplier-button-says-and-partner',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the button is New supplier, not New supplier & partner',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"newSupplier": "New supplier",',
+        replace: '"newSupplier": "New supplier & partner",',
+      },
+    ],
+  },
 ];
