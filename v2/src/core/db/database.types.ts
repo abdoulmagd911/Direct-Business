@@ -169,6 +169,23 @@ export type Database = {
       file_review_set: { Args: { p_id: string; p_review_on: string; p_version?: number }; Returns: Json };
       files: { Args: { p_entity: string; p_id: string; p_side?: string }; Returns: Json };
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      finance_channel_set: {
+        Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
+        Returns: Json;
+      };
+      finance_import: {
+        Args: {
+          p_dry_run?: boolean;
+          p_export_time: string;
+          p_file: string;
+          p_file_name?: string;
+          p_rows: Json;
+          p_sha256?: string;
+        };
+        Returns: Json;
+      };
+      finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
+      finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
