@@ -1,7 +1,7 @@
--- Sabotage: a-checklist-row-gives-the-whole-note
--- Breaks: sql:NOTE-07
--- Expect: a row becomes a task titled by the row
--- One checklist row turned into a task takes the whole note's title instead of the row (WRK-013).
+-- Sabotage: a-checklist-comes-unasked
+-- Breaks: sql:NOTE-09
+-- Expect: unasked, no action item
+-- A note turned into a task brings its checklist though nobody asked (V602).
 create or replace function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -18,7 +18,7 @@ declare
   what text;
   t text := coalesce(nullif(v ->> 'type', ''), case when n.kind = 'meeting' then 'meeting' else 'call' end);
   r jsonb;
-  with_items boolean := false;
+  with_items boolean := true;
   p jsonb;
   ai jsonb;
   made jsonb := '[]'::jsonb;
@@ -83,7 +83,7 @@ begin
     end if;
     pid := coalesce(nullif(v ->> 'partner_id', '')::uuid, n.meeting_partner_id);
     a := work.task_create(pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-           'title', my.note_headline(n, 300),
+           'title', coalesce(pg_catalog.left(r ->> 'text', 300), my.note_headline(n, 300)),
            'notes', case when r is null then nullif(pg_catalog.btrim(my.note_text(n)), '') end,
            'owner_id', r ->> 'owner_id',
            'due_on', r ->> 'due_on',
