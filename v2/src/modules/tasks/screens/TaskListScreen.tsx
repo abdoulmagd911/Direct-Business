@@ -1,5 +1,5 @@
 'use client';
-import { Plus, Search } from 'lucide-react';
+import { CalendarDays, Columns3, List, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
 import {
   DUE_CHIPS,
+  LAYOUTS,
   SCOPES,
   STATUS_CHIPS,
   STATUS_TONE,
@@ -24,12 +25,16 @@ import {
   keepRow,
   riyadhDay,
   statusView,
+  type Layout,
   type TaskFilters,
 } from '../rules';
-import type { TaskList, TaskRow } from '../types';
+import type { TaskList, TaskRow, TeamLoad } from '../types';
 import type { TaskLookups } from '../load';
 import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
+import { TaskBoard } from './TaskBoard';
+import { TaskCalendar } from './TaskCalendar';
+import { TeamLoadPanel } from './TeamLoadPanel';
 import { DoneTick } from './StatusControl';
 import { useNames } from './words';
 
@@ -37,6 +42,8 @@ export type TaskListData = {
   filters: TaskFilters;
   list: TaskList | null;
   lookups: TaskLookups;
+  /** The team's load on the Team view (V91): absent when not shown, null when the read failed. */
+  load?: TeamLoad[] | null;
   /** Quick add opens on arrival (the + menu's Task, /tasks/new). */
   adding: boolean;
 };
@@ -56,6 +63,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const [q, setQ] = useState(f.q ?? '');
   const today = riyadhDay(new Date());
   const rows = (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today));
+  const layout = f.layout ?? 'list';
   const go = (change: Partial<TaskFilters>) => router.push(filtersHref(f, change));
   const retry = () => router.refresh();
 
@@ -163,8 +171,10 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                 })),
               )
             : null}
+        <LayoutSwitch filters={f} />
       </div>
 
+      {data.load !== undefined ? <TeamLoadPanel load={data.load} /> : null}
       {f.scope === 'past' && atLeastOwn(me.levels.tasks) ? (
         <PastWorkPanel statuses={lookups.statuses} partners={lookups.partners} org={lookups.org} />
       ) : null}
@@ -190,11 +200,20 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         />
       ) : (
         <>
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>
-            {rows.map((r) => (
-              <TaskLine key={r.id} row={r} lookups={lookups} today={today} />
-            ))}
-          </ul>
+          {layout === 'board' ? (
+            <TaskBoard rows={rows} lookups={lookups} today={today} />
+          ) : layout === 'calendar' ? (
+            <TaskCalendar rows={rows} lookups={lookups} today={today} filters={f} />
+          ) : (
+            <ul
+              className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
+              data-task-rows
+            >
+              {rows.map((r) => (
+                <TaskLine key={r.id} row={r} lookups={lookups} today={today} />
+              ))}
+            </ul>
+          )}
           {list.more ? (
             <p className="text-sm text-muted">
               {t('pages.tasks.more', { shown: list.rows.length, total: list.total })}
@@ -211,6 +230,41 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         initial={{ partnerId: f.partner, projectId: f.project }}
       />
     </div>
+  );
+}
+
+const LAYOUT_ICON: Record<Layout, typeof List> = { list: List, board: Columns3, calendar: CalendarDays };
+
+/** List / Board / Calendar: one view of the same rows (§8 Tasks), a link each so the choice lives in the address. */
+function LayoutSwitch({ filters }: { filters: TaskFilters }) {
+  const t = useTranslations();
+  const current = filters.layout ?? 'list';
+  return (
+    <nav
+      aria-label={t('pages.tasks.layout.label')}
+      className="ms-auto flex rounded-md border border-border"
+      data-layouts
+    >
+      {LAYOUTS.map((l) => {
+        const Icon = LAYOUT_ICON[l];
+        const on = l === current;
+        return (
+          <Link
+            key={l}
+            href={filtersHref(filters, { layout: l })}
+            aria-current={on ? 'page' : undefined}
+            className={cn(
+              'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 px-3 text-sm first:rounded-s-md last:rounded-e-md focus-visible:outline-2 focus-visible:outline-focus',
+              on ? 'bg-accent-soft font-medium text-text' : 'text-muted hover:bg-surface',
+            )}
+            data-layout={l}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+            {t(`pages.tasks.layout.${l}`)}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 

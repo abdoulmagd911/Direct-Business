@@ -11,7 +11,14 @@ import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import type { OrgAnswer } from '@/modules/org/types';
 import { nameOf } from '@/modules/org/types';
-import { quickAddOwners, quickAddRefusalKey, quickAddValues, TITLE_MAX, type QuickAddInput } from '../rules';
+import {
+  noTeamToWorkIn,
+  quickAddOwners,
+  quickAddRefusalKey,
+  quickAddValues,
+  TITLE_MAX,
+  type QuickAddInput,
+} from '../rules';
 import type { NamePick } from '../types';
 import { useCommandWords } from './words';
 
@@ -63,7 +70,7 @@ export function QuickAdd({
   );
 }
 
-function QuickAddForm({
+export function QuickAddForm({
   org,
   partners,
   projects,
@@ -125,6 +132,18 @@ function QuickAddForm({
     );
     setBusy(false);
   };
+
+  if (noTeamToWorkIn(me.person.team_id, canAssign))
+    return (
+      <div className="flex flex-col gap-4" data-quick-add data-no-team>
+        <p className="text-base text-muted">{t('pages.tasks.noTeam')}</p>
+        <div className="flex justify-end pt-2">
+          <Button variant="ghost" onClick={onClose}>
+            {t('common.close')}
+          </Button>
+        </div>
+      </div>
+    );
 
   return (
     <form

@@ -57,8 +57,15 @@ export type StatusChipKey = (typeof STATUS_CHIPS)[number];
 export const DUE_CHIPS = ['overdue', 'today', 'week', 'none'] as const;
 export type DueChipKey = (typeof DUE_CHIPS)[number];
 
+/** List / Board by status / Calendar by due day (§8 Tasks): one view of the same rows, kept in the address. */
+export const LAYOUTS = ['list', 'board', 'calendar'] as const;
+export type Layout = (typeof LAYOUTS)[number];
+
 export type TaskFilters = {
   scope: Scope;
+  layout?: Layout;
+  /** The calendar's month, `YYYY-MM` (Riyadh's this month when absent). */
+  month?: string;
   status?: StatusChipKey;
   due?: DueChipKey;
   partner?: string;
@@ -66,6 +73,7 @@ export type TaskFilters = {
   q?: string;
 };
 
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 const oneOf = <T extends string>(list: readonly T[], v: string | undefined): T | undefined =>
@@ -78,6 +86,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
   const q = one(params.q)?.trim().slice(0, 100);
   return {
     scope: oneOf(SCOPES, one(params.view)) ?? 'my_work',
+    layout: oneOf(LAYOUTS, one(params.layout)),
+    month: MONTH.test(one(params.month) ?? '') ? one(params.month) : undefined,
     status: oneOf(STATUS_CHIPS, one(params.status)),
     due: oneOf(DUE_CHIPS, one(params.due)),
     partner: partner && UUID.test(partner) ? partner : undefined,
@@ -91,6 +101,8 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
   const next = { ...f, ...change };
   const p = new URLSearchParams();
   if (next.scope !== 'my_work') p.set('view', next.scope);
+  if (next.layout && next.layout !== 'list') p.set('layout', next.layout);
+  if (next.layout === 'calendar' && next.month) p.set('month', next.month);
   if (next.status) p.set('status', next.status);
   if (next.due) p.set('due', next.due);
   if (next.partner) p.set('partner', next.partner);
@@ -220,6 +232,13 @@ export function quickAddOwners<P extends { team_id: string | null; account?: str
   return { offerDefault, people: offerDefault ? assignable : assignable.filter((p) => p.team_id !== null) };
 }
 
+/**
+ * Someone in no team who may not give tasks to others (no `tasks.assign`) can neither own a task — a task's team is its
+ * owner's — nor pick another owner (QA-521): Quick add and Past work say so in one line, with no picker and no save,
+ * the way a locked area says why (V605 (5)).
+ */
+export const noTeamToWorkIn = (myTeam: string | null, canAssign: boolean): boolean => myTeam === null && !canAssign;
+
 /** Quick add's refusal in words: the database's "needs a team" (a race with a team change) reads as "Pick an owner". */
 export function quickAddRefusalKey(key: string): string {
   return key === 'errors.task.team_required' ? 'pages.tasks.add.owner_required' : refusalKey(key);
@@ -251,6 +270,116 @@ export function quickAddValues(
   return { values };
 }
 
+// ---------------------------------------------------------------- Escalate (V401)
+
+/** Whom a task is escalated to: someone else who can be given work (V465) — never me, never the admin or test account. */
+export function escalateTargets<P extends { id: string; account?: string | null }>(
+  people: readonly P[],
+  me: string,
+): P[] {
+  return assignablePeople(people).filter((p) => p.id !== me);
+}
+
+/** What api.escalate is sent: a person and a note — both required, and never myself (the door refuses the same). */
+export function escalateValues(
+  input: { to?: string; note: string },
+  me: string,
+): { values: { p_to: string; p_note: string } } | { error: 'to_required' | 'note_required' | 'to_yourself' } {
+  if (!input.to) return { error: 'to_required' };
+  if (input.to === me) return { error: 'to_yourself' };
+  const note = input.note.trim();
+  if (!note) return { error: 'note_required' };
+  return { values: { p_to: input.to, p_note: note } };
+}
+
+// ---------------------------------------------------------------- the team's load (V91)
+
+/** The load figures show on the Team view, to someone who gives work to others (`tasks.assign`): a manager or a head. */
+export function showsTeamLoad(scope: Scope, capabilities: readonly string[]): boolean {
+  return scope === 'team' && capabilities.includes('tasks.assign');
+}
+
+/** The load in my departments, the most overdue first, then the most open work, then by name — who needs help leads. */
+export function byLoad<L extends { overdue: number; open_tasks: number; full_name_en: string }>(
+  rows: readonly L[],
+): L[] {
+  return [...rows].sort(
+    (a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en.localeCompare(b.full_name_en),
+  );
+}
+
+// ---------------------------------------------------------------- the board and the calendar (§8 Tasks)
+
+/**
+ * The board: one column per status, in the settings' order — every active status, and a retired one only while a task
+ * still holds it (V161). Every row lands in exactly one column, so the board counts what the list counts.
+ */
+export function boardColumns<R extends { status: string }>(
+  rows: readonly R[],
+  statuses: readonly TaskStatus[],
+): { status: TaskStatus | null; key: string; rows: R[] }[] {
+  const held = new Set(rows.map((r) => r.status));
+  const shown = [...statuses].filter((s) => s.active || held.has(s.key)).sort((a, b) => a.sort - b.sort);
+  const columns = shown.map((s) => ({ status: s as TaskStatus | null, key: s.key, rows: [] as R[] }));
+  const byKey = new Map(columns.map((c) => [c.key, c]));
+  for (const r of rows) {
+    let c = byKey.get(r.status);
+    if (!c) {
+      // a status the settings list no longer names still gets its column: never a dropped task
+      c = { status: null, key: r.status, rows: [] };
+      byKey.set(r.status, c);
+      columns.push(c);
+    }
+    c.rows.push(r);
+  }
+  return columns;
+}
+
+/** The calendar's month: the address's, else Riyadh's this month. */
+export const monthOf = (month: string | undefined, today: string): string => month ?? today.slice(0, 7);
+
+/** The month before or after, `YYYY-MM`. */
+export function shiftMonth(month: string, by: number): string {
+  const [y, m] = month.split('-').map(Number) as [number, number];
+  const d = new Date(Date.UTC(y, m - 1 + by, 1));
+  return d.toISOString().slice(0, 7);
+}
+
+/**
+ * The month as whole weeks, Sunday first (Riyadh's working week starts Sunday): each day `YYYY-MM-DD`, and whether it
+ * is in the month. Calendar arithmetic only, the same in every time zone.
+ */
+export function monthWeeks(month: string): { day: string; inMonth: boolean }[][] {
+  const [y, m] = month.split('-').map(Number) as [number, number];
+  const first = new Date(Date.UTC(y, m - 1, 1));
+  const start = new Date(first);
+  start.setUTCDate(1 - first.getUTCDay());
+  const weeks: { day: string; inMonth: boolean }[][] = [];
+  const d = new Date(start);
+  do {
+    const week: { day: string; inMonth: boolean }[] = [];
+    for (let i = 0; i < 7; i++) {
+      week.push({ day: d.toISOString().slice(0, 10), inMonth: d.getUTCMonth() === m - 1 });
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    weeks.push(week);
+  } while (d.getUTCMonth() === m - 1);
+  return weeks;
+}
+
+/** Tasks by their due day; those with none are listed apart, never placed on a guessed day. */
+export function byDueDay<R extends { due_on: string | null }>(
+  rows: readonly R[],
+): { days: Map<string, R[]>; undated: R[] } {
+  const days = new Map<string, R[]>();
+  const undated: R[] = [];
+  for (const r of rows) {
+    if (!r.due_on) undated.push(r);
+    else days.set(r.due_on, [...(days.get(r.due_on) ?? []), r]);
+  }
+  return { days, undated };
+}
+
 // ---------------------------------------------------------------- the checklist (V438, V190)
 
 /** Who ticks an action item: the task's editors, the item's owner, or a helper on it (V190). */
@@ -270,6 +399,6 @@ export function canTick(
  * `pages.tasks.errors.*` (builder D's part of the catalog); every other key is the shared `errors.*` one.
  */
 export function refusalKey(key: string): string {
-  const m = /^errors\.((?:task|action_item)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
+  const m = /^errors\.((?:task|action_item|escalation)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
   return m ? `pages.tasks.errors.${m[1]}` : key;
 }

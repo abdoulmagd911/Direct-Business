@@ -1,7 +1,7 @@
--- Sabotage: a-note-turned-into-an-achievement-keeps-no-link
--- Breaks: sql:ACH-10
--- Expect: the conversion made one link
--- A note turned into an achievement makes the achievement but not the link (V433: linked both ways).
+-- Sabotage: a-task-from-a-note-is-dated-today
+-- Breaks: sql:NOTE-07
+-- Expect: dated the day the note was captured
+-- A task from a note is dated the day it was converted, not the day the note was captured (V531).
 create or replace function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -73,7 +73,6 @@ begin
            'owner_id', r ->> 'owner_id',
            'due_on', r ->> 'due_on',
            'partner_id', pid,
-           'happened_on', n.happened_on,
            'origin', case when n.kind = 'meeting' then 'meeting' else 'manual' end)) || (v - 'partner_id' - 'item'));
     rid := (a ->> 'id')::uuid;
     select pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
@@ -132,6 +131,7 @@ begin
            'happened_on', case when v ? 'happened_on' then v -> 'happened_on' else pg_catalog.to_jsonb(n.happened_on) end,
            'partner_id', coalesce(v -> 'partner_id', pg_catalog.to_jsonb(n.meeting_partner_id))),
       v -> 'refs', carried);
+    insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'perf.achievement', (a ->> 'id')::uuid);
     return a || pg_catalog.jsonb_build_object('entity', 'achievement',
                                               'mentions_left_out', coalesce(pg_catalog.to_jsonb(left_out), '[]'::jsonb));
   end if;

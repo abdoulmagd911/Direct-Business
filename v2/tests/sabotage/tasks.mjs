@@ -170,6 +170,95 @@ export const sabotages = [
       },
     ],
   },
+  // ---- Escalate (V401)
+  {
+    name: 'tasks-escalate-offers-me',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'offers everyone who can be given work except me',
+    edits: [
+      { file: RULES, find: 'assignablePeople(people).filter((p) => p.id !== me)', replace: 'assignablePeople(people)' },
+    ],
+  },
+  {
+    name: 'tasks-escalate-without-a-note',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: 'a person and a note are both required',
+    edits: [{ file: RULES, find: "  if (!note) return { error: 'note_required' };\n", replace: '' }],
+  },
+  {
+    name: 'tasks-escalate-refusal-in-shared-words',
+    breaks: [unit('escalate-names-someone-else-with-a-note')],
+    expect: "the door's refusals read in the Tasks catalog's words",
+    edits: [{ file: RULES, find: '(?:task|action_item|escalation)', replace: '(?:task|action_item)' }],
+  },
+  // ---- the team's load (V91)
+  {
+    name: 'tasks-load-shown-to-everyone',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'shows only on the Team view, and only with tasks.assign',
+    edits: [
+      {
+        file: RULES,
+        find: "return scope === 'team' && capabilities.includes('tasks.assign');",
+        replace: "return scope === 'team';",
+      },
+    ],
+  },
+  {
+    name: 'tasks-load-by-name-only',
+    breaks: [unit('team-load-shows-to-managers-most-overdue-first')],
+    expect: 'the most overdue first, then the most open work, then by name',
+    edits: [
+      {
+        file: RULES,
+        find: '(a, b) => b.overdue - a.overdue || b.open_tasks - a.open_tasks || a.full_name_en',
+        replace: '(a, b) => a.full_name_en',
+      },
+    ],
+  },
+  // ---- the board and the calendar (§8 Tasks)
+  {
+    name: 'tasks-board-drops-a-retired-status',
+    breaks: [unit('the-board-and-calendar-count-what-the-list-counts')],
+    expect: 'every row lands in exactly one',
+    edits: [{ file: RULES, find: '    c.rows.push(r);\n', replace: '    if (c.status) c.rows.push(r);\n' }],
+  },
+  {
+    name: 'tasks-calendar-week-starts-monday',
+    breaks: [unit('the-board-and-calendar-count-what-the-list-counts')],
+    expect: 'a month is whole weeks, Sunday first',
+    edits: [
+      {
+        file: RULES,
+        find: 'start.setUTCDate(1 - first.getUTCDay());',
+        replace: 'start.setUTCDate(1 - ((first.getUTCDay() + 6) % 7));',
+      },
+    ],
+  },
+  {
+    name: 'tasks-calendar-guesses-a-day',
+    breaks: [unit('the-board-and-calendar-count-what-the-list-counts')],
+    expect: 'lists the undated apart',
+    edits: [
+      {
+        file: RULES,
+        find: '    if (!r.due_on) undated.push(r);',
+        replace: "    if (!r.due_on) days.set('2026-10-05', [...(days.get('2026-10-05') ?? []), r]);",
+      },
+    ],
+  },
+  {
+    name: 'tasks-layout-not-in-the-address',
+    breaks: [unit('the-board-and-calendar-count-what-the-list-counts')],
+    expect: 'the layout and month live in the address',
+    edits: [
+      {
+        file: RULES,
+        find: "  if (next.layout && next.layout !== 'list') p.set('layout', next.layout);\n",
+        replace: '',
+      },
+    ],
+  },
   // ---- the checklist (V438, V190)
   {
     name: 'tasks-anyone-ticks',
@@ -215,9 +304,57 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: '<ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
+        find: 'className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"\n              data-task-rows',
         replace:
-          '<ul className="flex min-w-[600px] flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-task-rows>',
+          'className="flex min-w-[600px] flex-col divide-y divide-border rounded-lg border border-border bg-raised"\n              data-task-rows',
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-escalate-sends-no-note',
+    breaks: [e2e],
+    expect: 'Escalate tells a colleague about a task, with a note',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/Escalate.tsx',
+        find: "rpc('escalate', { p_entity: 'task', p_id: task.id, ...r.values })",
+        replace: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: r.values.p_to, p_note: '' })",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-team-load-never-read',
+    breaks: [e2e],
+    expect: "a manager's Team view shows the team's load",
+    edits: [
+      {
+        file: 'src/app/(app)/tasks/page.tsx',
+        find: 'showsTeamLoad(filters.scope, me.capabilities)',
+        replace: 'showsTeamLoad(filters.scope, [])',
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-layout-switch-goes-nowhere',
+    breaks: [e2e],
+    expect: 'the board and the calendar count the same tasks as the list',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: 'href={filtersHref(filters, { layout: l })}',
+        replace: 'href={filtersHref(filters)}',
+      },
+    ],
+  },
+  {
+    name: 'e2e-select-list-runs-off-the-phone',
+    breaks: [e2e],
+    expect: 'an admin in no team pastes rows with no Owner column, picks one owner and saves',
+    edits: [
+      {
+        file: 'src/ui/Select.tsx',
+        find: 'z-50 max-h-[var(--radix-select-content-available-height)] min-w-',
+        replace: 'z-50 min-w-',
       },
     ],
   },
@@ -279,6 +416,32 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/QuickAdd.tsx',
         find: '  const owners = quickAddOwners(me.person.team_id, org?.people ?? []);',
         replace: "  const owners = quickAddOwners('anything', org?.people ?? []);",
+      },
+    ],
+  },
+  {
+    // QA-521: someone in no team without tasks.assign got a form that could only be refused
+    name: 'no-team-without-assign-gets-a-dead-form',
+    breaks: ['unit:tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx'],
+    expect: 'Quick add says to ask for a team',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: 'myTeam === null && !canAssign;',
+        replace: 'false && myTeam === null && !canAssign;',
+      },
+    ],
+  },
+  {
+    // QA-521: Past work's half — someone in no team without tasks.assign got a grid whose every row was refused
+    name: 'past-work-no-team-without-assign-offers-a-dead-grid',
+    breaks: ['unit:tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx'],
+    expect: 'Past work says to ask for a team',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/PastWorkPanel.tsx',
+        find: 'if (noTeamToWorkIn(me.person.team_id, forOthers))',
+        replace: 'if (false && noTeamToWorkIn(me.person.team_id, forOthers))',
       },
     ],
   },
