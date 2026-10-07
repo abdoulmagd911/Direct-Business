@@ -163,10 +163,12 @@ $$;
 
 -- ================================================================ the merge rule (§3.11.6)
 -- One generic rule for every fact field: a blank never wipes; a stored blank is filled from any file; a stored value
--- changes only when this file is newer than the export time recorded for that field (src). Returns the fields to write
--- and the new src; nothing when the stored row already says it all.
+-- changes only when this file is newer than the export time recorded for that field (src). A field a person set in the
+-- app (src 'person', V622) is the person's: no file changes it, and where the file differs the field is returned in
+-- `kept`, so the import lists the difference for that person. Returns the fields to write, the new src and the kept
+-- differences; nothing when the stored row already says it all.
 create function finance.merge_fields(p_old jsonb, p_new jsonb, p_src jsonb, p_time timestamptz)
-returns table (fields jsonb, src jsonb)
+returns table (fields jsonb, src jsonb, kept jsonb)
 language plpgsql immutable set search_path = ''
 as $$
 declare
@@ -174,20 +176,28 @@ declare
   nv jsonb;
   ov jsonb;
   took jsonb := '{}'::jsonb;
+  left_alone jsonb := '{}'::jsonb;
   s jsonb := coalesce(p_src, '{}'::jsonb);
 begin
   for k, nv in select e.key, e.value from pg_catalog.jsonb_each(p_new) e loop
     continue when nv is null or nv = 'null'::jsonb;
     ov := p_old -> k;
     continue when ov = nv;
-    if ov is null or ov = 'null'::jsonb or p_time > coalesce((s ->> k)::timestamptz, '-infinity'::timestamptz) then
+    if s ->> k = 'person' then
+      left_alone := left_alone || pg_catalog.jsonb_build_object(k, nv);
+    elsif ov is null or ov = 'null'::jsonb or p_time > coalesce((s ->> k)::timestamptz, '-infinity'::timestamptz) then
       took := took || pg_catalog.jsonb_build_object(k, nv);
       s := s || pg_catalog.jsonb_build_object(k, p_time);
     end if;
   end loop;
-  return query select took, s;
+  return query select took, s, left_alone;
 end
 $$;
+
+-- Whether a person set any field of a row (or added the row by hand beside the imported ones — `_row`), V622.
+create function finance.by_person(p_src jsonb) returns boolean
+language sql immutable parallel safe set search_path = ''
+as $$ select exists (select 1 from pg_catalog.jsonb_each_text(coalesce(p_src, '{}'::jsonb)) e where e.value = 'person') $$;
 
 -- ================================================================ the door
 -- api.finance_import(file, rows, export time, file name, sha-256, dry run) — `file` is 'invoices' (the invoice export:
@@ -448,6 +458,12 @@ begin
       where i.id = inv;
       touched := true;
     end if;
+    -- a field a person edited stays theirs; the difference is listed for them (V622, D21)
+    if m.kept <> '{}'::jsonb then
+      insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+      values (p_batch, p_no, ref, 'person_edited',
+              (select pg_catalog.string_agg(k, ', ' order by k) from pg_catalog.jsonb_object_keys(m.kept) k), true, p_row);
+    end if;
   end if;
 
   -- the lines: written whole from a newer file; an older one only adds a line the invoice lacks
@@ -465,14 +481,26 @@ begin
         'discount_sar', coalesce(finance.row_text(l, 'discount_sar')::numeric, 0),
         'taxable', coalesce((l ->> 'taxable')::boolean, true), 'total_sar', finance.row_text(l, 'total_sar')::numeric,
         'service_id', (select p.service_id from finance.product p where p.id = finance.product_of(finance.row_text(l, 'product'))));
-      if old.id is null then
+      if old.id is null and exists (select 1 from finance.invoice_line x where x.invoice_id = inv and x.line_no = no
+                                    and x.deleted_at is not null and x.deleted_by <> p_imp) then
+        -- a line a person removed is never brought back (V622, OA12)
+        insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+        values (p_batch, p_no, ref, 'removed_row', 'line ' || no, true, p_row);
+      elsif old.id is not null and finance.by_person(old.src) then
+        -- a line a person edited or added stays as they left it; a difference is listed for them (V622)
+        if (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by', 'updated_at',
+                                             'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
+          insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+          values (p_batch, p_no, ref, 'person_edited', 'line ' || no, true, p_row);
+        end if;
+      elsif old.id is null then
         insert into finance.invoice_line (invoice_id, line_no, product_raw, product_id, name, qty, unit_price, discount_sar,
                                           taxable, total_sar, service_id, created_by)
         select inv, no, x.product_raw, x.product_id, x.name, x.qty, x.unit_price, x.discount_sar, x.taxable, x.total_sar,
                x.service_id, p_imp
         from pg_catalog.jsonb_populate_record(null::finance.invoice_line, lv) x;
         touched := true;
-      elsif lines_newer and (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'created_at', 'created_by',
+      elsif lines_newer and (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by',
                               'updated_at', 'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
         update finance.invoice_line x
         set (product_raw, product_id, name, qty, unit_price, discount_sar, taxable, total_sar, service_id)
@@ -487,7 +515,7 @@ begin
   if lines_newer and pg_catalog.jsonb_array_length(coalesce(p_row -> 'lines', '[]'::jsonb)) > 0 then
     update finance.invoice_line x
     set deleted_at = pg_catalog.now(), deleted_by = p_imp, delete_reason = 'not in the newer Payments export'
-    where x.invoice_id = inv and x.deleted_at is null
+    where x.invoice_id = inv and x.deleted_at is null and not finance.by_person(x.src)
       and x.line_no not in (select coalesce(finance.row_text(e, 'line_no')::int, 0)
                             from pg_catalog.jsonb_array_elements(p_row -> 'lines') e);
     if found then
@@ -604,6 +632,13 @@ begin
     'decided_at', finance.row_text(p_row, 'decided_at')::timestamptz,
     'submitter', finance.row_text(p_row, 'submitter'), 'approver', finance.row_text(p_row, 'approver')));
   select * into cur from finance.expense_line e where e.line_key = key and e.deleted_at is null;
+  if cur.id is null and exists (select 1 from finance.expense_line e where e.line_key = key and e.deleted_at is not null
+                                and e.deleted_by <> p_imp) then
+    -- an expense a person removed is never brought back (V622, OA12)
+    insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
+    values (p_batch, p_no, ref, 'removed_row', p_row ->> 'expense_type', p_row);
+    return 'held';
+  end if;
   if cur.id is null then
     insert into finance.expense_line (invoice_id, line_key, expense_type, status, status_raw, amount_sar, merchant,
                                       id_reference, created_at_src, submitted_at, decided_at, submitter, approver, source,
@@ -625,6 +660,11 @@ begin
       result := 'changed';
     else
       result := 'unchanged';
+    end if;
+    if m.kept <> '{}'::jsonb then
+      insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+      values (p_batch, p_no, ref, 'person_edited',
+              (select pg_catalog.string_agg(k, ', ' order by k) from pg_catalog.jsonb_object_keys(m.kept) k), true, p_row);
     end if;
   end if;
   -- the transaction-level expense status, by the same merge rule

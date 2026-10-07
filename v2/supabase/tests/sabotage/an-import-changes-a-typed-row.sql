@@ -153,6 +153,12 @@ begin
       where i.id = inv;
       touched := true;
     end if;
+    -- a field a person edited stays theirs; the difference is listed for them (V622, D21)
+    if m.kept <> '{}'::jsonb then
+      insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+      values (p_batch, p_no, ref, 'person_edited',
+              (select pg_catalog.string_agg(k, ', ' order by k) from pg_catalog.jsonb_object_keys(m.kept) k), true, p_row);
+    end if;
   end if;
 
   -- the lines: written whole from a newer file; an older one only adds a line the invoice lacks
@@ -170,14 +176,26 @@ begin
         'discount_sar', coalesce(finance.row_text(l, 'discount_sar')::numeric, 0),
         'taxable', coalesce((l ->> 'taxable')::boolean, true), 'total_sar', finance.row_text(l, 'total_sar')::numeric,
         'service_id', (select p.service_id from finance.product p where p.id = finance.product_of(finance.row_text(l, 'product'))));
-      if old.id is null then
+      if old.id is null and exists (select 1 from finance.invoice_line x where x.invoice_id = inv and x.line_no = no
+                                    and x.deleted_at is not null and x.deleted_by <> p_imp) then
+        -- a line a person removed is never brought back (V622, OA12)
+        insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+        values (p_batch, p_no, ref, 'removed_row', 'line ' || no, true, p_row);
+      elsif old.id is not null and finance.by_person(old.src) then
+        -- a line a person edited or added stays as they left it; a difference is listed for them (V622)
+        if (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by', 'updated_at',
+                                             'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
+          insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+          values (p_batch, p_no, ref, 'person_edited', 'line ' || no, true, p_row);
+        end if;
+      elsif old.id is null then
         insert into finance.invoice_line (invoice_id, line_no, product_raw, product_id, name, qty, unit_price, discount_sar,
                                           taxable, total_sar, service_id, created_by)
         select inv, no, x.product_raw, x.product_id, x.name, x.qty, x.unit_price, x.discount_sar, x.taxable, x.total_sar,
                x.service_id, p_imp
         from pg_catalog.jsonb_populate_record(null::finance.invoice_line, lv) x;
         touched := true;
-      elsif lines_newer and (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'created_at', 'created_by',
+      elsif lines_newer and (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by',
                               'updated_at', 'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
         update finance.invoice_line x
         set (product_raw, product_id, name, qty, unit_price, discount_sar, taxable, total_sar, service_id)
@@ -192,7 +210,7 @@ begin
   if lines_newer and pg_catalog.jsonb_array_length(coalesce(p_row -> 'lines', '[]'::jsonb)) > 0 then
     update finance.invoice_line x
     set deleted_at = pg_catalog.now(), deleted_by = p_imp, delete_reason = 'not in the newer Payments export'
-    where x.invoice_id = inv and x.deleted_at is null
+    where x.invoice_id = inv and x.deleted_at is null and not finance.by_person(x.src)
       and x.line_no not in (select coalesce(finance.row_text(e, 'line_no')::int, 0)
                             from pg_catalog.jsonb_array_elements(p_row -> 'lines') e);
     if found then

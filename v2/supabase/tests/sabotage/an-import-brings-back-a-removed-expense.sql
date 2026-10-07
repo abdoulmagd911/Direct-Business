@@ -1,7 +1,7 @@
--- Sabotage: a-blank-expense-status-is-not-ready
--- Breaks: sql:IMP-02
--- Expect: the words through the list; a blank expense status reads issued (V611)
--- A blank expense status in the export is read as pending — "not ready" — instead of issued (V611).
+-- Sabotage: an-import-brings-back-a-removed-expense
+-- Breaks: sql:ROW-01
+-- Expect: and the removed expense
+-- A later import brings back an expense a person removed (V622, OA12).
 create or replace function finance.import_expense(p_batch uuid, p_no int, p_row jsonb, p_time timestamptz, p_imp uuid) returns text
 language plpgsql security definer set search_path = ''
 as $$
@@ -40,7 +40,7 @@ begin
     return 'held';
   end if;
   -- a status word maps through the list; a blank one reads issued — done (V611)
-  st := case when finance.row_text(p_row, 'status') is null then 'pending' else finance.expense_status_of(p_row ->> 'status') end;
+  st := case when finance.row_text(p_row, 'status') is null then 'issued' else finance.expense_status_of(p_row ->> 'status') end;
   if st is null then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'expense_status_unknown', p_row ->> 'status', p_row);
@@ -78,7 +78,7 @@ begin
     'decided_at', finance.row_text(p_row, 'decided_at')::timestamptz,
     'submitter', finance.row_text(p_row, 'submitter'), 'approver', finance.row_text(p_row, 'approver')));
   select * into cur from finance.expense_line e where e.line_key = key and e.deleted_at is null;
-  if cur.id is null and exists (select 1 from finance.expense_line e where e.line_key = key and e.deleted_at is not null
+  if false and exists (select 1 from finance.expense_line e where e.line_key = key and e.deleted_at is not null
                                 and e.deleted_by <> p_imp) then
     -- an expense a person removed is never brought back (V622, OA12)
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)

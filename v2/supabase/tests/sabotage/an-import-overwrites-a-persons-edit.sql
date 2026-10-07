@@ -1,7 +1,7 @@
--- Sabotage: an-older-file-overwrites-a-newer-value
--- Breaks: sql:IMP-01
--- Expect: the newer status stands, the older file filled only the blank branch, the blank total wiped nothing
--- An older file overwrites what a newer one stored (§3.11.6).
+-- Sabotage: an-import-overwrites-a-persons-edit
+-- Breaks: sql:ROW-01
+-- Expect: the newer file lists what it left alone: the edited fields, the removed line, the invoice added by hand
+-- A newer import overwrites a field a person edited in the app (V622, D21).
 create or replace function finance.merge_fields(p_old jsonb, p_new jsonb, p_src jsonb, p_time timestamptz)
 returns table (fields jsonb, src jsonb, kept jsonb)
 language plpgsql immutable set search_path = ''
@@ -18,9 +18,9 @@ begin
     continue when nv is null or nv = 'null'::jsonb;
     ov := p_old -> k;
     continue when ov = nv;
-    if s ->> k = 'person' then
+    if false then
       left_alone := left_alone || pg_catalog.jsonb_build_object(k, nv);
-    elsif ov is null or ov = 'null'::jsonb or true then
+    elsif ov is null or ov = 'null'::jsonb or p_time > coalesce(nullif(s ->> k, 'person')::timestamptz, '-infinity'::timestamptz) then
       took := took || pg_catalog.jsonb_build_object(k, nv);
       s := s || pg_catalog.jsonb_build_object(k, p_time);
     end if;

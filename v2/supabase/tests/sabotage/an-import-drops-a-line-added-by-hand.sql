@@ -1,7 +1,7 @@
--- Sabotage: an-unknown-status-word-is-guessed
--- Breaks: sql:IMP-01
--- Expect: the preview counts five new and three held
--- An unknown Payments status word is read as Fully Paid instead of held (D21).
+-- Sabotage: an-import-drops-a-line-added-by-hand
+-- Breaks: sql:ROW-01
+-- Expect: the removed line stays removed; the line added by hand stays
+-- A newer import removes a line a person added by hand because the file does not have it (V622).
 create or replace function finance.import_invoice(p_batch uuid, p_no int, p_row jsonb, p_time timestamptz, p_imp uuid) returns text
 language plpgsql security definer set search_path = ''
 as $$
@@ -66,9 +66,6 @@ begin
   end if;
   st := finance.status_of(finance.row_text(p_row, 'status'));
   if st.id is null then
-    select * into st from finance.status_map s where s.key = 'fully_paid';
-  end if;
-  if false then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'status_unknown', coalesce(finance.row_text(p_row, 'status'), '(blank)'), p_row);
     return 'held';
@@ -213,7 +210,7 @@ begin
   if lines_newer and pg_catalog.jsonb_array_length(coalesce(p_row -> 'lines', '[]'::jsonb)) > 0 then
     update finance.invoice_line x
     set deleted_at = pg_catalog.now(), deleted_by = p_imp, delete_reason = 'not in the newer Payments export'
-    where x.invoice_id = inv and x.deleted_at is null and not finance.by_person(x.src)
+    where x.invoice_id = inv and x.deleted_at is null
       and x.line_no not in (select coalesce(finance.row_text(e, 'line_no')::int, 0)
                             from pg_catalog.jsonb_array_elements(p_row -> 'lines') e);
     if found then

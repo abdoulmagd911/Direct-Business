@@ -224,6 +224,7 @@ create table finance.invoice_line (
   taxable boolean not null default true,
   total_sar numeric(14, 2) not null,
   service_id uuid references finance.service (id),
+  src jsonb check (src is null or pg_catalog.jsonb_typeof(src) = 'object'),   -- V622: 'person' marks a field (or _row) a person set
   created_at timestamptz not null default now(), created_by uuid not null references core.person (id),
   updated_at timestamptz, updated_by uuid references core.person (id), version int not null default 1,
   deleted_at timestamptz, deleted_by uuid references core.person (id), delete_reason text
