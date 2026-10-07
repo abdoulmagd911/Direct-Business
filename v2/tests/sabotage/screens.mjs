@@ -626,8 +626,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
-        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
+        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
       },
     ],
   },
