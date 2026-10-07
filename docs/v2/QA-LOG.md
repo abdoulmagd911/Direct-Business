@@ -1257,3 +1257,35 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
     - The sign-in page renders at 390 px and 1,440 px, with no sideways scroll, no script errors, no raw keys, and no database call before anyone types.
   - **Not done:** the signed-in half (sign-in, /tasks, Log achievement's categories, the three phone jobs, V509). QA 1 has no production password and may not create an account.
   - **Posted:** the result is on #150.
+
+## Round 69 — 2026-10-07 11:47 (unpaused; the desktop test round on v2/main 289fa46; #175 re-checked at 3a3a1ad)
+
+- **Unpaused** by the owner (Wed 7 Oct, relayed by the Architect at 07:41 UTC on #175). Credit runs out at Thu 8 Oct 14:00 Riyadh, so this round is medium effort with no hourly check-ins.
+- **QA-244 (BLOCKING for merges): NOTE-06 broke when the calendar passed 5 Oct.**
+  - **Where:** main `289fa46` and `3a3a1ad` both give 179 of 185 today. The known reds QA-02/03/04/121/208 fail, plus NOTE-06.
+  - **Cause:** the test's pretend clock sits before the day the database was built, so the dated `notify.kinds_enabled` value that holds `reminder` is not yet in effect. The cause and fix are on #175.
+  - **Fix in flight, twice:** #184 (builder E) and #187 (builder A). One merges and the other closes.
+- **#175 re-check at 3a3a1ad** (main 289fa46 merged in; #149 replaced `my.note_turn_into` and `my.turn_into_inner`).
+  - **Its own changes:** byte-for-byte the ones cleared at 4db3c95, all 14 files.
+  - **The probe:** gives the same answers. A note becomes an achievement; From note shows to the author and not to a manager.
+  - **The integrated pass:** 28/0/7 (main alone: 26/0/8). It includes "a note turned into an achievement has its ACH- number" and "the two link both ways".
+  - **CI:** red only on NOTE-06 (QA-244, not #175's). End-to-end is still running at the time of writing.
+- **The desktop test round (the Architect's JOB 1): 55/0/9.**
+  - **Where it ran:** a local stack from v2/main `289fa46`, the commit production serves. It is not production: QA 1 has no production sign-in, and its cloud rule stands.
+  - **Who:** an admin (in no team), a Commercial member in a team, and a member in no team. Desktop, 1,440 px.
+  - **Levels:** the deferred modules at none; Tasks and KPIs as they are (V605 (6)). The spec is `tests/qa/sweep/15-desktop-round.spec.ts`; run it with `QA_ROUND=1`.
+  - **Log the day:** passes for all three. A capture, a /meeting note, a reminder from a note, and Finish meeting, which logs the meeting on the client.
+  - **Run the tasks:**
+    - **Quick add:** the admin is asked for an owner; the member defaults to themself.
+    - **The rest:** List, Board and Calendar, an action item, Escalate (with its notice) and the Past work grid all pass.
+    - **The member in no team:** gets QA-521's one line.
+  - **Record a win:** passes for all three. The + → Achievement → an ACH- number, shown. The "Logged before?" question works (V531).
+  - **Not built (9):** Turn into offers no task, action item or achievement. The achievement comes with #175; the task with #183.
+  - **New:** QA-245, QA-246 and QA-247 (below).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-244 | 2026-10-07 11:00 | NOTE-06 (#139); V455 | High (merges) | Builder A | **NOTE-06 fails on every database built after 5 Oct 2026.** The test pins `v2.test_now` to 5 Oct. `notify.kinds_enabled` is a dated setting whose value with `reminder` starts on the build day, so on the pretend day `notify.may_notify` is false: the job counts 1 sent and writes no notice. Every PR's two database checks are red, main's included. Production is not affected. **Fix:** the test's clock after the build day (from `now()`, or a far date as in ALR-01). | Fix in flight: #184 (E) and #187 (A), one to merge |
+| QA-245 | 2026-10-07 11:30 | Desktop round; V605 (1), GC-1 cut 3 | Low | Builder B | **The + offers Task to a member in no team, who may not add one.** It opens QA-521's "You're not in a team yet" line. V605 (1) offers Task to whoever may create one, and GC-1 says never an item that does nothing. **Fix:** leave Task out of the + for someone in no team without `tasks.assign`, as Add task's own rule does (`noTeamToWorkIn`). | Open |
+| QA-246 | 2026-10-07 11:30 | Desktop round; V444, V605 (4) and (6) | Low (decision) | Architect | **The admin can never own a task.** For someone in no team, Quick add's owner list holds only people in a team (`quickAddOwners`, `tasks/rules.ts`), and an admin is never in one (V444). So every task the owner's account adds goes to someone else, and its My work stays empty. If V605 (6)'s "the owner logs tasks from his own account" means his own to-dos, that needs a rule. If it means he hands work out, say so in the runbook. | Open — a decision |
+| QA-247 | 2026-10-07 11:30 | Desktop round; V517, V216 | Low | Builder B (words: C) | **The Clients tab reads "Suppliers"** (`nav.suppliers_partners`), while its button reads "New supplier & partner" and V517 calls it "Suppliers & partners". **Fix:** one name. | Open |
