@@ -224,7 +224,9 @@ jobs:
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: node scripts/db/prod-url.mjs
+      # --include-all: a migration production has not had is applied even when it sorts before production's newest
+      # (20261003162500, behind the placeholder 20261006161037); the next step still fails unless the two agree
       - name: apply the migrations production has not had (migrations only — no seed, no vault, no config)
-        run: supabase db push --db-url "$SUPABASE_PROD_DB_URL" --skip-vault --yes
+        run: supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --skip-vault --yes
       - name: production and main hold the same migrations
         run: node scripts/db/prod-sync.mjs --db-url

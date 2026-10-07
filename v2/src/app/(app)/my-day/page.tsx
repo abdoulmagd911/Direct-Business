@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { accountOf } from '@/core/auth/account';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
@@ -25,8 +25,8 @@ export default async function MyDayPage({
 }: {
   searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
 }) {
-  const [t, me, sp] = await Promise.all([getTranslations(), requireMe(), searchParams]);
-  const title = formatDate(new Date(), 'en', { weekday: 'long' });
+  const [t, me, sp, locale] = await Promise.all([getTranslations(), requireMe(), searchParams, getLocale()]);
+  const title = formatDate(new Date(), locale === 'ar' ? 'ar' : 'en', { weekday: 'long' });
   if ((await accountOf(me.person.id)) === 'admin_account')
     return (
       <Page>

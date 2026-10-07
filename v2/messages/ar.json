@@ -833,6 +833,7 @@
     }
   },
   "activity": {
+    "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
         "code_sent": "تم التحقق من البريد"
@@ -911,6 +912,9 @@
     "tabs": {
       "signIn": "تسجيل الدخول"
     },
+    "setting": {
+      "notSet": "غير محدد"
+    },
     "list": {
       "side": "الجانب",
       "status": "الحالة",
@@ -953,7 +957,7 @@
         }
       }
     },
-    "emptyGroup": "لا إعدادات هنا بعد. تصل مع الخطوة التي تبني هذا القسم.",
+    "emptyGroup": "لا شيء لإعداده هنا بعد.",
     "fields": {
       "width": "عدد الخانات",
       "prefix": "البادئة",

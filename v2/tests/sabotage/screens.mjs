@@ -18,18 +18,20 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-white-on-accent',
     breaks: ['check:accent-fill-only'],
-    expect: 'src/ui/Button.tsx',
+    expect: 'src/ui/button-variants.ts',
     edits: [
       {
-        file: 'src/ui/Button.tsx',
+        file: 'src/ui/button-variants.ts',
         find: 'bg-primary text-on-primary hover:bg-primary-hover',
         replace: 'bg-accent text-on-accent hover:bg-accent-hover',
       },
     ],
   },
+
   {
     name: 'plant-stray-ar-key',
     breaks: ['check:i18n-catalogs'],
@@ -42,6 +44,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-hard-coded-sentence',
     breaks: ['check:i18n-catalogs'],
@@ -54,6 +57,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
@@ -68,12 +72,14 @@ export const sabotages = [
     ],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
+
   {
     name: 'blind-ui-no-hints',
     breaks: [unit('the-no-hints-check-refuses-banners-callouts-and-hint-text')],
     expect: 'refuses a hint or banner component',
     edits: [{ file: 'scripts/checks/ui-no-hints.mjs', find: '[COMPONENT, ', replace: '[/$^/g, ' }],
   },
+
   {
     name: 'blind-accent-fill-only',
     breaks: [unit('the-accent-check-refuses-text-in-the-accent-and-labels-on-it')],
@@ -82,6 +88,7 @@ export const sabotages = [
       { file: 'scripts/checks/accent-fill-only.mjs', find: 'if (TEXT_ACCENT.test(line))', replace: 'if (false)' },
     ],
   },
+
   {
     name: 'blind-i18n-catalogs',
     breaks: [unit('the-catalog-check-refuses-a-missing-key-and-a-hard-coded-sentence')],
@@ -90,6 +97,7 @@ export const sabotages = [
       { file: 'scripts/checks/i18n-catalogs.mjs', find: "if (lit.kind !== 'jsx') continue;", replace: 'continue;' },
     ],
   },
+
   {
     name: 'blind-screen-words',
     breaks: [unit('the-screen-words-check-refuses-company-and-margin')],
@@ -103,12 +111,14 @@ export const sabotages = [
     ],
   },
   // ---- tokens: the design system table is the truth
+
   {
     name: 'tokens-drift',
     breaks: ['unit:tests/unit/tokens.test.ts'],
     expect: 'direct --primary',
     edits: [{ file: 'src/ui/tokens.css', find: '--primary: #c94c14;', replace: '--primary: #f06820;' }],
   },
+
   {
     name: 'prefs-accept-anything',
     breaks: ['unit:tests/unit/prefs.test.ts'],
@@ -122,6 +132,7 @@ export const sabotages = [
     ],
   },
   // ---- end to end
+
   {
     name: 'confirm-focuses-remove',
     breaks: ['e2e:tests/e2e/dialogs.spec.ts'],
@@ -134,6 +145,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'panel-ignores-escape',
     breaks: ['e2e:tests/e2e/dialogs.spec.ts'],
@@ -146,6 +158,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'label-on-orange',
     breaks: ['e2e:tests/e2e/kit.spec.ts'],
@@ -158,6 +171,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'nav-shows-every-page',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -186,6 +200,7 @@ export const sabotages = [
     ],
   },
   // ---- P3-7 (V401, FLOW-08): each promise of tests/e2e/p3-7.spec.ts seen red
+
   {
     name: 'conflict-silently-overwrites',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -198,6 +213,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bell-never-marks-read',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -210,12 +226,14 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'follow-does-nothing',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
     expect: 'data-follow][data-following',
     edits: [{ file: 'src/ui/FollowButton.tsx', find: 'p_on: !on }', replace: 'p_on: false }' }],
   },
+
   {
     name: 'restore-never-restores',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -228,6 +246,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bulk-one-request-per-row',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -240,6 +259,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'team-arabic-optional',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -252,6 +272,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'list-arabic-optional',
     breaks: ['e2e:tests/e2e/settings.spec.ts'],
@@ -264,6 +285,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'setting-saves-without-reason',
     breaks: ['e2e:tests/e2e/settings.spec.ts'],
@@ -276,6 +298,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-saves-nothing',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -288,6 +311,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'sign-in-grows-a-google-door',
     breaks: ['e2e:tests/e2e/password.spec.ts'],
@@ -302,6 +326,7 @@ export const sabotages = [
     ],
   },
   // ---- the door (the visual spec of 29 Sep, V213)
+
   {
     name: 'door-offline-reads-as-wrong-password',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -314,6 +339,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'door-eye-shows-nothing',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -326,6 +352,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'door-panel-grows-a-tagline',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -340,6 +367,7 @@ export const sabotages = [
     ],
   },
   // ---- the QA fixes on #92 (My profile reachable, failed reads named, only changed fields sent, Undo resyncs)
+
   {
     name: 'profile-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -352,6 +380,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-keeps-the-undone-value',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -364,6 +393,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -376,6 +406,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'person-edit-sends-every-field',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -388,6 +419,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'person-edit-starts-from-a-stale-copy',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -400,6 +432,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'failed-read-drawn-as-no-access',
     breaks: ['unit:tests/unit/org/a-failed-read-is-named-never-drawn-empty.test.ts'],
@@ -413,6 +446,7 @@ export const sabotages = [
     ],
   },
   // ---- the catalogue gaps (ACC-090/091/127/129/139, PRF-002/123)
+
   {
     name: 'none-gets-an-empty-page',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -425,6 +459,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'root-ignores-the-start-page',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -437,6 +472,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'admins-start-page-ignored',
     breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
@@ -449,6 +485,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'arabic-never-switched-on',
     breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
@@ -461,6 +498,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -473,6 +511,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-link-lost-in-the-drawer',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -485,6 +524,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'failed-read-drawn-as-empty',
     breaks: ['e2e:tests/e2e/person-reads.spec.ts'],
@@ -497,6 +537,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-link-lost-in-the-bottom-bar',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -509,6 +550,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'at-risk-needs-no-reason',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -521,6 +563,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bulk-assign-one-by-one',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -533,6 +576,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'hover-card-shows-one-side',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -545,6 +589,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'no-role-reads-as-allowed',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -557,6 +602,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'not-found-shows-the-raw-path',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -570,6 +616,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'activity-shows-column-names',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -582,6 +629,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'setting-value-shows-the-key',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -594,6 +642,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'account-read-from-kind',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -619,6 +668,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'create-offers-an-unbuilt-screen',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
@@ -631,6 +681,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'access-list-closed-for-admins',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
@@ -643,6 +694,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'list-hides-its-side',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -655,6 +707,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'page-squeezes-its-tabs',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -667,6 +720,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'admin-account-gets-a-day',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -679,6 +733,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'turn-into-offers-a-task-too-soon',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -691,6 +746,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'block-draws-every-row',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -703,6 +759,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'wrap-up-carries-to-a-friday',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -715,6 +772,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'private-note-reads-as-everyone',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -727,6 +785,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'capture-starts-shared',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -739,6 +798,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'wrap-up-defaults-to-done',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -751,6 +811,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'turned-into-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -763,6 +824,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'from-note-chip-hidden',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -775,6 +837,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'record-tabs-lose-their-words',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -787,6 +850,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'mark-seen-keeps-the-block',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -799,6 +863,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'prefsync-copies-the-default-as-a-choice',
     breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
@@ -811,6 +876,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'own-last-email-offers-remove',
     breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
@@ -823,6 +889,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'remove-email-skips-the-ban',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -835,6 +902,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'history-lists-a-field-twice',
     breaks: ['unit:tests/unit/shell/a-request-that-changes-one-field-on-two-records-names-it-once.test.tsx'],
@@ -852,6 +920,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
@@ -864,6 +933,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'add-person-email-allows-autofill',
     breaks: ['e2e:tests/e2e/work-email-fields-turn-autofill-off.spec.ts'],
@@ -877,6 +947,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'suppliers-door-lost-when-clients-none',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
@@ -889,6 +960,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'capped-list-says-nothing',
     breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
@@ -901,6 +973,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'achievement-record-has-no-address',
     breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
@@ -913,6 +986,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-page-no-longer-opens-achievements',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -925,6 +999,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'achievements-short-address-lost',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -937,6 +1012,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'create-offers-achievement-at-full-only',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -949,6 +1025,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-page-not-built-for-create',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -961,6 +1038,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -973,6 +1051,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'task-record-has-no-address',
     breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
@@ -985,6 +1064,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tasks-page-not-built-for-create',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -997,6 +1077,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tasks-built-offers-a-turn-into-nobody-can-take',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -1009,6 +1090,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plus-offers-task-with-no-team-to-work-in',
     breaks: ['unit:tests/unit/shell/the-plus-leaves-out-task-for-someone-with-no-team-to-work-in.test.ts'],
@@ -1021,6 +1103,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tab-title-is-lost',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1033,6 +1116,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'record-title-is-cut-short',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1045,6 +1129,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'breadcrumb-link-is-short',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1057,6 +1142,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'header-breadcrumb-link-is-short',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1069,6 +1155,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tab-is-narrow',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1081,6 +1168,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'past-work-header-switch-is-small',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1093,6 +1181,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'past-work-keeps-empty-columns-on-a-phone',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1105,6 +1194,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'past-work-has-the-layout-switch',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
@@ -1117,6 +1207,150 @@ export const sabotages = [
       },
     ],
   },
+
+  {
+    name: 'page-titles-lost',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'My day · Commercial',
+    edits: [
+      {
+        file: 'src/ui/shell/page-title.ts',
+        find: 'title: (await getTranslations())(key)',
+        replace: "title: 'Commercial'",
+      },
+    ],
+  },
+
+  {
+    name: 'no-access-has-no-way-out',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-no-access-home',
+    edits: [
+      {
+        file: 'src/ui/DataState.tsx',
+        find: '{goHome ? (',
+        replace: '{goHome && false ? (',
+      },
+    ],
+  },
+
+  {
+    name: 'phone-search-too-short',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a finger-sized Search box',
+    edits: [
+      {
+        file: 'src/ui/shell/TopBar.tsx',
+        find: "'flex h-11 min-w-0",
+        replace: "'flex h-[38px] min-w-0",
+      },
+    ],
+  },
+
+  {
+    name: 'setting-default-shows-a-date',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a setting nobody changed says Default',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: "companyRow && companyRow.reason !== 'default'",
+        replace: 'companyRow',
+      },
+    ],
+  },
+
+  {
+    name: 'file-types-without-extensions',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Word (.docx)',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        find: "wordprocessingml.document': 'Word (.docx)'",
+        replace: "wordprocessingml.document': 'Word'",
+      },
+    ],
+  },
+
+  {
+    name: 'list-key-stays-in-the-table',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the key sits behind Details',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: '<details className="rounded-md border border-border px-3 py-2" data-list-details>',
+        replace: '<details open className="rounded-md border border-border px-3 py-2" data-list-details>',
+      },
+    ],
+  },
+
+  {
+    name: 'list-key-needs-typing',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-list-save',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: 'draft.key.trim() ||',
+        replace: 'draft.key.trim() &&',
+      },
+    ],
+  },
+
+  {
+    name: 'settings-empty-group-explains-the-build',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Nothing to set up here yet.',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"emptyGroup": "Nothing to set up here yet."',
+        replace: '"emptyGroup": "No settings here yet. They arrive with the step that builds this area."',
+      },
+    ],
+  },
+
+  {
+    name: 'sign-in-boxes-turn-autofill-off',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Expected: "username"',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: 'autoComplete="username"',
+        replace: 'autoComplete="off"',
+      },
+    ],
+  },
+
+  {
+    name: 'preference-runs-stay-separate',
+    breaks: ['unit:tests/unit/shell/a-run-of-theme-and-density-changes-is-one-row-in-the-log.test.ts'],
+    expect: 'three changes, one row',
+    edits: [
+      {
+        file: 'src/ui/record/history.ts',
+        find: 'if (run.length === 1) {',
+        replace: 'if (run.length >= 1) {',
+      },
+    ],
+  },
+
+  {
+    name: 'activity-delete-has-no-words',
+    breaks: ['unit:tests/unit/shell/the-activity-log-has-words-for-a-deleted-record.test.tsx'],
+    expect: 'a deleted record has words',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '      "delete": "{what} deleted",\n',
+        replace: '',
+      },
+    ],
+  },
+
   {
     name: 'new-supplier-button-says-and-partner',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
