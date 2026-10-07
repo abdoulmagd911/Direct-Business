@@ -19,3 +19,5 @@ my.note.items — a note's checklist rows or a meeting's points [{text, done, ow
 finance.invoice.src — each field's export time from the Payments file it came from, so a newer file wins and an older one only fills blanks (V618) — §3.6, §3.11
 finance.expense_line.src — each field's export time from the Payments expense export it came from (V618) — §3.6, §3.11
 finance.month_close.snapshot — a closed month's counted units as at close, which never changes (V610) — §3.6
+finance.import_batch.counts — what one import did: read, new, changed, unchanged, held (§3.11 io.batch)
+finance.import_held.raw — the held row's own columns as the file gave them, so a person sees exactly what was held (§3.11 io.held)

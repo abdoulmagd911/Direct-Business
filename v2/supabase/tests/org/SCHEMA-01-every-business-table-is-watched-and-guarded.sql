@@ -22,7 +22,8 @@ begin
   where c.relkind in ('r', 'p') and n.nspname = any (test.v2_schemas())
     and format('%s.%s', n.nspname, c.relname) not in ('audit.request', 'audit.change', 'core.counter', 'core.sign_in_log',
       'core.device_session', 'notify.notification', 'notify.follow', 'core.person_last_seen', 'core.person_default_view',
-      'core.auth_ticket')   -- one-time tickets of the admin routes (V162): used once, never changed by a person
+      'core.auth_ticket',   -- one-time tickets of the admin routes (V162): used once, never changed by a person
+      'finance.import_batch', 'finance.import_held')   -- what an import did (§3.11): written once by the import, never changed
     and (not c.relrowsecurity
       or not exists (select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'stamp' and t.tgfoid = 'audit.stamp'::regproc)
       or not exists (select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'capture' and t.tgfoid = 'audit.capture'::regproc)
