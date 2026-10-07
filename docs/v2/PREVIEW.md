@@ -24,7 +24,8 @@ This page is the whole preview: what to prepare, what to show in about 15 minute
 The pilot asks three things of everyone: **log my day, run my tasks, record a win.** Show one job at a time.
 
 1. **Log my day — My day.** The day's list: overdue first, then today. Write a short note from a call, then
-   **Turn into → reminder** (or a logged call). For a meeting, **Finish meeting** logs it on the client.
+   **Turn into → reminder** (or a logged call, or an achievement for a win). For a meeting, **Finish meeting** logs
+   it on the client.
 2. **Run my tasks — Tasks.** **Quick add** a task (title, owner, due date). Switch between **List**, **Board** and
    **Calendar**. Open a task, tick an action item, and show **Escalate** on a stuck one. For managers: **Team** shows
    each person's load.
@@ -48,8 +49,9 @@ The pilot asks three things of everyone: **log my day, run my tasks, record a wi
 From the test round of 7 Oct (QA 1 on desktop, QA 2 at phone width — both on a local copy of the production code;
 nothing blocks the three jobs). Steer around these:
 
-- **Turn into** on a note offers only a call or meeting and a reminder for now; a task and an achievement join
-  shortly (#183, #175). Use **Quick add** for a task and **+ › Log achievement** for a win.
+- **Turn into** on a note offers a call or meeting, a reminder and, since #175 (7 Oct), an **achievement**; a task
+  joins later (#183's database part waits for production's database to be repaired — see #157). Use **Quick add**
+  for a task.
 - A **member in no team** sees Task in the + but cannot add one (QA-245) — another reason every pilot member is in
   a team.
 - The Clients page's second tab reads **Suppliers**; it becomes **Suppliers & partners** (QA-247, V517).
