@@ -386,7 +386,10 @@
             "alert_activity_stale",
             "alert_file_review",
             "reminder",
-            "note_mention"
+            "note_mention",
+            "escalated",
+            "alert_project_no_update",
+            "alert_due_tomorrow"
           ]
         }
       },
@@ -408,7 +411,10 @@
         "alert_activity_stale",
         "alert_file_review",
         "reminder",
-        "note_mention"
+        "note_mention",
+        "escalated",
+        "alert_project_no_update",
+        "alert_due_tomorrow"
       ],
       "effective_dated": false
     },
@@ -596,6 +602,19 @@
       "effective_dated": true
     },
     {
+      "key": "work.project_update_days",
+      "group": "settings.work",
+      "label": "setting.work.project_update_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 90
+      },
+      "default": 14,
+      "effective_dated": true
+    },
+    {
       "key": "work.reminder_days_before_due",
       "group": "settings.work",
       "label": "setting.work.reminder_days_before_due",
@@ -622,6 +641,54 @@
     }
   ],
   "entities": [
+    {
+      "key": "achievement",
+      "table": "perf.achievement",
+      "page": "kpis",
+      "owners": "perf.achievement_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_category",
+      "table": "perf.achievement_category",
+      "page": "settings.performance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_participant",
+      "table": "perf.achievement_participant",
+      "page": "kpis",
+      "owners": "perf.achievement_participant_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "achievement_ref",
+      "table": "perf.achievement_ref",
+      "page": "kpis",
+      "owners": "perf.achievement_ref_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "perf.row_level",
+      "history": false,
+      "rule_only": false
+    },
     {
       "key": "action_item",
       "table": "work.action_item",
@@ -1059,6 +1126,18 @@
       "table": "core.person_team_assist",
       "page": "settings.org",
       "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "plan",
+      "table": "perf.plan",
+      "page": "settings.performance",
+      "owners": null,
       "list": false,
       "private": false,
       "visible": null,

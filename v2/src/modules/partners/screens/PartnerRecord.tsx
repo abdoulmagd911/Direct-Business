@@ -119,6 +119,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         <DataState
           kind={refused ? 'no-access' : 'failed'}
           what={t('entity.partner')}
+          message={refused ? t('partners.noAccess') : undefined}
           onRetry={refresh}
           retryLabel={t('common.tryAgain')}
         />
@@ -669,7 +670,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           history ? (
             <ActivityTimeline rows={history} people={people} onChanged={refresh} />
           ) : (
-            <DataState kind="no-access" what={t('record.activity')} />
+            <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
           )
         ) : null}
         {tab === 'related' ? (

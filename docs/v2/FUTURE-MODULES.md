@@ -1,6 +1,6 @@
 # v2 — future modules (later, not v1)
 
-The modules that come after v1 and the pilot (V70, V517). The full scout specs for modules 1–9 live in the Drive
+The modules that come after v1 and the pilot (V71, V517). The full scout specs for modules 1–9 live in the Drive
 knowledge base, "21 Future modules" (the same text as the Project doc `claude/future-modules.md`); this list keeps
 their numbers so every document uses the same ones. Nothing here is built, planned into a step, or switched on until
 the owner says so. Every module inherits v2's rules (one organisation record with its sides, live names, every change
