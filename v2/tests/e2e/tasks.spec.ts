@@ -157,6 +157,35 @@ for (const w of WIDTHS) {
     await expect(page.locator('[data-blocked-reason]')).toHaveCount(0);
     await ctx.close();
   });
+
+  test(`${w.name}: an admin in no team must pick an owner (V277)`, async ({ browser }) => {
+    const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
+    const owner = await memberWithTeam();
+    const ownerName = `Aa Quick owner ${randomUUID().slice(0, 6)}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [ownerName, owner.id]);
+    const title = `Made-up no-team task ${randomUUID().slice(0, 6)}`;
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height);
+
+    await page.locator('[data-add-task]').click();
+    const form = page.locator('form[data-quick-add]');
+    const pickOwner = form.getByRole('combobox', { name: 'Owner' });
+    await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick an owner');
+    await form.locator('input[name="title"]').fill(title);
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert'), 'saving with no owner says what to do').toHaveText('Pick an owner');
+
+    await pickOwner.click();
+    await expect(page.getByRole('option', { name: 'Default' }), 'Default is not offered').toHaveCount(0);
+    await page.getByRole('option', { name: ownerName, exact: true }).click();
+    await expect(form.getByRole('alert')).toHaveCount(0);
+    await noSidewaysScroll(page, `${w.name} quick add, no team`);
+    await page.screenshot({ path: shot(`tasks-quick-add-no-team-${w.name}`) });
+    await form.locator('button[type="submit"]').click();
+    await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
+    const [task] = await sql<{ owner_id: string }>(`select owner_id from work.task where title = $1`, [title]);
+    expect(task?.owner_id, 'the task is the picked owner’s').toBe(owner.id);
+    await ctx.close();
+  });
 }
 
 test('phone: see what is due today and tick one off (V509)', async ({ browser }) => {
@@ -267,3 +296,177 @@ test('desk and phone: the Past work grid pastes 20 made-up rows as one request w
     await ctx.close();
   }
 });
+
+for (const w of WIDTHS) {
+  test(`${w.name}: an admin in no team pastes rows with no Owner column, picks one owner and saves (V605)`, async ({
+    browser,
+  }) => {
+    const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
+    const owner = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const ownerName = `Aa Past owner ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [ownerName, owner.id]);
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height, '/tasks?view=past');
+    const grid = page.locator('[data-past-work-grid="tasks"]');
+    await expect(grid).toBeVisible();
+    await grid.getByLabel('Source report').click();
+    await page.getByRole('option', { name: 'Commercial quarterly' }).click();
+    await grid.getByLabel('Which report').click();
+    await page.getByRole('option', { name: 'Q3 2026' }).click();
+    const rows = [1, 2, 3].map((i) => [`Made-up no-team past ${tag} ${i}`, `1${i}/07/2026`, 'Done'].join('\t'));
+    await grid.locator('[data-past-work-paste]').fill(['Title\tDate\tStatus', ...rows].join('\n'));
+
+    // no owner yet: the line says what to do, every row waits, and Save is off
+    const picker = page.locator('[data-past-owner]');
+    await expect(picker, 'the panel says how to give the rows an owner').toContainText(
+      'Add an Owner column, or pick an owner for these rows',
+    );
+    await expect(grid.locator('[data-past-work-summary]')).toContainText('0 rows ready · 3 refused');
+    await expect(grid.getByText('Pick an owner').first()).toBeVisible();
+    await expect(grid.locator('[data-past-work-save]'), 'no Save without an owner').toBeDisabled();
+
+    await picker.getByRole('combobox', { name: 'Owner for these rows' }).click();
+    await page.getByRole('option', { name: ownerName, exact: true }).click();
+    await expect(grid.locator('[data-past-work-summary]')).toContainText('3 rows ready · 0 refused');
+    await noSidewaysScroll(page, `${w.name} past work, no team`);
+    await page.screenshot({ path: shot(`tasks-past-work-no-team-${w.name}`), fullPage: true });
+    await grid.locator('[data-past-work-save]').click();
+    await expect(page.locator('[data-sonner-toast]', { hasText: '3 rows saved as past work' })).toBeVisible();
+    const saved = await sql<{ owner_id: string }>(`select owner_id from work.task where title like $1`, [
+      `Made-up no-team past ${tag} %`,
+    ]);
+    expect(
+      saved.map((r) => r.owner_id),
+      'every row is the picked owner’s',
+    ).toEqual([owner.id, owner.id, owner.id]);
+    await ctx.close();
+  });
+}
+
+// ---- P5-2's second PR: Escalate on the task page (V401) and the team's load on Tasks › Team (V91)
+for (const w of WIDTHS) {
+  test(`${w.name}: Escalate tells a colleague about a task, with a note (V401)`, async ({ browser }) => {
+    const member = await memberWithTeam();
+    const colleague = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const colleagueName = `Ab Escalate to ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [colleagueName, colleague.id]);
+    const number = await taskIn('commercial', member.id, `Made-up escalated ${tag}`);
+    const { ctx, page } = await signedIn(browser, member, w.width, w.height, `/tasks/${number}`);
+
+    await page.locator('[data-escalate-open]').click();
+    const form = page.locator('form[data-escalate]');
+    await expect(form).toBeVisible();
+    // a person and a note are both required
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert')).toHaveText('Pick who to tell');
+    await form.getByRole('combobox', { name: 'Escalate to' }).click();
+    await page.getByRole('option', { name: colleagueName, exact: true }).click();
+    await form.locator('button[type="submit"]').click();
+    await expect(form.getByRole('alert')).toHaveText('Write what they need to know');
+    await form.locator('textarea[name="note"]').fill('Made-up: the client has not answered for a week');
+    await noSidewaysScroll(page, `${w.name} escalate`);
+    await page.screenshot({ path: shot(`tasks-escalate-${w.name}`), fullPage: true });
+    await form.locator('button[type="submit"]').click();
+    await expect(page.locator('[data-sonner-toast]', { hasText: `Escalated to ${colleagueName}` })).toBeVisible();
+
+    // the colleague is told, follows the task, and the note is on its timeline
+    const [told] = await sql<{ n: number }>(
+      `select count(*)::int as n from notify.notification n join work.task t on t.id = n.entity_id
+       where n.person_id = $1 and n.kind = 'escalated' and t.number = $2`,
+      [colleague.id, number],
+    );
+    expect(told!.n, 'the colleague is told').toBe(1);
+    const [follows] = await sql<{ n: number }>(
+      `select count(*)::int as n from notify.follow f join work.task t on t.id = f.entity_id
+       where f.person_id = $1 and t.number = $2`,
+      [colleague.id, number],
+    );
+    expect(follows!.n, 'the colleague follows the task').toBe(1);
+    const [note] = await sql<{ body: string }>(
+      `select c.body from core.note c join work.task t on t.id = c.entity_id where c.kind = 'escalation' and t.number = $1`,
+      [number],
+    );
+    expect(note?.body).toBe('Made-up: the client has not answered for a week');
+    await ctx.close();
+  });
+
+  test(`${w.name}: a manager's Team view shows the team's load; a member's does not (V91)`, async ({ browser }) => {
+    const admin = await makePerson({ admin: true }); // gives work to others (tasks.assign)
+    const busy = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const busyName = `Test Load ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [busyName, busy.id]);
+    for (const i of [1, 2, 3]) {
+      const n = await taskIn('commercial', busy.id, `Made-up load ${tag} ${i}`);
+      if (i < 3) await sql(`update work.task set due_on = current_date - 3 where number = $1`, [n]);
+    }
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height, '/tasks?view=team');
+    const card = page.locator(`[data-team-load] [data-load-person="${busyName}"]`);
+    await expect(card, 'the team’s load names the busy colleague').toBeVisible();
+    await expect(card.locator('[data-load-open]')).toHaveText('3 open tasks');
+    await expect(card.locator('[data-load-overdue]')).toHaveText('2 overdue');
+    await noSidewaysScroll(page, `${w.name} team load`);
+    await page.screenshot({ path: shot(`tasks-team-load-${w.name}`), fullPage: true });
+    await ctx.close();
+
+    const member = await signedIn(browser, busy, w.width, w.height, '/tasks?view=team');
+    await expect(member.page.locator('[data-task-rows], [data-tasks-list]').first()).toBeVisible();
+    await expect(member.page.locator('[data-team-load]'), 'a member is shown no load').toHaveCount(0);
+    await member.ctx.close();
+  });
+}
+
+// ---- List / Board / Calendar (§8 Tasks): one view of the same rows
+for (const w of WIDTHS) {
+  test(`${w.name}: the board and the calendar count the same tasks as the list`, async ({ browser }) => {
+    const member = await memberWithTeam();
+    const tag = randomUUID().slice(0, 6);
+    const dueToday = await taskIn('commercial', member.id, `Made-up board today ${tag}`);
+    const started = await taskIn('commercial', member.id, `Made-up board started ${tag}`);
+    await taskIn('commercial', member.id, `Made-up board undated ${tag}`);
+    await sql(`update work.task set due_on = $1 where number = $2`, [riyadhToday(), dueToday]);
+    const { ctx, page } = await signedIn(browser, member, w.width, w.height, '/tasks?view=owned');
+    const listed = await page.locator('li[data-task-row]').count();
+    expect(listed, 'the list shows the three made-up tasks').toBe(3);
+
+    // the board: every listed task in exactly one column; a card's status menu moves it
+    await page.locator('[data-layouts] [data-layout="board"]').click();
+    await expect(page).toHaveURL(/layout=board/);
+    const board = page.locator('[data-task-board]');
+    await expect(board).toBeVisible();
+    const counts = await board
+      .locator('[data-board-column]')
+      .evaluateAll((cols) => cols.map((c) => Number(c.getAttribute('data-count'))));
+    expect(
+      counts.reduce((a, b) => a + b, 0),
+      'the board counts what the list counts',
+    ).toBe(listed);
+    await board.locator(`[data-board-card="${started}"] button[data-task-status]`).click();
+    await page.locator('[data-move="in_progress"]').click();
+    await expect(
+      board.locator(`[data-board-column="in_progress"] [data-board-card="${started}"]`),
+      'the card moves to In progress',
+    ).toBeVisible();
+    await noSidewaysScroll(page, `${w.name} board`);
+    await page.screenshot({ path: shot(`tasks-board-${w.name}`), fullPage: true });
+
+    // the calendar: the dated task on its day, the undated one apart
+    await page.locator('[data-layouts] [data-layout="calendar"]').click();
+    await expect(page).toHaveURL(/layout=calendar/);
+    await expect(
+      page.locator(`[data-calendar-day="${riyadhToday()}"] [data-calendar-task="${dueToday}"]`),
+      'the task due today is on today',
+    ).toBeVisible();
+    await expect(page.locator('[data-calendar-undated]')).toContainText('2 tasks with no due day');
+    await noSidewaysScroll(page, `${w.name} calendar`);
+    await page.screenshot({ path: shot(`tasks-calendar-${w.name}`), fullPage: true });
+    // the month after holds none of them, and Back to the list keeps the view
+    await page.locator('[data-calendar-next]').click();
+    await expect(page.locator(`[data-calendar-task="${dueToday}"]`)).toHaveCount(0);
+    await page.locator('[data-layouts] [data-layout="list"]').click();
+    await expect(page).toHaveURL(/view=owned$/);
+    await expect(page.locator('li[data-task-row]')).toHaveCount(listed);
+    await ctx.close();
+  });
+}
