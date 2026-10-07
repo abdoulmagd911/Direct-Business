@@ -593,7 +593,9 @@ a follower, and writes the note to the timeline and the change log in one reques
   help; it shows on the person's My day under **Needs you**; the answer is written to the record's Activity and the
   change log and closes it; only the asker, the person asked and anyone the asker names read it (V524's rule); after
   `my.ask_reminder_days` (default 2 working days) unanswered, the asker may ask again or ask someone else. When built,
-  Escalate becomes its "decision, to a manager" kind. Until then the stopgap is Escalate plus a V524 note.
+  Escalate becomes its "decision, to a manager" kind. That kind keeps Escalate's own reach (V96) and records, and
+  V69's challenge fields stay as they are. Only feedback and help Asks are restricted (QA-522). Until then the
+  stopgap is Escalate plus a V524 note.
 - **A follow-up task from an alert** (V401): when the 45-day unpaid-invoice alert fires, the job also creates one task
   for the client's account manager (origin `alert`, linked to the invoice), once per invoice.
 
