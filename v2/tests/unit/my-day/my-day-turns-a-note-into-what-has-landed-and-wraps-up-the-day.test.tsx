@@ -21,6 +21,7 @@ import {
   openCaptures,
   parseCapture,
   turnLive,
+  TURN_READY,
   wrapUpChoices,
   liveKinds,
 } from '../../../src/modules/my-day/logic';
@@ -97,6 +98,10 @@ describe('Turn into', () => {
     expect(turnLive('task', new Set(['tasks.turn_into']))).toBe(true);
     expect(turnLive('action_item', new Set(['tasks.turn_into']))).toBe(true);
     expect(turnLive('achievement', new Set(['kpis.turn_into']))).toBe(true);
+  });
+  it('the achievement Turn into is switched on: its dialog and its door are in (V381, QA-517)', () => {
+    expect(TURN_READY.has('kpis.turn_into'), 'the achievement Turn into is switched on').toBe(true);
+    expect(liveKinds(new Set(TURN_READY))).toEqual(['activity', 'reminder', 'achievement']);
   });
 });
 

@@ -473,6 +473,10 @@
         "askAdmin": "Ask an admin to open it.",
         "opened": "The {year} plan is open",
         "noDepartment": "Your account has no department yet. Ask an admin to set it."
+      },
+      "fromNote": {
+        "title": "Achievement from note",
+        "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       }
     },
     "beingBuilt": "Being built.",
