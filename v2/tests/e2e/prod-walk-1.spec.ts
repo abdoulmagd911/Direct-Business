@@ -68,7 +68,7 @@ test('a setting nobody changed says Default (W45)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/settings/work');
   await hydrated(page);
-  const card = page.locator('[data-setting="work.no_update_days"]');
+  const card = page.locator('[data-setting="work.reminder_days_before_due"]');
   await expect(card, 'a setting nobody changed says Default').toContainText('Default');
   await expect(card).not.toContainText('Applies from');
 });
