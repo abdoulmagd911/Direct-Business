@@ -30,7 +30,7 @@ export type NoteItem = { text: string; done: boolean; owner_id?: string | null; 
 
 /** What a note was turned into (my.note_link), live and visible to the reader: a logged call or meeting, or a reminder. */
 export type NoteLink = {
-  entity: 'activity' | 'reminder';
+  entity: 'activity' | 'reminder' | 'achievement';
   id: string;
   made_at: string;
   made_by: string;
