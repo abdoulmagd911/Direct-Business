@@ -727,6 +727,7 @@
     "invoice_line": "بند الفاتورة",
     "billing_link": "ربط الفاتورة المجمعة",
     "billing_proposal": "اقتراح ربط الفاتورة المجمعة",
+    "import_difference": "اختلاف عن الاستيراد",
     "expense_line": "مصروف",
     "tax_invoice": "فاتورة ضريبية",
     "credit_split": "توزيع الإسناد",

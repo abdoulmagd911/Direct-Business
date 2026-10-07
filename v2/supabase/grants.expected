@@ -62,6 +62,9 @@ function api.file_review_set(p_id uuid, p_review_on date, p_version integer) exe
 function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
+function api.finance_difference_counts() execute authenticated
+function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
+function api.finance_differences(p_invoice uuid) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
@@ -286,6 +289,9 @@ function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_sh
 function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
+function finance.difference_counts() execute authenticated
+function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
+function finance.differences(p_invoice uuid) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.month_close_do(p_month date, p_note text) execute authenticated
 function finance.proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated

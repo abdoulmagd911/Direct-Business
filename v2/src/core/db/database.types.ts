@@ -173,6 +173,33 @@ export type Database = {
         Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
         Returns: Json;
       };
+      finance_difference_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          differences: number;
+          invoice_id: string;
+        }[];
+      };
+      finance_difference_decide: {
+        Args: { p_choice: string; p_id: string; p_reason?: string; p_version: number };
+        Returns: Json;
+      };
+      finance_differences: {
+        Args: { p_invoice?: string };
+        Returns: {
+          field: string;
+          from_import: string;
+          id: string;
+          import_time: string;
+          invoice_id: string;
+          invoice_ref: string;
+          line_no: number;
+          mine: string;
+          row_id: string;
+          row_table: string;
+          version: number;
+        }[];
+      };
       finance_import: {
         Args: {
           p_dry_run?: boolean;

@@ -158,6 +158,7 @@ begin
       insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
       values (p_batch, p_no, ref, 'person_edited',
               (select pg_catalog.string_agg(k, ', ' order by k) from pg_catalog.jsonb_object_keys(m.kept) k), true, p_row);
+      perform finance.note_differences('invoice', inv, inv, m.kept, p_time, p_batch, p_imp);
     end if;
   end if;
 
@@ -182,12 +183,37 @@ begin
         insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
         values (p_batch, p_no, ref, 'removed_row', 'line ' || no, true, p_row);
       elsif old.id is not null and finance.by_person(old.src) then
-        -- a line a person edited or added stays as they left it; a difference is listed for them (V622)
-        if (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by', 'updated_at',
-                                             'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
-          insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
-          values (p_batch, p_no, ref, 'person_edited', 'line ' || no, true, p_row);
-        end if;
+        -- a line a person edited or added: the fields they set stay theirs (every field of a line they added) and each
+        -- difference is listed for them; the line's other fields follow a newer file (V622)
+        declare
+          k text;
+          nv jsonb;
+          took jsonb := '{}'::jsonb;
+          theirs jsonb := '{}'::jsonb;
+        begin
+          for k, nv in select e.key, e.value from pg_catalog.jsonb_each(lv) e loop
+            continue when nv is null or nv = 'null'::jsonb or pg_catalog.to_jsonb(old) -> k = nv;
+            if old.src ->> '_row' = 'person' or old.src ->> k = 'person' then
+              theirs := theirs || pg_catalog.jsonb_build_object(k, nv);
+            elsif lines_newer then
+              took := took || pg_catalog.jsonb_build_object(k, nv);
+            end if;
+          end loop;
+          if took <> '{}'::jsonb then
+            update finance.invoice_line x
+            set (product_raw, product_id, name, qty, unit_price, discount_sar, taxable, total_sar, service_id)
+                = (select y.product_raw, y.product_id, y.name, y.qty, y.unit_price, y.discount_sar, y.taxable, y.total_sar,
+                          y.service_id from pg_catalog.jsonb_populate_record(x, took) y),
+                updated_at = pg_catalog.now(), updated_by = p_imp, version = x.version + 1
+            where x.id = old.id;
+            touched := true;
+          end if;
+          if theirs <> '{}'::jsonb then
+            insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
+            values (p_batch, p_no, ref, 'person_edited', 'line ' || no, true, p_row);
+            perform finance.note_differences('invoice_line', old.id, inv, theirs, p_time, p_batch, p_imp);
+          end if;
+        end;
       elsif old.id is null then
         insert into finance.invoice_line (invoice_id, line_no, product_raw, product_id, name, qty, unit_price, discount_sar,
                                           taxable, total_sar, service_id, created_by)

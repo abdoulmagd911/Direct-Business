@@ -1,7 +1,7 @@
--- Sabotage: an-unknown-status-word-is-guessed
--- Breaks: sql:IMP-01
--- Expect: the preview counts five new and three held
--- An unknown Payments status word is read as Fully Paid instead of held (D21).
+-- Sabotage: a-line-edit-freezes-the-whole-line
+-- Breaks: sql:ROW-02
+-- Expect: the line keeps the name the person set; its other fields follow the newer file
+-- A person's edit of one field freezes the whole line against newer files (V622: only the fields they set are theirs).
 create or replace function finance.import_invoice(p_batch uuid, p_no int, p_row jsonb, p_time timestamptz, p_imp uuid) returns text
 language plpgsql security definer set search_path = ''
 as $$
@@ -66,9 +66,6 @@ begin
   end if;
   st := finance.status_of(finance.row_text(p_row, 'status'));
   if st.id is null then
-    select * into st from finance.status_map s where s.key = 'fully_paid';
-  end if;
-  if false then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'status_unknown', coalesce(finance.row_text(p_row, 'status'), '(blank)'), p_row);
     return 'held';
@@ -198,7 +195,7 @@ begin
             continue when nv is null or nv = 'null'::jsonb or pg_catalog.to_jsonb(old) -> k = nv;
             if old.src ->> '_row' = 'person' or old.src ->> k = 'person' then
               theirs := theirs || pg_catalog.jsonb_build_object(k, nv);
-            elsif lines_newer then
+            elsif false then
               took := took || pg_catalog.jsonb_build_object(k, nv);
             end if;
           end loop;

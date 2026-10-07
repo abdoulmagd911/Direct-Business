@@ -803,6 +803,7 @@
     "invoice_line": "Invoice line",
     "billing_link": "Billing link",
     "billing_proposal": "Billing proposal",
+    "import_difference": "Difference from import",
     "expense_line": "Expense",
     "tax_invoice": "Tax invoice",
     "credit_split": "Credit split",

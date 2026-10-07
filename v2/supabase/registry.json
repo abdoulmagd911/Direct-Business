@@ -1030,6 +1030,18 @@
       "rule_only": false
     },
     {
+      "key": "import_difference",
+      "table": "finance.import_difference",
+      "page": "finance",
+      "owners": "finance.import_difference_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "individual_name",
       "table": "partner.individual_name",
       "page": "clients",

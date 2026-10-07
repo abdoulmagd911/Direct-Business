@@ -34,6 +34,7 @@ export default defineModule({
         ['invoice_line', 'finance.invoice_line'],
         ['billing_link', 'finance.billing_link'],
         ['billing_proposal', 'finance.billing_proposal'],
+        ['import_difference', 'finance.import_difference'],
         ['expense_line', 'finance.expense_line'],
         ['tax_invoice', 'finance.tax_invoice'],
         ['credit_split', 'finance.credit_split'],

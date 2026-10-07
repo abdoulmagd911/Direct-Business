@@ -111,6 +111,7 @@ begin
       insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
       values (p_batch, p_no, ref, 'person_edited',
               (select pg_catalog.string_agg(k, ', ' order by k) from pg_catalog.jsonb_object_keys(m.kept) k), true, p_row);
+      perform finance.note_differences('expense_line', cur.id, cur.invoice_id, m.kept, p_time, p_batch, p_imp);
     end if;
   end if;
   -- the transaction-level expense status, by the same merge rule
