@@ -787,7 +787,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             summarize={summarizeWith(org, locale, (name) => t('activity.reportsTo', { name }))}
           />
         ) : (
-          (failedRead('history', t('record.activity')) ?? <DataState kind="no-access" what={t('record.activity')} />)
+          (failedRead('history', t('record.activity')) ?? (
+            <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPerson')} />
+          ))
         )
       ) : null}
       {tab === 'related' ? (

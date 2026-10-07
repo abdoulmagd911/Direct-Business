@@ -54,4 +54,77 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-offers-no-categories',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'the seven starting categories',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: 'const live = categories.filter((c) => c.active);',
+        replace: 'const live = categories.filter(() => false);',
+      },
+    ],
+  },
+  {
+    name: 'no-plan-offers-no-way-on',
+    breaks: ['e2e:tests/e2e/achievements.spec.ts'],
+    expect: 'an admin opens the plan here',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{!department.id ? null : false ? (',
+      },
+    ],
+  },
+  {
+    name: 'note-turns-into-no-achievement',
+    breaks: ['e2e:tests/e2e/achievements-from-note.spec.ts'],
+    expect: 'Achievement from note opens from Turn into',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NotePage.tsx',
+        find: "open={turning === 'achievement'}",
+        replace: 'open={false}',
+      },
+    ],
+  },
+  {
+    name: 'achievement-forgets-its-note',
+    breaks: ['e2e:tests/e2e/achievements-from-note.spec.ts'],
+    expect: 'the achievement says it came from the note',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: '{data.fromNote ? <FromNoteChip note={data.fromNote} /> : null}',
+        replace: '{null}',
+      },
+    ],
+  },
+  {
+    // V381: the achievement's Turn into flag is set once its dialog and its door are in; without it the menu leaves it out
+    name: 'achievement-turn-into-waits-on-a-flag-nobody-sets',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'the achievement Turn into is switched on',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "new Set(['kpis.turn_into'])",
+        replace: 'new Set<string>([])',
+      },
+    ],
+  },
+  {
+    name: 'no-department-offers-a-dead-button',
+    breaks: ['unit:tests/unit/achievements/log-says-what-to-fix-when-there-is-no-plan.test.tsx'],
+    expect: 'no Open button without a department',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/LogAchievement.tsx',
+        find: '{!department.id ? null : canOpenPlan ? (',
+        replace: '{canOpenPlan ? (',
+      },
+    ],
+  },
 ];
