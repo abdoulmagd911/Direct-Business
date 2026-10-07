@@ -265,6 +265,18 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
+  // in a team: someone in no team without tasks.assign is not offered Task in the + (QA-245)
+  await sql(
+    `insert into core.team (department_id, code, name_en, name_ar, created_by)
+     values ((select id from core.department where code = 'commercial'), 'test_create', 'Test create team', 'فريق تجريبي', $1)
+     on conflict (department_id, code) do nothing`,
+    [member.id],
+  );
+  await sql(
+    `update core.person set team_id = (select t.id from core.team t join core.department d on d.id = t.department_id
+                                       where d.code = 'commercial' and t.code = 'test_create') where id = $1`,
+    [member.id],
+  );
   await sql(
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
      values ($1, 'clients', 'view', 'Made up: clients read only', $1),

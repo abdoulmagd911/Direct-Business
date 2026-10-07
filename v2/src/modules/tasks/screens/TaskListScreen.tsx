@@ -171,7 +171,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                 })),
               )
             : null}
-        <LayoutSwitch filters={f} />
+        {f.scope === 'past' ? null : <LayoutSwitch filters={f} />}
       </div>
 
       {data.load !== undefined ? <TeamLoadPanel load={data.load} /> : null}

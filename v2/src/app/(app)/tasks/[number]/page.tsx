@@ -8,6 +8,9 @@ import { TaskRecord } from '@/modules/tasks/screens/TaskRecord';
 import type { TaskDetail, TaskList } from '@/modules/tasks/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.tasks');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NUMBER = /^TSK-\d{4}-\d{4,}$/;

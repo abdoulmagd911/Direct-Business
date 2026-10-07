@@ -11,6 +11,9 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.my_day');
 
 /** What `?more=1` reads: the first block is 7 notes, the rest a person keeps open is a few dozen. */
 const ALL = 100;
