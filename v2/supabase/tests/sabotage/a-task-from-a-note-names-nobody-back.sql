@@ -18,6 +18,10 @@ declare
   what text;
   t text := coalesce(nullif(v ->> 'type', ''), case when n.kind = 'meeting' then 'meeting' else 'call' end);
   r jsonb;
+  with_items boolean := false;
+  p jsonb;
+  ai jsonb;
+  made jsonb := '[]'::jsonb;
 begin
   if p_kind = 'activity' then
     if t not in ('call', 'meeting') then
@@ -59,6 +63,17 @@ begin
     insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'core.reminder', rid);
     return pg_catalog.jsonb_build_object('id', rid, 'entity', 'reminder', 'remind_at', at);
   elsif p_kind = 'task' then
+    -- When asked (`action_items`: true), the note's checklist rows become the task's action items, in order, in the
+    -- same request: each keeps its text, owner and due day under the task door's rules, a ticked row is a done
+    -- item, and each shows the note it came from. Unasked, nothing else is made (V602). A task from one row
+    -- (`item`) brings no others.
+    if v ? 'action_items' then
+      if pg_catalog.jsonb_typeof(v -> 'action_items') <> 'boolean' or (v ? 'item' and (v ->> 'action_items')::boolean)
+      then
+        raise exception using errcode = 'P0001', message = 'common.invalid', detail = 'action_items';
+      end if;
+      with_items := (v ->> 'action_items')::boolean;
+    end if;
     -- Through the task's own door: its title the note's title (else its first words), its notes the note's words, its
     -- organisation the meeting's unless named, dated the day the note was captured. One checklist row (`item`, its place)
     -- gives the title alone, with the row's owner and due day. Whoever the note mentions and may see the task is
@@ -74,7 +89,8 @@ begin
            'due_on', r ->> 'due_on',
            'partner_id', pid,
            'happened_on', n.happened_on,
-           'origin', case when n.kind = 'meeting' then 'meeting' else 'manual' end)) || (v - 'partner_id' - 'item'));
+           'origin', case when n.kind = 'meeting' then 'meeting' else 'manual' end))
+         || (v - 'partner_id' - 'item' - 'action_items'));
     rid := (a ->> 'id')::uuid;
     select pg_catalog.array_agg(m.person_id order by m.created_at, m.person_id)
              filter (where authz.can_see_as(m.person_id, 'work.task', rid) and work.person_ok(m.person_id)),
@@ -86,7 +102,20 @@ begin
       perform core.note_add('task', rid, 'comment', my.note_text(n), n.happened_on, carried);
     end if;
     insert into my.note_link (note_id, entity_table, entity_id) values (n.id, 'work.task', rid);
-    return a || pg_catalog.jsonb_build_object('entity', 'task', 'mentions_left_out', '[]'::jsonb);
+    if with_items then
+      for p in select x from pg_catalog.jsonb_array_elements(n.items) with ordinality e(x, o) order by o loop
+        ai := work.action_item_add(rid, pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
+                'text', p ->> 'text', 'owner_id', p ->> 'owner_id', 'due_on', p ->> 'due_on',
+                'happened_on', n.happened_on)));
+        insert into my.note_link (note_id, entity_table, entity_id)
+        values (n.id, 'work.action_item', (ai ->> 'id')::uuid);
+        if coalesce((p ->> 'done')::boolean, false) then
+          perform work.action_item_done((ai ->> 'id')::uuid, true, n.happened_on);
+        end if;
+        made := made || pg_catalog.jsonb_build_array(ai ->> 'id');
+      end loop;
+    end if;
+    return a || pg_catalog.jsonb_build_object('entity', 'task', 'action_item_ids', made, 'mentions_left_out', '[]'::jsonb);
   elsif p_kind = 'action_item' then
     -- On a task the caller may change: its text the note's first words (or one checklist row's, with its owner and due
     -- day), owned as the task's door decides unless named; whoever the note mentions and may see the task helps on it.
