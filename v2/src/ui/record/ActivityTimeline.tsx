@@ -155,19 +155,28 @@ export function ActivityTimeline({
                   <li className="rounded-sm bg-surface px-1.5 py-0.5">{t('activity.fieldsCount', { count: total })}</li>
                 </ul>
               );
-            const chips = changed.flatMap((c) =>
-              c.fields.map((f) => {
+            // One chip per field: a request that changes the same field on two records (a person's two emails) says
+            // the field once, with each distinct before → after (QA-190)
+            const byField = new Map<string, string[]>();
+            for (const c of changed)
+              for (const f of c.fields) {
                 const before = record(c.before)?.[f];
                 const after = record(c.after)?.[f];
                 const shown = before !== undefined || after !== undefined;
-                return (
-                  <li key={`${c.id}-${f}`} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
-                    {fieldLabel(f)}
-                    {shown ? `: ${valueWords(f, before)} → ${valueWords(f, after)}` : ''}
-                  </li>
-                );
-              }),
-            );
+                const said = shown ? `${valueWords(f, before)} → ${valueWords(f, after)}` : '';
+                const seen = byField.get(f) ?? [];
+                if (!seen.includes(said)) seen.push(said);
+                byField.set(f, seen);
+              }
+            const chips = [...byField].map(([f, values]) => {
+              const said = values.filter(Boolean).join(' · ');
+              return (
+                <li key={f} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
+                  {fieldLabel(f)}
+                  {said ? `: ${said}` : ''}
+                </li>
+              );
+            });
             return (
               <ul className="flex flex-wrap gap-1.5 pt-0.5 text-xs text-muted">
                 {chips.slice(0, MAX_CHIPS)}
