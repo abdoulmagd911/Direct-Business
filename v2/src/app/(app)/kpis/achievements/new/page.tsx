@@ -7,6 +7,9 @@ import type { Category } from '@/modules/perf/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('pages.achievements.title');
 
 type ListEntry = { key: string; name_en: string; name_ar: string };
 

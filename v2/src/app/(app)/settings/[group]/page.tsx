@@ -13,6 +13,12 @@ import { PageHeader } from '@/ui/PageHeader';
 import { isAdmin } from '@/ui/shell/nav';
 import { Page } from '@/ui/shell/Page';
 
+export async function generateMetadata({ params }: { params: Promise<{ group: string }> }) {
+  const { group } = await params;
+  const def = settingsGroups().find((g) => g.slug === group);
+  return def ? { title: (await getTranslations())(def.label) } : {};
+}
+
 /**
  * A Settings group (V97: admins only — anyone else is refused by address, in words). The group's settings and lists
  * come from the database (api.settings, api.list); Organization & access carries its own tab row.

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TIME_ZONE } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { cn } from '@/ui/cn';
 import { StatusChip } from '@/ui/Chip';
 import { Textarea } from '@/ui/Input';
 import { Select, type SelectOption } from '@/ui/Select';
@@ -205,6 +206,9 @@ function useLookup<V>(
   return [known, learn];
 }
 
+/** A preview cell: tighter on a phone, so the Title column keeps the spare width (QA 7 Oct). */
+const CELL = 'px-2 py-2 sm:px-3';
+
 /**
  * The Past work grid (P5-2c; V400): paste rows from a spreadsheet, check how their columns map, see every row that
  * will be refused and why, then save the rest as one request — Backfilled, no notices, one Undo.
@@ -239,6 +243,11 @@ export function PastWorkGrid(props: PastWorkGridProps) {
     () => own ?? fit(remembered, width) ?? guessMapping(table, fields),
     [own, remembered, width, table, fields],
   );
+  /** On a phone an optional column the paste does not hold is left out of the preview (the Title keeps the width). */
+  const hideIfEmpty = (f: Field) =>
+    (f === 'organisation' || f === 'notes' || f === 'value') && mapping.columns[f] == null
+      ? 'max-sm:hidden'
+      : undefined;
   const setMapping = (m: Mapping) => {
     setOwn(m);
     props.onMappingChange?.(m);
@@ -391,6 +400,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
           <div className="flex flex-wrap items-end gap-3" data-past-work-mapping>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox
+                className="size-6"
                 label={labels.hasHeader}
                 checked={mapping.hasHeader}
                 onCheckedChange={(v) => setMapping({ ...mapping, hasHeader: v })}
@@ -428,13 +438,17 @@ export function PastWorkGrid(props: PastWorkGridProps) {
             <table className="w-full text-sm" data-past-work-preview>
               <thead className="bg-surface text-muted">
                 <tr>
-                  <th className="px-3 py-2 text-start font-medium">{labels.line}</th>
+                  <th className={cn(CELL, 'text-start font-medium')}>{labels.line}</th>
                   {fields.map((f) => (
-                    <th key={f} className="px-3 py-2 text-start font-medium">
+                    <th
+                      key={f}
+                      className={cn(CELL, 'text-start font-medium', f === 'title' && 'w-full min-w-24', hideIfEmpty(f))}
+                      data-column={f}
+                    >
                       {labels.fields[f]}
                     </th>
                   ))}
-                  <th className="px-3 py-2 text-start font-medium" />
+                  <th className={cn(CELL, 'text-start font-medium')} />
                 </tr>
               </thead>
               <tbody>
@@ -446,17 +460,17 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                     data-ready={!r.problems.length}
                     data-updates-saved={r.updatesSaved || undefined}
                   >
-                    <td className="px-3 py-2 font-data text-muted">{r.line}</td>
-                    <td className="px-3 py-2">{r.title}</td>
-                    <td className="px-3 py-2" data-date-from-report={r.dateFromReport || undefined}>
+                    <td className={cn(CELL, 'font-data text-muted')}>{r.line}</td>
+                    <td className={CELL}>{r.title}</td>
+                    <td className={CELL} data-date-from-report={r.dateFromReport || undefined}>
                       <span className="font-data">{r.happenedOn ?? ''}</span>
                       {r.dateFromReport ? <span className="ms-2 text-muted">{labels.fromReport}</span> : null}
                     </td>
-                    <td className="px-3 py-2">{choiceName(r.kind)}</td>
-                    <td className="px-3 py-2">{r.organisation?.name ?? ''}</td>
-                    <td className="px-3 py-2 text-muted">{r.notes ?? ''}</td>
+                    <td className={CELL}>{choiceName(r.kind)}</td>
+                    <td className={cn(CELL, hideIfEmpty('organisation'))}>{r.organisation?.name ?? ''}</td>
+                    <td className={cn(CELL, 'text-muted', hideIfEmpty('notes'))}>{r.notes ?? ''}</td>
                     {props.resolvePeople ? (
-                      <td className="px-3 py-2" data-owner-unknown={r.person?.unknown ?? undefined}>
+                      <td className={CELL} data-owner-unknown={r.person?.unknown ?? undefined}>
                         {r.person?.unknown ? (
                           <StatusChip tone="warning">
                             {labels.ownerUnknown?.[r.person.unknown] ?? r.person.name}
@@ -467,11 +481,11 @@ export function PastWorkGrid(props: PastWorkGridProps) {
                       </td>
                     ) : null}
                     {offersValue ? (
-                      <td className="px-3 py-2 font-data" data-value>
+                      <td className={cn(CELL, 'font-data', hideIfEmpty('value'))} data-value>
                         {r.value ?? ''}
                       </td>
                     ) : null}
-                    <td className="px-3 py-2">
+                    <td className={CELL}>
                       {r.problems.length ? (
                         <ul className="flex flex-col gap-0.5 text-danger" data-problems={r.problems.join(' ')}>
                           {r.problems.map((p) => (
