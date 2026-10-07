@@ -626,8 +626,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
-        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
+        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
       },
     ],
   },
@@ -836,6 +836,23 @@ export const sabotages = [
     ],
   },
   {
+    name: 'history-lists-a-field-twice',
+    breaks: ['unit:tests/unit/shell/a-request-that-changes-one-field-on-two-records-names-it-once.test.tsx'],
+    expect: 'one chip for the field',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'const seen = byField.get(f) ?? [];',
+        replace: 'const seen = byField.get(`${c.id}-${f}`) ?? [];',
+      },
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'byField.set(f, seen);',
+        replace: 'byField.set(`${c.id}-${f}`, seen);',
+      },
+    ],
+  },
+  {
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
     expect: 'no-access',
@@ -844,6 +861,19 @@ export const sabotages = [
         file: 'src/modules/partners/screens/list-page.tsx',
         find: "if ((me.levels[page] ?? 'none') === 'none')",
         replace: 'if (!me)',
+      },
+    ],
+  },
+  {
+    name: 'add-person-email-allows-autofill',
+    breaks: ['e2e:tests/e2e/work-email-fields-turn-autofill-off.spec.ts'],
+    expect: "Add person's Work email turns autofill off",
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n              autoComplete="off"\n',
+        replace:
+          '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n',
       },
     ],
   },
@@ -976,6 +1006,114 @@ export const sabotages = [
         file: 'src/modules/my-day/logic.ts',
         find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
         replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
+      },
+    ],
+  },
+  {
+    name: 'plus-offers-task-with-no-team-to-work-in',
+    breaks: ['unit:tests/unit/shell/the-plus-leaves-out-task-for-someone-with-no-team-to-work-in.test.ts'],
+    expect: 'Task is not offered to someone with no team to work in',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: ' && !a.except?.(me),',
+        replace: ',',
+      },
+    ],
+  },
+  {
+    name: 'tab-title-is-lost',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'is titled with its page',
+    edits: [
+      {
+        file: 'src/ui/shell/page-title.ts',
+        find: '({ title: (await getTranslations())(key) })',
+        replace: '({})',
+      },
+    ],
+  },
+  {
+    name: 'record-title-is-cut-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the title wraps to a second line',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'className="line-clamp-2 break-words text-3xl',
+        replace: 'className="truncate text-3xl',
+      },
+    ],
+  },
+  {
+    name: 'breadcrumb-link-is-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'a breadcrumb link is 24 px or taller',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        replace: 'className="hover:underline"',
+      },
+    ],
+  },
+  {
+    name: 'header-breadcrumb-link-is-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'a header breadcrumb link is 24 px or taller',
+    edits: [
+      {
+        file: 'src/ui/PageHeader.tsx',
+        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        replace: 'className="hover:underline"',
+      },
+    ],
+  },
+  {
+    name: 'tab-is-narrow',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the Me tab is 24 px wide or more',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: 'inline-flex min-w-6 items-center justify-center whitespace-nowrap',
+        replace: 'inline-flex items-center whitespace-nowrap',
+      },
+    ],
+  },
+  {
+    name: 'past-work-header-switch-is-small',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the header switch is 24 px wide or more',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'className="size-6"',
+        replace: 'className="size-5"',
+      },
+    ],
+  },
+  {
+    name: 'past-work-keeps-empty-columns-on-a-phone',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the Title column gets the spare width',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: "? 'max-sm:hidden'",
+        replace: '? undefined',
+      },
+    ],
+  },
+  {
+    name: 'past-work-has-the-layout-switch',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'Past work has no List / Board / Calendar switch',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "{f.scope === 'past' ? null : <LayoutSwitch filters={f} />}",
+        replace: '<LayoutSwitch filters={f} />',
       },
     ],
   },

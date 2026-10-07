@@ -8,6 +8,9 @@ import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { isAdmin } from '@/ui/shell/nav';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.activity');
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
 
