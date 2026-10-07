@@ -21,10 +21,10 @@ export const sabotages = [
   {
     name: 'plant-white-on-accent',
     breaks: ['check:accent-fill-only'],
-    expect: 'src/ui/Button.tsx',
+    expect: 'src/ui/button-variants.ts',
     edits: [
       {
-        file: 'src/ui/Button.tsx',
+        file: 'src/ui/button-variants.ts',
         find: 'bg-primary text-on-primary hover:bg-primary-hover',
         replace: 'bg-accent text-on-accent hover:bg-accent-hover',
       },
