@@ -1,7 +1,7 @@
--- Sabotage: a-checklist-row-gives-the-whole-note
--- Breaks: sql:NOTE-07
--- Expect: a row becomes a task titled by the row
--- One checklist row turned into a task takes the whole note's title instead of the row (WRK-013).
+-- Sabotage: a-checklist-item-names-no-note
+-- Breaks: sql:NOTE-09
+-- Expect: an item shows the note it came from
+-- The action items made from a note's rows are not linked to the note (V184).
 create or replace function my.turn_into_inner(n my.note, p_kind text, p_values jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -83,7 +83,7 @@ begin
     end if;
     pid := coalesce(nullif(v ->> 'partner_id', '')::uuid, n.meeting_partner_id);
     a := work.task_create(pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-           'title', my.note_headline(n, 300),
+           'title', coalesce(pg_catalog.left(r ->> 'text', 300), my.note_headline(n, 300)),
            'notes', case when r is null then nullif(pg_catalog.btrim(my.note_text(n)), '') end,
            'owner_id', r ->> 'owner_id',
            'due_on', r ->> 'due_on',
@@ -107,8 +107,6 @@ begin
         ai := work.action_item_add(rid, pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
                 'text', p ->> 'text', 'owner_id', p ->> 'owner_id', 'due_on', p ->> 'due_on',
                 'happened_on', n.happened_on)));
-        insert into my.note_link (note_id, entity_table, entity_id)
-        values (n.id, 'work.action_item', (ai ->> 'id')::uuid);
         if coalesce((p ->> 'done')::boolean, false) then
           perform work.action_item_done((ai ->> 'id')::uuid, true, n.happened_on);
         end if;
