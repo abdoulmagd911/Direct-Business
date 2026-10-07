@@ -37,7 +37,7 @@ finance confirms); those are Final at cost 0, and only bookings that should have
 person with Full on Finance may change it.
 *Effect:* only tagged bookings credit a person (V613).
 
-**Q50 — How the 2026 money enters at go-live.** On 28 Sep the decision was that the team types it in the browser.
+**Q50 — How the 2026 money enters at go-live.** **[Answered — V622: imported, nothing hard-coded, every row editable in the app, plus a hand-entry round]** (Q52, the fee on a monthly invoice, answered the same day → V623.) On 28 Sep the decision was that the team types it in the browser.
 *Recommended:* import the Payments exports (invoices and expenses) for go-live; typing stays for corrections and
 anything Payments lacks.
 *Effect:* the paid 2026 invoices arrive in minutes instead of days of typing, and the typing screens are still tested

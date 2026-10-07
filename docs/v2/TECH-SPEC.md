@@ -1007,7 +1007,7 @@ older line they change is struck below and names its V-number.
 | SAR and VAT (V615) | The SAR figure Payments recorded; VAT never stored or shown anywhere | unchanged |
 | Monthly invoice (V616) | A credit client's monthly tax invoice is a zero-revenue link, but what it adds beyond its transactions (a fee per transaction) is revenue; never linked by line names | `finance.check`, `money_row` |
 | Wallets, bookings, numbers (V617) | No wallet balance shown as money; off-system bookings count as money, never as bookings; transaction no. and tax invoice no. always two fields | `partner_wallet` (not shown), every list and export |
-| Import first (V618) | The Payments export import is built first (P4-1b); typing stays; how go-live data enters — Q50 | §3.11, plan P4 |
+| Import first (V618, V622) | The 2026 money is imported from the Payments files; nothing hard-coded (column mapping `finance.import_map` and every list are settings); every imported row editable, addable and removable in the app (removed = archived, never re-imported; an edited field is the person's); a hand-entry round before Finance opens | §3.11, plan P4 |
 
 **How money is shaped in Direct Payments** (the oversight's read-only sample of 28 Sep: about 25 invoices, 7 billing
 invoices, 9 tax invoices — every reconcilable case matched):
@@ -1050,7 +1050,8 @@ Payments' `consolidated_proforma_id`, else by a person ticking an **amount** pro
 
 **How money enters v2.** **[V618: the Payments export import — the B2B invoice export and the transaction-expense
 export — is built first, P4-1b, writing the same fact tables with `source = import`; typing stays (P4-4); whether
-the go-live data is imported or typed is the owner's, Q50.]** At go-live the 2026 invoices are **typed in the browser** by the team (owner, 28 Sep —
+the go-live data is imported or typed is the owner's, Q50.]** **[V622: imported, with every row editable, addable and
+removable in the app and a hand-entry round before Finance opens.]** At go-live the 2026 invoices are **typed in the browser** by the team (owner, 28 Sep —
 decision 4), so every person and every flow is tested while the data is added; Payments file imports come in a later
 phase (§3.11, P7). Both ways write the same fact tables; each row says which (`source`). An import later never touches
 a hand-entered row (D21) — it lists the differences for a person, who may **adopt** the row (its `source` becomes

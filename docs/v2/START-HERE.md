@@ -99,7 +99,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 3. A new rule is the next V-number in your range, recorded in the same PR as the change.
 4. Anything that needs the owner goes to the oversight, in plain words.
 
-## Decisions since V519 (the newest are V609–V621)
+## Decisions since V519 (the newest are V609–V623)
 
 V520 A contact's sides sort it, never hide it · V521 An MoU sets the side chosen on the achievement · V522 A banned
 word for the consumer segment · V523 The Partnerships and improvements reports are monthly · V524 A note on a record
@@ -119,7 +119,8 @@ Payments invoice lines · V613 A channel tag; individuals credited only when Com
 value, consumed by its transactions · V615 SAR as recorded; VAT never stored or shown · V616 A monthly tax invoice is a
 link, except what it adds · V617 No wallet balance shown as money; two numbers, never one · V618 The Payments export
 import is built first · V619 A tender's signed value is sales credit, revenue comes from its bookings · V620 A closed
-month never changes · V621 Products with no supplier cost are a setting, Final at cost 0.
+month never changes · V621 Products with no supplier cost are a setting, Final at cost 0 · V622 The 2026 money is
+imported, every row editable in the app, after a hand-entry round · V623 The fee on a monthly invoice is revenue.
 
 ## Coming next
 
