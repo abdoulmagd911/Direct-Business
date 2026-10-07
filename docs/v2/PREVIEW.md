@@ -47,17 +47,16 @@ The pilot asks three things of everyone: **log my day, run my tasks, record a wi
 ## Known issues
 
 From the test round of 7 Oct (QA 1 on desktop, QA 2 at phone width — both on a local copy of the production code;
-nothing blocks the three jobs). Steer around these:
+nothing blocks the three jobs). #188 (7 Oct, 18:12 UTC) fixed most of what it found: a member in no team no longer
+sees Task in the + (QA-245), every browser tab names its page (QA-219), and on a phone a long name wraps in the header
+and the back links are bigger. Steer around what is left:
 
 - **Turn into** on a note offers a call or meeting, a reminder and, since #175 (7 Oct), an **achievement**; a task
   joins later (#183's database part waits for production's database to be repaired — see #157). Use **Quick add**
   for a task.
-- A **member in no team** sees Task in the + but cannot add one (QA-245) — another reason every pilot member is in
-  a team.
-- The Clients page's second tab reads **Suppliers**; it becomes **Suppliers & partners** (QA-247, V517).
-- On a phone, a **long organisation or task name is cut off** in the page header, and the back links are small —
-  show the preview on the laptop.
-- Every browser tab is titled **Commercial** (QA-219).
+- A **member in no team** cannot add a task — every pilot member must be in a team.
+- The Clients page's second tab reads **Suppliers** (as signed, V507); its button still reads **New supplier &
+  partner** and becomes **New supplier** (QA-247, with #146).
 
 ## After the preview
 
