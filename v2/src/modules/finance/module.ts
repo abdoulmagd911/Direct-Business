@@ -40,9 +40,20 @@ export default defineModule({
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'finance', label: `entity.${key}`, owners: `${table}_owners` })),
     // A closed month and its snapshot (V610): the person who closed it.
-    { key: 'month_close', table: 'finance.month_close', page: 'finance', label: 'entity.month_close', owners: 'created_by' },
+    {
+      key: 'month_close',
+      table: 'finance.month_close',
+      page: 'finance',
+      label: 'entity.month_close',
+      owners: 'created_by',
+    },
     // The exclusion rules (D16): Settings → Finance, admins (V97).
-    { key: 'exclusion_rule', table: 'finance.exclusion_rule', page: 'settings.finance', label: 'entity.exclusion_rule' },
+    {
+      key: 'exclusion_rule',
+      table: 'finance.exclusion_rule',
+      page: 'settings.finance',
+      label: 'entity.exclusion_rule',
+    },
     // The Finance lists (§3.6): Settings → Finance, admins (V97).
     ...(
       [

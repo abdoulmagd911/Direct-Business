@@ -192,8 +192,15 @@ $$;
 -- ================================================================ the door
 -- api.finance_import(file, rows, export time, file name, sha-256, dry run) — `file` is 'invoices' (the invoice export:
 -- one object per invoice with its `lines`) or 'expenses' (the transaction-expense export: one object per expense). The
--- keys of a row are listed in docs/v2 TECH-SPEC §3.11 (P4-1b). Needs the capability finance.import. A dry run is the
--- preview (§3.11.4): the same work, rolled back, with the same answer.
+-- browser maps the export's headers to these keys (§3.11.1):
+--   invoices: ref, type (invoice | credit_note), is_consolidated, consolidated_ref, consolidation_status, customer_name,
+--     customer_email, customer_phone, client_id, tax_no, discount_code, status, status_at, created_on, generated_on,
+--     paid_on, due_on, total_sar, product, branch, salesman, dpin, dpin_total,
+--     lines [{line_no, product, name, qty, unit_price, discount_sar, taxable, total_sar}];
+--   expenses: ref, expense_type, status, amount_sar, merchant, id_reference, created_at, submitted_at, decided_at,
+--     submitter, approver, transaction_expense_status.
+-- Dates are ISO (a timestamp's Riyadh day is taken); amounts are numbers in SAR as recorded. Needs the capability
+-- finance.import. A dry run is the preview (§3.11.4): the same work, rolled back, with the same answer.
 create function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamptz, p_file_name text,
                                    p_sha256 text, p_dry_run boolean)
 returns jsonb

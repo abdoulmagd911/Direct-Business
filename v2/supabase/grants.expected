@@ -61,7 +61,9 @@ function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
 function api.file_review_set(p_id uuid, p_review_on date, p_version integer) execute authenticated
 function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
+function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
@@ -280,7 +282,9 @@ function core.view_default_set(p_page text, p_view uuid) execute authenticated
 function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
+function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
+function finance.month_close_do(p_month date, p_note text) execute authenticated
 function finance.proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
 function my.from_note_of(p_entity text, p_id uuid) execute authenticated
 function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated

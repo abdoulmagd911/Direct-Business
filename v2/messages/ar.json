@@ -723,7 +723,22 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
-    "project_health": "صحة المشروع"
+    "project_health": "صحة المشروع",
+    "invoice_line": "بند الفاتورة",
+    "billing_link": "ربط الفاتورة المجمعة",
+    "billing_proposal": "اقتراح ربط الفاتورة المجمعة",
+    "expense_line": "مصروف",
+    "tax_invoice": "فاتورة ضريبية",
+    "credit_split": "توزيع الإسناد",
+    "month_close": "شهر مقفل",
+    "exclusion_rule": "قاعدة استبعاد",
+    "status_map": "حالة الفاتورة",
+    "expense_status_word": "حالة المصروف",
+    "service": "خدمة",
+    "product": "منتج",
+    "wallet_rule": "قاعدة المحفظة",
+    "commission_word": "كلمة العمولة",
+    "channel": "القناة"
   },
   "status": {
     "done": "منجزة",
@@ -826,6 +841,9 @@
       "header_figures": {
         "partner": "الأرقام المعروضة في ترويسة سجل الجهة"
       }
+    },
+    "finance": {
+      "tender_counts_as": "كيف تحتسب المناقصة"
     }
   },
   "activity": {

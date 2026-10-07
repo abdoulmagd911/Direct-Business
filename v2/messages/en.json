@@ -799,7 +799,22 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
-    "project_health": "Project health"
+    "project_health": "Project health",
+    "invoice_line": "Invoice line",
+    "billing_link": "Billing link",
+    "billing_proposal": "Billing proposal",
+    "expense_line": "Expense",
+    "tax_invoice": "Tax invoice",
+    "credit_split": "Credit split",
+    "month_close": "Closed month",
+    "exclusion_rule": "Exclusion rule",
+    "status_map": "Invoice status word",
+    "expense_status_word": "Expense status word",
+    "service": "Service",
+    "product": "Product",
+    "wallet_rule": "Wallet rule",
+    "commission_word": "Commission word",
+    "channel": "Channel"
   },
   "status": {
     "done": "Done",
@@ -902,6 +917,9 @@
       "header_figures": {
         "partner": "Figures in an organisation's header"
       }
+    },
+    "finance": {
+      "tender_counts_as": "How a tender counts"
     }
   },
   "levels": {
