@@ -1,6 +1,6 @@
 # Start here — Direct's Commercial app (v2)
 
-**Read this first.** Updated **7 Oct 2026, 21:20 Riyadh** (18:20 UTC). This page replaces every older start page and
+**Read this first.** Updated **8 Oct 2026, 00:45 Riyadh** (7 Oct, 21:45 UTC). This page replaces every older start page and
 is written whole each time — nothing below is a patch on older text. Where it disagrees with any other Drive file, this
 page wins; where it disagrees with `DECISIONS.md`, `DECISIONS.md` wins and this page is fixed.
 
@@ -31,10 +31,9 @@ cannot open web addresses, a Claude Code session can read them and answer for it
   load (#181, #182), an owner picker for someone in no team (#179, #180), a My day note turned into an achievement
   (#175), and the fixes from the 7 Oct test round — Task out of the + for someone in no team, every browser tab named,
   the phone header (#188).
-- **Production's database is behind by one change** (#183's, merged 7 Oct). A change made in production outside the
-  repository on 6 Oct (another project's storage folder) stops the job that applies merged database changes. The fix
-  is a small PR from builder A and waits for the owner's yes; until then no PR with a database change merges (#157 is
-  next). Screens and docs keep merging.
+- **Production's database is up to date** (7 Oct, 21:27 UTC): a change made in production outside the repository on
+  6 Oct (another project's storage folder, left untouched) had stopped the job that applies merged database changes;
+  #191 recorded it, and #183's change was applied. The held database PRs now merge one at a time, #157 first.
 - **Finance is being specified, not built into production yet**: the owner's money rules of 5 Oct are V610–V618 and
   spec §3.6 (read its first table); builder A builds the tables, the "what counts" view and the Payments export import
   on a branch; the owner answered Q46–Q48 on 7 Oct (V619–V621); Q49–Q51 stay open in `OPEN-QUESTIONS.md`.
@@ -103,7 +102,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 3. A new rule is the next V-number in your range, recorded in the same PR as the change.
 4. Anything that needs the owner goes to the oversight, in plain words.
 
-## Decisions since V519 (the newest are V609–V623)
+## Decisions since V519 (the newest are V609–V625)
 
 V520 A contact's sides sort it, never hide it · V521 An MoU sets the side chosen on the achievement · V522 A banned
 word for the consumer segment · V523 The Partnerships and improvements reports are monthly · V524 A note on a record
@@ -124,7 +123,9 @@ value, consumed by its transactions · V615 SAR as recorded; VAT never stored or
 link, except what it adds · V617 No wallet balance shown as money; two numbers, never one · V618 The Payments export
 import is built first · V619 A tender's signed value is sales credit, revenue comes from its bookings · V620 A closed
 month never changes · V621 Products with no supplier cost are a setting, Final at cost 0 · V622 The 2026 money is
-imported, every row editable in the app, after a hand-entry round · V623 The fee on a monthly invoice is revenue.
+imported, every row editable in the app, after a hand-entry round · V623 The fee on a monthly invoice is revenue · V624
+Ask: a request for a decision, feedback or help, after go-live · V625 Personal credit: finished work counts for the
+person, apart from the department's KPIs.
 
 ## Coming next
 

@@ -589,6 +589,13 @@ action; after 30 days a removed record stays in the change log but leaves the li
 challenge or an organisation: `api.escalate(entity, id, to_person, note)` notifies the person (`escalated`), makes them
 a follower, and writes the note to the timeline and the change log in one request; a challenge also records
 `escalated_to` / `escalated_on` (V69).
+- **Ask** (V624, after go-live): on a task or an achievement, a request to a named person for a decision, feedback or
+  help; it shows on the person's My day under **Needs you**; the answer is written to the record's Activity and the
+  change log and closes it; only the asker, the person asked and anyone the asker names read it (V524's rule); after
+  `my.ask_reminder_days` (default 2 working days) unanswered, the asker may ask again or ask someone else. When built,
+  Escalate becomes its "decision, to a manager" kind. That kind keeps Escalate's own reach (V96) and records, and
+  V69's challenge fields stay as they are. Only feedback and help Asks are restricted (QA-522). Until then the
+  stopgap is Escalate plus a V524 note.
 - **A follow-up task from an alert** (V401): when the 45-day unpaid-invoice alert fires, the job also creates one task
   for the client's account manager (origin `alert`, linked to the invoice), once per invoice.
 
@@ -1551,6 +1558,11 @@ past-work MoU never sets a status.
   of their tasks closed that week and are not yet linked to an achievement; one tap opens a sheet that logs the ticked
   ones — a category each, the task as the evidence (`perf.achievement_ref`), the done date as `happened_on` — as one
   request with one Undo; a task left unticked is not offered again.
+- **Personal credit** (V625): a dated, evidenced achievement always reaches its owner's appraisal record; counting for a
+  department KPI is a separate matter, through the category's KPI mapping. `perf.achievement_category.scope`
+  (`department` · `personal`): a **personal** category maps to no KPI and names one appraisal section
+  (`appraisal_section_code`, a `section` node's code, read against the cycle's frozen template). A task's close, or else
+  the weekly nudge, asks once **Routine or Achievement?**; Routine counts nowhere new.
 - **Technical integration** (V99, V407): the partner (Supplier & partner side, type Technology — V448), the **Direct
   ticket number** of the Product ticket (a `perf.achievement_ref` on the ticket system — the evidence, required: without
 it the
@@ -1770,6 +1782,8 @@ cycle's scale.
   `appraisal.legacy`, never as achievements. Past work of 2025 registered through the grid (V506) counts in the
   appraisal period it falls in — the cycle that runs through April 2026 — with its source report as the evidence (a
   `perf.achievement_ref` to the legacy report, V57).
+  An achievement in a **personal-only** category (V625) is listed here like any other and scores in the section its
+  category names; it never reaches a department KPI.
 - **Steps** (V401): **Self** (self-registration of achievements, V68, then the self column) → **Manager draft** (the
   direct manager's column, private to them and admins) → **Shared** (the person sees the draft, comments, both sign)
   → **Locked**. Each step change is logged and notifies the other party (`appraisal_step`).
