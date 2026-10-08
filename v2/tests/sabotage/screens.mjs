@@ -1363,4 +1363,47 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'phone-controls-shrink-again',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a Tasks filter chip is 44 px tall',
+    edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
+  },
+  {
+    name: 'done-tick-target-is-the-circle',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'marks it done',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: "before:absolute before:-inset-3 before:content-[''] ",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'new-client-hides-what-it-needs',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type each say Required',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/NewPartnerDialog.tsx',
+        find: "<Field label={t('partners.columns.type')} required={t('common.required')}>",
+        replace: "<Field label={t('partners.columns.type')}>",
+      },
+    ],
+  },
+  {
+    name: 'tabs-clip-at-the-edge',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'no tab is cut off at the right edge',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
+        replace:
+          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
+      },
+    ],
+  },
 ];
