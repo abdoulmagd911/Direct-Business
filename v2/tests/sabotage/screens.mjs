@@ -741,7 +741,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
@@ -1085,7 +1085,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
       },
     ],
@@ -1347,6 +1347,42 @@ export const sabotages = [
         file: 'messages/en.json',
         find: '      "delete": "{what} deleted",\n',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'turn-into-task-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a note turned into a task leads to the task by its number',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "  if (link.entity === 'task' && link.number) return `/tasks/${link.number}`;\n",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'turn-into-task-forgets-the-checklist-ask',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the checklist came along when asked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '...(withItems ? { action_items: true } : {})',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'turn-into-task-makes-it-without-the-note',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the note says it became a task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '(fromNote\n          ? rpc(',
+        replace: "(fromNote?.id === 'never'\n          ? rpc(",
       },
     ],
   },

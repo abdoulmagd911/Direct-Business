@@ -40,13 +40,15 @@ export function LinkChip({ link }: { link: NoteLink }) {
       ? t('pages.myDay.turn.kinds.achievement')
       : (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
   const label =
-    link.entity === 'reminder' && link.remind_at
-      ? t('pages.myDay.note.linkReminder', {
-          when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-        })
-      : name
-        ? t('pages.myDay.note.linkActivity', { type, name })
-        : type;
+    link.entity === 'task' && link.number
+      ? t('pages.myDay.note.linkTask', { number: link.number, title: link.title ?? '' })
+      : link.entity === 'reminder' && link.remind_at
+        ? t('pages.myDay.note.linkReminder', {
+            when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
+          })
+        : name
+          ? t('pages.myDay.note.linkActivity', { type, name })
+          : type;
   const route = linkRoute(link);
   const cls = cn(chipClass, 'border-accent/40 text-text');
   return route ? (

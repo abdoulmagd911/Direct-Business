@@ -14,13 +14,16 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
  * V377). Until its flag is set the menu leaves a kind out, never greyed (GC-1, cut 3, V605 (3)).
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
-  task: 'tasks.turn_into',
+  task: 'tasks.turn_into_task',
   action_item: 'tasks.turn_into',
   achievement: 'kpis.turn_into',
 };
 
-/** The Turn into flags that are set: their dialog and their database door are both in (V605 (3)) — an achievement (V381). */
-export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into']);
+/**
+ * The Turn into flags that are set: their dialog and their database door are both in (V605 (3)) — an achievement
+ * (V381) and a task (V226: the task door and the checklist option are live in production since 7 Oct).
+ */
+export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into', 'tasks.turn_into_task']);
 
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
   const flag = TURN_NEEDS[kind];
@@ -60,6 +63,7 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 export function linkRoute(link: NoteLink): string | null {
   if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
   if (link.entity === 'achievement') return `/kpis/achievements/${link.id}`;
+  if (link.entity === 'task' && link.number) return `/tasks/${link.number}`;
   return null;
 }
 
