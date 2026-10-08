@@ -1311,3 +1311,20 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **Full sweep:** 307 fails, against 566 on 289fa46, and **none new**.
 - **Fixed on main:** QA-208 (#157), QA-245 (#188, Task out of the + without a team), and QA-244 (#184). QA-219 is partly fixed: Not found's title is left.
 - **QA-115 and QA-118** were rewritten to hold under #160's rule (nobody holding work is switched off).
+
+## Round 73 — Thu 8 Oct: the phone-width round and #197 (QA 1)
+
+- **Phone round** (`17-phone-round.spec.ts`), local build of main `9b2e063`, 390 and 360, en and ar, admin and member:
+  - 64/0/108; no sideways scroll; direction right everywhere; the bottom bar covers nothing.
+  - **QA-248 (High):** Quick add's Owner is required for an admin in no team, but lists only people in a team. When
+    nobody is in a team, the list is empty and the task cannot be saved, with no words. Same with mouse and touch.
+  - **QA-249 (Medium):** tap targets under 44 px on every phone page (chips 34 px, tabs ~30 px wide, buttons 40 px).
+  - **QA-250 (Medium):** the + button covers Profile's Language select.
+  - **QA-251 (Medium):** New client has a toggle with no name.
+  - **QA-252 (Low):** Profile's colour row runs off-screen at 360; "Capture" is cut on My day and More.
+  - Arabic raw keys `common.all` and `profile.colours.*` belong to QA-226.
+  - Writes: 134; TEST rows: 2 clients, 0 tasks (QA-248).
+- **#197 cleared at `292e5ee`** (bundle 3: #152, #165, #170, V625, the QA-523 fix):
+  - trial merge with main `2c7dcbf` clean; SQL 212/217 — the known QA-02/03/04/121, plus QA-143;
+  - QA-143 is a docs gap: `pipeline.assign` has no row in TECH-SPEC §8 (asked on the PR, V608);
+  - all 25 of the bundle's sabotages red.
