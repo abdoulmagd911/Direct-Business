@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
+import { LinkPending } from './LinkPending';
 
 export type TabDef = { value: string; label: ReactNode; count?: number; href?: string };
 
@@ -25,7 +26,7 @@ export function Tabs({
 }) {
   const tabClass = (active: boolean) =>
     cn(
-      '-mb-px inline-flex items-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
+      '-mb-px inline-flex min-w-6 items-center justify-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
       active ? 'border-accent font-semibold text-text' : 'border-transparent text-muted hover:text-text',
     );
   const count = (n?: number) =>
@@ -43,6 +44,7 @@ export function Tabs({
           >
             {t.label}
             {count(t.count)}
+            <LinkPending />
           </Link>
         ))}
       </nav>

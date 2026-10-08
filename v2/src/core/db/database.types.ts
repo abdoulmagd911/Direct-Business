@@ -17,6 +17,7 @@ export type Database = {
         Returns: Json;
       };
       access_clear_person_level: { Args: { p_page: string; p_person: string; p_reason: string }; Returns: Json };
+      access_clear_team_level: { Args: { p_page: string; p_reason: string; p_team: string }; Returns: Json };
       access_matrix: { Args: Record<PropertyKey, never>; Returns: Json };
       access_of_person: { Args: { p_person: string }; Returns: Json };
       access_set_person_capability: {
@@ -34,6 +35,10 @@ export type Database = {
       };
       access_set_role_level: {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      access_set_team_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_team: string };
         Returns: Json;
       };
       achievement: { Args: { p_id: string }; Returns: Json };
@@ -100,6 +105,8 @@ export type Database = {
         Returns: Json;
       };
       can_see: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      client_id_close: { Args: { p_closed_on: string; p_id: string; p_reason: string }; Returns: Json };
+      client_id_reopen: { Args: { p_id: string; p_reason: string }; Returns: Json };
       code_terms_add: {
         Args: {
           p_approved_by: string;
@@ -117,6 +124,7 @@ export type Database = {
       };
       contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
       contacts_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      contract_renewal_task: { Args: { p_contract: string }; Returns: Json };
       contract_save: {
         Args: { p_id: string; p_partner: string; p_reason?: string; p_values: Json; p_version?: number };
         Returns: Json;
@@ -353,9 +361,14 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_emails_unlinked: { Args: { p_person: string }; Returns: string[] };
+      person_leave: {
+        Args: { p_id: string; p_left_on?: string; p_reason: string; p_reassign_to?: string };
+        Returns: Json;
+      };
+      person_open_work: { Args: { p_id: string }; Returns: Json };
       person_password_set: { Args: { p_person: string; p_reason: string; p_replace?: boolean }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
-      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
+      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string; p_reassign_to?: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };

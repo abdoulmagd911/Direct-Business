@@ -11,7 +11,7 @@ import { PersonChip } from '../PersonChip';
 import type { AvatarPerson } from '../Avatar';
 import { ShowAll } from './ShowAll';
 
-import { type HistoryRow } from './history';
+import { groupPreferenceRuns, type HistoryRow } from './history';
 export type { HistoryRow, RecordChange } from './history';
 export { historyRows } from './history';
 
@@ -85,6 +85,7 @@ export function ActivityTimeline({
     const c = r.changes?.[0];
     if (!c) return t('activity.actions.request');
     const what = c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? '');
+    if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
     return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
   };
 
@@ -106,7 +107,7 @@ export function ActivityTimeline({
     ).finally(() => setBusy(null));
   };
 
-  const items = rows.map((r) => {
+  const items = groupPreferenceRuns(rows).map((r) => {
     const who = r.actor_id ? people[r.actor_id] : undefined;
     return (
       <li
@@ -115,11 +116,15 @@ export function ActivityTimeline({
         data-history-row
         data-kind={r.kind}
         data-undone={r.undone || undefined}
+        data-history-grouped={r.grouped}
       >
         <div className="mt-1 size-2 shrink-0 rounded-pill bg-border-strong" aria-hidden="true" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             <span className="font-medium text-text">{label(r)}</span>
+            {r.grouped ? (
+              <StatusChip tone="neutral">{t('activity.groupedChanges', { count: r.grouped })}</StatusChip>
+            ) : null}
             {r.undone ? <StatusChip tone="neutral">{t('activity.undoneChip')}</StatusChip> : null}
             {r.kind === 'undo' ? <StatusChip tone="info">{t('activity.kinds.undo')}</StatusChip> : null}
           </div>
@@ -155,19 +160,28 @@ export function ActivityTimeline({
                   <li className="rounded-sm bg-surface px-1.5 py-0.5">{t('activity.fieldsCount', { count: total })}</li>
                 </ul>
               );
-            const chips = changed.flatMap((c) =>
-              c.fields.map((f) => {
+            // One chip per field: a request that changes the same field on two records (a person's two emails) says
+            // the field once, with each distinct before → after (QA-190)
+            const byField = new Map<string, string[]>();
+            for (const c of changed)
+              for (const f of c.fields) {
                 const before = record(c.before)?.[f];
                 const after = record(c.after)?.[f];
                 const shown = before !== undefined || after !== undefined;
-                return (
-                  <li key={`${c.id}-${f}`} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
-                    {fieldLabel(f)}
-                    {shown ? `: ${valueWords(f, before)} → ${valueWords(f, after)}` : ''}
-                  </li>
-                );
-              }),
-            );
+                const said = shown ? `${valueWords(f, before)} → ${valueWords(f, after)}` : '';
+                const seen = byField.get(f) ?? [];
+                if (!seen.includes(said)) seen.push(said);
+                byField.set(f, seen);
+              }
+            const chips = [...byField].map(([f, values]) => {
+              const said = values.filter(Boolean).join(' · ');
+              return (
+                <li key={f} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
+                  {fieldLabel(f)}
+                  {said ? `: ${said}` : ''}
+                </li>
+              );
+            });
             return (
               <ul className="flex flex-wrap gap-1.5 pt-0.5 text-xs text-muted">
                 {chips.slice(0, MAX_CHIPS)}

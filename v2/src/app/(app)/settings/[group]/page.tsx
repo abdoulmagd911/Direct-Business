@@ -13,6 +13,12 @@ import { PageHeader } from '@/ui/PageHeader';
 import { isAdmin } from '@/ui/shell/nav';
 import { Page } from '@/ui/shell/Page';
 
+export async function generateMetadata({ params }: { params: Promise<{ group: string }> }) {
+  const { group } = await params;
+  const def = settingsGroups().find((g) => g.slug === group);
+  return def ? { title: (await getTranslations())(def.label) } : {};
+}
+
 /**
  * A Settings group (V97: admins only — anyone else is refused by address, in words). The group's settings and lists
  * come from the database (api.settings, api.list); Organization & access carries its own tab row.
@@ -34,27 +40,33 @@ export default async function SettingsGroupPage({
     return (
       <Page>
         <PageHeader title={t(def.label)} />
-        <DataState kind="no-access" what={t('settings.title')} message={t('settings.noAccess')} />
+        <DataState
+          kind="no-access"
+          what={t('settings.title')}
+          message={t('settings.noAccess')}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </Page>
     );
-  const [settings, org] = await Promise.all([
+  // W47: every read of the page goes out together, one round after me — the settings, the organisation, each list,
+  // and on Organization & access the people and the access matrix — not in three rounds one after the other.
+  const listDefs = listsOf(def.page);
+  const isOrg = group === 'org';
+  const [settings, org, lists, people, matrix] = await Promise.all([
     serverRpc('settings', { p_group: def.page }) as Promise<unknown>,
     serverRpc('org', {} as never) as Promise<unknown>,
+    Promise.all(
+      listDefs.map(async (l) => ({
+        ...l,
+        rows: (await serverRpc('list', { p_list: l.key, p_include_retired: true })) as unknown as ListEntry[],
+      })),
+    ),
+    isOrg ? (serverRpc('people', {} as never) as Promise<unknown>) : null,
+    isOrg ? (serverRpc('access_matrix', {} as never) as Promise<unknown>) : null,
   ]);
   const answer = settings as SettingsAnswer;
   const departments = (org as OrgAnswer).departments;
-  const listDefs = listsOf(def.page);
-  const lists = await Promise.all(
-    listDefs.map(async (l) => ({
-      ...l,
-      rows: (await serverRpc('list', { p_list: l.key, p_include_retired: true })) as unknown as ListEntry[],
-    })),
-  );
-  if (group === 'org') {
-    const [people, matrix] = await Promise.all([
-      serverRpc('people', {} as never) as Promise<unknown>,
-      serverRpc('access_matrix', {} as never) as Promise<unknown>,
-    ]);
+  if (isOrg) {
     return (
       <SettingsShell current={group} title={t(def.label)}>
         <OrgAccess

@@ -65,6 +65,7 @@ test('a list entry needs its Arabic name, archives with the count shown, and one
   const list = page.locator('[data-list="priority"]');
   await list.locator('[data-list-add]').click();
   const dialog = page.getByRole('dialog');
+  await dialog.getByText('Details', { exact: true }).click();
   await dialog.getByLabel('Key').fill(key);
   await dialog.getByLabel('Name', { exact: true }).fill('Made-up priority');
   await expect(dialog.locator('[data-list-save]'), 'the Arabic name is required (V76)').toBeDisabled();
