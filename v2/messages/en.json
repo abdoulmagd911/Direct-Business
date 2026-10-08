@@ -821,7 +821,8 @@
     "wallet_rule": "Wallet rule",
     "commission_word": "Commission word",
     "channel": "Channel",
-    "import_map": "Import column"
+    "import_map": "Import column",
+    "item_service": "Item service"
   },
   "status": {
     "done": "Done",

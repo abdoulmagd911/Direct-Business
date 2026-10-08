@@ -745,7 +745,8 @@
     "wallet_rule": "قاعدة المحفظة",
     "commission_word": "كلمة العمولة",
     "channel": "القناة",
-    "import_map": "عمود الاستيراد"
+    "import_map": "عمود الاستيراد",
+    "item_service": "خدمة البند"
   },
   "status": {
     "done": "منجزة",

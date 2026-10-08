@@ -1116,6 +1116,18 @@
       "rule_only": false
     },
     {
+      "key": "item_service",
+      "table": "finance.item_service",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "mention",
       "table": "core.mention",
       "page": null,

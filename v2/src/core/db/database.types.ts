@@ -222,6 +222,7 @@ export type Database = {
       };
       finance_import_map: { Args: { p_source?: string }; Returns: Json };
       finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
+      finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
       finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_period_units: {

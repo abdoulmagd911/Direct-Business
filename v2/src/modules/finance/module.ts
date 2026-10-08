@@ -65,6 +65,7 @@ export default defineModule({
         ['commission_word', 'finance.commission_word'],
         ['channel', 'finance.channel'],
         ['import_map', 'finance.import_map'],
+        ['item_service', 'finance.item_service'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
   ],
