@@ -31,6 +31,23 @@ async function memberWithTeam(): Promise<TestPerson> {
   return person;
 }
 
+/** The Tasks tab row: five tabs, each whole inside the screen with its words inside its own box, Past work last. */
+async function tabsAreWhole(page: Page, width: number, count: number) {
+  const tabs = await page.locator('[data-tabs] > *').evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return { text: e.textContent ?? '', left: r.left, right: r.right, spill: e.scrollWidth - e.clientWidth };
+    }),
+  );
+  expect(tabs.length, 'My work · Owned · Helping · (Team) · Past work').toBe(count);
+  expect(tabs[count - 1]!.text, 'Past work is the last').toContain('Past work');
+  for (const x of tabs) {
+    expect(x.right, `${x.text}: no tab is cut off at the right edge`).toBeLessThanOrEqual(width + 0.5);
+    expect(x.left, `${x.text}: nor at the left`).toBeGreaterThanOrEqual(-0.5);
+    expect(x.spill, `${x.text}: its words fit inside its own box`).toBeLessThanOrEqual(1);
+  }
+}
+
 /** The heights, in px, of everything a selector finds that is on the screen. */
 const heights = (page: Page, selector: string) =>
   page
@@ -80,17 +97,8 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   expect(layout.length, 'the List / Board / Calendar switch is there').toBe(3);
   for (const h of layout) expect(h, 'a layout link is 44 px tall').toBeGreaterThanOrEqual(TARGET - 0.5);
 
-  // the tab row shows Past work whole: every tab sits inside the screen
-  const tabs = await page
-    .locator('[data-tabs] > *')
-    .evaluateAll((els) =>
-      els.map((e) => ({ right: e.getBoundingClientRect().right, left: e.getBoundingClientRect().left })),
-    );
-  expect(tabs.length, 'My work · Owned · Helping · Team · Past work').toBeGreaterThanOrEqual(5);
-  for (const x of tabs) {
-    expect(x.right, 'no tab is cut off at the right edge').toBeLessThanOrEqual(PHONE.width + 0.5);
-    expect(x.left, 'nor at the left').toBeGreaterThanOrEqual(-0.5);
-  }
+  // the tab row shows Past work whole
+  await tabsAreWhole(page, PHONE.width, 5);
 
   // Clients: the chips and Save view
   await page.goto('/clients');
@@ -126,4 +134,15 @@ test('phone 375: New client says what it needs before Save can be pressed', asyn
   await expect(form.getByRole('combobox', { name: /Type/ }), 'the type asks to be chosen').toContainText(
     'Choose a type',
   );
+});
+
+test('phone 320: for someone who gives work, the five Tasks tabs all sit inside the narrowest screens, Past work last', async ({
+  page,
+}) => {
+  const admin = await makePerson({ admin: true }); // gives work to others, so the Team tab is there too
+  const narrow = { width: 320, height: 640 }; // the narrowest phones; a count on a tab only widens the row
+  await page.setViewportSize(narrow);
+  await signIn(page, admin.email, '/tasks');
+  await hydrated(page);
+  await tabsAreWhole(page, narrow.width, 5);
 });
