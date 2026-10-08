@@ -8,7 +8,7 @@
        project), link, projects delete, and any supabase call naming --linked, --project-ref or --db-url;
      · a push that forces, deletes or rewrites (--force / -f / --force-with-lease, a +<refspec>, --delete, a
        :<branch> refspec, --mirror / --prune / --all / --tags), a push to production (claude/new-session-9fhlp1), to
-       v2/main, to a branch outside the five lanes (v2/a-*, v2/b-*, v2/c-*, v2/q-*, v2/architecture) or to a raw ref —
+       v2/main, to a branch outside the lanes (v2/a-* … v2/e-*, v2/q-*, v2/design-*, v2/architecture) or to a raw ref —
        the integration branch and production land by PR;
      · work thrown away for good: branch -D, reset --hard / --merge, clean, filter-branch / filter-repo.
    Everyday sandbox commands (rm, find, installs, one-line scripts, docker, the local supabase) are the allow list's
@@ -26,8 +26,9 @@ export function segmentsOf(command) {
 }
 
 // `git` at the start, after whitespace, or after $( ' " ` — a push hidden in a subshell or in node -e is read too
-/** The five lanes' work branches (the architect, 30 Sep): builders A, B and C, QA, and the architecture branch. */
-export const LANE_BRANCH = /^v2\/(?:(?:a|b|c|d|e|q)-[\w.-]+|architecture)$/;
+/** The lanes' work branches (the architect, 30 Sep): builders A–E, QA, the design lead (v2/design-*, oversight 8 Oct)
+    and the architecture branch. */
+export const LANE_BRANCH = /^v2\/(?:(?:a|b|c|d|e|q|design)-[\w.-]+|architecture)$/;
 
 const git = (s) => /(^|[\s(`'"])git\s/.test(` ${s} `) || /^(sudo\s+)?git\s/.test(s);
 
