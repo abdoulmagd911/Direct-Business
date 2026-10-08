@@ -657,6 +657,12 @@
     }
   },
   "entity": {
+    "pipeline_stage_change": "تغيير المرحلة",
+    "opportunity": "فرصة",
+    "tender": "منافسة",
+    "pipeline_lost_reason": "سبب الخسارة",
+    "pipeline_source": "المصدر",
+    "pipeline_stage": "مرحلة الفرص",
     "partner": "شريك",
     "invoice": "فاتورة",
     "task": "مهمة",
@@ -728,6 +734,8 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
+    "task_template": "قالب مهمة",
+    "task_occurrence": "مهمة من قالب",
     "project_health": "صحة المشروع"
   },
   "status": {
@@ -755,6 +763,9 @@
     "remove": "إزالة التصفية {field}: {value}"
   },
   "cap": {
+    "pipeline": {
+      "assign": "إسناد المنافسات والفرص إلى الآخرين"
+    },
     "clients": {
       "identify": "تغيير معرّفات العملاء وحسم المطابقات",
       "merge": "دمج الجهات",
@@ -990,6 +1001,39 @@
       "hand_over_to_self": "اختر شخصًا آخر ليتسلّم العمل",
       "head_needs_successor": "هذا الشخص يرأس {detail} — اختر رئيسًا جديدًا أولًا",
       "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها"
+    },
+    "overview": {
+      "period_invalid": "تنتهي الفترة قبل أن تبدأ",
+      "unknown_period": "اختر من بداية الشهر أو الربع أو السنة، أو حدّد التاريخين"
+    },
+    "opportunity": {
+      "handover_needs_ticket": "التسليم للمنتج يحتاج تذكرة دايركت",
+      "partner_fixed": "تبقى الفرصة مع جهتها",
+      "type_of_other_side": "هذا النوع من الجانب الآخر",
+      "type_required": "اختر ما ستصبح عليه الجهة",
+      "side_required": "اختر عميل أو مورد وشريك",
+      "partner_required": "اختر الجهة"
+    },
+    "tender": {
+      "awarded_needs_value": "أدخل قيمة الترسية",
+      "segment_reason_required": "اذكر سبب كون هذه المنافسة خارج القطاع الحكومي",
+      "not_government": "يضيف المدير وحده منافسة لجهة خارج القطاع الحكومي",
+      "partner_required": "اختر الجهة الحكومية"
+    },
+    "pipeline": {
+      "owner_required": "اختر من يتسلّم البطاقات",
+      "value_invalid": "لا يمكن أن تقل القيمة عن صفر",
+      "title_required": "العنوان مطلوب",
+      "date_is_the_moves": "تواريخ البطاقة تأتي من نقلها بين المراحل",
+      "reason_of_other_board": "هذا السبب من اللوحة الأخرى",
+      "stage_of_other_board": "هذه المرحلة من اللوحة الأخرى",
+      "lost_needs_reason": "اختر سبب الخسارة أو الإلغاء",
+      "backward_needs_reason": "إعادة البطاقة إلى الخلف تحتاج سببًا",
+      "before_last_move": "لا يمكن تأريخ النقل قبل آخر نقل للبطاقة ({detail})",
+      "same_stage": "هي في هذه المرحلة بالفعل",
+      "unknown_stage": "ليست مرحلة في هذه اللوحة: {detail}",
+      "unknown_board": "ليست لوحة: {detail}",
+      "source_required": "اختر من أين جاءت"
     },
     "common": {
       "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"

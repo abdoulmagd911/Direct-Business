@@ -1,7 +1,28 @@
--- Sabotage: a-handed-over-task-tells-nobody
--- Breaks: sql:LEAVE-01
--- Expect: the new owner is told of each
--- A task handed over in a leaving tells its new owner nothing (V456).
+-- QA-523 (V452, V463): a recurring template's owner is open work. A live template — active, not ended, not removed —
+-- keeps making tasks for its owner, so nobody is switched off, marked as left or removed while they own one unless the
+-- same request hands it over; the hand-over passes it to the new owner with the rest, in the same request and Undo.
+-- core_leaving promised this "when their tables land" (P5-1e lands work.task_template). Forward-only.
+
+create or replace function core.open_work(p_person uuid) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select pg_catalog.jsonb_build_object(
+    'tasks', (select pg_catalog.count(*) from work.task t
+              where t.owner_id = p_person and t.deleted_at is null and t.closed_at is null),
+    'projects', (select pg_catalog.count(*) from work.project p
+                 where p.owner_id = p_person and p.deleted_at is null and p.closed_at is null),
+    'action_items', (select pg_catalog.count(*) from work.action_item a join work.task t on t.id = a.task_id
+                     where a.owner_id = p_person and a.deleted_at is null and a.done_on is null
+                       and t.deleted_at is null and t.closed_at is null),
+    'sides', (select pg_catalog.count(*) from partner.side_owner m join partner.partner p on p.id = m.partner_id
+              where m.person_id = p_person and m.deleted_at is null
+                and (m.effective_to is null or m.effective_to > core.riyadh_today())
+                and p.deleted_at is null and p.archived_at is null and partner.side_on(m.partner_id, m.side)),
+    'templates', (select pg_catalog.count(*) from work.task_template k
+                  where k.owner_id = p_person and k.deleted_at is null and k.active
+                    and (k.ends_on is null or k.ends_on >= core.riyadh_today())))
+$$;
+
 create or replace function core.hand_over(p_from uuid, p_to uuid) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -30,7 +51,7 @@ begin
            order by x.number loop
     update work.task set owner_id = p_to, assigned_by = case when p_to <> me then me end where id = t.id;
     if not work.task_is_past(t) then
-      null;  -- sabotaged: the new owner of a task is not told
+      perform notify.push_assigned(p_to, 'assigned', 'work.task', t.id);
     end if;
     k_tasks := k_tasks + 1;
   end loop;
