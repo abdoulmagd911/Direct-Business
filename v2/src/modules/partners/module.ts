@@ -175,6 +175,14 @@ export default defineModule({
       default: 21,
     },
     {
+      // V477: a client is active with a counted invoice inside this many days.
+      key: 'partner.active_client_days',
+      group: 'settings.partners',
+      label: 'setting.partner.active_client_days',
+      schema: z.number().int().min(1).max(365),
+      default: 90,
+    },
+    {
       key: 'partner.one_code_per_partner',
       group: 'settings.partners',
       label: 'setting.partner.one_code_per_partner',

@@ -182,6 +182,7 @@ export type Database = {
         Returns: Json;
       };
       finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       finance_difference_counts: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -340,6 +341,7 @@ export type Database = {
         Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_client_counts: { Args: { p_on?: string }; Returns: Json };
       partner_create: { Args: { p_partner: Json; p_reason?: string }; Returns: Json };
       partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
       partner_owner_set: {

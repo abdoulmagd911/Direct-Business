@@ -460,6 +460,19 @@
       "effective_dated": false
     },
     {
+      "key": "partner.active_client_days",
+      "group": "settings.partners",
+      "label": "setting.partner.active_client_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 90,
+      "effective_dated": false
+    },
+    {
       "key": "partner.contract_expiring_from_days",
       "group": "settings.partners",
       "label": "setting.partner.contract_expiring_from_days",

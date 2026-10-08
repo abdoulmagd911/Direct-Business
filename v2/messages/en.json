@@ -924,7 +924,8 @@
       "contract_notify": "Who is told a contract is expiring",
       "contract_renewal_task": "Make the renewal task at a contract's first reminder",
       "logo_fallback": "An organisation with no logo shows",
-      "stale_after_days": "Days without activity before an organisation is stale"
+      "stale_after_days": "Days without activity before an organisation is stale",
+      "active_client_days": "Days a client counts as active after a counted invoice"
     },
     "core": {
       "file_download_display_name": "Downloads use the file's display name",

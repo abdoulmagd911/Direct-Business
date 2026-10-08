@@ -1,6 +1,6 @@
 -- An organisation's money by month and sales by code (spec §3.6 partner_month, sales_by_code; V65, V414, V611).
 -- Both read the counted units (money_row), never a copy. partner_month: organisation × month — units, revenue, cost,
--- profit, the Provisional part beside them and the Losses; outstanding joins it when receipts are imported.
+-- profit, the Provisional part beside them and the Losses; average days to pay beside it (V401).
 -- sales_by_code: discount or campaign code × month — units, revenue, profit, and whom the code belongs to on the
 -- unit's created day: an organisation (a discount code on its identifiers), a campaign (credited to no organisation,
 -- listed apart — V65), or nobody known; with the fee percent of the terms in force at the month's end.
@@ -57,6 +57,21 @@ begin
 end
 $$;
 
+-- Average days to pay (V401): over an organisation's counted units in a period that carry their paid day, the days
+-- from created to paid; none when no unit says (never 0).
+create function finance.days_to_pay(p_partner uuid, p_from date default null, p_to date default null) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform authz.require('finance', 'view');
+  return (select pg_catalog.jsonb_build_object('units', pg_catalog.count(*),
+                                               'average_days', pg_catalog.round(avg(r.paid_on - r.created_on), 1))
+          from finance.money_row r
+          where r.counted and r.partner_id = p_partner and r.paid_on is not null
+            and r.created_on between coalesce(p_from, '2000-01-01') and coalesce(p_to, '2100-12-31'));
+end
+$$;
+
 -- Sales by code over a period, each code's months with its holder's name.
 create function finance.sales_by_code_list(p_from date, p_to date) returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -82,12 +97,18 @@ $$;
 create function api.finance_partner_months(p_partner uuid, p_from date default null, p_to date default null) returns jsonb
 language sql stable security invoker set search_path = ''
 as $$ select finance.partner_months(p_partner, p_from, p_to) $$;
+create function api.finance_days_to_pay(p_partner uuid, p_from date default null, p_to date default null) returns jsonb
+language sql stable security invoker set search_path = ''
+as $$ select finance.days_to_pay(p_partner, p_from, p_to) $$;
 create function api.finance_sales_by_code(p_from date, p_to date) returns jsonb
 language sql stable security invoker set search_path = ''
 as $$ select finance.sales_by_code_list(p_from, p_to) $$;
 
 revoke all on function finance.partner_months(uuid, date, date) from public;
 revoke all on function finance.sales_by_code_list(date, date) from public;
+revoke all on function finance.days_to_pay(uuid, date, date) from public;
+grant execute on function finance.days_to_pay(uuid, date, date) to authenticated;
+grant execute on function api.finance_days_to_pay(uuid, date, date) to authenticated;
 grant execute on function finance.partner_months(uuid, date, date) to authenticated;
 grant execute on function finance.sales_by_code_list(date, date) to authenticated;
 grant execute on function api.finance_partner_months(uuid, date, date) to authenticated;

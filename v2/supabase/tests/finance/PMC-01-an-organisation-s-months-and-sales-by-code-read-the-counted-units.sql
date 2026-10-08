@@ -1,6 +1,6 @@
 -- PMC-01 — an organisation's money by month and sales by code (§3.6 partner_month, sales_by_code; V65, V414, V611).
 -- The card's month counts the organisation's paid units — revenue, cost, profit, with the Provisional part beside them
--- (never left out) and the Loss counted. Sales by code lists each code's month with whom it belonged to on the unit's
+-- (never left out) and the Loss counted; average days to pay over the units that say when they were paid. Sales by code lists each code's month with whom it belonged to on the unit's
 -- day — an organisation, a campaign (credited to no organisation), or nobody known — and the fee in force. Every value
 -- is made up.
 -- Sabotage: supabase/tests/sabotage/the-organisation-card-leaves-provisional-out.sql.
@@ -22,12 +22,14 @@ select api.code_terms_add(current_setting('t.code')::uuid, null, 12, current_set
 
 select api.finance_import('invoices', jsonb_build_array(
   jsonb_build_object('ref', 'TX-51', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 300,
+                     'paid_on', (current_setting('t.d')::date + 10)::text,
                      'client_id', '82001', 'discount_code', 'MADEUP20'),
   jsonb_build_object('ref', 'TX-52', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 100,
                      'customer_name', 'Made Up Traveller', 'discount_code', 'trial7'),
   jsonb_build_object('ref', 'TX-53', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 40,
                      'customer_name', 'Another Made Up Traveller', 'discount_code', 'NOBODY9'),
   jsonb_build_object('ref', 'TX-54', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 200,
+                     'paid_on', (current_setting('t.d')::date + 5)::text,
                      'client_id', '82001'),
   jsonb_build_object('ref', 'TX-55', 'status', 'Pending Payment', 'created_on', current_setting('t.d'), 'total_sar', 999,
                      'client_id', '82001')), now() - interval '1 day');
@@ -48,5 +50,9 @@ select test.eq((select jsonb_agg(jsonb_build_object('code', e ->> 'code', 'held_
     {"code": "NOBODY9", "held_by": "unknown", "name": null, "units": 1, "revenue": 40, "fee_percent": null},
     {"code": "trial7", "held_by": "campaign", "name": "Made-up trial", "units": 1, "revenue": 100, "fee_percent": null}]'::jsonb,
   'sales by code: each code with whom it belonged to that day and the fee then in force; a campaign is listed apart');
+select test.eq(api.finance_days_to_pay(current_setting('t.p')::uuid), '{"units": 2, "average_days": 7.5}'::jsonb,
+  'average days to pay: from created to paid, over the units that say when they were paid (V401)');
+select test.eq(api.finance_days_to_pay(current_setting('t.p')::uuid, '2020-01-01', '2020-12-31'),
+  '{"units": 0, "average_days": null}'::jsonb, 'none paid, no average — never 0');
 select test.raises($$select api.finance_sales_by_code('2026-02-01', '2026-01-01')$$, 'P0001',
   'a period that ends before it starts is refused', 'common.invalid');
