@@ -1455,7 +1455,8 @@
       "account_in_no_team": "The admin account and the test account are in no team and have no manager"
     },
     "people": {
-      "email_taken": "That email already belongs to {detail}"
+      "email_taken": "That email already belongs to {detail}",
+      "own_last_email": "This is your last email you can sign in with — add another before removing it"
     },
     "list": {
       "key_taken": "That key is already used",
