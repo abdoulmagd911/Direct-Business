@@ -1386,4 +1386,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'own-last-email-refusal-has-no-words',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "the guard's refusal is said in plain words",
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"own_last_email": "This is your last email you can sign in with — add another before removing it"',
+        replace:
+          '"own_last_email_unused": "This is your last email you can sign in with — add another before removing it"',
+      },
+    ],
+  },
 ];
