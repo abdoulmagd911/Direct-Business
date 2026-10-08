@@ -1137,7 +1137,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1150,7 +1150,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/PageHeader.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1176,8 +1176,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/grid/PastWorkGrid.tsx',
-        find: 'className="size-6"',
-        replace: 'className="size-5"',
+        find: 'className="relative size-6 before:absolute',
+        replace: 'className="relative size-5 before:absolute',
       },
     ],
   },
