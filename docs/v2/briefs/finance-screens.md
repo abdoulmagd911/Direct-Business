@@ -26,6 +26,7 @@ Each item says where it shows, the exact words, and a made-up example. A word in
      (Full on Finance) closes it with **Close month** on the open month's row. The confirm names the month and says "It will
      never change. Later news becomes a dated note." This is the one action here with no Undo, because V620 says a closed
      month is never reopened.
+   - **The close rule (V620).** A month is closed by the 5th working day of the next month at the latest; closing earlier is allowed. September is closed on 5 Oct, which sits inside that limit. The chip always shows the day it was closed.
    - Anything that happens after the close adds one dated line under the month, behind a chip **Late changes · 3**, under the
      heading **After close**. The lines are **Paid late** (unit, paid date, +riyals), **Cancelled late** (a paid unit
      cancelled after the close: unit, date, −riyals) and **Late cost** (a cost approved after the close: unit, date, ±riyals).
@@ -182,6 +183,8 @@ What each screen shows, in short:
   (see G, 2).
 
 ## D · The phone (390 px first)
+
+The phone boards are in this PR: `PhoneFinance` (overview), `PhoneInvoices` (cards), `PhoneInvoice` (the invoice page, with the **Undo** toast of job 3) and `PhoneChecks` (the **Checks** sheet), drawn at 390 px for a manager, with Finance reached from **More**.
 
 - **Overview.** The tiles stack, one under another, each with "of which Provisional" directly under its figure. The **Needs
   attention** strip becomes a row of count chips. The charts become two short lists. The months table becomes cards: month ·
