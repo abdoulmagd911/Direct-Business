@@ -1350,6 +1350,20 @@ export const sabotages = [
       },
     ],
   },
+
+  {
+    name: 'new-supplier-button-says-and-partner',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the button is New supplier, not New supplier & partner',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"newSupplier": "New supplier",',
+        replace: '"newSupplier": "New supplier & partner",',
+      },
+    ],
+  },
+
   {
     name: 'turn-into-task-chip-leads-nowhere',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -1362,6 +1376,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'turn-into-task-forgets-the-checklist-ask',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -1374,6 +1389,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'turn-into-task-makes-it-without-the-note',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -1386,6 +1402,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'own-last-email-refusal-has-no-words',
     breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
