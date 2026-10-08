@@ -63,7 +63,7 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 export function linkRoute(link: NoteLink): string | null {
   if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
   if (link.entity === 'achievement') return `/kpis/achievements/${link.id}`;
-  if (link.entity === 'task' && link.number) return `/tasks/${link.number}`;
+  if ((link.entity === 'task' || link.entity === 'action_item') && link.number) return `/tasks/${link.number}`;
   return null;
 }
 

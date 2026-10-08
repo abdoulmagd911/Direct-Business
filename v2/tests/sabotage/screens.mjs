@@ -813,6 +813,32 @@ export const sabotages = [
   },
 
   {
+    name: 'action-item-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'an action item brought along from a checklist leads to its task',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'task' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-reads-as-a-meeting',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'it names the item, not a logged meeting',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: "link.entity === 'action_item' && link.number",
+        replace: "link.entity === 'action_item' && link.number === 'never'",
+      },
+    ],
+  },
+
+  {
     name: 'turned-into-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
     expect: 'the chip opens the organisation',

@@ -142,6 +142,10 @@ test('a note becomes a task through the note door, with the checklist as action 
 
   const asked = await make(`Plan the offsite ${t}`, true);
   expect(asked.items, 'the checklist came along when asked').toBe(2);
+  const itemChips = page.locator('[data-note-links] [data-turned-into="action_item"]');
+  await expect(itemChips, 'each brought-along item has a chip').toHaveCount(2);
+  await expect(itemChips.first(), 'it names the item, not a logged meeting').toContainText(/Action item on .* step/);
+  await expect(itemChips.first(), 'and leads to the task').toHaveAttribute('href', /\/tasks\/[^/]+$/);
   await asked.chip.click();
   await expect(page, 'the chip opens the task').toHaveURL(/\/tasks\/[^/]+$/);
 

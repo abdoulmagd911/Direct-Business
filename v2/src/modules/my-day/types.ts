@@ -31,7 +31,7 @@ export type NoteItem = { text: string; done: boolean; owner_id?: string | null; 
 
 /** What a note was turned into (my.note_link), live and visible to the reader: a logged call or meeting, or a reminder. */
 export type NoteLink = {
-  entity: 'activity' | 'reminder' | 'achievement' | 'task';
+  entity: 'activity' | 'reminder' | 'achievement' | 'task' | 'action_item';
   id: string;
   made_at: string;
   made_by: string;
@@ -49,6 +49,8 @@ export type NoteLink = {
   /** A task's number and title (the chip of a note turned into a task). */
   number?: string | null;
   title?: string | null;
+  /** An action item's own words (the chip of a checklist item brought along as an action item; it opens its task). */
+  text?: string | null;
 };
 
 export type PartnerRef = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null };

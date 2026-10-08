@@ -112,6 +112,10 @@ describe('Turn into', () => {
     const link = { entity: 'task', id: 'i', made_at: '', made_by: '', number: 'T-12', title: 'Call back' } as never;
     expect(linkRoute(link)).toBe('/tasks/T-12');
   });
+  it('an action item brought along from a checklist leads to its task (QA-526)', () => {
+    const link = { entity: 'action_item', id: 'i', made_at: '', made_by: '', number: 'T-12', text: 'Send the quote' } as never;
+    expect(linkRoute(link)).toBe('/tasks/T-12');
+  });
 });
 
 describe('a block', () => {

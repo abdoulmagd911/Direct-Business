@@ -277,7 +277,8 @@
         "details": "Details",
         "linkActivity": "{type} · {name}",
         "linkReminder": "Reminder · {when}",
-        "linkTask": "Task {number} · {title}"
+        "linkTask": "Task {number} · {title}",
+        "linkActionItem": "Action item on {number} · {text}"
       },
       "turn": {
         "label": "Turn into",
