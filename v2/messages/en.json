@@ -770,6 +770,7 @@
     "code_terms": "Code terms",
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
+    "match_pin": "Match pin",
     "identifier_block": "Blocked value",
     "contract_term": "Contract term",
     "priority": "Priority",

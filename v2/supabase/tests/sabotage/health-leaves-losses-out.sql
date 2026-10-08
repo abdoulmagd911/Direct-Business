@@ -59,6 +59,12 @@ begin
       union all
       select 'proposals_open', pg_catalog.count(*)::int, null::numeric
       from finance.billing_proposal p where p.state = 'open' and p.deleted_at is null
+      union all
+      select 'pins_stale', pg_catalog.count(*)::int, sum(i.total_sar)
+      from partner.match_pin p
+      join finance.invoice i on i.id = p.source_id and i.deleted_at is null
+      cross join lateral finance.partner_match_unpinned(i.id) x
+      where p.deleted_at is null and x.state = 'matched' and x.partner_id <> p.partner_id and i.month_on between m0 and m1
     )
     select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('key', i.key, 'count', i.n, 'amount_sar', i.amount)
                                          order by i.key) filter (where i.n > 0), '[]'::jsonb)

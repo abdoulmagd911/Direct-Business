@@ -2,7 +2,7 @@
 -- Breaks: sql:NAD-01
 -- Expect: rows wait grouped by customer, with the count and the riyals at stake; an organisation's own name does not match
 -- An organisation's official or trade name matches invoices by itself, not only an alias a person typed (V421).
-create or replace function finance.partner_match(p_invoice uuid)
+create or replace function finance.partner_match_unpinned(p_invoice uuid)
 returns table (partner_id uuid, state text, level text)
 language plpgsql stable security definer set search_path = ''
 as $$

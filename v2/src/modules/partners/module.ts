@@ -47,6 +47,7 @@ export default defineModule({
         ['side_owner', 'partner.side_owner', 'partner.side_owner_owners'],
         ['credit_limit', 'partner.credit_limit', 'partner.credit_limit_owners'],
         ['identifier', 'partner.identifier', 'partner.identifier_owners'],
+        ['match_pin', 'partner.match_pin', 'partner.match_pin_owners'],
         ['contact', 'partner.contact', 'partner.contact_owners'],
         ['partner_merge', 'partner.merge', undefined],
         ['contract', 'partner.contract', 'partner.contract_owners'],

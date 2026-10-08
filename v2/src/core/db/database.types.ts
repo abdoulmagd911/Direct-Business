@@ -297,6 +297,11 @@ export type Database = {
         Args: { p_decision: string; p_key: string; p_partner?: string; p_reason?: string };
         Returns: Json;
       };
+      match_pin_clear: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      match_pin_set: {
+        Args: { p_invoice: string; p_kind: string; p_partner: string; p_reason: string };
+        Returns: Json;
+      };
       match_queue: { Args: Record<PropertyKey, never>; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_day: { Args: { p_limit?: number; p_offset?: number; p_scope?: string; p_since?: string }; Returns: Json };

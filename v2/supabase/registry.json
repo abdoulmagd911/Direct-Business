@@ -1182,6 +1182,18 @@
       "rule_only": false
     },
     {
+      "key": "match_pin",
+      "table": "partner.match_pin",
+      "page": "clients",
+      "owners": "partner.match_pin_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "partner.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "mention",
       "table": "core.mention",
       "page": null,
