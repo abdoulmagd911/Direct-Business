@@ -15,7 +15,7 @@ import { Switch } from '@/ui/Switch';
 import { nameOf, type ListEntry, type Side } from '../types';
 
 /**
- * New client / New supplier & partner (V149: api.partner_create with one side — type required, tier, owner; the owner
+ * New client / New supplier (V149: api.partner_create with one side — type required, tier, owner; the owner
  * is the caller unless named). The organisation opens once created; the other side is switched on from its record.
  */
 export function NewPartnerDialog({
