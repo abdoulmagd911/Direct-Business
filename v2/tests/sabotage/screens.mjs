@@ -741,7 +741,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
@@ -808,6 +808,32 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
         find: "choices[id] ?? 'carry'",
         replace: "choices[id] ?? 'done'",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'an action item brought along from a checklist leads to its task',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'task' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-reads-as-a-meeting',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'it names the item, not a logged meeting',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: "link.entity === 'action_item' && link.number",
+        replace: "link.entity === 'action_item' && link.number === 'never'",
       },
     ],
   },
@@ -1085,7 +1111,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
       },
     ],
@@ -1360,6 +1386,59 @@ export const sabotages = [
         file: 'messages/en.json',
         find: '"newSupplier": "New supplier",',
         replace: '"newSupplier": "New supplier & partner",',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a note turned into a task leads to the task by its number',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'action_item' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-forgets-the-checklist-ask',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the checklist came along when asked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '...(withItems ? { action_items: true } : {})',
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-makes-it-without-the-note',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the note says it became a task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '(fromNote\n          ? rpc(',
+        replace: "(fromNote?.id === 'never'\n          ? rpc(",
+      },
+    ],
+  },
+
+  {
+    name: 'own-last-email-refusal-has-no-words',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "the guard's refusal is said in plain words",
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"own_last_email": "This is your last email you can sign in with — add another before removing it"',
+        replace:
+          '"own_last_email_unused": "This is your last email you can sign in with — add another before removing it"',
       },
     ],
   },

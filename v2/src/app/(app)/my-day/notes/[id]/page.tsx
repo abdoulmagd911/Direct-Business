@@ -1,8 +1,10 @@
 import { getLocale, getTranslations } from 'next-intl/server';
+import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { NotePage } from '@/modules/my-day/screens/NotePage';
 import { activityOutcomes, activityTypes, myNote } from '@/modules/my-day/server';
 import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
+import { loadLookups } from '@/modules/tasks/load';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
@@ -24,10 +26,15 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         <DataState kind="empty" message={t('pages.myDay.note.notFound')} />
       </Page>
     );
-  const [types, outcomes, org] = await Promise.all([
+  const me = await requireMe();
+  // a task is made by someone with Tasks at Own or Full (V401); only they need the names the form offers
+  const tasks = me.levels.tasks ?? 'none';
+  const canTask = note.mine && (tasks === 'own' || tasks === 'full');
+  const [types, outcomes, org, lookups] = await Promise.all([
     activityTypes(),
     activityOutcomes(),
     note.mine ? null : (serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>),
+    canTask ? loadLookups(me) : null,
   ]);
   const author = org?.people.find((p) => p.id === note.author_id);
   return (
@@ -38,6 +45,7 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         author={author ? personName(author, locale === 'ar' ? 'ar' : 'en') : undefined}
         types={types}
         outcomes={outcomes}
+        taskLookups={lookups ? { org: lookups.org, partners: lookups.partners, projects: lookups.projects } : undefined}
       />
     </Page>
   );

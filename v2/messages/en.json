@@ -276,7 +276,9 @@
         "notFound": "This note is not there, or it is not yours to read.",
         "details": "Details",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "Reminder · {when}"
+        "linkReminder": "Reminder · {when}",
+        "linkTask": "Task {number} · {title}",
+        "linkActionItem": "Action item on {number} · {text}"
       },
       "turn": {
         "label": "Turn into",
@@ -298,7 +300,9 @@
         "when": "When",
         "text": "Remind me to",
         "logged": "{type} logged on {name}",
-        "reminded": "Reminder set for {when}"
+        "reminded": "Reminder set for {when}",
+        "taskTitle": "Make a task from this note",
+        "withItems": "Also turn the checklist into action items"
       },
       "finish": {
         "label": "Finish meeting",
