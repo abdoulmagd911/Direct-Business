@@ -238,6 +238,7 @@ export type Database = {
           cost_is: string;
           counted: boolean;
           dpin: string;
+          estimate: number;
           excluded_reason: string;
           invoice_id: string;
           loss: boolean;

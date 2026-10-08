@@ -68,6 +68,7 @@ export default defineModule({
         ['channel', 'finance.channel'],
         ['import_map', 'finance.import_map'],
         ['item_service', 'finance.item_service'],
+        ['item_class', 'finance.item_class'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
   ],
@@ -80,6 +81,15 @@ export default defineModule({
       label: 'setting.finance.collection_due_days',
       schema: z.number().int().min(0).max(365),
       default: 30,
+      effectiveDated: true,
+    },
+    {
+      // D23: the pass-through lines of a unit with no approved expense are shown as a flagged estimate, apart.
+      key: 'finance.cost_estimate',
+      group: 'settings.finance',
+      label: 'setting.finance.cost_estimate',
+      schema: z.boolean(),
+      default: true,
       effectiveDated: true,
     },
     {

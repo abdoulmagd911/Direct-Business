@@ -27,6 +27,8 @@ begin
         'cost', (select coalesce(sum(r.cost), 0) from r where r.provisional),
         'profit', (select coalesce(sum(r.profit), 0) from r where r.provisional)),
       'losses', (select pg_catalog.count(*) from r where r.loss),
+      'estimate', (select sum(r.estimate) from r where r.estimate is not null),
+      'estimated_units', (select pg_catalog.count(*) from r where r.estimate is not null),
       'months', coalesce((select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(m) order by m.month_on)
                           from finance.money_month m where m.month_on between m0 and m1), '[]'::jsonb))
   );

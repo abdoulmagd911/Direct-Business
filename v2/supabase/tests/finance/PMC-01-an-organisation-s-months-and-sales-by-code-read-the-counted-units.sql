@@ -39,7 +39,8 @@ select api.finance_import('expenses', jsonb_build_array(
 
 select test.eq(api.finance_partner_months(current_setting('t.p')::uuid),
   jsonb_build_array(jsonb_build_object('month_on', pg_catalog.date_trunc('month', current_setting('t.d')::timestamp)::date,
-    'units', 2, 'revenue', 500, 'cost', 250, 'profit', 250, 'provisional_units', 1, 'provisional_revenue', 300, 'losses', 1)),
+    'units', 2, 'revenue', 500, 'cost', 250, 'profit', 250, 'provisional_units', 1, 'provisional_revenue', 300, 'losses', 1,
+    'estimate', null)),
   'the organisation''s month: its paid units, the Provisional part beside them, the Loss counted, the unpaid one left out');
 select test.eq((select jsonb_agg(jsonb_build_object('code', e ->> 'code', 'held_by', e ->> 'held_by',
                                                     'name', coalesce(e ->> 'partner_name', e ->> 'campaign_name'),

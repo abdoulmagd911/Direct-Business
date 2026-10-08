@@ -373,6 +373,14 @@
       "effective_dated": true
     },
     {
+      "key": "finance.cost_estimate",
+      "group": "settings.finance",
+      "label": "setting.finance.cost_estimate",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": true
+    },
+    {
       "key": "finance.quiet_client_days",
       "group": "settings.finance",
       "label": "setting.finance.quiet_client_days",
@@ -1163,6 +1171,18 @@
       "page": "finance",
       "owners": "finance.invoice_line_owners",
       "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "item_class",
+      "table": "finance.item_class",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
       "private": false,
       "visible": null,
       "level": null,

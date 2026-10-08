@@ -60,6 +60,8 @@ begin
       select 'proposals_open', pg_catalog.count(*)::int, null::numeric
       from finance.billing_proposal p where p.state = 'open' and p.deleted_at is null
       union all
+      select 'estimates_in_use', pg_catalog.count(*)::int, sum(u.estimate) from u where u.counted and u.estimate is not null
+      union all
       select 'pins_stale', pg_catalog.count(*)::int, sum(i.total_sar)
       from partner.match_pin p
       join finance.invoice i on i.id = p.source_id and i.deleted_at is null

@@ -24,7 +24,7 @@ select api.finance_import('expenses', jsonb_build_array(
 -- the period
 select test.eq((select api.finance_period(current_setting('t.m')::date, current_setting('t.d')::date)
                        - 'from' - 'to' - 'months'),
-  '{"units": 2, "revenue": 700.00, "cost": 100.00, "profit": 600.00, "losses": 0,
+  '{"units": 2, "revenue": 700.00, "cost": 100.00, "profit": 600.00, "losses": 0, "estimate": null, "estimated_units": 0,
     "provisional": {"units": 1, "revenue": 300.00, "cost": 0, "profit": 300.00}}'::jsonb,
   'the period counts every paid unit, the Provisional part beside it');
 select test.eq((select jsonb_agg(jsonb_build_object('ref', ref, 'counted', counted, 'cost_is', cost_is) order by ref)
