@@ -1397,8 +1397,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  if (link.entity === 'task' && link.number) return `/tasks/${link.number}`;\n",
-        replace: '',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'action_item' && link.number",
       },
     ],
   },
