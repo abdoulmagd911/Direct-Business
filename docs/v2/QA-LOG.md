@@ -1293,3 +1293,21 @@ The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149,
   - **QA-244 fixed:** #184 merged, so main is now 380a2c9. QA-246 is answered by V444 (the owner's own tasks live on his employee account).
   - **#175 at 48beef4 (main 380a2c9 merged in):** the merge brought only #184's NOTE-06 file. #175's own diff is the same as at 3a3a1ad, line for line.
   - **CI is fully green**, with ACH-10 passing and 152/0 on the Supabase stack. **Re-cleared at 48beef4** on #175.
+
+## Round 72 — 2026-10-08 (v2/main 181989e after the night's train: #191, #157, #144, bundle 1 #194, bundle 2 #195)
+
+- **Cleared tonight:**
+  - #191: the production-history placeholder. Its schema is identical to main's, with no shine bucket or policy.
+  - #157 at `a8aad8a`: QA-208. The lockout is closed in the database and by real clicks (`16-own-email.spec.ts`).
+  - #144 at `7e7a5fa`: the retry wraps only stable reads.
+  - #194 at `357e5ff`: 193/197 and 26 sabotages red.
+  - #195 at `cdd2152`: 198/202 and 24 sabotages red.
+  - #196 at `3583417`: the guard's design lane, with nothing wider.
+- **Main 181989e retake:**
+  - **SQL:** 198/202 (the known QA-02/03/04/121).
+  - **Desktop round:** 57/0/6.
+  - **Integrated pass:** 28/0/7.
+  - **Four-role walk:** 1,114/10, all QA-228 and QA-219 (Not found's tab title).
+  - **Full sweep:** 307 fails, against 566 on 289fa46, and **none new**.
+- **Fixed on main:** QA-208 (#157), QA-245 (#188, Task out of the + without a team), and QA-244 (#184). QA-219 is partly fixed: Not found's title is left.
+- **QA-115 and QA-118** were rewritten to hold under #160's rule (nobody holding work is switched off).
