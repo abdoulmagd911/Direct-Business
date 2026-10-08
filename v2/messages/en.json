@@ -1711,7 +1711,7 @@
     "none": "No organisations match",
     "search": "Search by name or number",
     "newClient": "New client",
-    "newSupplier": "New supplier & partner",
+    "newSupplier": "New supplier",
     "created": "{name} added",
     "updated": "{name} updated",
     "edit": "Edit {name}",
