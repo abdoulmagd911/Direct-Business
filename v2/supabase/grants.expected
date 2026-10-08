@@ -72,6 +72,8 @@ function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function api.finance_differences(p_invoice uuid) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
+function api.finance_import_map(p_source text) execute authenticated
+function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_period(p_from date, p_to date) execute authenticated
 function api.finance_period_units(p_from date, p_to date) execute authenticated
@@ -308,6 +310,8 @@ function finance.closed_months() execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function finance.differences(p_invoice uuid) execute authenticated
+function finance.import_map_list(p_source text) execute authenticated
+function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.month_close_do(p_month date, p_note text) execute authenticated
 function finance.period_figures(p_from date, p_to date) execute authenticated

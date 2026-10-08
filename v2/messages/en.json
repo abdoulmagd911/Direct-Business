@@ -820,7 +820,8 @@
     "product": "Product",
     "wallet_rule": "Wallet rule",
     "commission_word": "Commission word",
-    "channel": "Channel"
+    "channel": "Channel",
+    "import_map": "Import column"
   },
   "status": {
     "done": "Done",

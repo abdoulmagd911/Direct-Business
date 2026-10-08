@@ -64,6 +64,7 @@ export default defineModule({
         ['wallet_rule', 'finance.wallet_rule'],
         ['commission_word', 'finance.commission_word'],
         ['channel', 'finance.channel'],
+        ['import_map', 'finance.import_map'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
   ],

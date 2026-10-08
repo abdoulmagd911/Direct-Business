@@ -1068,6 +1068,18 @@
       "rule_only": false
     },
     {
+      "key": "import_map",
+      "table": "finance.import_map",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "individual_name",
       "table": "partner.individual_name",
       "page": "clients",
