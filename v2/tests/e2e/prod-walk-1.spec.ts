@@ -57,11 +57,13 @@ test('the phone Search box is at least 44 px high (W41)', async ({ page }) => {
   expect(box!.height, 'a finger-sized Search box').toBeGreaterThanOrEqual(44);
 });
 
-test('an empty Settings group says what it is in one line (W44)', async ({ page }) => {
+// W44's empty-group line is checked on the group's body (tests/unit/pages/an-empty-settings-group-says-what-it-is-in-one-
+// line.test.tsx): since Finance landed (#186) no Settings group is empty, and Settings › Finance shows its lists.
+test('Settings › Finance shows its lists, not the empty-group line (W44, #186)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/settings/finance');
   await hydrated(page);
-  await expect(page.locator('main')).toContainText('Nothing to set up here yet.');
+  await expect(page.locator('main')).not.toContainText('Nothing to set up here yet.');
 });
 
 test('a setting nobody changed says Default (W45)', async ({ page }) => {

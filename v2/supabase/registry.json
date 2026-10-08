@@ -360,18 +360,6 @@
       "effective_dated": false
     },
     {
-      "key": "finance.tender_counts_as",
-      "group": "settings.finance",
-      "label": "setting.finance.tender_counts_as",
-      "schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "string",
-        "enum": ["unset", "sales_credit", "revenue"]
-      },
-      "default": "unset",
-      "effective_dated": true
-    },
-    {
       "key": "notify.kinds_enabled",
       "group": "settings.app",
       "label": "setting.notify.kinds_enabled",

@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
 // Finance — Own is entering invoices and editing your own entries (owner decision 4). Levels: TECH-SPEC §8.
@@ -68,17 +67,6 @@ export default defineModule({
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
   ],
-  settings: [
-    {
-      // V614 / Q46: whether a tender's signed value is revenue and profit in its signing month, or the account manager's
-      // sales credit only. 'unset' until the owner answers (P4-2 does not ship unset); finance.tender_use reads it as of
-      // each month.
-      key: 'finance.tender_counts_as',
-      group: 'settings.finance',
-      label: 'setting.finance.tender_counts_as',
-      schema: z.enum(['unset', 'sales_credit', 'revenue']),
-      default: 'unset',
-      effectiveDated: true,
-    },
-  ],
+  // No settings: a tender's signed value is sales credit only, one way, with no setting (V619 answering Q46).
+  settings: [],
 });
