@@ -226,6 +226,7 @@ export type Database = {
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
       finance_not_invoiced: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_partner_months: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_period_units: {
         Args: { p_from: string; p_to: string };
@@ -254,6 +255,7 @@ export type Database = {
         Returns: Json;
       };
       finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
+      finance_sales_by_code: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
