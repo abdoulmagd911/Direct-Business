@@ -733,6 +733,12 @@
     }
   },
   "entity": {
+    "pipeline_stage_change": "Stage change",
+    "opportunity": "Opportunity",
+    "tender": "Tender",
+    "pipeline_lost_reason": "Lost reason",
+    "pipeline_source": "Source",
+    "pipeline_stage": "Pipeline stage",
     "partner": "Partner",
     "invoice": "Invoice",
     "task": "Task",
@@ -804,6 +810,8 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
+    "task_template": "Task template",
+    "task_occurrence": "Task made from a template",
     "project_health": "Project health"
   },
   "status": {
@@ -831,6 +839,9 @@
     "remove": "Remove filter {field}: {value}"
   },
   "cap": {
+    "pipeline": {
+      "assign": "Give tenders and opportunities to others"
+    },
     "clients": {
       "identify": "Change client identifiers and decide matches",
       "merge": "Merge organisations",
@@ -989,7 +1000,8 @@
       "view.saved": "View saved",
       "record.restored": "Record restored",
       "list.removed": "List entry removed",
-      "list.retired": "List entry archived"
+      "list.retired": "List entry archived",
+      "tender.signed": "Contract signed, from tender {number}"
     },
     "signIn": {
       "at": "When",
@@ -1422,6 +1434,39 @@
     }
   },
   "errors": {
+    "overview": {
+      "period_invalid": "The period ends before it starts",
+      "unknown_period": "Choose month, quarter or year to date, or your own dates"
+    },
+    "opportunity": {
+      "handover_needs_ticket": "Handed to Product needs the Direct ticket",
+      "partner_fixed": "An opportunity stays with its organisation",
+      "type_of_other_side": "That type belongs to the other side",
+      "type_required": "Choose what the organisation would become",
+      "side_required": "Choose Client or Supplier & partner",
+      "partner_required": "Choose the organisation"
+    },
+    "tender": {
+      "awarded_needs_value": "Enter the awarded value",
+      "segment_reason_required": "Say why this tender is outside the Government segment",
+      "not_government": "Only a manager adds a tender for an organisation outside the Government segment",
+      "partner_required": "Choose the government entity"
+    },
+    "pipeline": {
+      "owner_required": "Choose who takes the cards",
+      "value_invalid": "A value cannot be below zero",
+      "title_required": "A title is required",
+      "date_is_the_moves": "A card's dates come from its moves",
+      "reason_of_other_board": "That reason belongs to the other board",
+      "stage_of_other_board": "That stage belongs to the other board",
+      "lost_needs_reason": "Choose why it was lost or cancelled",
+      "backward_needs_reason": "Moving a card back needs a reason",
+      "before_last_move": "A move cannot be dated before the card's last move ({detail})",
+      "same_stage": "It is already at that stage",
+      "unknown_stage": "That is not a stage of this board: {detail}",
+      "unknown_board": "That is not a board: {detail}",
+      "source_required": "Choose where it came from"
+    },
     "kind": {
       "PermissionDenied": "You do not have access to do this",
       "Conflict": "Someone changed this since you opened it. Reload and try again.",
