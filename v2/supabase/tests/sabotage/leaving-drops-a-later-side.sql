@@ -16,6 +16,7 @@ declare
   k_projects int := 0;
   k_items int := 0;
   k_sides int := 0;
+  k_templates int := 0;
   told uuid[] := '{}';
 begin
   if p_to = p_from then
@@ -69,7 +70,13 @@ begin
     end if;
     k_sides := k_sides + 1;
   end loop;
+  -- a live recurring template keeps making tasks for its owner, so it goes with the rest (V463); no notice — its next
+  -- task tells the new owner when it is made
+  update work.task_template k set owner_id = p_to
+  where k.owner_id = p_from and k.deleted_at is null and k.active
+    and (k.ends_on is null or k.ends_on >= today);
+  get diagnostics k_templates = row_count;
   return pg_catalog.jsonb_build_object('tasks', k_tasks, 'projects', k_projects, 'action_items', k_items,
-                                       'sides', k_sides);
+                                       'sides', k_sides, 'templates', k_templates);
 end
 $$;

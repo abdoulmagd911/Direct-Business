@@ -42,13 +42,13 @@ select set_config('t.prj', api.project_save(null, jsonb_build_object('name', 'Ma
 -- holding work, nobody leaves without naming who takes it
 select test.as_person(current_setting('t.admin')::uuid);
 select test.eq(api.person_open_work(current_setting('t.am1')::uuid) - 'heads',
-  '{"tasks": 1, "projects": 1, "action_items": 1, "sides": 2}'::jsonb, 'the dialog reads what they hold');
+  '{"tasks": 1, "projects": 1, "action_items": 1, "sides": 2, "templates": 0}'::jsonb, 'the dialog reads what they hold');
 select test.raises(format('select api.person_leave(%L, %L)', current_setting('t.am1'), 'made up: left'),
   'P0001', 'leaving with open work and nobody named is refused', 'person.open_work');
 select set_config('t.r', api.person_leave(current_setting('t.am1')::uuid, 'made up: left the company', null,
   current_setting('t.am2')::uuid)::text, true);
 select test.eq(current_setting('t.r')::jsonb -> 'handed_over',
-  '{"tasks": 1, "projects": 1, "action_items": 1, "sides": 2}'::jsonb, 'everything open is handed over');
+  '{"tasks": 1, "projects": 1, "action_items": 1, "sides": 2, "templates": 0}'::jsonb, 'everything open is handed over');
 select set_config('t.req', current_setting('t.r')::jsonb ->> 'request_id', true);
 
 select test.as_owner();
