@@ -100,6 +100,8 @@ export type Database = {
         Returns: Json;
       };
       can_see: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      client_id_close: { Args: { p_closed_on: string; p_id: string; p_reason: string }; Returns: Json };
+      client_id_reopen: { Args: { p_id: string; p_reason: string }; Returns: Json };
       code_terms_add: {
         Args: {
           p_approved_by: string;
@@ -303,9 +305,14 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_emails_unlinked: { Args: { p_person: string }; Returns: string[] };
+      person_leave: {
+        Args: { p_id: string; p_left_on?: string; p_reason: string; p_reassign_to?: string };
+        Returns: Json;
+      };
+      person_open_work: { Args: { p_id: string }; Returns: Json };
       person_password_set: { Args: { p_person: string; p_reason: string; p_replace?: boolean }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
-      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
+      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string; p_reassign_to?: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };

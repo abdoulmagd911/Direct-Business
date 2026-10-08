@@ -152,6 +152,14 @@ export default defineModule({
       default: 'monogram',
     },
     {
+      // V488: after a hand-over the previous owner follows the organisation this many days (0: not at all).
+      key: 'work.handover_follow_days',
+      group: 'settings.partners',
+      label: 'setting.work.handover_follow_days',
+      schema: z.number().int().min(0).max(365),
+      default: 30,
+    },
+    {
       key: 'partner.stale_after_days',
       group: 'settings.partners',
       label: 'setting.partner.stale_after_days',
@@ -164,6 +172,21 @@ export default defineModule({
       label: 'setting.partner.one_code_per_partner',
       schema: z.boolean(),
       default: true,
+    },
+    {
+      // How many Payments client IDs of each kind an organisation may hold without a close date (V422, V434); a kind
+      // left out is unlimited — tender IDs, by default.
+      key: 'partner.open_client_ids',
+      group: 'settings.partners',
+      label: 'setting.partner.open_client_ids',
+      schema: z
+        .object({
+          prepaid: z.number().int().min(1).optional(),
+          postpaid: z.number().int().min(1).optional(),
+          tender: z.number().int().min(1).optional(),
+        })
+        .strict(),
+      default: { prepaid: 1, postpaid: 1 },
     },
   ],
   capabilities: [

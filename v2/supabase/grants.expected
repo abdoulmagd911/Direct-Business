@@ -43,6 +43,8 @@ function api.backfill_keys_held(p_keys text[]) execute authenticated
 function api.backfill_tasks(p_request jsonb) execute authenticated
 function api.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
 function api.can_see(p_entity text, p_id uuid) execute authenticated
+function api.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
+function api.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
@@ -120,9 +122,11 @@ function api.person_devices(p_person uuid) execute authenticated
 function api.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function api.person_email_remove(p_id uuid, p_reason text) execute authenticated
 function api.person_emails_unlinked(p_person uuid) execute authenticated
+function api.person_leave(p_id uuid, p_reason text, p_left_on date, p_reassign_to uuid) execute authenticated
+function api.person_open_work(p_id uuid) execute authenticated
 function api.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function api.person_sign_out(p_person uuid, p_device uuid) execute authenticated
-function api.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
+function api.person_switch(p_id uuid, p_on boolean, p_reason text, p_reassign_to uuid) execute authenticated
 function api.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function api.plans(p_department uuid) execute authenticated
@@ -245,9 +249,11 @@ function core.person_devices(p_person uuid) execute authenticated
 function core.person_email_add(p_person uuid, p_email text, p_primary boolean, p_reason text) execute authenticated
 function core.person_email_remove(p_id uuid, p_reason text) execute authenticated
 function core.person_emails_unlinked(p_person uuid) execute authenticated
+function core.person_leave(p_id uuid, p_left_on date, p_reassign_to uuid, p_reason text) execute authenticated
+function core.person_open_work(p_id uuid) execute authenticated
 function core.person_password_set(p_person uuid, p_reason text, p_replace boolean) execute authenticated
 function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
-function core.person_switch(p_id uuid, p_on boolean, p_reason text) execute authenticated
+function core.person_switch(p_id uuid, p_on boolean, p_reason text, p_reassign_to uuid) execute authenticated
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
@@ -297,6 +303,8 @@ function partner.activity_log(p_partner uuid, p_type text, p_outcome text, p_hap
 function partner.block_add(p_kind text, p_match text, p_value text, p_reason text) execute authenticated
 function partner.bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
 function partner.campaign_code_add(p_code text, p_name text, p_valid_from date, p_valid_to date, p_owner uuid, p_reason text) execute authenticated
+function partner.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
+function partner.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function partner.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
 function partner.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function partner.contacts_remove(p_ids uuid[], p_reason text) execute authenticated

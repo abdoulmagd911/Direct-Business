@@ -857,6 +857,7 @@
   },
   "setting": {
     "work": {
+      "handover_follow_days": "Days the previous owner follows an organisation after a hand-over",
       "no_update_days": "Days without an update before a task goes stale",
       "week_starts_on": "The week starts on",
       "meeting_note_on_time_days": "Days to write meeting notes on time",
@@ -892,6 +893,7 @@
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner",
+      "open_client_ids": "Open client IDs an organisation may hold, per kind",
       "contract_reminder_days": "Contract reminders, days before the end",
       "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
       "contract_notify": "Who is told a contract is expiring",
@@ -1443,6 +1445,19 @@
       "date_in_future": "A note cannot happen after today"
     },
     "person": {
+      "open_work": "This person still holds open work — name who takes it over in the same step",
+      "head_needs_successor": "This person heads {detail} — choose a new head first",
+      "hand_over_to_self": "Choose someone else to take the work over",
+      "reassign_needs_off": "Work is handed over only when switching someone off",
+      "has_left": "This person has left — clear their leaving day first",
+      "left_on_future": "The leaving day cannot be after today — put a later day on the person's record instead",
+      "left_before_joined": "The leaving day is before the day they joined",
+      "already_left": "This person has already left",
+      "unavailable": "Not an active team member",
+      "manager_unavailable": "Reports-to must be an active team member",
+      "team_inactive": "Choose an active team",
+      "assist_team_inactive": "A person assists only an active team",
+      "assist_home_team": "A person does not assist their own home team",
       "full_name_required": "A full name is required",
       "department_required": "A department is required",
       "manager_cycle": "A person cannot report to someone who reports to them",
@@ -1546,18 +1561,26 @@
       "name_follows_partner": "Names change from the record's names; add an alias instead",
       "one_code_per_partner": "One live discount code per organisation; a second needs a manager",
       "taken": "Another organisation already holds {detail}",
-      "blocked": "This value can never be an identifier: {detail}"
+      "blocked": "This value can never be an identifier: {detail}",
+      "open_client_id_limit": "This organisation already has its open client IDs of this kind — give one a close date first",
+      "not_client_id": "Only a Payments client ID has a close date",
+      "close_date_required": "Choose the close date",
+      "not_closed": "This client ID is not closed"
     },
     "contact": {
       "unknown_field": "Unknown field: {detail}",
       "unknown_role": "Unknown contact role"
     },
     "contract": {
+      "term_takes_words": "This term takes words, not numbers",
+      "term_takes_numbers": "This term takes numbers, not words",
       "unknown_field": "Unknown field: {detail}",
       "terms_list_expected": "Terms must be a list",
       "side_required": "A contract needs its side"
     },
     "reference": {
+      "unknown_department": "No active department: {detail}",
+      "mailbox_invalid": "Where the codes go must be an email address",
       "unknown_field": "Unknown field: {detail}",
       "unknown_system": "Unknown system: {detail}",
       "no_secrets": "That looks like a password or a secret; cards hold references only"
