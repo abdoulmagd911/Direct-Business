@@ -152,6 +152,14 @@ export default defineModule({
       default: 'monogram',
     },
     {
+      // V488: after a hand-over the previous owner follows the organisation this many days (0: not at all).
+      key: 'work.handover_follow_days',
+      group: 'settings.partners',
+      label: 'setting.work.handover_follow_days',
+      schema: z.number().int().min(0).max(365),
+      default: 30,
+    },
+    {
       key: 'partner.stale_after_days',
       group: 'settings.partners',
       label: 'setting.partner.stale_after_days',
