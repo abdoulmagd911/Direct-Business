@@ -15,7 +15,7 @@ export default defineConfig({
   grepInvert: [
     ...(process.env.QA_PILOT ? [] : [/pilot path/]),
     ...(process.env.QA_INTEGRATED ? [] : [/integrated pass/]),
-    ...(process.env.QA_ROUND ? [] : [/desktop round/]),
+    ...(process.env.QA_ROUND ? [] : [/desktop round/, /phone round/]),
   ],
   outputDir: join(RUN_DIR, 'test-results'),
   fullyParallel: true,
