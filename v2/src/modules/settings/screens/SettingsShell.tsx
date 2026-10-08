@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { cn } from '@/ui/cn';
+import { LinkPending } from '@/ui/LinkPending';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { settingsGroups } from '../groups';
@@ -43,6 +44,7 @@ export async function SettingsShell({
             )}
           >
             {t(g.label)}
+            <LinkPending />
           </Link>
         );
       })}

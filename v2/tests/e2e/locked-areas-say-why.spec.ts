@@ -12,12 +12,12 @@ test('phone: a member is told why Activity and a colleague’s history are locke
   const page = await ctx.newPage();
   await signIn(page, member.email, '/activity');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
-  await expect(page.locator('[data-state="no-access"]'), 'the Activity page says who it is for').toHaveText(
+  await expect(page.locator('[data-state="no-access"]'), 'the Activity page says who it is for').toContainText(
     'Activity is for managers, heads of department and admins',
   );
 
   await page.goto(`/people/${colleague.id}?tab=activity`);
-  await expect(page.locator('[data-state="no-access"]'), 'a colleague’s history says who it is for').toHaveText(
+  await expect(page.locator('[data-state="no-access"]'), 'a colleague’s history says who it is for').toContainText(
     "A person's history is for admins, and for the person themselves",
   );
   await ctx.close();

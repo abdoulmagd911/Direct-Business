@@ -33,7 +33,12 @@ export async function Page({
     return (
       <PageFrame className={className}>
         <PageHeader title={what} />
-        <DataState kind="no-access" what={what} message={t('state.noAccess', { what })} />
+        <DataState
+          kind="no-access"
+          what={what}
+          message={t('state.noAccess', { what })}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </PageFrame>
     );
   }
