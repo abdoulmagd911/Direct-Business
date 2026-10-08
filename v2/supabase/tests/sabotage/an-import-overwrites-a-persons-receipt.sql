@@ -1,6 +1,6 @@
 -- Sabotage: an-import-overwrites-a-persons-receipt
 -- Breaks: sql:ROW-04
--- Expect: a later file keeps the person's amount and lists the difference
+-- Expect: a later file names the receipt a person edited
 -- A receipts file overwrites a receipt amount a person set in the app, instead of keeping it and listing the difference (V622 (3), D21).
 create or replace function finance.import_receipt(p_batch uuid, p_no int, p_row jsonb, p_time timestamptz, p_imp uuid) returns text
 language plpgsql security definer set search_path = ''
