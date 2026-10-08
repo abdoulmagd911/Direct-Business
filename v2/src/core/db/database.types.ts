@@ -100,6 +100,8 @@ export type Database = {
         Returns: Json;
       };
       can_see: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      client_id_close: { Args: { p_closed_on: string; p_id: string; p_reason: string }; Returns: Json };
+      client_id_reopen: { Args: { p_id: string; p_reason: string }; Returns: Json };
       code_terms_add: {
         Args: {
           p_approved_by: string;
