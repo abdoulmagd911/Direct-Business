@@ -23,7 +23,7 @@ Each item says where it shows, the exact words, and a made-up example. A word in
      paid. A unit not yet fully paid carries the chip **Pending** on every list — the same word on every board — and is in no
      figure.
    - A closed month shows the chip **Closed 5 Oct** (always with its day), and its figures never change. The finance lead
-     (Full on Finance) closes it with **Close month** on the open month's row. The confirm names the month and says "It will
+     (Full on Finance) closes it with **Close month** on a month that has ended and is not yet closed; the running month shows no such button (a close is refused while the month is still running, I.3). The confirm names the month and says "It will
      never change. Later news becomes a dated note." This is the one action here with no Undo, because V620 says a closed
      month is never reopened.
    - **The close rule (V620).** A month is closed by the 5th working day of the next month at the latest; closing earlier is allowed. September is closed on 5 Oct, which sits inside that limit. The chip always shows the day it was closed.
@@ -34,7 +34,7 @@ Each item says where it shows, the exact words, and a made-up example. A word in
    - The months table is newest first, so this month is the first row (the 30-second rule).
    ```
    Month                          Revenue    Cost     Profit   Provisional
-   Oct 2026  Open  [Close month]    410,000  350,000   60,000  of which 31,000
+   Oct 2026  Open                   410,000  350,000   60,000  of which 31,000
    Sep 2026  Closed 5 Oct         1,020,000  860,000  160,000  of which 24,000
      Late changes · 3  ▸ Paid late +9,400 · Cancelled late −3,100 · Late cost −600
    ```
@@ -94,7 +94,7 @@ Each item says where it shows, the exact words, and a made-up example. A word in
    VAT or CR number, then discount code, then contact e-mail; an unknown client ID stops there; an e-mail domain or a name is
    only a suggestion, never a match.
    ```
-   INV-B-0203  Monthly invoice   Org Alpha   4 transactions 73,450 · total 76,950
+   INV-B-0203  Monthly invoice   Org Alpha   (no revenue of its own)
                Monthly fee 3,500 SAR · counted as revenue in Sep 2026
    ```
 8. **The line "Commissions paid outside Payments are not included."** (V612), exactly this sentence, in small muted type
@@ -139,7 +139,7 @@ What each screen shows, in short:
   - **Needs attention**: a strip of count chips under the tiles: **Checks failing**, **No client**, **Late changes**. Each
     links to its records. Provisional units are never "held back": they count (V611), and their amount is shown beside Profit.
   - The months table is **newest month first**, so this month is the first row (the 30-second rule). A closed month's chip
-    reads **Closed 5 Oct** (with its day); the open month's row carries **Close month** for a person with Full on Finance.
+    reads **Closed 5 Oct** (with its day); a month that has ended and is not yet closed carries **Close month** for a person with Full on Finance; the running month does not.
   - **Tenders signed · 2026** line (A6, after #165) and the commissions sentence (A8).
   - **Payments · as of** stamp (V500): one stamp per screen, top right of the figures, covering every copied figure on it.
 - **Invoices.**
@@ -189,7 +189,7 @@ The phone boards are in this PR: `PhoneFinance` (overview), `PhoneInvoices` (car
 - **Overview.** The tiles stack, one under another, each with "of which Provisional" directly under its figure. The **Needs
   attention** strip becomes a row of count chips. The charts become two short lists. The months table becomes cards: month ·
   revenue · profit · of which Provisional · a **Closed 5 Oct** or **Open** chip, this month first; **Late changes** opens
-  inside the month's card, and the open month's card carries **Close month**. The **Payments · as of** stamp stays top right
+  inside the month's card, and a month that has ended and is not yet closed carries **Close month** (never the running month). The **Payments · as of** stamp stays top right
   of the figures.
 - **Invoices and Collections** become cards that **keep** the client name, the two numbers (Transaction no. on the first line,
   Tax invoice no. on the second), the kind chip, the channel chip (if tagged) and Final, Provisional or Pending, with the
@@ -234,7 +234,7 @@ Month and profit
 1. September is closed on 5 Oct (V620: closed by the 5th working day, never later). A unit created 30 Sep and paid before the close
    simply counts in Sep. A unit created 30 Sep and paid on 7 Oct still counts in Sep, and under Sep's **Late changes · 1** the
    line **Paid late** shows with its paid date and riyals; Sep's own row figures do not change.
-2. Click **Close month** on the open month's row: the confirm names the month and says it never changes; afterwards the chip
+2. On a month that has ended and is not yet closed (September, from 1 Oct), click **Close month**: the confirm names the month and says it never changes; afterwards the chip
    reads **Closed 5 Oct** (with the day) and there is no Undo.
 3. Profit counts every paid unit and **of which Provisional** sits in the same row, never hidden. Approving the last expense on
    a unit turns its chip Final and moves the figure.
