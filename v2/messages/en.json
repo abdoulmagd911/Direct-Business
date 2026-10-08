@@ -898,6 +898,7 @@
       "contract_reminder_days": "Contract reminders, days before the end",
       "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
       "contract_notify": "Who is told a contract is expiring",
+      "contract_renewal_task": "Make the renewal task at a contract's first reminder",
       "logo_fallback": "An organisation with no logo shows",
       "stale_after_days": "Days without activity before an organisation is stale"
     },

@@ -124,6 +124,7 @@ export type Database = {
       };
       contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
       contacts_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      contract_renewal_task: { Args: { p_contract: string }; Returns: Json };
       contract_save: {
         Args: { p_id: string; p_partner: string; p_reason?: string; p_values: Json; p_version?: number };
         Returns: Json;
