@@ -8,12 +8,15 @@ import { cn } from './cn';
 export function Field({
   label,
   error,
+  required,
   children,
   className,
   id,
 }: {
   label: ReactNode;
   error?: string;
+  /** The word "Required" in the page's language: shown beside the label of a value the form cannot be saved without. */
+  required?: string;
   children: (props: { id: string; 'aria-invalid'?: true; 'aria-describedby'?: string }) => ReactNode;
   className?: string;
   id?: string;
@@ -25,6 +28,11 @@ export function Field({
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label htmlFor={controlId} className="text-sm font-medium text-text">
         {label}
+        {required ? (
+          <span className="ms-2 text-xs font-normal text-muted" data-required>
+            {required}
+          </span>
+        ) : null}
       </label>
       {children({
         id: controlId,

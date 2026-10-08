@@ -182,7 +182,7 @@ export function DoneTick({ task, statuses, title }: { task: Task; statuses: Task
         disabled={move.busy}
         aria-label={t('pages.tasks.markDone', { title })}
         data-done-tick
-        className="mt-0.5 inline-grid size-6 shrink-0 place-items-center rounded-full border border-border-strong text-transparent hover:border-success hover:text-success focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50"
+        className="relative mt-0.5 inline-grid size-6 shrink-0 place-items-center rounded-full border border-border-strong text-transparent before:absolute before:-inset-3 before:content-[''] hover:border-success hover:text-success focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-50"
       >
         <Check className="size-3.5" aria-hidden="true" />
       </button>

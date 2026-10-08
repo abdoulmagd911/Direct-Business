@@ -1712,6 +1712,7 @@
     "search": "Search by name or number",
     "newClient": "New client",
     "newSupplier": "New supplier",
+    "chooseType": "Choose a type",
     "created": "{name} added",
     "updated": "{name} updated",
     "edit": "Edit {name}",
