@@ -23,3 +23,4 @@ finance.import_batch.counts — what one import did: read, new, changed, unchang
 finance.import_held.raw — the held row's own columns as the file gave them, so a person sees exactly what was held (§3.11 io.held)
 finance.invoice_line.src — which fields of a line a person set or added by hand ('person'), so an import leaves them (V622) — §3.6, §3.11
 finance.import_difference.import_value — the columns of one field as a newer Payments file gave them, where they differ from what a person set (V622, Keep mine / Use import) — §3.11
+finance.receipt.src — each field's export time from the Payments receipt rows it came from (V618) — §3.6, §3.11

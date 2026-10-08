@@ -360,6 +360,19 @@
       "effective_dated": false
     },
     {
+      "key": "finance.collection_due_days",
+      "group": "settings.finance",
+      "label": "setting.finance.collection_due_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 365
+      },
+      "default": 30,
+      "effective_dated": true
+    },
+    {
       "key": "notify.kinds_enabled",
       "group": "settings.app",
       "label": "setting.notify.kinds_enabled",
@@ -1409,6 +1422,18 @@
       "page": "settings.work",
       "owners": null,
       "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "receipt",
+      "table": "finance.receipt",
+      "page": "finance",
+      "owners": "finance.receipt_owners",
+      "list": false,
       "private": false,
       "visible": null,
       "level": null,

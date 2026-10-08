@@ -23,7 +23,7 @@ select test.eq(api.finance_import_recognise('invoices', array['Type', 'Invoice R
   '["Customer Name", "Item Is Taxable"]'::jsonb, 'a file without a required header names the missing ones');
 select test.eq((api.finance_import_recognise('invoices', array['Type', 'Invoice Reference #']) ->> 'recognised')::boolean, false,
   'and is not read as that export');
-select test.raises($$select api.finance_import_recognise('receipts', array['Type'])$$, 'P0001', 'an unknown export is refused',
+select test.raises($$select api.finance_import_recognise('payroll', array['Type'])$$, 'P0001', 'an unknown export is refused',
   'common.invalid');
 
 select set_config('t.r', api.list_save('import_map', null,

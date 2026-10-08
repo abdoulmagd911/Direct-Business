@@ -82,6 +82,7 @@ function api.finance_partner_months(p_partner uuid, p_from date, p_to date) exec
 function api.finance_period(p_from date, p_to date) execute authenticated
 function api.finance_period_units(p_from date, p_to date) execute authenticated
 function api.finance_proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
+function api.finance_receivables(p_partner uuid) execute authenticated
 function api.finance_row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function api.finance_row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function api.finance_rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated
@@ -326,6 +327,7 @@ function finance.partner_months(p_partner uuid, p_from date, p_to date) execute 
 function finance.period_figures(p_from date, p_to date) execute authenticated
 function finance.period_units(p_from date, p_to date) execute authenticated
 function finance.proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
+function finance.receivables(p_partner uuid) execute authenticated
 function finance.row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function finance.row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function finance.rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated

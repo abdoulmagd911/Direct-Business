@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
 // Finance — Own is entering invoices and editing your own entries (owner decision 4). Levels: TECH-SPEC §8.
@@ -37,6 +38,7 @@ export default defineModule({
         ['expense_line', 'finance.expense_line'],
         ['tax_invoice', 'finance.tax_invoice'],
         ['credit_split', 'finance.credit_split'],
+        ['receipt', 'finance.receipt'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'finance', label: `entity.${key}`, owners: `${table}_owners` })),
     // A closed month and its snapshot (V610): the person who closed it.
@@ -69,6 +71,16 @@ export default defineModule({
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
   ],
-  // No settings: a tender's signed value is sales credit only, one way, with no setting (V619 answering Q46).
-  settings: [],
+  // A tender's signed value is sales credit only, one way, with no setting (V619 answering Q46).
+  settings: [
+    {
+      // V415: an invoice with no due date of its own is due this many days after it was issued.
+      key: 'finance.collection_due_days',
+      group: 'settings.finance',
+      label: 'setting.finance.collection_due_days',
+      schema: z.number().int().min(0).max(365),
+      default: 30,
+      effectiveDated: true,
+    },
+  ],
 });

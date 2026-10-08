@@ -813,6 +813,7 @@
     "tax_invoice": "Tax invoice",
     "credit_split": "Credit split",
     "month_close": "Closed month",
+    "receipt": "Receipt",
     "exclusion_rule": "Exclusion rule",
     "status_map": "Invoice status word",
     "expense_status_word": "Expense status word",
@@ -884,6 +885,9 @@
       "pipeline_weekly_target": "Pipeline updates expected each week",
       "late_days": "Days after which an entry is logged late",
       "project_update_days": "Days without a health update before a project's owner is reminded"
+    },
+    "finance": {
+      "collection_due_days": "Days after issue an invoice with no due date of its own is due"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",

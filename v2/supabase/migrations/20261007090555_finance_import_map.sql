@@ -2,10 +2,11 @@
 -- in Settings → Finance by admins (V97), so a renamed export column needs no code. Headers are compared after removing
 -- a BOM, spaces and `_ - . : ( ) /` and ignoring case (§3.11 step 1). Several headers may feed one field (Qty, Quantity,
 -- Item Quantity); one header feeds one field. A required header must be in the file for it to be read as that export.
--- Seeded with the maps ported from the old app (§3.11; REBUILD-HANDOVER-2 §1): the all-invoices export and the
--- Transaction Expense Export. These are Payments' column names, not data.
+-- Seeded with the maps ported from the old app (§3.11; REBUILD-HANDOVER-2 §1): the all-invoices export (its invoice,
+-- item and receipt rows) and the Transaction Expense Export. These are Payments' column names, not data.
 
--- The fields each export's rows carry into api.finance_import: an invoice's own, its lines' (line.*), an expense line's.
+-- The fields each export's rows carry into api.finance_import: an invoice's own, its lines' (line.*), an expense line's,
+-- a payment receipt's (the all-invoices export's receipt rows, imported as 'receipts').
 create function finance.import_fields(p_source text) returns text[]
 language sql immutable set search_path = ''
 as $$
@@ -18,6 +19,7 @@ as $$
                                'line.total_sar', 'line.taxable']
     when 'expenses' then array['ref', 'expense_type', 'status', 'transaction_expense_status', 'amount_sar', 'created_at',
                                'submitted_at', 'decided_at', 'merchant', 'id_reference', 'submitter', 'approver']
+    when 'receipts' then array['type', 'ref', 'method', 'amount_sar', 'paid_on', 'ref_at_method', 'paid_by', 'note']
   end
 $$;
 
@@ -32,7 +34,7 @@ create table finance.import_map (
   id uuid primary key default gen_random_uuid(),
   key text not null unique default ('map_' || pg_catalog.replace(gen_random_uuid()::text, '-', ''))
     check (key ~ '^[a-z][a-z0-9_]*$'),
-  source text not null check (source in ('invoices', 'expenses')),
+  source text not null check (source in ('invoices', 'expenses', 'receipts')),
   header text not null check (pg_catalog.btrim(header) <> '' and pg_catalog.length(header) <= 120),
   header_key text generated always as (finance.header_key(header)) stored,
   name_en text not null check (pg_catalog.btrim(name_en) <> '' and pg_catalog.length(name_en) <= 120),
@@ -47,7 +49,7 @@ create table finance.import_map (
   constraint import_map_header_readable check (finance.header_key(header) <> '')
 );
 create unique index import_map_one_header on finance.import_map (source, header_key) where deleted_at is null;
-comment on table finance.import_map is 'V622 (2): an export column → a field of the import door, per export (invoices, expenses). Admins keep it in Settings → Finance; headers compare without spaces, _ - . : ( ) / and case.';
+comment on table finance.import_map is 'V622 (2): an export column → a field of the import door, per export (invoices, expenses, receipts). Admins keep it in Settings → Finance; headers compare without spaces, _ - . : ( ) / and case.';
 alter table finance.import_map enable row level security;
 select audit.track('finance.import_map'::regclass);
 select core.index_foreign_keys('finance');
@@ -225,6 +227,19 @@ from (values
   ('exp_merchant', 'expenses', 'Merchant', 'merchant', false, 80),
   ('exp_id_reference', 'expenses', 'ID Reference', 'id_reference', false, 90),
   ('exp_submitter', 'expenses', 'Submitter', 'submitter', false, 100),
-  ('exp_approver', 'expenses', 'Approver/Rejector', 'approver', false, 110)
+  ('exp_approver', 'expenses', 'Approver/Rejector', 'approver', false, 110),
+  ('rct_type', 'receipts', 'Type', 'type', true, 10),
+  ('rct_ref', 'receipts', 'Invoice Reference #', 'ref', true, 20),
+  ('rct_method', 'receipts', 'Payment Method', 'method', false, 30),
+  ('rct_allocation', 'receipts', 'Allocation', 'amount_sar', false, 40),
+  ('rct_allocated_amount', 'receipts', 'Allocated Amount', 'amount_sar', false, 41),
+  ('rct_amount', 'receipts', 'Amount', 'amount_sar', false, 42),
+  ('rct_ref_at_method', 'receipts', 'Ref # At Payment Method', 'ref_at_method', false, 50),
+  ('rct_payment_by', 'receipts', 'Payment By', 'paid_by', false, 60),
+  ('rct_paid_by', 'receipts', 'Paid By', 'paid_by', false, 61),
+  ('rct_notes', 'receipts', 'Notes', 'note', false, 70),
+  ('rct_payment_date', 'receipts', 'Payment Date', 'paid_on', false, 80),
+  ('rct_receipt_date', 'receipts', 'Receipt Date', 'paid_on', false, 81),
+  ('rct_paid_at', 'receipts', 'Paid At', 'paid_on', false, 82)
 ) x(key, source, header, field, required, sort);
 select audit.end();

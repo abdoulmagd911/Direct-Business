@@ -249,6 +249,7 @@ export type Database = {
         }[];
       };
       finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
+      finance_receivables: { Args: { p_partner?: string }; Returns: Json };
       finance_row_add: { Args: { p_fields: Json; p_reason?: string; p_table: string }; Returns: Json };
       finance_row_edit: {
         Args: { p_fields: Json; p_id: string; p_reason?: string; p_table: string; p_version: number };
