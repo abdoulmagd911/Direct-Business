@@ -1163,7 +1163,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1176,7 +1176,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/PageHeader.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1189,8 +1189,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: 'inline-flex min-w-6 items-center justify-center whitespace-nowrap',
-        replace: 'inline-flex items-center whitespace-nowrap',
+        find: 'inline-flex min-h-11 min-w-6 items-center justify-center whitespace-nowrap',
+        replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
       },
     ],
   },
@@ -1202,8 +1202,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/grid/PastWorkGrid.tsx',
-        find: 'className="size-6"',
-        replace: 'className="size-5"',
+        find: 'className="relative size-6 before:absolute',
+        replace: 'className="relative size-5 before:absolute',
       },
     ],
   },
@@ -1439,6 +1439,132 @@ export const sabotages = [
         find: '"own_last_email": "This is your last email you can sign in with — add another before removing it"',
         replace:
           '"own_last_email_unused": "This is your last email you can sign in with — add another before removing it"',
+      },
+    ],
+  },
+
+  {
+    name: 'phone-controls-shrink-again',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a Tasks filter chip is 44 px tall',
+    edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
+  },
+
+  {
+    name: 'done-tick-target-is-the-circle',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'marks it done',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: "before:absolute before:-inset-3 before:content-[''] ",
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'new-client-hides-what-it-needs',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type each say Required',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/NewPartnerDialog.tsx',
+        find: "<Field label={t('partners.columns.type')} required={t('common.required')}>",
+        replace: "<Field label={t('partners.columns.type')}>",
+      },
+    ],
+  },
+
+  {
+    name: 'back-link-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Back link is 44 px wide',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-grid size-8 max-sm:size-11 place-items-center',
+        replace: 'inline-grid size-8 place-items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'breadcrumb-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a breadcrumb: a tap',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-flex min-h-6 items-center hover:underline max-sm:min-h-11',
+        replace: 'inline-flex min-h-6 items-center hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'calendar-arrows-shrink-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'is 44 px wide',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskCalendar.tsx',
+        find: 'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 max-sm:size-11 items-center',
+        replace:
+          'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'status-pill-target-is-the-chip',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Status pill: a tap',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'before:absolute before:inset-x-0 before:-inset-y-2.5',
+        replace: 'before:hidden',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-tick-label-is-small',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'tick: a tap',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'text-sm max-sm:min-h-11" data-past-work-header-tick',
+        replace: 'text-sm" data-past-work-header-tick',
+      },
+    ],
+  },
+
+  {
+    name: 'select-drops-aria-required',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type picker both tell a screen reader',
+    edits: [
+      {
+        file: 'src/ui/Select.tsx',
+        find: 'aria-required={ariaRequired}',
+        replace: 'aria-required={undefined}',
+      },
+    ],
+  },
+
+  {
+    name: 'tabs-clip-at-the-edge',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'no tab is cut off at the right edge',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
+        replace:
+          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
       },
     ],
   },
