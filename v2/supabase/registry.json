@@ -373,6 +373,32 @@
       "effective_dated": true
     },
     {
+      "key": "finance.quiet_client_days",
+      "group": "settings.finance",
+      "label": "setting.finance.quiet_client_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 60,
+      "effective_dated": true
+    },
+    {
+      "key": "finance.unpaid_alert_days",
+      "group": "settings.finance",
+      "label": "setting.finance.unpaid_alert_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 45,
+      "effective_dated": true
+    },
+    {
       "key": "notify.kinds_enabled",
       "group": "settings.app",
       "label": "setting.notify.kinds_enabled",
@@ -402,7 +428,8 @@
             "note_mention",
             "escalated",
             "alert_project_no_update",
-            "alert_due_tomorrow"
+            "alert_due_tomorrow",
+            "alert_quiet_client"
           ]
         }
       },
@@ -427,7 +454,8 @@
         "note_mention",
         "escalated",
         "alert_project_no_update",
-        "alert_due_tomorrow"
+        "alert_due_tomorrow",
+        "alert_quiet_client"
       ],
       "effective_dated": false
     },

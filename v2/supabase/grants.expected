@@ -78,6 +78,7 @@ function api.finance_import_recognise(p_source text, p_headers text[]) execute a
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
+function api.finance_partner_credit(p_partner uuid) execute authenticated
 function api.finance_partner_months(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.finance_period(p_from date, p_to date) execute authenticated
 function api.finance_period_units(p_from date, p_to date) execute authenticated
@@ -323,6 +324,7 @@ function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp w
 function finance.income_by_service(p_from date, p_to date) execute authenticated
 function finance.month_close_do(p_month date, p_note text) execute authenticated
 function finance.not_invoiced(p_from date, p_to date) execute authenticated
+function finance.partner_credit_of(p_partner uuid) execute authenticated
 function finance.partner_months(p_partner uuid, p_from date, p_to date) execute authenticated
 function finance.period_figures(p_from date, p_to date) execute authenticated
 function finance.period_units(p_from date, p_to date) execute authenticated

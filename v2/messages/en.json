@@ -887,7 +887,9 @@
       "project_update_days": "Days without a health update before a project's owner is reminded"
     },
     "finance": {
-      "collection_due_days": "Days after issue an invoice with no due date of its own is due"
+      "collection_due_days": "Days after issue an invoice with no due date of its own is due",
+      "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
+      "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
@@ -1146,7 +1148,8 @@
       "note_mention": "Mentioned in a note",
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
-      "alert_due_tomorrow": "A task of mine is coming due"
+      "alert_due_tomorrow": "A task of mine is coming due",
+      "alert_quiet_client": "A client of mine has gone quiet"
     },
     "devices": {
       "label": "Device",

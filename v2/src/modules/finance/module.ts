@@ -82,5 +82,23 @@ export default defineModule({
       default: 30,
       effectiveDated: true,
     },
+    {
+      // V401: a client with no fully paid invoice in this many days tells its account manager, once per silence.
+      key: 'finance.quiet_client_days',
+      group: 'settings.finance',
+      label: 'setting.finance.quiet_client_days',
+      schema: z.number().int().min(1).max(365),
+      default: 60,
+      effectiveDated: true,
+    },
+    {
+      // §3.3: an invoice still owed this many days after it was issued tells the client's account manager, once.
+      key: 'finance.unpaid_alert_days',
+      group: 'settings.finance',
+      label: 'setting.finance.unpaid_alert_days',
+      schema: z.number().int().min(1).max(365),
+      default: 45,
+      effectiveDated: true,
+    },
   ],
 });
