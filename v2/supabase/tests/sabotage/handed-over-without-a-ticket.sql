@@ -27,6 +27,8 @@ declare
   offers text[] := '{}';
   reached text[];
   side_type uuid;
+  logs_contract boolean := false;
+  contract jsonb;
 begin
   if tbl is null then
     raise exception using errcode = 'P0001', message = 'pipeline.unknown_board', detail = p_entity;
@@ -84,8 +86,12 @@ begin
     raise exception using errcode = 'P0001', message = 'tender.awarded_needs_value';
   end if;
 
-  req := audit.begin('ui', 'pipeline.moved', pg_catalog.jsonb_build_object('number', card ->> 'number', 'stage', s.key),
-                     reason);
+  -- V603: a tender moving forward into Signed logs its Contract signed in this request, unless it has one or its
+  -- owner's department has no plan, or no Contract signed category, for the signing year
+  logs_contract := v_kind = 'tender' and not backward and s.meaning = 'signed'
+                   and perf.tender_contract(p_id) is null and perf.contract_category_for_tender(p_id, d) is not null;
+  req := audit.begin('ui', case when logs_contract then 'tender.signed' else 'pipeline.moved' end,
+                     pg_catalog.jsonb_build_object('number', card ->> 'number', 'stage', s.key), reason);
   perform audit.happened(p_happened_on);
   prev := cur.id;
   foreach k in array passed loop
@@ -114,8 +120,12 @@ begin
                        else t.signed_on end,
       lost_reason_id = case when s.meaning in ('lost', 'cancelled') then lost else null end
     where t.id = p_id;
+    if logs_contract then
+      contract := perf.contract_from_tender(p_id, d);
+    end if;
     if s.meaning = 'signed' then
-      offers := array['log_achievement', 'new_project'];
+      offers := case when perf.tender_contract(p_id) is null then array['log_achievement', 'new_project']
+                     else array['new_project'] end;
     end if;
   else
     update pipeline.opportunity o set
@@ -157,6 +167,6 @@ begin
   return pg_catalog.jsonb_build_object('id', p_id, 'stage', s.key, 'meaning', s.meaning,
     'passed', (select coalesce(pg_catalog.jsonb_agg(y.key order by y.sort), '[]'::jsonb) from pipeline.stage y
                where y.id::text = any (passed)),
-    'offers', pg_catalog.to_jsonb(offers), 'request_id', req);
+    'offers', pg_catalog.to_jsonb(offers), 'achievement', contract, 'request_id', req);
 end
 $$;
