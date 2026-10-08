@@ -181,6 +181,7 @@ export type Database = {
         Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
         Returns: Json;
       };
+      finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_difference_counts: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -220,6 +221,26 @@ export type Database = {
         Returns: Json;
       };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
+      finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_period_units: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          channel: string;
+          cost: number;
+          cost_is: string;
+          counted: boolean;
+          excluded_reason: string;
+          invoice_id: string;
+          loss: boolean;
+          month_on: string;
+          paid_on: string;
+          partner_id: string;
+          profit: number;
+          ref: string;
+          revenue: number;
+          unit_kind: string;
+        }[];
+      };
       finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
       finance_row_add: { Args: { p_fields: Json; p_reason?: string; p_table: string }; Returns: Json };
       finance_row_edit: {
