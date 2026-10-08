@@ -677,6 +677,7 @@
     "person_level": "مستوى الصفحة",
     "person_capability": "صلاحية",
     "role_level": "مستوى الدور في الصفحة",
+    "team_level": "مستوى الفريق في الصفحة",
     "role_capability": "صلاحية الدور",
     "page": "صفحة",
     "capability": "تعريف صلاحية",
@@ -821,6 +822,7 @@
       "contract_reminder_days": "تذكيرات العقد، بالأيام قبل انتهائه",
       "contract_expiring_from_days": "يظهر العقد «ينتهي خلال» قبل هذا العدد من الأيام",
       "contract_notify": "من يُبلَّغ بقرب انتهاء العقد",
+      "contract_renewal_task": "إنشاء مهمة التجديد عند أول تذكير بالعقد",
       "logo_fallback": "ما يظهر للجهة التي ليس لها شعار",
       "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة"
     },

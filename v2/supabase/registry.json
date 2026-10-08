@@ -464,6 +464,14 @@
       "effective_dated": false
     },
     {
+      "key": "partner.contract_renewal_task",
+      "group": "settings.partners",
+      "label": "setting.partner.contract_renewal_task",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": false
+    },
+    {
       "key": "partner.id_format",
       "group": "settings.partners",
       "label": "setting.partner.id_format",
@@ -1496,6 +1504,18 @@
       "table": "core.team",
       "page": "settings.org",
       "owners": "lead_person_id",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "team_level",
+      "table": "core.team_page_level",
+      "page": "settings.org",
+      "owners": null,
       "list": false,
       "private": false,
       "visible": null,
