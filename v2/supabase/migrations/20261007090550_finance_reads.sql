@@ -46,7 +46,7 @@ $$;
 -- The units of the period, each with its figures and whether its cost is Final or Provisional; counted or not, and why
 -- not (pending, excluded with its reason).
 create function finance.period_units(p_from date, p_to date) returns table (
-  invoice_id uuid, unit_kind text, ref text, month_on date, paid_on date, partner_id uuid, channel text,
+  invoice_id uuid, unit_kind text, ref text, dpin text, month_on date, paid_on date, partner_id uuid, channel text,
   counted boolean, excluded_reason text, revenue numeric, cost numeric, profit numeric, cost_is text, loss boolean)
 language plpgsql stable security definer set search_path = ''
 as $$
@@ -56,9 +56,12 @@ begin
     raise exception using errcode = 'P0001', message = 'common.invalid', detail = 'period';
   end if;
   return query
-  select r.invoice_id, r.unit_kind, r.ref, r.month_on, r.paid_on, r.partner_id, r.channel, r.counted, r.excluded_reason,
-         r.revenue, r.cost, r.profit, finance.cost_word(r.cost_status), r.loss
+  select r.invoice_id, r.unit_kind, r.ref, coalesce(t.dpin, tb.dpin), r.month_on, r.paid_on, r.partner_id, r.channel, r.counted,
+         r.excluded_reason, r.revenue, r.cost, r.profit, finance.cost_word(r.cost_status), r.loss
   from finance.money_row r
+  left join finance.tax_invoice t on t.parent_invoice_id = r.invoice_id and t.deleted_at is null
+  left join finance.billing_link bl on bl.transaction_invoice_id = r.invoice_id and bl.deleted_at is null
+  left join finance.tax_invoice tb on tb.parent_invoice_id = bl.billing_invoice_id and tb.deleted_at is null
   where r.month_on between pg_catalog.date_trunc('month', p_from::timestamp)::date
                        and pg_catalog.date_trunc('month', p_to::timestamp)::date
   order by r.month_on, r.ref, r.unit_kind;
@@ -91,25 +94,75 @@ begin
 end
 $$;
 
+-- ================================================================ one search, both numbers (I.5)
+-- V617 (3): the transaction number (Payments' reference) and the tax invoice number (DPIN) are two fields, and one
+-- search box finds an invoice by either. Each hit carries both numbers apart and says which one matched. Only letters
+-- and digits are compared (spaces, dashes and case are ignored, and no sign is a wildcard); an exact number comes
+-- first, then one that starts with the text, then the rest, newest first. A transaction billed in a monthly invoice
+-- carries that invoice's DPIN, and billing_ref names the monthly invoice.
+create function finance.search_numbers(p_text text, p_limit int default 20) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  q text := pg_catalog.upper(pg_catalog.regexp_replace(coalesce(p_text, ''), '[^[:alnum:]]', '', 'g'));
+begin
+  perform authz.require('finance', 'view');
+  if pg_catalog.length(q) < 2 then
+    return '[]'::jsonb;
+  end if;
+  return coalesce((
+    select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+             'invoice_id', h.id, 'kind', h.kind, 'ref', h.ref, 'dpin', h.dpin, 'billing_ref', h.billing_ref,
+             'matched', h.matched,
+             'customer_name', h.customer_name, 'created_on', h.created_on, 'paid_on', h.paid_on, 'total_sar', h.total_sar)
+           order by h.rank, h.created_on desc, h.ref)
+    from (
+      select i.id, i.kind, i.ref, coalesce(t.dpin, tb.dpin) as dpin, b.ref as billing_ref, i.customer_name, i.created_on, i.paid_on, i.total_sar,
+             case when x.r and x.d then 'both' when x.r then 'ref' else 'dpin' end as matched,
+             case when x.rk = q or x.dk = q then 0
+                  when pg_catalog.left(x.rk, pg_catalog.length(q)) = q or pg_catalog.left(x.dk, pg_catalog.length(q)) = q then 1
+                  else 2 end as rank
+      from finance.invoice i
+      left join finance.tax_invoice t on t.parent_invoice_id = i.id and t.deleted_at is null
+      left join finance.billing_link bl on bl.transaction_invoice_id = i.id and bl.deleted_at is null
+      left join finance.invoice b on b.id = bl.billing_invoice_id and b.deleted_at is null
+      left join finance.tax_invoice tb on tb.parent_invoice_id = b.id and tb.deleted_at is null
+      cross join lateral (
+        select pg_catalog.upper(pg_catalog.regexp_replace(i.ref, '[^[:alnum:]]', '', 'g')) as rk,
+               pg_catalog.upper(pg_catalog.regexp_replace(coalesce(t.dpin, tb.dpin, ''), '[^[:alnum:]]', '', 'g')) as dk) k
+      cross join lateral (
+        select k.rk, k.dk, pg_catalog.strpos(k.rk, q) > 0 as r, q <> '' and pg_catalog.strpos(k.dk, q) > 0 as d) x
+      where i.deleted_at is null and (x.r or x.d)
+      order by rank, i.created_on desc, i.ref
+      limit greatest(1, least(coalesce(p_limit, 20), 100))) h), '[]'::jsonb);
+end
+$$;
+
 -- ================================================================ the doors the Data API reaches (V124)
 create function api.finance_period(p_from date, p_to date) returns jsonb
 language sql stable security invoker set search_path = ''
 as $$ select finance.period_figures(p_from, p_to) $$;
 create function api.finance_period_units(p_from date, p_to date) returns table (
-  invoice_id uuid, unit_kind text, ref text, month_on date, paid_on date, partner_id uuid, channel text,
+  invoice_id uuid, unit_kind text, ref text, dpin text, month_on date, paid_on date, partner_id uuid, channel text,
   counted boolean, excluded_reason text, revenue numeric, cost numeric, profit numeric, cost_is text, loss boolean)
 language sql stable security invoker set search_path = ''
 as $$ select * from finance.period_units(p_from, p_to) $$;
 create function api.finance_closed_months() returns jsonb
 language sql stable security invoker set search_path = ''
 as $$ select finance.closed_months() $$;
+create function api.finance_search(p_text text, p_limit int default 20) returns jsonb
+language sql stable security invoker set search_path = ''
+as $$ select finance.search_numbers(p_text, p_limit) $$;
 
 revoke all on function finance.period_figures(date, date) from public;
 revoke all on function finance.period_units(date, date) from public;
 revoke all on function finance.closed_months() from public;
+revoke all on function finance.search_numbers(text, int) from public;
 grant execute on function finance.period_figures(date, date) to authenticated;
 grant execute on function finance.period_units(date, date) to authenticated;
 grant execute on function finance.closed_months() to authenticated;
+grant execute on function finance.search_numbers(text, int) to authenticated;
 grant execute on function api.finance_period(date, date) to authenticated;
 grant execute on function api.finance_period_units(date, date) to authenticated;
 grant execute on function api.finance_closed_months() to authenticated;
+grant execute on function api.finance_search(text, int) to authenticated;

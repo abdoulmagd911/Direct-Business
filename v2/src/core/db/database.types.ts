@@ -229,6 +229,7 @@ export type Database = {
           cost: number;
           cost_is: string;
           counted: boolean;
+          dpin: string;
           excluded_reason: string;
           invoice_id: string;
           loss: boolean;
@@ -248,6 +249,7 @@ export type Database = {
         Returns: Json;
       };
       finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
+      finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
