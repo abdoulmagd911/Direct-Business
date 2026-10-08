@@ -58,7 +58,7 @@ export function RecordPage({
           <Link
             href={back.href}
             aria-label={back.label}
-            className="inline-grid size-8 place-items-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus lg:hidden"
+            className="inline-grid size-8 max-sm:size-11 place-items-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus lg:hidden"
           >
             <ArrowLeft className="size-4 flip-rtl" aria-hidden="true" />
           </Link>
@@ -67,7 +67,7 @@ export function RecordPage({
               {crumbs.map((c, i) => (
                 <span key={i} className="flex items-center gap-2">
                   {i > 0 ? <span aria-hidden="true">/</span> : null}
-                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline">
+                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11">
                     {c.label}
                   </Link>
                 </span>

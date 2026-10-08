@@ -122,6 +122,63 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   for (const h of record) expect(h, "a button on the client's page is 44 px tall").toBeGreaterThanOrEqual(TARGET - 0.5);
 });
 
+/** A thumb 22 px above and below the middle of the first match still lands on it (so its target is 44 px tall). */
+async function tall(page: Page, selector: string, what: string) {
+  const el = page.locator(selector).first();
+  await el.scrollIntoViewIfNeeded();
+  const b = (await el.boundingBox())!;
+  const cx = b.x + b.width / 2;
+  const cy = b.y + b.height / 2;
+  for (const dy of [-21, 21])
+    expect(
+      await page.evaluate(
+        ([x, y, sel]) => !!document.elementFromPoint(x as number, y as number)?.closest(sel as string),
+        [cx, cy + dy, selector],
+      ),
+      `${what}: a tap ${Math.abs(dy)} px ${dy < 0 ? 'above' : 'below'} its middle lands on it`,
+    ).toBe(true);
+}
+
+test('phone 375: the Back link, breadcrumbs, calendar arrows, Status pill and Past work tick are 44 px targets (QA-530)', async ({
+  page,
+}) => {
+  const member = await memberWithTeam();
+  const t = Math.random().toString(36).slice(2, 6);
+  const number = `TSK-1998-${Math.floor(Math.random() * 90000) + 10000}`;
+  await sql(
+    `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
+     values ($1, $2, $3, (select team_id from core.person where id = $3),
+             (select department_id from core.person where id = $3),
+             (select id from work.task_status where is_default and deleted_at is null), 'internal', $3)`,
+    [number, `Made-up reach task ${t}`, member.id],
+  );
+  await page.setViewportSize(PHONE);
+  await signIn(page, member.email, `/tasks/${number}`);
+  await hydrated(page);
+  await tall(page, 'button[data-task-status]', 'the Status pill');
+  await tall(page, 'nav[aria-label="Breadcrumb"] a', 'a breadcrumb');
+  const back = (await page.locator('[data-record-header] a').first().boundingBox())!;
+  expect(back.width, 'the Back link is 44 px wide').toBeGreaterThanOrEqual(TARGET - 0.5);
+  expect(back.height, 'and 44 px tall').toBeGreaterThanOrEqual(TARGET - 0.5);
+
+  await page.goto('/tasks');
+  await hydrated(page);
+  await page.locator('[data-layouts] [data-layout="calendar"]').click();
+  await expect(page.locator('[data-calendar-previous]')).toBeVisible();
+  for (const sel of ['[data-calendar-previous]', '[data-calendar-next]']) {
+    const b = (await page.locator(sel).boundingBox())!;
+    expect(b.width, `${sel} is 44 px wide`).toBeGreaterThanOrEqual(TARGET - 0.5);
+    expect(b.height, `${sel} is 44 px tall`).toBeGreaterThanOrEqual(TARGET - 0.5);
+  }
+
+  await page.goto('/tasks?view=past');
+  await hydrated(page);
+  await page
+    .locator('[data-past-work-paste]')
+    .fill(['Title\tDate\tStatus', `Made-up past ${t}\t13/07/2026\tDone`].join('\n'));
+  await tall(page, '[data-past-work-header-tick]', 'the "first row holds the headers" tick');
+});
+
 test('phone 375: New client says what it needs before Save can be pressed', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await page.setViewportSize(PHONE);
@@ -134,6 +191,10 @@ test('phone 375: New client says what it needs before Save can be pressed', asyn
   await expect(form.getByRole('combobox', { name: /Type/ }), 'the type asks to be chosen').toContainText(
     'Choose a type',
   );
+  await expect(
+    form.locator('[aria-required]'),
+    'the name and the type picker both tell a screen reader they are required',
+  ).toHaveCount(2);
 });
 
 test('phone 320: for someone who gives work, the five Tasks tabs all sit inside the narrowest screens, Past work last', async ({

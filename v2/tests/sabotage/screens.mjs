@@ -1394,6 +1394,85 @@ export const sabotages = [
     ],
   },
   {
+    name: 'back-link-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Back link is 44 px wide',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-grid size-8 max-sm:size-11 place-items-center',
+        replace: 'inline-grid size-8 place-items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'breadcrumb-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a breadcrumb: a tap',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-flex min-h-6 items-center hover:underline max-sm:min-h-11',
+        replace: 'inline-flex min-h-6 items-center hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'calendar-arrows-shrink-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'is 44 px wide',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskCalendar.tsx',
+        find: 'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 max-sm:size-11 items-center',
+        replace:
+          'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'status-pill-target-is-the-chip',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Status pill: a tap',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'before:absolute before:inset-x-0 before:-inset-y-2.5',
+        replace: 'before:hidden',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-tick-label-is-small',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'tick: a tap',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'text-sm max-sm:min-h-11" data-past-work-header-tick',
+        replace: 'text-sm" data-past-work-header-tick',
+      },
+    ],
+  },
+
+  {
+    name: 'select-drops-aria-required',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type picker both tell a screen reader',
+    edits: [
+      {
+        file: 'src/ui/Select.tsx',
+        find: 'aria-required={ariaRequired}',
+        replace: 'aria-required={undefined}',
+      },
+    ],
+  },
+
+  {
     name: 'tabs-clip-at-the-edge',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
     expect: 'no tab is cut off at the right edge',

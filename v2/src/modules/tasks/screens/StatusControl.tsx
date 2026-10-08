@@ -128,7 +128,7 @@ export function StatusMenu({
     <>
       <Menu>
         <MenuTrigger
-          className="rounded-pill focus-visible:outline-2 focus-visible:outline-focus"
+          className="relative rounded-pill before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
           aria-label={t('pages.tasks.status.change', { status: label })}
           data-task-status={view}
           disabled={move.busy}
