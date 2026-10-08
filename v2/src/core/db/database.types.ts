@@ -390,6 +390,7 @@ export type Database = {
       };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
+      task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
@@ -397,6 +398,9 @@ export type Database = {
         Args: { p_close_items?: boolean; p_happened_on?: string; p_id: string; p_reason?: string; p_status: string };
         Returns: Json;
       };
+      task_template_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
+      task_templates: { Args: Record<PropertyKey, never>; Returns: Json };
+      task_templates_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       task_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
@@ -416,6 +420,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      templates_offered: { Args: { p_event: string; p_partner?: string }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };

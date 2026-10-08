@@ -804,6 +804,8 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
+    "task_template": "Task template",
+    "task_occurrence": "Task made from a template",
     "project_health": "Project health"
   },
   "status": {

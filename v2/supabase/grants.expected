@@ -166,10 +166,14 @@ function api.task(p_id uuid) execute authenticated
 function api.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
 function api.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function api.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function api.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function api.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function api.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function api.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
+function api.task_template_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.task_templates() execute authenticated
+function api.task_templates_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.tasks(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
@@ -177,6 +181,7 @@ function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.team_load(p_people uuid[]) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
+function api.templates_offered(p_event text, p_partner uuid) execute authenticated
 function api.undo(p_request uuid) execute authenticated
 function api.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function api.view_default_set(p_page text, p_view uuid) execute authenticated
@@ -368,16 +373,21 @@ function work.projects_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
 function work.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function work.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function work.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function work.task_get(p_id uuid) execute authenticated
 function work.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function work.task_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function work.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function work.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
+function work.task_template_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function work.task_templates() execute authenticated
+function work.task_templates_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.team_load(p_people uuid[]) execute authenticated
+function work.templates_offered(p_event text, p_partner uuid) execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated

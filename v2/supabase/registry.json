@@ -1452,6 +1452,18 @@
       "rule_only": false
     },
     {
+      "key": "task_occurrence",
+      "table": "work.task_occurrence",
+      "page": "settings.work",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "task_ref",
       "table": "work.task_ref",
       "page": "tasks",
@@ -1485,6 +1497,18 @@
       "visible": null,
       "level": "work.row_level",
       "history": true,
+      "rule_only": false
+    },
+    {
+      "key": "task_template",
+      "table": "work.task_template",
+      "page": "settings.work",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
       "rule_only": false
     },
     {
