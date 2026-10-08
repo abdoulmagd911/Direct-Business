@@ -52,11 +52,10 @@ sees Task in the + (QA-245), every browser tab names its page (QA-219), and on a
 and the back links are bigger. Steer around what is left:
 
 - **Turn into** on a note offers a call or meeting, a reminder and, since #175 (7 Oct), an **achievement**; a task
-  joins later (#183's database part waits for production's database to be repaired — see #157). Use **Quick add**
-  for a task.
+  joins once its screen lands (#183's database part is on production since 7 Oct). Use **Quick add** for a task.
 - A **member in no team** cannot add a task — every pilot member must be in a team.
 - The Clients page's second tab reads **Suppliers** (as signed, V507); its button still reads **New supplier &
-  partner** and becomes **New supplier** (QA-247, with #146).
+  partner** and becomes **New supplier** (QA-247, a small follow-up after #146).
 
 ## After the preview
 
