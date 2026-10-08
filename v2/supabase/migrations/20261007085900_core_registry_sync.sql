@@ -49,12 +49,13 @@ insert into core.capability (key, page_key, active) values
   ('finance.credit_control', 'clients', true),
   ('finance.import', 'finance', true),
   ('org.sign_out', 'settings.org', true),
+  ('pipeline.assign', 'pipeline', true),
   ('suppliers_partners.assign', 'suppliers_partners', true),
   ('suppliers_partners.identify', 'suppliers_partners', true),
   ('suppliers_partners.merge', 'suppliers_partners', true),
   ('tasks.assign', 'tasks', true)
 on conflict (key) do update set page_key = excluded.page_key, active = true;
-update core.capability set active = false where active and key not in ('clients.assign', 'clients.identify', 'clients.merge', 'files.restricted', 'finance.credit', 'finance.credit_control', 'finance.import', 'org.sign_out', 'suppliers_partners.assign', 'suppliers_partners.identify', 'suppliers_partners.merge', 'tasks.assign');
+update core.capability set active = false where active and key not in ('clients.assign', 'clients.identify', 'clients.merge', 'files.restricted', 'finance.credit', 'finance.credit_control', 'finance.import', 'org.sign_out', 'pipeline.assign', 'suppliers_partners.assign', 'suppliers_partners.identify', 'suppliers_partners.merge', 'tasks.assign');
 
 -- setting definitions
 insert into core.setting_def (key, group_page, schema, default_value, effective_dated, label_key, active) values
@@ -76,12 +77,15 @@ insert into core.setting_def (key, group_page, schema, default_value, effective_
   ('partner.contract_expiring_from_days', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":365}'::jsonb, '30'::jsonb, false, 'setting.partner.contract_expiring_from_days', true),
   ('partner.contract_notify', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"account_manager":{"type":"boolean"},"followers":{"type":"boolean"},"commercial_manager":{"type":"boolean"}},"required":["account_manager","followers","commercial_manager"],"additionalProperties":false}'::jsonb, '{"account_manager":true,"followers":true,"commercial_manager":false}'::jsonb, false, 'setting.partner.contract_notify', true),
   ('partner.contract_reminder_days', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","minItems":1,"maxItems":6,"type":"array","items":{"type":"integer","minimum":1,"maximum":365}}'::jsonb, '[60,30,7]'::jsonb, false, 'setting.partner.contract_reminder_days', true),
+  ('partner.contract_renewal_task', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"boolean"}'::jsonb, 'true'::jsonb, false, 'setting.partner.contract_renewal_task', true),
   ('partner.id_format', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"prefix":{"type":"string","pattern":"^[A-Z][A-Z0-9-]*$"},"width":{"type":"integer","minimum":3,"maximum":8}},"required":["prefix","width"],"additionalProperties":false}'::jsonb, '{"prefix":"DK-P","width":4}'::jsonb, false, 'setting.partner.id_format', true),
   ('partner.logo_fallback', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"string","enum":["monogram","blank"]}'::jsonb, '"monogram"'::jsonb, false, 'setting.partner.logo_fallback', true),
   ('partner.name_stop_words', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"array","items":{"type":"string","minLength":1}}'::jsonb, '["شركة","مؤسسة","company","co","corp","corporation","ltd","limited","llc","inc","est"]'::jsonb, false, 'setting.partner.name_stop_words', true),
   ('partner.one_code_per_partner', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"boolean"}'::jsonb, 'true'::jsonb, false, 'setting.partner.one_code_per_partner', true),
+  ('partner.open_client_ids', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{"prepaid":{"type":"integer","minimum":1,"maximum":9007199254740991},"postpaid":{"type":"integer","minimum":1,"maximum":9007199254740991},"tender":{"type":"integer","minimum":1,"maximum":9007199254740991}},"additionalProperties":false}'::jsonb, '{"prepaid":1,"postpaid":1}'::jsonb, false, 'setting.partner.open_client_ids', true),
   ('partner.stale_after_days', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":365}'::jsonb, '21'::jsonb, false, 'setting.partner.stale_after_days', true),
   ('record.header_figures.partner', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","maxItems":5,"type":"array","items":{"type":"string","enum":["last_activity","next_step","contracts","contacts","files","notes","client_since"]}}'::jsonb, '["last_activity","next_step","contracts","contacts","files"]'::jsonb, false, 'setting.record.header_figures.partner', true),
+  ('work.handover_follow_days', 'settings.partners', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":365}'::jsonb, '30'::jsonb, false, 'setting.work.handover_follow_days', true),
   ('work.late_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":90}'::jsonb, '14'::jsonb, true, 'setting.work.late_days', true),
   ('work.meeting_note_on_time_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":0,"maximum":14}'::jsonb, '1'::jsonb, true, 'setting.work.meeting_note_on_time_days', true),
   ('work.no_update_days', 'settings.work', '{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"integer","minimum":1,"maximum":60}'::jsonb, '7'::jsonb, true, 'setting.work.no_update_days', true),
@@ -92,7 +96,7 @@ insert into core.setting_def (key, group_page, schema, default_value, effective_
 on conflict (key) do update set group_page = excluded.group_page, schema = excluded.schema,
   default_value = excluded.default_value, effective_dated = excluded.effective_dated,
   label_key = excluded.label_key, active = true;
-update core.setting_def set active = false where active and key not in ('app.arabic_enabled', 'app.default_density', 'app.default_start_page', 'app.default_theme', 'app.export_formats', 'app.go_live_on', 'audit.recently_deleted_days', 'audit.undo_window_hours', 'auth.code_door_enabled', 'auth.device_idle_days', 'core.file_download_display_name', 'core.file_keep_original_name', 'files.allowed_types', 'files.max_mb', 'notify.kinds_enabled', 'partner.contract_expiring_from_days', 'partner.contract_notify', 'partner.contract_reminder_days', 'partner.id_format', 'partner.logo_fallback', 'partner.name_stop_words', 'partner.one_code_per_partner', 'partner.stale_after_days', 'record.header_figures.partner', 'work.late_days', 'work.meeting_note_on_time_days', 'work.no_update_days', 'work.pipeline_weekly_target', 'work.project_update_days', 'work.reminder_days_before_due', 'work.week_starts_on');
+update core.setting_def set active = false where active and key not in ('app.arabic_enabled', 'app.default_density', 'app.default_start_page', 'app.default_theme', 'app.export_formats', 'app.go_live_on', 'audit.recently_deleted_days', 'audit.undo_window_hours', 'auth.code_door_enabled', 'auth.device_idle_days', 'core.file_download_display_name', 'core.file_keep_original_name', 'files.allowed_types', 'files.max_mb', 'notify.kinds_enabled', 'partner.contract_expiring_from_days', 'partner.contract_notify', 'partner.contract_reminder_days', 'partner.contract_renewal_task', 'partner.id_format', 'partner.logo_fallback', 'partner.name_stop_words', 'partner.one_code_per_partner', 'partner.open_client_ids', 'partner.stale_after_days', 'record.header_figures.partner', 'work.handover_follow_days', 'work.late_days', 'work.meeting_note_on_time_days', 'work.no_update_days', 'work.pipeline_weekly_target', 'work.project_update_days', 'work.reminder_days_before_due', 'work.week_starts_on');
 
 -- entities: the tables whose records are logged, undone and followed (V127)
 insert into core.entity (key, table_name, page_key, owners, is_list, private, visible, level, history, rule_only, active) values
@@ -126,6 +130,7 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('my_note_link', 'my.note_link', null, 'created_by', false, false, 'my.note_link_visible', null, false, true, true),
   ('my_note_mention', 'my.note_mention', null, null, false, false, 'my.note_mention_visible', null, false, true, true),
   ('note', 'core.note', null, 'core.note_owners', false, false, 'core.note_visible', 'core.note_level', true, false, true),
+  ('opportunity', 'pipeline.opportunity', 'pipeline', 'pipeline.opportunity_owners', false, false, null, 'pipeline.row_level', false, false, true),
   ('page', 'core.page', 'settings.org', null, false, false, null, null, false, false, true),
   ('partner', 'partner.partner', 'clients', 'partner.partner_owners', false, false, null, 'partner.row_level', false, false, true),
   ('partner_merge', 'partner.merge', 'clients', null, false, false, null, 'partner.row_level', false, false, true),
@@ -137,6 +142,10 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('person_email', 'core.person_email', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_level', 'core.person_page_level', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_team', 'core.person_team_assist', 'settings.org', 'person_id', false, false, null, null, false, false, true),
+  ('pipeline_lost_reason', 'pipeline.lost_reason', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_source', 'pipeline.source', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_stage', 'pipeline.stage', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_stage_change', 'pipeline.stage_change', 'pipeline', 'pipeline.stage_change_owners', false, false, null, 'pipeline.row_level', true, false, true),
   ('plan', 'perf.plan', 'settings.performance', null, false, false, null, null, false, false, true),
   ('priority', 'work.priority', 'settings.work', null, true, false, null, null, false, false, true),
   ('profile', 'core.person_profile', 'settings.profile', 'person_id', false, false, null, null, false, false, true),
@@ -168,11 +177,13 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('task_template', 'work.task_template', 'settings.work', null, false, false, null, null, false, false, true),
   ('task_type', 'work.task_type', 'settings.work', null, true, false, null, null, false, false, true),
   ('team', 'core.team', 'settings.org', 'lead_person_id', false, false, null, null, false, false, true),
+  ('team_level', 'core.team_page_level', 'settings.org', null, false, false, null, null, false, false, true),
+  ('tender', 'pipeline.tender', 'pipeline', 'pipeline.tender_owners', false, false, null, 'pipeline.row_level', false, false, true),
   ('wording', 'core.wording', 'settings.app', null, false, false, null, null, false, false, true)
 on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,
   owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,
   level = excluded.level, history = excluded.history, rule_only = excluded.rule_only, active = true;
-update core.entity set active = false where active and key not in ('achievement', 'achievement_category', 'achievement_participant', 'achievement_ref', 'action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'campaign_code', 'capability', 'code_terms', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'department', 'entity', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'individual_name', 'mention', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'plan', 'priority', 'profile', 'project', 'project_health', 'project_status', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'task', 'task_contact', 'task_helper', 'task_occurrence', 'task_ref', 'task_status', 'task_status_change', 'task_template', 'task_type', 'team', 'wording');
+update core.entity set active = false where active and key not in ('achievement', 'achievement_category', 'achievement_participant', 'achievement_ref', 'action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'campaign_code', 'capability', 'code_terms', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'department', 'entity', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'individual_name', 'mention', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'opportunity', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'pipeline_lost_reason', 'pipeline_source', 'pipeline_stage', 'pipeline_stage_change', 'plan', 'priority', 'profile', 'project', 'project_health', 'project_status', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'task', 'task_contact', 'task_helper', 'task_occurrence', 'task_ref', 'task_status', 'task_status_change', 'task_template', 'task_type', 'team', 'team_level', 'tender', 'wording');
 
 -- each role's starting level on each page, where it has none
 insert into core.role_page_level (role_id, page_key, level)
@@ -290,6 +301,7 @@ from (values
   ('admin', 'finance.credit_control', true),
   ('admin', 'finance.import', true),
   ('admin', 'org.sign_out', true),
+  ('admin', 'pipeline.assign', true),
   ('admin', 'suppliers_partners.assign', true),
   ('admin', 'suppliers_partners.identify', true),
   ('admin', 'suppliers_partners.merge', true),
@@ -302,6 +314,7 @@ from (values
   ('head', 'finance.credit_control', true),
   ('head', 'finance.import', true),
   ('head', 'org.sign_out', false),
+  ('head', 'pipeline.assign', true),
   ('head', 'suppliers_partners.assign', true),
   ('head', 'suppliers_partners.identify', true),
   ('head', 'suppliers_partners.merge', true),
@@ -314,6 +327,7 @@ from (values
   ('manager', 'finance.credit_control', false),
   ('manager', 'finance.import', false),
   ('manager', 'org.sign_out', false),
+  ('manager', 'pipeline.assign', true),
   ('manager', 'suppliers_partners.assign', true),
   ('manager', 'suppliers_partners.identify', true),
   ('manager', 'suppliers_partners.merge', false),
@@ -326,6 +340,7 @@ from (values
   ('member', 'finance.credit_control', false),
   ('member', 'finance.import', false),
   ('member', 'org.sign_out', false),
+  ('member', 'pipeline.assign', false),
   ('member', 'suppliers_partners.assign', false),
   ('member', 'suppliers_partners.identify', false),
   ('member', 'suppliers_partners.merge', false),
@@ -338,6 +353,7 @@ from (values
   ('viewer', 'finance.credit_control', false),
   ('viewer', 'finance.import', false),
   ('viewer', 'org.sign_out', false),
+  ('viewer', 'pipeline.assign', false),
   ('viewer', 'suppliers_partners.assign', false),
   ('viewer', 'suppliers_partners.identify', false),
   ('viewer', 'suppliers_partners.merge', false),
@@ -349,6 +365,6 @@ where not exists (select 1 from core.role_capability x
 
 -- each setting's default (§3.2, V97, V155, V161): a new setting's, written once as a company-wide row from the
 -- floor date; a changed one, from today where no admin value is in force — never over an admin's
-select core.setting_defaults_sync('[{"key":"app.arabic_enabled","value":false},{"key":"app.default_density","value":"comfortable"},{"key":"app.default_start_page","value":"my_day"},{"key":"app.default_theme","value":"direct"},{"key":"app.export_formats","value":["csv","xlsx"]},{"key":"app.go_live_on","value":""},{"key":"audit.recently_deleted_days","value":30},{"key":"audit.undo_window_hours","value":24},{"key":"auth.code_door_enabled","value":false},{"key":"auth.device_idle_days","value":30},{"key":"core.file_download_display_name","value":true},{"key":"core.file_keep_original_name","value":true},{"key":"files.allowed_types","value":["application/pdf","image/png","image/jpeg","image/webp","text/csv","text/plain","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation"]},{"key":"files.max_mb","value":20},{"key":"notify.kinds_enabled","value":["assigned","helper_added","mentioned","changed_by_other","followed_change","decision_needed","report_issued","report_for_review","appraisal_step","import_done","alert_contract_expiring","alert_kpi_behind","alert_invoice_unpaid","alert_kpi_checkin","alert_activity_stale","alert_file_review","reminder","note_mention","escalated","alert_project_no_update","alert_due_tomorrow"]},{"key":"partner.contract_expiring_from_days","value":30},{"key":"partner.contract_notify","value":{"account_manager":true,"followers":true,"commercial_manager":false}},{"key":"partner.contract_reminder_days","value":[60,30,7]},{"key":"partner.id_format","value":{"prefix":"DK-P","width":4}},{"key":"partner.logo_fallback","value":"monogram"},{"key":"partner.name_stop_words","value":["شركة","مؤسسة","company","co","corp","corporation","ltd","limited","llc","inc","est"]},{"key":"partner.one_code_per_partner","value":true},{"key":"partner.stale_after_days","value":21},{"key":"record.header_figures.partner","value":["last_activity","next_step","contracts","contacts","files"]},{"key":"work.late_days","value":14},{"key":"work.meeting_note_on_time_days","value":1},{"key":"work.no_update_days","value":7},{"key":"work.pipeline_weekly_target","value":1},{"key":"work.project_update_days","value":14},{"key":"work.reminder_days_before_due","value":1},{"key":"work.week_starts_on","value":"sunday"}]'::jsonb);
+select core.setting_defaults_sync('[{"key":"app.arabic_enabled","value":false},{"key":"app.default_density","value":"comfortable"},{"key":"app.default_start_page","value":"my_day"},{"key":"app.default_theme","value":"direct"},{"key":"app.export_formats","value":["csv","xlsx"]},{"key":"app.go_live_on","value":""},{"key":"audit.recently_deleted_days","value":30},{"key":"audit.undo_window_hours","value":24},{"key":"auth.code_door_enabled","value":false},{"key":"auth.device_idle_days","value":30},{"key":"core.file_download_display_name","value":true},{"key":"core.file_keep_original_name","value":true},{"key":"files.allowed_types","value":["application/pdf","image/png","image/jpeg","image/webp","text/csv","text/plain","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation"]},{"key":"files.max_mb","value":20},{"key":"notify.kinds_enabled","value":["assigned","helper_added","mentioned","changed_by_other","followed_change","decision_needed","report_issued","report_for_review","appraisal_step","import_done","alert_contract_expiring","alert_kpi_behind","alert_invoice_unpaid","alert_kpi_checkin","alert_activity_stale","alert_file_review","reminder","note_mention","escalated","alert_project_no_update","alert_due_tomorrow"]},{"key":"partner.contract_expiring_from_days","value":30},{"key":"partner.contract_notify","value":{"account_manager":true,"followers":true,"commercial_manager":false}},{"key":"partner.contract_reminder_days","value":[60,30,7]},{"key":"partner.contract_renewal_task","value":true},{"key":"partner.id_format","value":{"prefix":"DK-P","width":4}},{"key":"partner.logo_fallback","value":"monogram"},{"key":"partner.name_stop_words","value":["شركة","مؤسسة","company","co","corp","corporation","ltd","limited","llc","inc","est"]},{"key":"partner.one_code_per_partner","value":true},{"key":"partner.open_client_ids","value":{"prepaid":1,"postpaid":1}},{"key":"partner.stale_after_days","value":21},{"key":"record.header_figures.partner","value":["last_activity","next_step","contracts","contacts","files"]},{"key":"work.handover_follow_days","value":30},{"key":"work.late_days","value":14},{"key":"work.meeting_note_on_time_days","value":1},{"key":"work.no_update_days","value":7},{"key":"work.pipeline_weekly_target","value":1},{"key":"work.project_update_days","value":14},{"key":"work.reminder_days_before_due","value":1},{"key":"work.week_starts_on","value":"sunday"}]'::jsonb);
 
 select audit.end();

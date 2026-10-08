@@ -87,13 +87,24 @@ select test.eq((select count(*)::int from work.task_occurrence
                 where template_id in (current_setting('t.off')::uuid, current_setting('t.ended')::uuid)), 0,
   'a template switched off or ended makes nothing');
 
--- nobody to own it: nothing is made, and nothing is taken — the next occurrence still comes
+-- nobody to own it: nothing is made, and nothing is taken — the next occurrence still comes. A person with open work
+-- cannot be switched off (V452, #160), so for the step their open tasks are closed and their action items lent to
+-- the admin, and given back after it.
+select set_config('t.am2_open', coalesce((select string_agg(id::text, ',') from work.task
+  where owner_id = current_setting('t.am2')::uuid and deleted_at is null and closed_at is null), ''), true);
+update work.task set closed_at = now() where id::text = any (string_to_array(current_setting('t.am2_open'), ','));
+select set_config('t.am2_items', coalesce((select string_agg(id::text, ',') from work.action_item
+  where owner_id = current_setting('t.am2')::uuid and deleted_at is null and done_on is null), ''), true);
+update work.action_item set owner_id = current_setting('t.admin')::uuid
+where id::text = any (string_to_array(current_setting('t.am2_items'), ','));
 update core.person set active = false where id = current_setting('t.am2')::uuid;
 select set_config('v2.test_now', (now() + interval '15 days')::text, true);
 select work.generate_recurring();
 select test.eq((select count(*)::int from work.task_occurrence where template_id = current_setting('t.wk')::uuid), 1,
   'a switched-off owner gets nothing');
 update core.person set active = true where id = current_setting('t.am2')::uuid;
+update work.task set closed_at = null where id::text = any (string_to_array(current_setting('t.am2_open'), ','));
+update work.action_item set owner_id = current_setting('t.am2')::uuid where id::text = any (string_to_array(current_setting('t.am2_items'), ','));
 select set_config('v2.test_now', now()::text, true);
 
 -- a yearly review over a side type links last year's files to this year's task
