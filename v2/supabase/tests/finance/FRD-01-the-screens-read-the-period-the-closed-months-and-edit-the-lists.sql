@@ -1,9 +1,9 @@
 -- FRD-01 — the reads the Finance screens draw from (the screens brief I.3, I.4, I.9). The period's figures count every
 -- paid unit with the Provisional part beside them, never hidden; each unit says Final or Provisional, and a pending one
 -- is listed but not counted. A closed month keeps its frozen figures; a unit paid after the close is listed as a late
--- change with its riyals, and the frozen figures do not move. The Finance lists (a product with no supplier cost) are
+-- change with its riyals and its day, and the frozen figures do not move. The Finance lists (a product with no supplier cost) are
 -- edited through the list door, logged, and Undo takes it back. Every value is made up.
--- Sabotage: supabase/tests/sabotage/profit-leaves-provisional-out.sql.
+-- Sabotages: supabase/tests/sabotage/profit-leaves-provisional-out.sql, a-late-change-has-no-day.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.m', (pg_catalog.date_trunc('month', core.riyadh_today()) - interval '1 month')::date::text, true);
 select set_config('t.d', (current_setting('t.m')::date + 9)::text, true);
@@ -45,11 +45,12 @@ select test.eq((select m -> 'frozen' from jsonb_array_elements(api.finance_close
   '{"units": 2, "revenue": 700.00, "cost": 100.00, "profit": 600.00}'::jsonb,
   'the closed month keeps its frozen figures');
 select test.eq((select jsonb_agg(jsonb_build_object('ref', l ->> 'ref', 'change', l ->> 'change',
-                                                    'revenue', (l ->> 'revenue_change')::numeric))
+                                                    'revenue', (l ->> 'revenue_change')::numeric,
+                                                    'on', (l ->> 'changed_on')::date = current_setting('t.d')::date))
                 from jsonb_array_elements(api.finance_closed_months()) m, jsonb_array_elements(m -> 'late_changes') l
                 where (m ->> 'month')::date = current_setting('t.m')::date),
-  '[{"ref": "TX-94", "change": "late_paid", "revenue": 80.00}]'::jsonb,
-  'and lists the unit paid after the close, with its riyals');
+  '[{"ref": "TX-94", "change": "late_paid", "revenue": 80.00, "on": true}]'::jsonb,
+  'and lists the unit paid after the close, with its riyals and the day it was paid');
 
 -- a Finance list through the list door: logged, and Undo takes it back
 select test.as_owner();

@@ -229,6 +229,7 @@ export type Database = {
       finance_not_invoiced: { Args: { p_from?: string; p_to?: string }; Returns: Json };
       finance_partner_credit: { Args: { p_partner: string }; Returns: Json };
       finance_partner_months: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_payments_as_of: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_period_units: {
         Args: { p_from: string; p_to: string };
