@@ -262,6 +262,12 @@ export type Database = {
       finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
       finance_sales_by_code: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
+      finance_tender_client_id_set: {
+        Args: { p_identifier: string; p_reason?: string; p_tender: string };
+        Returns: Json;
+      };
+      finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };

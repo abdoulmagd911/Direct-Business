@@ -91,6 +91,9 @@ function api.finance_row_edit(p_table text, p_id uuid, p_fields jsonb, p_version
 function api.finance_rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated
 function api.finance_sales_by_code(p_from date, p_to date) execute authenticated
 function api.finance_search(p_text text, p_limit integer) execute authenticated
+function api.finance_tender_client_id_set(p_tender uuid, p_identifier uuid, p_reason text) execute authenticated
+function api.finance_tender_credit(p_from date, p_to date) execute authenticated
+function api.finance_tenders(p_partner uuid) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
 function api.from_note(p_entity text, p_id uuid) execute authenticated
@@ -363,6 +366,9 @@ function finance.row_edit(p_table text, p_id uuid, p_fields jsonb, p_version int
 function finance.rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated
 function finance.sales_by_code_list(p_from date, p_to date) execute authenticated
 function finance.search_numbers(p_text text, p_limit integer) execute authenticated
+function finance.tender_client_id_set(p_tender uuid, p_identifier uuid, p_reason text) execute authenticated
+function finance.tender_credit(p_from date, p_to date) execute authenticated
+function finance.tenders(p_partner uuid) execute authenticated
 function my.from_note_of(p_entity text, p_id uuid) execute authenticated
 function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
 function my.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
