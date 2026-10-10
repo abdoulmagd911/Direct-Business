@@ -169,6 +169,7 @@
     { "key": "finance.credit_control", "page": "clients" },
     { "key": "finance.import", "page": "finance" },
     { "key": "org.sign_out", "page": "settings.org" },
+    { "key": "pipeline.assign", "page": "pipeline" },
     { "key": "suppliers_partners.assign", "page": "suppliers_partners" },
     { "key": "suppliers_partners.identify", "page": "suppliers_partners" },
     { "key": "suppliers_partners.merge", "page": "suppliers_partners" },
@@ -1286,6 +1287,18 @@
       "rule_only": false
     },
     {
+      "key": "opportunity",
+      "table": "pipeline.opportunity",
+      "page": "pipeline",
+      "owners": "pipeline.opportunity_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "pipeline.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "page",
       "table": "core.page",
       "page": "settings.org",
@@ -1415,6 +1428,54 @@
       "visible": null,
       "level": null,
       "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "pipeline_lost_reason",
+      "table": "pipeline.lost_reason",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "pipeline_source",
+      "table": "pipeline.source",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "pipeline_stage",
+      "table": "pipeline.stage",
+      "page": "settings.work",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "pipeline_stage_change",
+      "table": "pipeline.stage_change",
+      "page": "pipeline",
+      "owners": "pipeline.stage_change_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "pipeline.row_level",
+      "history": true,
       "rule_only": false
     },
     {
@@ -1754,6 +1815,18 @@
       "rule_only": false
     },
     {
+      "key": "task_occurrence",
+      "table": "work.task_occurrence",
+      "page": "settings.work",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "task_ref",
       "table": "work.task_ref",
       "page": "tasks",
@@ -1787,6 +1860,18 @@
       "visible": null,
       "level": "work.row_level",
       "history": true,
+      "rule_only": false
+    },
+    {
+      "key": "task_template",
+      "table": "work.task_template",
+      "page": "settings.work",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
       "rule_only": false
     },
     {
@@ -1834,6 +1919,18 @@
       "private": false,
       "visible": null,
       "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "tender",
+      "table": "pipeline.tender",
+      "page": "pipeline",
+      "owners": "pipeline.tender_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "pipeline.row_level",
       "history": false,
       "rule_only": false
     },
@@ -1968,6 +2065,7 @@
     { "role": "admin", "capability": "finance.credit_control", "granted": true },
     { "role": "admin", "capability": "finance.import", "granted": true },
     { "role": "admin", "capability": "org.sign_out", "granted": true },
+    { "role": "admin", "capability": "pipeline.assign", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.assign", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.merge", "granted": true },
@@ -1980,6 +2078,7 @@
     { "role": "head", "capability": "finance.credit_control", "granted": true },
     { "role": "head", "capability": "finance.import", "granted": true },
     { "role": "head", "capability": "org.sign_out", "granted": false },
+    { "role": "head", "capability": "pipeline.assign", "granted": true },
     { "role": "head", "capability": "suppliers_partners.assign", "granted": true },
     { "role": "head", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "head", "capability": "suppliers_partners.merge", "granted": true },
@@ -1992,6 +2091,7 @@
     { "role": "manager", "capability": "finance.credit_control", "granted": false },
     { "role": "manager", "capability": "finance.import", "granted": false },
     { "role": "manager", "capability": "org.sign_out", "granted": false },
+    { "role": "manager", "capability": "pipeline.assign", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.assign", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.merge", "granted": false },
@@ -2004,6 +2104,7 @@
     { "role": "member", "capability": "finance.credit_control", "granted": false },
     { "role": "member", "capability": "finance.import", "granted": false },
     { "role": "member", "capability": "org.sign_out", "granted": false },
+    { "role": "member", "capability": "pipeline.assign", "granted": false },
     { "role": "member", "capability": "suppliers_partners.assign", "granted": false },
     { "role": "member", "capability": "suppliers_partners.identify", "granted": false },
     { "role": "member", "capability": "suppliers_partners.merge", "granted": false },
@@ -2016,6 +2117,7 @@
     { "role": "viewer", "capability": "finance.credit_control", "granted": false },
     { "role": "viewer", "capability": "finance.import", "granted": false },
     { "role": "viewer", "capability": "org.sign_out", "granted": false },
+    { "role": "viewer", "capability": "pipeline.assign", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.assign", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.identify", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.merge", "granted": false },

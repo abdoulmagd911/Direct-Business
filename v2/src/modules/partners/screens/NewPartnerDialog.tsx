@@ -15,7 +15,7 @@ import { Switch } from '@/ui/Switch';
 import { nameOf, type ListEntry, type Side } from '../types';
 
 /**
- * New client / New supplier & partner (V149: api.partner_create with one side — type required, tier, owner; the owner
+ * New client / New supplier (V149: api.partner_create with one side — type required, tier, owner; the owner
  * is the caller unless named). The organisation opens once created; the other side is switched on from its record.
  */
 export function NewPartnerDialog({
@@ -105,6 +105,7 @@ export function NewPartnerDialog({
       <div className="grid gap-4 sm:grid-cols-2" data-partner-form>
         <Field
           label={t('partners.fields.tradeNameEn')}
+          required={t('common.required')}
           className="sm:col-span-2"
           error={banned ? t('settings.list.banned', { word: banned }) : undefined}
         >
@@ -128,11 +129,12 @@ export function NewPartnerDialog({
             />
           )}
         </Field>
-        <Field label={t('partners.columns.type')}>
+        <Field label={t('partners.columns.type')} required={t('common.required')}>
           {(p) => (
             <Select
               {...p}
               value={f.type}
+              placeholder={t('partners.chooseType')}
               onValueChange={(v) => setF({ ...f, type: v })}
               options={types.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
             />

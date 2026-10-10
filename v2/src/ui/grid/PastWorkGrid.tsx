@@ -398,9 +398,9 @@ export function PastWorkGrid(props: PastWorkGridProps) {
       {table.length ? (
         <>
           <div className="flex flex-wrap items-end gap-3" data-past-work-mapping>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm max-sm:min-h-11" data-past-work-header-tick>
               <Checkbox
-                className="size-6"
+                className="relative size-6 before:absolute before:-inset-2.5 before:content-['']"
                 label={labels.hasHeader}
                 checked={mapping.hasHeader}
                 onCheckedChange={(v) => setMapping({ ...mapping, hasHeader: v })}

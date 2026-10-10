@@ -49,12 +49,13 @@ insert into core.capability (key, page_key, active) values
   ('finance.credit_control', 'clients', true),
   ('finance.import', 'finance', true),
   ('org.sign_out', 'settings.org', true),
+  ('pipeline.assign', 'pipeline', true),
   ('suppliers_partners.assign', 'suppliers_partners', true),
   ('suppliers_partners.identify', 'suppliers_partners', true),
   ('suppliers_partners.merge', 'suppliers_partners', true),
   ('tasks.assign', 'tasks', true)
 on conflict (key) do update set page_key = excluded.page_key, active = true;
-update core.capability set active = false where active and key not in ('clients.assign', 'clients.identify', 'clients.merge', 'files.restricted', 'finance.credit', 'finance.credit_control', 'finance.import', 'org.sign_out', 'suppliers_partners.assign', 'suppliers_partners.identify', 'suppliers_partners.merge', 'tasks.assign');
+update core.capability set active = false where active and key not in ('clients.assign', 'clients.identify', 'clients.merge', 'files.restricted', 'finance.credit', 'finance.credit_control', 'finance.import', 'org.sign_out', 'pipeline.assign', 'suppliers_partners.assign', 'suppliers_partners.identify', 'suppliers_partners.merge', 'tasks.assign');
 
 -- setting definitions
 insert into core.setting_def (key, group_page, schema, default_value, effective_dated, label_key, active) values
@@ -150,6 +151,7 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('my_note_link', 'my.note_link', null, 'created_by', false, false, 'my.note_link_visible', null, false, true, true),
   ('my_note_mention', 'my.note_mention', null, null, false, false, 'my.note_mention_visible', null, false, true, true),
   ('note', 'core.note', null, 'core.note_owners', false, false, 'core.note_visible', 'core.note_level', true, false, true),
+  ('opportunity', 'pipeline.opportunity', 'pipeline', 'pipeline.opportunity_owners', false, false, null, 'pipeline.row_level', false, false, true),
   ('page', 'core.page', 'settings.org', null, false, false, null, null, false, false, true),
   ('partner', 'partner.partner', 'clients', 'partner.partner_owners', false, false, null, 'partner.row_level', false, false, true),
   ('partner_merge', 'partner.merge', 'clients', null, false, false, null, 'partner.row_level', false, false, true),
@@ -161,6 +163,10 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('person_email', 'core.person_email', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_level', 'core.person_page_level', 'settings.org', 'person_id', false, false, null, null, false, false, true),
   ('person_team', 'core.person_team_assist', 'settings.org', 'person_id', false, false, null, null, false, false, true),
+  ('pipeline_lost_reason', 'pipeline.lost_reason', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_source', 'pipeline.source', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_stage', 'pipeline.stage', 'settings.work', null, true, false, null, null, false, false, true),
+  ('pipeline_stage_change', 'pipeline.stage_change', 'pipeline', 'pipeline.stage_change_owners', false, false, null, 'pipeline.row_level', true, false, true),
   ('plan', 'perf.plan', 'settings.performance', null, false, false, null, null, false, false, true),
   ('priority', 'work.priority', 'settings.work', null, true, false, null, null, false, false, true),
   ('product', 'finance.product', 'settings.finance', null, true, false, null, null, false, false, true),
@@ -189,19 +195,22 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('task', 'work.task', 'tasks', 'work.task_owners', false, false, null, 'work.row_level', false, false, true),
   ('task_contact', 'work.task_contact', 'tasks', 'work.task_contact_owners', false, false, null, 'work.row_level', false, false, true),
   ('task_helper', 'work.task_helper', 'tasks', 'work.task_helper_owners', false, false, null, 'work.row_level', false, false, true),
+  ('task_occurrence', 'work.task_occurrence', 'settings.work', null, false, false, null, null, false, false, true),
   ('task_ref', 'work.task_ref', 'tasks', 'work.task_ref_owners', false, false, null, 'work.row_level', false, false, true),
   ('task_status', 'work.task_status', 'settings.work', null, true, false, null, null, false, false, true),
   ('task_status_change', 'work.task_status_change', 'tasks', 'work.task_status_change_owners', false, false, null, 'work.row_level', true, false, true),
+  ('task_template', 'work.task_template', 'settings.work', null, false, false, null, null, false, false, true),
   ('task_type', 'work.task_type', 'settings.work', null, true, false, null, null, false, false, true),
   ('tax_invoice', 'finance.tax_invoice', 'finance', 'finance.tax_invoice_owners', false, false, null, null, false, false, true),
   ('team', 'core.team', 'settings.org', 'lead_person_id', false, false, null, null, false, false, true),
   ('team_level', 'core.team_page_level', 'settings.org', null, false, false, null, null, false, false, true),
+  ('tender', 'pipeline.tender', 'pipeline', 'pipeline.tender_owners', false, false, null, 'pipeline.row_level', false, false, true),
   ('wallet_rule', 'finance.wallet_rule', 'settings.finance', null, true, false, null, null, false, false, true),
   ('wording', 'core.wording', 'settings.app', null, false, false, null, null, false, false, true)
 on conflict (key) do update set table_name = excluded.table_name, page_key = excluded.page_key,
   owners = excluded.owners, is_list = excluded.is_list, private = excluded.private, visible = excluded.visible,
   level = excluded.level, history = excluded.history, rule_only = excluded.rule_only, active = true;
-update core.entity set active = false where active and key not in ('achievement', 'achievement_category', 'achievement_participant', 'achievement_ref', 'action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'billing_link', 'billing_proposal', 'campaign_code', 'capability', 'channel', 'code_terms', 'commission_word', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'credit_split', 'department', 'entity', 'exclusion_rule', 'expense_line', 'expense_status_word', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'import_difference', 'import_map', 'individual_name', 'invoice', 'invoice_line', 'item_class', 'item_service', 'match_pin', 'mention', 'month_close', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'plan', 'priority', 'product', 'profile', 'project', 'project_health', 'project_status', 'receipt', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'service', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'status_map', 'task', 'task_contact', 'task_helper', 'task_ref', 'task_status', 'task_status_change', 'task_type', 'tax_invoice', 'team', 'team_level', 'wallet_rule', 'wording');
+update core.entity set active = false where active and key not in ('achievement', 'achievement_category', 'achievement_participant', 'achievement_ref', 'action_item', 'action_item_helper', 'activity_outcome', 'activity_type', 'billing_link', 'billing_proposal', 'campaign_code', 'capability', 'channel', 'code_terms', 'commission_word', 'contact', 'contact_role', 'contract', 'contract_term', 'contract_terms', 'credit_limit', 'credit_split', 'department', 'entity', 'exclusion_rule', 'expense_line', 'expense_status_word', 'file', 'file_kind', 'file_link', 'identifier', 'identifier_block', 'import_difference', 'import_map', 'individual_name', 'invoice', 'invoice_line', 'item_class', 'item_service', 'match_pin', 'mention', 'month_close', 'my_note', 'my_note_link', 'my_note_mention', 'note', 'opportunity', 'page', 'partner', 'partner_merge', 'partner_side', 'person', 'person_auth', 'person_capability', 'person_department', 'person_email', 'person_level', 'person_team', 'pipeline_lost_reason', 'pipeline_source', 'pipeline_stage', 'pipeline_stage_change', 'plan', 'priority', 'product', 'profile', 'project', 'project_health', 'project_status', 'receipt', 'ref_system', 'reference', 'reminder', 'role', 'role_capability', 'role_level', 'saved_view', 'service', 'setting', 'setting_def', 'side_field', 'side_owner', 'side_status', 'side_status_reason', 'side_tier', 'side_type', 'status_map', 'task', 'task_contact', 'task_helper', 'task_occurrence', 'task_ref', 'task_status', 'task_status_change', 'task_template', 'task_type', 'tax_invoice', 'team', 'team_level', 'tender', 'wallet_rule', 'wording');
 
 -- each role's starting level on each page, where it has none
 insert into core.role_page_level (role_id, page_key, level)
@@ -319,6 +328,7 @@ from (values
   ('admin', 'finance.credit_control', true),
   ('admin', 'finance.import', true),
   ('admin', 'org.sign_out', true),
+  ('admin', 'pipeline.assign', true),
   ('admin', 'suppliers_partners.assign', true),
   ('admin', 'suppliers_partners.identify', true),
   ('admin', 'suppliers_partners.merge', true),
@@ -331,6 +341,7 @@ from (values
   ('head', 'finance.credit_control', true),
   ('head', 'finance.import', true),
   ('head', 'org.sign_out', false),
+  ('head', 'pipeline.assign', true),
   ('head', 'suppliers_partners.assign', true),
   ('head', 'suppliers_partners.identify', true),
   ('head', 'suppliers_partners.merge', true),
@@ -343,6 +354,7 @@ from (values
   ('manager', 'finance.credit_control', false),
   ('manager', 'finance.import', false),
   ('manager', 'org.sign_out', false),
+  ('manager', 'pipeline.assign', true),
   ('manager', 'suppliers_partners.assign', true),
   ('manager', 'suppliers_partners.identify', true),
   ('manager', 'suppliers_partners.merge', false),
@@ -355,6 +367,7 @@ from (values
   ('member', 'finance.credit_control', false),
   ('member', 'finance.import', false),
   ('member', 'org.sign_out', false),
+  ('member', 'pipeline.assign', false),
   ('member', 'suppliers_partners.assign', false),
   ('member', 'suppliers_partners.identify', false),
   ('member', 'suppliers_partners.merge', false),
@@ -367,6 +380,7 @@ from (values
   ('viewer', 'finance.credit_control', false),
   ('viewer', 'finance.import', false),
   ('viewer', 'org.sign_out', false),
+  ('viewer', 'pipeline.assign', false),
   ('viewer', 'suppliers_partners.assign', false),
   ('viewer', 'suppliers_partners.identify', false),
   ('viewer', 'suppliers_partners.merge', false),

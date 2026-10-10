@@ -344,7 +344,10 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      opportunity_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
+      overview: { Args: { p_from?: string; p_period?: string; p_segment?: string; p_to?: string }; Returns: Json };
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
@@ -359,6 +362,7 @@ export type Database = {
         Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_pipeline: { Args: { p_partner: string }; Returns: Json };
       partner_references: { Args: { p_partner: string }; Returns: Json };
       partner_side_off: { Args: { p_id: string; p_reason?: string; p_side: string; p_until?: string }; Returns: Json };
       partner_side_set: { Args: { p_id: string; p_reason?: string; p_side: string; p_values: Json }; Returns: Json };
@@ -415,6 +419,20 @@ export type Database = {
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
       person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string; p_reassign_to?: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      pipeline_board: { Args: { p_entity: string; p_filter?: Json }; Returns: Json };
+      pipeline_card: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      pipeline_move: {
+        Args: {
+          p_entity: string;
+          p_happened_on?: string;
+          p_id: string;
+          p_stage: string;
+          p_values?: Json;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      pipeline_remove: { Args: { p_entity: string; p_ids: string[]; p_reason?: string }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
@@ -485,6 +503,7 @@ export type Database = {
       };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
+      task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
@@ -492,6 +511,9 @@ export type Database = {
         Args: { p_close_items?: boolean; p_happened_on?: string; p_id: string; p_reason?: string; p_status: string };
         Returns: Json;
       };
+      task_template_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
+      task_templates: { Args: Record<PropertyKey, never>; Returns: Json };
+      task_templates_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       task_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
@@ -511,6 +533,9 @@ export type Database = {
         };
         Returns: Json;
       };
+      templates_offered: { Args: { p_event: string; p_partner?: string }; Returns: Json };
+      tender_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };

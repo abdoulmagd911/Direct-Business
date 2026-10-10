@@ -741,7 +741,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
@@ -808,6 +808,32 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
         find: "choices[id] ?? 'carry'",
         replace: "choices[id] ?? 'done'",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'an action item brought along from a checklist leads to its task',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'task' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-reads-as-a-meeting',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'it names the item, not a logged meeting',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: "link.entity === 'action_item' && link.number",
+        replace: "link.entity === 'action_item' && link.number === 'never'",
       },
     ],
   },
@@ -1085,7 +1111,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
       },
     ],
@@ -1137,7 +1163,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1150,7 +1176,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/PageHeader.tsx',
-        find: 'className="inline-flex min-h-6 items-center hover:underline"',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
     ],
@@ -1163,8 +1189,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: 'inline-flex min-w-6 items-center justify-center whitespace-nowrap',
-        replace: 'inline-flex items-center whitespace-nowrap',
+        find: 'inline-flex min-h-11 min-w-6 items-center justify-center whitespace-nowrap',
+        replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
       },
     ],
   },
@@ -1176,8 +1202,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/grid/PastWorkGrid.tsx',
-        find: 'className="size-6"',
-        replace: 'className="size-5"',
+        find: 'className="relative size-6 before:absolute',
+        replace: 'className="relative size-5 before:absolute',
       },
     ],
   },
@@ -1347,6 +1373,198 @@ export const sabotages = [
         file: 'messages/en.json',
         find: '      "delete": "{what} deleted",\n',
         replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'new-supplier-button-says-and-partner',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the button is New supplier, not New supplier & partner',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"newSupplier": "New supplier",',
+        replace: '"newSupplier": "New supplier & partner",',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a note turned into a task leads to the task by its number',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'action_item' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-forgets-the-checklist-ask',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the checklist came along when asked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '...(withItems ? { action_items: true } : {})',
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-makes-it-without-the-note',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the note says it became a task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '(fromNote\n          ? rpc(',
+        replace: "(fromNote?.id === 'never'\n          ? rpc(",
+      },
+    ],
+  },
+
+  {
+    name: 'own-last-email-refusal-has-no-words',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "the guard's refusal is said in plain words",
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"own_last_email": "This is your last email you can sign in with — add another before removing it"',
+        replace:
+          '"own_last_email_unused": "This is your last email you can sign in with — add another before removing it"',
+      },
+    ],
+  },
+
+  {
+    name: 'phone-controls-shrink-again',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a Tasks filter chip is 44 px tall',
+    edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
+  },
+
+  {
+    name: 'done-tick-target-is-the-circle',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'marks it done',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: "before:absolute before:-inset-3 before:content-[''] ",
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'new-client-hides-what-it-needs',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type each say Required',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/NewPartnerDialog.tsx',
+        find: "<Field label={t('partners.columns.type')} required={t('common.required')}>",
+        replace: "<Field label={t('partners.columns.type')}>",
+      },
+    ],
+  },
+
+  {
+    name: 'back-link-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Back link is 44 px wide',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-grid size-8 max-sm:size-11 place-items-center',
+        replace: 'inline-grid size-8 place-items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'breadcrumb-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a breadcrumb: a tap',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-flex min-h-6 items-center hover:underline max-sm:min-h-11',
+        replace: 'inline-flex min-h-6 items-center hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'calendar-arrows-shrink-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'is 44 px wide',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskCalendar.tsx',
+        find: 'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 max-sm:size-11 items-center',
+        replace:
+          'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'status-pill-target-is-the-chip',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Status pill: a tap',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'before:absolute before:inset-x-0 before:-inset-y-2.5',
+        replace: 'before:hidden',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-tick-label-is-small',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'tick: a tap',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'text-sm max-sm:min-h-11" data-past-work-header-tick',
+        replace: 'text-sm" data-past-work-header-tick',
+      },
+    ],
+  },
+
+  {
+    name: 'select-drops-aria-required',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type picker both tell a screen reader',
+    edits: [
+      {
+        file: 'src/ui/Select.tsx',
+        find: 'aria-required={ariaRequired}',
+        replace: 'aria-required={undefined}',
+      },
+    ],
+  },
+
+  {
+    name: 'tabs-clip-at-the-edge',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'no tab is cut off at the right edge',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
+        replace:
+          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
       },
     ],
   },
