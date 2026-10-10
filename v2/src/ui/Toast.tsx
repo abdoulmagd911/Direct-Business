@@ -22,7 +22,7 @@ export function Toaster() {
           title: 'font-semibold',
           description: 'text-muted',
           actionButton:
-            'ms-auto shrink-0 self-center h-8 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
+            'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
           icon: 'mt-0.5 shrink-0',
         },
       }}
