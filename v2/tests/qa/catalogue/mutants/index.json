@@ -1,0 +1,476 @@
+[
+  {
+    "id": "m01-signin-unlisted-allowed",
+    "sig": "core.sign_in_state",
+    "what": "sign-in pre-check answers allowed for an e-mail nobody holds",
+    "tests": ["SIGN-02"]
+  },
+  {
+    "id": "m02-me-unlinked-not-refused",
+    "sig": "core.me",
+    "what": "api.me() no longer answers not_listed for a sign-in linked to no person",
+    "tests": ["ME-02", "SIGN-03"]
+  },
+  {
+    "id": "m03-admin-signout-ends-nothing",
+    "sig": "core.person_sign_out",
+    "what": "an admin's sign-out of a person ends no device",
+    "tests": ["SIGN-09"]
+  },
+  {
+    "id": "m04-undo-system-request",
+    "sig": "audit.undo",
+    "what": "undo no longer refuses a system or job request",
+    "tests": ["UNDO-01"]
+  },
+  {
+    "id": "m05-undo-any-non-owner",
+    "sig": "audit.undo_allowed",
+    "what": "within the window anyone may undo (owner/Own check gone)",
+    "tests": ["UNDO-05"]
+  },
+  {
+    "id": "m06-undo-full-bound-by-window",
+    "sig": "audit.undo_allowed",
+    "what": "Full on the page no longer undoes at any time",
+    "tests": ["UNDO-05"]
+  },
+  {
+    "id": "m07-admin-no-top-level",
+    "sig": "authz.level_of",
+    "what": "the admin role no longer gets the top level on every page",
+    "tests": ["ACC-01"]
+  },
+  {
+    "id": "m09-cleared-override-still-counts",
+    "sig": "authz.level_of",
+    "what": "a cleared (removed) level override still wins over the role",
+    "tests": ["ACC-01", "UNDO-04"]
+  },
+  {
+    "id": "m10-departments-open",
+    "sig": "authz.in_my_departments",
+    "what": "in_my_departments answers yes for every department",
+    "tests": ["ACC-06"]
+  },
+  {
+    "id": "m11-settings-log-open",
+    "sig": "core.settings_log",
+    "what": "the settings log answers any signed-in person",
+    "tests": ["SETS-02"]
+  },
+  {
+    "id": "m12-setting-ignores-its-date",
+    "sig": "core.setting_at",
+    "what": "setting_at reads the latest row whatever its date",
+    "tests": ["SET-01", "SETS-02"]
+  },
+  {
+    "id": "m13-list-arabic-optional",
+    "sig": "sql",
+    "what": "a list entry saves without an Arabic name (side_type)",
+    "tests": ["LIST-01"]
+  },
+  {
+    "id": "m14-list-key-duplicates",
+    "sig": "sql",
+    "what": "two entries of one list share a key (unique index dropped)",
+    "tests": ["LIST-01", "SETS-01"]
+  },
+  {
+    "id": "m15-list-key-changes",
+    "sig": "core.list_save",
+    "what": "a list entry's key may change",
+    "tests": ["LIST-01"]
+  },
+  {
+    "id": "m16-retire-moves-nothing",
+    "sig": "core.list_retire",
+    "what": "retiring a list value re-points nothing",
+    "tests": ["SETS-01"]
+  },
+  {
+    "id": "m17-retire-without-reason",
+    "sig": "core.list_retire",
+    "what": "retiring a list value needs no reason",
+    "tests": ["SETS-01"]
+  },
+  {
+    "id": "m18-retire-without-replacement",
+    "sig": "core.list_retire",
+    "what": "retiring a list value needs no replacement",
+    "tests": ["SETS-01"]
+  },
+  {
+    "id": "m19-list-remove-is-hard",
+    "sig": "core.list_remove",
+    "what": "removing an unused list value deletes it for good",
+    "tests": ["SETS-01", "DEL-01"]
+  },
+  {
+    "id": "m20-profile-any-start-page",
+    "sig": "core.profile_update",
+    "what": "My profile takes a start page the person cannot open",
+    "tests": ["PROF-01"]
+  },
+  {
+    "id": "m21-profile-any-notify-kind",
+    "sig": "core.profile_update",
+    "what": "My profile takes an unknown notification kind",
+    "tests": ["PROF-01"]
+  },
+  {
+    "id": "m22-profile-any-badge",
+    "sig": "sql",
+    "what": "My profile takes any badge value",
+    "tests": ["PROF-01"]
+  },
+  {
+    "id": "m08-admin-no-capabilities",
+    "sig": "authz.can_of",
+    "what": "the admin role no longer holds every capability",
+    "tests": ["ACC-02"]
+  },
+  {
+    "id": "m23-ntf-person-mute-ignored",
+    "sig": "notify.may_notify",
+    "what": "a kind a person turned off in My profile still reaches them",
+    "tests": ["NTF-01", "ALR-01", "PROF-01"]
+  },
+  {
+    "id": "m24-ntf-dept-kind-ignored",
+    "sig": "notify.may_notify",
+    "what": "a kind switched off for the company or department still notifies",
+    "tests": ["NTF-01", "ALR-01", "PROF-01"]
+  },
+  {
+    "id": "m25-ntf-switched-off-told",
+    "sig": "notify.may_notify",
+    "what": "a person who may not sign in is still told",
+    "tests": ["NTF-01"]
+  },
+  {
+    "id": "m26-ntf-system-told",
+    "sig": "notify.fan_out",
+    "what": "what the system or a job wrote tells owners and followers",
+    "tests": ["NTF-01"]
+  },
+  {
+    "id": "m27-alert-failure-stops-all",
+    "sig": "notify.generate_alerts",
+    "what": "one failing alert kind stops the whole alerts run",
+    "tests": ["ALR-01"]
+  },
+  {
+    "id": "m28-snooze-too-far",
+    "sig": "notify.snooze",
+    "what": "snooze accepts more than 30 days",
+    "tests": ["NTF-02"]
+  },
+  {
+    "id": "m29-mark-all-reads-snoozed",
+    "sig": "notify.mark_read",
+    "what": "Mark all read also marks snoozed (hidden) notifications",
+    "tests": ["NTF-02"]
+  },
+  {
+    "id": "m30-restore-by-anyone",
+    "sig": "core.restore",
+    "what": "a viewer (anyone who sees it) may restore a removed record",
+    "tests": ["DEL-01"]
+  },
+  {
+    "id": "m31-two-primary-contacts",
+    "sig": "sql",
+    "what": "an organisation may hold two live primary contacts",
+    "tests": ["DEL-01", "SIDE-01"]
+  },
+  {
+    "id": "m32-person-create-two-requests",
+    "sig": "core.person_create",
+    "what": "adding a person splits into two requests",
+    "tests": ["PPL-01"]
+  },
+  {
+    "id": "m33-new-role-is-admin",
+    "sig": "core.role_save",
+    "what": "a new role is made an admin role",
+    "tests": ["ROLE-01"]
+  },
+  {
+    "id": "m34-at-risk-without-reason",
+    "sig": "partner.side_status_set",
+    "what": "at risk or lost saves without a reason",
+    "tests": ["PST-01"]
+  },
+  {
+    "id": "m35-reason-of-any-status",
+    "sig": "partner.side_status_guard",
+    "what": "a status takes a reason from another status's list",
+    "tests": ["PST-01"]
+  },
+  {
+    "id": "m36-status-ignores-its-date",
+    "sig": "partner.status_of",
+    "what": "the status on a day ignores effective dates",
+    "tests": ["PST-01"]
+  },
+  {
+    "id": "m37-status-rewritten",
+    "sig": "partner.side_status_guard",
+    "what": "a status change may be rewritten in place",
+    "tests": ["PST-01"]
+  },
+  {
+    "id": "m38-bulk-ignores-missing-side",
+    "sig": "partner.bulk_assign",
+    "what": "bulk assign takes an organisation without the side on",
+    "tests": ["PROS-01"]
+  },
+  {
+    "id": "m39-bulk-without-assign",
+    "sig": "partner.bulk_assign",
+    "what": "bulk assign needs no assign capability",
+    "tests": ["PROS-01"]
+  },
+  {
+    "id": "m40-old-owner-never-ends",
+    "sig": "partner.side_owner_set_inner",
+    "what": "a new owner does not end the previous owner's time",
+    "tests": ["PROS-01", "SIDE-01"]
+  },
+  {
+    "id": "m41-old-owner-ends-a-day-early",
+    "sig": "partner.side_owner_set_inner",
+    "what": "the previous owner's time ends the day before the new one starts (a gap day)",
+    "tests": ["PROS-01", "SIDE-01"]
+  },
+  {
+    "id": "m42-credit-without-approver",
+    "sig": "partner.credit_limit_set",
+    "what": "a credit limit saves without an approver",
+    "tests": ["CRL-01"]
+  },
+  {
+    "id": "m43-credit-shown-without-finance",
+    "sig": "partner.partner_get",
+    "what": "the card shows credit limits without Finance View",
+    "tests": ["CRL-01"]
+  },
+  {
+    "id": "m44-credit-history-lost",
+    "sig": "partner.credit_limit_set",
+    "what": "a new credit limit removes the earlier ones",
+    "tests": ["CRL-01"]
+  },
+  {
+    "id": "m45-zero-not-prepaid",
+    "sig": "partner.partner_get",
+    "what": "a limit of 0 is not shown as Prepaid only",
+    "tests": ["CRL-01"]
+  },
+  {
+    "id": "m46-fold-forgets-ta-marbuta",
+    "sig": "norm.fold",
+    "what": "folding no longer reads \u0629 as \u0647",
+    "tests": ["SRCH-01", "NORM-01"]
+  },
+  {
+    "id": "m47-phone-forgets-00966",
+    "sig": "norm.phone_key",
+    "what": "a phone typed with 00966 keeps its prefix",
+    "tests": ["SRCH-01", "NORM-01"]
+  },
+  {
+    "id": "m48-hover-no-owner",
+    "sig": "partner.hover",
+    "what": "the hover card does not name the owner",
+    "tests": ["SRCH-01"]
+  },
+  {
+    "id": "m49-hover-no-sides",
+    "sig": "partner.hover",
+    "what": "the hover card shows no sides",
+    "tests": ["SRCH-01"]
+  },
+  {
+    "id": "m50-identifier-without-identify",
+    "sig": "partner.identifier_add",
+    "what": "adding an identifier needs no identify capability",
+    "tests": ["IDN-02"]
+  },
+  {
+    "id": "m51-second-live-code",
+    "sig": "partner.identifier_add",
+    "what": "a second live discount code is taken without 'a second is meant'",
+    "tests": ["CODE-01"]
+  },
+  {
+    "id": "m52-merge-without-capability",
+    "sig": "partner.partner_merge",
+    "what": "merging needs no merge capability",
+    "tests": ["MRG-01"]
+  },
+  {
+    "id": "m53-past-work-tells",
+    "sig": "sql",
+    "what": "past-dated work (notes, activities, mentions) tells people",
+    "tests": ["NOTE-01", "ACT-01", "DATE-01"]
+  },
+  {
+    "id": "m54-viewer-adds-note",
+    "sig": "core.note_add",
+    "what": "a viewer adds a note",
+    "tests": ["NOTE-01"]
+  },
+  {
+    "id": "m55-anyone-edits-a-note",
+    "sig": "core.note_edit",
+    "what": "anyone may edit a note, not only its author",
+    "tests": ["NOTE-01"]
+  },
+  {
+    "id": "m56-mention-cannot-see",
+    "sig": "core.mentions_add",
+    "what": "a person who cannot see the record may be mentioned",
+    "tests": ["NOTE-01"]
+  },
+  {
+    "id": "m57-call-without-outcome",
+    "sig": "partner.outcome_of",
+    "what": "a call is logged without an outcome",
+    "tests": ["ACT-01"]
+  },
+  {
+    "id": "m58-demo-set-without-day",
+    "sig": "partner.activity_log",
+    "what": "demo set is logged without the demo's day",
+    "tests": ["ACT-01"]
+  },
+  {
+    "id": "m59-next-step-without-day",
+    "sig": "sql",
+    "what": "a next step is kept without its day",
+    "tests": ["ACT-01"]
+  },
+  {
+    "id": "m60-next-step-before-it",
+    "sig": "sql",
+    "what": "a next step may come before the activity",
+    "tests": ["ACT-01"]
+  },
+  {
+    "id": "m61-work-dated-tomorrow",
+    "sig": "sql",
+    "what": "work may be dated after the day it is logged (both guards gone)",
+    "tests": ["ACT-01", "NOTE-01"]
+  },
+  {
+    "id": "m62-archived-takes-activity",
+    "sig": "partner.activity_log",
+    "what": "an archived organisation takes an activity",
+    "tests": ["ACT-01"]
+  },
+  {
+    "id": "m63-fresh-by-logged-day",
+    "sig": "partner.stale_on",
+    "what": "an activity freshens an organisation on the day it was logged, not the day it happened",
+    "tests": ["STALE-01"]
+  },
+  {
+    "id": "m64-policy-without-review-date",
+    "sig": "core.file_begin",
+    "what": "a travel policy is registered without its review date",
+    "tests": ["FILE-05"]
+  },
+  {
+    "id": "m65-number-ignores-id-format",
+    "sig": "partner.partner_create",
+    "what": "the organisation number is hard-coded (DK-P, width 4), not read from partner.id_format",
+    "tests": ["PRT-01", "CORE-02"]
+  },
+  {
+    "id": "m66-owner-without-assign",
+    "sig": "partner.side_put",
+    "what": "naming someone else the owner needs no assign capability",
+    "tests": ["PRT-01"]
+  },
+  {
+    "id": "m67-view-adds-organisation",
+    "sig": "partner.partner_create",
+    "what": "adding an organisation needs no Full on the side's page",
+    "tests": ["PRT-01"]
+  },
+  {
+    "id": "m68-side-without-type",
+    "sig": "partner.side_put",
+    "what": "a side is switched on without its type",
+    "tests": ["PRT-01"]
+  },
+  {
+    "id": "m69-last-side-off",
+    "sig": "partner.side_off",
+    "what": "the last side may be switched off",
+    "tests": ["PRT-01"]
+  },
+  {
+    "id": "m70-fanout-ignores-sight",
+    "sig": "notify.fan_out",
+    "what": "a follower or owner who cannot see the record is still told of a change",
+    "tests": ["NTF-03", "VIS-01", "NTF-01", "QA-05"]
+  },
+  {
+    "id": "s-last-write-wins-on-PRT",
+    "sig": "sql",
+    "what": "sabotage last-write-wins run against PRT-01",
+    "tests": ["PRT-01", "CONC-01"]
+  },
+  {
+    "id": "s-caps-ignore-overrides-on-PROS",
+    "sig": "sql",
+    "what": "sabotage capabilities-ignore-overrides run against PROS-01",
+    "tests": ["PROS-01", "ACC-02"]
+  },
+  {
+    "id": "s-one-holder-on-NAME",
+    "sig": "sql",
+    "what": "sabotage two-partners-hold-one-phone run against NAME-01",
+    "tests": ["NAME-01", "IDN-01"]
+  },
+  {
+    "id": "s-past-work-on-NOTE-ACT",
+    "sig": "sql",
+    "what": "sabotage past-work-rings-the-bell run against NOTE-01 and ACT-01",
+    "tests": ["NOTE-01", "ACT-01", "DATE-01"]
+  },
+  {
+    "id": "s-anyone-changes-a-setting-on-ADM",
+    "sig": "sql",
+    "what": "sabotage anyone-changes-a-setting run against ADM-01",
+    "tests": ["ADM-01", "SETW-01"]
+  },
+  {
+    "id": "m08b-admin-no-capabilities-nor-seed",
+    "sig": "sql",
+    "what": "the admin role neither holds every capability by its flag nor by its seeded grants",
+    "tests": ["ACC-02"]
+  },
+  {
+    "id": "m34b-at-risk-without-reason-anywhere",
+    "sig": "sql",
+    "what": "at risk/lost needs no reason: function guard and table check both gone",
+    "tests": ["PST-01"]
+  },
+  {
+    "id": "m42b-credit-without-approver-anywhere",
+    "sig": "sql",
+    "what": "a credit limit needs no approver: function guard and NOT NULL both gone",
+    "tests": ["CRL-01"]
+  },
+  {
+    "id": "m68b-side-without-type-anywhere",
+    "sig": "sql",
+    "what": "a side switches on without a type: function guard, list trigger null-case and NOT NULL all gone",
+    "tests": ["PRT-01"]
+  }
+]

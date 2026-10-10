@@ -1,0 +1,1313 @@
+# v2 QA log
+
+Kept by the QA and landmine auditor (branches `v2/q-*`). One line per finding: ID · date (Riyadh time) · PR · severity ·
+lane · what, where and the rule · status. Lanes: **Architect** = docs, **Builder A** = data, server, SQL and tests,
+**Builder B** = screens, **Builder C** = Arabic, exports and the grid (V410). Each finding is also a review comment on its PR. The QA tests are in
+`v2/supabase/tests/qa/`: a test marked *fails* goes green when the rule is built; a test marked *guards* passes today and
+goes red if the rule is deleted.
+
+Not re-reported (already known on 29 Sep): `require_admin()` accepts non-admins · P3-8a has one status and one owner per
+partner · appraisal visibility walks the whole reporting chain.
+
+## Round 1 — 2026-09-29 (v2/main at 72577fa; PR #77 at b7985c2, re-checked at 90f65f4; PR #86 at f7bb09e)
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-01 | 2026-09-29 07:40 | #80 (#83, #84) | High | Builder A · Architect | Settings are admin-only (owner, 29 Sep), but non-admin roles start with levels on settings pages: the head has Full on Finance, Partners, Performance and Work settings and View on App and Organization & access; managers, members and viewers have View on some (`v2/src/modules/partners/module.ts:21`, `finance/module.ts:20`, `perf/module.ts:20`, `tasks/module.ts:21`, `settings/module.ts:40`, `org/module.ts:14`). A head can change settings and setting lists (including switching off the Client role), edit the block list, and read the people list with every allowed email. Test QA-01 (fails). | Fixed in #89 (merged 8454f88); QA-01 passes on v2/main 5aeb683 |
+| QA-02 | 2026-09-29 07:40 | #81 | Medium | Builder A | Undo refuses to take back a new setting-list entry, role or team (`undo.cannot_remove`): an insert is soft-removed only through `deleted_at`, and those tables retire with `active` instead (`v2/supabase/migrations/20260929030000_core_undo.sql:228`). Rule: D7, V61 (Undo on every record). Test QA-02 (fails). | Partly fixed in #93: Undo removes a new list entry; a new role or team is still refused (`undo.cannot_remove`) — QA-02 fails on v2/main d78f58f |
+| QA-03 | 2026-09-29 07:40 | #84 | Medium | Builder A | A status reason that is in use can be moved from at-risk to lost through `api.list_save`, so past changes cite a reason of the other status. The list door fixes only `key` (`20260929060200_partner_api.sql:126`). Rule: V62; owner 29 Sep: stage meanings are locked. Test QA-03 (fails). | Partly fixed in #93: call-outcome meanings are locked; a used status reason (`side_status_reason` since #94) can still move at-risk ↔ lost — QA-03 fails on d78f58f |
+| QA-04 | 2026-09-29 07:40 | #84 | Medium | Builder A | V32: the block list starts empty (staff domains directksa.com and directksa.net are not blocked), and a domain block misses sub-domains (`20260929060200_partner_api.sql:199`). Test QA-04 (fails). | Open — QA-04 fails on v2/main d78f58f |
+| QA-05 | 2026-09-29 07:40 | #82 | Medium | Builder A | A follower who loses access keeps being told of every change: `notify.fan_out` never asks again whether the follower may see the record (`20260929040000_core_notify.sql:144`). With appraisals this breaks "private to the employee, their direct manager and admins" (owner, 29 Sep). Test QA-05 (fails). | Fixed in #93 (per-record visibility, V143); QA-05 passes on 5aeb683 |
+| QA-06 | 2026-09-29 07:40 | #78–#84 | High | Builder A | Tests that pass with their rule deleted. Removing the level or capability check from 20 doors leaves all 79 tests green (first logged as 21: a miscount, corrected in round 2): `partner.writable`, `manager_set`, `identifier_remove`, `block_add`, `individual_add`, `campaign_code_add`, `code_terms_add`, `contacts_remove`, `partner_get`, `hover`, and `core.person_create`, `person_guard_write`, `department_save`, `team_save`, `team_retire`, `role_save`, `access_guard`, `access_role_guard`, `person_devices`, `setting_clear`. Measured by a mutation run of 234 edits. Test QA-06 (guards). | Open — #89 catches 6 of the 20 deletions; the test passes on d78f58f (adapted to #94: sides, `partner_owner_set`, Clients page) |
+| QA-07 | 2026-09-29 07:40 | #78–#84 | Medium | Builder A | Tests that pass with their rule deleted: the "no active person" refusal of `api.org`, `search`, `list`, `hover_person`, `notifications`, `notifications_unread`, `notifications_mark_read`, `sign_in_log` and `undo` is untested. Without it, a switched-off session reads everyone's sign-in log. Test QA-07 (guards). | Open — #89's SEC-02 catches `org`, `search`, `sign_in_log`; `list`, `hover_person`, the three notification doors and `undo` still pass unseen |
+| QA-08 | 2026-09-29 07:40 | #81 | Medium | Builder A | Tests that pass with their rule deleted: undoing an add that a colleague has edited since is refused, but no test asks for it. Without the check, the colleague's edit is silently removed (`20260929030000_core_undo.sql`, `revert_change`, the insert branch). Test QA-08 (guards). | Open |
+| QA-09 | 2026-09-29 07:40 | #81, #82 | Medium | Builder A · Architect | History, Follow and the fan-out judge a record by the page level alone, and Own counts as "at least View". Once appraisal is a record type (everyone has Own), any member could read any appraisal's full before and after history, follow it and be told of its changes (`20260929030000_core_undo.sql:326`, `20260929040000_core_notify.sql:348`). Rule: owner 29 Sep, appraisal privacy. This is not the known reporting-chain issue. | Fixed in #93: `authz.can_see_as`, private record types and a per-type visibility function, asked by history, Follow and notices (V143) |
+| QA-10 | 2026-09-29 07:40 | #84 | — | — | Withdrawn 07:45: the owner's "Source is required" is on pipeline cards (V99 in #86: `pipeline.*.source_id not null`, P5-8), not on the organisation record; nothing in P3-8a to fix. | Withdrawn |
+| QA-11 | 2026-09-29 07:40 | #84 | Medium | Builder A (P3-8b) | The two sides of one organisation and locked meanings: partner roles are an editable setting list (`partner_role_def`, `list: true`, `v2/src/modules/partners/module.ts:91-96`). A head switched the Client role off in a rolled-back probe. The planned Strategic "stage" was a settings select (`partner.role_field`). #86 settles the rule (V98: two sides fixed in code; V99: stages on locked meanings); P3-8b must take the sides and stages out of the list door. | Fixed in #94: the two sides are fixed in code (`partner.partner_side`), types and reasons are lists per side (V98, V146–V149) |
+| QA-12 | 2026-09-29 07:40 | #83 | Medium | Builder A | English-only labels: a role, department or team saves with no Arabic name (`20260929050000_core_org_writes.sql:738`, `:619`, `:658`; the name_ar columns are nullable). V76 names roles among the lists that need an Arabic label. | Fixed in #93: Arabic names required for departments, teams and roles (V140) |
+| QA-13 | 2026-09-29 07:40 | #84 | Low | Builder A | The dates rule (owner, 29 Sep): `partner_create` stamps each role's `since` with the day it is typed and cannot take a date (`20260929060200_partner_api.sql:318`). A "new clients in a period" count built on it would count by entry date, which is `created_at` in disguise. | Fixed in #94: a side's `since` takes a date |
+| QA-14 | 2026-09-29 07:40 | #83 | Low | Builder A | Nobody changes their own access (V125), yet `person_update` lets a non-admin with Organization & access · Full move their own department, team or manager (`20260929050000_core_org_writes.sql:552`; PPL-01 line 50 edits the head's own manager). This goes away if QA-01 makes Settings admin-only. | Fixed by #89: Organization & access is admins-only, so no non-admin edits people |
+| QA-15 | 2026-09-29 07:40 | #84 | Low | Builder A | `code_terms_add` accepts any person as the approver, System, Import or a switched-off person included (`20260929060200_partner_api.sql:692`). `credit_limit_set` checks for staff. | Open |
+| QA-16 | 2026-09-29 07:40 | docs | Low | Architect | V28 says a code matches on the invoice's "creation (booking) date". Say "booking date" so P4 never reads it as `created_at` (the dates rule, owner 29 Sep) (`docs/v2/DECISIONS.md:57`). | Fixed in 2f928cf (#86, merged 0a2eed7) |
+| QA-20 | 2026-09-29 07:40 | #77 | High | Builder B | Settings shows for everyone: the nav key `settings` matches no page key, and an unknown key counts as visible (`v2/src/ui/shell/nav.ts:36`, `src/ui/person.ts:28`). This affects the drawer, the More sheet and Ctrl K. My profile sits under `/settings`. Every shell spec signs in as an admin. Rule: owner 29 Sep, Settings are admin-only. | Fixed in 90f65f4 (`isAdmin` in `nav.ts`, V209); the database half is QA-01 |
+| QA-21 | 2026-09-29 07:40 | #77 | High | Builder B | The PR conflicts with v2/main in `docs/v2/DECISIONS.md`, `messages/en.json`, `messages/ar.json`, `package.json` and `pnpm-lock.yaml`. The catalog keys differ in meaning (`nav.my_day` against `nav['my-day']`; `nav.settings` is an object). The comment at `nav.ts:18` ("keys equal the registry page keys") is false. V203's condition is met because the registry has landed. `vercel.json` installs with `--frozen-lockfile`, so a hand-merged lockfile breaks the deploy. | Fixed in 90f65f4 (merges clean; navigation read from the registry) |
+| QA-22 | 2026-09-29 07:40 | #77 | Medium | Builder B | V122: the `v2.locale` cookie switches Arabic on without asking `app.arabic_enabled` (`src/core/i18n/request.ts:13`). The `v2.dir` override also works in production (`src/core/prefs/index.ts:62`). | Open — merged unchanged in #77 (b9aace6) |
+| QA-23 | 2026-09-29 07:40 | #77 | Medium | Builder B · Builder A | Word checks (at 90f65f4). `screen-words` reads only JSX text for Company and Margin (`scripts/checks/screen-words.mjs:26`), so `aria-label`, `title`, `alt` and plain strings pass. Neither word check reads `.css`, `.svg` (a `<title>` inside `public/brand`) or `public/`. A word split across two pieces (`` `Direct ${'KSA'}` ``) passes. The Arabic forms (الشركات, هامش الربح) are never checked. | Open — merged unchanged in #77 (b9aace6) |
+| QA-24 | 2026-09-29 07:40 | #77 | Medium | Builder B | The default theme and density are hard-coded (`src/core/prefs/index.ts:32-33`), though V126 makes them `app.default_theme` and `app.default_density`. The profile's theme, density, language and drawer from `api.me()` are ignored. | Open — merged unchanged in #77 (b9aace6) |
+| QA-25 | 2026-09-29 07:40 | #77 | Low | Builder B | At 90f65f4 the drawer has Clients and Suppliers & partners, and the phone bar shows Clients (V98 in #86). The Create menu still offers "Partner" (`src/ui/shell/CreateMenu.tsx:13`, `create.partner`). | Open — merged unchanged in #77 (b9aace6) |
+| QA-26 | 2026-09-29 07:40 | #77 | Low | Builder B | V85's quick add is task · Log call · achievement, but the floating + reuses the Create menu: task, partner, invoice, achievement (`src/ui/shell/CreateMenu.tsx:11-16`). | Open — merged unchanged in #77 (b9aace6) |
+| QA-27 | 2026-09-29 07:40 | #77 | Low | Builder B | `/kit` is switched off by an environment variable read while the app runs (`src/app/(app)/kit/page.tsx:11`), so any production environment with `V2_KIT=1` serves it. The kit also shows a "Keep me signed in" tick. | Open — merged unchanged in #77 (b9aace6) |
+| QA-28 | 2026-09-29 07:40 | #77 | Low | Builder B | English-only labels (at 90f65f4): `PageHeader.tsx:27` aria-label "Breadcrumb", `Dialog.tsx:23` "Close", `app/layout.tsx:12` title "Commercial", `app/(app)/my-day/page.tsx:16` a date always in `en`, and `modules/org/screens/BrandPanel.tsx:30` the other language's brand line hard-coded (the catalog key `app.brand_line_other` is not used). | Open — merged unchanged in #77 (b9aace6) |
+| QA-29 | 2026-09-29 07:40 | #77 | Medium | Builder B | Tests that pass with their rule deleted. `tokens.test.ts` compares `tokens.css` with a hand-made copy (`tokens.table.ts`) that already differs from BUILD-PLAN: Colorful nav-active-mark `#F2B544` where BUILD-PLAN says the accent `#C4314A`, and Direct on-accent `#FFFFFF` where BUILD-PLAN says none. `signin.spec.ts:17` looks for Google only as a button; `:32` looks for one wording of the tick. `prefs.test.ts:40` has no production case. Dialog's `dirty` rule is never exercised. | Open — merged unchanged in #77 (b9aace6) |
+| QA-30 | 2026-09-29 07:40 | #77 | Low | Architect · Builder B | Docs (at 90f65f4). V202's "a production build answers not-found" is false (see QA-27). V207 and V209 record owner and oversight decisions in builder B's range; #86 opens V400–V499 for those. V207 still lists Partners in the drawer. `v2/README.md:83` names `V2_DEV_ME`, which no code reads. V203 is fixed (superseded by V209). | Open — merged unchanged in #77 (b9aace6) |
+| QA-31 | 2026-09-29 07:45 | #86 | Medium | Architect | #86 (`docs/v2/TECH-SPEC.md:415`, V97) offers a hard delete of a setting value used nowhere. A hard delete cannot be undone (V128 `undo.cannot_undo_delete`) and cannot come back from Recently deleted (V401, 30 days with restore). Make it a soft removal that Recently deleted restores, never a physical DELETE through the API. | Fixed in 2f928cf (#86, merged 0a2eed7) |
+| QA-32 | 2026-09-29 07:45 | #86 | Low | Architect | V42's heading says "amended by V96 … not the reporting line", but its body still says "visible to the person, the evaluator, the reporting line and admins" (`docs/v2/DECISIONS.md:85` in #86). A builder reading the body builds the chain again. | Fixed in 2f928cf (#86, merged 0a2eed7) |
+| QA-33 | 2026-09-29 07:45 | #86 | Low | Architect | BUILD-PLAN's P3-6 row, a step already merged (#81–#83), gains Recently deleted, `api.list_usage`, `api.list_retire` and `api.setting_preview` (`docs/v2/BUILD-PLAN.md:152` in #86). Name a follow-up step so builder A plans the work instead of finding a merged step changed. | Fixed in 2f928cf (#86, merged 0a2eed7) |
+
+## Round 2 — 2026-09-29 (v2/main at 88b205d → 5aeb683; #89 at 23f24b2, #90 at b215a73, #88 at 3b67b8a)
+
+Merged since round 1: #85 (V137, clean), #86, #77, #91 (V403–V410; the QA lane is V410), #89, #90, #93 (P3-6d).
+QA-06 is 20 doors, not 21 (a round-1 miscount). QA-02 and QA-06 were adjusted to V140 (Arabic team names; Undo may
+remove or retire) so they hold the rule, not one way of building it.
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-34 | 2026-09-29 08:50 | #89 | Low | Builder A | A Settings capability still reaches a non-admin: an admin can give a head `org.sign_out` (a capability of Settings → Organization & access), and the head then signs an admin out. `settings_admins_only` guards levels only (`20260929060500_core_settings_admins_only.sql:60`); `person_sign_out` has no "an admin only by an admin" check. | Open on v2/main 5aeb683 |
+| QA-35 | 2026-09-29 08:55 | #90 | Medium | Builder A | The database guard allows a DROP inside dynamic SQL (`do $$ … execute 'drop table …' $$`, `execute format(…)`): every string is blanked before reading (`.claude/hooks/sql-guard.mjs:51`). V402/V139. | Open — merged unchanged in #90 (0e2c5f1) |
+| QA-36 | 2026-09-29 08:55 | #90 | Medium | Builder A | The guard also allows: an UPDATE whose only WHERE is in a sub-query, `DELETE … WHERE true`, a column wiped by `alter column … type … using null`, a `using (true)` policy plus grants, and `create or replace function authz.is_admin() … select true` (`sql-guard.mjs:83`). Proposed: apply_migration free only when byte-for-byte a merged migration file (V113). | Open — merged unchanged in #90 |
+| QA-37 | 2026-09-29 09:00 | #84 | Medium | Builder A | V404: the segment seed is still "Government (B2G)" (`20260929060200_partner_api.sql:1187`; table comment `20260929060100_partner_core.sql:46`), and `forbidden-words` has no B2G and does not read seeds or list defaults. Question to the Architect: does "never Company" reach the Arabic «الشركات» of the Corporate segment? | Fixed in #94: the side type seed is "Government"; #97 (open) scans seeds from now on and WORDS-01 scans the built database |
+| QA-38 | 2026-09-29 09:10 | #88 | High | Builder A | P3-8b skips the two sides the plan says come first (V98; BUILD-PLAN P3-8 row): contracts, file links and notes land on the role-shaped partner with no `side` (`20260929070100_partner_contracts.sql:7`). The branch predates #86/#89/#91 and conflicts with v2/main; after #89 its CTR-02 (a head setting a setting) will fail. | Fixed in #94 (the sides came first) and #96 (activities, notes, files, contracts and references on the sides) |
+| QA-39 | 2026-09-29 09:10 | #88 | High | Builder A | Undo breaks on any note or call with an @mention (`undo.cannot_remove core.mention`, reproduced), and editing a note physically deletes mention rows (`delete from core.mention …`, `…070200:174`; the table has no `deleted_at`, `…070000:112`). D7, V97, V128. | Open on d78f58f (#96): `core.mention` has no `deleted_at`; Undo of a note or a call with a mention fails (`undo.cannot_remove`); `note_edit` deletes mention rows |
+| QA-40 | 2026-09-29 09:10 | #88 | Medium | Builder A | The dates rule (V400): `occurred_on` is nullable, there is no `logged_at`, only feedback refuses a future date and `note_edit` checks none (a meeting note dated today + 30 accepted, reproduced), and the timeline is ordered by `created_at` (`…070000:97`, `…070200:127/164/232-238`). | Fixed in #96: `happened_on` (not null) and `logged_at`, never after the logged day; the timeline sorts by `happened_on`. Rest: `note_edit` does not date its request (QA-76) |
+| QA-41 | 2026-09-29 09:10 | #88 | Medium | Builder A | Agreements are not always restricted: a member stored kind `agreement` as `normal` (reproduced; `…070200:439`); a picture is visible to all before its sensitivity is asked (`…070000:176`). D10. | Open on d78f58f (#96): a kind `agreement` sent as `normal` is stored normal (`…090200:640`); any picture is visible before the restricted check (`…090100:203-205`) |
+| QA-42 | 2026-09-29 09:10 | #88 | Medium | Builder A | The page-level visibility pattern again (Own ≥ View): `core.may_see` decides mentions, file visibility and Storage reads (`…070000:151`); the contract-expiring alert reaches a follower with no access (`…070200:773-776`). Route through V143's `authz.can_see_as`. | Partly fixed in #96 (mentions and files ask `can_see_as`); the alerts half is QA-59 |
+| QA-43 | 2026-09-29 09:10 | #88 | Medium | Builder A | The size cap and file types are checked only as declared: `file_finish` checks existence only (`…070200:478`), the bucket takes 50 MB of any type (`…070000:209`), past `files.max_mb` (20). From reading the code; the stand-in has no Storage metadata. | Open on d78f58f (#96): `file_finish` checks only that the object exists (`…090200:680`); the `files` bucket takes 50 MB of any type; `images` allows SVG |
+| QA-44 | 2026-09-29 09:10 | #88 | Medium | Builder A | Tests that pass with their rule deleted: 21 of 50 guards in the new functions can go with all 89 tests green — e.g. `contracts_remove` without Full (re-run independently), `core.notes` without `can_see_record`, `partner.contracts` without its visibility filter. | Open — re-run on d78f58f: 16 of 67 guards in #96's functions can go with the suite green (archived guard in `side_writable`; `contract_save` edit and `references_remove` side checks; logo without Full; Own without ownership; `file_begin` on non-organisations; `file_visible` of a removed file; the card's file count) |
+| QA-45 | 2026-09-29 09:10 | #88 | Medium | Builder A · Architect | P3-8b's planned scope only partly built: Log activity (types, outcomes, next step — V401), the 21-day stale flag, the travel-policy kind with its review date, Direct references (V99, V409), contacts with a role, bulk assign per side, the key-client flag; followers not told of notes or files (V61). | Partly fixed in #96 (activity types and outcomes, 21-day stale, travel policy, references, contact roles); followers are still not told of notes or files; next step as a task is P5-1 |
+| QA-46 | 2026-09-29 09:10 | #88 | Low | Builder A | Archived or merged partners still take notes and files (`…070200:120/415`); a member removes a restricted file they cannot see (`:572-577`); fixed values V97 makes settings (`:428`, `:433-434`, `:546`, `:277`); words in SQL (`:308`, V110). | Open on d78f58f (#96), except `activity_log` now refuses an archived organisation; the 2 MB picture cap, types and link lifetimes are still in code (V97) |
+| QA-47 | 2026-09-29 11:30 | #93 | High | Builder A | `api.restore` asks only Full on the record's page (`20260929062000_core_round6.sql:626`), which every member holds on Partners: a member without `finance.credit_control` restored a replaced 50,000 credit limit, leaving two live limits (50,000 and 0) for one day; a member without `partners.identify` restored a removed VAT identifier, past the block list. Test QA-47 (fails). | **Fixed on v2/main 3307dbf** (#103 merged); the test passes. |
+
+## Round 2b — 2026-09-29 (#92 at bbef086, re-checked after its merge in 6912f6b)
+
+Findings posted on #92 at 11:40 as review comments. The second review there ("QA-49, the file-level comment…") went out
+without its comment; QA-49 was already fixed by 185a19b.
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-48 | 2026-09-29 11:40 | #92 | High | Builder B | My profile answers "not found" from every link: it moved to `/profile`, but the profile menu, the drawer and the bottom bar still point at `/settings/profile` (`ProfileMenu.tsx:52`, `Drawer.tsx:136`, `BottomBar.tsx:112`), and `settings/[group]` calls `notFound()`. The specs open `/profile` directly. Rule: V97, V209. | Open on v2/main d78f58f · confirmed live by the sweep (16:15): the drawer foot and the profile chip lead to a 404 for all 7 people  **Fixed on v2/main d908d40 (#99):** the sweep's drawer, profile-menu and `/profile` checks pass. |
+| QA-49 | 2026-09-29 11:40 | #92 | High | Builder B | The migration's version collided with one on v2/main; REG-01 and `forward-only-migrations` failed after merging. | Fixed in 185a19b (re-stamped 20260929081731) before the merge |
+| QA-50 | 2026-09-29 11:40 | #92 | High | Builder B | Undo from the toast and the timeline calls `rpc('undo')` directly (`run.ts:38`, `ActivityTimeline.tsx:59`), skipping `/auth/admin/undo`'s re-sync: undoing a switch-off leaves the auth user banned — the person is locked out while the screen says "Sign-in on". Rule: V144. | Open on d78f58f; #99 keeps it (`command.ts:117`) — see QA-64 |
+| QA-51 | 2026-09-29 11:40 | #92 | Medium | Builder B | The screens called #93's doors with the wrong shapes: `list_usage` read as a number, `p_replace_with` for `p_replacement`, `r.undone` for `undone_by`, Revert as a `setting_set` with no date, no Recently deleted. Rule: V97, V140, V141. | Partly fixed before the merge; the Undone chip still reads `undone` on d78f58f; Recently deleted comes with #99 |
+| QA-52 | 2026-09-29 11:40 | #92 | Medium | Builder B (Builder A for a day filter) | Activity filters on UTC midnight of the logged time `q.at` and shows `r.at`, not `happened_on` (`activity/page.tsx:53`, `ActivityScreen.tsx:224`). Rule: V400, V142. | Open on d78f58f |
+| QA-53 | 2026-09-29 11:40 | #92 | Medium | Builder B | Destructive actions with no Confirm naming the item (device sign-out, `MyProfile.tsx:141`; "back to the value for all departments", which sends its own label as the reason); no reason on person edit, email add and `person_create`. Rule: D19, V97, V131. | Open on d78f58f |
+| QA-54 | 2026-09-29 11:40 | #92 | Medium | Builder B | Adding a person can make a duplicate: the email goes in a second request; when it is refused the dialog stays open and Save creates a second person (`OrgAccess.tsx:264`); route refusals show as "The server did not answer". | Open on d78f58f |
+| QA-55 | 2026-09-29 11:40 | #92 | Low | Builder B · Architect | Smaller items: the Appraisal tab shows for every viewer; the Settings breadcrumb reaches non-admins; no `error.tsx`; key figures fixed in code (V95); repeats of QA-24 and QA-28; sabotages that cannot fail (`matrix-skips-the-reason` does not exist; `settings-open-to-everyone` expects a generic timeout); 431 Arabic lines in `ar.json` (V410). | Open on d78f58f |
+
+## Round 3 — 2026-09-29 (v2/main at d78f58f: #92, #94, #96 merged; open #95 at 6243f77, #97 at 2564957, #98 at 537bcc3, #99 at 0f8e4bf)
+
+The oversight's review of #93 (P3-6d), checked item by item (Builder A has it as P3-6e):
+- **(a) confirmed for Undo** (QA-57). The restore half is rejected: `core.can_see_record` refuses a demoted admin.
+- **(b) confirmed for Undo** (QA-58) **and the alerts job** (QA-59). `authz.reports_to` comparing with `authz.me()` is
+  rejected as a bug: it is its documented meaning ("reports to the signed-in person", ACC-06) and nothing calls it. When
+  the appraisal's `visible` rule lands it needs a two-person form, since the rule is asked for someone else.
+- **(c) confirmed on v2/main.** #97 fixes it, with two findings (QA-67, QA-68). The words check has had B2G since #92.
+- **(d) confirmed:** QA-61 to QA-66. The name_ar backfill matters only for cloud rows; every row built from zero has
+  Arabic.
+- **(e) confirmed for restore** (QA-60).
+  - DEL-01 never isolates "whoever removed it restores it".
+  - SETS-02's floor-date line cannot fail alone, but REG-01 catches it: rejected as a gap.
+  - No test re-runs the sync after an admin's edit.
+
+New tests: QA-56 to QA-59 fail today and go green under a simulated fix, with the rest of the suite still green except
+UNDO-03 and UNDO-05 (see QA-57). QA-60 guards. `v2/supabase/tests/qa/run.sh` runs the suite, one test, a probe or a
+mutation round in one short command (the oversight's item 4).
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-56 | 2026-09-29 13:05 | #94 | High | Builder A | **An admin cannot make anyone a head or a manager, nor add a person as a head** (`access.above_your_level {"capability": "partners.assign"}`). #94's registry sync retired `partners.assign`, `partners.identify` and `partners.merge` (`20260929084645_core_registry_sync.sql:56`) but left the roles' grants of them. `access_set_person_role` asks `authz.can_of(me, …)` of every granted row (`20260929014500_core_access.sql:529-537`), and that is false for a retired capability, even for an admin. **Fix:** ask only active capabilities, and retire the stale grants in the sync. Rule: V97, V123. Test QA-56 (fails). | **Fixed on v2/main d6164e6** (#124); the test passes. |
+| QA-57 | 2026-09-29 13:10 | #93 | Medium | Builder A | **A demoted admin still undoes their own admin-only changes** (the oversight's item a). An admin made a member takes back their own Settings change and their change to a person's manager within 24 h. `audit.undo_allowed` returns true for `q.actor_id = me` before it asks any access. **Fix:** the actor path asks what the change needs today. UNDO-03 and UNDO-05 fake a head or a member changing a Settings record (a department, a team) and will need a record that person can see. Rule: V97, V128, V133. Test QA-57 (fails). | **Fixed on v2/main 3307dbf** (#103 merged); the test passes. |
+| QA-58 | 2026-09-29 13:10 | #93 | Medium | Builder A | **Undo ignores per-record visibility** (the oversight's item b). A member whose Clients access is taken away still undoes their earlier change to the client. **Fix:** the actor path asks `authz.can_see_as` for every changed record. Rule: V128, V143. Test QA-58 (fails). | **Fixed on v2/main 3307dbf** (#103 merged); the test passes. |
+| QA-59 | 2026-09-29 13:15 | #93, #96 | Medium | Builder A | **The daily alerts reach people who can no longer see the record** (the oversight's item b; QA-42's rest). `notify.generate_alerts` asks only `notify.may_notify` (`20260929040000_core_notify.sql:202`). A follower who lost access still gets `alert_contract_expiring`, with the contract's title and end date. The side owner of a restricted travel policy gets `alert_file_review`. **Fix:** keep a row only when `authz.can_see_as(person, entity_table, entity_id)`. Rule: V61, V96, V143. Test QA-59 (fails). | **Fixed on v2/main 3307dbf** (#103 merged); the test passes. |
+| QA-60 | 2026-09-29 13:30 | #93 | Low | Builder A | **Tests that pass with their rule deleted:** each of `core.restore`'s four paths can be deleted with the whole suite green (the remover, Full on the page, the owner with Own, the admin-only access tables). The access-table list also duplicates `audit.touches_access`. No test re-runs the settings sync after an admin's edit ("seeds never overwrite an admin's value", V123). Rule: V141. Test QA-60 (guards: red when any of the first three goes; the fourth is also held by `core.can_see_record`). | Partly fixed in #103: remover, rights-now and access-table paths have sabotages; the owners path is caught only by QA-60 |
+| QA-61 | 2026-09-29 13:20 | #94 (#93) | Medium | Builder A | **A status reason can no longer be retired once any change cites it** (`partner.status_never_rewritten`). `core.list_retire` keeps history only for the hard-coded name `partner.status_change`, which #94 renamed `partner.side_status_change`. It now tries to rewrite that history, and the guard refuses. **Fix:** mark history tables in the registry instead of naming them. Rule: V97 (retire and replace), V62. | Fixed in #103: history is a registry flag |
+| QA-62 | 2026-09-29 13:20 | #93 | Low | Builder A | **`list_retire` moves definitions, not only uses.** Retiring the activity type "call" into "demo" moved call's 7 outcomes onto demo (probe). A contract holding both terms makes the retire raise a raw 23505 (`contract_term_once`), not a `list.*` refusal. | Fixed in #103: definitions kept; a clash is `list.retire_blocked_by_duplicate` |
+| QA-63 | 2026-09-29 13:20 | #93 | Low | Builder A | **`list_usage` ignores Recently deleted.** In a probe, a contact role used only by a removed contact read 0 uses and was removed; the contact was then restored, still citing the removed role. **Fix:** count removed rows inside `audit.recently_deleted_days`. Rule: V141, V428 (OA12). | Fixed in #103: `list_uses` counts Recently deleted (retire's twin: QA-97) |
+| QA-64 | 2026-09-29 13:25 | #93, #99 | Medium | Builder A · Builder B | **Restoring or undoing a sign-in record leaves Supabase Auth out of step** (the oversight's item d; QA-50). `api.restore` returns no `auth_resync`. #99's Restore (`ActivityScreen.tsx:146`) and its toast Undo (`command.ts:117`) call only the database. A restored allowed email therefore stays banned in Auth: the person is locked out while the app says they may sign in. This fails closed: `authz.me()` asks for a live email. | Partly fixed in #103 (sign-in undo and restore need the admin route's ticket; the rest: QA-94); #99's Restore screen is Builder B's |
+| QA-65 | 2026-09-29 13:25 | #93, #99 | Low | Builder A · Builder B | **Recently deleted names are English only.** `core.recently_deleted` labels a row from `trade_name_en`, `name_en` or `full_name_en`, so an Arabic-only name shows blank. #99's Ctrl K and conflict dialog also show `full_name_en`. Rule: V76, V40. | Partly fixed in #103 (`label_ar` in Recently deleted); #99's Ctrl K and conflict dialog are Builder B's |
+| QA-66 | 2026-09-29 13:25 | #93 | Low | Builder A | **The name_ar trigger (departments, teams, roles) has no backfill.** A cloud row saved before #93 without Arabic would be refused at its next edit, even a rename. Every row built from zero has Arabic (checked). | Fixed in #103 (backfill); note: English names are copied into `name_ar` and nothing lists the rows that still need Arabic |
+| QA-67 | 2026-09-29 13:40 | #97 | Medium | Builder A · Architect | **`core.banned_word` refuses "Google" and "Zoom" as bare words in data.** An activity type "Zoom meeting" and a reference system "Google Drive folder" are both refused (probe on #97). V59 bans them only as sign-in wording, and V404 adds only B2G. **Fix:** the database's list is V59's plus B2G, with Google, Zoom and GMV kept for the chrome only, or the Architect rules. | Open |
+| QA-68 | 2026-09-29 13:40 | #97 | Low | Builder A | **The role, department and team editors still accept a banned word.** "MICE Lead" and "Direct Corporate" both saved (probe on #97); these names show on every person's card. **Fix:** add the same check to `role_save`, `department_save` and `team_save`. Rule: V404. | Open |
+| QA-69 | 2026-09-29 13:45 | #99 | High | Builder B | **Editing a person silently undoes a colleague's change.** The Person record's form is filled once when the page loads (`PersonRecord.tsx:95`), never when Edit opens (`:447`). The save compares with the *refreshed* row (`:120`) and writes with its version (`:170`), so a field a colleague changed since is sent back unchanged-looking, with the current version, and no dialog appears. **Fix:** fill the form from the row when Edit opens, and compare with that snapshot and its version. Rule: FLOW-08, V426 (OA15). | Open |
+| QA-70 | 2026-09-29 13:45 | #99 | Medium | Builder B | **"Mark all read" marks everything.** It sends no ids (`NotificationsPanel.tsx:133`), so it clears every tab, including items past the 100 loaded and any that arrived after the list loaded. **Fix:** pass the ids shown. Rule: V129. | Open |
+| QA-71 | 2026-09-29 13:45 | #99 | Medium | Builder B · Architect | **Most people cannot reach Recently deleted.** It is only a tab on Activity (`activity/page.tsx:24`), which members and viewers cannot open, so they cannot restore their own saved views or notes. Rule: V141, V401. | Open |
+| QA-72 | 2026-09-29 13:45 | #99 | Medium | Builder B | **Ctrl K hides people the server found.** It keeps cmdk's own filter (`CommandPalette.tsx:79`; the item's value is the names and the id, `:107`), so hits matched by a nickname or a folded Arabic spelling disappear. **Fix:** `shouldFilter={false}` for server hits. Rule: V77, V401. | Open |
+| QA-73 | 2026-09-29 13:45 | #99 | Medium | Builder A · Architect | **#99's two NEEDs, before builder A acts.** "Person visible to everyone" would show every colleague a person's record history (role changes, switch-off reasons) and their Recently deleted rows (V128, V129). Publishing `notify.notification` to Realtime needs a policy `person_id = authz.me()`, and a SQL test that a second person sees 0 rows. | Open (advice) |
+| QA-74 | 2026-09-29 13:45 | #99 | Low | Builder B | Smaller items: `en.json:403` hard-codes "30 days" (`audit.recently_deleted_days`); Remove on a saved view shows to non-owners; a failed "open first" and a failed Follow read are silent; Yesterday and the 08:00 snooze use the browser's zone; the snooze picker allows today; a throwing `theirs()` escapes `command()`. Tests: the Riyadh "Today" and snooze specs pass under UTC; bulk "one Undo" is never exercised (`request_id` null in the kit). | Open |
+| QA-75 | 2026-09-29 13:50 | #96 | Medium | Builder A | **The first photo's Undo fails** (`undo.cannot_remove`). `file_finish` inserts a `core.person_profile` row (`…090200:691`), and that table has no `deleted_at`. Rule: V61, V128. | Open on d78f58f |
+| QA-76 | 2026-09-29 13:50 | #96 | Low | Builder A | Smaller items: `note_edit` sets "demo set" without the demo's day (`…090200:304-308`; V406); editing a past-dated note still tells new mentions (V142); a travel-policy kind lands on the Supplier side through another purpose (V152); file names keep the words around a missing token (V55); `core.looks_secret` accepts "P@ssw0rd!" and refuses "agent.pin" (V409); about 45 new error keys have no words in `en.json`, and `ar.json` has no errors section (V110). | Open on d78f58f |
+| QA-77 | 2026-09-29 14:00 | #98 | Medium | Architect | **A due date could count from the import day.** The collections fallback reads "created date + `finance.collection_due_days`" and days to pay "paid − created date" (TECH-SPEC `finance.receivable`), which a builder can read as the row's `created_at`. **Fix:** name the invoice's own issue date. Rule: the dates rule (owner, 29 Sep: never `created_at`), V415. | Open |
+| QA-78 | 2026-09-29 14:00 | #98 | Low | Architect | Three doc points. V416 lets two receipts over-allocate one invoice (outstanding below zero): cap each invoice's allocations at its total. V77 now reads both ways ("all stay matching identifiers" / "names no longer match money"). V421's note keeps email and phone as money-matching identifiers beyond the ruling's words: confirm with the oversight (a shared booking inbox). | Open |
+| QA-79 | 2026-09-29 14:10 | #95 | High | Builder C | **Real report figures in a public branch (CLAUDE.md rule 7).** The report fixture and its golden files carry figures and rephrased lines from the department's real November 2025 monthly report (read in Drive), renamed and moved a year: `sample-report.ts:84-107` (tiles) and `:175-179` (a commission line), `tests/e2e/arabic/translator-check.html:101-124`, the template test (`:20`, `:66`), the golden outlines (`:170-171`) and every golden PNG, PDF and PPTX. The PR body and `rule7-binaries.txt:7` call them made up. **Fix:** invent every figure and line, then regenerate the goldens. Whether to clean the branch's history is the owner's call. The figures are not repeated in this log. | Fixed at 0f9cdbb (no report figure left at the head); the branch's earlier commits still hold them, so squash-merge #95 (asked 15:30); cleaning the branch is the owner's call |
+| QA-80 | 2026-09-29 14:10 | #95 | Medium | Builder C | **The golden test lets a broken Arabic join through.** Its budget is 0.02 % of a page, about 103 px, counting a pixel only past 64/255 (`pdf-tools.ts:94`). One broken join in a body word moved 43 px, so the test stays green; the same break in a heading word moved 130 px. No test checks joining itself, and the only golden sabotage changes a box size. **Fix:** a budget of about 10 px, and a one-word joining sabotage. Rule: V301. | Open |
+| QA-81 | 2026-09-29 14:10 | #95 | Low | Builder C · Architect | Smaller items. Lanes: shared files outside C's lane (the lockfile, `rule7-binaries.txt`, `public/fonts/doc/`, `tests/sabotage/export.mjs`, DECISIONS), with only `package.json` offered for review; V300 widens C's lane by itself, which V410 makes the Architect's call. Also: DECISIONS conflicts with main's V210; six sabotages expect only their test's title (`export.mjs:60, 157, 165, 191, 203, 239`); percent tiles print a relative change of a percentage (`format.ts:85-91`); the Translate button draws in a "downloading" state V302 does not list; a filled template keeps an orphaned notes page (`template.ts:89-90`). | Open |
+
+## Round 4 — 2026-09-29 (the oversight's independent audit of merged #92, #94 and #96 at d78f58f, relayed 14:44)
+
+Findings from the oversight's audit, logged as given; Builder A and Builder B have the details and are fixing (P3-6e
+is #103). QA-48 (the profile links) is the oversight's #92 profile-link finding. QA-39 and QA-41 are its note-mention
+and agreement-sensitivity lows.
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-82 | 2026-09-29 14:44 | #94 | High | Builder A | **Side writes are gated by a capability only.** `side_status_set`, `side_owner_set`, `identifier_add` and `identifier_remove` ask `authz.can_of`, which ignores page levels. So a person with Clients = none can change a Client side's status, owner and identifiers, and then read that side's contracts and files. Rule: V98, V146–V149, V133. | **Fixed on v2/main 3307dbf** (#111 merged). The sweep's five side writes by a Clients = none person are refused in words ("You need more access on this page") and change nothing. |
+| QA-83 | 2026-09-29 14:44 | #94 | High | Builder A | **The roles-to-sides conversion loses data, and no test covers it.** It drops `category_id`, the tier and segment of a partner without a Client side, the subkind, the fields of roles an admin had added, and the original `set_by`/`set_at`. Rule: V98, V103 (forward-only), V428 (OA3). | Open — fixing (Builder A) |
+| QA-84 | 2026-09-29 14:44 | #96 | Medium | Builder A | **The contract-expiring alert ignores side access.** A follower without access to the contract's side is still told. Same root as QA-59. Rule: V143, V98. | Fixed for followers in #103; a Client-side owner with Clients = none is still told (Low) |
+| QA-85 | 2026-09-29 14:44 | #94, #96 | Medium | Builder A | **`partner_get` and the hover card return the owners of sides the caller cannot see.** Rule: V98, V143. | **Fixed on v2/main 3307dbf** (#111): the card's and the hover card's owner is no longer the Client side's manager for a person who can't see that side. |
+| QA-86 | 2026-09-29 14:44 | #92 | Medium | Builder B | **`maybe()` draws a failed read as empty or as "no access".** Rule: V426 (OA18: a failed read is never drawn as empty). | Open — fixing (Builder B) |
+| QA-87 | 2026-09-29 14:44 | #92 | Medium | Builder B | **The person form sends every field, not only those changed.** A colleague's change to another field is overwritten. #99's changed-fields-only version brings its own stale-form bug (QA-69). Rule: FLOW-08, V426 (OA15). | Open — fixing (Builder B) |
+| QA-88 | 2026-09-29 14:44 | #92, #96 | Low | Builder A · Builder B | Smaller items: `logged_late` has no test that fails without it (V400); My profile keeps its state after an Undo; the check that every English catalog key has its Arabic was removed (V410 moves Arabic to Builder C, but the check should come back when the Arabic is complete, P6-7). The agreement-sensitivity override (QA-41) and the hard-deleted mentions (QA-39) are logged already. | Open — fixing |
+| QA-89 | 2026-09-29 15:20 | #107 | Medium | Builder A · Builder B | **A generated password leaves no trace.** `app/auth/admin/password/route.ts` changes the Auth password and sets the must-change flag, then drops the typed reason. So an admin can generate a password for anyone, another admin included, and sign in as them unrecorded. **Fix:** write a logged request first, then update Auth. Rule: V431, V441 ("every generate is logged"). | Open on v2/main c128b5b (#107 merged) |
+| QA-90 | 2026-09-29 15:20 | #107 | Medium | Builder A | **Supabase Auth still accepts 6-character passwords** (`supabase/config.toml:184`; `secure_password_change = false` at `:232`). The 10-character rule sits only in the app's server actions, so `supabase.auth.updateUser` from the browser sets a shorter password. **Fix:** set `minimum_password_length = 10` in config.toml and in the cloud project's Auth settings, and add a test. Rule: V431. | Open on v2/main c128b5b (#107 merged) |
+| QA-91 | 2026-09-29 15:20 | #107 | Medium | Builder A · Builder B | **No lockout, no log of wrong passwords, and the rate limit is shared by everyone.** Only Supabase's per-IP limit applies, and since sign-in now runs on the app's server, that IP is the server's, not the person's. One burst of wrong tries can hold the whole team out. **Fix:** log each wrong password, lock after N tries in M minutes (both settings, with an admin unlock), and check the hosted limit before go-live. Rule: V431; CLAUDE.md (never lock the team out). | Open on v2/main c128b5b (#107 merged) · the sweep: 10 wrong passwords, then the right one still signs in (no lockout) |
+| QA-92 | 2026-09-29 15:20 | #107 | Medium | Builder B | **The must-change gate reads an unverified value** (`auth.getSession()`, the cookie's stored user), so the browser can drop it, and it guards pages only. **My profile → Change password** never asks for the current password. **Fix:** read the flag from verified claims or `api.me()`, and ask for the current password. Rule: V431, V212. | Fixed in #107 before its merge (2b2a616: the flag is read from the verified user; Change password asks for the current one) — the sweep on v2/main c128b5b confirms the cookie edit no longer skips the gate |
+| QA-93 | 2026-09-29 15:20 | #107 | Low | Builder A · owner | **The code door is switched by the `SIGN_IN_METHOD` environment variable**, not the setting `auth.code_door_enabled` (V431). **The sign-in page tells a stranger whether an address is on the list or switched off**, before any password check (by design, V212; the owner's call). | Open on v2/main c128b5b (#107 merged) |
+| QA-94 | 2026-09-29 15:50 | #103 | Medium | Builder A | **A leftover ticket lets a plain Undo skip the Auth re-sync.** `undoAndSync` and `restoreAndSync` (`allow-list.ts:139`, `:152`) issue the one-time ticket *before* the caller's own call runs. When that call fails, the ticket stays unused for a minute, and `auth_ticket_take` matches by target only. So the plain `rpc('undo')` that `undoRequest` tries first (`undo.ts:26`) can use it, and its `auth_resync` answer is thrown away: the person stays banned in Auth (probed). **Fix:** pass the ticket id into `api.undo`/`api.restore`, tied to the caller. Rule: V162. | Open |
+| QA-95 | 2026-09-29 15:50 | #103 | Low | Builder A | **The ticket rules are untested.** With `auth_ticket_take` ignoring its target or its one-minute limit, or `touches_sign_in` ignoring a switch on or off, the suite stays green (mutation). **Fix:** UNDO-06 asserts each refusal. Rule: V162. | Open |
+| QA-96 | 2026-09-29 15:50 | #103 | Low | Builder A | **Guards no test catches:** `undo_allowed` refusing a non-owner (r7:80), `list_retire`'s admin check (r7:349) and `recently_deleted`'s `can_see_as` filter (r7:442) can each be deleted with the suite and the QA tests green (mutation). Rule: V141. | Open |
+| QA-97 | 2026-09-29 15:50 | #103 | Low | Builder A | **Retire skips records in Recently deleted** (r7:383-384): a removed contact on a retired role comes back live on the archived role after a restore (probed). Rule: V97. | Open |
+| QA-98 | 2026-09-29 15:50 | #103 | Low | Builder A | **New refusals have no wording:** `undo.via_admin_route`, `restore.via_admin_route` and `list.retire_blocked_by_duplicate`/`_by_rule` are missing from `en.json`, so the screen shows a raw constraint name. Rule: V40, V76. | Open |
+| QA-99 | 2026-09-29 15:50 | #103 | Low | Builder A | **Anyone signed in can ask the manager line between any two people:** `authz.reports_to(uuid, uuid)` (r7:282-289) is security definer and granted to `authenticated`. **Fix:** keep it internal. | Open |
+
+## Round 5 — 2026-09-29 16:15 (the hard test: a localhost sweep on #107 at e09140d, fixture users of every role)
+
+`v2/tests/qa/sweep/run.sh` brings up its own local Supabase stack (ports 9620–9629), builds and serves the app on 9610,
+seeds made-up people and data, and runs six specs. The people: admin, head, manager, member, a second member, viewer,
+Clients = none (twice: with and without the Clients capabilities), no levels, switched off, must change, a lockout
+target, and one with no email. The specs cover sign-in, every route for every person (plus the drawer, Ctrl K, the
+phone bar, the profile menu and Arabic), writes with the toast's Undo read back, side access, note privacy, and
+Settings refusals (18 rpcs and 5 admin routes, as 6 non-admins). **609 PASS · 51 FAIL · 39 NOT BUILT · 29 INFO.** The
+failures are QA-48, QA-82, QA-85, QA-92, QA-93 (by design) and QA-02 (a new team's Undo), plus the rows below.
+**Re-run on v2/main at c128b5b (#107 merged), from an empty database: 610 PASS · 50 FAIL · 39 NOT BUILT · 29 INFO** —
+the same, less QA-92 (fixed before the merge). Not built: the lockout (QA-91), the generate log (QA-89), Recently
+deleted as a screen, Tasks, the organisation page, hover card, record search and bell screens, private notes (V433).
+
+| ID | Date (Riyadh) | PR | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-100 | 2026-09-29 16:15 | #92 | Medium | Builder B | **A raw error page for heads and managers.** `/activity?tab=signIns&person=<someone else>` answers HTTP 500 "This page couldn't load": `api.sign_in_log` refuses (`access.needs_level settings.org`) and the page doesn't catch it. Rule: V426 (OA18); QA-55 (no `error.tsx`). | Open on d78f58f |
+| QA-101 | 2026-09-29 16:15 | #92, #96 | Medium | Builder A | **Undo of anyone's first My profile save is refused** ("This record cannot be removed"), and the change stays. Saving creates a `core.person_profile` row, and that table has no `deleted_at`. Same root as QA-75. Rule: V61, V128. | Open |
+| QA-102 | 2026-09-29 16:15 | #96 | Low | Builder B | **My profile logs missing messages** (`profile.notify.alert_activity_stale`, `alert_file_review`) for every person. Rule: V110. | Open |
+| QA-103 | 2026-09-29 16:15 | #107 | Low | Builder B | **A refused generate is not said in words.** Generating a password for a person with no allowed email shows "The server did not answer": the route answers `password.no_email`, but the client throws a plain Error. Same pattern as QA-54. | Open on v2/main c128b5b (#107 merged) |
+| QA-104 | 2026-09-29 16:15 | #107 | Low | Builder A · Builder B | **The sign-in log records password attempts as `code_sent`**, with no failure row for a wrong password (QA-91). The code door's server actions don't check `SIGN_IN_METHOD`; the door is hidden in the UI only. | Open |
+| QA-105 | 2026-09-29 16:15 | #92 | Low | Builder B · Builder C | **Arabic can be reached while it is off.** With Arabic switched off, an `ar` cookie still renders Arabic, with 179 missing-message errors on `/activity`. Rule: V122. | Open |
+| QA-106 | 2026-09-29 16:15 | #94, #96 | Medium | Builder A | **Following an organisation tells you nothing.** No notice comes for its status changes (on either side), notes or files: the fan-out looks for followers of the changed row (`side_status_change`, `core.note`, `core.file`), never of the organisation it belongs to. Extends QA-45. Rule: V61. | Open |
+
+## Round 6 — 2026-09-29 16:00 (the oversight's scenario catalogue: gaps named at 15:59)
+
+The oversight's 440-row scenario catalogue (role × page; Covered / Partly / Gap / Unbuilt / Open question) names these
+gaps. Each row keeps its catalogue ID; the words below are the catalogue's (link received 17:48). Every Covered row there
+names its test ID and every Partly row gets a new QA test (round 7).
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-107 | 2026-09-29 16:00 | ACC-039 | High | Builder A | **The new kind `admin_account` would lose sign-in, levels and notices.** `sign_in_state`, `authz.me`, `level_of`, `can_of`, `may_notify`, `api.org` and `people` all require `kind = 'staff'`. **Fix:** widen them to the new kinds (V444, V445, P3-8c). | Open — from the catalogue (15:59); test to follow |
+| QA-108 | 2026-09-29 16:00 | ACC-100 | Medium | Builder B · Builder A | **Undo from the screen leaves Supabase Auth's ban in place** (the toast and Activity call `api.undo` directly), so an undone switch-off or email removal still blocks sign-in. **Fix:** route through `/auth/admin/undo`, and assert a sign-in after a UI undo. Rule: V144. Same as QA-50, QA-64 and QA-94. | Open — from the catalogue (15:59); test to follow |
+| QA-109 | 2026-09-29 16:00 | ACC-011 | Medium | Builder A · Builder B | **The code door's server actions ignore the switch.** With the door off, a direct post to `sendCode` still mails a code. **Fix:** refuse unless `auth.code_door_enabled` is on. Rule: V431. Same as QA-104. | Open — from the catalogue (15:59); test to follow |
+| QA-110 | 2026-09-29 16:00 | ACC-027, ACC-028 | High | Builder A · Builder B | **Generating a password is not logged, and resetting one does not sign the person out.** ACC-027: generating is never logged (who, whom, reason; `password_generated` in the sign-in log). ACC-028: a reset never ends the person's other devices. **Fix:** a logged request, then `person_sign_out` after `updateUserById`. Rule: V431, V441, V74, V451. Same as QA-89. | Open — from the catalogue (15:59); test to follow |
+| QA-111 | 2026-09-29 16:00 | WRK-092 (and OLD-015) | Medium | Builder A | **A switched-off or departed person can still be named owner, helper or mention.** The server accepts any active staff person, and switching someone off keeps `active` on; `left_on` is never checked. **Fix:** refuse server-side, with a test. Rule: V132, V149. | Open — from the catalogue (15:59); test to follow |
+| QA-112 | 2026-09-29 16:00 | PRF-002 | Medium | Builder B | **Pages opened by address skip the level check.** For a person with level none, `/kpis`, `/finance`, `/reports`, `/appraisal` and `/overview` draw an empty page instead of the no-access state: `Page()` checks sign-in only. The gallery shows the same. **Fix:** `Page()` takes the page key and refuses below View. Rule: §5, V210, OA18. | Open — from the catalogue (15:59); test to follow |
+| QA-113 | 2026-09-29 16:00 | PRF-143 | Medium | Builder A | **Changing the late days rewrites the past.** `work.late_days` is not effective-dated and `core.logged_late` reads it as of today, so past entries flip. **Fix:** make it effective-dated and read it as of each entry's logged day. Rule: V97, V400. | Open — from the catalogue (15:59); test to follow |
+| QA-114 | 2026-09-29 18:05 | #118 (#110) | High | Builder B | **The shell guard still lets 11 commands through with no click.** Your QA's strings are all asked or denied now, but `v2/tests/qa/guard/matcher.mjs` still finds these auto-approved: a force push or `db reset --linked` inside `$( )`, backticks or `node -e`; `git -C . push --mirror`, `--prune` and `--all`; `git push origin v2/main` (past review); and `find -delete` / `find -exec rm`. Cause: `segmentsOf()` never reads inside substitutions or inline code, and the allow list covers every `v2/*` branch. **Fix:** treat substitution and inline code as unreadable (ask); ask on `--mirror`/`--prune`/`--all` and on pushes to `v2/main` or another lane's branch; ask on find deletes. | **Fixed** in 8afae6a, merged in #118 (v2/main c09d36a): the matcher now finds none of its 28 commands under-protected. It is tighter than it has to be in one place: pushing the QA lane's own branch now asks, because only `v2/b-*` pushes are allowed. |
+
+## Round 7 — 2026-09-29 19:30 (the scenario catalogue's Partly rows and the old app's Missed rows: new QA tests)
+
+New SQL tests in `v2/supabase/tests/qa/`, run on v2/main 92510c6. Each "guards" test passes today and goes red under
+the mutant that deletes its rule, and no builder test catches that mutant. Each "fails until built" test fails for its
+stated reason and goes green under a simulated fix, with the rest of the suite green.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding / test | Status |
+|---|---|---|---|---|---|---|
+| QA-115 | 2026-09-29 19:30 | ACC-106 | — | Builder A | **Test: a switched-off side owner is told nothing, and is told again when switched back on.** Mutant: `notify.may_notify` without its `can_sign_in` check. | Guards (passes on main, #103 and #111) |
+| QA-116 | 2026-09-29 19:30 | ACC-121 | — | Builder A | **Test: a head restores no allowed email and no access override, not even an email they removed themselves while an admin.** Mutant: `core.restore` without its list of admin-only tables, which QA-60 never caught. Setup moves the head role by a direct update, because QA-56 still blocks the door. | Guards |
+| QA-117 | 2026-09-29 19:30 | WRK-134 | — | Builder A | **Test: an organisation is never merged into itself** (`partner.merge_itself`, nothing changes). Mutant: the check deleted; MRG-01 and MRG-02 stay green. | Guards |
+| QA-118 | 2026-09-29 19:30 | WRK-145 | Low | Builder A | **Mentioning a switched-off person is refused in words that say "switched off",** not `note.mention_cannot_see`. The same applies when they still own the record (V452); the catalogue's Expected text says the owner is accepted, so the oversight should confirm which wins. | **Fixed on v2/main 3307dbf** (#121 merged); the test passes. |
+| QA-119 | 2026-09-29 19:30 | WRK-047, PRF-142 | — | Builder A | **Test: "logged late"** is 15 days late, never 14; an entry dated before go-live is never late; days are counted on the Riyadh day. Mutants: no go-live check, 14 counted as late, days counted in UTC; ACT-01 and NOTE-01 stay green under all three. | Guards |
+| QA-120 | 2026-09-29 19:30 | PRF-143 | Medium | Builder A | **Test for QA-113: changing the late days never flips past entries.** An update logged on time under the old rule stays on time. | **Fixed on v2/main 3307dbf** (#121 merged); the test passes. |
+| QA-121 | 2026-09-29 19:30 | OLD-015, WRK-092 | Medium | Builder A | **Test for QA-111: no door takes a switched-off or departed person.** Checked as side owner (create, side set, owner set, bulk assign), mention (note, activity, edit) and approver (credit limit, code terms); each door takes an active colleague. | Open — still fails on v2/main 3307dbf: the owner, helper and mention doors refuse a switched-off person, but the approver doors (`credit_limit_set`, `code_terms_add`) accept one. |
+
+## Round 8 — 2026-09-29 19:55 (the scenario catalogue's rows driven in the browser: `v2/tests/qa/sweep/07-catalogue.spec.ts`)
+
+One Playwright test per catalogue ID, run on a local stack with made-up people (21 `Test Cat …` people, `@example.test`),
+on the app at v2/main 35ec99c. #118's merge (c09d36a) changed no app code. Result: 51 PASS, 20 FAIL, 2 NOT BUILT, 10 INFO.
+Screenshots of each FAIL stay local (scratchpad), never committed. Re-run: `QA_… v2/tests/qa/sweep/run.sh -- --grep catalogue`.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-122 | 2026-09-29 19:55 | ACC-094 | High | Builder B · Builder A | **A person with two emails can still sign in with the temporary password after choosing their own.** Generate puts the temporary password and the must-change flag on every auth user of the person (`app/auth/admin/password/route.ts:29-35`). But `setOwnPassword` (`core/auth/password-actions.ts:88-92`) and `changePassword` (`:118`) change only the signed-in auth user. So after the person chooses a password through their second email, the first email refuses it, yet still accepts the temporary password the admin saw, and still carries the must-change flag. The admin can go on signing in as that person. **Fix:** after `updateUser`, give every auth user of the signed-in person (`person_auth_state` for oneself) the same password and clear their flag, server-side. Test: ACC-094's door must take the new password on both emails and refuse the temporary one on both. Rule: V441, V212, V431. | Open — confirmed in the browser on v2/main 3307dbf: the first email refuses the password chosen through the second and still takes the temporary one. |
+| QA-123 | 2026-09-29 19:55 | ACC-094 | Medium | Builder B | **"+ Add email" disappears once a person has one email,** so a second email can't be added on the record. It works only through the route (`/auth/admin/emails`). **Fix:** keep the control while the person has fewer than the allowed number of emails. Rule: V431 (Settings → People), V451. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Add email stays on the record once a person has an email (the sweep's ACC-094 control check passes). |
+| QA-124 | 2026-09-29 19:55 | ACC-095 | Medium | Builder B | **The person record has no Remove email control.** The route itself behaves: it asks for a reason, then refuses and bans the removed email at once. **Fix:** a Remove control on each email, asking for the reason. Rule: V431, V144. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): each email has its own Remove, which asks for a reason; the removed email is refused at the door and at the next page. Two follow-ups are open: QA-208 (one's own last email) and QA-209 (no ban). |
+| QA-125 | 2026-09-29 19:55 | ACC-029 | Medium | Builder B | **Generate never says the current password will stop working, and there is no separate Reset.** The dialog names the person and asks to confirm, but a person who already has a password loses it with no warning. **Fix:** on a person with a password, say so plainly ("their current password stops working"), or offer a separate Reset. Rule: V451 ("never replaces the password of an existing auth user without an explicit admin action — a Reset that names the person and asks to confirm"), V441. | Open — test fails |
+| QA-126 | 2026-09-29 19:55 | ACC-128 | Low | Builder B · Builder A | **The theme chosen in the profile menu is not saved to the profile.** It lives only in that browser's cookie, so a second browser opens in the default theme. **Fix:** save it to the profile and treat the cookie as its cache. Rule: V201 ("until My profile makes the profile the source and these cookies its cache"), V9. | **Fixed on v2/main a6fa702** (#120 merged; the catalogue test passes on its head 95c8b48). |
+| QA-127 | 2026-09-29 19:55 | ACC-049, PRF-002, WRK-036 | Medium | Builder B | **Browser test for QA-112, which also covers `/tasks`.** At level none, `/finance`, `/kpis`, `/reports`, `/overview`, `/appraisal` and `/tasks` draw "Nothing here yet" instead of the no-access state. The drawer hides them correctly. Same cause and fix as QA-112. | **Fixed on v2/main a6fa702** (#120 merged) for Finance, KPIs, Reports, Overview, Appraisal and Tasks. The Clients and Suppliers pages still lack it: QA-158. |
+| QA-128 | 2026-09-29 19:55 | OLD-001 | Medium | Builder B | **Access is not re-read on tab focus or on a timer.** An admin demoted to member, and a member switched off: in each case, 95 s after the tab is refocused the screen is unchanged, and Settings and every write control are still drawn. **Fix:** re-read `api.me` on focus and every 90 s, and redraw or sign out. Rule: V462. | **Fixed on v2/main 3307dbf**: on refocus a switched-off member is signed out with "Your account is switched off", and a demoted admin loses Settings. |
+| QA-129 | 2026-09-29 19:55 | OLD-003 | Low | Builder B | **A slow answer shows nothing.** With the server's answer to a Settings click held for 21 s, the old page stays up and nothing is said. No write control appeared early, so the fail-closed half holds. **Fix:** a loading state within about a second. The browser never calls `api.me` directly, so holding levels back per person wasn't testable here. Rule: V470. | Open — test fails |
+| QA-130 | 2026-09-29 19:55 | OLD-009 | Medium | Builder B | **A refused save leaves the refused value in the field.** A real version conflict is explained in words, but the Nickname field still shows the refused value, as if it had been saved. **Fix:** reload the record after a refusal. Rule: V470 ("a refused save reloads"). | Open — test fails |
+| QA-131 | 2026-09-29 19:55 | OLD-010 | Low | Builder B | **Pressing Save on an untouched team, role or list entry still sends a write** (`team_save`, `role_save`, `list_save`), adding needless rows to the change log. The person edit correctly sends nothing. **Fix:** skip the call when nothing changed, as the person form does. Rule: V470 ("an untouched Save sends nothing"). | Open — **one of three fixed by #99** (v2/main d908d40): an untouched list entry now sends nothing. Teams and roles still send `team_save` and `role_save`. |
+| QA-132 | 2026-09-29 19:55 | ACC-009 | Info | — | **Sign-in rate limiting can't be tested locally.** The local auth server applies no per-address limit: 75 wrong passwords, never a 429, and changing the config copy doesn't switch one on. No app-level lockout was found either. The hosted project's own limit must be checked before go-live. | Info — needs the hosted setting |
+| QA-133 | 2026-09-29 19:55 | ACC-010, ACC-026, ACC-031, ACC-048, ACC-055, ACC-066, ACC-117, OLD-011, OLD-012 | — | — | **Browser tests that pass today.** OLD-011 and OLD-012 make no writes on a read-only walk: 19 pages as a member, 29 as an admin. These are browser checks and haven't been mutation-tested; the SQL guards in round 7 have. | Pass |
+| QA-134 | 2026-09-29 20:00 | #118 | Medium | Builder B | **The database guard (`.claude/hooks/sql-guard.mjs`, merged in #118) lets 7 destructive statements through with no click.** `v2/tests/qa/guard/sql-matcher.mjs` runs the hook with each call as JSON on stdin. **On the v2 project:** `delete … where true`, `update … where 1=1`, a whole-table delete inside `with … select`, `update auth.users set encrypted_password = '' where true` (nobody could sign in), and `set session_replication_role = replica` (every trigger off, the audit triggers included). **On any other project:** `select public.golive_reset()` (a write hidden in a function call), and a migration's `alter table … drop column` (deletes live data). The cause: "without WHERE" is read literally, `auth.` and `session_replication_role` are unknown on v2, and the "other project" rules only look for write words. **Fix:** treat a WHERE that is constant-true (`true`, `1=1`, `x = x`) as no WHERE; ask on `auth.` writes and on `session_replication_role` on every project; on other projects ask on any function call outside the known read-only list, and on `drop column`. The old app's project already asks on every call. | Open — `sql-matcher.mjs` fails (7) |
+
+## Round 9 — 2026-09-29 20:03 (the catalogue's Covered rows: a real test for each, and does it fail without its rule?)
+
+All 128 rows the catalogue marks Covered were checked on v2/main 35ec99c, which has the same `v2/` as c09d36a. The
+results, with evidence, are in `v2/tests/qa/catalogue/covered.csv`, for the Architect to fold into `scenarios.csv`;
+the 80 mutants are in `mutants/`. Method: all 118 SQL sabotages re-run; 80 mutants, each deleting only its row's rule;
+six role-matrix mutants, each run as drift and as a source change plus sync; the check and unit-test sabotages re-run.
+**108 stay Covered and 20 drop to Partly.** Each Covered row now names real test IDs. The downgrades:
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-135 | 2026-09-29 20:03 | ACC-058 | Medium | Builder A | **Department scoping is tested, but nothing uses it.** ACC-06 proves `authz.in_my_departments` (mutant m10), yet no read or write path calls it, so nothing is refused by department anywhere yet. **Fix:** call it on the paths the rule names, with a test that refuses by department. | Open — Partly |
+| QA-136 | 2026-09-29 20:03 | ACC-045, ACC-046, ACC-132, PRF-001 | Medium | Builder A | **Each role's starting levels are pinned by no test.** REG-01 only compares the database with `registry.json`, so a change made at the source (`module.ts` plus a sync) passes the whole suite: Head at Full on Appraisal (mx1), a Manager without `clients.identify` (mx2), a Viewer at none on My profile (mx4), a Viewer at View on Appraisal (mx5). The member's levels are pinned indirectly (mx3 and mx6 went red). **Fix:** one test holding the role × page table from the spec. | Open — Partly; test QA-143 guards it now |
+| QA-137 | 2026-09-29 20:03 | WRK-148 | Low | Builder A | **Nothing tests that notifications skip system and job requests.** Removing the skip (m26) survives NTF-01: its "system wrote" check covers only writes with no request, while the registry sync and the name rebuild are explicit system requests. | Open — Partly; test QA-145 guards it now |
+| QA-138 | 2026-09-29 20:03 | ACC-083, ACC-082 | Low | Builder A | **List values: archiving with no reason (m17) or no replacement (m18) passes SETS-01, and dropping the unique key per list (m14) survives.** Re-pointing and Undo are proved (m16). | Open — Partly; test QA-144 guards it now |
+| QA-139 | 2026-09-29 20:03 | WRK-090 | Low | Builder A | **A handover that ends an earlier owner's time on the same day is never run.** A mutant leaving a one-day gap survives PROS-01 and SIDE-01 (m41). | Open — Partly; test QA-146 guards it now |
+| QA-140 | 2026-09-29 20:03 | WRK-078 | Low | Builder A | **"Numbered from the setting" is unproved.** No test changes `partner.id_format`, so a number hard-coded as `DK-P-nnnn` passes PRT-01 and CORE-02 (m65). | Open — Partly; test QA-147 guards it now |
+| QA-141 | 2026-09-29 20:03 | ACC-002, ACC-013, ACC-025, ACC-051, ACC-075, ACC-080, ACC-109, ACC-122, ACC-140 | Low | Builder B | **These browser tests either never assert their rule or have no sabotage to prove they would fail.** The code door is never driven in CI (`signin.spec` runs only with `SIGN_IN_METHOD=code`). There is no Revert past the Undo window, no assertion of the six Settings groups, and no test that notifications never e-mail. The palette and the "More" sheet are never checked for what they hide by access. `org.spec.ts` names a sabotage, `matrix-skips-the-reason`, that doesn't exist in `tests/sabotage`. | Open — Partly |
+| QA-142 | 2026-09-29 20:03 | WRK-025 | — | Builder B | **The previous visit per page is proved; the "counters since then" aren't built yet** (P5-7). | Partly until P5-7 |
+
+Rows kept Covered whose proof came from a mutant, not the named sabotage: ACC-035, ACC-084, ACC-112, ACC-113, WRK-100,
+WRK-135. For ACC-050 (UNDO-04), ACC-107 (VIS-01) and WRK-129 (ACC-02), the proof sits in a test the row didn't name;
+the CSV names it now.
+
+New SQL tests for the rows that dropped to Partly (in `v2/supabase/tests/qa/`, run on v2/main c09d36a). Each passes on
+main and goes red under the mutant that survived before; each failure names the rule that was removed.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding / test | Status |
+|---|---|---|---|---|---|---|
+| QA-143 | 2026-09-29 20:12 | ACC-045, ACC-046, ACC-132, PRF-001 | — | Builder A | **Test: each role starts at the spec's levels and capabilities.** The table is copied from TECH-SPEC §8 "Access defaults" with V147, V152 and V123. It goes red under mx1, mx2, mx4 and mx5, both as drift and as a synced source change (REG-01 stays green in the synced runs). A page or capability the registry adds without §8 also turns it red, so a deliberate change to §8 updates this table in the same PR. | Guards |
+| QA-144 | 2026-09-29 20:12 | ACC-083, ACC-082 | — | Builder A | **Test: retiring a list value in use needs a reason and a replacement, and a key is used once per list.** Red under m17, m18 and m14. | Guards |
+| QA-145 | 2026-09-29 20:12 | WRK-148 | — | Builder A | **Test: an explicit system or job request tells nobody.** Red under m26: the owner and the follower are both told. | Guards |
+| QA-146 | 2026-09-29 20:12 | WRK-090 | — | Builder A | **Test: a same-day handover ends the earlier owner's time that day, and every day has exactly one owner.** Red under m41 (it ended the day before). | Guards |
+| QA-147 | 2026-09-29 20:12 | WRK-078 | — | Builder A | **Test: after `partner.id_format` changes, new numbers follow it and earlier ones keep theirs.** Red under m65 (`DK-P-0002` instead of `QA-ORG-000002`). | Guards |
+
+## Round 10 — 2026-09-29 21:24 (v2/main d908d40: #99 merged; #121 at 8381163; #117 at 7d37c9e)
+
+The QA suite on v2/main d908d40 matches before: 117 passed; the 11 "fail until built" tests fail, nothing new. On #121
+(it carries Builder A's earlier branches): 135 passed, 5 failed. QA-47, QA-56, QA-57, QA-58, QA-59, QA-120 and QA-118
+turn green there. QA-118 now accepts `person.unavailable`, #121's key for "switched off or left", as well as a
+`switched_off` key; it still fails on main, where the refusal is `note.mention_cannot_see`. **QA-121 stays red on #121:**
+the owner, helper and mention doors refuse a switched-off person, but the approver doors (`credit_limit_set`,
+`code_terms_add`) still accept one (V465). **QA-122 is not fixed on #117 at 7d37c9e:** `own_password_set` still
+updates one `person_auth` row, and the password is still set on the signed-in auth user only.
+
+| ID | Date (Riyadh) | Catalogue | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-148 | 2026-09-29 21:24 | WRK-092, WRK-145 | Low | Builder A (the key) · Builder B/C (the words) | **A refused person is named by their ID.** `person.unavailable` (#121) has no line in `messages/en.json` or `ar.json`, so `errorKey()` (`core/db/words.ts`) falls back to `errors.kind.RuleBroken`: "This change was refused: 3f2a…". The person's ID appears, and nothing says they're switched off or have left. More broadly, 116 of the 159 refusal keys the database raises on v2/main have no words; screens reach `list.in_use`, `identifier.held`, `note.mention_cannot_see` and `credit.approver_required` among them. **Fix:** words for `errors.person.unavailable`, with the person's name as the detail, and words for every refusal a screen can reach. | Open — `errors.person.unavailable` still has no words on v2/main 3307dbf. |
+| QA-149 | 2026-09-29 21:50 | — | Low | Builder B | **A colleague's record asks a question the reader may not ask, on every visit.** Since #99 (Follow), opening another person's record as head, manager, member, viewer or Clients=none sends `rpc/following` and gets 403, logging a console error. Follow is correctly hidden ("hidden only when refused", QA-74), and admins aren't affected. Found by the gallery at d908d40. **Fix:** don't ask where the level can't follow person records, or have `following` answer "not followed" rather than refuse. | Open — the sweep counts it as a FAIL for all six non-admin people on `/people/<colleague>` (console: 403). |
+
+**The sweep at v2/main d908d40** (21:55, specs 01–07, the local stack, made-up people). Totals by area:
+
+| Area | PASS | FAIL | NOT BUILT | INFO |
+|---|---|---|---|---|
+| sign-in | 22 | 2 | 2 | 2 |
+| routes | 286 | 15 | 20 | 1 |
+| writes | 51 | 9 | 10 | 1 |
+| notes | 29 | 0 | 2 | 0 |
+| sides | 80 | 9 | 5 | 7 |
+| settings | 157 | 0 | 0 | 18 |
+| catalogue | 53 | 18 | 2 | 10 |
+
+Against the previous run: 5 checks now pass. They are the profile links and `/profile` (QA-48), OLD-001 for a demoted admin (QA-128), and OLD-010 for a list entry (QA-131). One check newly fails, `/people/<colleague>` for non-admins, which is QA-149. Nothing else moved.
+
+## Round 11 — 2026-09-29 23:39 (the oversight at 23:35: a production bug, production findings, and its review of the gallery at d908d40)
+
+Production (V2 on its own project, found while the admin account added the team) and the gallery review, logged for their lanes. Real names stay out of this log (rule 7).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-150 | 2026-09-29 23:39 | production, QA-56 | **P1** | Builder A | **Production: Add person as Head of department or Manager is refused** ("You cannot grant more than you have"). The head and manager roles still grant the retired `partners.assign`, `partners.identify` and `partners.merge`, and `core.access_set_person_role` asks `authz.can_of(admin, …)` of every granted row. That is false for an inactive capability, even for an admin. `api.person_create` calls the same function, which is why Add person fails. **This is QA-56**: the test fails on v2/main a6fa702 (production) and passes on #103 (09b9ca1, `20260929093000_core_round7.sql`: the check joins `core.capability … and k.active`) and on every Builder A branch stacked on it. **Still to do:** soft-delete the retired rows in `core.role_capability`, so the Roles screen stops listing them. | **Fixed on v2/main d6164e6** (the hotfix #124, V176: retired grants soft-deleted in one system request, and a retired capability stops no grant). QA-56 passes on main. Production gets it when this migration is applied. |
+| QA-151 | 2026-09-29 23:39 | production | Medium | Builder B | **Production: the person edit dialog has no Arabic name, nickname or job title fields**, so an admin can't set Arabic names. The server already accepts `full_name_ar`, `nickname_en` and `nickname_ar` (`core.person_update`). **Fix:** those fields in the dialog, with job title (English and Arabic); Arabic fields right-aligned with `dir="rtl"`. | Open |
+| QA-152 | 2026-09-29 23:39 | production, ACC-094 | Medium | Builder B | **Production: a person record has no way to add a second allowed email.** This is QA-123. | Open (QA-123) |
+| QA-153 | 2026-09-29 23:39 | production, V444, V445 | Medium | Builder A · Builder B | **Production: the Admin account is offered as a Manager and counted in the department's people.** V444 and V445: the admin account and the test account are not team members and are nobody's manager. #115 (V170) refuses them on the server (`person.manager_not_team_member`). The Manager picker and the department count must leave them out too. | Open — the server half on #115 |
+| QA-154 | 2026-09-29 23:39 | gallery item 1 | Low | Builder B · Design lead | Settings → Work lists (Priority, System): the **Name (Arabic)** column is empty and the Arabic name sits against the key in the Key column ("عاليةhigh"). **Fix:** Arabic in its own column, right-aligned, `dir="rtl"`, with a gap; check every settings list with an Arabic column. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): the Arabic has its own column; on a phone the key and order step aside and Edit and Archive fit. |
+| QA-155 | 2026-09-29 23:39 | gallery item 2 | Medium | Builder B · Design lead | Settings → People: every row says **Allowed**, even people who are switched off or have no role. **Fix:** "Switched off" in grey and "No role" in amber. On a phone, Status, Allowed emails and Last sign-in all disappear; Status must stay visible. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): "No role" in amber and "Switched off"; the phone cards carry status, email and last sign-in. |
+| QA-156 | 2026-09-29 23:39 | gallery item 3 | Medium | Builder B · Builder A | Settings → People: the admin account and the test account show Role "Admin" and Team "Commercial". V444 and V445 say they are not team members. **Fix:** show "Admin account" / "Test account" and no team. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): "Admin account" and "Test account", read from `core.person.account` (QA-181), no department, no team. |
+| QA-157 | 2026-09-29 23:39 | gallery item 4 | Low | Builder B | Settings → People: the header says Teams 0, but every row says Team "Commercial" — that column shows the department. **Fix:** rename it Department, or show the real team. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Department and Team are two columns; Team shows "—". |
+| QA-158 | 2026-09-29 23:39 | gallery item 5 | Medium | Builder B | A direct link to a page the person has no access to (Clients = none → `/partners?view=clients`) shows "Clients — Nothing here yet" and the + button. **Fix:** the no-access state, as Settings has. Cause: `app/(app)/partners/page.tsx` renders `<Page>` with no page key, so #120's check never runs there. | Open — **main 0973fb9** (#127): the + is gone, but the page still says "Nothing here yet". **Fixed on #123** (fbf2977, with #127 merged in; not merged): the no-access state and no +. |
+| QA-159 | 2026-09-29 23:39 | gallery item 6 | Medium | Builder B · Builder A | Own record (member): the stats strip says "not measured" for Allowed emails, Devices, Last sign-in and Joined, while the Sign-in log below lists sign-ins; Role shows "—". **Fix:** real values on one's own record; on a colleague's, hide what a member may not see instead of "not measured". | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Devices, Last sign-in and Role are filled in on one's own record, never "not measured". |
+| QA-160 | 2026-09-29 23:39 | gallery item 7 | Low | Builder A | The sign-in log shows **Code sent** rows although sign-in is email and password (V431); production's `core.sign_in_log` also has `code_sent` before each `ok`. **Cause, confirmed:** the password door calls `api.sign_in_check`, the code door's pre-check (`20260929000200_core_sign_in.sql:179`), which logs `code_sent` for every allowed email. No code or email is sent; the label is wrong. **Fixed on #109:** with the code door off, that check logs nothing (`code_off`), and the password door has its own pre-check. | **Fixed on v2/main 3307dbf** (#109 merged). The browser re-test runs with the next sweep. |
+| QA-161 | 2026-09-29 23:39 | gallery item 8 | Low | Builder B · Design lead | A colleague's record (admin view), Access: "Finance" appears twice (the page and the settings section) with different values. **Fix:** group into Pages and Settings sections, and mark values that differ from the role's default. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Access lists Pages and Settings sections apart. |
+| QA-162 | 2026-09-29 23:39 | gallery item 9 | Low | Builder B · Design lead | Overflow on a phone: Sign-in log dates are cut at the right edge; Settings → Roles cuts the People count and Edit; the settings sub-nav cuts "Clients and Suppliers & partr" with no scroll hint. The **Primary** chip on allowed emails is clipped at 1440 too. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): dates on one line, the Primary chip fits, Status stays on screen at 1440, the phone sign-in log gives the email its own line, the settings groups wrap (QA-183). |
+| QA-163 | 2026-09-29 23:39 | gallery item 10 | Low | Builder B | "The week starts on sunday": the raw key is shown. **Fix:** "Sunday" (Arabic الأحد). | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): "Sunday". |
+| QA-164 | 2026-09-29 23:39 | gallery item 11 | Medium | Builder B · Design lead | The error page (every picture taken with the data down) has no app shell, uses the system font and a black button. **Fix:** the app font and the brand button, keep the sidebar and top bar, and say "Try again" and "Go to My day". | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): a crash inside a page and the data down both show the app's own crash page (QA-184). |
+| QA-165 | 2026-09-29 23:39 | gallery item 12 | Medium | Builder B · Design lead | Empty states: every work page says only "Nothing here yet" in a dashed box. **Fix:** one line saying what goes here, plus the one action (Clients: "No clients yet. Add your first client." and a button, hidden for a viewer). See QA-170: today these are placeholders, not empty lists. | Open — **partly fixed on v2/main 0973fb9** (#127): each area page says what goes there; still in a dashed box, and a record's Devices and Sign-in log still say "Nothing here yet". Builder B leaves the box to the Design lead's call on #132. |
+| QA-166 | 2026-09-29 23:39 | gallery item 13 | Low | Builder B | The phone top bar's search box has no placeholder, and neither does the People search box. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): "Search" on the phone, "Search by name or email" on People. |
+| QA-167 | 2026-09-29 23:39 | gallery item 14 | Low | Builder B · Design lead | The date on My day ("Tuesday, 29 Sept 2026") is in the monospace font; it should use the body font. Dates in narrow list columns wrap to three lines ("29 / Sept / 2026"); keep them on one line. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): My day's date in the body font; list dates on one line. |
+| QA-168 | 2026-09-29 23:39 | gallery item 15 | Low | Builder B | Label: "Clients and Suppliers & partners" → "Clients & suppliers" (settings nav and the Access list). | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): "Clients & suppliers" in the settings nav and the Access list. |
+| QA-169 | 2026-09-29 23:39 | gallery item 16 | Medium | Builder B · Design lead | Phone: People shows both the Add person button and the orange +. The + also shows on no-access pages. **Fix:** one create action per page, and no + where the person can't create. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): one Add person and no + on People; no + on Clients for a person without Clients. |
+| QA-170 | 2026-09-29 23:39 | gallery, QA-A | Medium | Builder B | **Every work page is a placeholder, so it says "Nothing here yet" with data present.** My day, Overview, Clients, Suppliers, Pipeline, Projects, Tasks, Finance, KPIs, Reports and Appraisal each render `<DataState kind="empty">` and read nothing (e.g. `app/(app)/partners/page.tsx`, `tasks/page.tsx`). The seed does load: the local database holds 11 organisations, 10 client sides, 17 identifiers, 12 contracts and 6 notes, and the organisation record shows them. Tasks, projects and invoices have no tables yet, so there are none to seed. A failed read never shows "Nothing here yet": with the data API stopped, every page draws the error page. **Fix:** until a list is built, say so ("Coming in a later step"), never "Nothing here yet", which reads as missing data. | Open |
+| QA-171 | 2026-09-29 23:39 | gallery, QA-B | Low | Builder B | **The five console errors on a colleague's record** (head, manager, member, viewer, Clients = none; not admin) are one 403 each, from `rpc/following`: the Follow read on a person the reader may not follow. The button is correctly hidden. Same as QA-149. | Open (QA-149) |
+
+## Round 12 — 2026-09-30 00:00 (the oversight's production walk at 23:55: directksab2b.com at a6fa702, as the admin account)
+
+The P1 items of the walk, each with an owner and sent to its builder. The P2 and P3 items (W1–W3, W6, W7, W9, W11, W14, W15, W17–W21, W23, W25–W27, W29) are in the oversight's Project doc, which this session can't reach; they get logged when pasted. D29-29 is QA-150. The oversight's correction to the gallery's item A stands: the empty work pages are placeholder stubs (P4–P6 not built, P3-9 not merged), not a seed problem (QA-170).
+
+**Scenarios on production:** PASS for ACC-100, ACC-125, ACC-032, a role change, switch off and on, an access exception, and Undo. FAIL for ACC-093 (QA-180), ACC-094 (QA-122, QA-123) and ACC-039 (V444: QA-107, QA-153; the server half is on #115).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-172 | 2026-09-30 00:00 | W4, W4b, W28 | **P1** | Builder B | **Production: unbuilt pages and the Create menu lead nowhere.** The stub pages say "Nothing here yet", and Create → Task, Partner, Invoice or Achievement opens "Nothing here yet" or a raw `/partners/new` title. **Fix:** hide what isn't built, or show "Being built (step)". Same cause as QA-170. | Open |
+| QA-173 | 2026-09-30 00:00 | W5 | **P1** | Builder B · Builder A | **Production: Activity shows raw column names and never names who was added or changed.** **Fix:** field labels from the catalog, and the person or record named in each line. The server's change rows carry the entity and id; the screen must resolve names. | Open |
+| QA-174 | 2026-09-30 00:00 | W8, V431 | **P1** | Builder A | **Production: every sign-in logs "Code sent" before "Signed in".** The code door is not on and no code is sent. The password door still calls the code door's pre-check `api.sign_in_check`, which logs `code_sent` for every allowed email. Same as QA-160. | **Fixed on v2/main 3307dbf** (#109 merged). The browser re-test runs with the next sweep. |
+| QA-175 | 2026-09-30 00:00 | W10, V97 | **P1** (security) | Builder A · Builder B | **Production: Recently deleted offers Restore on rows that migrations retired** (the V97 role page levels, a setting). `core.recently_deleted` lists every row removed in the last 30 days, whoever removed it, and `core.restore` lets an admin bring it back. Restoring a retired role page level would re-grant access that was retired on purpose. **Fix:** list and restore only what a person removed. Leave out, and refuse, rows whose removal came from a system, job or migration request, and never offer role grants there. Test: `v2/supabase/tests/qa/QA-175-…sql`. It fails on main for this reason ("and never what the system retired") and passes under a simulated fix that leaves out rows whose last removal was a system, job or import request. **Seen on v2/main d6164e6:** an admin's Recently deleted now offers 28 system-retired rows: 15 role grants (the hotfix #124's own cleanup) and 13 role page levels (V97). `api.restore('role_capability', …)` brings a retired `partners.assign` grant back to life. Add person no longer breaks, because the check now ignores retired capabilities, but a click undoes a migration. | **Fixed on v2/main 3307dbf** (#126, V177). The test passes, and an admin's Recently deleted now offers none of the system-retired rows (it offered 28 at d6164e6). |
+| QA-176 | 2026-09-30 00:00 | W12, V448 | **P1** | Builder A · Builder B | **Production: Side type is one mixed list, not V448's seven.** The Supplier & partner types must be Hotel supplier, Airline, Visa/Embassy, Payment provider, Sales channel, Technology and Strategic partner, apart from the Client types. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Side type shows each entry's Side, grouped Client first (the data half by #129). |
+| QA-177 | 2026-09-30 00:00 | W13 | **P1** | Builder A · Builder B | **Production: Status reason has 4 duplicate pairs.** **Fix:** merge each pair (repointing any use), and add a test that a list has no duplicate names on the same side. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): Status reason shows At risk or Lost, grouped, and Add entry asks for it. |
+| QA-178 | 2026-09-30 00:00 | W16 | **P1** | Builder B | **Production: settings values show raw keys** (`account_manager`, the prefix `DK-P`, `monogram`, `sunday`). **Fix:** show the words; keys only in the Key column. Includes QA-163. | Open |
+| QA-179 | 2026-09-30 00:00 | W22 | **P1** | Builder B | **Production: there is nowhere to enter Arabic names while Arabic is off.** The Arabic fields must stay editable in the forms and lists whatever `app.arabic_enabled` says (it switches the Arabic interface, not the data). Related to QA-151. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): My profile and the person edit form carry the Arabic names beside the English while Arabic is off (the sweep meets "Nickname (Arabic)" and "Job title (Arabic)"). |
+| QA-180 | 2026-09-30 00:00 | W24, ACC-093 | **P1** | Builder A · Builder B | **Production: adding a person with an email that already exists (different letter case) says "The server did not answer" but creates the person without the email.** Cause: on main, Add person is two calls, `person_create` and then `/auth/admin/emails` (`OrgAccess.tsx:266–286`); the second is refused after the first has committed. **Fix:** one request, all or nothing, with the refusal in words ("That email already belongs to someone"). | **Fixed on v2/main 3307dbf** in the code (#117, #126 V178): one request, and an email already held is named with nothing saved. The browser re-test runs with the next sweep. |
+
+## Round 13 — 2026-09-30 05:24 (v2/main 692135a: #128 the guards refuse, never ask; the builders' heads of 30 Sep 04:58)
+
+- **The shell guard after #128 (the owner's rule of 30 Sep: nothing prompts him; the dangerous families are refused; everyday sandbox commands pass).** `matcher.mjs` finds none of its commands under-protected once its delete cases follow that rule: `rm` and `find` in the sandbox now pass by the owner's decision, and the checkout is recoverable from the remote. The QA lane's own `git push -u origin v2/q-1` is now refused by the repo's guard. That is stricter than required, and it doesn't affect this session, which runs under the production checkout's settings.
+- **The database guard after #128: QA-134 is unchanged.** `sql-matcher.mjs` still finds the same 7 destructive statements waved through (for example `delete … where true`, a rewrite of `auth.users`, and `session_replication_role`). Under the new rule they must be refused.
+- **QA suite on the builders' new heads** (each built from zero):
+  - #103 (5b81b5f) and #109 (7abb6d6): 7 fail. QA-47 and QA-57 to QA-59 now pass.
+  - #117 (efc2ed0): 7 fail, the same seven.
+  - #121 (d9ca10a): 5 fail. QA-118 and QA-120 pass as well.
+  - Still failing on every branch: QA-02, QA-03, QA-04, QA-121 (the approver doors) and QA-175 (Recently deleted).
+- **QA-122 is still not fixed on #117 at efc2ed0.** Choosing a password still sets it on the signed-in email only.
+
+## Round 14 — 2026-09-30 05:48 (v2/main 3307dbf: #103, #109, #111, #115, #117, #121, #122 and #126 merged)
+
+The QA suite on v2/main 3307dbf: **140 passed, 4 failed**. Still failing: QA-02, QA-03, QA-04 and QA-121. Now passing: QA-47, QA-57, QA-58, QA-59, QA-118, QA-120 and QA-175 (with QA-56 since #124). Still open after the wave: QA-121 (the approver doors), QA-122 (the second email keeps the temporary password), QA-148 (no words for `person.unavailable`) and QA-134 (the database guard). The gallery retake and the browser sweep at 3307dbf follow.
+
+**The browser sweep at v2/main 3307dbf** (06:09; specs 01–07; the local stack; made-up people): 710 pass, 34 fail, 28 not built. Nothing that passed before fails.
+
+| Area | PASS | FAIL | NOT BUILT | INFO |
+|---|---|---|---|---|
+| sign-in | 24 | 2 | 0 | 2 |
+| routes | 297 | 15 | 9 | 1 |
+| writes | 51 | 9 | 10 | 1 |
+| sides | 89 | 0 | 5 | 7 |
+| notes | 29 | 0 | 2 | 0 |
+| settings | 157 | 0 | 0 | 18 |
+| catalogue | 63 | 8 | 2 | 9 |
+
+**Now passing:** every side-access check (QA-82, QA-85); OLD-001 for a switched-off person (QA-128); the no-access pages and the theme on the profile (QA-126, QA-127). **Catalogue checks still failing:** QA-122, QA-123, QA-124, QA-125, QA-129, QA-130 and QA-131. **The gallery** is retaken at v2/main 3307dbf (version 11). Its camera now sets must-change in `core.person_auth`, where the app reads it since #109. Its "Owner Account" and "QA Account" people are ordinary admins, so item 3 (QA-156) waits for a retake on Builder A's fixture seed (#122).
+
+## Round 15 — 2026-09-30 09:40 (v2/main 8972ea8, docs only since 3307dbf; open: #127 at 3ba9494, #123 at c8429d6, #129 at 9be9713)
+
+The QA seed now marks its "Owner Account" and "QA Account" people as the admin account and the test account (`core.person.account`, V444 and V445, as Builder A's fixture seed does). For the gallery only, it switches "Test Switched Off" off through the admin's own door. Main's People list, retaken with both: the switched-off person shows **Switched off** (the oversight's correction to item 2 stands), "Test NoRole" still shows **Allowed**, and both accounts still show Role "Admin", Team "Commercial" (item 3, QA-156), although the database marks them.
+
+**The gallery, version 12** (main 8972ea8 plus previews of #127 at 3ba9494 and #123 at c8429d6; 334 pictures; made-up people on the local stacks):
+- **#127 fixes** items 2, 4, 6, 8, 10, 13, 14, 15 and 16, and W4/W28 (Not found inside the frame).
+- **Partly fixed on #127:**
+  - item 1 (at 1440, not on a phone);
+  - item 9 and QA-183;
+  - item 11 (a crash inside a page gets the app's page, but with the data down the built-in page still shows: QA-184);
+  - item 12 (words, still in a dashed box).
+- **Not fixed:** item 3, on main or on #127 (QA-181).
+- **Item 5 is fixed on #123:** Clients = none by address gets the no-access page.
+- **Still fixed on main:** items 7 and P1.
+
+Findings sent to #127 (QA-181, QA-183, QA-184) and #129 (QA-182).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-181 | 2026-09-30 09:40 | Gallery item 3, V444, V445, #127 | Medium | Builder B | **#127 looks for the admin and test accounts in the wrong field, so item 3 and the manager filter never switch on.** `isAccount`, `PersonRole` and the Department and Team cells (`OrgAccess.tsx:216–217, 245, 272–279`), the person record and its manager picker (`PersonRecord.tsx:629, 881`) test `kind === 'admin_account'`. The database keeps `kind = 'staff'` for both accounts: `person_account_is_staff` requires it. The mark is `core.person.account`, which `api.org()` and `api.people()` already serve (ACCT-01, merged in #115). So #127's NEED to Builder A (change `kind`) can't be met, and nothing changes after both merge. **Fix:** read `account` (`'admin_account'` / `'test_account'`) in those three places and in the manager picker's filter; drop the NEED. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): the People list, the record and the manager picker read `core.person.account`. |
+| QA-182 | 2026-09-30 09:40 | W26, V179, #129 | Low | Builder A | **#129: an account marked before V179's guard, still in a team, can no longer be saved.** The new `core.person_guard` refuses any save of an admin or test account that has a team or a manager. The migration doesn't clear the ones that already have one. Rolled-back probe on #129's migrations (plain Postgres; made-up people): a test account left in a team, then switched off by an admin (V445: removed before go-live) → refused `P0001 person.account_in_no_team`. By reading, not probed: removing its team and moving the team's people to another team (`update core.person set team_id = p_move_to where team_id = p_id`) hits the same refusal. Only marking it again clears it, and the refusal doesn't say so. Production's admin account had no team (the PR says so), so this is theoretical there. **Fix:** one line in the migration's system request: `update core.person set team_id = null, manager_id = null where account <> 'team_member' and (team_id is not null or manager_id is not null);`. | Open — #129 merged at 9be9713 without the line (v2/main 3f9e946). Nothing can reach that state now (marking an account clears its team), and production's one marked account has no team, so it is moot unless another database holds an account marked in a team before V179. Builder A to confirm or close. |
+| QA-183 | 2026-09-30 09:50 | Gallery items 1 and 9, #127 | Low | Builder B · Design lead | **#127's preview: four layout leftovers.** (a) People at 1440: the two new columns (Department, Team) push Status past the table's right edge, so only its dot shows ("Stat" in the header). That's the column item 2's words were added to. (b) The sign-in log on a phone: when a device is named, the email shrinks to one letter ("t · Safari · Linux"). (c) Settings → Work on a phone: the Priority list still runs the Arabic into the key ("توجيه تنفيذيexecutive_directive") and cuts Edit and Archive off. (d) The settings sub-nav on a phone is still cut ("Plan &") with no visible scroll cue. Pictures: the gallery's #127 preview (settings-people, own-record · member, settings-work). **Fix:** let Status keep its width (or drop the email column's mono width) at 1440; give the email a minimum width or put the device on its own line; stack the list editor's rows on a phone as the People cards do; show a fade or arrow at the sub-nav's cut edge. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): (a)–(d) and the Side type list on a phone. |
+| QA-184 | 2026-09-30 09:55 | Gallery item 11, QA-164, #127 | Medium | Builder B | **#127's error page never shows when the data is down: the built-in "This page couldn't load" (system font, black Reload, no frame) still does.** With the data API stopped, all seven pages photographed on #127 show the built-in page. The frame `src/app/(app)/layout.tsx` awaits `requireMe()` and `getAppSettings()`, which fail when the data API is down. The new `src/app/(app)/error.tsx` only catches its pages' errors, never its own layout's. There's no `src/app/error.tsx` or `global-error.tsx` above it. So the new page covers a crash inside a page, but not the everyday case: a timeout or the database down. **Fix:** an `src/app/error.tsx` (inside the root layout, so the app font loads) with the same words and buttons. It can't draw the frame, since the frame needs the person. Add a `global-error.tsx` for the root layout itself. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): with the data API stopped, every page photographed shows the app's own crash page. |
+
+
+## Round 16 — 2026-09-30 11:12 (v2/main 3f9e946: #129 merged; open: #127 at 3ba9494, #123 at c8429d6, both 4 behind)
+
+- **The QA suite on v2/main 3f9e946** (from zero on plain Postgres): **142 passed, 4 failed**. Still failing until built: QA-02, QA-03, QA-04 and QA-121. #129's two new tests (ACCT-02, TYPE-01) pass. CI on #87 at 3a76bb8 showed the same four in both database jobs.
+- **#129 merged at 9be9713 without QA-182's line.** No reply on the PR. QA-182 stays open as Low; it is moot on production (see its row).
+- **The browser sweep at v2/main 3f9e946** (the second local stack; made-up people): the same totals as at 3307dbf, apart from one settings check. That check was the sweep's own flaw, not the app's:
+  - A head's POST to `/auth/admin/undo` was accepted. The request tried was "the admin's latest", which this run happened to be an Undo of a partner status change.
+  - V128 lets anyone with Full on the page undo a record change, and the route leaves that decision to the database. So the app was right.
+  - The check now tries the admin's latest access change, which only an admin may undo. Re-run on the same stack: head, manager, member and viewer are each refused with `undo.not_allowed`, "You cannot undo this".
+- **The gallery** is retaken in full on v2/main 3f9e946. The #127 and #123 previews carry over (neither head moved), and the gallery items stand as in round 15: #129 changed no screen.
+
+
+## Round 17 — 2026-09-30 12:33 (v2/main 0755dbf: #133 and #134, V181 — production's database is written by one job, from main)
+
+No screen or migration changed (only the workflow, two scripts and their tests), so the gallery, the sweep and the SQL suite stand as in round 16. The job itself was reviewed.
+- **What holds up:**
+  - The password reaches one step and is masked as typed and as encoded. So are the full addresses, and refusals are scrubbed before they are printed.
+  - A merge's run is never cancelled, and the job queues on its own group.
+  - `db push` is migrations only (`--skip-vault`, no seed).
+  - The sync check fails the job by name.
+  - Open PRs' migrations are all newer than main's newest (only #123 carries one), and A9's forward-only check guards the order on each PR.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-185 | 2026-09-30 12:33 | V181, #133, #134 | Medium | Builder A | **The production job doesn't wait for the tests.** `db-production` in `.github/workflows/v2.yml` has no `needs:`, so on a merge it applies the new migrations to production at the same moment `db-plain` and `db-supabase` start building the merged code from zero. Two PRs each green on their own can merge minutes apart, with neither tested against the other; if the combination fails from zero, production already holds it, and only a new migration can take it back. **Fix:** `needs: [checks, db-plain, db-supabase]` on `db-production` (neither database job is ever skipped), so production is written only after main's own run proves the migrations from zero. | Open |
+| QA-186 | 2026-09-30 12:33 | V181 ("no session writes to production") | Medium | Owner (one setting) · Builder A (one line) | **V181's one-writer rule is kept only by the job's `if:`, in a file any branch can change.** `SUPABASE_DB_PASSWORD` is a repository secret. GitHub gives a repository secret to every workflow run from a branch of this repository, including a pull request's run, which uses the branch's own copy of the workflow, and a new workflow file pushed to any branch. So a branch that changes or drops the `if:` reaches production with the password, although no session means to write there. **Fix:** in GitHub → Settings → Environments, a `production` environment whose deployment branches are v2/main only. Move `SUPABASE_DB_PASSWORD` into it as an environment secret, and add `environment: production` to `db-production`. The password then reaches only a job running on v2/main. | Open |
+
+
+## Round 18 — 2026-09-30 13:48 (v2/main 0755dbf, unchanged; #127 at 4a8ae4e: the shell guard for five lanes, CLAUDE.md under 22,000)
+
+- **Nothing merged since 0755dbf.** The gallery, the sweep and the suite stand as in round 16.
+- **#127's two new commits** touch only `.claude/hooks/bash-guard.mjs`, `.claude/settings.json`, CLAUDE.md and `docs/SESSION-REACH.md`, so no new preview is needed. Builder B asked QA to review the guard.
+- **The matcher's new cases** (eleven) cover:
+  - the lanes' own branches;
+  - a lane name carrying a push onto main (`src:dst`, a second refspec, main named second, a full ref, a chained push);
+  - near-miss names.
+- **Result on #127's head:** 0 commands run with less protection than they must. The four lanes' own branches pass click-free; on v2/main 0755dbf they are refused (four "tight" rows), which is the architect's report. The database guard is unchanged: QA-134's 7 statements still pass.
+- **QA-181, QA-183 and QA-184** remain open on #127; its two new commits don't touch them.
+
+
+## Round 19 — 2026-09-30 15:00 (the oversight's production walk, the P2 and P3 items: directksab2b.com at a6fa702, the admin account, Edge)
+
+The walk's P1 items are QA-172 to QA-180 (round 12). These are the rest: every W item with an owner, sent to its builder. "#127 claims" means Builder B's round 1 PR says it fixes the item. It is re-tested when #127 merges; a gallery picture is cited only where one shows it.
+- **W12** is verified fixed on production by the oversight (7 Supplier & partner types, 4 Client types). The data half of QA-176 is closed; the screen half (a Side column) is still Builder B's.
+- **W30** is closed by V512: access comes from the role, not the job title.
+- **Catalogue on production:**
+  - ACC-094 fails: there is no control for a second allowed email (QA-123).
+  - ACC-090 and ACC-091 pass only partly.
+  - ACC-032 is answered: nobody switches themselves off.
+  - ACC-039 had a gap; its data was fixed on 30 Sep.
+  - The walk's other new rows are already logged: QA-150 (Head and Manager, fixed by #124), QA-175 (W10) and QA-172 (W28).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-187 | 2026-09-30 15:00 | W1, V444 | P2 | Builder B | **The admin account has a My day.** Under V444 it is not a team member, so its start page and My day make no sense for it. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep), as builder B's proposal on V444: the admin account starts on Settings, and its My day says why, with Go to Settings. |
+| QA-188 | 2026-09-30 15:00 | W2 | P3 | Builder B | **The greeting ignores Riyadh's clock** (morning, afternoon or evening by the browser's clock, not Riyadh's). | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): the greeting follows Riyadh's clock (proved on #127 at 0548f34: "Good evening" at 17:50 Riyadh on a UTC browser). |
+| QA-189 | 2026-09-30 15:00 | W3 | P3 | Design lead | **The light theme's main colour is teal, not the brand's orange and navy.** | Open — the Design lead to confirm the intended colour. |
+| QA-190 | 2026-09-30 15:00 | W6 | P2 | Builder B | **A person's history lists `can_sign_in` twice, and "Sign-in added" is unclear.** | **Fixed on #143** (27b9ebd, V220): Activity names a field once per request — 50 entries, none twice (QA round 29). Still open on v2/main until #143 merges. |
+| QA-191 | 2026-09-30 15:00 | W7 | P2 | Builder B | **A system entry dumps hundreds of fields.** It should collapse to one line. | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: no system or job entry lists more than 8 fields; it says "N fields". |
+| QA-192 | 2026-09-30 15:00 | W9 | P2 | Builder B | **The sign-in log's Device column is the raw user agent.** | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: one's own sign-in log and Activity · Sign-ins name the device ("Chrome · Linux"), never the raw user agent. |
+| QA-193 | 2026-09-30 15:00 | W11 | P2 | Builder B | **On Recently deleted the tab strip disappears, and the first click on Sign-ins does nothing.** | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): the page frame no longer squeezes the Activity tab strip; the tabs show on the long Activity page. |
+| QA-194 | 2026-09-30 15:00 | W14 | P2 | Builder A · Builder C | **Activity outcomes don't show which activity type they belong to, and the Arabic «تم» alone says nothing.** | Open |
+| QA-195 | 2026-09-30 15:00 | W15 | P2 | Architect | **No side tiers are seeded.** Settings → Side tier has 0 entries (the gallery's settings-partners, v2/main 3f9e946). | Open |
+| QA-196 | 2026-09-30 15:00 | W17 | P3 | Builder A | **Default settings say "Applies from 1 Jan 2000."** The gallery's settings-partners at 3f9e946 shows it under several defaults (for example, a contract's "Expires in" days). | Open |
+| QA-197 | 2026-09-30 15:00 | W18 | P3 | Architect | **The Settings change log is empty after teams and people were added.** | Open |
+| QA-198 | 2026-09-30 15:00 | W19 | P2 | Builder B | **Settings → Plan & performance and Finance are blank pages.** | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: Settings → Plan & performance and Finance say "No settings here yet. They arrive with the step that builds this area." |
+| QA-199 | 2026-09-30 15:00 | W20 | P2 | Builder B | **File types show as MIME types, and the go-live date is blank.** | Open — **the file types are fixed on v2/main 0973fb9** (#127: named, never MIME types). **The go-live date still shows nothing:** Settings → App reads "The day the app went live" and then only "Applies from 1 Jan 2000 · default" (QA-196). |
+| QA-200 | 2026-09-30 15:00 | W21 | P2 | Builder B | **Edge autofills an email into Display name.** | **Fixed on #143** (27b9ebd, V220): every text field on My profile, Edit person and Add person turns autofill off; QA's check leaves out date pickers, which browsers never autofill (QA round 29). Still open on v2/main until #143 merges. |
+| QA-201 | 2026-09-30 15:00 | W23 | P3 | Builder B | **The switch toast says "Test account Allowed"** where it should say switched on. | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: "Test Walk Switch switched off", then "… switched on", never "Allowed". |
+| QA-202 | 2026-09-30 15:00 | W25 | P2 | Builder B | **An Undo creates an entry that can itself be undone, and entries don't name the person or page.** | Open — **the Undo half is fixed on v2/main 0973fb9** (#127), re-tested in the browser: no undo entry of 11 offers an Undo of its own. Naming the person and page (W5, QA-173) is still open. |
+| QA-203 | 2026-09-30 15:00 | W26, V444 | P2 | Builder B | **The admin account's record shows Team, Manager and Appraisal.** The data is fixed (V179, #129: the account is in no team); the screen still shows the fields. | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): the admin account's own record has Department "—" and no Team, Manager or Appraisal. |
+| QA-204 | 2026-09-30 15:00 | W27 | P3 | Builder B | **Search shows empty PAGES and ACTIONS headings.** | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: Ctrl K shows no group without entries, whether open or searched. |
+| QA-205 | 2026-09-30 15:00 | W29 | P3 | Builder B | **The empty bell panel has no line of text, and "Mark all read" is active.** | **Fixed on v2/main 0973fb9** (#127), re-tested in the browser: the empty bell says what it is for, and Mark all read can't be pressed. |
+
+
+## Round 20 — 2026-09-30 15:10 (v2/main 0755dbf, unchanged; #127 retaken at 940bd99 after its answer to round 15; #123 at bce5a33)
+
+- **#127 at 940bd99** ("QA round 15 on #127") was rebuilt on the second local stack and photographed for admin, member, a member without Clients and the admin account, at 1440 and 390, plus the data-down pass.
+  - **Fixed on the PR:** QA-181 (the accounts), QA-184 (the frame's own crash page, all seven data-down pictures), and the screen halves of QA-176 and QA-177.
+  - **Partly fixed:** QA-183. One leftover: the Side type list on a phone.
+  - **Not fixed:** QA-187 (W1) and QA-203 (W26), on the admin account's own record and My day.
+  - **Gallery items on the PR:** 1, 2, 3, 4, 6, 8, 10, 11 and 13–16 fixed; 9 and 12 partly.
+- **By reading:** the root layout's `getAppSettings` falls back to the defaults when the data API is down, so the new `src/app/error.tsx` is the page that shows, not `global-error.tsx`.
+- **#123's new commits** (64fe23e, bce5a33) add only the Arabic and a spec line for the supplier type's new name. Its preview stands (English pictures), and item 5 is still fixed there.
+- **The gallery's camera** now tells the app's own crash page ("Something went wrong" with Try again) from Next's built-in one ("This page couldn't load" with Reload). The #127 data-down pictures were relabelled; they were not retaken. The gallery is at version 14.
+
+
+## Round 21 — 2026-09-30 17:55 (v2/main 0755dbf, unchanged; #127 retaken at 0548f34 after its answer to round 20; #123 at bce5a33)
+
+- **#127 at 0548f34** was rebuilt on the second local stack and photographed again (the gallery's version 15).
+  - **Fixed on the PR:** QA-183 (the Side type list on a phone), QA-203 (W26: the admin account's own record), QA-187 (W1: builder B's proposal on V444, the admin account starts on Settings) and QA-193 (W11, the cause found: the page frame squeezed the tab strip).
+  - **QA-188 (W2) proved on the PR:** at 17:50 Riyadh, with the test browser on UTC (14:50), My day says "Good evening".
+  - **Every gallery item is fixed on #127 except item 12** (the empty lines are still in a dashed box). Item 5 is fixed on #123.
+  - The data-down pass now labels each picture "the app's crash page".
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-206 | 2026-09-30 17:55 | V216, #127 | Low | Builder B | **V216 contradicts itself on the accounts.** #127's own entry in `docs/v2/DECISIONS.md` now says the accounts are read from `core.person.account` and that the admin account starts on Settings. But its People sentence still says the accounts are named "(`person.kind`, V444/V445 — served by builder A)", and its "Not this round" line still says "W1 (the admin account's start page) and the kind labels wait on builder A's `person.kind`". **Fix:** drop the `person.kind` clause from the People sentence, and W1 and the kind labels from "Not this round". | **Fixed on v2/main 0973fb9** (#127, merged 30 Sep): V216 reads the accounts from `core.person.account` throughout. |
+
+
+## Round 22 — 2026-09-30 19:30 (v2/main 0755dbf, unchanged; #127 retaken at 4fa2265 at the oversight's ask, as it heads the merge queue; #123 at bce5a33)
+
+- **#127 at 4fa2265: clear from QA.** Since 0548f34 it adds two commits: V216 in `docs/v2/DECISIONS.md` (QA-206) and Builder C's Arabic for the admin account's My day in `v2/messages/ar.json`. No screen code and no English changed.
+  - **Rebuilt and photographed again** on the second local stack (the gallery's version 16) for admin, member, a member without Clients and the admin account, at 1440 and 390, plus the data-down pass. **All 67 pictures keep the state they had at 0548f34** (0 of 352 changed), and the build takes the new Arabic.
+  - **#127's own CI on 4fa2265 is green:** unit tests, checks, the database from zero on Postgres 17 and on the Supabase stack, the sabotages, the build and the browser tests. The production database job is skipped for a PR, as it should be. The PR can merge cleanly and is 0 behind v2/main.
+  - **Item 12** (the empty lines in a dashed box) stays open. Builder B leaves it to the Design lead's call on #132's "Being built." cut.
+  - **Re-tested once #127 merges:** QA-181/183/184/187/188/193/203/206, the screen halves of QA-176/177, and the round-19 W items #127 claims (QA-190–192, 198–202, 204, 205).
+- **The new Arabic could not be photographed:** with Arabic switched on in the local database and the admin account's language set to Arabic, My day still shows English. The reason is QA-207 below, not #127.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-207 | 2026-09-30 19:30 | V214; ACC-090/091, ACC-129/139 | Medium | Builder A | **The admin's App settings never reach a screen.** Every screen reads the default theme, the default density, the default start page and whether Arabic is on through `api.app_settings()` (`src/core/settings/app.ts`, V214: "builder A's public read of the four keys"). It does not exist on v2/main at 0755dbf, on #127 or on any v2 branch, so the app always falls back to the registry's defaults. An admin's change saves (the probe sets dark, compact and Arabic on, and `core.setting_at` returns them) but changes nothing on screen, and the browser tests that need it skip by name. Seen on #127's build: with Arabic on and the admin account's language set to Arabic, My day stays English. This is likely why ACC-090/091 pass only partly on production (round 19). The registry also has no `app.default_start_page`, the key the screens read for the start page. **Fix:** add `api.app_settings()` returning the four keys by their full names from `core.setting_at` for today, for every signed-in person and, for `app.arabic_enabled`, before sign-in; add `app.default_start_page` to the registry. **Test:** `v2/supabase/tests/qa/QA-207-every-screen-reads-the-admins-app-settings.sql`, which fails until built. | **Fixed on v2/main 9fa2447** (#136, merged 1 Oct; V182): `api.app_settings()` reads the four keys for every signed-in person and for the server before sign-in, never anon; QA-207's test passes on main (QA round 28). |
+
+
+## Round 23 — 2026-09-30 21:15 (v2/main 0973fb9: #127 merged; #123 at fbf2977, with main merged in)
+
+- **#127 merged as v2/main 0973fb9.** Its tree is exactly #127's head 4fa2265, which QA cleared in round 22.
+- **Retaken on main:**
+  - the gallery (versions 17 and 18): every role at 1440 and 390, the empty and data-down passes, and #123's preview;
+  - the SQL suite: 142 passed and 5 failed, the fail-until-built QA-02, 03, 04, 121 and 207;
+  - the browser sweep;
+  - the guards: the shell guard under-protects nothing, and the database guard still lets QA-134's 7 statements through.
+- **Main's pictures against 3f9e946:** every state that changed is one #127 promised.
+  - With the data down, all 13 pages show the app's own crash page.
+  - An unknown address is Not found inside the shell.
+  - Settings → Plan & performance and Finance say they have no settings yet.
+- **Fixed on main** (statuses below): QA-154 to 157, 159, 161 to 164, 166 to 169, 176, 177, 179, 181, 183, 184, 187, 188, 193, 203 and 206. Also QA-123 (Add email stays) and QA-124 (Remove email on each email, with a reason), though see QA-208 and QA-209.
+  - Gallery items: 15 are fixed on main.
+  - Item 12 is partly fixed (QA-165, the dashed box).
+  - Item 5 is fixed on #123 at fbf2977 (the no-access state, and no +), so it closes when #123 merges.
+- **The production walk's items (round 19) re-tested in the browser** by a new sweep spec, `v2/tests/qa/sweep/08-production-walk.spec.ts`, with its own made-up people:
+  - **PASS:** QA-191 (W7), QA-192 (W9), QA-198 (W19), QA-201 (W23), QA-204 (W27) and QA-205 (W29); QA-190 (W6), with every field in words; the file types of QA-199 (W20); the Undo half of QA-202 (W25).
+  - **Partly:** QA-200 (W21).
+  - **Still open:** QA-199's go-live date.
+- **The sweep on main, after the QA lane's own tests were brought up to date:**
+  - The one new failure is ACC-095's ban (QA-209).
+  - Everything else that fails also failed on 3f9e946: QA-02, QA-100, QA-101, QA-103, QA-122, QA-130, QA-171 and the door's two wording checks.
+- **The QA lane's tests, updated for #127:**
+  - Labels now match exactly where #127 added an Arabic twin (Nickname, Job title, Full name).
+  - ACC-095 presses the second email's own Remove.
+  - `/settings/profile` now expects Not found: nothing links there since #99 (QA-48).
+- **#123 at fbf2977** adds no commits of its own. It merges main (#127) in, resolving the overlaps: V215 beside V216, and Ctrl K keeps its organisations group. All 24 of its preview pictures keep their states.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-208 | 2026-09-30 21:15 | ACC-004, ACC-095; V431, V144 | High | Builder A · Builder B | **An admin can remove their own last allowed email and lock themselves out.** Since #127 the person record offers Remove beside every email (`PersonRecord.tsx:525–533`, shown when `admin`, with no check for one's own record), including one's only email. `api.person_email_remove` asks only for an admin. Proved on v2/main 0973fb9: an admin removes their own only email, and at once `api.me()` names no person and an admin read is refused (`auth.no_active_person`). In the gallery, the admin account's own record shows Remove beside its only email. At go-live the owner's admin account is the only admin, so nobody could let him back in from the app. **Fix:** the database refuses removing one's own last allowed email (Builder A); the record offers no Remove on one's own last email (Builder B). **Test:** `v2/supabase/tests/qa/QA-208-an-admin-never-removes-their-own-last-allowed-email.sql` fails until built. | Open — **the screen half fixed on v2/main af7972e** (#142, merged 1 Oct; V219): no Remove beside one's own last allowed email. The database half is Builder A's; `QA-208-…sql` stays red until it lands. |
+| QA-209 | 2026-09-30 21:15 | ACC-095; V144 | Medium | Builder B | **Remove email on the record doesn't ban the removed email's sign-in.** #127's control calls `api.person_email_remove` straight from the browser (`PersonRecord.tsx:117–130`). It skips `/auth/admin/emails/remove`, which also bans the removed email's auth user (`allow-list.ts` `removeEmail`: the `ban` list). The door and the next page still refuse the removed email in words (the sweep: "This email isn't on the team list"), but its auth user stays active, one guard fewer than V144 asks. **Fix:** call the route, or post `/auth/admin/sync` for the person after the call, as the switch does. **Test:** the sweep's ACC-095, "its auth user is banned" (FAIL on 0973fb9). | **Fixed on v2/main af7972e** (#142, merged 1 Oct; V219): Remove email goes through `/auth/admin/emails/remove`, which bans the removed email's sign-in; the toast's Undo lifts it through `/auth/admin/undo` (QA rounds 26–27). |
+
+
+## Round 24 — 2026-10-01 14:30 (v2/main 0973fb9, unchanged; the oversight's review queue of 14:16)
+
+- **#136 (QA-207) at a07fcfe: QA-207 fixed.**
+  - QA-207's test passes on it. Its last line now reads the switch as the server does (`service_role`) and keeps anon refused (GRANTS-03), as Builder A proposed.
+  - The SQL suite: 144 of 149 pass; the 5 reds are QA-02, 03, 04, 121 and 208.
+  - On screen, built locally with Arabic on and the default theme dark: the admin account set to Arabic gets the whole app in Arabic, right to left; a member without their own theme gets dark.
+  - **Before merge:** a conflict with v2/main in `v2/messages/en.json`, and a red sabotage (`plant-screen-word`, whose find text is no longer unique once the start-page names add a second `"clients": "Clients"`).
+- **#135 (QA-186) at 6bc866e:** the YAML half is right (`environment: production`).
+  - The owner still has to limit the environment to v2/main, move the secret, and delete the repository-level copy.
+  - QA-185 is still open: `db-production` has no `needs:`.
+- **#139 (P3-13, My day notes) at 5921734:** the suite is 147 of 153, with the 6 known fail-until-built.
+  - **Held:** the admin's Recently deleted hides a member's removed private note; an admin's Restore of it is refused; a note mentioning a switched-off colleague is refused; the team scope for someone in no team is empty.
+  - **New:** QA-211.
+- **#132 (the employee view, GC-1) at 6020d66,** checked against the brief: every route photographed for every persona at 1440 and 390 (the gallery's #132 preview), plus the browser sweep.
+  - **Matches the brief:** the admin's menu in order with Settings at the foot; the Clients · Suppliers tab row with counts; My day headed by the date; "Being built."; the search placeholders and Ctrl K at both widths; no Create or + for a viewer; none of the five banned words.
+  - **New:** QA-212 and QA-213.
+  - **QA-190 reopened** (below).
+  - The QA sweep's drawer checks still expect the old menu rule; they switch when #132 merges.
+- **QA-190 reopened, on v2/main too:** one request that changes the same fields on two records lists each field twice. For example, a password set for a person with two emails shows "Password set at, Password set by, Must change password" twice. `08-production-walk` now names the entry.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-210 | 2026-10-01 14:30 | #136 (Builder A's report); ACC-090/091 | Medium | Builder B | **A filled default is saved as if the person chose it.** `PrefsSync` copies the theme and density a browser should see into the same cookies the profile menu writes for an explicit choice (`v2.theme`, `v2.density`), and `serverPrefs` counts any valid cookie as the browser's own choice. After one visit, the person's saved profile theme loses to the copied admin default, and a later change by the admin never reaches that browser. Builder A's `access.spec` "their own choice still wins" is red on #136 for this reason; not yet re-run by QA. **Fix (Builder A's proposal):** mark explicit choices apart (for example a `v2.chosen` cookie listing the keys the person set), treat only those as the browser's own, and keep refreshing the rest. | **Fixed on v2/main af7972e** (#142, merged 1 Oct; V219): what PrefsSync copies is marked in `v2.synced` as a cache, never a choice; #136 with it passes "their own choice still wins" (QA round 26). |
+| QA-211 | 2026-10-01 14:30 | #139; V454, V183 | Medium | Builder A | **An admin's Undo removes a member's private note they cannot see.** On #139 the admin's `api.note(<the note>)` answers `common.not_found`, yet `api.undo(<the member's capture request>)` runs and the note is gone. V183 makes rule-only types follow their own rule for history, the Activity page, Follow and a manager's Undo, but not for an admin's Undo. The reach is narrow (the Activity page hides the request id), but it is a write to a record the admin may not see. **Fix:** Undo asks each touched row's own rule for rule-only types, admins included. **Test:** `v2/supabase/tests/qa/QA-211-nobody-undoes-a-private-note-they-cannot-see.sql` fails until built. | Fixed on #139 ab6e12e: `audit.undo_allowed` asks a rule-only record's own rule first, admins included (NOTE-02 and its sabotage); QA-211 passes there and fails on 312be57. (QA's test called `api.note`; corrected to `api.my_note` in round 36.) |
+| QA-212 | 2026-10-01 14:55 | #132; V216 (words never keys) | High | Builder B | **#132: every organisation record shows raw keys as its tab names** ("partners.tabs.overview", "partners.tabs.activity", "partners.tabs.related"; the console says `MISSING_MESSAGE`). It's a key clash from merging #123: #132's Clients page uses `partners.tabs` as one line ("Clients and suppliers", `list-page.tsx:120`), while #123's record reads `partners.tabs.<tab>` (`PartnerRecord.tsx:636`). **Fix:** give the tab row's label its own key, and keep the record's tab names as on #123. | **Fixed on #132** (b355487, not merged): the tab row's label has its own key (`partners.sideTabs`), and the record's tabs read Overview · Activity · Related again. |
+| QA-213 | 2026-10-01 14:55 | #132; GC-1 §E, tests 1 and 5 | Medium | Builder A · B | **#132 leaves the default access as it was, so a fresh stack misses GC-1's tests 1 and 5.** `pipeline/module.ts` still gives members Own and viewers View, and the database built from #132 holds member Own and viewer View on Pipeline and Tasks. So a member's menu shows Pipeline, and a viewer's shows Tasks and Pipeline and gets a More. §E asks for these module defaults to change in this PR, "so a fresh stack and the gallery start the same way". **Fix:** Member · Pipeline none; Viewer · Tasks none and Pipeline none; the regenerated registry sync. | Open — **needs Builder A first** (Builder B on #132, 1 Oct 15:56): the registry sync writes a role's starting level only where none exists, so the defaults move only through A's forward migration (or a sync that can move them); then B's half is the one-line module change and the regenerated sync. On the oversight's NEED list for A. |
+
+
+## Round 25 — 2026-10-01 15:35 (v2/main 0973fb9, unchanged; the review queue's PRs moved)
+
+- **#136 at 5eef8c2:** main is merged in and the sabotage is fixed. QA-207's test passes, and the suite is 144 of 150 (the known fail-until-built). **Its one red is QA-210** (`app-settings.alone.spec.ts:52`), Builder B's PrefsSync, so #136 waits on B.
+- **#132 at b355487:** QA-212 is fixed (the tab row has its own key; the record's tabs read Overview · Activity · Related). QA-213 is still open.
+- **#139 at 312be57:** no regression (147 of 154). QA-211 is still open.
+- **#138 (draft) at 05cbb3c, an early look:**
+  - The suite is 147 of 154, and My day renders for a member, a manager and a viewer.
+  - It carries an older copy of #139's migration (`20260930172400_my_day_notes.sql`, 98+/74− against #139's head).
+  - On a phone the capture box's hint is cut off.
+- **#100 at 5a9ba4f:** the CSV guard and the Excel writer stop formulas. Phone numbers starting "+966" open with a visible apostrophe in CSV, by design.
+- **#104 at 0449560:** the Arabic covers all 823 English lines on v2/main. The open PRs' lines come with their own Arabic.
+- **#95 and #105:** CI is green and both merge cleanly. Their behaviour is not yet exercised by QA.
+- **Followed up with their owners:** QA-208 (Builder A on #139, Builder B on #132), QA-209, QA-210 and QA-211.
+
+
+## Round 26 — 2026-10-01 16:40 (v2/main 0973fb9, unchanged; #142 and #140 new, #138 out of draft)
+
+- **#142 (Builder B: QA-208 screen half, QA-209, QA-210) at 12c3801: clear from QA.**
+  - #136 at 5eef8c2 merged with #142 (no conflict), built on a fresh local stack: 27 of 28 of the builders' browser tests pass. These include #136's three `app-settings.alone` tests, among them "their own choice still wins" (QA-210). The 28th needs the mail catcher, which the QA stack doesn't run; it's green in #142's CI.
+  - The toast's Undo of a Remove email lifts the new ban (`undoing-an-email-removal-lifts-its-ban`), so no restored email stays locked out.
+- **#138 (P3-14, My day: Capture, then Convert) at 88b6b20, on #139's head: clear from QA.**
+  - Its copy of #139's migration now equals #139's.
+  - QA's new `09-my-day-notes` sweep spec, 14 PASS and 2 INFO:
+    - the toast's Undo after Turn into removes the call and reopens the note;
+    - a double click on save logs one call;
+    - an admin and a member reading the organisation see the call with no "from note" chip, and the note's address shows them nothing;
+    - on a browser whose date is a day ahead of Riyadh's (UTC+14), the capture keeps Riyadh's day, its row shows it, Wrap up carries to "Sun, 4 Oct", and a reminder defaults to tomorrow 09:00 Riyadh.
+  - #138's own specs don't run My day under the moved clock (PRF-139); this spec covers that.
+  - **INFO:** the call's line is the note's text, shown in Turn into's dialog and editable there, so it reaches readers of the organisation as the author saved it. By design (V433).
+  - Merges once the oversight signs GC-2.
+- **#140 (Builder A: P5-1, projects and tasks, the Past work grid's door) at db46551:**
+  - The SQL suite: 152 of 159; the 7 reds are QA-02/03/04/121/207/208/211, all fail-until-built.
+  - **New: QA-214.**
+- **Followed up:** QA-208's database half is still Builder A's. QA-211 (#139) and QA-213 (#132) are unchanged.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-214 | 2026-10-01 16:40 | #140; V444, V465, V196 | Medium | Builder A | **#140 lets the owner's admin account own and help on work, and counts it when matching pasted names.** V444: the admin account is "never counted as a team member"; his own work is on his employee account. `work.person_ok` refuses only the test account. So another admin can name the admin account a task's owner (saved) or helper (saved), and a task the admin account makes falls back to it as owner (the creator, last in V464's chain). `api.people_match` counts both accounts, so the owner's name, which both his accounts carry, answers `many` in the Past work grid instead of his employee account. The test account also still matches (`one`), then fails on save. **Fix:** `work.person_ok` takes team members only (`account = 'team_member'`), which also refuses the creator fallback through `task_create`'s check. `core.people_match` matches team members only. A scratch sketch of exactly that makes the test pass, and TSK-01/02/03, BACK-01 and NAMEMATCH-01 stay green. **Test:** `v2/supabase/tests/qa/QA-214-the-admin-account-is-never-named-on-work.sql`, which fails until built. | Fixed on main f110a10 (#140): work.person_ok and people_match take team members only; QA-214 passes on main. |
+
+
+## Round 27 — 2026-10-01 17:56 (v2/main af7972e: #142 merged; retaken)
+
+- **v2/main af7972e (#142 merged),** retaken in full:
+  - **The SQL suite:** 142 of 150. The 8 reds are QA-02/03/04/121/207/208/211/214, all fail-until-built.
+  - **The browser sweep:** no new reds against 0973fb9.
+    - ACC-095 now passes: a removed email's open session is refused at its next page, and a new sign-in with it is refused in words with its auth user banned. QA-209 holds on main.
+    - The reds left are already logged: QA-130 (OLD-009), QA-190, QA-200, QA-122 and earlier open items.
+    - `09-my-day-notes` is NOT BUILT here, since P3-13 is not on main yet.
+  - **The gallery (version 21):** 261 pictures of main, every one keeping the state it had. The one visible change is one's own record: one allowed email and no Remove beside it (QA-208, screen half). The #123 and #132 previews are carried over unchanged.
+  - **Flipped:** QA-209 and QA-210 fixed on main; QA-208's screen half on main, its database half still Builder A's.
+- **QA-213 needs Builder A first** (Builder B on #132): the registry sync never moves a role's starting level that already exists, so §E's defaults need A's forward migration before B's one-line change. The lane is now A · B.
+- **#136 (1c8756a) and #132 (3391072)** only took in v2/main. #136's CI is re-running with #142 in.
+- **#105 (7c35771):** a row the report dated is now sent with no day, and `work.backfill_tasks` (#140) dates it from the report's last day. Consistent with V196; no finding.
+
+
+## Round 28 — 2026-10-01 18:55 (v2/main 9fa2447: #136 merged; the oversight's production walk W31–W42 and the signed-in walk W33)
+
+- **v2/main 9fa2447 (#136 merged):** the SQL suite is 144 of 151; QA-207 now passes. The 7 reds are QA-02/03/04/121/208/211/214, all fail-until-built.
+- **The oversight's signed-out walk of production (W31–W36),** reproduced on main's local build:
+  - **W31 and W32 reproduce.** No security header on any page, signed out or in. Signed out, `/api`, `/api/…` (GET and POST) and an unknown address answer 307 to the door, which a browser follows to a 200 sign-in page. Signed in, an unknown address and `/api/…` answer 200.
+  - **W35 does not reproduce.** A browser reads `autocomplete=username` and `current-password` on the door's fields. The HTML writes `autoComplete` with a capital C, which a case-sensitive search misses.
+  - **W36:** with Arabic switched on (#136, now on main), the door offers Arabic and reads right to left. Production stays English while `app.arabic_enabled` is off (V126's default).
+  - **Tests:** the new sweep spec `10-http.spec.ts` covers W31, W32, W35 and W36. W31 and W32 fail until built.
+- **W33, the signed-in walk on main's local build:** new spec `11-signed-in-walk.spec.ts`. Member, manager, admin and viewer; every page of the gallery (29) at 1440 and 390; English and Arabic (Arabic switched on by the admin's setting); 1,716 checks pass.
+  - **Held:**
+    - the menus (drawer or the phone's More, the profile menu, the bell, Ctrl K) open with entries for every role, width and language;
+    - nothing is wider than a 390 px phone;
+    - no page's main area is empty;
+    - a viewer is offered no button that writes on any page;
+    - every page a role may not see shows a refusal, never content (as the sweep's `02-routes`).
+  - **Security:**
+    - 21 admin-only or server-only doors called as a member and as a viewer through the Data API are refused. Among them: access levels and roles, person edits, emails, switches, accounts, passwords, sign-outs, settings, roles, teams, the identifier block list, `auth_ticket_issue`, `auth_user_of`, `person_auth_link`, and Undo of an admin's request.
+    - A colleague's sign-in log and devices give them nothing.
+    - The app's `/auth/admin/*` routes refuse a member's session.
+  - **Writes:** covered for every role by the sweep's `03-writes` on af7972e, with no new reds (round 27).
+  - **Not reproduced:** the oversight's one 50 s load. Each person's 58 pages took about 50 s in all.
+  - **New:** QA-219 to QA-228 below.
+- **From the oversight's signed-in walks of production (admin and the employee account):**
+  - W37 is QA-219, W38 QA-220, W39 QA-223, W40 QA-221, W41 QA-222.
+  - **W42:** Finance opens for an employee **as intended**. The registry gives a member Finance at Own (V49: everyone types and edits their own invoices). The scenario that one person never sees another's invoices is QA-224.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-215 | 2026-10-01 18:55 | The oversight's W31; OWASP secure headers | Medium | Builder A | **No security headers on any page,** signed out or in: no Content-Security-Policy, no `frame-ancestors` / X-Frame-Options (any site can frame the door), no `X-Content-Type-Options: nosniff`, no Referrer-Policy. Reproduced on main 9fa2447's build. **Fix:** set them for every response (`next.config` headers or the middleware): a CSP with `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. **Test:** `v2/tests/qa/sweep/10-http.spec.ts` "W31 · QA-215", which fails until built. | Fixed on main 9c54322 (#145): CSP with frame-ancestors 'none', X-Frame-Options DENY, nosniff and a Referrer-Policy on every answer, signed out and in; W31 passes. |
+| QA-216 | 2026-10-01 18:55 | The oversight's W32 | Medium | Builder A | **`/api` and unknown addresses never answer 401 or 404.** Signed out, `GET /api`, `GET` and `POST /api/anything` and `/no/such/address` answer 307 to `/sign-in?next=…`, which a browser follows to a 200 sign-in page; a POST is redirected too. Signed in, `/no/such/address` and `/api/anything` answer 200 (the Not found page, with status 200). **Fix:** the middleware answers 401 (JSON) for `/api/*` without a session, and the Not found page sends 404 (`notFound()`); unknown addresses signed out answer 404, or 401 if the builders prefer not to say what exists. **Test:** `10-http.spec.ts` "W32 · QA-216", which fails until built. | Fixed on main 9c54322 (#145): signed-out /api answers 401, signed-in unknown addresses and /api answer 404 with the Not found page; W32 passes. |
+| QA-217 | 2026-10-01 18:55 | The oversight's W35 | Low | Builder B | **The door's fields and autocomplete: not reproduced on main 9fa2447.** A browser reads `autocomplete=username` on the email and `current-password` on the password. The HTML writes the attribute as `autoComplete` (capital C), which browsers read case-insensitively but a case-sensitive search misses. **Ask:** only re-check that production runs main's door. **Test:** `10-http.spec.ts` "W35" passes. | Not reproduced |
+| QA-218 | 2026-10-01 18:55 | The oversight's W36; V126, V214 | Low | Builder C (the owner's switch) | **The door is English-only in production** because `app.arabic_enabled` is off (V126's default), not a defect of the door. On main 9fa2447 (#136), with Arabic switched on, the door offers Arabic and the choice reads right to left. Once the switch is on, the words are Builder C's (see QA-226). **Test:** `10-http.spec.ts` "W36" passes. | Fixed on v2/main 9fa2447 (#136); waits on the owner's switch |
+| QA-219 | 2026-10-01 18:55 | The oversight's W37 | Low | Builder B | **Every tab title is "Commercial".** All 29 pages, for every role, read the same in the browser tab and history. **Fix:** each page sets its title through Next's `metadata` / `generateMetadata`, for example "My day · Commercial", or the record's name for a record. **Test:** `11-signed-in-walk.spec.ts` "W37 · QA-219", which fails until built. | Open — **mostly fixed on #146** (1b0aa3f, V221): every list and Settings page names itself; the organisation record, a colleague's and one's own record, and the Not found page still read "Commercial" (QA round 31). |
+| QA-220 | 2026-10-01 18:55 | The oversight's W38; QA-190, QA-126, V216 | Medium | Builder B | **Activity is flooded by personal Theme and Density changes** (seen in production by the oversight): one row per change, field names repeated. QA-126 saves the profile menu's choice to the profile, so every click is a logged change on the shared log; the same family as QA-190. **Fix:** a person's own appearance changes (theme, density, drawer) are not shown on the Activity page by default (or collapse into one row per person per day), and no row lists a field twice (QA-190). | Open |
+| QA-221 | 2026-10-01 18:55 | The oversight's W40; V214 (PRF-002/123: the no-access state) | Low | Builder B · C | **The no-access state says three different things.** Overview says "You do not have access to Overview". Activity (all three tabs) shows only its heading, "Activity", and a lock. Settings says "Settings is for admins". **Fix:** one no-access state with one sentence pattern (the page's name and who to ask), Activity's included; the Arabic follows. | Open — **mostly fixed on #146** (1b0aa3f, V221): Activity, Overview and Appraisal say "You do not have access to …" with Go to My day; Settings keeps "Settings is for admins" with Go to My day (acceptable if intended) (QA round 31). |
+| QA-222 | 2026-10-01 18:55 | The oversight's W41 | Low | Builder B | **The phone's Search box is 38 px high** (132×38 at 390 px), under the 44 px finger-sized target used for the bottom bar. **Fix:** 44 px. **Test:** `11-signed-in-walk.spec.ts` "W41 · QA-222", which fails until built. | Fixed on main e334f04 (#132, V217): the phone search box is 44 px high; W41 passes for every role in English and Arabic. |
+| QA-223 | 2026-10-01 18:55 | The oversight's W39; V445, GO-LIVE-RUNBOOK §3–4 | Medium | Architect (the go-live runbook) | **Production holds a test person and "Oversight test" entries** (the oversight's walk). The runbook removes the test account (§3, V445) but says nothing of other test people or records typed in production before go-live. **Ask:** add a line to `docs/v2/GO-LIVE-RUNBOOK.md` §3/§4: list every person and record made for testing in production, then remove them (soft, logged) or mark them, before the pilot. | Addressed on main 9c54322 (#145): the runbook marks the two test people for the owner's review, then removal (W39). Open until they are removed in production. |
+| QA-224 | 2026-10-01 18:55 | The oversight's W42; V49, V458 | Medium | Builder A | **Scenario: one person never sees another's invoices.** A member's Finance level is Own (registry; V49), so the page opens for an employee, as intended. Once P4 brings invoices, a person with Own sees only the invoices they typed or that belong to their own clients, never a colleague's; a manager sees their reports'; Full sees all. **Test:** a QA test written as soon as P4's invoice read door exists, failing until it holds. | Open (scenario) |
+| QA-225 | 2026-10-01 18:55 | W33; V216 (words, never keys) | Medium | Builder B | **Activity shows a raw key in English:** `activity.actions.delete` on the admin's Activity page at 1440 and 390 (MISSING_MESSAGE in the console). A delete entry's action has no English line. **Fix:** add the line (and its Arabic); the catalogue check should catch a key the screens use that the catalogue lacks. | Open |
+| QA-226 | 2026-10-01 18:55 | W33; V305, V216 | Medium | Builder C | **Arabic on main is about half English, and Activity shows raw keys.** With Arabic switched on, 183 of 232 Arabic page checks (4 roles × 29 pages × 2 widths) find English wording: "Settings is for admins", "Organization & access", "Nothing here yet", "Page not found", the profile page, the record's tabs and DETAILS. Activity shows `activity.tabs.*` and `activity.filters.*` as raw keys, and every page logs MISSING_MESSAGE `profileMenu.recentlyDeleted` and `notifications.title` (ar). **Fix:** #104 (the Arabic catalogue complete, English beneath Arabic, V305), then QA re-walks Arabic. **Until then, Arabic must stay switched off in production.** | Open |
+| QA-227 | 2026-10-01 18:55 | W33; V40 | Low | Builder B | **My day's date is always English:** `formatDate(new Date(), 'en', { weekday: 'long' })` at `v2/src/app/(app)/my-day/page.tsx:24`, so an Arabic page heads "Thursday 1 October 2026". **Fix:** the request's locale. | Open |
+| QA-228 | 2026-10-01 18:55 | W33 | Low | Builder B | **A colleague's record makes a request that answers 403** for a member, a manager and a viewer ("Failed to load resource: 403" in the console, at 1440 and 390, English and Arabic). The page itself shows what it should. **Fix:** don't ask for what the reader may not read (the record already hides it, V216). | Open: the request is `api.following('person', <colleague>)`, refused 403 for a member, a manager and a viewer on a colleague's record (QA round 30). |
+
+
+## Round 29 — 2026-10-01 19:05 (v2/main 9fa2447, unchanged since round 28; #143 new)
+
+- **v2/main 9fa2447:** the full browser sweep has no change from af7972e apart from the new `10-http` and `11-signed-in-walk` checks (round 28). The gallery is not retaken: #136's screens look the same while the admin's settings keep their defaults.
+- **#143 (Builder B: QA-190, QA-200) at 27b9ebd: clear from QA.**
+  - QA-190: the admin's Activity, 50 entries, none names a field twice.
+  - QA-200: every text field on My profile, Edit person and Add person turns autofill off. QA's `08-production-walk` check now leaves out date pickers, which browsers never autofill.
+  - ACC-095 holds. ACC-094's first email still won't take the password set through the second, as on main.
+- **#132 (79c4c42), #123 (070f514), #138 (12f8513):** each took in v2/main and replaced its stale registry sync with one fresh, forward-only sync. The SQL suite is 144 of 151 on #132 and 149 of 156 on #138; the reds are only the known fail-until-built.
+- **#104 (8eaf3a8), #100, #95, #105:** only main merged in, plus one test change on #104.
+
+
+## Round 30 — 2026-10-01 20:18 (v2/main 9fa2447, unchanged; #145, #144 new)
+
+- **#145 (Builder A: W31, W32, W39) at 6146e95: clear from QA.**
+  - QA-215 and QA-216 are fixed; every `10-http` check passes.
+  - The walk (4 roles × 29 pages × 2 widths × 2 languages) shows nothing blocked by the new CSP.
+  - QA-223 is addressed: the runbook marks the two test people.
+  - QA's W32 check now accepts a signed-out unknown address going to the door: before sign-in it cannot be told from a deep link.
+- **#144 (Builder A: W43, W47) at 2378573:** the full sweep gives the same result as main 9fa2447, check for check. No finding.
+- **The walk now records a failed request by its address.** The Not found page's own 404 is expected, so it no longer counts. This also names QA-228's request: `api.following`.
+- **#132 (d50375b), #138 (655b170):** main's Arabic-switch test now finds Language in My profile, and My profile shows the Language field once Arabic is on.
+
+
+## Round 31 — 2026-10-01 22:27 (v2/main 9fa2447, unchanged; #146 new)
+
+- **#146 (Builder B: the production walk's small screen items W35–W49, V221) at 1b0aa3f:** the signed-in walk and the production-walk checks on a fresh local build, against main 9fa2447.
+  - **QA-222 fixed.**
+  - **QA-219 and QA-221 mostly fixed.** Still "Commercial": the organisation record, the person records and the Not found page. Settings keeps its own no-access sentence.
+  - No regression in the walk.
+  - **Still open:** QA-225, QA-227 and QA-228.
+  - QA-220 is covered only by B's unit test so far.
+
+
+## Round 32 — 2026-10-01 23:06 (v2/main 9fa2447; the review split: QA 1 takes #137, #139, #138 and the Friday pilot path, QA 2 takes #123, #132, #145, #135)
+
+- **#137 (the Architect: V500–V519, the D and E lanes and briefs) at f3380ea: clear to merge from QA.**
+  - Its guard unit tests pass locally (108/108) and `pnpm checks` is green.
+  - V500–V519 agree with what's built; no decision number is reused; the new scenario IDs are unique.
+  - Four follow-ups below, none blocking.
+- **Pilot note:** V517's stage 0 needs #139, where QA-211 is still open.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-229 | 2026-10-01 23:06 | #137; ACC-149, GO-LIVE-RUNBOOK (pilot row), V513, V214, V517 | Medium | Architect | **A hidden module's address has three different expected answers.** ACC-149 and the runbook's pilot row: "reads as not there". V513: "Switched off". What level none does (V214; #146's wording): "You do not have access to Finance · Go to My day". The pilot hides modules by level none, so a pilot check written from ACC-149 would fail. **Fix:** the pilot's expected answer is the no-access state; V513's "Switched off" applies once P3-17's switches land. | Open |
+| QA-230 | 2026-10-01 23:06 | #137; DECISIONS header, V519 | Low | Architect | **The decision-number ranges overlap:** the header still gives builder B V200–V299 and C V300–V399, while V519 gives D 270–299 and E 370–399. **Fix:** B V200–V269, C V300–V369. | Open |
+| QA-231 | 2026-10-01 23:06 | #137; .claude/settings.json | Low | Architect | **Three items in the new allow and deny lists:** `Bash(psql postgres://:*)` / `postgresql://` deny every direct `psql` to a local QA stack, and a deny wins over any allow (QA runs these through scripts, so accept or narrow); `Bash(rm -rf /*:*)` may deny every absolute-path `rm -rf` if the `*` is read as a wildcard; the allow `mcp__github__update_pull_request_branch` pushes a merge onto a PR's branch, against V519's "no one pushes to a branch awaiting QA". | Open |
+| QA-232 | 2026-10-01 23:06 | #137 (briefs/tasks-screens.md); QA-214, V444, V464 | Low | Architect (D's brief) | **D's quick add leans on V464's default owner (#140), where QA-214 is open:** the owner's admin account can be named or defaulted as a task owner and is matched by pasted names. **Fix:** a line in D's brief that owner pickers leave the admin account out, until QA-214 lands in #140. | Open |
+
+
+## Round 33 — 2026-10-01 23:17 (v2/main 9fa2447; the Friday pilot path prepared)
+
+- **The pilot path spec `12-pilot-path.spec.ts` (V517 stage 0; run alone: `-- --grep "pilot path"`).**
+  - **What it does:** sets the deferred modules (Finance, KPIs, Pipeline, Projects, Overview, Reports, Appraisal) to none on the member and manager roles through the admin's own door, as the runbook's pilot row says, and puts them back afterwards. Then it checks, as a pilot member and a pilot manager:
+    - the menus at 1440 and 390, and Ctrl K;
+    - every deferred address;
+    - Clients' list and a client's record;
+    - My day's capture turned into a call on a client;
+    - that the admin keeps every module.
+  - **On main 9fa2447:** the menus and Ctrl K offer no deferred module, every deferred address shows "You do not have access to …", the admin keeps all, and the levels come back as they were. Clients fails here because #123 isn't merged; My day's notes are NOT BUILT (#139 and #138).
+  - It runs in full on the stage-0 tree once #139, #138, #123 and #132 merge, with the registry sync regenerated last (QA 2's QA-501).
+- **Merges first, then the path:** #138 conflicts with main on `DECISIONS.md`, and #132 conflicts with #138 on the registry syncs (rename/rename). These are the builders' to resolve as they merge.
+
+
+## Round 34 — 2026-10-02 00:21 (v2/main 9fa2447; #147 claimed by QA 1 as the pilot's stage 1, Tasks)
+
+- **#147 (Builder D: P5-2's first PR, the Tasks screens, on #140) at 1dd8268:**
+  - **SQL suite:** 152 of 160; the reds are the known fail-until-built ones (QA-214 from #140; QA-207 off main's base).
+  - **The English signed-in walk:** Tasks renders for every role at both widths, with no missing key and no console error of its own, and a viewer is offered no Add task. QA's write-button check now leaves out "Add filter" chips, which change no data.
+  - **The new spec `13-tasks.spec.ts`:** a teamless member is refused in words; a double click adds one task; a teammate can't change a task's status; a viewer can't add a task; a future-dated status move is refused.
+  - **Owner picker:** leaves out the admin and test accounts, which covers QA-232's screen side.
+  - **New:** QA-233 to QA-235.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-233 | 2026-10-02 00:21 | #147; V216 | Low | Builder D | **An unknown task number shows Next's bare 404** ("This page could not be found"), outside the app shell, not the app's Not found page with Go to My day. #145 adds `(app)/not-found.tsx`, which should take over once both merge; QA re-checks then. | Fixed on main 417073f (#147, round 51; with #145's not-found page): an unknown task number is the app's Not found page with Go to My day. |
+| QA-234 | 2026-10-02 00:21 | #147, #140; V216 | Low | Builder D (words: B) | **`common.date_in_future` has no line.** Tasks words its `task.*` refusals under `pages.tasks.errors`, but a future-dated refusal falls back to "This change was refused:" with nothing after it. Probably out of the UI's reach (date pickers max Riyadh's today). **Fix:** one line, `errors.common.date_in_future`. | Fixed on main 417073f (#147, round 51): "That day is after today" on the Tasks screens. The shared key's own line is QA-239. |
+| QA-235 | 2026-10-02 00:21 | #147; V464, V517 | Low | Architect (the runbook) | **A pilot member with no team cannot add a task** ("The task needs a team", V464). **Fix:** the runbook's pilot rows say every pilot member is in a team before stage 1. | Open |
+
+
+## Round 35 — 2026-10-02 00:38 (v2/main 9fa2447; a local trial of stage 0 for the Friday pilot path)
+
+- **A trial of stage 0 before its PRs merge.** v2/main 9fa2447 was merged locally with #139 312be57, #138 655b170, #123 070f514 and #132 aebe3df, in a scratch copy that is never pushed (`pilot-trial-merge.sh` in QA's scratch folder).
+  - **How they merge:** `DECISIONS.md` conflicts on #139, #138 and #132; the registry-sync migrations clash twice as rename/rename (#139 with #123, #138 with #132), leaving merge markers in the kept file. Each kept sync is its own branch's full snapshot, so whichever is newest would switch off the others' pages: one fresh `pnpm registry:sync` last is needed, as QA-501 and V600 say. With that, the database builds from zero.
+- **The pilot path on the trial (`12-pilot-path.spec.ts`): 38 PASS, 2 FAIL.**
+  - **Pass:** with the seven deferred modules at none, a pilot member and a pilot manager see none of them in the menu at 1440 or 390, or in Ctrl K. Every deferred address says "You do not have access to …". Clients lists and opens a client at `/clients`. My day files a capture, and Turn into offers a call or a reminder only (no task before stage 1); the note becomes a call on the client. The admin keeps every module, and the levels are put back.
+  - **Fail (new, QA-236):** the menu also offers Tasks, which opens "Being built." until stage 1.
+  - **The spec's own fix:** after #123, Clients' address is `/clients`, not `/partners?view=clients`. The spec now follows the menu's Clients link and checks every page the pilot menu offers.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-236 | 2026-10-02 00:38 | V517; BUILD-PLAN pilot row 7 | Low | Oversight (row 7) · Architect | **In stage 0 a pilot member's and a pilot manager's menu offers Tasks, which opens "Being built."** V517 brings Tasks in stage 1 (18 Oct); row 7 sets only the deferred modules (and, for QA-213, Member · Pipeline and Viewer · Tasks and Pipeline) to none. So for two weeks the pilot group meets a page that is empty, and if #140 and #147 merge before Sunday, Tasks would go live in stage 0 instead. **Fix:** row 7 adds Tasks at none on the member and manager roles for stage 0, lifted on 18 Oct (or the runbook accepts the "Being built" page). **Test:** `12-pilot-path.spec.ts`, "a page the pilot menu offers is not a 'Being built' page". | Open: the decision only. The "Being built" page is gone on main 417073f (#147), so Tasks is now live for the pilot roles in stage 0 unless row 7 sets it to none until 18 Oct (round 51). |
+
+
+## Round 36 — 2026-10-02 01:10 (v2/main 9fa2447; #139 at ab6e12e cleared; #147 at 7140637)
+
+- **#139 (Builder A, P3-13 My day notes) at ab6e12e: clear from QA.** It merges once CI on that head is green.
+  - **Changes:** v2/main merged in, a fresh registry sync dated after main's newest, and QA-211 fixed. `audit.undo_allowed` is round 7's version word for word, with the rule-only clause at the top.
+  - **SQL suite from zero:** 149 of 156 pass. The reds are QA's fail-until-built tests for other PRs (QA-02/03/04/121/208/214) and the old QA-211 file.
+  - **QA's own fix:** QA-211's test called `api.note`, a door that does not exist; it is `api.my_note`. Corrected, the test passes on ab6e12e and fails on 312be57 for the right reason: the admin's Undo removed the note.
+- **The stage-0 trial, rebuilt with #139 ab6e12e:** the pilot path is unchanged, 38 PASS and 2 FAIL (QA-236). The My day notes spec gives 14 PASS and 2 INFO.
+- **#138 is still on 312be57.** It needs #139's new head merged in and a fresh registry sync before it merges.
+- **#147 (Builder D, Tasks) at 7140637:** QA-234 is fixed, though one Arabic line is missing (Builder C). Builder C's Arabic for the Tasks screens is in. Otherwise clear from QA; QA-233 is re-checked once #145 is in.
+
+
+## Round 37 — 2026-10-02 01:50 (v2/main 7460739: #139 merged)
+
+- **Main retake at 7460739** (#139, P3-13 My day notes, the data):
+  - **SQL suite from zero:** 150 of 156. The 6 reds are QA's fail-until-built tests for other lanes: QA-02, QA-03, QA-04, QA-121, QA-208 and QA-214. QA-211 is green on main.
+  - **Full browser sweep:** no new failure against main 9fa2447, either as a result row or as a whole test. The FAIL rows (542) are the open items already logged: W31/W32, QA-219 titles, Arabic left for #104, and the rest.
+  - **No gallery republish:** #139 changes data, not screens.
+- **QA's own fixes:**
+  - **`09-my-day-notes` read "built" on main once #139 merged**, then waited for screens that come with #138 and timed out. It now needs both halves: the data doors and My day's screens (`TurnDialogs.tsx`). On main it reads NOT BUILT, as it should. The pilot spec's notes part uses the same check.
+  - **The pilot spec no longer runs in a full sweep.** It changes role levels, so it runs alone: `QA_PILOT=1 run.sh -- --grep "pilot path"`.
+- **The merge train after #139:** #138 (655b170) still carries #139's old head, and three branches still have registry syncs older than main's newest (`20261001211629`): #138 `20261001154833`, #123 `20261001155024`, #132 `20261001155145`. Each re-stamps after main as it merges (V600).
+
+
+## Round 38 — 2026-10-02 03:40 (v2/main a181f54: #123 merged)
+
+- **Main retake at a181f54** (#123, P3-9a: the Clients and Suppliers & partners lists, the organisation record, hover cards, Ctrl K organisations):
+  - **SQL suite from zero:** 150 of 156, the same fail-until-built reds (QA-02/03/04/121/208/214).
+  - **Full browser sweep:** 9 rows newly red against 7460739; once QA's checks were brought up to date, only one finding is new: QA-237.
+    - A viewer's "Save view" on the lists is a personal saved view (V61; sharing needs Full in `core.view_save`), not a write. QA's walk no longer counts it.
+    - "saved view" on the Arabic Clients page is the seed's own view name, not wording.
+    - An organisation the reader may not see now reads as Not found rather than no access, as a private note does. It does not say the record exists. QA's routes spec accepts it and logs it as INFO.
+  - **Gallery republished** as version 23 (261 pictures). The #123 and #132 previews are dropped now that #123 is on main.
+- **The stage-0 trial no longer builds:** #138 (655b170) conflicts with main in 27 files. #123 went in as one squashed commit while #138 still carries #123's older commits (to fbf2977). Builder B has been asked on #138 to merge main, taking main's side for #123's files. #132 merges with main cleanly.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-237 | 2026-10-02 03:40 | #123 (main a181f54); V98, V207, V214 | Low | Builder B | **The old `/partners` address always goes to Clients.** A person who may see Suppliers & partners but not Clients lands on "You do not have access to Clients". The record redirect (`/partners/[id]`) already picks the side the reader may see; the list redirect does not. **Fix:** in `(app)/partners/page.tsx`, go to `/suppliers` when the reader's Clients level is none and their Suppliers & partners level is not. **Test:** `02-routes.spec.ts`, `/partners` as `noclients`. | Open |
+
+
+## Round 39 — 2026-10-02 05:15 (v2/main e334f04: #132 merged; only #138 left for stage 0)
+
+- **Main retake at e334f04** (#132, V217 the employee view: the menu rule, Suppliers as Clients' tab, the ten cuts):
+  - **SQL suite from zero:** 150 of 156, the same fail-until-built reds.
+  - **Full browser sweep:** 14 rows newly red against a181f54, all QA's own checks out of step with V217; once updated, none is an app fault.
+    - The drawer now follows V217's menu rule: work pages at any level, manage pages for Manager and up, KPIs and Reports for a Viewer, Overview and Activity for Head and Admin, and Suppliers as Clients' tab. Ctrl K reaches every page the person may open, which V217 calls never locked. `02-routes` and ACC-048 now check exactly that.
+    - My profile no longer shows the full name (V217, cut 6), so ACC-094 reads who signed in from `core.sign_in_log`. ACC-031 waited the whole test out on that field; it now gives up after 5 s.
+  - **Fixed by #132:** QA-222, the phone search box is 44 px.
+  - **Gallery republished** as version 24.
+- **The pilot path on a fresh main copy** (`QA_PILOT=1`, `12-pilot-path`): 33 PASS, 4 FAIL, 1 NOT BUILT.
+  - **Pass:** with the seven deferred modules at none, a pilot member and manager see none of them in the menu (1440 and 390) or in Ctrl K, and every deferred address says "You do not have access to …". Clients lists and opens a client, and the admin keeps every module.
+  - **Fail:** My day reads "Being built." until #138 brings its screens, and Tasks reads "Being built." (QA-236).
+  - **Not built:** the note turned into a call, until #138.
+- **#138 is the last stage-0 PR.** It is still at 655b170 and conflicts with main; Builder B was asked at 00:20 UTC to merge main.
+
+
+## Round 40 — 2026-10-02 05:25 (v2/main e334f04; #138 at dc4a75f cleared — the last stage-0 PR)
+
+- **#138 (Builder B, P3-14 My day: Capture, then Convert) at dc4a75f: clear from QA.** It merges once CI's end-to-end job is green; the other jobs are green already.
+  - It contains main e334f04 and merges with no conflicts. It adds no migrations and no registry change, so no sync is needed (V600).
+  - **QA's My day notes spec:** 14 PASS and 2 INFO, the same as on the earlier trial.
+- **The Friday pilot path, stage 0 complete** (main + #138, `QA_PILOT=1`): 38 PASS and 2 FAIL.
+  - **Pass:**
+    - with the deferred modules at none, a pilot member and manager see none of them in the menu (1440 and 390) or in Ctrl K;
+    - every deferred address says "You do not have access to …";
+    - Clients lists and opens a client;
+    - a capture is filed, and Turn into offers a call or a reminder only; the note becomes a call on the client;
+    - the admin keeps every module.
+  - **Fail:** the 2 fails are QA-236, Tasks "Being built." in stage 0, which is the runbook's to settle.
+
+
+## Round 41 — 2026-10-02 06:30 (v2/main 2cd9fad: #138 merged; stage 0 complete on main)
+
+- **Main retake at 2cd9fad** (#138, P3-14 My day: Capture, then Convert):
+  - **SQL suite from zero:** 150 of 156, the same fail-until-built reds.
+  - **Full browser sweep:** 3 rows newly red against e334f04.
+    - **QA-238 (new):** a person at none on My day gets a 500 on `/my-day`, and `/`, `/sign-in` and `/set-password` all send them there.
+    - **ACC-094's first email** taking the password chosen through the second is red on a181f54 too; on e334f04 the test stopped before it.
+    - **An Arabic "leftover"** was a made-up title carrying the run's tag; QA's walk now leaves such words out.
+  - **My day notes spec:** 14 PASS, 2 INFO.
+  - **Gallery republished** as version 25.
+- **The Friday pilot path on a fresh main copy, stage 0 complete** (`QA_PILOT=1`): 38 PASS and 2 FAIL.
+  - With the seven deferred modules at none, a pilot member and manager see none of them in the menu (1440 and 390) or in Ctrl K, and every deferred address says "You do not have access to …".
+  - Clients lists and opens a client.
+  - A capture is filed, Turn into offers a call or a reminder only, and the note becomes a call on the client.
+  - The admin keeps every module.
+  - The 2 fails are QA-236, Tasks "Being built." in stage 0 (pilot row 7, the oversight's).
+- **Pushes held:** Vercel's daily build limit was hit again at 02:19 UTC. QA's commits stay local until production has deployed main.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-238 | 2026-10-02 06:30 | #138 (main 2cd9fad); V214, V433 | Medium | Builder B | **My day crashes for a person at none on My day.** `(app)/my-day/page.tsx` calls `myDay(…)` before any level check. The door refuses with `access.needs_level` (`my_day`, `view`), nothing catches it, and the page answers HTTP 500 (React #441) instead of "You do not have access to My day". Sign-in lands everyone on `/my-day`, so such a person meets the crash right after signing in. The pilot roles keep My day, so stage 0 is not affected. **Fix:** check `me.levels['my_day']` first and, at none, render the page's no-access state (`<Page page="my_day">`), or catch `PermissionDenied`. **Test:** `02-routes.spec.ts`, every screen as `nolevels` (`/`, `/my-day`, `/sign-in`, `/set-password`). | Open |
+
+
+## Round 42 — 2026-10-02 06:52 (v2/main 97b049a: #135 merged)
+
+- **Main moved to 97b049a** (#135, QA 2's: the production job runs in the GitHub environment "production", QA-186). It changes only CI checks, their tests and sabotages, and two documents. There are no app files, migrations or screens, so round 41's results on 2cd9fad stand for 97b049a: SQL suite, full sweep, pilot path (38 PASS, 2 FAIL = QA-236) and gallery v25.
+
+
+## Round 43 — 2026-10-02 07:25 (v2/main 97b049a; #137 cleared at a4813fc, at the Architect's request)
+
+- **#137 (Architect: V500–V531, V600; the allow list and guard lanes D/E): cleared at a4813fc.** Builders D and E were waiting on it.
+  - The guard files are identical to f3380ea, QA's last clearance: `.claude/hooks/bash-guard.mjs`, `.claude/settings.json`, `CLAUDE.md` and the shell-guard unit test.
+  - Every other change outside `docs/v2/` came in with v2/main; the head contains main 97b049a and merges with no conflicts.
+  - `docs/v2/` adds V520–V531 and V600, refines V98, V404, V433, V454, V461 and V506, and carries main's V183–V188, V215, V217 and V218 (324 decisions, no number twice).
+  - CI is green except end-to-end, which was still running on a docs-only change.
+- **Next:** #145 (a18183c, QA 2's lane) and #140 (90b7de8) need a re-clear once their CI finishes (oversight, 07:10).
+
+
+## Round 44 — 2026-10-02 07:55 (v2/main 97b049a; #140 at 90b7de8 cleared)
+
+- **#140 (Builder A, P5-1: projects and tasks, the Past work grid's door) at 90b7de8: clear from QA** (the oversight's request, 07:10). It merges once CI's end-to-end and Postgres 17 jobs are green.
+  - **Merge train (V600):** it contains main 97b049a and merges with no conflicts; its migrations and fresh registry sync are newer than main's newest.
+  - **SQL suite from zero:** 161 of 166. QA-214 is fixed; the reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** no new failure against main 2cd9fad.
+  - **QA's own fix:** `13-tasks` read "built" once the data was in and then waited for #147's screens; it now needs both halves (`QuickAdd.tsx`) and reads NOT BUILT here.
+
+
+## Round 45 — 2026-10-02 08:20 (v2/main 9c54322: #145 merged; #137 and #140 re-confirmed)
+
+- **Main retake at 9c54322** (#145, Builder A: security headers, signed-out `/api` answers 401, unknown addresses 404 with the app's Not found page, test people marked):
+  - **SQL suite from zero:** 150 of 156. QA-214 stays red on main until #140 merges.
+  - **Full browser sweep:** every W31 and W32 check passes (13 rows). **QA-215 and QA-216 are fixed.**
+  - **The only newly red rows were QA's own:** `/no/such/address` signed in was expected to be the old catch-all placeholder. It now expects the Not found page with 404, which is #145's intent.
+  - **The pilot path on a fresh main copy:** 38 PASS, 2 FAIL (QA-236), unchanged.
+  - **Gallery republished** as version 26 (the Not found page).
+  - **QA-223 is addressed:** the runbook marks the two test people for the owner's review, then removal.
+- **#137 re-confirmed at 674a87f, #140 at 053f937.** Each moved only by merging main 9c54322. Their own diffs against main are identical to the heads QA cleared, and they merge with no conflicts. #145 has no migration, so #140's migrations stay the newest.
+
+
+## Round 46 — 2026-10-02 08:55 (v2/main 4d496c2: #137 merged; #140 re-confirmed at 4037867; #147 cleared at 0355e9b)
+
+- **Main 4d496c2** (#137): docs, guard settings and the guard's unit test only, so there is no retake.
+- **#140 re-confirmed at 4037867.** It moved only by merging main 4d496c2, and its own diff against main is unchanged.
+- **#147 (Builder D, the Tasks screens) at 0355e9b: clear from QA.** It contains main and #140 and merges after #140. If #140 is squash-merged, it merges main again first.
+  - **SQL suite from zero:** 161 of 166 (the other lanes' fail-until-built reds).
+  - **Full browser sweep:** no new failure against main 9c54322.
+  - **`13-tasks` runs for real:** 7 PASS. QA-233 and QA-234 are fixed.
+- **New:** QA-239.
+- **Pilot (QA-236):** once #147 merges, Tasks is real on main. Pilot row 7 should set Tasks to none for the pilot roles until 18 Oct if it is not meant to open early.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-239 | 2026-10-02 08:55 | #138 (main); V216 | Low | Builder B (words) | **The shared refusal for a day in the future talks about notes.** `errors.common.date_in_future` reads "A note cannot happen after today", but the activity door (`20260929090200`) and round 6 raise the same key. A call logged on a future day would therefore read "A note …". The Tasks screens map it to their own line, so they are fine. **Fix:** a generic shared line ("That day is after today"), with the notes screen keeping its own if wanted. | Open |
+
+
+## Round 47 — 2026-10-02 09:35 (v2/main f110a10: #140 merged; #147 re-confirmed at 7f01903)
+
+- **Main retake at f110a10** (#140, Builder A: P5-1 projects and tasks, the core and the Past work grid's door; migrations, no screens):
+  - **SQL suite from zero:** 161 of 166. **QA-214 is fixed on main.** The reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** no new failure against 9c54322.
+  - **The pilot path on a fresh main copy:** 38 PASS, 2 FAIL (QA-236), unchanged.
+  - No gallery change: #140 adds no screens.
+- **#147 re-confirmed at 7f01903.** It moved only by merging main f110a10 (#140, squash-merged). Its own diff against main is identical to the head QA cleared (0355e9b), and it merges with no conflicts.
+- **#148 (Builder E) is still a draft** (473c50b). QA starts when it leaves draft.
+
+## Round 48 — 2026-10-02 12:15 (#141 at f2733e5: not cleared — QA-241, QA-240)
+
+- **Main is unchanged at f110a10.** #147 is still at 7f01903, cleared. #148 and #151 (Builder E) went to QA 2 (Architect, 07:27 UTC).
+- **#141 (Builder A: next-step tasks, Escalate, team load, daily reminders) at f2733e5: not cleared.** It moved from c5d807e only by taking Builder C's Arabic (`ar.json`, 6 lines). Nobody had claimed it, so QA 1 took it.
+  - **SQL suite from zero:** 165 of 170. The reds are QA-02/03/04/121/208, the same five as on main. ACT-02, ESC-01, LOAD-01 and ALR-03 pass.
+  - **Sabotages:** all nine turn their test red.
+  - **V600:** its migrations `20261002031000` and `20261002060700` sort after main's newest (`20261002030111`). #148's are `20261002040000` and `20261002060548`, so whichever of #141 and #148 merges second re-stamps and re-syncs. #147 has no migrations.
+  - **CI on f2733e5:** green except build and end-to-end, still running at 12:15.
+  - **Adversarial pass:**
+    - `api.escalate` holds: refused to yourself, to someone blind, without a note, and on another record type.
+    - `api.team_load` counts only live work in the reader's departments.
+    - **Two findings:** QA-241 (blocks merging while Tasks is none on the pilot roles) and QA-240.
+    - **Note for the screens:** `api.team_load` needs View on Tasks (V198). A Clients picker in stage 0 that shows load must treat the refusal as "no load", or pilot members get an error.
+  - **Tests (fail until fixed):** QA-240 and QA-241. Both pass on main, fail on f2733e5, and pass on f2733e5 with the one-line fix each finding names. ACT-02 and ALR-03 still pass with those fixes.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-241 | 2026-10-02 12:15 | #141 f2733e5; V197, V151, V517 (pilot stage 0) | High | Builder A · Architect | **A next step makes a task its author cannot open.** In the pilot's stage 0, Tasks is none on the member and manager roles while Log activity is live. An activity logged there with a next step still makes the task (`work.next_step_task` asks only for a team and V465). The member can neither open nor close it (`api.task`: `common.not_found`), yet the day before it is due they are told `alert_due_tomorrow`: the daily job's guard lets it through because an owner always "sees" their record (`authz.can_see_as` → `core.owners_of`). While the task stays open, the organisation never goes stale (V151 after P5-1): 25 days on it still reads fresh, so the stale alert never comes for any pilot organisation with a next step. **Fix:** treat an author below Own on Tasks like "nobody can take it" (V197): add `or authz.level_of(new.created_by, 'tasks') < 'own'` to the no-task test, so the next step stays on the activity. Otherwise the Architect holds #141 until Tasks opens to the pilot roles on 18 Oct. **Test:** `QA-241-a-next-step-leaves-no-task-its-author-cannot-open.sql`. | Fixed on main fc3c18f (#141, round 59) |
+| QA-240 | 2026-10-02 12:15 | #141 f2733e5; V199, V491, V506 | Medium | Builder A | **A project dated before go-live is reminded.** `notify.alert_project_no_update()` never asks `work.is_past`, so an Active project dated before the go-live day tells its owner "no health update" on the first daily run. The silence is counted from its old date. Past work tells nobody (#140's rule), and ALR-03 already keeps past tasks out of the due-day reminder. **Fix:** add `and not work.is_past(p.happened_on)` to its `where`. If a still-running project from before go-live should be reminded, the Architect says so and its silence counts from the go-live day instead. **Test:** `QA-240-a-project-dated-before-go-live-is-never-reminded.sql`. | Fixed on main fc3c18f (#141, round 59) |
+
+## Round 49 — 2026-10-02 14:45 (v2/main 94ff70a: #148 merged; #141 cleared at a035e30; #147 re-confirmed at 035b22e)
+
+- **Main retake at 94ff70a** (#148, Builder E: the achievements data, migrations only, no screens; QA 2's review):
+  - **SQL suite from zero:** 172 of 177. The reds are QA-02/03/04/121/208 (other lanes), as before.
+  - **Full browser sweep:** no new failure against f110a10, and every area's totals are identical.
+  - **Pilot path on a fresh main copy:** 38 PASS, 2 FAIL (QA-236), unchanged.
+  - No gallery change: #148 adds no screens.
+- **#141 (Builder A) cleared at a035e30**, on condition that CI's build and end-to-end job (still running at 14:45) ends green.
+  - QA-241 and QA-240 are fixed (c437528). The fixes are the two lines QA named, each with a new sabotage.
+  - Merged with main 94ff70a, re-stamped to `20261002110000` and `20261002110100`, after #148's `20261002060548` (V600).
+  - **SQL suite from zero:** 176 of 181; QA-240 and QA-241 pass.
+  - **Sabotages:** all 11 turn their test red.
+- **#147 re-confirmed at 035b22e.** It moved only by merging main 94ff70a. Its own diff against main matches the cleared head, except for where its DECISIONS section sits next to #148's.
+
+
+## Round 50 — 2026-10-02 16:25 (v2/main e1be906: #151 merged; #141 cleared at a035e30 with CI green; #147 re-confirmed at 8c69226)
+
+- **Main retake at e1be906** (#151, Builder E: the achievements screens `/kpis/achievements`, the record page and Log achievement; QA 2 cleared it):
+  - **SQL suite from zero:** 172 of 177, unchanged. The reds are QA-02/03/04/121/208 (other lanes).
+  - **Full browser sweep:** the same failing tests as 94ff70a, and every area's totals are identical.
+  - **Routes:** `02-routes` now also opens `/kpis/achievements` and an achievement that does not exist, as every person, when those pages exist. 12 new checks, all PASS; routes 320 PASS, 13 FAIL as before.
+  - **Pilot path on a fresh main copy:** 42 PASS, 2 FAIL (QA-236, unchanged). It now also opens `/kpis/achievements` and `/kpis/achievements/new` as the pilot member and manager (KPIs at none). All four read "You do not have access".
+  - **Gallery:** retaken and republished (version 28, 279 pictures). It adds KPIs · Achievements and KPIs · Log achievement for every person. The local seed opens no plan, so the list is empty and Category offers nothing. That is the production blocker the Architect sent to Builder E at 13:10 UTC (plans opened by a migration, an empty state for Log achievement), and it is QA 2's to clear.
+  - **New:** QA-242 and QA-243 (Low, Builder E), seen in the gallery.
+- **#141 (Builder A):** CI is green on a035e30, end-to-end included, so the clearance has no condition left. Main e1be906 adds no migrations; #141 merges into it with no conflicts, and V600 still holds.
+- **#147 (Builder D) re-confirmed at 8c69226.** It moved only by merging main e1be906. The `en.json` conflict was settled by keeping both sides: the lines it adds to `en.json` and `ar.json` are the same as at the cleared head, both files parse, and no key appears twice. Its CI is green except build and end-to-end, still running at 16:25.
+- **Push hold:** the Architect's 13:10 note on #151 cites the oversight testing on production, so production looks deployed. QA 1 still waits for the oversight's word before pushing rounds 40–50.
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-242 | 2026-10-02 16:25 | #151 (main e1be906); V216 | Low | Builder E (words: C) | **The achievements list's header shows a bare number.** `AchievementList` passes `String(page.total)` as the header's meta, so the page reads "Achievements" over a lone "0" (or "230"). Clients reads "{count} organisations". **Fix:** a `pages.achievements.count` line ("{count} achievements", with its Arabic) used as the meta. | Open |
+| QA-243 | 2026-10-02 16:25 | #151 (main e1be906) | Low | Builder E | **The month filter is the browser's own month box.** `<input type="month">` is the only one in the app. Chromium shows "--------- ----" when it is empty, and Safari on Mac and Firefox offer no month picker, only a text box that expects "2026-10". **Fix:** a select of months ("October 2026", the last 24 months and "Any month"), or the app's date picker set to months. The filter stays in the address as it is. | Open |
+
+## Round 51 — 2026-10-02 18:10 (v2/main 417073f: #147 merged, Tasks is live; gallery v30)
+
+- **Main retake at 417073f** (#147, Builder D: the Tasks screens). Its tree is identical to the head QA cleared and re-confirmed, 8c69226.
+  - **SQL suite from zero:** 172 of 177, unchanged (QA-02/03/04/121/208, other lanes).
+  - **Full browser sweep:**
+    - `13-tasks` runs for real: 7 PASS.
+    - Routes 322 PASS, 13 FAIL as before.
+    - Every other area matches e1be906, except the signed-in walk (W33).
+  - **The signed-in walk (W33)** grows with the new Tasks and achievements pages (1840 PASS, 526 FAIL; on a rerun 1843 and 523). None of its new FAILs is a regression:
+    - They are the known Arabic-off family, where the pages read in English with `app.arabic_enabled` off. That includes `common.search` and `common.all` missing in `ar.json`, already seen on Clients, until #104.
+    - QA-219's tab title is also missing on the two achievements pages.
+    - One /profile row showed raw catalogue keys once and did not come back on the rerun.
+  - **Pilot path on a fresh main copy:** 44 PASS, 0 FAIL. Tasks is no longer "Being built". **QA-236 is now only the oversight's decision:** the pilot roles see a live Tasks in stage 0 unless pilot row 7 sets Tasks to none until 18 Oct.
+  - **Gallery:** retaken and republished (version 30, 279 pictures). The gallery's data seed now gives the made-up people a team and adds four made-up tasks: one overdue, one due today, client work on Alpha and Beta, and the manager's own. The Tasks list therefore shows real rows, numbered TSK-2026-0001 onward.
+  - QA-233 and QA-234 are now fixed on main.
+- **#141 (Builder A, cleared at a035e30)** still merges into 417073f with no conflicts, and main added no migrations.
+- **Next for QA 1:**
+  - #150 (Builder D, the Past work grid on Tasks), once #105 lands and D posts "ready at".
+  - Then the Architect's integrated pass on the main that holds #151, #147 and #150 (asked on #147 at 12:23 UTC).
+
+
+## Round 52 — 2026-10-02 19:20 (an early read of the Architect's integrated pass on v2/main 417073f)
+
+- **New test:** `14-integrated.spec.ts` covers the work loop the Architect asked for on #147 (12:23 UTC). It runs with the pilot's levels (the deferred modules at none on the member and manager roles) and Arabic off, at 1440 and 390, as a pilot member and a pilot manager. It puts every level back afterwards. It stays out of the full sweep and runs with `QA_INTEGRATED=1 … --grep "integrated pass"`.
+- **Early read on main 417073f** (before #150): 19 PASS, 0 FAIL, 8 NOT BUILT.
+  - **Works:**
+    - My day opens with Capture.
+    - The employee view offers My day, Tasks and Clients, with no deferred module, at 1440 and 390.
+    - A task added from Tasks is listed in My work with its number (TSK-2026-0001 onward).
+    - The row links to the task's record, which shows the number and the title.
+    - KPIs read "no access" for a pilot member.
+    - An achievement is logged with its number (ACH-2026-0001), and the achievements list shows it.
+  - **Not built:**
+    - **A task made from a note.** Turn into offers only a call and a reminder. `api.note_turn_into(…, 'task')` still answers `note.turn_into_not_yet`, although Tasks is live on main. It waits for the task case in `note_turn_into` (Builder A, a new migration, as the Architect ruled for the achievement case) and the menu entry on My day (Builder B).
+    - **An achievement from a task.** The task record has no achievement action.
+    - **The Past work grid for tasks**, which is #150.
+    - **The Past work grid for achievements**, the grid's achievements mode after #105.
+    - **KPIs reading the achievements.** `/kpis` is still "Being built".
+- **The full pass** runs again once #150 is on main, and its plain-words result goes to the Architect on #147.
+
+## Round 53 — 2026-10-02 20:45 (v2/main 97a751c: #163 merged; gallery v32; #141 needs a V600 re-stamp)
+
+- **Main retake at 97a751c** (#163, Builder E: a migration opens every department's 2025 and 2026 plans, and Log achievement says when a year has none; QA 2 cleared it):
+  - **SQL suite from zero:** 173 of 178 (ACH-11 added). The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** every area's totals are identical to 417073f.
+  - **Pilot path:** 44 PASS, 0 FAIL.
+  - **Integrated pass:** unchanged, 19 PASS, 0 FAIL, 8 NOT BUILT.
+  - **Gallery:** retaken and republished (version 32). Log achievement now shows #163's empty state, "No categories for Commercial in 2026 yet", with "Open the 2026 plan" for the admin.
+    - The local seed makes its department after the migrations run, so the plans #163 opens do not exist there.
+    - In production the departments exist before the migration, so their plans are opened.
+- **#141: its clearance at a035e30 no longer holds (V600).** Main's newest migration is now `20261002133000` (#163), and #141's `20261002110000` and `20261002110100` sort before it. Builder A was told on the PR at 20:25 Riyadh: merge main in, re-stamp after `20261002133000`, and run a fresh sync. QA 1 re-confirms the new head with QA-240/241, the suite and the sabotages.
+
+## Round 54 — 2026-10-02 22:05 (v2/main accfeee: #167 merged; #141 re-confirmed at 6858ee0)
+
+- **Main retake at accfeee** (#167, shared: QA-515's partners test picks its own owner, and person pickers offer team members only; no migration):
+  - **SQL suite from zero:** 173 of 178, unchanged.
+  - **Full browser sweep:** every area's totals are identical to 97a751c.
+  - **Pilot path:** 44 PASS, 0 FAIL.
+  - **Integrated pass:** 19 PASS, 0 FAIL, 8 NOT BUILT, unchanged.
+  - **Gallery:** not retaken. Only the pickers' choices change, and no picture shows an open picker.
+- **#141 (Builder A) re-confirmed at 6858ee0**, on condition that CI's build and end-to-end job ends green.
+  - Re-stamped after #163: `20261002133010` and `20261002180146`, after main's `20261002133000` (V600).
+  - The migration body is byte-identical to a035e30's. The other files are unchanged.
+  - It merges into accfeee with no conflicts.
+  - **SQL suite from zero:** 177 of 182, with QA-240 and QA-241 passing.
+  - **Sabotages:** all 11 are red.
+
+## Round 55 — 2026-10-02 23:25 (v2/main e9378d5; #150 cleared for QA 1's part at fc29654; #141 needs a second V600 re-stamp)
+
+- **Main retake at e9378d5** (#158, Builder E: My day's note into an achievement, the database door only; #156 docs; #171 CI):
+  - **SQL suite from zero:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** identical to accfeee.
+  - **Pilot path:** 44/0.
+  - **Integrated pass:** 19/0/8.
+- **#141 (Builder A), V600 again.** Its CI is fully green on 6858ee0. But #158's `20261002170000` is now main's newest, and #141's `20261002133010_work_follow_ups` sorts before it. Builder A was told on the PR to re-stamp after it.
+- **#150 (Builder D, the Past work grid on Tasks) at fc29654: QA 1's part (the Tasks mount and the GC-3 path) is cleared**, on condition that CI's build and end-to-end job ends green. QA 2 reviews the grid files (Architect's split).
+  - **SQL suite from zero:** 174 of 179.
+  - **`13-tasks`:** 7 PASS.
+  - **Pilot path:** 44/0.
+  - **The integrated pass on this branch:** 24 PASS, 0 FAIL, 7 NOT BUILT. Two ready rows and one refused (dated in 2030), saved in one request, past work only, TSK- numbers, no sideways scroll at 390.
+- **The integrated pass (`14-integrated`)** now pastes three made-up rows into the Past work grid and checks the result. It also looks for the view by its address, since the Tasks views are links, not tabs.
+- **The combined test (Architect on #150, 15:14 UTC):** QA 1 runs option B, final main against a local stack built from zero. Option A, the hosted production database, needs the oversight's word, because QA 1's standing rule is never to touch any cloud Supabase project.
+
+## Round 56 — 2026-10-03 01:25 (v2/main 9afc2c8: #150 merged; the combined test; gallery v34)
+
+- **Main 9afc2c8** (#150, the Past work grid on Tasks with Builder C's grid). Its tree is identical to fc29654, the head QA 1 cleared its part of.
+- **The combined test.** The Architect asked for it on #147 at 12:23 UTC and on #150 at 15:14 UTC. It ran on a local stack built from zero (option B) and was posted in plain words on #150 and #147.
+  - **The integrated pass:** 24 PASS, 0 FAIL, 7 NOT BUILT.
+  - **Pilot path:** 44/0.
+  - **`13-tasks`:** 7 PASS.
+  - **SQL suite from zero:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Full browser sweep:** identical to e9378d5, except the signed-in walk. That walk now covers Tasks · Past work, which adds QA-219's tab title and the Arabic-off wording, both known kinds.
+  - **Not built:**
+    - a task from a note (A: the database step; B: the menu entry);
+    - an achievement from a task;
+    - the grid's achievements mode (E);
+    - KPIs reading the achievements.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 34, 287 pictures), adding Tasks · Past work for every person. The machine restarted during the run, so the Tasks spec, the sweep and the gallery were run again after `up.sh`.
+- **The `/profile` raw-key row** (member · ar, 1440) appeared again. Its cause: another spec in the same sweep briefly turns `app.arabic_enabled` on, and `ar.json` has no `profile.*` keys yet (QA-221's rest, #104). Arabic stays off for the pilot.
+- **#141 (Builder A) at ad34abb:**
+  - **The re-stamp is right:** `20261002170010` and `20261002195247` sort after main's `20261002170000`, and the body is identical.
+  - **The checks pass:** SQL 178 of 183 with QA-240/241 passing, and the 11 sabotages are red.
+  - **It conflicts with main 9afc2c8** in `docs/v2/DECISIONS.md` and `v2/messages/ar.json`. Builder A was told; no new re-stamp is needed.
+
+## Round 57 — 2026-10-03 04:40 (v2/main 2f186c6: #172, docs only; #141 at 7903606)
+
+- **Main 2f186c6** (#172, the owner's consistency pass): docs only, so there is no retake.
+- **#141 (Builder A) at 7903606.** It merged #150 and carries a new tooling commit, `--reuse` for SQL sabotage runs (V106).
+  - **The migrations:** they still sort after main's `20261002170000`, and the body is unchanged since ad34abb.
+  - **`--reuse` checked locally:**
+    - The first run builds `<db>_built` from zero. Later runs copy it in about 1 s.
+    - A sabotage on the copy still turns ACT-02 red, and the next run starts clean.
+    - Nothing in the migrations or the stand-ins sets database-level options or grants that a template copy would drop.
+  - **It conflicts with 2f186c6** in `docs/v2/DECISIONS.md` only. Builder A was told; QA 1 re-confirms the merged head.
+
+## Round 58 — 2026-10-03 03:20 (v2/main a04ad8a: #162 achievements doors and #173 docs; #141 cleared at 83e794a; gallery v36)
+
+- **Main a04ad8a** (#162: Log achievement in the + at Own or Full, `/kpis` opens the achievements list, the `/achievements` redirect; #173: docs). Retaken on local stacks built from zero.
+  - **SQL suite:** 174 of 179. The reds are QA-02/03/04/121/208, as before.
+  - **Pilot path:** 46/0. It now also checks that the + offers no deferred module, so there is no Log achievement while KPIs is at none. That check passes for the pilot member and manager.
+  - **The integrated pass:** 24 PASS, 0 FAIL, 7 NOT BUILT. "KPIs reading the achievements" is still not built: `/kpis` now opens the achievements list (V605), and the KPI page itself does not exist yet.
+  - **Full browser sweep:** the same tests fail as on 9afc2c8.
+    - **Routes:** `/kpis` lands on `/kpis/achievements` for every role above none, and a person at none still gets no access.
+    - **One new row, not an app bug.** The Arabic walk flagged "Startsjhbr" on Log achievement and Activity for the manager and the admin. It is the made-up nickname that OLD-009 saves (`Start` + the run's tag). The walk ignored only words that *start* with the tag; it now ignores any word that holds it.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 36, 287 pictures). It shows the new `/kpis` landing and the + menu.
+- **#141 (Builder A) at 83e794a.** It merges main a04ad8a cleanly, and its migrations still sort after main's newest, `20261002170000`. QA 1 re-confirmed at 02:42 on condition that CI's end-to-end job ended green. It did at 02:52, so #141 is cleared from QA 1's side. QA-240/241 flip to fixed on main when it merges.
+
+## Round 59 — 2026-10-03 04:10 (v2/main fc3c18f: #141 merged; QA-240/241 fixed on main; gallery v38)
+
+- **Main fc3c18f** (#141, Builder A: next-step tasks, Escalate, team load, daily reminders, V197–V199). Retaken on local stacks built from zero.
+  - **SQL suite:** 178 of 183. The reds are QA-02/03/04/121/208, as before. QA-240 and QA-241 pass, so both are flipped to fixed on main.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26 PASS, 0 FAIL, 7 NOT BUILT. It has a new step, a task from a next step.
+    - **What it does:** the pilot member logs a call on their client with a next step three days out.
+    - **What it checks:** the activity makes the author a task. The task has a TSK- number, the step's day as its due day and origin `next_step`, and it is listed in Tasks · My work.
+    - **It can fail:** on a04ad8a (before #141) the same step saves the activity but makes no task, and the check is red.
+  - **Still not built:**
+    - a task from a note (Turn into offers activity and reminder only);
+    - an achievement from a task;
+    - the grid's achievements mode;
+    - the KPI page itself.
+  - **Full browser sweep:** the same tests fail as on a04ad8a. The signed-in walk is back to 1898/542: round 58's filter fix removed the two "Startsjhbr" rows.
+  - **No new bug.**
+- **Gallery:** retaken and republished (version 38, 287 pictures). It shows the new Work setting (a live project's days without a health update) and the three new notice kinds in My profile.
+
+## Round 60 — 2026-10-03 16:30 (#149 cleared at a32b2b2; #175 reviewed at e8fcd8f; main still fc3c18f)
+
+The Architect's queue for QA 1 after the Vercel reset (15:31 UTC on #149): #149, then #175.
+
+- **#149 (Builder A) at a32b2b2: cleared.** It adds Turn into → task and action item, and Finish meeting's points step when asked.
+  - **Merge rules:**
+    - It contains main fc3c18f, and the migration `20261003034500` sorts after main's newest.
+    - No app code changes. CI is green (workflow_dispatch after the base change).
+  - **From zero:** SQL 180 of 185 with the known reds; NOTE-07, NOTE-08, ACH-10 and QA-240/241 pass. All ten sabotages are red.
+  - **Probed:**
+    - A note captured before go-live makes a past task. Its mentions and helpers are never told. A note captured today does notify, which shows the probe can tell the two apart.
+    - Tasks at none refuses the conversion and leaves no link.
+    - Values passed to the task door are still checked: origin, a stray key, and assigning without the right are all refused.
+    - One Undo takes back the task and its link.
+  - **For the Architect:** most of V605 (3) "note → task" is already in #149. What it lacks is the checklist becoming action items on Turn into → task.
+- **#175 (Builder E) at e8fcd8f: no blocking findings.** It puts Turn into → achievement on screen (QA-517, V381). It clears when CI is green on e8fcd8f; 429a162 was green, and the change since is `ar.json` only.
+  - **Pilot path:** 46/0. A new check: a pilot member at KPIs none is not offered Achievement in Turn into.
+  - **The integrated pass:** 28/0/7 on the branch against 26/0/8 on main. A new step, an achievement from a note, checks the ACH- number and the link both ways; it is NOT BUILT on main.
+  - **Wrap up:** its Turn into opens the note page, so the new rule covers it.
+  - **From note:** shown only to a reader who may see the note. A manager opening a member's achievement made from a private note gets nothing from `api.from_note`.
+- **No new finding.**
+
+## Round 61 — 2026-10-03 17:50 (v2/main aacf3ea: #166 Tasks doors; #175 at d6eeb83 and #149 at b1d9be6 re-levelled)
+
+- **Main aacf3ea** (#166, builder B: the + menu's Task, the task record address, My day's Turn into flags, V223, V605). Retaken from zero on local stacks.
+  - **SQL:** 178 of 183, with the known reds QA-02/03/04/121/208.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8, as on fc3c18f.
+  - **Full sweep:** identical to fc3c18f, by test name and by every area's totals.
+  - **Gallery:** retaken (287 pictures) but not republished. #166's changes are a menu item, link addresses and flags; none of them shows in a gallery picture.
+  - **No new bug.**
+- **#175 (builder E) at d6eeb83:**
+  - **The merge:** it merges aacf3ea. The conflict with #166 in `my-day/logic.ts` is resolved as the Architect asked. Main's `TURN_NEEDS` keeps one flag per kind, and a new `TURN_READY` switches on `kpis.turn_into` only. The menu offers `liveKinds(BUILT ∪ TURN_READY)`, still hiding Achievement below KPIs Own.
+  - **Walks on the branch:** pilot path 46/0 (Turn into offers a call or a reminder only); the integrated pass 28/0/7, with the achievement from a note and its link both ways.
+  - **Next:** the Architect has asked E for one more push (main with #169, plus QA-520's Arabic line). QA 1 re-checks that head when E posts "ready at".
+- **#149 (builder A) at b1d9be6:**
+  - **The merge:** it merges aacf3ea cleanly. Every one of its own files is identical to a32b2b2, and its DECISIONS change is the same lines.
+  - **Rulings:** the Architect ruled WRK-023: the existing rule stands, and NOTE-08 proves it.
+  - **Next:** it stays a draft. QA 1 re-confirms when A posts "ready at" with CI green.
+
+## Round 62 — 2026-10-03 18:55 (v2/main 6300bc6: #169, words only; #175 cleared at 6a5fc70; #149 re-confirmed at b1d9be6)
+
+- **Main 6300bc6** (#169: the no-department line and its Arabic). It changes words only, with no migration, so there is no retake.
+- **#175 (builder E): cleared at 6a5fc70,** on condition that CI's end-to-end job ends green.
+  - **V600:** it contains main 6300bc6.
+  - **Since d6eeb83:** only `ar.json` (QA-520's line, which now matches main's English) and DECISIONS (V381 after V380; no V-number twice). No app code changed, so the walks on d6eeb83 hold.
+- **#149 (builder A): re-confirmed at b1d9be6.** Its files are identical to a32b2b2, and CI is green.
+  - **V600:** it doesn't contain 6300bc6. That move is words only, the migration still sorts after main's newest, and a trial merge is clean.
+  - **Next:** the Architect decides whether it must be re-levelled.
+
+## Round 63 — 2026-10-03 20:10 (v2/main 519f915: #176 docs and #177's amount reader; then 8e1e649, #178 docs)
+
+- **Main 519f915** (#177, QA-518: an amount's thousands separator only between groups of three, V382; #176 docs). Retaken from zero on local stacks.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to aacf3ea, by test name and by every area's totals.
+  - **Gallery:** not retaken. The change is how a pasted amount is read, so no screen changes.
+  - **No new bug.**
+- **Main 8e1e649** (#178): docs only (V602 retired; V608: a docs-only merge does not make a code PR stale). Noted, no retake.
+- **#175 (builder E): cleared at 21b07ae** (CI fully green at 20:31 UTC). It merges 519f915. Every file it changes since 6a5fc70 carries main's delta exactly. DECISIONS now reads V380, V381, V382, with no V-number twice.
+- **#149 (builder A) at 58577e6:** it merges c3ea146. Its own files are identical to a32b2b2, and its DECISIONS lines are the same. It lacks 519f915 (#177); the Architect re-levels it onto main after #175 lands.
+
+## Round 64 — 2026-10-03 22:00 (v2/main 4161753: #179, the owner picker and locked areas; #175 re-levelled at 4db3c95)
+
+- **Main 4161753** (#179: someone in no team picks an owner in Quick add and Past work, V277; locked areas say why, V278; builder D's work landed by E). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to 519f915 apart from one row, and that row is QA's own wording.
+    - **What changed:** `13-tasks` "a member in no team" read the form's new words, "Pick an owner", where it expected "team".
+    - **Why it isn't a bug:** that is #179's rule (V277), the words are plain, and nothing is saved silently. The check now accepts a team or an owner and passes 7/7 on main.
+  - **Gallery:** waits for #175, which is next, so both screen changes are shot together.
+  - **No new bug.**
+- **#175 (builder E) at 4db3c95:** the Architect merged 4161753 into it. Every file the merge touched carries exactly main's change, and #175's own diff against main is unchanged (14 files, 386+/15−). Cleared at 4db3c95 at 22:4x UTC, once CI was green.
+
+## Round 65 — 2026-10-04 01:30 (v2/main dffc4e5: #181, Escalate on the task page and the team's load)
+
+- **Main dffc4e5** (#181, builder D: Escalate on the task page and the team's load on Tasks › Team, V279, over #141's doors; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to 4161753 by test name and by every area's totals; tasks 7/0 with round 64's check.
+  - **Gallery:** still waits for #175, so the screen changes since v38 are shot once.
+  - **No new bug.**
+- **#175 (cleared at 4db3c95) is not merged yet** and is now behind main dffc4e5. QA 1 re-checks it whenever it is re-levelled.
+- **Go-live is postponed** (the Architect, 21:31 UTC on #175).
+
+## Round 66 — 2026-10-04 02:50 (v2/main deceb9c: #180, QA-521; #149 re-levelled at a6ab946)
+
+- **Main deceb9c** (#180, builder E: someone in no team who may not assign is told "You're not in a team yet. Ask an admin to add you to one.", with no picker and no save, in Quick add and Past work; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to dffc4e5 in every area but tasks.
+    - **What changed:** `13-tasks` "a member in no team" waited for the Quick add form, which #180 no longer opens for that person. It timed out, and the test's other six checks never ran.
+    - **Why it isn't a bug:** that is QA-521's rule. The check now accepts the form or the one-line box, and passes 7/7 on main with "You're not in a team yet…".
+  - **No new bug.**
+- **#149 (builder A) at a6ab946:** it merges deceb9c. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-confirmed at a6ab946 once CI was green.
+- **#175 (cleared at 4db3c95)** is behind main and waits for the Architect's re-level.
+
+## Round 67 — 2026-10-04 05:15 (v2/main 285de35: #182, List / Board / Calendar on Tasks; #149 re-levelled at 64ce9aa)
+
+- **Main 285de35** (#182, builder D: List / Board / Calendar on Tasks, and a long picker stays on screen, V280; QA 2 cleared it). Retaken from zero.
+  - **SQL:** 178 of 183, with the known reds.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8.
+  - **Full sweep:** identical to dffc4e5 by test name and by every area's totals; tasks 7/0.
+  - **No new bug.**
+- **#149 (builder A) at 64ce9aa:** the Architect merged 285de35 into it. Its 16 own files are byte-for-byte a32b2b2's, its DECISIONS lines are the same, and its migration still sorts after main's newest. Re-cleared at 64ce9aa once CI was green.
+- **#175 (cleared at 4db3c95)** is still behind main and waits for its re-level.
+
+## Round 68 — 2026-10-04 07:40 (v2/main 289fa46: #149 merged, Turn into task and action item, Finish meeting's points)
+
+- **Main 289fa46** (#149, builder A; QA 1 cleared it at a32b2b2 and re-cleared it at each re-level up to 64ce9aa). It brings migration `20261003034500`. Retaken from zero.
+  - **SQL:** 180 of 185: NOTE-07 and NOTE-08 join, and the known reds are QA-02/03/04/121/208.
+  - **Pilot path:** 46/0.
+  - **The integrated pass:** 26/0/8. "A task made from a note" now reads "the door: answers": the database makes the task, and Turn into's menu still offers only a call or a reminder. It stays NOT BUILT until a Turn into task dialog switches on `tasks.turn_into`.
+  - **Full sweep:** identical to 285de35 by test name and by every area's totals.
+  - **No new bug.**
+- **#175 (cleared at 4db3c95):** the Architect asked builder E (07:03) to merge 289fa46 and push. QA 1 re-clears it on green CI.
+- **PAUSE (the owner's order at 07:10 UTC, relayed by the Architect at 07:11 on #175 and #149):** no work until the weekly credit resets on Thu 8 Oct, 14:00 Riyadh. QA 1 finished round 68 and cancelled its hourly check-in.
+  - **On restart:** builder E merges main (289fa46 or later; #149 carries a migration) into #175, then CI runs, then QA 1 re-clears.
+  - **What doesn't carry over:** QA 1's clearance at 4db3c95 was against main 4161753, so it doesn't cover that merge. Re-check the merge file by file and wait for green CI. After #175 lands, retake main and the gallery.
+  - **Pushed (4 Oct, on the owner's go-ahead):** the QA pushes for rounds 40–68, 28 commits, as one push.
+- **Live-site check, signed out and read-only (4 Oct, on the owner's go-ahead; the Architect's 15-minute check of 2 Oct, the half that needs no sign-in):**
+  - **Live version:** production serves v2/main 289fa46. Vercel's production deploy completed at 07:03 UTC, and the production database job passed at 07:07.
+  - **Result: 32 of 32 pass.**
+    - Every protective setting main declares is on the live site (W31).
+    - Eleven locked addresses send a signed-out visitor to sign-in and remember where the person was going.
+    - An off-site link isn't echoed onto the page, and the bare domain moves to www.
+    - The sign-in page renders at 390 px and 1,440 px, with no sideways scroll, no script errors, no raw keys, and no database call before anyone types.
+  - **Not done:** the signed-in half (sign-in, /tasks, Log achievement's categories, the three phone jobs, V509). QA 1 has no production password and may not create an account.
+  - **Posted:** the result is on #150.
+
+## Round 69 — 2026-10-07 11:47 (unpaused; the desktop test round on v2/main 289fa46; #175 re-checked at 3a3a1ad)
+
+- **Unpaused** by the owner (Wed 7 Oct, relayed by the Architect at 07:41 UTC on #175). Credit runs out at Thu 8 Oct 14:00 Riyadh, so this round is medium effort with no hourly check-ins.
+- **QA-244 (BLOCKING for merges): NOTE-06 broke when the calendar passed 5 Oct.**
+  - **Where:** main `289fa46` and `3a3a1ad` both give 179 of 185 today. The known reds QA-02/03/04/121/208 fail, plus NOTE-06.
+  - **Cause:** the test's pretend clock sits before the day the database was built, so the dated `notify.kinds_enabled` value that holds `reminder` is not yet in effect. The cause and fix are on #175.
+  - **Fix in flight, twice:** #184 (builder E) and #187 (builder A). One merges and the other closes.
+- **#175 re-check at 3a3a1ad** (main 289fa46 merged in; #149 replaced `my.note_turn_into` and `my.turn_into_inner`).
+  - **Its own changes:** byte-for-byte the ones cleared at 4db3c95, all 14 files.
+  - **The probe:** gives the same answers. A note becomes an achievement; From note shows to the author and not to a manager.
+  - **The integrated pass:** 28/0/7 (main alone: 26/0/8). It includes "a note turned into an achievement has its ACH- number" and "the two link both ways".
+  - **CI:** red only on NOTE-06 (QA-244, not #175's). End-to-end is still running at the time of writing.
+- **The desktop test round (the Architect's JOB 1): 55/0/9.**
+  - **Where it ran:** a local stack from v2/main `289fa46`, the commit production serves. It is not production: QA 1 has no production sign-in, and its cloud rule stands.
+  - **Who:** an admin (in no team), a Commercial member in a team, and a member in no team. Desktop, 1,440 px.
+  - **Levels:** the deferred modules at none; Tasks and KPIs as they are (V605 (6)). The spec is `tests/qa/sweep/15-desktop-round.spec.ts`; run it with `QA_ROUND=1`.
+  - **Log the day:** passes for all three. A capture, a /meeting note, a reminder from a note, and Finish meeting, which logs the meeting on the client.
+  - **Run the tasks:**
+    - **Quick add:** the admin is asked for an owner; the member defaults to themself.
+    - **The rest:** List, Board and Calendar, an action item, Escalate (with its notice) and the Past work grid all pass.
+    - **The member in no team:** gets QA-521's one line.
+  - **Record a win:** passes for all three. The + → Achievement → an ACH- number, shown. The "Logged before?" question works (V531).
+  - **Not built (9):** Turn into offers no task, action item or achievement. The achievement comes with #175; the task with #183.
+  - **New:** QA-245, QA-246 and QA-247 (below).
+
+| ID | Date (Riyadh) | Catalogue / source | Severity | Lane | Finding | Status |
+|---|---|---|---|---|---|---|
+| QA-244 | 2026-10-07 11:00 | NOTE-06 (#139); V455 | High (merges) | Builder A | **NOTE-06 fails on every database built after 5 Oct 2026.** The test pins `v2.test_now` to 5 Oct. `notify.kinds_enabled` is a dated setting whose value with `reminder` starts on the build day, so on the pretend day `notify.may_notify` is false: the job counts 1 sent and writes no notice. Every PR's two database checks are red, main's included. Production is not affected. **Fix:** the test's clock after the build day (from `now()`, or a far date as in ALR-01). | Fixed on main 380a2c9 (#184, round 69) |
+| QA-245 | 2026-10-07 11:30 | Desktop round; V605 (1), GC-1 cut 3 | Low | Builder B | **The + offers Task to a member in no team, who may not add one.** It opens QA-521's "You're not in a team yet" line. V605 (1) offers Task to whoever may create one, and GC-1 says never an item that does nothing. **Fix:** leave Task out of the + for someone in no team without `tasks.assign`, as Add task's own rule does (`noTeamToWorkIn`). | Open |
+| QA-246 | 2026-10-07 11:30 | Desktop round; V444, V605 (4) and (6) | Low (decision) | Architect | **The admin can never own a task.** For someone in no team, Quick add's owner list holds only people in a team (`quickAddOwners`, `tasks/rules.ts`), and an admin is never in one (V444). So every task the owner's account adds goes to someone else, and its My work stays empty. If V605 (6)'s "the owner logs tasks from his own account" means his own to-dos, that needs a rule. If it means he hands work out, say so in the runbook. | Answered by the Architect (7 Oct, 10:51 UTC): V444 — the owner's own tasks live on his employee account; the preview checklist says to present from it |
+| QA-247 | 2026-10-07 11:30 | Desktop round; V517, V216 | Low | Builder B (words: C) | **The Clients tab reads "Suppliers"** (`nav.suppliers_partners`), while its button reads "New supplier & partner" and V517 calls it "Suppliers & partners". **Fix:** one name. | Open |
+- **Later, 7 Oct (the Architect, 10:51 UTC):**
+  - **QA-244 fixed:** #184 merged, so main is now 380a2c9. QA-246 is answered by V444 (the owner's own tasks live on his employee account).
+  - **#175 at 48beef4 (main 380a2c9 merged in):** the merge brought only #184's NOTE-06 file. #175's own diff is the same as at 3a3a1ad, line for line.
+  - **CI is fully green**, with ACH-10 passing and 152/0 on the Supabase stack. **Re-cleared at 48beef4** on #175.
+
+## Round 72 — 2026-10-08 (v2/main 181989e after the night's train: #191, #157, #144, bundle 1 #194, bundle 2 #195)
+
+- **Cleared tonight:**
+  - #191: the production-history placeholder. Its schema is identical to main's, with no shine bucket or policy.
+  - #157 at `a8aad8a`: QA-208. The lockout is closed in the database and by real clicks (`16-own-email.spec.ts`).
+  - #144 at `7e7a5fa`: the retry wraps only stable reads.
+  - #194 at `357e5ff`: 193/197 and 26 sabotages red.
+  - #195 at `cdd2152`: 198/202 and 24 sabotages red.
+  - #196 at `3583417`: the guard's design lane, with nothing wider.
+- **Main 181989e retake:**
+  - **SQL:** 198/202 (the known QA-02/03/04/121).
+  - **Desktop round:** 57/0/6.
+  - **Integrated pass:** 28/0/7.
+  - **Four-role walk:** 1,114/10, all QA-228 and QA-219 (Not found's tab title).
+  - **Full sweep:** 307 fails, against 566 on 289fa46, and **none new**.
+- **Fixed on main:** QA-208 (#157), QA-245 (#188, Task out of the + without a team), and QA-244 (#184). QA-219 is partly fixed: Not found's title is left.
+- **QA-115 and QA-118** were rewritten to hold under #160's rule (nobody holding work is switched off).
