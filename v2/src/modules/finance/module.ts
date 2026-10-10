@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
 // Finance — Own is entering invoices and editing your own entries (owner decision 4). Levels: TECH-SPEC §8.
@@ -24,5 +25,90 @@ export default defineModule({
   capabilities: [
     { key: 'finance.import', page: 'finance', label: 'cap.finance.import', defaults: { head: true } },
     { key: 'finance.credit', page: 'finance', label: 'cap.finance.credit', defaults: { head: true, manager: true } },
+  ],
+  entities: [
+    // An invoice is its enterer's (Own: your own entries; an imported one is Import's — V44); its parts go with it (V157).
+    { key: 'invoice', table: 'finance.invoice', page: 'finance', label: 'entity.invoice', owners: 'created_by' },
+    ...(
+      [
+        ['invoice_line', 'finance.invoice_line'],
+        ['billing_link', 'finance.billing_link'],
+        ['billing_proposal', 'finance.billing_proposal'],
+        ['import_difference', 'finance.import_difference'],
+        ['expense_line', 'finance.expense_line'],
+        ['tax_invoice', 'finance.tax_invoice'],
+        ['credit_split', 'finance.credit_split'],
+        ['receipt', 'finance.receipt'],
+      ] as const
+    ).map(([key, table]) => ({ key, table, page: 'finance', label: `entity.${key}`, owners: `${table}_owners` })),
+    // A closed month and its snapshot (V610): the person who closed it.
+    {
+      key: 'month_close',
+      table: 'finance.month_close',
+      page: 'finance',
+      label: 'entity.month_close',
+      owners: 'created_by',
+    },
+    // The exclusion rules (D16): Settings → Finance, admins (V97).
+    {
+      key: 'exclusion_rule',
+      table: 'finance.exclusion_rule',
+      page: 'settings.finance',
+      label: 'entity.exclusion_rule',
+    },
+    // The Finance lists (§3.6): Settings → Finance, admins (V97).
+    ...(
+      [
+        ['status_map', 'finance.status_map'],
+        ['expense_status_word', 'finance.expense_status_word'],
+        ['service', 'finance.service'],
+        ['product', 'finance.product'],
+        ['wallet_rule', 'finance.wallet_rule'],
+        ['commission_word', 'finance.commission_word'],
+        ['channel', 'finance.channel'],
+        ['import_map', 'finance.import_map'],
+        ['item_service', 'finance.item_service'],
+        ['item_class', 'finance.item_class'],
+      ] as const
+    ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
+  ],
+  // A tender's signed value is sales credit only, one way, with no setting (V619 answering Q46).
+  settings: [
+    {
+      // V415: an invoice with no due date of its own is due this many days after it was issued.
+      key: 'finance.collection_due_days',
+      group: 'settings.finance',
+      label: 'setting.finance.collection_due_days',
+      schema: z.number().int().min(0).max(365),
+      default: 30,
+      effectiveDated: true,
+    },
+    {
+      // D23: the pass-through lines of a unit with no approved expense are shown as a flagged estimate, apart.
+      key: 'finance.cost_estimate',
+      group: 'settings.finance',
+      label: 'setting.finance.cost_estimate',
+      schema: z.boolean(),
+      default: true,
+      effectiveDated: true,
+    },
+    {
+      // V401: a client with no fully paid invoice in this many days tells its account manager, once per silence.
+      key: 'finance.quiet_client_days',
+      group: 'settings.finance',
+      label: 'setting.finance.quiet_client_days',
+      schema: z.number().int().min(1).max(365),
+      default: 60,
+      effectiveDated: true,
+    },
+    {
+      // §3.3: an invoice still owed this many days after it was issued tells the client's account manager, once.
+      key: 'finance.unpaid_alert_days',
+      group: 'settings.finance',
+      label: 'setting.finance.unpaid_alert_days',
+      schema: z.number().int().min(1).max(365),
+      default: 45,
+      effectiveDated: true,
+    },
   ],
 });

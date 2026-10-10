@@ -361,6 +361,53 @@
       "effective_dated": false
     },
     {
+      "key": "finance.collection_due_days",
+      "group": "settings.finance",
+      "label": "setting.finance.collection_due_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 365
+      },
+      "default": 30,
+      "effective_dated": true
+    },
+    {
+      "key": "finance.cost_estimate",
+      "group": "settings.finance",
+      "label": "setting.finance.cost_estimate",
+      "schema": { "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "boolean" },
+      "default": true,
+      "effective_dated": true
+    },
+    {
+      "key": "finance.quiet_client_days",
+      "group": "settings.finance",
+      "label": "setting.finance.quiet_client_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 60,
+      "effective_dated": true
+    },
+    {
+      "key": "finance.unpaid_alert_days",
+      "group": "settings.finance",
+      "label": "setting.finance.unpaid_alert_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 45,
+      "effective_dated": true
+    },
+    {
       "key": "notify.kinds_enabled",
       "group": "settings.app",
       "label": "setting.notify.kinds_enabled",
@@ -390,7 +437,8 @@
             "note_mention",
             "escalated",
             "alert_project_no_update",
-            "alert_due_tomorrow"
+            "alert_due_tomorrow",
+            "alert_quiet_client"
           ]
         }
       },
@@ -415,8 +463,22 @@
         "note_mention",
         "escalated",
         "alert_project_no_update",
-        "alert_due_tomorrow"
+        "alert_due_tomorrow",
+        "alert_quiet_client"
       ],
+      "effective_dated": false
+    },
+    {
+      "key": "partner.active_client_days",
+      "group": "settings.partners",
+      "label": "setting.partner.active_client_days",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365
+      },
+      "default": 90,
       "effective_dated": false
     },
     {
@@ -769,6 +831,30 @@
       "rule_only": false
     },
     {
+      "key": "billing_link",
+      "table": "finance.billing_link",
+      "page": "finance",
+      "owners": "finance.billing_link_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "billing_proposal",
+      "table": "finance.billing_proposal",
+      "page": "finance",
+      "owners": "finance.billing_proposal_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "campaign_code",
       "table": "partner.campaign_code",
       "page": "clients",
@@ -793,11 +879,35 @@
       "rule_only": false
     },
     {
+      "key": "channel",
+      "table": "finance.channel",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "code_terms",
       "table": "partner.code_terms",
       "page": "clients",
       "owners": null,
       "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "commission_word",
+      "table": "finance.commission_word",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
       "private": false,
       "visible": null,
       "level": null,
@@ -877,6 +987,18 @@
       "rule_only": false
     },
     {
+      "key": "credit_split",
+      "table": "finance.credit_split",
+      "page": "finance",
+      "owners": "finance.credit_split_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "department",
       "table": "core.department",
       "page": "settings.org",
@@ -894,6 +1016,42 @@
       "page": "settings.org",
       "owners": null,
       "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "exclusion_rule",
+      "table": "finance.exclusion_rule",
+      "page": "settings.finance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "expense_line",
+      "table": "finance.expense_line",
+      "page": "finance",
+      "owners": "finance.expense_line_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "expense_status_word",
+      "table": "finance.expense_status_word",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
       "private": false,
       "visible": null,
       "level": null,
@@ -961,6 +1119,30 @@
       "rule_only": false
     },
     {
+      "key": "import_difference",
+      "table": "finance.import_difference",
+      "page": "finance",
+      "owners": "finance.import_difference_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "import_map",
+      "table": "finance.import_map",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "individual_name",
       "table": "partner.individual_name",
       "page": "clients",
@@ -973,6 +1155,66 @@
       "rule_only": false
     },
     {
+      "key": "invoice",
+      "table": "finance.invoice",
+      "page": "finance",
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "invoice_line",
+      "table": "finance.invoice_line",
+      "page": "finance",
+      "owners": "finance.invoice_line_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "item_class",
+      "table": "finance.item_class",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "item_service",
+      "table": "finance.item_service",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "match_pin",
+      "table": "partner.match_pin",
+      "page": "clients",
+      "owners": "partner.match_pin_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "partner.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "mention",
       "table": "core.mention",
       "page": null,
@@ -981,6 +1223,18 @@
       "private": false,
       "visible": "core.mention_visible",
       "level": "core.mention_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "month_close",
+      "table": "finance.month_close",
+      "page": "finance",
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
       "history": false,
       "rule_only": false
     },
@@ -1249,6 +1503,18 @@
       "rule_only": false
     },
     {
+      "key": "product",
+      "table": "finance.product",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "profile",
       "table": "core.person_profile",
       "page": "settings.profile",
@@ -1290,6 +1556,18 @@
       "page": "settings.work",
       "owners": null,
       "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "receipt",
+      "table": "finance.receipt",
+      "page": "finance",
+      "owners": "finance.receipt_owners",
+      "list": false,
       "private": false,
       "visible": null,
       "level": null,
@@ -1374,6 +1652,18 @@
       "page": null,
       "owners": "owner_id",
       "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "service",
+      "table": "finance.service",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
       "private": false,
       "visible": null,
       "level": null,
@@ -1468,6 +1758,18 @@
       "key": "side_type",
       "table": "partner.side_type",
       "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "status_map",
+      "table": "finance.status_map",
+      "page": "settings.finance",
       "owners": null,
       "list": true,
       "private": false,
@@ -1585,6 +1887,18 @@
       "rule_only": false
     },
     {
+      "key": "tax_invoice",
+      "table": "finance.tax_invoice",
+      "page": "finance",
+      "owners": "finance.tax_invoice_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "team",
       "table": "core.team",
       "page": "settings.org",
@@ -1617,6 +1931,18 @@
       "private": false,
       "visible": null,
       "level": "pipeline.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "wallet_rule",
+      "table": "finance.wallet_rule",
+      "page": "settings.finance",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
       "history": false,
       "rule_only": false
     },

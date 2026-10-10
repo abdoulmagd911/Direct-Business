@@ -177,6 +177,97 @@ export type Database = {
       file_review_set: { Args: { p_id: string; p_review_on: string; p_version?: number }; Returns: Json };
       files: { Args: { p_entity: string; p_id: string; p_side?: string }; Returns: Json };
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      finance_channel_set: {
+        Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
+        Returns: Json;
+      };
+      finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_difference_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          differences: number;
+          invoice_id: string;
+        }[];
+      };
+      finance_difference_decide: {
+        Args: { p_choice: string; p_id: string; p_reason?: string; p_version: number };
+        Returns: Json;
+      };
+      finance_differences: {
+        Args: { p_invoice?: string };
+        Returns: {
+          field: string;
+          from_import: string;
+          id: string;
+          import_time: string;
+          invoice_id: string;
+          invoice_ref: string;
+          line_no: number;
+          mine: string;
+          row_id: string;
+          row_table: string;
+          version: number;
+        }[];
+      };
+      finance_health: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_import: {
+        Args: {
+          p_dry_run?: boolean;
+          p_export_time: string;
+          p_file: string;
+          p_file_name?: string;
+          p_rows: Json;
+          p_sha256?: string;
+        };
+        Returns: Json;
+      };
+      finance_import_map: { Args: { p_source?: string }; Returns: Json };
+      finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
+      finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
+      finance_not_invoiced: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_partner_credit: { Args: { p_partner: string }; Returns: Json };
+      finance_partner_months: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_payments_as_of: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_period_units: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          channel: string;
+          cost: number;
+          cost_is: string;
+          counted: boolean;
+          dpin: string;
+          estimate: number;
+          excluded_reason: string;
+          invoice_id: string;
+          loss: boolean;
+          month_on: string;
+          paid_on: string;
+          partner_id: string;
+          profit: number;
+          ref: string;
+          revenue: number;
+          unit_kind: string;
+        }[];
+      };
+      finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
+      finance_receivables: { Args: { p_partner?: string }; Returns: Json };
+      finance_row_add: { Args: { p_fields: Json; p_reason?: string; p_table: string }; Returns: Json };
+      finance_row_edit: {
+        Args: { p_fields: Json; p_id: string; p_reason?: string; p_table: string; p_version: number };
+        Returns: Json;
+      };
+      finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
+      finance_sales_by_code: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
+      finance_tender_client_id_set: {
+        Args: { p_identifier: string; p_reason?: string; p_tender: string };
+        Returns: Json;
+      };
+      finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
@@ -210,6 +301,16 @@ export type Database = {
         Returns: Json;
       };
       list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
+      match_decide: {
+        Args: { p_decision: string; p_key: string; p_partner?: string; p_reason?: string };
+        Returns: Json;
+      };
+      match_pin_clear: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      match_pin_set: {
+        Args: { p_invoice: string; p_kind: string; p_partner: string; p_reason: string };
+        Returns: Json;
+      };
+      match_queue: { Args: Record<PropertyKey, never>; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_day: { Args: { p_limit?: number; p_offset?: number; p_scope?: string; p_since?: string }; Returns: Json };
       my_devices: {
@@ -261,6 +362,7 @@ export type Database = {
         Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_client_counts: { Args: { p_on?: string }; Returns: Json };
       partner_create: { Args: { p_partner: Json; p_reason?: string }; Returns: Json };
       partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
       partner_owner_set: {

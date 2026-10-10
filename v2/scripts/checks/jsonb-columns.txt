@@ -18,3 +18,11 @@ partner.code_terms.tiers — volume tiers [{from_bookings, fee_percent}] of a co
 my.note.items — a note's checklist rows or a meeting's points [{text, done, owner_id, due_on}] (V433) — §3.3a
 work.task_template.checklist — a template's checklist rows [{text, owner, due_offset_days}], made the task's action items — §3.7
 work.task_template.rule — a template's schedule {freq, interval, weekdays, month_day, working_days, lead_days} — §3.7
+finance.invoice.src — each field's export time from the Payments file it came from, so a newer file wins and an older one only fills blanks (V618) — §3.6, §3.11
+finance.expense_line.src — each field's export time from the Payments expense export it came from (V618) — §3.6, §3.11
+finance.month_close.snapshot — a closed month's counted units as at close, which never changes (V610) — §3.6
+finance.import_batch.counts — what one import did: read, new, changed, unchanged, held (§3.11 io.batch)
+finance.import_held.raw — the held row's own columns as the file gave them, so a person sees exactly what was held (§3.11 io.held)
+finance.invoice_line.src — which fields of a line a person set or added by hand ('person'), so an import leaves them (V622) — §3.6, §3.11
+finance.import_difference.import_value — the columns of one field as a newer Payments file gave them, where they differ from what a person set (V622, Keep mine / Use import) — §3.11
+finance.receipt.src — each field's export time from the Payments receipt rows it came from (V618) — §3.6, §3.11

@@ -24,6 +24,7 @@ export const NOTIFICATION_KINDS = [
   'escalated',
   'alert_project_no_update',
   'alert_due_tomorrow',
+  'alert_quiet_client',
 ] as const;
 
 /** The seven a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */

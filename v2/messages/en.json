@@ -780,6 +780,7 @@
     "code_terms": "Code terms",
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
+    "match_pin": "Match pin",
     "identifier_block": "Blocked value",
     "contract_term": "Contract term",
     "priority": "Priority",
@@ -816,7 +817,27 @@
     "task_status_change": "Status change",
     "task_template": "Task template",
     "task_occurrence": "Task made from a template",
-    "project_health": "Project health"
+    "project_health": "Project health",
+    "invoice_line": "Invoice line",
+    "billing_link": "Billing link",
+    "billing_proposal": "Billing proposal",
+    "import_difference": "Difference from import",
+    "expense_line": "Expense",
+    "tax_invoice": "Tax invoice",
+    "credit_split": "Credit split",
+    "month_close": "Closed month",
+    "receipt": "Receipt",
+    "exclusion_rule": "Exclusion rule",
+    "status_map": "Invoice status word",
+    "expense_status_word": "Expense status word",
+    "service": "Service",
+    "product": "Product",
+    "wallet_rule": "Wallet rule",
+    "commission_word": "Commission word",
+    "channel": "Channel",
+    "import_map": "Import column",
+    "item_service": "Item service",
+    "item_class": "Item class"
   },
   "status": {
     "done": "Done",
@@ -882,6 +903,12 @@
       "late_days": "Days after which an entry is logged late",
       "project_update_days": "Days without a health update before a project's owner is reminded"
     },
+    "finance": {
+      "cost_estimate": "Show the pass-through lines as a cost estimate while no expense is approved",
+      "collection_due_days": "Days after issue an invoice with no due date of its own is due",
+      "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
+      "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
+    },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
       "code_door_enabled": "Sign in with an emailed code as well as the password"
@@ -915,7 +942,8 @@
       "contract_notify": "Who is told a contract is expiring",
       "contract_renewal_task": "Make the renewal task at a contract's first reminder",
       "logo_fallback": "An organisation with no logo shows",
-      "stale_after_days": "Days without activity before an organisation is stale"
+      "stale_after_days": "Days without activity before an organisation is stale",
+      "active_client_days": "Days a client counts as active after a counted invoice"
     },
     "core": {
       "file_download_display_name": "Downloads use the file's display name",
@@ -1140,7 +1168,8 @@
       "note_mention": "Mentioned in a note",
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
-      "alert_due_tomorrow": "A task of mine is coming due"
+      "alert_due_tomorrow": "A task of mine is coming due",
+      "alert_quiet_client": "A client of mine has gone quiet"
     },
     "devices": {
       "label": "Device",
