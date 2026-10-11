@@ -57,15 +57,19 @@ begin
           and not exists (select 1 from finance.amount_sets(bi.id)));
     select pg_catalog.count(*) into found_sets from (select 1 from finance.amount_sets(bi.id) limit 2) z;
     select s.ids into sets from finance.amount_sets(bi.id) s limit 1;
-    if found_sets = 1 then
+    -- one set or several: a person is asked (several: the first is proposed and the note says to check it), and while
+    -- the proposal waits the excess is not a fee (QA-540); no set: nothing is guessed
+    if found_sets >= 1 then
       insert into finance.billing_proposal (billing_invoice_id, transaction_ids, amount_sar, created_by)
       values (bi.id, sets, missing, p_imp);
       insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
-      values (p_batch, n, bi.ref, 'link_proposed', pg_catalog.cardinality(sets) || ' transaction(s)', true, r);
+      values (p_batch, n, bi.ref, 'link_proposed',
+              pg_catalog.cardinality(sets) || ' transaction(s)'
+                || case when found_sets > 1 then '; several sets add up — check this one before ticking' else '' end,
+              true, r);
     else
       insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, written, raw)
-      values (p_batch, n, bi.ref, 'link_not_found', case when found_sets = 0 then 'no set adds up' else 'several sets add up' end,
-              true, r);
+      values (p_batch, n, bi.ref, 'link_not_found', 'no set adds up', true, r);
     end if;
   end loop;
 end
