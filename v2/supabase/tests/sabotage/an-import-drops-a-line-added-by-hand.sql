@@ -18,6 +18,7 @@ declare
   m record;
   inv uuid;
   l jsonb;
+  pos bigint;
   lines_newer boolean;
   touched boolean := false;
   dp text := finance.row_text(p_row, 'dpin');
@@ -99,6 +100,13 @@ begin
                when finance.row_text(p_row, 'consolidated_ref') is not null
                     or pg_catalog.lower(finance.row_text(p_row, 'consolidation_status')) like 'consolidation%' then 'transaction'
                else 'standalone' end;
+  -- the kind is a field like any other: a file that does not say it (no consolidation column, not a credit note) keeps
+  -- what is stored (QA-529, D21)
+  if cur.id is not null and kind <> 'credit_note'
+     and finance.row_text(p_row, 'is_consolidated') is null and finance.row_text(p_row, 'consolidated_ref') is null
+     and finance.row_text(p_row, 'consolidation_status') is null then
+    kind := cur.kind;
+  end if;
   if kind in ('transaction', 'standalone')
      and pg_catalog.jsonb_array_length(coalesce(p_row -> 'lines', '[]'::jsonb)) > 0
      and not exists (select 1 from pg_catalog.jsonb_array_elements(p_row -> 'lines') x
@@ -170,9 +178,11 @@ begin
   end if;
 
   -- the lines: written whole from a newer file; an older one only adds a line the invoice lacks
-  for l in select x from pg_catalog.jsonb_array_elements(coalesce(p_row -> 'lines', '[]'::jsonb)) x loop
+  for l, pos in select t.x, t.o from pg_catalog.jsonb_array_elements(coalesce(p_row -> 'lines', '[]'::jsonb))
+                    with ordinality t(x, o) loop
     declare
-      no int := coalesce(finance.row_text(l, 'line_no')::int, 0);
+      -- a line the file does not number is numbered by its place in the invoice (QA-529)
+      no int := coalesce(finance.row_text(l, 'line_no')::int, pos::int);
       old finance.invoice_line;
       lv jsonb;
     begin
@@ -246,8 +256,8 @@ begin
     update finance.invoice_line x
     set deleted_at = pg_catalog.now(), deleted_by = p_imp, delete_reason = 'not in the newer Payments export'
     where x.invoice_id = inv and x.deleted_at is null
-      and x.line_no not in (select coalesce(finance.row_text(e, 'line_no')::int, 0)
-                            from pg_catalog.jsonb_array_elements(p_row -> 'lines') e);
+      and x.line_no not in (select coalesce(finance.row_text(t.e, 'line_no')::int, t.o::int)
+                            from pg_catalog.jsonb_array_elements(p_row -> 'lines') with ordinality t(e, o));
     if found then
       touched := true;
     end if;

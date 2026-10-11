@@ -8,7 +8,7 @@
 select set_config('t.adm', test.person('Test Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.adm')::uuid);
 
-select test.eq((select count(*)::int from jsonb_array_elements(api.finance_import_map('invoices'))), 25,
+select test.eq((select count(*)::int from jsonb_array_elements(api.finance_import_map('invoices'))), 30,
   'the all-invoices map is seeded');
 select test.eq((select count(*)::int from jsonb_array_elements(api.finance_import_map('expenses'))), 11,
   'the Transaction Expense Export map is seeded');
