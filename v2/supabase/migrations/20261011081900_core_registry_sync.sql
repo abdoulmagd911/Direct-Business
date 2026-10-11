@@ -169,7 +169,7 @@ insert into core.entity (key, table_name, page_key, owners, is_list, private, vi
   ('pipeline_stage_change', 'pipeline.stage_change', 'pipeline', 'pipeline.stage_change_owners', false, false, null, 'pipeline.row_level', true, false, true),
   ('plan', 'perf.plan', 'settings.performance', null, false, false, null, null, false, false, true),
   ('priority', 'work.priority', 'settings.work', null, true, false, null, null, false, false, true),
-  ('product', 'finance.product', 'finance', null, true, false, null, null, false, false, true),
+  ('product', 'finance.product', 'settings.finance', null, true, false, null, null, false, false, true),
   ('profile', 'core.person_profile', 'settings.profile', 'person_id', false, false, null, null, false, false, true),
   ('project', 'work.project', 'projects', 'owner_id', false, false, null, 'work.row_level', false, false, true),
   ('project_health', 'work.project_health', 'projects', 'work.project_health_owners', false, false, null, 'work.row_level', true, false, true),

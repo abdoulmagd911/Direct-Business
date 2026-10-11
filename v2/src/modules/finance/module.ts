@@ -62,17 +62,18 @@ export default defineModule({
         ['status_map', 'finance.status_map'],
         ['expense_status_word', 'finance.expense_status_word'],
         ['service', 'finance.service'],
+        ['product', 'finance.product'],
         ['wallet_rule', 'finance.wallet_rule'],
         ['commission_word', 'finance.commission_word'],
         ['item_service', 'finance.item_service'],
         ['item_class', 'finance.item_class'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
-    // Three lists a person with Full on Finance keeps, logged and undoable (V627; V621, V613, V622): the products with
-    // no supplier cost, the channels and the import's column map. On the finance page, shown in Settings → Finance.
+    // Two lists a person with Full on Finance keeps, logged and undoable (V627; V613, V622): the channels and the
+    // import's column map. On the finance page, shown in Settings → Finance. The products stay admins' (QA-534): Full on
+    // Finance sets only their no-supplier-cost flag, through api.finance_no_supplier_cost_set.
     ...(
       [
-        ['product', 'finance.product'],
         ['channel', 'finance.channel'],
         ['import_map', 'finance.import_map'],
       ] as const

@@ -6,7 +6,7 @@ export const sabotages = [
   {
     name: 'a-kept-list-leaves-settings',
     breaks: [target],
-    expect: '> keeps the three Finance lists on the finance page, shown under Settings › Finance',
+    expect: '> keeps the two Finance lists on the finance page, shown under Settings › Finance',
     edits: [
       {
         file: 'src/modules/settings/groups.ts',
