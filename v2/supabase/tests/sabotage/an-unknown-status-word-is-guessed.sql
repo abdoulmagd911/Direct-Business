@@ -86,6 +86,13 @@ begin
     values (p_batch, p_no, ref, 'manual_row', 'typed by a person; the import never changes it', p_row);
     return 'held';
   end if;
+  -- a paid row counts, so it needs its total: one with none, and none stored, is held — never written with no revenue
+  -- (QA-531; V611 "never left out", D21)
+  if st.maps_to = 'paid' and total is null and cur.total_sar is null then
+    insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
+    values (p_batch, p_no, ref, 'no_total', st.word, p_row);
+    return 'held';
+  end if;
 
   -- the kind as Payments shapes it (§3.6): a credit note; a billing invoice (is_consolidated); a transaction (it names
   -- the billing invoice it was consolidated into, or says it was); else standalone. Every line a wallet line: a top-up.

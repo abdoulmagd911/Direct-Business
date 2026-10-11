@@ -6,6 +6,9 @@ create or replace function finance.month_close_fixed() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
+  if TG_OP = 'DELETE' or new.deleted_at is distinct from old.deleted_at then
+    raise exception using errcode = 'P0001', message = 'finance.month_never_reopens', detail = old.month::text;
+  end if;
   if false then
     raise exception using errcode = 'P0001', message = 'finance.snapshot_never_changes';
   end if;
