@@ -8,9 +8,9 @@ select set_config('t.d', (core.riyadh_today() - 10)::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);
 select test.eq(api.finance_import_recognise('invoices', array['is_consolidated', 'consolidated_proforma_id',
-                                                               'B2B Transaction Status', 'Client ID #', 'Discount Code']) -> 'columns',
+                                                               'Consolidation Status', 'Client ID #', 'Discount Code']) -> 'columns',
   '[{"header": "is_consolidated", "field": "is_consolidated"}, {"header": "consolidated_proforma_id", "field": "consolidated_ref"},
-    {"header": "B2B Transaction Status", "field": "consolidation_status"}, {"header": "Client ID #", "field": "client_id"},
+    {"header": "Consolidation Status", "field": "consolidation_status"}, {"header": "Client ID #", "field": "client_id"},
     {"header": "Discount Code", "field": "discount_code"}]'::jsonb,
   'the seeded map feeds the consolidation, client ID and discount code columns');
 

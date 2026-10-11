@@ -1,5 +1,5 @@
 -- QA-529 (V616, V622 (2), D21): the seeded column map reads a monthly invoice. The headers come from the Payments
--- fields named in TECH-SPEC §3.6 (is_consolidated, consolidated_proforma_id and the separate B2B transaction status) and
+-- fields named in TECH-SPEC §3.6 (is_consolidated, consolidated_proforma_id and the separate transaction consolidation status) and
 -- the client ID column the old app read (Client ID #); the discount code is mapped by its plain name. The map is a
 -- setting (V627): where a real export names a column differently, a person with Full on Finance adds the header — no
 -- code. No tax-number header is seeded: none is known yet.
@@ -13,7 +13,7 @@ select x.key, 'invoices', x.header, x.header, x.header, x.field, false, x.sort, 
 from (values
   ('inv_is_consolidated', 'is_consolidated', 'is_consolidated', 140),
   ('inv_consolidated_ref', 'consolidated_proforma_id', 'consolidated_ref', 141),
-  ('inv_consolidation_status', 'B2B Transaction Status', 'consolidation_status', 142),
+  ('inv_consolidation_status', 'Consolidation Status', 'consolidation_status', 142),
   ('inv_client_id', 'Client ID #', 'client_id', 150),
   ('inv_discount_code', 'Discount Code', 'discount_code', 160)
 ) x(key, header, field, sort);
