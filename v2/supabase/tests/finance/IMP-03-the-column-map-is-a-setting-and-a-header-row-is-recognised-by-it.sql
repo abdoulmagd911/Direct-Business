@@ -2,7 +2,8 @@
 -- is recognised with each header's field, ignoring spaces, `_ - . : ( ) /` and case; a file missing a required header is
 -- not recognised and the missing ones are named. An admin adds a header through the list door — logged, and Undo takes
 -- it back — and the next file with that header is read by it; a field the door does not take, a header that is only
--- signs, and a second copy of a header are refused. Every value is made up.
+-- signs, and a second copy of a header are refused. A head with Full on Finance keeps the map too, without the Settings
+-- page (brief I.9, V622); Own on Finance does not. Every value is made up.
 -- Sabotage: supabase/tests/sabotage/a-header-is-compared-letter-for-letter.sql.
 select set_config('t.adm', test.person('Test Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.adm')::uuid);
@@ -41,6 +42,15 @@ select api.undo((current_setting('t.r')::jsonb ->> 'request_id')::uuid);
 select test.eq(api.finance_import_recognise('expenses', array['Expense Amount']) -> 'columns',
   '[{"header": "Expense Amount", "field": null}]'::jsonb, 'Undo takes the header back');
 
+select test.as_person(test.person('Test Finance Head', 'head'));
+do $$
+begin
+  perform test.ok((api.list_save('import_map', null, '{"source": "expenses", "header": "Fee", "name_en": "Fee", "name_ar": "Fee", "field": "amount_sar"}') ->> 'id') is not null,
+    'a head with Full on Finance keeps the map, without the Settings page');
+exception when insufficient_privilege then
+  perform test.fail(format('a head with Full on Finance keeps the map, without the Settings page — refused: %s', sqlerrm));
+end
+$$;
 select test.as_person(test.person('Test Member', 'member'));
-select test.raises($$select api.list_save('import_map', null, '{"source": "expenses", "header": "Fee", "name_en": "Fee", "name_ar": "Fee", "field": "amount_sar"}')$$,
-  '42501', 'only an admin changes the map', 'access.needs_level');
+select test.raises($$select api.list_save('import_map', null, '{"source": "expenses", "header": "Charge", "name_en": "Charge", "name_ar": "Charge", "field": "amount_sar"}')$$,
+  '42501', 'Own on Finance does not change the map', 'access.needs_level');

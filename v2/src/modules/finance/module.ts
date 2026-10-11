@@ -62,15 +62,28 @@ export default defineModule({
         ['status_map', 'finance.status_map'],
         ['expense_status_word', 'finance.expense_status_word'],
         ['service', 'finance.service'],
-        ['product', 'finance.product'],
         ['wallet_rule', 'finance.wallet_rule'],
         ['commission_word', 'finance.commission_word'],
-        ['channel', 'finance.channel'],
-        ['import_map', 'finance.import_map'],
         ['item_service', 'finance.item_service'],
         ['item_class', 'finance.item_class'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.finance', label: `entity.${key}`, list: true })),
+    // Three lists a person with Full on Finance keeps, logged and undoable (V627; V621, V613, V622): the products with
+    // no supplier cost, the channels and the import's column map. On the finance page, shown in Settings → Finance.
+    ...(
+      [
+        ['product', 'finance.product'],
+        ['channel', 'finance.channel'],
+        ['import_map', 'finance.import_map'],
+      ] as const
+    ).map(([key, table]) => ({
+      key,
+      table,
+      page: 'finance',
+      shownIn: 'settings.finance',
+      label: `entity.${key}`,
+      list: true,
+    })),
   ],
   // A tender's signed value is sales credit only, one way, with no setting (V619 answering Q46).
   settings: [
