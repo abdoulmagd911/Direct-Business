@@ -177,13 +177,14 @@ begin
       lv jsonb;
     begin
       select * into old from finance.invoice_line x where x.invoice_id = inv and x.line_no = no and x.deleted_at is null;
-      lv := pg_catalog.jsonb_build_object(
+      -- only what the file gives: a blank never wipes a stored value (QA-530, D21); the defaults are for a new line
+      lv := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
         'product_raw', finance.row_text(l, 'product'), 'product_id', finance.product_of(finance.row_text(l, 'product')),
-        'name', coalesce(finance.row_text(l, 'name'), finance.row_text(l, 'product'), '—'),
-        'qty', coalesce(finance.row_text(l, 'qty')::numeric, 1), 'unit_price', finance.row_text(l, 'unit_price')::numeric,
-        'discount_sar', coalesce(finance.row_text(l, 'discount_sar')::numeric, 0),
-        'taxable', coalesce((l ->> 'taxable')::boolean, true), 'total_sar', finance.row_text(l, 'total_sar')::numeric,
-        'service_id', (select p.service_id from finance.product p where p.id = finance.product_of(finance.row_text(l, 'product'))));
+        'name', coalesce(finance.row_text(l, 'name'), finance.row_text(l, 'product')),
+        'qty', finance.row_text(l, 'qty')::numeric, 'unit_price', finance.row_text(l, 'unit_price')::numeric,
+        'discount_sar', finance.row_text(l, 'discount_sar')::numeric,
+        'taxable', (l ->> 'taxable')::boolean, 'total_sar', finance.row_text(l, 'total_sar')::numeric,
+        'service_id', (select p.service_id from finance.product p where p.id = finance.product_of(finance.row_text(l, 'product')))));
       if old.id is null and exists (select 1 from finance.invoice_line x where x.invoice_id = inv and x.line_no = no
                                     and x.deleted_at is not null and x.deleted_by <> p_imp) then
         -- a line a person removed is never brought back (V622, OA12)
@@ -226,14 +227,15 @@ begin
                                           taxable, total_sar, service_id, created_by)
         select inv, no, x.product_raw, x.product_id, x.name, x.qty, x.unit_price, x.discount_sar, x.taxable, x.total_sar,
                x.service_id, p_imp
-        from pg_catalog.jsonb_populate_record(null::finance.invoice_line, lv) x;
+        from pg_catalog.jsonb_populate_record(null::finance.invoice_line,
+                                              '{"name": "—", "qty": 1, "discount_sar": 0, "taxable": true}'::jsonb || lv) x;
         touched := true;
-      elsif lines_newer and (pg_catalog.to_jsonb(old) - array['id', 'invoice_id', 'line_no', 'src', 'created_at', 'created_by',
-                              'updated_at', 'updated_by', 'version', 'deleted_at', 'deleted_by', 'delete_reason']) <> lv then
+      elsif lines_newer and exists (select 1 from pg_catalog.jsonb_each(lv) e
+                                    where pg_catalog.to_jsonb(old) -> e.key is distinct from e.value) then
         update finance.invoice_line x
         set (product_raw, product_id, name, qty, unit_price, discount_sar, taxable, total_sar, service_id)
             = (select y.product_raw, y.product_id, y.name, y.qty, y.unit_price, y.discount_sar, y.taxable, y.total_sar,
-                      y.service_id from pg_catalog.jsonb_populate_record(null::finance.invoice_line, lv) y),
+                      y.service_id from pg_catalog.jsonb_populate_record(x, lv) y),
             updated_at = pg_catalog.now(), updated_by = p_imp, version = x.version + 1
         where x.id = old.id;
         touched := true;
