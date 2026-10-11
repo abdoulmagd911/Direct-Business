@@ -1446,7 +1446,7 @@ export const sabotages = [
   {
     name: 'phone-controls-shrink-again',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
-    expect: 'a Tasks filter chip is 44 px tall',
+    expect: 'a layout link is 44 px tall',
     edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
   },
 
