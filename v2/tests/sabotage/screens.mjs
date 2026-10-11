@@ -1339,6 +1339,20 @@ export const sabotages = [
   },
 
   {
+    // QA-537: Settings › Finance without the two lists kept on the finance page (V627) must turn W44's test red.
+    name: 'settings-finance-loses-its-kept-lists',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the channel list is shown',
+    edits: [
+      {
+        file: 'src/modules/settings/groups.ts',
+        find: '(e.page === pageKey || e.shownIn === pageKey)',
+        replace: '(e.page === pageKey)',
+      },
+    ],
+  },
+
+  {
     name: 'sign-in-boxes-turn-autofill-off',
     breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
     expect: 'Expected: "username"',
