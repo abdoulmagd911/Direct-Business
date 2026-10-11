@@ -1,5 +1,6 @@
 -- LIST-01 — setting lists (§3.0, V76, V133): a record type is a list only when its module declares it; each declared
--- list has a stable key and both names, and is edited on a settings page; every table shaped like a list is declared
+-- list has a stable key and both names, and is edited on a settings page — or on its own module's page, the one
+-- exception (V627: Full on that page keeps it); every table shaped like a list is declared
 -- (the access roles alone are not a list: api.role_save and its rules edit them — V132); everyone signed in reads the
 -- lists; only an admin (Settings is admins-only — V97) adds and changes entries — both names required, the key fixed,
 -- an entry retired and never deleted; each change logged and undoable; a side's list (V98) names its side, which never
@@ -11,7 +12,7 @@ declare
 begin
   select string_agg(e.key, ', ') into bad from core.entity e
   where e.active and e.is_list
-    and (e.page_key not like 'settings.%'
+    and ((e.page_key not like 'settings.%' and e.page_key is distinct from split_part(e.table_name, '.', 1))
          or (select count(*) from pg_attribute a where a.attrelid = to_regclass(e.table_name) and a.attnum > 0
              and not a.attisdropped and a.attnotnull and a.attname in ('key', 'name_en', 'name_ar', 'sort', 'active')) <> 5);
   perform test.ok(bad is null, format('declared lists without both required names or a settings page: %s', bad));

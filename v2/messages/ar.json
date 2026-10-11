@@ -700,6 +700,7 @@
     "code_terms": "شروط الرمز",
     "campaign_code": "رمز حملة",
     "individual_name": "فرد",
+    "match_pin": "تثبيت مطابقة",
     "identifier_block": "قيمة محظورة",
     "contract_term": "شرط العقد",
     "priority": "الأولوية",
@@ -736,7 +737,27 @@
     "task_status_change": "تغيير الحالة",
     "task_template": "قالب مهمة",
     "task_occurrence": "مهمة من قالب",
-    "project_health": "صحة المشروع"
+    "project_health": "صحة المشروع",
+    "invoice_line": "بند الفاتورة",
+    "billing_link": "ربط الفاتورة المجمعة",
+    "billing_proposal": "اقتراح ربط الفاتورة المجمعة",
+    "import_difference": "اختلاف عن الاستيراد",
+    "expense_line": "مصروف",
+    "tax_invoice": "فاتورة ضريبية",
+    "credit_split": "توزيع الإسناد",
+    "month_close": "شهر مقفل",
+    "receipt": "إيصال دفع",
+    "exclusion_rule": "قاعدة استبعاد",
+    "status_map": "حالة الفاتورة",
+    "expense_status_word": "حالة المصروف",
+    "service": "خدمة",
+    "product": "منتج",
+    "wallet_rule": "قاعدة المحفظة",
+    "commission_word": "كلمة العمولة",
+    "channel": "القناة",
+    "import_map": "عمود الاستيراد",
+    "item_service": "خدمة البند",
+    "item_class": "تصنيف البند"
   },
   "status": {
     "done": "منجزة",
@@ -802,6 +823,12 @@
       "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا",
       "late_days": "الأيام التي يُعدّ بعدها الإدخال متأخراً"
     },
+    "finance": {
+      "cost_estimate": "إظهار بنود التمرير كتقدير للتكلفة حتى اعتماد المصروف",
+      "collection_due_days": "أيام الاستحقاق بعد الإصدار للفاتورة التي ليس لها تاريخ استحقاق",
+      "quiet_client_days": "أيام بلا فاتورة مدفوعة بالكامل قبل أن يُعد العميل خاملاً",
+      "unpaid_alert_days": "أيام بعد الإصدار تبقى فيها الفاتورة غير مدفوعة قبل إبلاغ مدير الحساب"
+    },
     "auth": {
       "device_idle_days": "أيام عدم استخدام الجهاز قبل تسجيل الدخول من جديد",
       "code_door_enabled": "تسجيل الدخول برمز يُرسل بالبريد إلى جانب كلمة المرور"
@@ -835,7 +862,8 @@
       "contract_notify": "من يُبلَّغ بقرب انتهاء العقد",
       "contract_renewal_task": "إنشاء مهمة التجديد عند أول تذكير بالعقد",
       "logo_fallback": "ما يظهر للجهة التي ليس لها شعار",
-      "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة"
+      "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة",
+      "active_client_days": "أيام يبقى فيها العميل نشطاً بعد فاتورة محتسبة"
     },
     "core": {
       "file_download_display_name": "التنزيل باسم العرض للملف",
@@ -917,6 +945,7 @@
     },
     "notify": {
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
+      "alert_quiet_client": "عميل لي توقف عن الشراء",
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "escalated": "أمر تم تصعيده إليّ",
       "reminder": "تذكيراتي",

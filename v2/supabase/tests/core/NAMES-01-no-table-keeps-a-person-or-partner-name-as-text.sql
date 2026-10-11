@@ -18,6 +18,10 @@ begin
     -- raw values copied from a source file, never shown as a person (added by the step that brings them):
     and format('%s.%s.%s', c.table_schema, c.table_name, c.column_name) not in (
       'finance.invoice.customer_name', 'finance.invoice.customer_name2', 'finance.invoice.salesman_raw',
-      'finance.expense_line.submitter', 'finance.expense_line.approver', 'finance.receipt.paid_by');
+      'finance.expense_line.submitter', 'finance.expense_line.approver', 'finance.receipt.paid_by',
+      -- the customer's contact details and Payments client ID as the invoice shows them, and its match key: clues for
+      -- the matching engine (§3.5), never a name
+      'finance.invoice.customer_email', 'finance.invoice.customer_phone', 'finance.invoice.client_id_raw',
+      'finance.invoice.client_id_key');
   perform test.ok(found is null, format(E'names kept as text (refer by id instead):\n    %s', found));
 end $$;
