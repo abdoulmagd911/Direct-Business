@@ -86,8 +86,10 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   // the circle stays 24 px to look at; a thumb has 44 px around it
   const tick = page.locator('[data-done-tick]').first();
   await tick.scrollIntoViewIfNeeded();
+  const ring = (await tick.locator('span').boundingBox())!;
+  expect(ring.width, 'the circle itself is still small').toBeLessThan(30);
   const box = (await tick.boundingBox())!;
-  expect(box.width, 'the circle itself is still small').toBeLessThan(30);
+  expect(box.width, 'and its button is a finger wide').toBeGreaterThanOrEqual(43.5);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const hits = (dx: number, dy: number) =>

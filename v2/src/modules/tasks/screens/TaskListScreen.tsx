@@ -296,7 +296,7 @@ function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups;
   const due = dueState(row, today);
   const where = row.project_id ? names.project(row.project_id) : row.partner_id ? names.partner(row.partner_id) : '';
   return (
-    <li className="flex items-start gap-3 px-4 py-3" data-task-row={row.number} data-due={due}>
+    <li className="relative flex items-start gap-3 px-4 py-3" data-task-row={row.number} data-due={due}>
       {row.can_edit ? (
         <DoneTick task={row} statuses={lookups.statuses} title={row.title} />
       ) : (
@@ -306,7 +306,7 @@ function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups;
         <Link
           href={`/tasks/${row.number}`}
           className={cn(
-            'break-words text-base font-medium text-text hover:underline focus-visible:outline-2 focus-visible:outline-focus',
+            "break-words text-base font-medium text-text after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-focus",
             row.meaning === 'done' && 'text-muted line-through',
           )}
         >

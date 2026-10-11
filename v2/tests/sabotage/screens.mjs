@@ -1453,12 +1453,12 @@ export const sabotages = [
   {
     name: 'done-tick-target-is-the-circle',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
-    expect: 'marks it done',
+    expect: 'and its button is a finger wide',
     edits: [
       {
         file: 'src/modules/tasks/screens/StatusControl.tsx',
-        find: "before:absolute before:-inset-3 before:content-[''] ",
-        replace: '',
+        find: 'inline-grid size-11 shrink-0 place-items-center rounded-full focus-visible',
+        replace: 'inline-grid size-6 shrink-0 place-items-center rounded-full focus-visible',
       },
     ],
   },
@@ -1681,6 +1681,58 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/CaptureRow.tsx',
         find: 'flex min-w-0 flex-[1_1_16rem] gap-2',
         replace: 'flex min-w-[24rem] flex-[1_1_16rem] gap-2',
+      },
+    ],
+  },
+
+  {
+    name: 'task-row-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the row opens the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "after:absolute after:inset-0 after:content-[''] hover:underline",
+        replace: 'hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-hides-its-mark',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check control shows its mark before any touch',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'text-muted group-hover:border-success',
+        replace: 'text-transparent group-hover:border-success',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-sits-under-the-row-link',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check does not open the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'group relative z-10 -mx-2.5',
+        replace: 'group relative -mx-2.5',
+      },
+    ],
+  },
+
+  {
+    name: 'client-card-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the card opens the record',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: "text-link after:absolute after:inset-0 after:content-['']",
+        replace: 'text-link',
       },
     ],
   },
