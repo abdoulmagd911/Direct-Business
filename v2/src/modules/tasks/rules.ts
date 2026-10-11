@@ -52,6 +52,15 @@ export function dueState(t: Pick<TaskRow, 'due_on' | 'meaning' | 'past_work'>, t
  */
 export const SCOPES = ['my_work', 'owned', 'helping', 'team', 'past'] as const;
 export type Scope = (typeof SCOPES)[number];
+
+/**
+ * Which tabs a phone shows (V630: few, big, nothing crowded). Someone who gives work (`tasks.assign`) sees My work and
+ * Team; everyone else My work and Owned. The rest sit under the row's one More. A wide screen shows all five. The choice
+ * is this one list, so a change of heart is a change here (no usage data yet, 11 Oct).
+ */
+export function phoneScopes(capabilities: readonly string[]): readonly Scope[] {
+  return capabilities.includes('tasks.assign') ? ['my_work', 'team'] : ['my_work', 'owned'];
+}
 export const STATUS_CHIPS = ['open', 'blocked', 'done', 'cancelled'] as const;
 export type StatusChipKey = (typeof STATUS_CHIPS)[number];
 export const DUE_CHIPS = ['overdue', 'today', 'week', 'none'] as const;

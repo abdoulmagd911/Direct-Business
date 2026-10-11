@@ -58,6 +58,18 @@ async function taskIn(department: string, owner: string, title: string): Promise
   return number;
 }
 
+/** Adds a task the way the screen offers it: the header's Add task on a wide screen, the floating + on a phone (V630). */
+async function openAdd(page: Page) {
+  const header = page.locator('[data-add-task]');
+  if (await header.isVisible()) return header.click();
+  await page.locator('[data-create-floating]').click();
+  const item = page.locator('[data-create-item="task"]');
+  await item.waitFor({ state: 'visible', timeout: 2000 }).then(
+    () => item.click(),
+    () => undefined, // the + opens its only item directly
+  );
+}
+
 async function signedIn(browser: Browser, person: TestPerson, width: number, height: number, path = '/tasks') {
   const ctx = await browser.newContext({ viewport: { width, height } });
   const page = await ctx.newPage();
@@ -89,7 +101,7 @@ for (const w of WIDTHS) {
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
     const title = `Made-up task ${randomUUID().slice(0, 6)}`;
 
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     const form = page.locator('form[data-quick-add]');
     await form.locator('input[name="title"]').fill(title);
     await form.locator('input[name="due"]').fill(riyadhToday());
@@ -132,7 +144,7 @@ for (const w of WIDTHS) {
     const member = await memberWithTeam();
     const title = `Made-up blocked ${randomUUID().slice(0, 6)}`;
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     await page.locator('form[data-quick-add] input[name="title"]').fill(title);
     await page.locator('form[data-quick-add] button[type="submit"]').click();
     await page.locator('li[data-task-row]', { hasText: title }).getByRole('link', { name: title }).click();
@@ -166,7 +178,7 @@ for (const w of WIDTHS) {
     const title = `Made-up no-team task ${randomUUID().slice(0, 6)}`;
     const { ctx, page } = await signedIn(browser, admin, w.width, w.height);
 
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     const form = page.locator('form[data-quick-add]');
     const pickOwner = form.getByRole('combobox', { name: 'Owner' });
     await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick an owner');
@@ -192,7 +204,7 @@ test('phone: see what is due today and tick one off (V509)', async ({ browser })
   const member = await memberWithTeam();
   const title = `Made-up due today ${randomUUID().slice(0, 6)}`;
   const { ctx, page } = await signedIn(browser, member, 390, 844, '/tasks?due=today');
-  await page.locator('[data-add-task]').click();
+  await openAdd(page);
   await page.locator('form[data-quick-add] input[name="title"]').fill(title);
   await page.locator('form[data-quick-add] input[name="due"]').fill(riyadhToday());
   await page.locator('form[data-quick-add] button[type="submit"]').click();
