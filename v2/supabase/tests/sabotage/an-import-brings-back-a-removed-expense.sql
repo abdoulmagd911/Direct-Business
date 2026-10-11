@@ -56,14 +56,20 @@ begin
     end if;
   end if;
   begin
-    created_src := finance.row_text(p_row, 'created_at')::timestamptz;
+    created_src := finance.row_time(p_row, 'created_at');
     amount := finance.row_text(p_row, 'amount_sar')::numeric(14, 2);
-    perform finance.row_text(p_row, 'submitted_at')::timestamptz, finance.row_text(p_row, 'decided_at')::timestamptz;
+    perform finance.row_time(p_row, 'submitted_at'), finance.row_time(p_row, 'decided_at');
   exception when others then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'bad_amount_or_date', sqlerrm, p_row);
     return 'held';
   end;
+  -- a day after today is a typing slip, held as invoices and receipts are (QA-539)
+  if (created_src at time zone 'Asia/Riyadh')::date > core.riyadh_today() then
+    insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
+    values (p_batch, p_no, ref, 'date_in_future', (created_src at time zone 'Asia/Riyadh')::date::text, p_row);
+    return 'held';
+  end if;
   if st in ('approved', 'issued') and amount is null then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'approved_without_amount', p_row ->> 'expense_type', p_row);
@@ -74,8 +80,8 @@ begin
     'expense_type', coalesce(finance.row_text(p_row, 'expense_type'), '—'), 'status', st,
     'status_raw', finance.row_text(p_row, 'status'), 'amount_sar', amount, 'merchant', finance.row_text(p_row, 'merchant'),
     'id_reference', finance.row_text(p_row, 'id_reference'), 'created_at_src', created_src,
-    'submitted_at', finance.row_text(p_row, 'submitted_at')::timestamptz,
-    'decided_at', finance.row_text(p_row, 'decided_at')::timestamptz,
+    'submitted_at', finance.row_time(p_row, 'submitted_at'),
+    'decided_at', finance.row_time(p_row, 'decided_at'),
     'submitter', finance.row_text(p_row, 'submitter'), 'approver', finance.row_text(p_row, 'approver')));
   select * into cur from finance.expense_line e where e.line_key = key and e.deleted_at is null;
   if false and exists (select 1 from finance.expense_line e where e.line_key = key and e.deleted_at is not null
