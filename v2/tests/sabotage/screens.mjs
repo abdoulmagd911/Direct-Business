@@ -1750,4 +1750,67 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'clients-header-add-stays-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the header New client button is not drawn on a phone',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'data-partner-new\n              className="max-sm:hidden"',
+        replace: 'data-partner-new\n              className=""',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filters-stay-in-the-row-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the search is folded away',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: ": 'max-sm:hidden',",
+        replace: ": '',",
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-forgets-its-count',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the button counts the search',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'const activeFilters =\n    [filters.q].filter(Boolean).length +',
+        replace: 'const activeFilters =\n    0 * [filters.q].filter(Boolean).length +',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'no Filter button on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: 'focus-visible:outline-focus sm:hidden"',
+        replace: 'focus-visible:outline-focus"',
+      },
+    ],
+  },
+  {
+    name: 'clients-plus-on-the-list-opens-nothing',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'Save is off until the form is whole',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'if (wantsNew && full) setCreating(true);',
+        replace: 'if (wantsNew && full && false) setCreating(true);',
+      },
+    ],
+  },
 ];
