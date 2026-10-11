@@ -1,10 +1,13 @@
 'use client';
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
 import { LinkPending } from './LinkPending';
+import { Menu, MenuContent, MenuItem, MenuTrigger } from './Menu';
 
-export type TabDef = { value: string; label: ReactNode; count?: number; href?: string };
+/** `more` puts a link tab under the row's one "More" control on a phone (V630); a wide screen shows every tab. */
+export type TabDef = { value: string; label: ReactNode; count?: number; href?: string; more?: boolean };
 
 /**
  * ONE tab row, underline style, counts in mono. Never tabs inside tabs (V11): a detail has at most
@@ -16,12 +19,15 @@ export function Tabs({
   value,
   onValueChange,
   label,
+  moreLabel,
   className,
 }: {
   tabs: TabDef[];
   value: string;
   onValueChange?: (v: string) => void;
   label: string;
+  /** The word on the phone's overflow control; needed when any tab has `more`. */
+  moreLabel?: string;
   className?: string;
 }) {
   const tabClass = (active: boolean) =>
@@ -33,6 +39,8 @@ export function Tabs({
     n !== undefined ? <span className="ms-1.5 font-data text-xs font-normal text-muted">{n}</span> : null;
 
   if (tabs.every((t) => t.href)) {
+    const folded = moreLabel ? tabs.filter((t) => t.more) : [];
+    const foldedOn = folded.some((t) => t.value === value);
     return (
       <nav
         aria-label={label}
@@ -44,13 +52,39 @@ export function Tabs({
             key={t.value}
             href={t.href!}
             aria-current={t.value === value ? 'page' : undefined}
-            className={tabClass(t.value === value)}
+            className={cn(tabClass(t.value === value), folded.includes(t) && 'max-sm:hidden')}
           >
             {t.label}
             {count(t.count)}
             <LinkPending />
           </Link>
         ))}
+        {folded.length ? (
+          <Menu>
+            <MenuTrigger
+              className={cn(tabClass(foldedOn), 'gap-1 sm:hidden')}
+              data-tabs-more
+              aria-current={foldedOn ? 'true' : undefined}
+            >
+              {moreLabel}
+              <ChevronDown className="size-4" aria-hidden="true" />
+            </MenuTrigger>
+            <MenuContent align="end">
+              {folded.map((t) => (
+                <MenuItem key={t.value} asChild className="h-11">
+                  <Link
+                    href={t.href!}
+                    aria-current={t.value === value ? 'page' : undefined}
+                    data-tabs-more-item={t.value}
+                  >
+                    {t.label}
+                    {count(t.count)}
+                  </Link>
+                </MenuItem>
+              ))}
+            </MenuContent>
+          </Menu>
+        ) : null}
       </nav>
     );
   }
