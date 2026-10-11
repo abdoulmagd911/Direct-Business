@@ -31,16 +31,26 @@ async function memberWithTeam(): Promise<TestPerson> {
   return person;
 }
 
-/** The Tasks tab row: five tabs, each whole inside the screen with its words inside its own box, Past work last. */
-async function tabsAreWhole(page: Page, width: number, count: number) {
-  const tabs = await page.locator('[data-tabs] > *').evaluateAll((els) =>
-    els.map((e) => {
-      const r = e.getBoundingClientRect();
-      return { text: e.textContent ?? '', left: r.left, right: r.right, spill: e.scrollWidth - e.clientWidth };
-    }),
-  );
-  expect(tabs.length, 'My work · Owned · Helping · (Team) · Past work').toBe(count);
-  expect(tabs[count - 1]!.text, 'Past work is the last').toContain('Past work');
+/** The Tasks tab row on a phone: the tabs it shows plus the one More, each whole inside the screen, words inside its box. */
+async function tabsAreWhole(page: Page, width: number, shown?: string[]) {
+  const tabs = (
+    await page.locator('[data-tabs] > *').evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return {
+          text: (e.textContent ?? '').trim(),
+          left: r.left,
+          right: r.right,
+          spill: e.scrollWidth - e.clientWidth,
+        };
+      }),
+    )
+  ).filter((x) => x.right > x.left);
+  if (shown)
+    expect(
+      tabs.map((x) => x.text),
+      'two tabs and the one More',
+    ).toEqual(shown);
   for (const x of tabs) {
     expect(x.right, `${x.text}: no tab is cut off at the right edge`).toBeLessThanOrEqual(width + 0.5);
     expect(x.left, `${x.text}: nor at the left`).toBeGreaterThanOrEqual(-0.5);
@@ -76,8 +86,10 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   // the circle stays 24 px to look at; a thumb has 44 px around it
   const tick = page.locator('[data-done-tick]').first();
   await tick.scrollIntoViewIfNeeded();
+  const ring = (await tick.locator('span').boundingBox())!;
+  expect(ring.width, 'the circle itself is still small').toBeLessThan(30);
   const box = (await tick.boundingBox())!;
-  expect(box.width, 'the circle itself is still small').toBeLessThan(30);
+  expect(box.width, 'and its button is a finger wide').toBeGreaterThanOrEqual(43.5);
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   const hits = (dx: number, dy: number) =>
@@ -97,8 +109,8 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   expect(layout.length, 'the List / Board / Calendar switch is there').toBe(3);
   for (const h of layout) expect(h, 'a layout link is 44 px tall').toBeGreaterThanOrEqual(TARGET - 0.5);
 
-  // the tab row shows Past work whole
-  await tabsAreWhole(page, PHONE.width, 5);
+  // the tab row shows its two tabs and More whole
+  await tabsAreWhole(page, PHONE.width, ['My work', 'Owned', 'More']);
 
   // Clients: the chips and Save view
   await page.goto('/clients');
@@ -197,7 +209,7 @@ test('phone 375: New client says what it needs before Save can be pressed', asyn
   ).toHaveCount(2);
 });
 
-test('phone 320: for someone who gives work, the five Tasks tabs all sit inside the narrowest screens, Past work last', async ({
+test('phone 320: for someone who gives work, the Tasks tabs and More sit inside the narrowest screens', async ({
   page,
 }) => {
   const admin = await makePerson({ admin: true }); // gives work to others, so the Team tab is there too
@@ -205,5 +217,18 @@ test('phone 320: for someone who gives work, the five Tasks tabs all sit inside 
   await page.setViewportSize(narrow);
   await signIn(page, admin.email, '/tasks');
   await hydrated(page);
-  await tabsAreWhole(page, narrow.width, 5);
+  await tabsAreWhole(page, narrow.width, ['My work', 'Team', 'More']);
+});
+
+test('phone 320: the Activity page tab row wraps and every tab stays whole inside the narrowest screens', async ({
+  page,
+}) => {
+  const admin = await makePerson({ admin: true });
+  const narrow = { width: 320, height: 640 };
+  await page.setViewportSize(narrow);
+  await signIn(page, admin.email, '/activity');
+  await hydrated(page);
+  const count = await page.locator('[data-tabs] > *').count();
+  expect(count, 'Activity has a row of four tabs').toBe(4);
+  await tabsAreWhole(page, narrow.width);
 });
