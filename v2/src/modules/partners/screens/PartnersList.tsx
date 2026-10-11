@@ -4,7 +4,7 @@ import * as RP from '@radix-ui/react-popover';
 import type { RowSelectionState } from '@tanstack/react-table';
 import { Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
@@ -23,6 +23,7 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
+import { PhoneFilter } from '@/ui/PhoneFilter';
 import { PartnerLogo } from '@/ui/PartnerLogo';
 import { PersonChip } from '@/ui/PersonChip';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
@@ -127,6 +128,13 @@ export function PartnersList({
   const [more, setMore] = useState(false);
   const [creating, setCreating] = useState(startCreating && full);
   const [assigning, setAssigning] = useState(false);
+  // The floating + on a phone goes to ?new=1 while this list is already on screen: that address opens the dialog too
+  const wantsNew = useSearchParams().get('new') === '1';
+  const [sawNew, setSawNew] = useState(wantsNew);
+  if (wantsNew !== sawNew) {
+    setSawNew(wantsNew);
+    if (wantsNew && full) setCreating(true);
+  }
   const [q, setQ] = useState(filters.q);
   const go = (f: ListFilters) => router.push(addressOf(base, f));
   const set = (patch: Partial<ListFilters>) => go({ ...filters, ...patch, view: '' });
@@ -247,6 +255,17 @@ export function PartnersList({
     [t, locale, types, sideTypes, people, base],
   );
 
+  const activeFilters =
+    [filters.q].filter(Boolean).length +
+    filters.types.length +
+    filters.owners.length +
+    filters.statuses.length +
+    filters.tiers.length +
+    filters.priorities.length +
+    (filters.key_partner ? 1 : 0) +
+    (filters.stale ? 1 : 0) +
+    (filters.archived ? 1 : 0);
+
   const chipLabel = (keys: string[], label: (k: string) => string) =>
     keys.length ? keys.map(label).join(', ') : undefined;
 
@@ -263,7 +282,13 @@ export function PartnersList({
         }
         actions={
           full ? (
-            <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)} data-partner-new>
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              onClick={() => setCreating(true)}
+              data-partner-new
+              className="max-sm:hidden"
+            >
               {side === 'client' ? t('partners.newClient') : t('partners.newSupplier')}
             </Button>
           ) : null
@@ -279,91 +304,99 @@ export function PartnersList({
         canShare={full}
       />
       <div className="flex flex-wrap items-center gap-2" data-partners-chips>
-        <form
-          className="flex items-center"
-          onSubmit={(e) => {
-            e.preventDefault();
-            set({ q });
-          }}
-        >
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t('partners.search')}
-            aria-label={t('common.search')}
-            className="h-[var(--control-h-sm)] w-[220px]"
-            data-partners-search
+        <PhoneFilter label={t('common.filter')} count={activeFilters}>
+          <form
+            className="flex items-center"
+            onSubmit={(e) => {
+              e.preventDefault();
+              set({ q });
+            }}
+          >
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t('partners.search')}
+              aria-label={t('common.search')}
+              className="h-[var(--control-h-sm)] w-[220px]"
+              data-partners-search
+            />
+          </form>
+          <ChipPicker
+            field={t('partners.columns.type')}
+            value={chipLabel(
+              filters.types,
+              (k) =>
+                nameOf(
+                  types.find((x) => x.key === k),
+                  locale,
+                ) || k,
+            )}
+            count={filters.types.length ? answer?.total : undefined}
+            options={types.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
+            picked={filters.types}
+            onChange={(v) => set({ types: v })}
+            words={t}
           />
-        </form>
-        <ChipPicker
-          field={t('partners.columns.type')}
-          value={chipLabel(
-            filters.types,
-            (k) =>
-              nameOf(
-                types.find((x) => x.key === k),
-                locale,
-              ) || k,
-          )}
-          count={filters.types.length ? answer?.total : undefined}
-          options={types.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
-          picked={filters.types}
-          onChange={(v) => set({ types: v })}
-          words={t}
-        />
-        <ChipPicker
-          field={t('partners.columns.owner')}
-          value={chipLabel(filters.owners, (k) => (people[k] ? personName(people[k]!, locale) : k))}
-          count={filters.owners.length ? answer?.total : undefined}
-          options={org.people.map((p) => ({ value: p.id, label: personName(p, locale) }))}
-          picked={filters.owners}
-          onChange={(v) => set({ owners: v })}
-          words={t}
-        />
-        <ChipPicker
-          field={t('partners.columns.status')}
-          value={chipLabel(filters.statuses, (k) =>
-            k === 'none' ? t('partners.status.none') : t(`partners.status.${k}`),
-          )}
-          count={filters.statuses.length ? answer?.total : undefined}
-          options={[...STATUSES, 'none'].map((s) => ({
-            value: s,
-            label: s === 'none' ? t('partners.status.none') : t(`partners.status.${s}`),
-          }))}
-          picked={filters.statuses}
-          onChange={(v) => set({ statuses: v })}
-          words={t}
-        />
-        <Button size="sm" variant="ghost" icon={<SlidersHorizontal />} onClick={() => setMore(true)} data-partners-more>
-          {t('partners.moreFilters')}
-          {filters.tiers.length +
-            filters.priorities.length +
-            (filters.key_partner ? 1 : 0) +
-            (filters.stale ? 1 : 0) +
-            (filters.archived ? 1 : 0) >
-          0 ? (
-            <span className="font-data text-xs text-muted">
-              {filters.tiers.length +
-                filters.priorities.length +
-                (filters.key_partner ? 1 : 0) +
-                (filters.stale ? 1 : 0) +
-                (filters.archived ? 1 : 0)}
-            </span>
-          ) : null}
-        </Button>
-        {filters.q ||
-        filters.types.length ||
-        filters.owners.length ||
-        filters.statuses.length ||
-        filters.tiers.length ||
-        filters.priorities.length ||
-        filters.key_partner ||
-        filters.stale ||
-        filters.archived ? (
-          <Button size="sm" variant="link" onClick={() => go(empty())} data-partners-clear>
-            {t('common.clearAll')}
+          <ChipPicker
+            field={t('partners.columns.owner')}
+            value={chipLabel(filters.owners, (k) => (people[k] ? personName(people[k]!, locale) : k))}
+            count={filters.owners.length ? answer?.total : undefined}
+            options={org.people.map((p) => ({ value: p.id, label: personName(p, locale) }))}
+            picked={filters.owners}
+            onChange={(v) => set({ owners: v })}
+            words={t}
+          />
+          <ChipPicker
+            field={t('partners.columns.status')}
+            value={chipLabel(filters.statuses, (k) =>
+              k === 'none' ? t('partners.status.none') : t(`partners.status.${k}`),
+            )}
+            count={filters.statuses.length ? answer?.total : undefined}
+            options={[...STATUSES, 'none'].map((s) => ({
+              value: s,
+              label: s === 'none' ? t('partners.status.none') : t(`partners.status.${s}`),
+            }))}
+            picked={filters.statuses}
+            onChange={(v) => set({ statuses: v })}
+            words={t}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<SlidersHorizontal />}
+            onClick={() => setMore(true)}
+            data-partners-more
+          >
+            {t('partners.moreFilters')}
+            {filters.tiers.length +
+              filters.priorities.length +
+              (filters.key_partner ? 1 : 0) +
+              (filters.stale ? 1 : 0) +
+              (filters.archived ? 1 : 0) >
+            0 ? (
+              <span className="font-data text-xs text-muted">
+                {filters.tiers.length +
+                  filters.priorities.length +
+                  (filters.key_partner ? 1 : 0) +
+                  (filters.stale ? 1 : 0) +
+                  (filters.archived ? 1 : 0)}
+              </span>
+            ) : null}
           </Button>
-        ) : null}
+          {filters.q ||
+          filters.types.length ||
+          filters.owners.length ||
+          filters.statuses.length ||
+          filters.tiers.length ||
+          filters.priorities.length ||
+          filters.key_partner ||
+          filters.stale ||
+          filters.archived ? (
+            <Button size="sm" variant="link" onClick={() => go(empty())} data-partners-clear>
+              {t('common.clearAll')}
+            </Button>
+          ) : null}
+        </PhoneFilter>
       </div>
 
       {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}

@@ -465,6 +465,7 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   const started = Date.now();
   await tap(page.locator('[data-bottom-bar]').getByRole('link', { name: 'Clients' }));
   await hydrated(page);
+  await tap(page.locator('[data-filter-toggle]')); // the search sits behind the one Filter button on a phone (V630)
   await page.getByPlaceholder('Search by name or number').fill(name);
   await page.keyboard.press('Enter');
   await tap(page.locator(`[data-partner-link="${id}"]`).first());
