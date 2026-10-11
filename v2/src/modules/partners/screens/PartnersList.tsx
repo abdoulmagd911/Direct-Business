@@ -6,7 +6,7 @@ import { Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
@@ -130,9 +130,11 @@ export function PartnersList({
   const [assigning, setAssigning] = useState(false);
   // The floating + on a phone goes to ?new=1 while this list is already on screen: that address opens the dialog too
   const wantsNew = useSearchParams().get('new') === '1';
-  useEffect(() => {
+  const [sawNew, setSawNew] = useState(wantsNew);
+  if (wantsNew !== sawNew) {
+    setSawNew(wantsNew);
     if (wantsNew && full) setCreating(true);
-  }, [wantsNew, full]);
+  }
   const [q, setQ] = useState(filters.q);
   const go = (f: ListFilters) => router.push(addressOf(base, f));
   const set = (patch: Partial<ListFilters>) => go({ ...filters, ...patch, view: '' });

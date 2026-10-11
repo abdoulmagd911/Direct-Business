@@ -1809,7 +1809,7 @@ export const sabotages = [
       {
         file: 'src/modules/partners/screens/PartnersList.tsx',
         find: 'if (wantsNew && full) setCreating(true);',
-        replace: 'if (wantsNew && full && false) setCreating(true);',
+        replace: 'if (wantsNew && full && !wantsNew) setCreating(true);',
       },
     ],
   },
