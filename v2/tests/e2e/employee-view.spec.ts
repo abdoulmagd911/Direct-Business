@@ -325,7 +325,7 @@ test('11 · the avatar menu holds exactly My profile and Sign out', async ({ pag
   await expect(page.getByRole('menuitem')).toHaveText(['My profile', 'Sign out']);
 });
 
-test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-one", async ({
+test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-two", async ({
   page,
   browser,
 }) => {
@@ -342,8 +342,8 @@ test("12 · a member's My profile: five cards, seven notification switches, none
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();
   await openAs(manager, 'manager', '/profile');
-  // V217's eighteen and P5-1's escalated, alert_project_no_update and alert_due_tomorrow (V199)
-  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(21);
+  // V217's eighteen, P5-1's escalated, alert_project_no_update and alert_due_tomorrow (V199), and P4-2's alert_quiet_client (V401)
+  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(22);
   await ctx.close();
 });
 

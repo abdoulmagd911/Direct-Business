@@ -1327,7 +1327,7 @@ export const sabotages = [
 
   {
     name: 'settings-empty-group-explains-the-build',
-    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    breaks: ['unit:tests/unit/pages/an-empty-settings-group-says-what-it-is-in-one-line.test.tsx'],
     expect: 'Nothing to set up here yet.',
     edits: [
       {
