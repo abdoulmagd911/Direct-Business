@@ -2,7 +2,7 @@
 -- Breaks: sql:EST-01
 -- Expect: the estimate is apart: cost stays 0 and profit never uses it (V419)
 -- The flagged estimate is folded into cost, so profit is computed with an estimate (D23, V419).
-create or replace view finance.money_row with (security_invoker = true) as
+create or replace view finance.money_row_live with (security_invoker = true) as
 with units as (
   select f.id as invoice_id, f.kind as unit_kind, f.ref, f.dpin, f.partner_id, f.match_state, f.month_on, f.created_on,
          f.paid_on, f.channel, f.channel_credits_owner, f.pay_state, f.audit_required, f.commission,

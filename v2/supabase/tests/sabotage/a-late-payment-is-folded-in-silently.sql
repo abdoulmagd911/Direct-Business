@@ -9,7 +9,7 @@ with snap as (
   from finance.month_close c cross join pg_catalog.jsonb_array_elements(c.snapshot) e
   where c.deleted_at is null
 ), now_counted as (
-  select r.month_on as month, r.invoice_id, r.unit_kind, r.ref, r.revenue, r.cost from finance.money_row r
+  select r.month_on as month, r.invoice_id, r.unit_kind, r.ref, r.revenue, r.cost from finance.money_row_live r
   where r.counted and r.month_on in (select c.month from finance.month_close c where c.deleted_at is null)
 )
 select coalesce(n.month, s.month) as month, coalesce(n.invoice_id, s.invoice_id) as invoice_id,

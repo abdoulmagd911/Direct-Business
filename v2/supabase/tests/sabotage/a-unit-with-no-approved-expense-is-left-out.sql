@@ -2,7 +2,7 @@
 -- Breaks: sql:CNT-01
 -- Expect: every paid unit counts: cost 0 and Provisional with no approved expense, the pending one left out, Ready when done or no supplier cost; the wallet part is not revenue; a published unit and an excluded one do not count
 -- Only Ready units count; a paid unit with no approved expense is left out of the totals (V611).
-create or replace view finance.money_row with (security_invoker = true) as
+create or replace view finance.money_row_live with (security_invoker = true) as
 with units as (
   select f.id as invoice_id, f.kind as unit_kind, f.ref, f.dpin, f.partner_id, f.match_state, f.month_on, f.created_on,
          f.paid_on, f.channel, f.channel_credits_owner, f.pay_state, f.audit_required, f.commission,

@@ -2,7 +2,7 @@
 -- Breaks: sql:CNT-02
 -- Expect: the transactions count; BL-21 adds 60 beyond them, a unit of its own; BL-22, short of its transaction, adds nothing
 -- What a monthly invoice adds beyond its transactions is never counted (V616).
-create or replace view finance.money_row with (security_invoker = true) as
+create or replace view finance.money_row_live with (security_invoker = true) as
 with units as (
   select f.id as invoice_id, f.kind as unit_kind, f.ref, f.dpin, f.partner_id, f.match_state, f.month_on, f.created_on,
          f.paid_on, f.channel, f.channel_credits_owner, f.pay_state, f.audit_required, f.commission,
