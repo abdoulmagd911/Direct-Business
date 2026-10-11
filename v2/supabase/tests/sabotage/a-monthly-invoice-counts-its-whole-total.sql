@@ -16,6 +16,10 @@ with units as (
   join lateral (select sum(x.total_sar) as linked_sar from finance.billing_link l join finance.invoice x on x.id = l.transaction_invoice_id
                 where l.billing_invoice_id = b.id and l.deleted_at is null and x.deleted_at is null) t on true
   where b.kind = 'billing' and t.linked_sar is not null and b.total_sar > t.linked_sar
+    -- while a person has not ticked or dismissed the proposal for what the links lack, the excess is not a fee: it may
+    -- be a transaction already counted on its own (QA-528)
+    and not exists (select 1 from finance.billing_proposal p where p.billing_invoice_id = b.id and p.deleted_at is null
+                    and p.state = 'open')
 )
 select u.invoice_id, u.unit_kind, u.ref, u.dpin, u.partner_id, u.match_state, u.month_on,
        pg_catalog.date_trunc('quarter', u.month_on::timestamp)::date as quarter_on, u.created_on, u.paid_on, u.channel,
