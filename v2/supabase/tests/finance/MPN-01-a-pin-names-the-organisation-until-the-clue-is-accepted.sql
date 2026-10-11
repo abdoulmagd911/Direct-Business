@@ -1,12 +1,13 @@
--- MPN-01 — pins (P4-3, §3.5 level 0; V147). A person who may type an invoice pins one whose clues matched nothing to an
--- organisation (entry); a matched row takes no pin, and one pin per row. A decision pin needs the Client side's
--- identify capability. The pinned row still waits in Needs a decision with its pin beside it; accepting the clue there
+-- MPN-01 — pins (P4-3, §3.5 level 0; V147). A person with Full on Finance pins an invoice whose clues matched nothing
+-- to an organisation (entry) — a pin moves revenue, so a member (Own) cannot set or clear one (QA-535); a matched row
+-- takes no pin, and one pin per row. A decision pin needs the Client side's identify capability too. The pinned row still waits in Needs a decision with its pin beside it; accepting the clue there
 -- makes the row match by itself and lets the pin go in the same request, so Undo brings both back. Finance health
 -- lists a pin whose invoice would now match a different organisation without it. Every value is made up.
--- Sabotage: supabase/tests/sabotage/a-pin-does-not-win.sql.
+-- Sabotages: supabase/tests/sabotage/a-pin-does-not-win.sql, a-member-pins-an-invoice.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Member', 'member')::text, true);
+select set_config('t.mgr', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.d', (core.riyadh_today() - 10)::text, true);
 
 select test.as_person(current_setting('t.admin')::uuid);
@@ -31,14 +32,21 @@ select set_config('t.i2', (select id::text from finance.invoice where ref = 'SA-
 select set_config('t.i3', (select id::text from finance.invoice where ref = 'SA-8803'), true);
 select set_config('t.i4', (select id::text from finance.invoice where ref = 'SA-8804'), true);
 
--- an entry pin by a member; a matched row takes none; one pin per row
+-- a member cannot pin (QA-535); an entry pin by Full on Finance; a matched row takes none; one pin per row
 select test.as_person(current_setting('t.am')::uuid);
+select test.raises(format('select api.match_pin_set(%L, %L, %L, %L)', current_setting('t.i1'), current_setting('t.x'), 'entry', 'made up'),
+  '42501', 'a member cannot pin an invoice to an organisation', 'access.needs_level');
+select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.p1', api.match_pin_set(current_setting('t.i1')::uuid, current_setting('t.x')::uuid, 'entry',
                                             'made up: picked while typing')::text, true);
 select test.raises(format('select api.match_pin_set(%L, %L, %L, %L)', current_setting('t.i4'), current_setting('t.y'), 'entry', 'made up'),
   'P0001', 'a row its clues match takes no pin', 'match.already_matched');
 select test.raises(format('select api.match_pin_set(%L, %L, %L, %L)', current_setting('t.i1'), current_setting('t.y'), 'entry', 'made up'),
   '23505', 'one pin per row', 'match.already_pinned');
+select test.as_owner();
+insert into core.person_capability (person_id, capability_key, granted, reason)
+values (current_setting('t.mgr')::uuid, 'clients.identify', false, 'made up: no identify');
+select test.as_person(current_setting('t.mgr')::uuid);
 select test.raises(format('select api.match_pin_set(%L, %L, %L, %L)', current_setting('t.i2'), current_setting('t.x'), 'decision', 'made up'),
   '42501', 'a decision pin needs the identify capability', 'access.needs_capability');
 select test.as_person(current_setting('t.head')::uuid);
@@ -72,7 +80,7 @@ select test.eq((select f.match_level from finance.invoice_fact f where f.ref = '
   'Undo brings the alias and the pin back together');
 
 -- a stale pin is listed in health; letting a pin go
-select test.as_person(current_setting('t.am')::uuid);
+select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.p3', api.match_pin_set(current_setting('t.i3')::uuid, current_setting('t.x')::uuid, 'entry',
                                             'made up: picked while typing')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
@@ -81,6 +89,9 @@ select test.eq((select e from jsonb_array_elements(api.finance_health()) e where
   '{"key": "pins_stale", "count": 1, "amount_sar": 40}'::jsonb,
   'a pin whose invoice would now match a different organisation without it is listed in health');
 select test.as_person(current_setting('t.am')::uuid);
+select test.raises(format('select api.match_pin_clear(%L, %L)', current_setting('t.p3')::jsonb ->> 'id', 'made up'),
+  '42501', 'nor let one go', 'access.needs_level');
+select test.as_person(current_setting('t.head')::uuid);
 select api.match_pin_clear((current_setting('t.p3')::jsonb ->> 'id')::uuid, 'made up: let it go');
 select test.as_owner();
 select test.eq((select f.partner_id from finance.invoice_fact f where f.ref = 'SA-8803'), current_setting('t.y')::uuid,
