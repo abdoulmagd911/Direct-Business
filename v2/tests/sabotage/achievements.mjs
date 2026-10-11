@@ -110,8 +110,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "new Set(['kpis.turn_into'])",
-        replace: 'new Set<string>([])',
+        find: "new Set(['kpis.turn_into', 'tasks.turn_into_task'])",
+        replace: "new Set(['tasks.turn_into_task'])",
       },
     ],
   },

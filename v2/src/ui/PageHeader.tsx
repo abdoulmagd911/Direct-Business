@@ -29,7 +29,7 @@ export function PageHeader({
               <span key={i} className="flex items-center gap-2">
                 {i > 0 ? <span aria-hidden="true">/</span> : null}
                 {c.href ? (
-                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline">
+                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11">
                     {c.label}
                   </Link>
                 ) : (

@@ -21,7 +21,7 @@ export const IconButton = forwardRef<
       aria-pressed={pressed}
       className={cn(
         'relative inline-grid shrink-0 place-items-center rounded-md border border-transparent bg-transparent text-current transition-colors duration-[var(--dur)] hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)] aria-pressed:bg-[color-mix(in_srgb,currentColor_18%,transparent)] disabled:opacity-50 [&_svg]:size-[18px]',
-        size === 'md' ? 'size-[var(--hit)]' : 'size-8 [&_svg]:size-4',
+        size === 'md' ? 'size-[var(--hit)]' : 'size-8 max-sm:size-11 [&_svg]:size-4',
         className,
       )}
       {...rest}

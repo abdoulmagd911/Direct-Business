@@ -75,7 +75,7 @@ export function FilterChip({
           type="button"
           onClick={onRemove}
           aria-label={removeLabel}
-          className="ms-0.5 inline-grid size-6 place-items-center rounded-pill hover:bg-[color-mix(in_srgb,var(--text)_10%,transparent)]"
+          className="relative ms-0.5 inline-grid size-6 place-items-center before:absolute before:-inset-2.5 before:content-[''] rounded-pill hover:bg-[color-mix(in_srgb,var(--text)_10%,transparent)]"
         >
           <X className="size-3.5" aria-hidden="true" />
         </button>

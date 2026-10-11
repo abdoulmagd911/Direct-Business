@@ -5,6 +5,7 @@ import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
+import { Checkbox } from '@/ui/Checkbox';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -24,6 +25,9 @@ import { useCommandWords } from './words';
 
 const NONE = '__none';
 
+/** A My day note being turned into a task (V433, V605 (3)): the same form, sent through api.note_turn_into. */
+export type FromNote = { id: string; hasItems: boolean };
+
 /**
  * Quick add (§3.7, V464): a title, then optionally the owner, a due day and a client or a project — nothing else. The
  * owner is offered only to someone who may give work to others (`tasks.assign`); left at "Default", the database
@@ -37,6 +41,7 @@ export function QuickAdd({
   partners,
   projects,
   initial,
+  fromNote,
   onAdded,
 }: {
   open: boolean;
@@ -45,6 +50,7 @@ export function QuickAdd({
   partners: NamePick[];
   projects: NamePick[];
   initial?: Partial<QuickAddInput>;
+  fromNote?: FromNote;
   onAdded?: (r: { id: string; number: string }) => void;
 }) {
   const t = useTranslations();
@@ -52,7 +58,7 @@ export function QuickAdd({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('pages.tasks.add.title')}
+      title={fromNote ? t('pages.myDay.turn.taskTitle') : t('pages.tasks.add.title')}
       closeLabel={t('common.close')}
       size="sm"
     >
@@ -62,6 +68,7 @@ export function QuickAdd({
           partners={partners}
           projects={projects}
           initial={initial}
+          fromNote={fromNote}
           onClose={() => onOpenChange(false)}
           onAdded={onAdded}
         />
@@ -75,6 +82,7 @@ export function QuickAddForm({
   partners,
   projects,
   initial,
+  fromNote,
   onClose,
   onAdded,
 }: {
@@ -82,6 +90,7 @@ export function QuickAddForm({
   partners: NamePick[];
   projects: NamePick[];
   initial?: Partial<QuickAddInput>;
+  fromNote?: FromNote;
   onClose: () => void;
   onAdded?: (r: { id: string; number: string }) => void;
 }) {
@@ -92,6 +101,7 @@ export function QuickAddForm({
   const [error, setError] = useState<string | undefined>();
   const [ownerError, setOwnerError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  const [withItems, setWithItems] = useState(false);
   const canAssign = me.capabilities.includes('tasks.assign');
   const locale = useLocale() as 'en' | 'ar';
   const pick = (x: NamePick) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
@@ -118,7 +128,13 @@ export function QuickAddForm({
     await command(
       quickWords(t('pages.tasks.add.added', { title: r.values.title as string })),
       () =>
-        rpc('task_create', { p_values: r.values as never }) as Promise<{
+        (fromNote
+          ? rpc('note_turn_into', {
+              p_note: fromNote.id,
+              p_kind: 'task',
+              p_values: { ...r.values, ...(withItems ? { action_items: true } : {}) } as never,
+            })
+          : rpc('task_create', { p_values: r.values as never })) as Promise<{
           id: string;
           number: string;
           request_id: string;
@@ -235,11 +251,17 @@ export function QuickAddForm({
           )}
         </Field>
       ) : null}
+      {fromNote?.hasItems ? (
+        <label className="flex items-center gap-2 text-base" data-with-items>
+          <Checkbox checked={withItems} onCheckedChange={setWithItems} label={t('pages.myDay.turn.withItems')} />
+          {t('pages.myDay.turn.withItems')}
+        </label>
+      ) : null}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button variant="primary" type="submit" loading={busy}>
+        <Button variant="primary" type="submit" loading={busy} data-quick-add-save>
           {t('pages.tasks.add.save')}
         </Button>
       </div>

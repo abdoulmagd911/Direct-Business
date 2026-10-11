@@ -9,8 +9,9 @@
  *   `api.my_notes_remove(p_ids, p_reason)`; `p_values` takes title, body, items, visibility, happened_on,
  *   meeting_partner_id, meeting_on.
  * - `api.note_turn_into(p_note, p_kind, p_values)` — `activity` ({ partner_id, type call|meeting, outcome, happened_on,
- *   body }) and `reminder` ({ remind_at, text }); a task, an action item and an achievement answer
- *   `note.turn_into_not_yet`.
+ *   body }) and `reminder` ({ remind_at, text }); an action item answers `note.turn_into_not_yet` until its dialog lands.
+ *   A `task` takes the task door's values (title, owner_id, due_on, partner_id, project_id) and
+ *   `action_items: true` to bring the checklist (V605 (3)); it answers `{ id, number, entity: 'task', action_item_ids }`.
  * - `api.note_finish_meeting(p_note, p_values)` · `api.note_wrap_up(p_day, p_choices)` — choices `[{ note, choice }]`, the
  *   choice `carry` or `done`.
  * - `api.reminders_remove(p_ids, p_reason)`; `api.page_seen('my_day')` answers the previous visit and records this one.
@@ -30,7 +31,7 @@ export type NoteItem = { text: string; done: boolean; owner_id?: string | null; 
 
 /** What a note was turned into (my.note_link), live and visible to the reader: a logged call or meeting, or a reminder. */
 export type NoteLink = {
-  entity: 'activity' | 'reminder' | 'achievement';
+  entity: 'activity' | 'reminder' | 'achievement' | 'task' | 'action_item';
   id: string;
   made_at: string;
   made_by: string;
@@ -45,6 +46,11 @@ export type NoteLink = {
   happened_on: string | null;
   remind_at: string | null;
   sent_at: string | null;
+  /** A task's number and title (the chip of a note turned into a task). */
+  number?: string | null;
+  title?: string | null;
+  /** An action item's own words (the chip of a checklist item brought along as an action item; it opens its task). */
+  text?: string | null;
 };
 
 export type PartnerRef = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null };

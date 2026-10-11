@@ -77,8 +77,9 @@ const note = (over: Partial<MyNote> = {}): MyNote => ({
 describe('Turn into', () => {
   it('the menu leaves out a kind whose Turn into is not ready — never greyed (GC-1)', () => {
     expect(liveKinds(new Set())).toEqual(['activity', 'reminder']);
-    expect(liveKinds(new Set(['tasks.turn_into']))).toEqual(['activity', 'reminder', 'task', 'action_item']);
-    expect(liveKinds(new Set(['tasks.turn_into', 'kpis.turn_into']))).toHaveLength(5);
+    expect(liveKinds(new Set(['tasks.turn_into_task']))).toEqual(['activity', 'reminder', 'task']);
+    expect(liveKinds(new Set(['tasks.turn_into']))).toEqual(['activity', 'reminder', 'action_item']);
+    expect(liveKinds(new Set(['tasks.turn_into_task', 'tasks.turn_into', 'kpis.turn_into']))).toHaveLength(5);
   });
   it("a built page alone offers nothing: its + and its record address are the shell's, not Turn into", () => {
     expect(
@@ -95,13 +96,32 @@ describe('Turn into', () => {
     expect(turnLive('action_item', new Set())).toBe(false);
     expect(turnLive('task', new Set(['tasks']))).toBe(false);
     expect(turnLive('achievement', new Set(['kpis']))).toBe(false);
-    expect(turnLive('task', new Set(['tasks.turn_into']))).toBe(true);
+    expect(turnLive('task', new Set(['tasks.turn_into']))).toBe(false);
+    expect(turnLive('task', new Set(['tasks.turn_into_task']))).toBe(true);
     expect(turnLive('action_item', new Set(['tasks.turn_into']))).toBe(true);
+    expect(turnLive('action_item', new Set(['tasks.turn_into_task']))).toBe(false);
     expect(turnLive('achievement', new Set(['kpis.turn_into']))).toBe(true);
   });
-  it('the achievement Turn into is switched on: its dialog and its door are in (V381, QA-517)', () => {
+  it('the achievement and task Turn into are switched on: their dialogs and doors are in (V381, QA-517, V226)', () => {
     expect(TURN_READY.has('kpis.turn_into'), 'the achievement Turn into is switched on').toBe(true);
-    expect(liveKinds(new Set(TURN_READY))).toEqual(['activity', 'reminder', 'achievement']);
+    expect(TURN_READY.has('tasks.turn_into_task'), 'the task Turn into is switched on').toBe(true);
+    expect(TURN_READY.has('tasks.turn_into'), 'the action item waits for its dialog').toBe(false);
+    expect(liveKinds(new Set(TURN_READY))).toEqual(['activity', 'reminder', 'task', 'achievement']);
+  });
+  it('a note turned into a task leads to the task by its number', () => {
+    const link = { entity: 'task', id: 'i', made_at: '', made_by: '', number: 'T-12', title: 'Call back' } as never;
+    expect(linkRoute(link)).toBe('/tasks/T-12');
+  });
+  it('an action item brought along from a checklist leads to its task (QA-526)', () => {
+    const link = {
+      entity: 'action_item',
+      id: 'i',
+      made_at: '',
+      made_by: '',
+      number: 'T-12',
+      text: 'Send the quote',
+    } as never;
+    expect(linkRoute(link)).toBe('/tasks/T-12');
   });
 });
 
