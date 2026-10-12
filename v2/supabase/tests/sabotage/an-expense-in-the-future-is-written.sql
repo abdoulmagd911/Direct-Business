@@ -18,7 +18,11 @@ declare
   vals jsonb;
   m record;
   result text;
+  group_keys text[] := array(select pg_catalog.jsonb_array_elements_text(coalesce(p_row -> '_group_keys', '[]'::jsonb)));
+  given_key text := p_row ->> '_line_key';
+  newest timestamptz;
 begin
+  p_row := p_row - '_line_key' - '_group_keys';
   if ref is null then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, raw) values (p_batch, p_no, null, 'no_ref', p_row);
     return 'held';
@@ -75,7 +79,7 @@ begin
     values (p_batch, p_no, ref, 'approved_without_amount', p_row ->> 'expense_type', p_row);
     return 'held';
   end if;
-  key := pg_catalog.concat_ws('|', ref, norm.fold(coalesce(finance.row_text(p_row, 'expense_type'), '—')), created_src);
+  key := coalesce(given_key, finance.expense_key(p_row));
   vals := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
     'expense_type', coalesce(finance.row_text(p_row, 'expense_type'), '—'), 'status', st,
     'status_raw', finance.row_text(p_row, 'status'), 'amount_sar', amount, 'merchant', finance.row_text(p_row, 'merchant'),
@@ -90,6 +94,31 @@ begin
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'removed_row', p_row ->> 'expense_type', p_row);
     return 'held';
+  end if;
+  if cur.id is null then
+    -- the same expense with another created time in a newer file: the stored line of that type this file no longer
+    -- carries is that expense, so it is the one changed, never a second cost beside it (QA-539)
+    select * into cur from finance.expense_line e
+    where e.invoice_id = inv.id and e.deleted_at is null and e.source = 'import'
+      and norm.fold(e.expense_type) = norm.fold(coalesce(finance.row_text(p_row, 'expense_type'), '—'))
+      and e.line_key <> all (group_keys)
+    order by e.created_at_src nulls last, e.line_key
+    limit 1;
+    if cur.id is not null then
+      select pg_catalog.max(v.value::timestamptz) into newest
+      from pg_catalog.jsonb_each_text(coalesce(cur.src, '{}'::jsonb)) v where v.value <> 'person';
+      if p_time <= coalesce(newest, '-infinity'::timestamptz) then
+        insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
+        values (p_batch, p_no, ref, 'older_file', 'a newer file gave this expense another time', p_row);
+        return 'held';
+      end if;
+      update finance.expense_line e
+      set line_key = key, created_at_src = created_src,
+          src = coalesce(e.src, '{}'::jsonb) || pg_catalog.jsonb_build_object('created_at_src', p_time),
+          updated_at = pg_catalog.now(), updated_by = p_imp, version = e.version + 1
+      where e.id = cur.id
+      returning * into cur;
+    end if;
   end if;
   if cur.id is null then
     insert into finance.expense_line (invoice_id, line_key, expense_type, status, status_raw, amount_sar, merchant,

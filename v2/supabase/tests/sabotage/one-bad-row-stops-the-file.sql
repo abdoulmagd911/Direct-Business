@@ -40,7 +40,8 @@ begin
   values (p_file, p_file_name, p_sha256, p_export_time, me, req)
   returning id into b;
 
-  for r in select x from pg_catalog.jsonb_array_elements(p_rows) x loop
+  -- each expense and receipt row carries its key, numbered where the file repeats one (QA-539)
+  for r in select x from pg_catalog.jsonb_array_elements(finance.keyed_rows(p_file, p_rows)) x loop
     n := n + 1;
     -- one row at a time: a row the database refuses (too long, out of range, a wrong kind, not a list …) is rolled
     -- back alone and held with the reason, and the rest of the file imports (QA-532, D21)
@@ -58,7 +59,8 @@ begin
         insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
         values (b, n, case when pg_catalog.jsonb_typeof(r) = 'object' then pg_catalog.left(finance.row_text(r, 'ref'), 200) end,
                 'unreadable_row', coalesce(nullif(what, ''), why),
-                case when pg_catalog.jsonb_typeof(r) = 'object' then r else pg_catalog.jsonb_build_object('value', r) end);
+                case when pg_catalog.jsonb_typeof(r) = 'object' then r - '_line_key' - '_group_keys'
+                     else pg_catalog.jsonb_build_object('value', r) end);
         res := 'held';
       end;
     case res
