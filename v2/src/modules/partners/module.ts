@@ -47,6 +47,7 @@ export default defineModule({
         ['side_owner', 'partner.side_owner', 'partner.side_owner_owners'],
         ['credit_limit', 'partner.credit_limit', 'partner.credit_limit_owners'],
         ['identifier', 'partner.identifier', 'partner.identifier_owners'],
+        ['match_pin', 'partner.match_pin', 'partner.match_pin_owners'],
         ['contact', 'partner.contact', 'partner.contact_owners'],
         ['partner_merge', 'partner.merge', undefined],
         ['contract', 'partner.contract', 'partner.contract_owners'],
@@ -173,6 +174,14 @@ export default defineModule({
       label: 'setting.partner.stale_after_days',
       schema: z.number().int().min(1).max(365),
       default: 21,
+    },
+    {
+      // V477: a client is active with a counted invoice inside this many days.
+      key: 'partner.active_client_days',
+      group: 'settings.partners',
+      label: 'setting.partner.active_client_days',
+      schema: z.number().int().min(1).max(365),
+      default: 90,
     },
     {
       key: 'partner.one_code_per_partner',

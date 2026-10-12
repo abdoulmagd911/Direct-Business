@@ -1327,13 +1327,27 @@ export const sabotages = [
 
   {
     name: 'settings-empty-group-explains-the-build',
-    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    breaks: ['unit:tests/unit/pages/an-empty-settings-group-says-what-it-is-in-one-line.test.tsx'],
     expect: 'Nothing to set up here yet.',
     edits: [
       {
         file: 'messages/en.json',
         find: '"emptyGroup": "Nothing to set up here yet."',
         replace: '"emptyGroup": "No settings here yet. They arrive with the step that builds this area."',
+      },
+    ],
+  },
+
+  {
+    // QA-537: Settings › Finance without the two lists kept on the finance page (V627) must turn W44's test red.
+    name: 'settings-finance-loses-its-kept-lists',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the channel list is shown',
+    edits: [
+      {
+        file: 'src/modules/settings/groups.ts',
+        find: '(e.page === pageKey || e.shownIn === pageKey)',
+        replace: '(e.page === pageKey)',
       },
     ],
   },
@@ -1446,19 +1460,19 @@ export const sabotages = [
   {
     name: 'phone-controls-shrink-again',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
-    expect: 'a Tasks filter chip is 44 px tall',
+    expect: 'a layout link is 44 px tall',
     edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
   },
 
   {
     name: 'done-tick-target-is-the-circle',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
-    expect: 'marks it done',
+    expect: 'and its button is a finger wide',
     edits: [
       {
         file: 'src/modules/tasks/screens/StatusControl.tsx',
-        find: "before:absolute before:-inset-3 before:content-[''] ",
-        replace: '',
+        find: 'inline-grid size-11 shrink-0 place-items-center rounded-full focus-visible',
+        replace: 'inline-grid size-6 shrink-0 place-items-center rounded-full focus-visible',
       },
     ],
   },
@@ -1556,6 +1570,188 @@ export const sabotages = [
   },
 
   {
+    name: 'tasks-header-add-stays-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the header has no Add task on a phone',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '              data-add-task\n              className="max-sm:hidden"',
+        replace: '              data-add-task\n              className=""',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-all-tabs-stay-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a member sees My work and Owned',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "folded.includes(t) && 'max-sm:hidden'",
+        replace: "folded.includes(t) && ''",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-manager-gets-the-members-tabs',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a manager sees My work and Team',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: "['my_work', 'team'] : ['my_work', 'owned']",
+        replace: "['my_work', 'owned'] : ['my_work', 'owned']",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-member-gets-the-managers-tabs',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a member sees My work and Owned',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: "['my_work', 'team'] : ['my_work', 'owned']",
+        replace: "['my_work', 'team'] : ['my_work', 'team']",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filters-stay-in-the-row-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the search is folded behind Filter',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: ": 'max-sm:hidden',",
+        replace: ": '',",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filter-button-forgets-its-count',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'Filter shows how many are on',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length',
+        replace: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length * 0',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-layout-switch-keeps-its-words-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the layout switch is icons on a phone',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '<span className="max-sm:sr-only">',
+        replace: '<span className="">',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-more-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'no More on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "className={cn(tabClass(foldedOn), 'gap-1 sm:hidden')}",
+        replace: "className={cn(tabClass(foldedOn), 'gap-1')}",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filter-button-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'no Filter button on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: 'focus-visible:outline-focus sm:hidden"',
+        replace: 'focus-visible:outline-focus"',
+      },
+    ],
+  },
+
+  {
+    name: 'capture-card-overflows-at-320',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'ends inside a 320 px screen',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/CaptureRow.tsx',
+        find: 'flex min-w-0 flex-[1_1_16rem] gap-2',
+        replace: 'flex min-w-[24rem] flex-[1_1_16rem] gap-2',
+      },
+    ],
+  },
+
+  {
+    name: 'task-row-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the row opens the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "after:absolute after:inset-0 after:content-[''] hover:underline",
+        replace: 'hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-hides-its-mark',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check control shows its mark before any touch',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'text-muted group-hover:border-success',
+        replace: 'text-transparent group-hover:border-success',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-sits-under-the-row-link',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check does not open the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'group relative z-10 -mx-2.5',
+        replace: 'group relative -mx-2.5',
+      },
+    ],
+  },
+
+  {
+    name: 'client-card-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the card opens the record',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: "text-link after:absolute after:inset-0 after:content-['']",
+        replace: 'text-link',
+      },
+    ],
+  },
+
+  {
     name: 'tabs-clip-at-the-edge',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
     expect: 'no tab is cut off at the right edge',
@@ -1565,6 +1761,69 @@ export const sabotages = [
         find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
         replace:
           "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
+      },
+    ],
+  },
+  {
+    name: 'clients-header-add-stays-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the header New client button is not drawn on a phone',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'data-partner-new\n              className="max-sm:hidden"',
+        replace: 'data-partner-new\n              className=""',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filters-stay-in-the-row-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the search is folded away',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: ": 'max-sm:hidden',",
+        replace: ": '',",
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-forgets-its-count',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the button counts the search',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'const activeFilters =\n    [filters.q].filter(Boolean).length +',
+        replace: 'const activeFilters =\n    0 * [filters.q].filter(Boolean).length +',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'no Filter button on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: 'focus-visible:outline-focus sm:hidden"',
+        replace: 'focus-visible:outline-focus"',
+      },
+    ],
+  },
+  {
+    name: 'clients-plus-on-the-list-opens-nothing',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'Save is off until the form is whole',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'if (wantsNew && full) setCreating(true);',
+        replace: 'if (wantsNew && full && !wantsNew) setCreating(true);',
       },
     ],
   },

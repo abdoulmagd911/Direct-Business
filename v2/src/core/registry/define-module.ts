@@ -98,6 +98,11 @@ export interface EntityDef {
    */
   list?: boolean;
   /**
+   * V627: a setting list its module keeps on the module's own page, so Full on that page edits it (not only an admin);
+   * it is still shown in this Settings group. Only for a list whose page is its module's own page.
+   */
+  shownIn?: string;
+  /**
    * Private (V96): only its own `visible` rule, its owners or an admin let a person see a record — Own on its page never
    * counts as View (appraisals).
    */

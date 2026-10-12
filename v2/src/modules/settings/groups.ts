@@ -12,10 +12,12 @@ export function settingsGroups(): SettingsGroupDef[] {
   return out.sort((a, b) => a.order - b.order);
 }
 
-/** The setting lists (`list: true`) whose settings page is this group. */
+/** The setting lists (`list: true`) whose settings page is this group, and those kept on their module's page that are
+ * shown in it (V627). */
 export function listsOf(pageKey: string): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
   for (const m of modules)
-    for (const e of m.entities ?? []) if (e.list && e.page === pageKey) out.push({ key: e.key, label: e.label });
+    for (const e of m.entities ?? [])
+      if (e.list && (e.page === pageKey || e.shownIn === pageKey)) out.push({ key: e.key, label: e.label });
   return out;
 }

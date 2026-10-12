@@ -12,6 +12,7 @@ import { DataState } from '@/ui/DataState';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PageHeader } from '@/ui/PageHeader';
+import { PhoneFilter } from '@/ui/PhoneFilter';
 import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
 import {
@@ -23,6 +24,7 @@ import {
   dueState,
   filtersHref,
   keepRow,
+  phoneScopes,
   riyadhDay,
   statusView,
   type Layout,
@@ -105,7 +107,13 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         title={t('nav.tasks')}
         actions={
           atLeastOwn(me.levels.tasks) ? (
-            <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)} data-add-task>
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              onClick={() => setAdding(true)}
+              data-add-task
+              className="max-sm:hidden"
+            >
               {t('pages.tasks.add.open')}
             </Button>
           ) : null
@@ -114,63 +122,71 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       <Tabs
         label={t('pages.tasks.views.label')}
         value={f.scope}
-        tabs={SCOPES.map((s) => ({ value: s, label: t(`pages.tasks.views.${s}`), href: filtersHref(f, { scope: s }) }))}
+        moreLabel={t('nav.more')}
+        tabs={SCOPES.map((s) => ({
+          value: s,
+          label: t(`pages.tasks.views.${s}`),
+          href: filtersHref(f, { scope: s }),
+          more: !phoneScopes(me.capabilities).includes(s),
+        }))}
       />
       <div className="flex flex-wrap items-center gap-2" data-task-chips>
-        <form
-          role="search"
-          className="relative w-full sm:w-64"
-          onSubmit={(e) => {
-            e.preventDefault();
-            go({ q: q.trim() || undefined });
-          }}
-        >
-          <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <Input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label={t('common.search')}
-            placeholder={t('common.search')}
-            className="ps-9"
-          />
-        </form>
-        {f.status
-          ? applied(fStatus, statusLabel(f.status), { status: undefined })
-          : chipMenu(
-              fStatus,
-              STATUS_CHIPS.map((k) => ({ key: k, label: statusLabel(k), href: filtersHref(f, { status: k }) })),
-            )}
-        {f.due
-          ? applied(fDue, dueLabel(f.due), { due: undefined })
-          : chipMenu(
-              fDue,
-              DUE_CHIPS.map((k) => ({ key: k, label: dueLabel(k), href: filtersHref(f, { due: k }) })),
-            )}
-        {f.partner
-          ? applied(fClient, names.partner(f.partner), { partner: undefined })
-          : lookups.partners.length
-            ? chipMenu(
-                fClient,
-                lookups.partners.map((p) => ({
-                  key: p.id,
-                  label: names.partner(p.id),
-                  href: filtersHref(f, { partner: p.id }),
-                })),
-              )
-            : null}
-        {f.project
-          ? applied(fProject, names.project(f.project), { project: undefined })
-          : lookups.projects.length
-            ? chipMenu(
-                fProject,
-                lookups.projects.map((p) => ({
-                  key: p.id,
-                  label: `${p.number} · ${names.project(p.id)}`,
-                  href: filtersHref(f, { project: p.id }),
-                })),
-              )
-            : null}
+        <PhoneFilter label={t('common.filter')} count={filterCount(f)}>
+          <form
+            role="search"
+            className="relative w-full sm:w-64"
+            onSubmit={(e) => {
+              e.preventDefault();
+              go({ q: q.trim() || undefined });
+            }}
+          >
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <Input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label={t('common.search')}
+              placeholder={t('common.search')}
+              className="ps-9"
+            />
+          </form>
+          {f.status
+            ? applied(fStatus, statusLabel(f.status), { status: undefined })
+            : chipMenu(
+                fStatus,
+                STATUS_CHIPS.map((k) => ({ key: k, label: statusLabel(k), href: filtersHref(f, { status: k }) })),
+              )}
+          {f.due
+            ? applied(fDue, dueLabel(f.due), { due: undefined })
+            : chipMenu(
+                fDue,
+                DUE_CHIPS.map((k) => ({ key: k, label: dueLabel(k), href: filtersHref(f, { due: k }) })),
+              )}
+          {f.partner
+            ? applied(fClient, names.partner(f.partner), { partner: undefined })
+            : lookups.partners.length
+              ? chipMenu(
+                  fClient,
+                  lookups.partners.map((p) => ({
+                    key: p.id,
+                    label: names.partner(p.id),
+                    href: filtersHref(f, { partner: p.id }),
+                  })),
+                )
+              : null}
+          {f.project
+            ? applied(fProject, names.project(f.project), { project: undefined })
+            : lookups.projects.length
+              ? chipMenu(
+                  fProject,
+                  lookups.projects.map((p) => ({
+                    key: p.id,
+                    label: `${p.number} · ${names.project(p.id)}`,
+                    href: filtersHref(f, { project: p.id }),
+                  })),
+                )
+              : null}
+        </PhoneFilter>
         {f.scope === 'past' ? null : <LayoutSwitch filters={f} />}
       </div>
 
@@ -254,13 +270,13 @@ function LayoutSwitch({ filters }: { filters: TaskFilters }) {
             href={filtersHref(filters, { layout: l })}
             aria-current={on ? 'page' : undefined}
             className={cn(
-              'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 px-3 text-sm first:rounded-s-md last:rounded-e-md focus-visible:outline-2 focus-visible:outline-focus',
+              'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 px-3 text-sm first:rounded-s-md last:rounded-e-md focus-visible:outline-2 focus-visible:outline-focus max-sm:min-w-11 max-sm:justify-center',
               on ? 'bg-accent-soft font-medium text-text' : 'text-muted hover:bg-surface',
             )}
             data-layout={l}
           >
             <Icon className="size-4" aria-hidden="true" />
-            {t(`pages.tasks.layout.${l}`)}
+            <span className="max-sm:sr-only">{t(`pages.tasks.layout.${l}`)}</span>
           </Link>
         );
       })}
@@ -270,6 +286,8 @@ function LayoutSwitch({ filters }: { filters: TaskFilters }) {
 
 const atLeastOwn = (l: string | undefined) => l === 'own' || l === 'full';
 const isFiltered = (f: TaskFilters) => !!(f.status || f.due || f.partner || f.project || f.q);
+/** How many filters are on, for the phone's one Filter button. */
+const filterCount = (f: TaskFilters) => [f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length;
 
 function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups; today: string }) {
   const t = useTranslations();
@@ -278,7 +296,7 @@ function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups;
   const due = dueState(row, today);
   const where = row.project_id ? names.project(row.project_id) : row.partner_id ? names.partner(row.partner_id) : '';
   return (
-    <li className="flex items-start gap-3 px-4 py-3" data-task-row={row.number} data-due={due}>
+    <li className="relative flex items-start gap-3 px-4 py-3" data-task-row={row.number} data-due={due}>
       {row.can_edit ? (
         <DoneTick task={row} statuses={lookups.statuses} title={row.title} />
       ) : (
@@ -288,7 +306,7 @@ function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups;
         <Link
           href={`/tasks/${row.number}`}
           className={cn(
-            'break-words text-base font-medium text-text hover:underline focus-visible:outline-2 focus-visible:outline-focus',
+            "break-words text-base font-medium text-text after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-focus",
             row.meaning === 'done' && 'text-muted line-through',
           )}
         >
