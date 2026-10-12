@@ -935,6 +935,7 @@
     },
     "partner": {
       "id_format": "Partner number format",
+      "match_order": "The order the money match tries an invoice's clues in",
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner",
       "open_client_ids": "Open client IDs an organisation may hold, per kind",
