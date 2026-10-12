@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 /**
  * The scrolling page area beside an optional detail panel (a sibling of this). Margins 16 / 24 / 32 / 40 px at
- * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85); on a phone the bottom bar's height is kept clear.
+ * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85); on a phone the bottom bar and the floating + (132 px up from the screen's foot) are kept clear, so no row ends under it.
  * Screens use `Page` (shell/Page.tsx), which draws this only after the gate has answered.
  */
 export function PageFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -67,7 +67,7 @@ export function PageFrame({ children, className = '' }: { children: ReactNode; c
   // otherwise be squeezed to nothing on a long page — the Activity tabs vanished and swallowed the first click (W11).
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
+      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-40 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
       data-page
     >
       {children}
