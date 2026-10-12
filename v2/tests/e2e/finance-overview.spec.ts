@@ -204,6 +204,11 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
     ).toBeLessThan(60);
     expect(part!.x + part!.width, `${kind}: nothing is clipped`).toBeLessThanOrEqual(390);
   }
+  // the floating + sits at the right edge (56 px wide, 16 px in): the Needs attention row stays clear of it
+  const strip = await page
+    .locator('[data-finance-attention] > :not(h2)')
+    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().right));
+  expect(Math.max(...strip), 'the Needs attention row stays clear of the + button').toBeLessThanOrEqual(390 - 72);
   await expect(
     page.locator(`[data-finance-month="${ym}-01"] [data-finance-month-card]`),
     'the month is a card on a phone',

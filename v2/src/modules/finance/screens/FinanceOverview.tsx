@@ -108,7 +108,7 @@ export function FinanceOverview({
       {flags ? (
         <section
           aria-label={t('finance.attention.title')}
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3"
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:mb-16 max-sm:pe-20"
           data-finance-attention
         >
           <h2 className="font-ui text-xs font-semibold uppercase tracking-wide text-muted">

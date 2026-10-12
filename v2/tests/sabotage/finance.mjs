@@ -249,4 +249,10 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'attention-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the Needs attention row stays clear of the + button',
+    edits: [{ file: OVERVIEW, find: ' max-sm:mb-16 max-sm:pe-20', replace: '' }],
+  },
 ];
