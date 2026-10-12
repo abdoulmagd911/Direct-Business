@@ -1708,6 +1708,10 @@
     "reminder": {
       "time_required": "Choose when to be reminded",
       "time_passed": "Choose a time in the future"
+    },
+    "finance": {
+      "month_not_over": "A month closes only after it has ended",
+      "month_closed": "That month is already closed"
     }
   },
   "notifications": {
@@ -2026,5 +2030,86 @@
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement"
+  },
+  "finance": {
+    "title": "Finance",
+    "period": {
+      "label": "Period",
+      "mtd": "MTD",
+      "qtd": "QTD",
+      "ytd": "YTD",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "total": {
+        "mtd": "Month to date",
+        "qtd": "Quarter to date",
+        "ytd": "Year to date",
+        "custom": "Total"
+      }
+    },
+    "stamp": "Payments · as of {date}",
+    "stampNone": "Payments · as of —",
+    "tile": {
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit"
+    },
+    "sar": "SAR",
+    "provisional": "of which Provisional",
+    "provisionalUnits": "{count, plural, one {# unit} other {# units}}",
+    "notInvoiced": "Not yet invoiced",
+    "ready": "Ready",
+    "pending": "Pending",
+    "commissions": "Commissions paid outside Payments are not included.",
+    "attention": {
+      "title": "Needs attention",
+      "checks": "Checks failing",
+      "noClient": "No client",
+      "late": "Late changes"
+    },
+    "months": {
+      "title": "Months",
+      "month": "Month",
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit",
+      "provisional": "Provisional profit",
+      "open": "Open",
+      "notClosed": "Not closed",
+      "closed": "Closed {date}",
+      "close": "Close month",
+      "lateChanges": "Late changes · {count}",
+      "afterClose": "After close",
+      "gap": "{amount} SAR not in the months",
+      "none": "—"
+    },
+    "late": {
+      "late_paid": "Paid late",
+      "dropped": "Cancelled late",
+      "cost_changed": "Late cost",
+      "revenue_changed": "Revenue changed"
+    },
+    "close": {
+      "title": "Close {month}?",
+      "body": "It will never change. Later news becomes a dated note.",
+      "done": "{month} closed"
+    },
+    "service": {
+      "title": "By service",
+      "not_income": "Not income",
+      "no_service": "No service",
+      "not_split": "Not split",
+      "gap": "Not itemised"
+    },
+    "failed": {
+      "figures": "Finance figures",
+      "months": "The months",
+      "service": "Income by service",
+      "health": "What needs attention",
+      "invoiced": "Not yet invoiced",
+      "stamp": "Payments date"
+    }
   }
 }
