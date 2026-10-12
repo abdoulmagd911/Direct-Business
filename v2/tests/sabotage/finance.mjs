@@ -1,10 +1,15 @@
 // Sabotages for the Finance Overview (builder B, GC-5, P4-5): each breaks one promise of the brief's section F, and the
-// named test must go red for that reason.
+// named test must go red for that reason. The New invoice entries (P4-4) follow the Overview's.
 const E2E = 'e2e:tests/e2e/finance-overview.spec.ts';
 const UNIT =
   'unit:tests/unit/finance/the-overview-prints-exact-figures-and-names-a-gap-and-lists-months-newest-first.test.ts';
 const FAILED = 'unit:tests/unit/finance/a-failed-read-fails-only-its-own-block-on-the-overview.test.tsx';
 const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
+const NEW_E2E = 'e2e:tests/e2e/finance-new-invoice.spec.ts';
+const NEW_UNIT =
+  'unit:tests/unit/finance/a-new-invoice-counts-only-what-the-database-will-count-and-says-what-is-missing.test.ts';
+const FORM = 'src/modules/finance/invoice-form.ts';
+const NEW_SCREEN = 'src/modules/finance/screens/NewInvoice.tsx';
 
 export const sabotages = [
   {
@@ -180,6 +185,67 @@ export const sabotages = [
         file: 'src/modules/finance/figures.ts',
         find: '  if (a >= 1_000_000 || thousands >= 1_000)',
         replace: '  if (a >= 1_000_000)',
+      },
+    ],
+  },
+
+  {
+    name: 'new-invoice-skips-the-required-check',
+    breaks: [NEW_E2E],
+    expect: 'an empty form says what is missing',
+    edits: [{ file: FORM, find: "if (d.ref.trim() === '')", replace: 'if (false)' }],
+  },
+  {
+    name: 'new-invoice-saves-a-duplicate-number',
+    breaks: [NEW_E2E],
+    expect: 'the same number twice is refused in its field',
+    edits: [{ file: NEW_SCREEN, find: 'if ((hits ?? []).some(', replace: 'if (false && (hits ?? []).some(' }],
+  },
+  {
+    name: 'new-invoice-leaves-provisional-out',
+    breaks: [NEW_E2E],
+    expect: 'no approved expense is Provisional',
+    edits: [{ file: FORM, find: 'provisional: counts && !final,', replace: 'provisional: false,' }],
+  },
+  {
+    name: 'new-invoice-counts-an-unpaid-unit',
+    breaks: [NEW_UNIT],
+    expect: 'counts only a paid status',
+    edits: [{ file: FORM, find: "status?.maps_to === 'paid'", replace: 'true' }],
+  },
+  {
+    name: 'new-invoice-undo-leaves-the-lines',
+    breaks: [NEW_E2E],
+    expect: 'Undo takes the line and the invoice back',
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: 'for (const rid of [...made].reverse()) await undoRequest(rid);',
+        replace: 'if (made[0]) await undoRequest(made[0]);',
+      },
+    ],
+  },
+  {
+    name: 'new-invoice-offers-a-fifth-kind',
+    breaks: [NEW_E2E],
+    expect: 'four kinds, no Credit note',
+    edits: [
+      {
+        file: FORM,
+        find: "['transaction', 'standalone', 'billing', 'wallet_topup'];",
+        replace: "['transaction', 'standalone', 'billing', 'wallet_topup', 'wallet_topup'];",
+      },
+    ],
+  },
+  {
+    name: 'new-invoice-credit-to-always-asked',
+    breaks: [NEW_E2E],
+    expect: 'only Commercial asks who is credited',
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: '{hasRevenue(d.kind) && lists.channel.find((c) => c.key === d.channel)?.credits_owner ? (',
+        replace: '{hasRevenue(d.kind) && d.channel ? (',
       },
     ],
   },
