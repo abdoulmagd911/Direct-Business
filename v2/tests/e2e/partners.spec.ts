@@ -89,6 +89,10 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await activity.getByLabel('What happened').fill(`Called about ${t}`);
   await page.locator('[data-activity-save]').click();
   await expect(toast(page, 'Call logged')).toBeVisible();
+  await page
+    .locator('main [data-tabs]')
+    .getByRole('link', { name: /^Activity/ })
+    .click();
   await expect(page.locator('[data-partner-notes]')).toContainText(`Called about ${t}`);
 
   // the Arabic name finds it on the Clients list (the side is on now); the hover card names number and both sides

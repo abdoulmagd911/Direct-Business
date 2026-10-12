@@ -38,6 +38,8 @@ async function memberWithTask(): Promise<{ member: TestPerson; number: string; t
 
 /** A thumb on the middle of a line of text: whatever is drawn on top there gets the tap, as on a phone. */
 async function tap(page: Page, target: ReturnType<Page['locator']>) {
+  // the thumb scrolls to the line first: a list with more cards above it must not leave the tap below the screen
+  await target.scrollIntoViewIfNeeded();
   const b = (await target.boundingBox())!;
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
 }
