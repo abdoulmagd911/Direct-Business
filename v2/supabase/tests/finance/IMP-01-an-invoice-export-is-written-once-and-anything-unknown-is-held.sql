@@ -75,11 +75,15 @@ select set_config('t.c', (select count(*) from audit.change)::text, true);
 select test.as_person(current_setting('t.head')::uuid);
 select test.eq((api.finance_import('invoices', current_setting('t.file')::jsonb, now() - interval '2 days', 'made-up.csv',
                                    repeat('a', 64)) ->> 'already_imported')::boolean, true, 'the same file again is recognised');
-select test.eq(api.finance_import('invoices', current_setting('t.file')::jsonb, now() - interval '2 days', 'made-up-copy.csv') -> 'counts',
-  '{"read": 8, "new": 0, "changed": 0, "unchanged": 5, "held": 3}'::jsonb, 'and its rows read again change nothing');
 select test.as_owner();
 select test.eq((select jsonb_object_agg(ref, version) from finance.invoice), current_setting('t.v')::jsonb, 'no invoice moved');
 select test.eq((select count(*) from audit.change)::text, current_setting('t.c'), 'no change was logged');
+-- the same rows exported a second later are another file (QA-539: the same file is its rows and export time)
+select test.as_person(current_setting('t.head')::uuid);
+select test.eq(api.finance_import('invoices', current_setting('t.file')::jsonb, now() - interval '2 days' + interval '1 second',
+                                  'made-up-copy.csv') -> 'counts',
+  '{"read": 8, "new": 0, "changed": 0, "unchanged": 5, "held": 3}'::jsonb, 'and its rows read again change nothing');
+select test.as_owner();
 
 -- a newer file changes a value; an older one only fills a blank; a blank never wipes
 select test.as_person(current_setting('t.head')::uuid);

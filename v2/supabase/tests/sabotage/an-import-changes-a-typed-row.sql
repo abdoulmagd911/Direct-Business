@@ -34,7 +34,7 @@ begin
     generated := finance.row_date(p_row, 'generated_on');
     paid := finance.row_date(p_row, 'paid_on');
     due := finance.row_date(p_row, 'due_on');
-    status_at := finance.row_text(p_row, 'status_at')::timestamptz;
+    status_at := finance.row_time(p_row, 'status_at');
   exception when others then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, detail, raw)
     values (p_batch, p_no, ref, 'bad_date', sqlerrm, p_row);

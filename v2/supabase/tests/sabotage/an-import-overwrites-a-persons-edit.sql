@@ -22,7 +22,8 @@ begin
       left_alone := left_alone || pg_catalog.jsonb_build_object(k, nv);
     elsif ov is null or ov = 'null'::jsonb or p_time > coalesce(nullif(s ->> k, 'person')::timestamptz, '-infinity'::timestamptz) then
       took := took || pg_catalog.jsonb_build_object(k, nv);
-      s := s || pg_catalog.jsonb_build_object(k, p_time);
+      -- an older file that fills a blank never lowers the field's time (QA-539)
+      s := s || pg_catalog.jsonb_build_object(k, greatest(p_time, coalesce((s ->> k)::timestamptz, p_time)));
     end if;
   end loop;
   return query select took, s, left_alone;

@@ -16,7 +16,9 @@ declare
   vals jsonb;
   m record;
   result text;
+  given_key text := p_row ->> '_line_key';
 begin
+  p_row := p_row - '_line_key' - '_group_keys';
   if ref is null then
     insert into finance.import_held (batch_id, row_no, ref, reason_key, raw) values (p_batch, p_no, null, 'no_ref', p_row);
     return 'held';
@@ -49,9 +51,7 @@ begin
     values (p_batch, p_no, ref, 'date_in_future', paid::text, p_row);
     return 'held';
   end if;
-  key := pg_catalog.concat_ws('|', ref,
-           coalesce(norm.fold(finance.row_text(p_row, 'ref_at_method')),
-                    pg_catalog.concat_ws('|', norm.fold(coalesce(finance.row_text(p_row, 'method'), '—')), paid, amount)));
+  key := coalesce(given_key, finance.receipt_key(p_row));
   vals := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
     'method', finance.row_text(p_row, 'method'), 'amount_sar', amount, 'paid_on', paid,
     'ref_at_method', finance.row_text(p_row, 'ref_at_method'), 'paid_by', finance.row_text(p_row, 'paid_by'),
