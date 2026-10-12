@@ -1712,7 +1712,13 @@
     },
     "finance": {
       "month_not_over": "A month closes only after it has ended",
-      "month_closed": "That month is already closed"
+      "month_closed": "That month is already closed",
+      "status_unknown": "Unknown status: {detail}",
+      "expense_status_unknown": "Unknown expense status: {detail}",
+      "product_unknown": "Unknown product: {detail}",
+      "unknown_entry": "Unknown entry: {detail}",
+      "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
+      "commercial_names_the_person": "Commercial needs the person credited."
     }
   },
   "notifications": {
@@ -2114,6 +2120,64 @@
       "health": "What needs attention",
       "invoiced": "Not yet invoiced",
       "stamp": "Payments date"
+    },
+    "state": {
+      "provisional": "Provisional",
+      "final": "Final",
+      "pending": "Pending",
+      "notCounted": "Not counted"
+    },
+    "kind": {
+      "transaction": "Transaction",
+      "standalone": "Standalone",
+      "billing": "Monthly invoice",
+      "wallet_topup": "Wallet top-up"
+    },
+    "source": {
+      "typed": "Typed"
+    },
+    "number": {
+      "transaction": "Transaction no.",
+      "status": "Status",
+      "channel": "Channel",
+      "created": "Created",
+      "paid": "Paid",
+      "total": "Total"
+    },
+    "channel": {},
+    "new": {
+      "title": "New invoice",
+      "kind": "Kind",
+      "saveNew": "Save + new",
+      "saved": "{ref} saved",
+      "customer": "Customer",
+      "clientId": "Client ID",
+      "name": "Name",
+      "email": "Email",
+      "lines": "Lines",
+      "addLine": "Add line",
+      "removeLine": "Remove line",
+      "product": "Product",
+      "service": "Service",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "expenses": "Expenses",
+      "addExpense": "Add expense",
+      "removeExpense": "Remove expense",
+      "type": "Type",
+      "amount": "Amount",
+      "merchant": "Merchant",
+      "reference": "Reference",
+      "problem": {
+        "required": "Required",
+        "invalid": "Not valid",
+        "too_long": "Too long",
+        "used": "Already used"
+      },
+      "lists": "The word lists",
+      "lastSaved": "Last saved",
+      "noFigures": "In no figures"
     }
   }
 }
