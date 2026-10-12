@@ -27,6 +27,7 @@ export function ActivityTimeline({
   onChanged,
   describe,
   summarize,
+  entityWords,
 }: {
   rows: HistoryRow[];
   /** Who is who, for the chips: from api.org() or the record itself. */
@@ -37,6 +38,8 @@ export function ActivityTimeline({
   describe?: (field: string, value: unknown) => string | null;
   /** An added record in words from what the screen knows of it (api.activity carries field names only). */
   summarize?: (entity: string | undefined, id: string | undefined) => string | null;
+  /** What this screen calls a kind of record in a line (a client's page says "Client added", never "Partner added"). */
+  entityWords?: Record<string, string>;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -84,7 +87,9 @@ export function ActivityTimeline({
       return t(`activity.labels.${r.label_key}`, (r.label_args ?? {}) as Record<string, string | number>);
     const c = r.changes?.[0];
     if (!c) return t('activity.actions.request');
-    const what = c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? '');
+    const what =
+      (c.entity && entityWords?.[c.entity]) ||
+      (c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? ''));
     if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
     return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
   };

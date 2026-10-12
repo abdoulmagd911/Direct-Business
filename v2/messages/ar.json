@@ -135,7 +135,8 @@
     "back": "رجوع",
     "notMeasured": "غير مقاس",
     "loading": "جارٍ التحميل",
-    "sar": "ريال"
+    "sar": "ريال",
+    "filter": "تصفية"
   },
   "state": {
     "failed": "تعذّر تحميل {what}",
@@ -1231,7 +1232,9 @@
       "contacts": "جهات الاتصال",
       "files": "الملفات",
       "notes": "الملاحظات",
-      "client_since": "عميل منذ"
+      "client_since": "عميل منذ",
+      "noActivity": "لا نشاط بعد",
+      "noNextStep": "لا خطوة تالية"
     },
     "sideTabs": "العملاء والموردون",
     "tabs": {

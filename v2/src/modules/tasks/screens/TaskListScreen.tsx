@@ -239,7 +239,17 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       )}
       <QuickAdd
         open={adding}
-        onOpenChange={setAdding}
+        onOpenChange={(open) => {
+          setAdding(open);
+          // Create's address (?new=1) is spent once the form closes or saves, so a reload does not open it again
+          if (!open) {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('new')) {
+              url.searchParams.delete('new');
+              window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+            }
+          }
+        }}
         org={lookups.org}
         partners={lookups.partners}
         projects={lookups.projects}
