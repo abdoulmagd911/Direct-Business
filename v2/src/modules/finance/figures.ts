@@ -7,7 +7,9 @@ import { monthsBetween } from './period';
  */
 export function shortForm(n: number): string | null {
   const a = Math.abs(n);
-  if (a >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  // the unit is chosen after rounding, so 999,500 reads 1.00M and never 1000K
+  const thousands = Math.round(a / 1_000);
+  if (a >= 1_000_000 || thousands >= 1_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (a >= 10_000) return `${Math.round(n / 1_000)}K`;
   if (a >= 1_000) return `${(Math.round(n / 100) / 10).toString()}K`;
   return null;
@@ -46,18 +48,36 @@ export function monthRows(period: Period, closed: ClosedMonth[], thisMonth: stri
     .reverse();
 }
 
-/** The riyals a late-change line adds to the month's profit: paid late and revenue changes by their revenue, a late cost by minus its cost. */
-export function lateAmount(c: LateChange): number {
-  return c.change === 'cost_changed' ? -(c.cost_change ?? 0) : (c.revenue_change ?? 0);
+/**
+ * What a late-change line adds to the month's profit, in its two parts: the main amount (a payment or cancellation by
+ * its revenue, a late cost by minus its cost) and, when the same unit changed on the other side too, that part as
+ * well — so a unit whose revenue and cost both moved shows both (QA-544).
+ */
+export function lateParts(c: LateChange): { main: number; other: { of: 'cost' | 'revenue'; amount: number } | null } {
+  const revenue = c.revenue_change ?? 0;
+  const cost = -(c.cost_change ?? 0);
+  if (c.change === 'cost_changed')
+    return { main: cost, other: revenue !== 0 ? { of: 'revenue', amount: revenue } : null };
+  return { main: revenue, other: cost !== 0 ? { of: 'cost', amount: cost } : null };
 }
 
-/** The three counts of the Needs attention strip. Late changes are counted over the months the period shows. */
-export function attention(health: HealthEntry[], rows: MonthRow[]) {
+/** The late lines of the closed months a period covers; null when the closed months could not be read (QA-543). */
+export function lateCount(closed: ClosedMonth[] | null, from: string, to: string): number | null {
+  if (!closed) return null;
+  const first = `${from.slice(0, 7)}-01`;
+  return closed.filter((c) => c.month >= first && c.month <= to).reduce((sum, c) => sum + c.late_changes.length, 0);
+}
+
+/**
+ * The three counts of the Needs attention strip. Checks failing and No client come from the health read alone; Late
+ * changes needs the closed months and is null (unknown) when they could not be read.
+ */
+export function attention(health: HealthEntry[], late: number | null) {
   const n = (key: string) => health.find((h) => h.key === key)?.count ?? 0;
   return {
     checks: n('checks_failed'),
     noClient: n('no_organisation') + n('unknown_client_id'),
-    late: rows.reduce((sum, r) => sum + r.late.length, 0),
+    late,
   };
 }
 

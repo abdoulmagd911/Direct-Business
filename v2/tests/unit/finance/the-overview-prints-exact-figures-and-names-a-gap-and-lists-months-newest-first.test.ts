@@ -5,7 +5,7 @@
  * date. Every value is made up.
  */
 import { describe, expect, it } from 'vitest';
-import { attention, lateAmount, monthRows, monthsGap, shortForm } from '../../../src/modules/finance/figures';
+import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm } from '../../../src/modules/finance/figures';
 import { monthsBetween, periodAsk } from '../../../src/modules/finance/period';
 import type { ClosedMonth, MonthFigure, Period } from '../../../src/modules/finance/types';
 
@@ -49,6 +49,14 @@ describe('short forms', () => {
     expect(shortForm(999)).toBeNull();
     expect(shortForm(-1_250_000)).toBe('-1.25M');
   });
+
+  it('chooses its unit after rounding, so a figure just under a million is never 1000K (QA-545)', () => {
+    expect(shortForm(999_499)).toBe('999K');
+    expect(shortForm(999_500)).toBe('1.00M');
+    expect(shortForm(999_999.99)).toBe('1.00M');
+    expect(shortForm(-999_600)).toBe('-1.00M');
+    expect(shortForm(1_000_000)).toBe('1.00M');
+  });
 });
 
 describe('the months', () => {
@@ -77,41 +85,62 @@ describe('the months', () => {
 });
 
 describe('what needs attention and what changed after a close', () => {
-  it('counts failing checks, units with no client (none or an unknown client ID) and the late lines shown', () => {
-    const rows = monthRows(
-      period([], 0),
-      [
-        closeOf('2026-07-01', [
-          {
-            invoice_id: 'a',
-            ref: 'T-1',
-            unit_kind: 'transaction',
-            change: 'late_paid',
-            revenue_change: 9400,
-            cost_change: 0,
-            changed_on: '2026-08-12',
-          },
-        ]),
-      ],
-      '2026-09-01',
-    );
-    const flags = attention(
-      [
-        { key: 'checks_failed', count: 1, amount_sar: null },
-        { key: 'no_organisation', count: 3, amount_sar: null },
-        { key: 'unknown_client_id', count: 1, amount_sar: null },
-        { key: 'provisional', count: 18, amount_sar: null },
-      ],
-      rows,
-    );
-    expect(flags).toEqual({ checks: 1, noClient: 4, late: 1 });
+  const late = {
+    invoice_id: 'a',
+    ref: 'T-1',
+    unit_kind: 'transaction',
+    change: 'late_paid' as const,
+    revenue_change: 9400,
+    cost_change: 0,
+    changed_on: '2026-08-12',
+  };
+
+  it('counts failing checks and units with no client from the health read alone, and the late lines shown', () => {
+    const health = [
+      { key: 'checks_failed', count: 1, amount_sar: null },
+      { key: 'no_organisation', count: 3, amount_sar: null },
+      { key: 'unknown_client_id', count: 1, amount_sar: null },
+      { key: 'provisional', count: 18, amount_sar: null },
+    ];
+    const closed = [closeOf('2026-07-01', [late])];
+    expect(attention(health, lateCount(closed, '2026-01-01', '2026-09-30'))).toEqual({
+      checks: 1,
+      noClient: 4,
+      late: 1,
+    });
+  });
+
+  it('says a late count it could not read is unknown, never 0, and keeps the other two (QA-543)', () => {
+    const health = [{ key: 'checks_failed', count: 2, amount_sar: null }];
+    expect(lateCount(null, '2026-01-01', '2026-09-30')).toBeNull();
+    expect(attention(health, null)).toEqual({ checks: 2, noClient: 0, late: null });
+  });
+
+  it('counts only the closed months the period covers', () => {
+    const closed = [closeOf('2026-02-01', [late]), closeOf('2026-07-01', [late, late])];
+    expect(lateCount(closed, '2026-06-01', '2026-09-30')).toBe(2);
   });
 
   it('counts a late cost against profit and a cancelled payment as the revenue it took away', () => {
     const base = { invoice_id: 'a', ref: 'T', unit_kind: 'transaction', changed_on: null };
-    expect(lateAmount({ ...base, change: 'cost_changed', revenue_change: 0, cost_change: 600 })).toBe(-600);
-    expect(lateAmount({ ...base, change: 'dropped', revenue_change: -3100, cost_change: 0 })).toBe(-3100);
-    expect(lateAmount({ ...base, change: 'late_paid', revenue_change: 9400, cost_change: 0 })).toBe(9400);
+    expect(lateParts({ ...base, change: 'cost_changed', revenue_change: 0, cost_change: 600 })).toEqual({
+      main: -600,
+      other: null,
+    });
+    expect(lateParts({ ...base, change: 'dropped', revenue_change: -3100, cost_change: 0 }).main).toBe(-3100);
+    expect(lateParts({ ...base, change: 'late_paid', revenue_change: 9400, cost_change: 0 }).main).toBe(9400);
+  });
+
+  it('shows both parts of a unit whose revenue and cost both changed (QA-544)', () => {
+    const base = { invoice_id: 'a', ref: 'T', unit_kind: 'transaction', changed_on: null };
+    expect(lateParts({ ...base, change: 'revenue_changed', revenue_change: 3500, cost_change: 600 })).toEqual({
+      main: 3500,
+      other: { of: 'cost', amount: -600 },
+    });
+    expect(lateParts({ ...base, change: 'cost_changed', revenue_change: 200, cost_change: 600 })).toEqual({
+      main: -600,
+      other: { of: 'revenue', amount: 200 },
+    });
   });
 });
 

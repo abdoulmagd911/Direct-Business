@@ -16,7 +16,7 @@ import { DataState } from '@/ui/DataState';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { toast } from '@/ui/Toast';
-import { attention, lateAmount, monthRows, monthsGap, shortForm, type MonthRow } from '../figures';
+import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm, type MonthRow } from '../figures';
 import type { PeriodAsk, PeriodKey } from '../period';
 import { monthStart } from '../period';
 import type { IncomeByService, LateChange, OverviewData, Period } from '../types';
@@ -50,16 +50,26 @@ export function FinanceOverview({
   const router = useRouter();
   const retry = () => router.refresh();
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
-  const flags = data.health && rows ? attention(data.health, rows) : null;
-  const asOf = data.asOf?.as_of ?? null;
+  const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
+  const asOf = data.asOf ? data.asOf.as_of : undefined;
   return (
     <div className="flex flex-col gap-5" data-finance-overview>
       <PageHeader title={t('nav.finance')} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PeriodSwitch ask={ask} />
-        <span className="font-data text-sm text-muted tabular" data-finance-stamp>
-          {asOf ? t('finance.stamp', { date: formatDate(`${asOf}T12:00:00Z`, locale) }) : t('finance.stampNone')}
-        </span>
+        {data.asOf === null ? (
+          <DataState
+            kind="failed"
+            message={t('state.failed', { what: t('finance.failed.stamp') })}
+            onRetry={retry}
+            retryLabel={t('common.tryAgain')}
+            className="items-end"
+          />
+        ) : (
+          <span className="font-data text-sm text-muted tabular" data-finance-stamp>
+            {asOf ? t('finance.stamp', { date: formatDate(`${asOf}T12:00:00Z`, locale) }) : t('finance.stampNone')}
+          </span>
+        )}
       </div>
 
       {data.period ? (
@@ -269,11 +279,17 @@ function FigureTile({
   );
 }
 
-function AttentionChip({ kind, count, label }: { kind: string; count: number; label: string }) {
+/** One count of the strip; a count that could not be read is a dash, never a 0 (M27, M53). */
+function AttentionChip({ kind, count, label }: { kind: string; count: number | null; label: string }) {
+  const quiet = count === null || count === 0;
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm" data-finance-flag={kind} data-count={count}>
-      <b className={cn('font-data tabular', count === 0 && 'text-muted')}>{count}</b>
-      <span className={cn(count === 0 && 'text-muted')}>{label}</span>
+    <span
+      className="inline-flex items-center gap-1.5 text-sm"
+      data-finance-flag={kind}
+      data-count={count === null ? 'unknown' : count}
+    >
+      <b className={cn('font-data tabular', quiet && 'text-muted')}>{count === null ? '—' : count}</b>
+      <span className={cn(quiet && 'text-muted')}>{label}</span>
     </span>
   );
 }
@@ -450,6 +466,9 @@ function MonthChips({ row, full, onClose }: { row: MonthRow; full: boolean; onCl
   );
 }
 
+/** A signed riyal amount: + for what a late change added, − for what it took away. */
+const signed = (n: number, locale: Locale) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatMoney(Math.abs(n), locale)}`;
+
 /** After close: what happened to a closed month later, one dated line each; the month's own figures never move (V620). */
 function AfterClose({ lines }: { lines: LateChange[] }) {
   const t = useTranslations();
@@ -459,7 +478,7 @@ function AfterClose({ lines }: { lines: LateChange[] }) {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t('finance.months.afterClose')}</h3>
       <ul className="flex flex-col gap-1 text-sm">
         {lines.map((l) => {
-          const amount = lateAmount(l);
+          const { main, other } = lateParts(l);
           return (
             <li
               key={`${l.invoice_id}-${l.change}`}
@@ -475,9 +494,14 @@ function AfterClose({ lines }: { lines: LateChange[] }) {
                     : ''}
                 </span>
               </span>
-              <span className="font-data tabular">
-                {amount > 0 ? '+' : amount < 0 ? '−' : ''}
-                {formatMoney(Math.abs(amount), locale)}
+              <span className="flex flex-wrap items-baseline gap-x-3 font-data tabular">
+                <span data-finance-late-main>{signed(main, locale)}</span>
+                {other ? (
+                  <span data-finance-late-other={other.of}>
+                    <span className="font-ui text-xs text-muted">{t(`finance.months.${other.of}`)}</span>{' '}
+                    {signed(other.amount, locale)}
+                  </span>
+                ) : null}
               </span>
             </li>
           );

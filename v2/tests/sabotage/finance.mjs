@@ -3,6 +3,7 @@
 const E2E = 'e2e:tests/e2e/finance-overview.spec.ts';
 const UNIT =
   'unit:tests/unit/finance/the-overview-prints-exact-figures-and-names-a-gap-and-lists-months-newest-first.test.ts';
+const FAILED = 'unit:tests/unit/finance/a-failed-read-fails-only-its-own-block-on-the-overview.test.tsx';
 const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
 
 export const sabotages = [
@@ -139,5 +140,47 @@ export const sabotages = [
     breaks: [UNIT],
     expect: 'run newest first',
     edits: [{ file: 'src/modules/finance/figures.ts', find: '    .reverse();', replace: ';' }],
+  },
+  {
+    name: 'failed-payments-date-reads-as-no-file',
+    breaks: [FAILED],
+    expect: 'Payments · as of —',
+    edits: [{ file: OVERVIEW, find: '        {data.asOf === null ? (', replace: '        {false ? (' }],
+  },
+  {
+    name: 'attention-strip-hides-when-closed-months-fail',
+    breaks: [FAILED],
+    expect: 'when the closed months failed',
+    edits: [
+      {
+        file: OVERVIEW,
+        find: '  const flags = data.health ? attention(',
+        replace: '  const flags = data.health && data.closed ? attention(',
+      },
+    ],
+  },
+  {
+    name: 'late-line-drops-its-cost-part',
+    breaks: [UNIT],
+    expect: 'both parts of a unit',
+    edits: [
+      {
+        file: 'src/modules/finance/figures.ts',
+        find: "  return { main: revenue, other: cost !== 0 ? { of: 'cost', amount: cost } : null };",
+        replace: '  return { main: revenue, other: null };',
+      },
+    ],
+  },
+  {
+    name: 'short-form-rounds-up-to-1000k',
+    breaks: [UNIT],
+    expect: '1.00M',
+    edits: [
+      {
+        file: 'src/modules/finance/figures.ts',
+        find: '  if (a >= 1_000_000 || thousands >= 1_000)',
+        replace: '  if (a >= 1_000_000)',
+      },
+    ],
   },
 ];

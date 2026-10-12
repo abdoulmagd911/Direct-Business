@@ -2107,7 +2107,8 @@
       "months": "The months",
       "service": "Income by service",
       "health": "What needs attention",
-      "invoiced": "Not yet invoiced"
+      "invoiced": "Not yet invoiced",
+      "stamp": "Payments date"
     }
   }
 }
