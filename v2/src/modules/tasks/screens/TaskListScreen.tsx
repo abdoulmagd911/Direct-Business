@@ -246,7 +246,8 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
             const url = new URL(window.location.href);
             if (url.searchParams.has('new')) {
               url.searchParams.delete('new');
-              window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+              // the router's own history state is kept, or the next refresh of the list loses its place
+              window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
             }
           }
         }}

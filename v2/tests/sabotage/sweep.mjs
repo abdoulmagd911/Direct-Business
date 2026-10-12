@@ -104,4 +104,16 @@ export const sabotages = [
     expect: 'the Arabic Filter label exists',
     edits: [{ file: 'messages/ar.json', find: '"filter": "تصفية"', replace: '"filterRemoved": "تصفية"' }],
   },
+  {
+    name: 'task-form-wipes-the-router-state',
+    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
+    expect: 'the new task is in My work',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: 'window.history.replaceState(window.history.state,',
+        replace: 'window.history.replaceState(null,',
+      },
+    ],
+  },
 ];
