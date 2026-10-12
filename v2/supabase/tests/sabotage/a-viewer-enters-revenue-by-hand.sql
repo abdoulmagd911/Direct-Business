@@ -28,7 +28,8 @@ begin
     confirmed := finance.row_date(p_fields, 'confirmed_on');
     total := (p_fields ->> 'total_sar')::numeric(14, 2);
     cost := (p_fields ->> 'cost_sar')::numeric(14, 2);
-  exception when others then
+  -- a day that is not ISO, or an amount that is not a number: refused, never guessed
+  exception when sqlstate 'P0001' or invalid_text_representation or numeric_value_out_of_range then
     raise exception using errcode = 'P0001', message = 'common.invalid', detail = 'confirmed_on, total_sar or cost_sar';
   end;
   if confirmed is null then
