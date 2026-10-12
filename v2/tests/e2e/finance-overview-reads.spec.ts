@@ -6,7 +6,7 @@
  * block. Also: a month reads "October 2026", never "1 Oct 2026"; an empty By service says so in one line.
  * Every value is made up.
  * Sabotage: tests/sabotage/finance.mjs "finance-reads-all-at-once", "finance-read-is-never-asked-again",
- * "try-again-reloads-the-whole-page", "month-label-says-the-day", "by-service-empty-says-nothing".
+ * "finance-aborted-read-overwrites-the-answer", "finance-cancelled-read-frees-its-slot", "try-again-reloads-the-whole-page", "month-label-says-the-day", "by-service-empty-says-nothing".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { blocksSettled } from './support/finance-blocks';
@@ -27,18 +27,25 @@ test('quick switching between the periods never leaves an error block, and never
   page,
 }) => {
   await admin(page);
+  // What the database sees: a read is open from the moment its request arrives until the server has really answered
+  // (route.fetch runs on, as a database statement does, when the browser gives up on the request), counted from those
+  // start and end events and never from timing (QA-552).
   let open = 0;
   let peak = 0;
   await page.route(reads, async (route) => {
     open += 1;
     peak = Math.max(peak, open);
-    await new Promise((r) => setTimeout(r, 250));
     try {
-      await route.continue();
+      await new Promise((r) => setTimeout(r, 250));
+      const response = await route.fetch();
+      await route.fulfill({ response }).catch(() => {
+        // the page gave up on this request; the server has answered all the same
+      });
     } catch {
-      // a read the page gave up on is cancelled; that is the point
+      // the test ended while the server was still answering
+    } finally {
+      open -= 1;
     }
-    open -= 1;
   });
   await page.goto('/finance?period=mtd');
   await hydrated(page);
@@ -54,6 +61,32 @@ test('quick switching between the periods never leaves an error block, and never
   await expect(page.locator('[data-finance-months]')).toBeVisible();
   await expect(page.locator('[data-finance-attention]')).toBeVisible();
   expect(peak, 'at most two Finance reads are in flight at once').toBeLessThanOrEqual(2);
+});
+
+test('going back to a period just seen never leaves a block stuck on loading (QA-549)', async ({ page }) => {
+  await admin(page);
+  await page.goto('/finance?period=ytd');
+  await hydrated(page);
+  await settled(page);
+  // every read now answers slowly; the person goes to MTD and back to YTD while the first asks are still out
+  await page.route(reads, async (route) => {
+    await new Promise((r) => setTimeout(r, 800));
+    try {
+      await route.continue();
+    } catch {
+      // the page closed
+    }
+  });
+  await page.locator('[data-finance-period-key="mtd"]').click();
+  await page.waitForTimeout(300);
+  await page.locator('[data-finance-period-key="ytd"]').click();
+  await settled(page);
+  // the reads sent for MTD land now, after the kept YTD answers were shown: they must change nothing
+  await page.waitForTimeout(1600);
+  await expect(
+    page.locator('[data-finance-overview] [data-state="loading"], [data-finance-overview] [data-state="failed"]'),
+    'no block is left on loading or failed after going back to a period',
+  ).toHaveCount(0);
 });
 
 test('a read that failed for the database’s time limit is asked once more, and the block never shows the error', async ({

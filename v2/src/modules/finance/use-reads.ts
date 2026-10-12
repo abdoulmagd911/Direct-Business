@@ -9,8 +9,8 @@ import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
 // unit, so a read costs time in proportion to the data, and six of them at once — times each period tab the person
 // flicks through — pile up past the database's 8-second limit and fail ("could not be loaded"). So the page does not
 // ask for everything together: at most TWO reads are in flight from this browser at any moment (the rest wait their
-// turn, first asked first served), a read the person has moved away from is cancelled before it starts or while it
-// runs, a read that fails for the database's timeout or a dropped connection is asked once more after a pause, and
+// turn, first asked first served), a read the person has moved away from is cancelled before it starts (once sent it runs on and
+// its answer is dropped, so the database is never asked for more than two statements at once), a read that fails for the database's timeout or a dropped connection is asked once more after a pause, and
 // each block fails and retries on its own — Try again repeats that one read, never the page.
 
 /** How many Finance reads this browser has in flight at once. */
@@ -69,16 +69,59 @@ const pause = (ms: number, signal: AbortSignal) =>
 
 const isCancel = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
 
-async function once<T>(fn: ApiFunction, args: unknown, signal: AbortSignal): Promise<T> {
+/** Reads sent and not yet settled, by key: a second ask for the same read waits for the first, it does not send another. */
+const inFlight = new Map<string, Promise<unknown>>();
+/** Counts the writes seen: an answer that was asked for before a write is never kept after it. */
+let epoch = 0;
+
+/** The person may move on before the answer arrives: they stop waiting at once, the request itself runs on. */
+function whileWaiting<T>(request: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const cancelled = () => reject(new DOMException('cancelled', 'AbortError'));
+    if (signal.aborted) return cancelled();
+    signal.addEventListener('abort', cancelled, { once: true });
+    request.then(
+      (v) => {
+        signal.removeEventListener('abort', cancelled);
+        resolve(v);
+      },
+      (e) => {
+        signal.removeEventListener('abort', cancelled);
+        reject(e);
+      },
+    );
+  });
+}
+
+/**
+ * One request, from its slot to its end. A request that has been sent is NEVER cancelled: cancelling the browser's
+ * request does not end the statement the database is running, so letting go of the slot then would start the next read
+ * beside a statement that is still working (QA-552). The slot is held until the request has settled; a person who
+ * moved on simply stops waiting, and the answer is kept for a quick return. Only a read still waiting for its turn is
+ * cancelled outright.
+ */
+async function once<T>(key: string, fn: ApiFunction, args: unknown, signal: AbortSignal): Promise<T> {
+  const sent = inFlight.get(key);
+  if (sent) return whileWaiting(sent as Promise<T>, signal);
   const done = await acquire(signal);
-  try {
-    const result = await browserDb()
-      .rpc(fn as never, args as never)
-      .abortSignal(signal);
-    return unwrap(result as never) as T;
-  } finally {
+  const meanwhile = inFlight.get(key);
+  if (meanwhile) {
     done();
+    return whileWaiting(meanwhile as Promise<T>, signal);
   }
+  const asked = epoch;
+  const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))
+    .then((result) => {
+      const data = unwrap(result as never) as T;
+      if (asked === epoch) kept.set(key, { at: Date.now(), data });
+      return data;
+    })
+    .finally(() => {
+      if (inFlight.get(key) === request) inFlight.delete(key);
+      done();
+    });
+  inFlight.set(key, request);
+  return whileWaiting(request, signal);
 }
 
 /** One read: its turn in the queue, one more ask after a pause when it failed for time or transport. */
@@ -88,20 +131,23 @@ export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: Abo
   if (hit && Date.now() - hit.at < KEEP_MS) return hit.data as T;
   let data: T;
   try {
-    data = await once<T>(fn, args, signal);
+    data = await once<T>(key, fn, args, signal);
   } catch (e) {
     if (isCancel(e) || signal.aborted) throw e;
     // only a database that could not answer in time (or could not be reached) is worth asking again
     if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;
     await pause(RETRY_AFTER_MS, signal);
-    data = await once<T>(fn, args, signal);
+    data = await once<T>(key, fn, args, signal);
   }
-  kept.set(key, { at: Date.now(), data });
   return data;
 }
 
 /** Nothing is kept after a write: the next ask goes to the database (a month closed, an invoice typed). */
-export const forgetFinanceReads = () => kept.clear();
+export const forgetFinanceReads = () => {
+  epoch += 1;
+  kept.clear();
+  inFlight.clear();
+};
 
 export type Block<T> = { status: 'loading' } | { status: 'ready'; data: T } | { status: 'failed' };
 
@@ -120,9 +166,13 @@ export function useFinanceRead<T, F extends ApiFunction>(
   useEffect(() => {
     const controller = new AbortController();
     readFinance<T>(fn, JSON.parse(argsKey), controller.signal).then(
-      (data) => setState({ key, block: { status: 'ready', data } }),
+      (data) => {
+        if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });
+      },
       (e) => {
-        if (!isCancel(e)) setState({ key, block: { status: 'failed' } });
+        // postgrest-js may hand back an aborted read as an ordinary error, so what counts is whether this effect is
+        // still the latest one, not the shape of the error (QA-549)
+        if (!controller.signal.aborted && !isCancel(e)) setState({ key, block: { status: 'failed' } });
       },
     );
     return () => controller.abort();

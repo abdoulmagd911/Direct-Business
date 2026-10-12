@@ -216,6 +216,36 @@ export const sabotages = [
     ],
   },
   {
+    name: 'finance-aborted-read-overwrites-the-answer',
+    breaks: [READS_E2E],
+    expect: 'no block is left on loading or failed after going back to a period',
+    edits: [
+      {
+        file: READS,
+        find: "if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });",
+        replace: "setState({ key, block: { status: 'ready', data } });",
+      },
+      {
+        file: READS,
+        find: "signal.addEventListener('abort', cancelled, { once: true });\n    request.then(",
+        replace: 'request.then(',
+      },
+    ],
+  },
+  {
+    name: 'finance-cancelled-read-frees-its-slot',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [
+      {
+        file: READS,
+        find: 'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))',
+        replace:
+          'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never).abortSignal(signal))',
+      },
+    ],
+  },
+  {
     name: 'try-again-reloads-the-whole-page',
     breaks: [READS_E2E],
     expect: 'Try again brings the months back',
