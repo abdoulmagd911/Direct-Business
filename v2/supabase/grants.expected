@@ -72,6 +72,9 @@ function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute
 function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function api.finance_differences(p_invoice uuid) execute authenticated
+function api.finance_exclusion_rule_remove(p_id uuid, p_reason text) execute authenticated
+function api.finance_exclusion_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function api.finance_exclusion_rules() execute authenticated
 function api.finance_health(p_from date, p_to date) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function api.finance_import_map(p_source text) execute authenticated
@@ -344,6 +347,9 @@ function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute aut
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function finance.differences(p_invoice uuid) execute authenticated
+function finance.exclusion_rule_remove(p_id uuid, p_reason text) execute authenticated
+function finance.exclusion_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function finance.exclusion_rules() execute authenticated
 function finance.health(p_from date, p_to date) execute authenticated
 function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated

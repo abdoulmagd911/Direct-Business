@@ -116,6 +116,23 @@ export default defineModule({
       effectiveDated: true,
     },
     {
+      // V4, V501: what "Commercial revenue" (finance.commercial_revenue) counts, read as of each month. Its value is
+      // decided at go-live and nothing waits for it: revenue as the basis, every service and client type, commissions in.
+      key: 'finance.revenue_definition',
+      group: 'settings.finance',
+      label: 'setting.finance.revenue_definition',
+      schema: z
+        .object({
+          basis: z.enum(['revenue', 'margin']),
+          services: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).max(50),
+          client_types: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).max(50),
+          commissions: z.boolean(),
+        })
+        .strict(),
+      default: { basis: 'revenue', services: [], client_types: [], commissions: true },
+      effectiveDated: true,
+    },
+    {
       // §3.3: an invoice still owed this many days after it was issued tells the client's account manager, once.
       key: 'finance.unpaid_alert_days',
       group: 'settings.finance',
