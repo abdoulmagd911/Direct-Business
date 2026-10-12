@@ -154,12 +154,14 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         return {
           key: k,
           label: t('partners.figures.last_activity'),
+          empty: t('partners.figures.noActivity'),
           value: card.last_activity_on ? formatDate(card.last_activity_on, locale, { dateStyle: 'medium' }) : null,
         };
       case 'next_step':
         return {
           key: k,
           label: t('partners.figures.next_step'),
+          empty: t('partners.figures.noNextStep'),
           value: card.next_step ? formatDate(card.next_step.on, locale, { dateStyle: 'medium' }) : null,
           note: card.next_step?.text ?? undefined,
         };
@@ -641,37 +643,48 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
-        rail={rail}
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
         {tab === 'overview' ? (
-          <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
-            <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
-              <h2 className="text-base font-semibold">{t('partners.activity.timeline')}</h2>
-              {mayWrite ? (
-                <span className="flex gap-2">
-                  <Button size="sm" onClick={() => setNoting(true)} data-note-add-inline>
-                    {t('partners.note.add')}
-                  </Button>
-                  <Button size="sm" variant="primary" icon={<Plus />} onClick={() => setLogging(true)}>
-                    {t('partners.activity.log')}
-                  </Button>
-                </span>
-              ) : null}
-            </div>
-            {notes.length ? (
-              <ul className="divide-y divide-border">{notes.map(noteLine)}</ul>
-            ) : (
-              <DataState kind="empty" message={t('partners.activity.none')} />
-            )}
+          <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
+            {rail}
           </section>
         ) : null}
         {tab === 'activity' ? (
-          history ? (
-            <ActivityTimeline rows={history} people={people} onChanged={refresh} />
-          ) : (
-            <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
-          )
+          <>
+            <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
+              <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
+                <h2 className="text-base font-semibold">{t('partners.activity.timeline')}</h2>
+                {mayWrite ? (
+                  <span className="flex gap-2">
+                    <Button size="sm" onClick={() => setNoting(true)} data-note-add-inline>
+                      {t('partners.note.add')}
+                    </Button>
+                    <Button size="sm" variant="primary" icon={<Plus />} onClick={() => setLogging(true)}>
+                      {t('partners.activity.log')}
+                    </Button>
+                  </span>
+                ) : null}
+              </div>
+              {notes.length ? (
+                <ul className="divide-y divide-border">{notes.map(noteLine)}</ul>
+              ) : (
+                <DataState kind="empty" message={t('partners.activity.none')} />
+              )}
+            </section>
+            {history ? (
+              <ActivityTimeline
+                rows={history}
+                people={people}
+                onChanged={refresh}
+                entityWords={{
+                  partner: side === 'client' ? t('partners.side.client') : t('partners.side.supplier_partner'),
+                }}
+              />
+            ) : (
+              <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
+            )}
+          </>
         ) : null}
         {tab === 'related' ? (
           <section className="rounded-lg border border-border bg-raised p-5" data-partner-related>
