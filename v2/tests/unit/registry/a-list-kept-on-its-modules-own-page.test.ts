@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { modules } from '../../../src/core/registry/index';
-import { snapshotOf } from '../../../src/core/registry/snapshot';
+import { KEPT_ON_OWN_PAGE, snapshotOf } from '../../../src/core/registry/snapshot';
 import { listsOf } from '../../../src/modules/settings/groups';
 
 // V627: a setting list is edited on a Settings page (V97, V138), with one exception — a list its module keeps on the
@@ -33,6 +33,13 @@ describe("a list kept on its module's own page", () => {
     );
     expect(() => snapshotOf(withEntity('invoice', { shownIn: 'settings.finance' }))).toThrow(
       'entity "invoice": only a list kept on its module\'s own page is shown in a Settings group',
+    );
+  });
+
+  it('keeps only the lists V627 names there, not any other list of any module (QA-539)', () => {
+    expect([...KEPT_ON_OWN_PAGE].sort()).toEqual(['finance.channel', 'finance.import_map']);
+    expect(() => snapshotOf(withEntity('service', { page: 'finance', shownIn: 'settings.finance' }))).toThrow(
+      'entity "service": a setting list is edited on a settings page',
     );
   });
 });
