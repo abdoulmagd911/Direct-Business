@@ -12,7 +12,9 @@ declare
 begin
   select string_agg(e.key, ', ') into bad from core.entity e
   where e.active and e.is_list
-    and ((e.page_key not like 'settings.%' and e.page_key is distinct from split_part(e.table_name, '.', 1))
+    -- V627's exception is only the two Finance lists kept on the finance page (QA-539; src/core/registry/snapshot.ts)
+    and ((e.page_key not like 'settings.%'
+          and not (e.table_name in ('finance.channel', 'finance.import_map') and e.page_key = 'finance'))
          or (select count(*) from pg_attribute a where a.attrelid = to_regclass(e.table_name) and a.attnum > 0
              and not a.attisdropped and a.attnotnull and a.attname in ('key', 'name_en', 'name_ar', 'sort', 'active')) <> 5);
   perform test.ok(bad is null, format('declared lists without both required names or a settings page: %s', bad));
