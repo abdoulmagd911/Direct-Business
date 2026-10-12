@@ -11,16 +11,16 @@ select set_config('t.x', api.partner_create(jsonb_build_object('trade_name_en', 
   'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate')))) ->> 'id', true);
 select api.finance_import('invoices', jsonb_build_array(
   jsonb_build_object('ref', 'TX-J1', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 60,
-                     'tax_no', '1010101010'),
+                     'tax_no', '1010000012'),
   jsonb_build_object('ref', 'TX-J2', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 40,
                      'client_id', '93001')),
   now() - interval '1 day');
 
-select api.match_decide('tax_no:1010101010', 'partner', current_setting('t.x')::uuid, 'made up: their CR',
+select api.match_decide('tax_no:1010000012', 'partner', current_setting('t.x')::uuid, 'made up: their CR',
                         '{"tax_kind": "cr"}');
 select test.as_owner();
 select test.eq((select jsonb_build_object('kind', d.kind, 'held_by_x', d.partner_id = current_setting('t.x')::uuid)
-                from partner.identifier d where d.value_key = '1010101010' and d.deleted_at is null),
+                from partner.identifier d where d.value_key = '1010000012' and d.deleted_at is null),
   '{"kind": "cr", "held_by_x": true}'::jsonb, 'the tax number is added as a CR when the person says so');
 select test.eq((select d.state from finance.invoice i cross join lateral finance.match_detail(i.id) d where i.ref = 'TX-J1'),
   'matched', 'and the row matches by it');
