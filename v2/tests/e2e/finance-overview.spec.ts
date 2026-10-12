@@ -11,14 +11,25 @@
  * "commissions-sentence-missing", "two-payments-stamps".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { callAs, makePerson, signIn } from './support/stack';
+import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
-/** A year-month long ago, one per test run, so a test's figures are its own and a month closes once. */
-const oldMonth = () =>
-  `${2000 + Math.floor(Math.random() * 19)}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}`;
+/**
+ * A year-month long ago that no invoice uses yet, so a test's figures are its own and a month closes once. The
+ * sabotage step runs this spec dozens of times on one database, so a bare random month would soon repeat; the month is
+ * looked up before it is used (a race between two workers needs the same free month within milliseconds).
+ */
+async function oldMonth(): Promise<string> {
+  for (let i = 0; i < 100; i += 1) {
+    const ym = `${1990 + Math.floor(Math.random() * 30)}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}`;
+    const used = await sql(`select 1 from finance.invoice where month_on = $1::date limit 1`, [`${ym}-01`]);
+    const closed = await sql(`select 1 from finance.month_close where month = $1::date limit 1`, [`${ym}-01`]);
+    if (!used.length && !closed.length) return ym;
+  }
+  throw new Error('no unused month left to seed');
+}
 const addressOf = (ym: string) => `/finance?period=custom&from=${ym}-01&to=${ym}-28`;
 const ref = () => `TX-9${Math.floor(Math.random() * 900000 + 100000)}`;
 
@@ -89,7 +100,7 @@ const today = () =>
 test('desk 1440: the tiles print the exact figure and the Provisional part, the months close once with no Undo, a late payment is listed after the close', async ({
   page,
 }) => {
-  const ym = oldMonth();
+  const ym = await oldMonth();
   await page.setViewportSize({ width: 1440, height: 900 });
   const call = await signedInAdmin(page, ym);
   await seed(call, ym);
@@ -163,7 +174,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
 test('a member sees the month is not closed and has no Close month; the Provisional part is never left out', async ({
   page,
 }) => {
-  const ym = oldMonth();
+  const ym = await oldMonth();
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/');
   await seed(async (fn, args) => {
@@ -184,7 +195,7 @@ test('a member sees the month is not closed and has no Close month; the Provisio
 test('phone 390: nothing scrolls sideways, the Provisional part is directly under its figure, every target is 44 px', async ({
   page,
 }) => {
-  const ym = oldMonth();
+  const ym = await oldMonth();
   await page.setViewportSize({ width: 390, height: 844 });
   const call = await signedInAdmin(page, ym);
   await seed(call, ym);
