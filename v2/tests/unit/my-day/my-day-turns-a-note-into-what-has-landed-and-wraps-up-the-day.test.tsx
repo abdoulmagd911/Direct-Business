@@ -192,7 +192,7 @@ describe('the chips', () => {
   it('"turned into" opens the organisation; a reminder names its time', () => {
     expect(linkRoute(call)).toBe('/partners/org-1?tab=activity');
     const chip = html(<LinkChip link={call} />);
-    expect(chip).toContain('href="/partners/org-1"');
+    expect(chip).toContain('href="/partners/org-1?tab=activity"');
     expect(chip).toContain('Call · Test Org');
     const reminder = html(<LinkChip link={turned({ entity: 'reminder', remind_at: '2026-10-02T06:00:00Z' })} />);
     expect(reminder).toContain('Reminder · ');
