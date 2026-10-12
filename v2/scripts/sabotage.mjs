@@ -20,7 +20,8 @@
 // suite applies it after the migrations (V2_DB_AFTER) of a database built from zero (a copy of one such build, kept
 // while the migrations stay the same: test.mjs --reuse); targets are sql:<test ID>.
 //
-// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]... [--list]
+// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]... [--shard k/n] [--list]
+// --shard k/n keeps every n-th chosen sabotage starting at the k-th (1-based), so n jobs together run each one once.
 // If it is killed half-way, the tree may still hold a sabotage: `git status` shows it; `git checkout -- <file>` and
 // removing the planted files restores it.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -213,10 +214,20 @@ const only = [];
 /** @type {string[]} */
 const kinds = [];
 let list = false;
+let shard = 1;
+let shards = 1;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--only') only.push(/** @type {string} */ (argv[++i]));
   else if (argv[i] === '--kind') kinds.push(/** @type {string} */ (argv[++i]));
-  else if (argv[i] === '--list') list = true;
+  else if (argv[i] === '--shard') {
+    const [k, n] = (/^(\d+)\/(\d+)$/.exec(argv[++i] ?? '') ?? []).slice(1).map(Number);
+    if (!k || !n || k > n) {
+      console.error(`--shard wants k/n with 1 ≤ k ≤ n, got ${argv[i]}`);
+      process.exit(2);
+    }
+    shard = k;
+    shards = n;
+  } else if (argv[i] === '--list') list = true;
   else {
     console.error(`unknown argument ${argv[i]}`);
     process.exit(2);
@@ -224,16 +235,18 @@ for (let i = 0; i < argv.length; i++) {
 }
 
 const all = await load();
-const chosen = all.filter(
-  (s) =>
-    (!only.length || only.includes(s.name)) &&
-    (!kinds.length || s.breaks.every((b) => kinds.includes(/** @type {string} */ (b.split(':')[0])))),
-);
+const chosen = all
+  .filter(
+    (s) =>
+      (!only.length || only.includes(s.name)) &&
+      (!kinds.length || s.breaks.every((b) => kinds.includes(/** @type {string} */ (b.split(':')[0])))),
+  )
+  .filter((_, i) => i % shards === shard - 1);
 if (list) {
   for (const s of all) console.log(`${s.name.padEnd(34)} ${s.breaks.join(' ')}  (${s.source})`);
   process.exit(0);
 }
-if (only.length && chosen.length !== only.length) {
+if (only.some((n) => !all.some((s) => s.name === n))) {
   console.error(`unknown sabotage in --only: ${only.filter((n) => !all.some((s) => s.name === n)).join(', ')}`);
   process.exit(2);
 }
@@ -245,7 +258,7 @@ let failures = 0;
 const rows = [];
 for (const s of chosen) {
   for (const t of s.breaks) {
-    // An e2e target's clean run is the job's own E2E step, just before; everything else is re-run here.
+    // An e2e target's clean run is CI's own end-to-end job (and a local `pnpm test:e2e`); everything else is re-run here.
     if (t.startsWith('e2e:') || baselineOk.has(t)) continue;
     const r = run(t);
     baselineOk.set(t, r.ok);
