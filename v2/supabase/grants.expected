@@ -68,6 +68,7 @@ function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
+function api.finance_credit_split_set(p_invoice uuid, p_shares jsonb, p_note text) execute authenticated
 function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
@@ -340,6 +341,7 @@ function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function finance.closed_months() execute authenticated
+function finance.credit_split_set(p_invoice uuid, p_shares jsonb, p_note text) execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
