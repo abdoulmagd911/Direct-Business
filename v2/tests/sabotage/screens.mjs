@@ -845,7 +845,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;",
+        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}?tab=activity`;",
         replace: 'if (link.partner_id === "never") return null;',
       },
     ],
