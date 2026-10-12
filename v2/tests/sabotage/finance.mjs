@@ -242,6 +242,30 @@ export const sabotages = [
     edits: [{ file: NEW_SCREEN, find: "['cost', u.cost],", replace: "['cost', u.revenue * 0.5]," }],
   },
   {
+    name: 'new-invoice-undo-keeps-the-last-saved-panel',
+    breaks: [NEW_E2E],
+    expect: 'an undone invoice is no longer shown as last saved',
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: 'setSaved((now) => (now?.ref === d.ref.trim() ? null : now));',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'month-helper-creates-its-sequence-unlocked',
+    breaks: ['e2e:tests/e2e/finance-month-helper.spec.ts'],
+    expect: 'pg_class_relname_nsp_index',
+    edits: [
+      {
+        file: 'tests/e2e/support/finance-month.ts',
+        find: 'perform pg_advisory_xact_lock(7231001); ',
+        replace: '',
+      },
+    ],
+  },
+  {
     name: 'attention-row-sits-under-the-add-button',
     breaks: [E2E],
     expect: 'the Needs attention row stays clear of the + button',

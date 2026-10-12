@@ -9,7 +9,7 @@
  * the panel to the row. Every value is made up.
  * Sabotage: tests/sabotage/finance.mjs "new-invoice-skips-the-required-check", "new-invoice-saves-a-duplicate-number",
  * "new-invoice-undo-leaves-the-lines", "new-invoice-offers-a-fifth-kind", "new-invoice-panel-ignores-the-count",
- * "new-invoice-panel-says-final-for-all", "new-invoice-panel-works-out-its-own-cost".
+ * "new-invoice-panel-says-final-for-all", "new-invoice-panel-works-out-its-own-cost", "new-invoice-undo-keeps-the-last-saved-panel".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { oldMonth } from './support/finance-month';
@@ -242,6 +242,14 @@ test('desk 1440: the kinds offered, the panel is the database’s own row in eac
   ]);
   expect(lines, 'one line, with its service').toHaveLength(1);
   expect(lines[0]?.service_id).toBeTruthy();
+
+  // Save + new, then Undo that invoice: the panel stops printing its figures (QA-551)
+  const gone = ref();
+  await enter(page, { number: gone, ym, status: 'Fully Paid', total: '300', customer: 'Made Up Undone Co' });
+  const lastToast = page.locator('[data-sonner-toast]').filter({ hasText: `${gone} saved` });
+  await lastToast.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Undone' }).last()).toBeVisible();
+  await expect(page.locator('[data-last-saved]'), 'an undone invoice is no longer shown as last saved').toHaveCount(0);
 
   // Undo takes every row back (the line's name is this run's own, so an earlier run's leftovers never count)
   const undoName = `Undo me ${number}`;

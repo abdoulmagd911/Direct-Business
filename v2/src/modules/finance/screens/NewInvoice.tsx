@@ -132,6 +132,8 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
           try {
             for (const rid of [...made].reverse()) await undoRequest(rid);
             toast.done(t('activity.undone'));
+            // the panel must not keep printing the figures of an invoice that is no longer there (QA-551)
+            setSaved((now) => (now?.ref === d.ref.trim() ? null : now));
             refetchAll();
           } catch (e) {
             const { key, detail } = errorKey(e, (k) => t.has(k));
