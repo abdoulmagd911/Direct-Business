@@ -27,11 +27,12 @@ select r.invoice_id, r.unit_kind, r.ref, r.dpin,
        case when s.invoice_id is null then r.cost else s.cost end as cost,
        case when s.invoice_id is null then r.cost_status else s.cost_status end as cost_status,
        case when s.invoice_id is null then r.provisional else s.cost_status = 'provisional' end as provisional,
-       case when s.invoice_id is null then r.profit else s.revenue - s.cost end as profit,
-       case when s.invoice_id is null then r.loss else s.revenue - s.cost < 0 end as loss,
+       case when s.invoice_id is null then r.profit else s.revenue - coalesce(s.cost, 0) end as profit,
+       case when s.invoice_id is null then r.loss else s.revenue - coalesce(s.cost, 0) < 0 end as loss,
        r.fee_on_monthly_invoice, r.payment_type, r.estimate,
        (select t.key from partner.side_type t
-        where t.id = measure.client_segment(case when s.kept_who then s.partner_id else r.partner_id end)) as segment
+        where t.id = measure.client_segment(case when s.kept_who then s.partner_id else r.partner_id end)) as segment,
+       r.revenue_source
 from finance.money_row_live r
 left join closed cl on cl.month = r.month_on
 left join snap s on s.month = r.month_on and s.invoice_id = r.invoice_id and s.unit_kind = r.unit_kind
@@ -40,9 +41,11 @@ union all
 select s.invoice_id, s.unit_kind, s.ref, null::text, s.partner_id, null::text, s.month,
        pg_catalog.date_trunc('quarter', s.month::timestamp)::date, null::date, null::date, null::text, s.channel_credits_owner,
        null::text, true, null::boolean, null::boolean, true, null::text, null::text,
-       s.revenue, s.cost, s.cost_status, s.cost_status = 'provisional', s.revenue - s.cost, s.revenue - s.cost < 0,
+       s.revenue, s.cost, s.cost_status, s.cost_status = 'provisional', s.revenue - coalesce(s.cost, 0),
+       s.revenue - coalesce(s.cost, 0) < 0,
        s.unit_kind = 'monthly_fee', null::text, null::numeric,
-       (select t.key from partner.side_type t where t.id = measure.client_segment(s.partner_id))
+       (select t.key from partner.side_type t where t.id = measure.client_segment(s.partner_id)),
+       coalesce((select i.revenue_source from finance.invoice i where i.id = s.invoice_id), 'payments')
 from snap s
 where not exists (select 1 from finance.money_row_live r
                   where r.month_on = s.month and r.invoice_id = s.invoice_id and r.unit_kind = s.unit_kind);
