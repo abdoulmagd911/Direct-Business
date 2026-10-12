@@ -89,3 +89,9 @@ values ('partner.match_order', null, '["client_id", "email", "tax_no", "code", "
 select test.eq((select (select o.k from orgs o where o.id = d.partner_id)
                 from finance.invoice i cross join lateral finance.match_detail(i.id) d where i.ref = 'TX-H4'),
   'd', 'with email before VAT in the order, the email''s holder wins');
+
+-- the keys view shows each clue the match reads, with its day
+select test.as_owner();
+select test.eq((select jsonb_object_agg(k.kind, k.key) from finance.invoice_keys k join finance.invoice i on i.id = k.source_id
+                where i.ref = 'TX-H4'),
+  '{"tax_no": "300000000000013", "email": "office@made-up-d.test"}'::jsonb, 'finance.invoice_keys lists the row''s clues');
