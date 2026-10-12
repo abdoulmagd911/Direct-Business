@@ -2,7 +2,7 @@
 import { Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { refetchAll } from '@/core/commands/refetch';
 import { undoRequest } from '@/core/commands/undo';
 import { rpc } from '@/core/db/rpc';
@@ -21,7 +21,6 @@ import {
   blankExpense,
   blankInvoice,
   blankLine,
-  checksOf,
   expenseFields,
   hasRevenue,
   invoiceFields,
@@ -30,7 +29,6 @@ import {
   lineTotal,
   problemsOf,
   serviceOfProduct,
-  totalsOf,
   type ExpenseDraft,
   type InvoiceDraft,
   type LineDraft,
@@ -51,15 +49,7 @@ const fmt = (n: number, locale: string) =>
  * Each row is its own logged request (V622); the Undo in the toast takes them all back, last first. The database
  * checks every value again — this form only says what is missing before it asks.
  */
-export function NewInvoice({
-  today,
-  lists,
-  people,
-}: {
-  today: string;
-  lists: Lists | null;
-  people: { id: string; label: string }[];
-}) {
+export function NewInvoice({ today, lists }: { today: string; lists: Lists | null }) {
   const t0 = useTranslations();
   const router0 = useRouter();
   if (!lists)
@@ -74,26 +64,18 @@ export function NewInvoice({
         />
       </>
     );
-  return <NewInvoiceForm today={today} lists={lists} people={people} />;
+  return <NewInvoiceForm today={today} lists={lists} />;
 }
 
-function NewInvoiceForm({
-  today,
-  lists,
-  people,
-}: {
-  today: string;
-  lists: Lists;
-  people: { id: string; label: string }[];
-}) {
+function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
   const [d, setD] = useState<InvoiceDraft>(() => blankInvoice(today));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const totals = useMemo(() => totalsOf(d, lists), [d, lists]);
-  const checks = useMemo(() => checksOf(d, lists), [d, lists]);
+  // the invoice just saved, whose figures the panel then reads from the database (never worked out here)
+  const [saved, setSaved] = useState<{ ref: string; created: string } | null>(null);
   const name = (e: ListEntry) => (locale === 'ar' && e.name_ar ? e.name_ar : e.name_en);
   const opts = (list: ListEntry[]) => list.map((e) => ({ value: e.key, label: name(e) }));
   const set = <K extends keyof InvoiceDraft>(k: K, v: InvoiceDraft[K]) => {
@@ -135,12 +117,6 @@ function NewInvoiceForm({
       const id = await add('invoice', invoiceFields(d, lists));
       for (const l of d.lines) await add('invoice_line', lineFields(l, id, lists));
       for (const e of d.expenses) await add('expense_line', expenseFields(e, id, lists));
-      if (d.channel && hasRevenue(d.kind))
-        await rpc('finance_channel_set', {
-          p_invoice: id,
-          p_channel: d.channel,
-          ...(d.creditTo ? { p_person: d.creditTo } : {}),
-        });
     } catch (e) {
       // all or nothing: what was already written is taken back, then the refusal is said in words
       for (const rid of [...made].reverse()) await undoRequest(rid).catch(() => null);
@@ -167,6 +143,7 @@ function NewInvoiceForm({
     refetchAll();
     setBusy(false);
     if (again) {
+      setSaved({ ref: d.ref.trim(), created: d.created });
       setD(blankInvoice(today));
       setErrors({});
       document.querySelector<HTMLElement>('[data-new-ref]')?.focus();
@@ -206,7 +183,7 @@ function NewInvoiceForm({
           </div>
         }
       />
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={cn('grid min-w-0 gap-6', saved && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
         <div className="flex min-w-0 flex-col gap-6">
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -263,33 +240,6 @@ function NewInvoiceForm({
                   />
                 )}
               </Field>
-              {hasRevenue(d.kind) ? (
-                <Field label={t('finance.number.channel')}>
-                  {(p) => (
-                    <Select
-                      id={p.id}
-                      value={d.channel || NONE}
-                      onValueChange={(v) => {
-                        set('channel', v === NONE ? '' : v);
-                        set('creditTo', '');
-                      }}
-                      options={[{ value: NONE, label: t('finance.channel.none') }, ...opts(lists.channel)]}
-                    />
-                  )}
-                </Field>
-              ) : null}
-              {hasRevenue(d.kind) && lists.channel.find((c) => c.key === d.channel)?.credits_owner ? (
-                <Field label={t('finance.new.creditTo')}>
-                  {(p) => (
-                    <Select
-                      id={p.id}
-                      value={d.creditTo || NONE}
-                      onValueChange={(v) => set('creditTo', v === NONE ? '' : v)}
-                      options={[{ value: NONE, label: '—' }, ...people.map((x) => ({ value: x.id, label: x.label }))]}
-                    />
-                  )}
-                </Field>
-              ) : null}
               <Field label={t('finance.number.created')} error={problem('created')} required={t('common.required')}>
                 {(p) => <Input {...p} type="date" value={d.created} onChange={(e) => set('created', e.target.value)} />}
               </Field>
@@ -502,63 +452,7 @@ function NewInvoiceForm({
           </Card>
         </div>
 
-        <aside
-          className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-4 lg:self-start"
-          aria-label={t('finance.new.totals')}
-          data-new-totals
-        >
-          <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold">{t('finance.new.totals')}</h2>
-            <dl className="grid grid-cols-3 gap-2 rounded-lg border border-border p-3">
-              {(
-                [
-                  ['revenue', totals.revenue],
-                  ['cost', totals.cost],
-                  ['profit', totals.profit],
-                ] as const
-              ).map(([k, v]) => (
-                <div key={k} className="flex min-w-0 flex-col gap-1" data-total={k}>
-                  <dt className="text-xs text-muted">{t(`finance.tile.${k}`)}</dt>
-                  <dd className="font-data tabular text-base font-semibold">{fmt(v, locale)}</dd>
-                </div>
-              ))}
-            </dl>
-            {totals.counts ? (
-              <div className="flex flex-wrap items-center gap-2 text-sm" data-new-state>
-                <StatusChip tone={totals.provisional ? 'warning' : 'success'}>
-                  {totals.provisional ? t('finance.state.provisional') : t('finance.state.final')}
-                </StatusChip>
-                {totals.provisional ? (
-                  <span className="text-muted" data-new-provisional>
-                    {t('finance.provisional')} <span className="font-data tabular">{fmt(totals.profit, locale)}</span>
-                  </span>
-                ) : null}
-              </div>
-            ) : (
-              <StatusChip tone="neutral" className="self-start" data-new-state>
-                {t('finance.state.pending')}
-              </StatusChip>
-            )}
-          </section>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-sm font-semibold">
-              {t('finance.new.checks')}
-              {checks.length ? (
-                <span className="ms-2 font-normal text-muted">{checks.filter((c) => !c.ok).length}</span>
-              ) : null}
-            </h2>
-            <ul className="flex flex-col gap-1 text-sm" data-new-checks>
-              {checks.map((c) => (
-                <li key={c.key} data-check={c.key} data-ok={c.ok} className={c.ok ? 'text-text' : 'text-warning'}>
-                  {t(`finance.new.check.${c.key}${c.ok ? '_ok' : ''}`, {
-                    amount: fmt(Math.abs(c.amount ?? 0), locale),
-                    count: c.count ?? 0,
-                  })}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </aside>
+        {saved ? <LastSaved key={`${saved.ref}|${saved.created}`} saved={saved} /> : null}
       </div>
     </form>
   );
@@ -588,5 +482,107 @@ function Card({
       ) : null}
       {children}
     </section>
+  );
+}
+
+type Unit = {
+  unit_kind: string;
+  ref: string;
+  counted: boolean;
+  excluded_reason: string | null;
+  revenue: number;
+  cost: number;
+  profit: number;
+  cost_is: string;
+};
+type Read = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; units: Unit[] };
+
+/**
+ * Last saved: the figures of the invoice just saved, as the database counts them (V610, V611, V617) — its own money
+ * row, read back, never worked out here: a paid unit counts, a cost is its approved expenses, a product with no
+ * supplier cost is Final at 0, an excluded one is not counted at all. Provisional sits beside Profit.
+ */
+function LastSaved({ saved }: { saved: { ref: string; created: string } }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const [read, setRead] = useState<Read>({ status: 'loading' });
+  const [turn, setTurn] = useState(0);
+  useEffect(() => {
+    let live = true;
+    rpc('finance_period_units', { p_from: saved.created, p_to: saved.created })
+      .then((rows) => {
+        if (live)
+          setRead({ status: 'ready', units: ((rows as Unit[] | null) ?? []).filter((u) => u.ref === saved.ref) });
+      })
+      .catch(() => {
+        if (live) setRead({ status: 'failed' });
+      });
+    return () => {
+      live = false;
+    };
+  }, [saved, turn]);
+  return (
+    <aside
+      className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:self-start"
+      aria-label={t('finance.new.lastSaved')}
+      data-last-saved
+    >
+      <h2 className="text-sm font-semibold">
+        {t('finance.new.lastSaved')} <span className="font-data tabular font-normal text-muted">{saved.ref}</span>
+      </h2>
+      {read.status === 'loading' ? (
+        <DataState kind="loading" message={t('state.loading', { what: saved.ref })} />
+      ) : null}
+      {read.status === 'failed' ? (
+        <DataState
+          kind="failed"
+          message={t('state.failed', { what: t('finance.new.lastSaved') })}
+          onRetry={() => {
+            setRead({ status: 'loading' });
+            setTurn((n) => n + 1);
+          }}
+          retryLabel={t('common.tryAgain')}
+        />
+      ) : null}
+      {read.status === 'ready' && read.units.length === 0 ? (
+        <span className="self-start" data-last-none>
+          <StatusChip tone="neutral">{t('finance.new.noFigures')}</StatusChip>
+        </span>
+      ) : null}
+      {read.status === 'ready'
+        ? read.units.map((u, i) => (
+            <div key={`${u.unit_kind}-${i}`} className="flex flex-col gap-2" data-last-unit data-counted={u.counted}>
+              <dl className="grid grid-cols-3 gap-2 rounded-lg border border-border p-3">
+                {(
+                  [
+                    ['revenue', u.revenue],
+                    ['cost', u.cost],
+                    ['profit', u.profit],
+                  ] as const
+                ).map(([k, v]) => (
+                  <div key={k} className="flex min-w-0 flex-col gap-1" data-total={k}>
+                    <dt className="text-xs text-muted">{t(`finance.tile.${k}`)}</dt>
+                    <dd className="font-data tabular text-base font-semibold">{fmt(u.counted ? v : 0, locale)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="flex flex-wrap items-center gap-2 text-sm" data-last-state>
+                <StatusChip tone={!u.counted ? 'neutral' : u.cost_is === 'provisional' ? 'warning' : 'success'}>
+                  {!u.counted
+                    ? t('finance.state.notCounted')
+                    : u.cost_is === 'provisional'
+                      ? t('finance.state.provisional')
+                      : t('finance.state.final')}
+                </StatusChip>
+                {u.counted && u.cost_is === 'provisional' ? (
+                  <span className="text-muted" data-last-provisional>
+                    {t('finance.provisional')} <span className="font-data tabular">{fmt(u.profit, locale)}</span>
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ))
+        : null}
+    </aside>
   );
 }

@@ -6,8 +6,6 @@ const UNIT =
 const FAILED = 'unit:tests/unit/finance/a-failed-read-fails-only-its-own-block-on-the-overview.test.tsx';
 const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
 const NEW_E2E = 'e2e:tests/e2e/finance-new-invoice.spec.ts';
-const NEW_UNIT =
-  'unit:tests/unit/finance/a-new-invoice-counts-only-what-the-database-will-count-and-says-what-is-missing.test.ts';
 const FORM = 'src/modules/finance/invoice-form.ts';
 const NEW_SCREEN = 'src/modules/finance/screens/NewInvoice.tsx';
 
@@ -202,18 +200,6 @@ export const sabotages = [
     edits: [{ file: NEW_SCREEN, find: 'if ((hits ?? []).some(', replace: 'if (false && (hits ?? []).some(' }],
   },
   {
-    name: 'new-invoice-leaves-provisional-out',
-    breaks: [NEW_E2E],
-    expect: 'no approved expense is Provisional',
-    edits: [{ file: FORM, find: 'provisional: counts && !final,', replace: 'provisional: false,' }],
-  },
-  {
-    name: 'new-invoice-counts-an-unpaid-unit',
-    breaks: [NEW_UNIT],
-    expect: 'counts only a paid status',
-    edits: [{ file: FORM, find: "status?.maps_to === 'paid'", replace: 'true' }],
-  },
-  {
     name: 'new-invoice-undo-leaves-the-lines',
     breaks: [NEW_E2E],
     expect: 'Undo takes the line and the invoice back',
@@ -238,16 +224,22 @@ export const sabotages = [
     ],
   },
   {
-    name: 'new-invoice-credit-to-always-asked',
+    name: 'new-invoice-panel-ignores-the-count',
     breaks: [NEW_E2E],
-    expect: 'only Commercial asks who is credited',
-    edits: [
-      {
-        file: NEW_SCREEN,
-        find: '{hasRevenue(d.kind) && lists.channel.find((c) => c.key === d.channel)?.credits_owner ? (',
-        replace: '{hasRevenue(d.kind) && d.channel ? (',
-      },
-    ],
+    expect: 'counted as the database says',
+    edits: [{ file: NEW_SCREEN, find: 'data-counted={u.counted}', replace: 'data-counted={true}' }],
+  },
+  {
+    name: 'new-invoice-panel-says-final-for-all',
+    breaks: [NEW_E2E],
+    expect: 'the state is the database',
+    edits: [{ file: NEW_SCREEN, find: "? t('finance.state.provisional')", replace: "? t('finance.state.final')" }],
+  },
+  {
+    name: 'new-invoice-panel-works-out-its-own-cost',
+    breaks: [NEW_E2E],
+    expect: 'cost is the database',
+    edits: [{ file: NEW_SCREEN, find: "['cost', u.cost],", replace: "['cost', u.revenue * 0.5]," }],
   },
   {
     name: 'attention-row-sits-under-the-add-button',

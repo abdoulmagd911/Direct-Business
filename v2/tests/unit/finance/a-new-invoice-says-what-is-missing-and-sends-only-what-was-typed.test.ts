@@ -4,14 +4,12 @@ import {
   blankExpense,
   blankInvoice,
   blankLine,
-  checksOf,
   expenseFields,
   invoiceFields,
   lineFields,
   lineTotal,
   problemsOf,
   serviceOfProduct,
-  totalsOf,
   type InvoiceDraft,
   type Lists,
 } from '@/modules/finance/invoice-form';
@@ -31,7 +29,6 @@ const lists: Lists = {
     { id: 'p2', key: 'wallet_topup', name_en: 'Wallet top-up', word: null, service_id: null, no_supplier_cost: true },
   ],
   service: [{ id: 's1', key: 'hotels', name_en: 'Hotels' }],
-  channel: [],
 };
 
 const draft = (over: Partial<InvoiceDraft> = {}): InvoiceDraft => ({
@@ -51,56 +48,6 @@ describe('typed amounts', () => {
     expect(amountOf('1.234')).toBe('invalid');
     expect(lineTotal({ qty: '3', price: '19.99' })).toBe(59.97);
     expect(lineTotal({ qty: '', price: '5' })).toBeNull();
-  });
-});
-
-describe('the totals beside the form (V610, V611)', () => {
-  it('counts only a paid status, so an unpaid invoice is in no figure', () => {
-    expect(totalsOf(draft({ status: 'draft' }), lists)).toMatchObject({
-      counts: false,
-      revenue: 0,
-      provisional: false,
-    });
-    expect(totalsOf(draft(), lists)).toMatchObject({ counts: true, revenue: 1000 });
-  });
-
-  it('is Provisional with no approved expense and Final once every expense is approved', () => {
-    expect(totalsOf(draft(), lists)).toMatchObject({ provisional: true, cost: 0, profit: 1000 });
-    const approved = draft({ expenses: [expense('approved', '600')] });
-    expect(totalsOf(approved, lists)).toMatchObject({ provisional: false, cost: 600, profit: 400 });
-  });
-
-  it('stays Provisional while one expense is pending, and a pending amount never enters Cost', () => {
-    const t = totalsOf(draft({ expenses: [expense('approved', '600'), expense('pending', '250')] }), lists);
-    expect(t).toMatchObject({ provisional: true, cost: 600, pendingExpenses: 1 });
-  });
-
-  it('is Final at cost 0 when every product is on the no-supplier-cost list', () => {
-    const wallet = draft({ lines: [{ ...blankLine(), product: 'wallet_topup', name: 'Top-up', price: '1000' }] });
-    expect(totalsOf(wallet, lists)).toMatchObject({ provisional: false, cost: 0 });
-  });
-
-  it('gives a monthly invoice and a wallet top-up no revenue of their own (V616, V617)', () => {
-    expect(totalsOf(draft({ kind: 'billing' }), lists).revenue).toBe(0);
-    expect(totalsOf(draft({ kind: 'wallet_topup' }), lists).revenue).toBe(0);
-  });
-
-  it('keeps a loss negative and never clamps it', () => {
-    const t = totalsOf(draft({ expenses: [expense('approved', '1500')] }), lists);
-    expect(t.profit).toBe(-500);
-  });
-});
-
-describe('the checks', () => {
-  it('says the lines differ from the total, by how much, and counts pending expenses', () => {
-    const d = draft({
-      lines: [{ ...blankLine(), name: 'x', price: '900' }],
-      expenses: [expense('pending', '10')],
-    });
-    expect(checksOf(d, lists)).toEqual([
-      { key: 'lines_match', ok: false, amount: 100 },
-      { key: 'expense_pending', ok: false, count: 1 },
-    ]);
   });
 });
 

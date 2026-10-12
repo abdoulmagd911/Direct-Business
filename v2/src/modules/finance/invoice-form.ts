@@ -19,8 +19,6 @@ export type InvoiceDraft = {
   kind: InvoiceKind;
   ref: string;
   status: string;
-  channel: string;
-  creditTo: string;
   created: string;
   paid: string;
   total: string;
@@ -49,7 +47,6 @@ export type Lists = {
   expenseStatus: ListEntry[];
   product: ListEntry[];
   service: ListEntry[];
-  channel: ListEntry[];
 };
 
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -88,8 +85,6 @@ export const blankInvoice = (today: string): InvoiceDraft => ({
   kind: 'transaction',
   ref: '',
   status: '',
-  channel: '',
-  creditTo: '',
   created: today,
   paid: '',
   total: '',
@@ -104,56 +99,6 @@ const byKey = (list: ListEntry[], key: string) => list.find((e) => e.key === key
 
 /** A wallet top-up and a monthly invoice carry no revenue of their own (V616, V617). */
 export const hasRevenue = (kind: InvoiceKind) => kind === 'transaction' || kind === 'standalone';
-
-export type Totals = {
-  revenue: number;
-  cost: number;
-  profit: number;
-  /** Counted only once the status maps to paid (V610). */
-  counts: boolean;
-  /** Final: every expense Approved, or every product on it on the no-supplier-cost list; else Provisional (V611). */
-  provisional: boolean;
-  pendingExpenses: number;
-};
-
-export function totalsOf(d: InvoiceDraft, lists: Lists): Totals {
-  const status = byKey(lists.status, d.status);
-  const counts = hasRevenue(d.kind) && status?.maps_to === 'paid';
-  const typed = amountOf(d.total);
-  const revenue = counts ? (typeof typed === 'number' ? typed : linesTotal(d.lines)) : 0;
-  const maps = (e: ExpenseDraft) => byKey(lists.expenseStatus, e.status)?.maps_to ?? '';
-  const approved = d.expenses.filter((e) => maps(e) === 'approved' || maps(e) === 'issued');
-  const pendingExpenses = d.expenses.filter((e) => maps(e) === 'pending' || maps(e) === 'under_review').length;
-  const cost = round2(
-    approved.reduce((s, e) => s + (typeof amountOf(e.amount) === 'number' ? (amountOf(e.amount) as number) : 0), 0),
-  );
-  const noSupplierCost =
-    d.lines.length > 0 && d.lines.every((l) => byKey(lists.product, l.product)?.no_supplier_cost === true);
-  const final = noSupplierCost || (pendingExpenses === 0 && approved.length > 0);
-  return {
-    revenue,
-    cost,
-    profit: round2(revenue - cost),
-    counts,
-    provisional: counts && !final,
-    pendingExpenses,
-  };
-}
-
-export type Check = { key: 'lines_match' | 'expense_pending'; ok: boolean; amount?: number; count?: number };
-
-/** The two checks the side panel shows: the lines add up to the total, and no expense is still pending. */
-export function checksOf(d: InvoiceDraft, lists: Lists): Check[] {
-  const out: Check[] = [];
-  const typed = amountOf(d.total);
-  if (d.lines.length > 0 && typeof typed === 'number') {
-    const diff = round2(typed - linesTotal(d.lines));
-    out.push({ key: 'lines_match', ok: diff === 0, amount: diff });
-  }
-  const pending = totalsOf(d, lists).pendingExpenses;
-  if (d.expenses.length > 0) out.push({ key: 'expense_pending', ok: pending === 0, count: pending });
-  return out;
-}
 
 export type Problem = { field: string; key: string };
 

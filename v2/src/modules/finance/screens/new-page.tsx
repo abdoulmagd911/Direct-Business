@@ -1,10 +1,9 @@
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
-import { nameOf, type OrgAnswer } from '@/modules/org/types';
 import { riyadhDay } from '../period';
 import type { ListEntry, Lists } from '../invoice-form';
 import { NewInvoice } from './NewInvoice';
@@ -19,25 +18,16 @@ const list = async (name: string) => ((await serverRpc('list', { p_list: name })
 export async function NewInvoicePage() {
   const [me, t] = await Promise.all([requireMe(), getTranslations()]);
   const full = (me.levels.finance ?? 'none') === 'full';
-  const locale = (await getLocale()) as 'en' | 'ar';
   let lists: Lists | null = null;
-  let people: { id: string; label: string }[] = [];
   if (full) {
     try {
-      const [status, expenseStatus, product, service, channel] = await Promise.all([
+      const [status, expenseStatus, product, service] = await Promise.all([
         list('status_map'),
         list('expense_status_word'),
         list('product'),
         list('service'),
-        list('channel'),
       ]);
-      lists = { status, expenseStatus, product, service, channel };
-      // who a Commercial unit can be credited to (V613): the staff, by name
-      const org = (await serverRpc('org', {} as never).catch(() => null)) as OrgAnswer | null;
-      people = (org?.people ?? [])
-        .filter((x) => !x.account || x.account === 'team_member')
-        .map((x) => ({ id: x.id, label: nameOf(x, locale) }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+      lists = { status, expenseStatus, product, service };
     } catch {
       lists = null;
     }
@@ -55,7 +45,7 @@ export async function NewInvoicePage() {
           />
         </>
       ) : (
-        <NewInvoice today={riyadhDay()} lists={lists} people={people} />
+        <NewInvoice today={riyadhDay()} lists={lists} />
       )}
     </Page>
   );

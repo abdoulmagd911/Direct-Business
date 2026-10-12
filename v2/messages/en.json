@@ -2120,7 +2120,8 @@
     "state": {
       "provisional": "Provisional",
       "final": "Final",
-      "pending": "Pending"
+      "pending": "Pending",
+      "notCounted": "Not counted"
     },
     "kind": {
       "transaction": "Transaction",
@@ -2139,9 +2140,7 @@
       "paid": "Paid",
       "total": "Total"
     },
-    "channel": {
-      "none": "None"
-    },
+    "channel": {},
     "new": {
       "title": "New invoice",
       "kind": "Kind",
@@ -2166,14 +2165,6 @@
       "amount": "Amount",
       "merchant": "Merchant",
       "reference": "Reference",
-      "totals": "Totals",
-      "checks": "Checks",
-      "check": {
-        "lines_match": "Lines differ by {amount}",
-        "lines_match_ok": "Lines add up",
-        "expense_pending": "{count} pending",
-        "expense_pending_ok": "None pending"
-      },
       "problem": {
         "required": "Required",
         "invalid": "Not valid",
@@ -2181,7 +2172,8 @@
         "used": "Already used"
       },
       "lists": "The word lists",
-      "creditTo": "Credit to"
+      "lastSaved": "Last saved",
+      "noFigures": "In no figures"
     }
   }
 }
