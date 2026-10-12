@@ -22,8 +22,21 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/registry/snapshot.ts',
-        find: "e.page === m.key && (e.shownIn ?? '')",
-        replace: "e.page !== null && (e.shownIn ?? '')",
+        find: 'e.page === m.key &&\n',
+        replace: 'e.page !== null &&\n',
+      },
+    ],
+  },
+  {
+    // QA-539: the exception is pinned to the lists V627 names
+    name: 'any-list-is-kept-on-its-own-page',
+    breaks: [target],
+    expect: '> keeps only the lists V627 names there, not any other list of any module (QA-539)',
+    edits: [
+      {
+        file: 'src/core/registry/snapshot.ts',
+        find: 'KEPT_ON_OWN_PAGE.has(e.table) &&\n',
+        replace: '\n',
       },
     ],
   },

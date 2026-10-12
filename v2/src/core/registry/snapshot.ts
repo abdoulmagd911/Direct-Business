@@ -44,6 +44,9 @@ export interface Snapshot {
 const KEY = /^[a-z][a-z0-9_.]*$/;
 const SETTING_KEY = /^[a-z][a-z0-9_]*\.[a-z0-9_.]+$/;
 const byKey = <T extends { key: string }>(a: T, b: T) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+// V627: the only lists a module keeps on its own page — the Finance channels and the import's column map (QA-539).
+// supabase/tests/partner/LIST-01 names the same two.
+export const KEPT_ON_OWN_PAGE: ReadonlySet<string> = new Set(['finance.channel', 'finance.import_map']);
 
 export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
   const problems: string[] = [];
@@ -121,9 +124,12 @@ export function snapshotOf(modules: readonly ModuleDef[]): Snapshot {
       if (e.owners !== undefined && !/^([a-z][a-z0-9_]*|[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*)$/.test(e.owners))
         problems.push(`entity "${e.key}": owners is a column or schema.function`);
       // V97/V138: a setting list is edited on a settings page; V627's one exception is a list its module keeps on the
-      // module's own page, shown in a Settings group as well
+      // module's own page, shown in a Settings group as well — only the lists V627 names (QA-539)
       const keptOnOwnPage =
-        e.page === m.key && (e.shownIn ?? '').startsWith('settings.') && pageKeys.has(e.shownIn ?? '');
+        KEPT_ON_OWN_PAGE.has(e.table) &&
+        e.page === m.key &&
+        (e.shownIn ?? '').startsWith('settings.') &&
+        pageKeys.has(e.shownIn ?? '');
       if (e.list && !(e.page ?? '').startsWith('settings.') && !keptOnOwnPage)
         problems.push(`entity "${e.key}": a setting list is edited on a settings page`);
       if (e.shownIn !== undefined && !(e.list && keptOnOwnPage))
