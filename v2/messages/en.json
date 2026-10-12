@@ -908,6 +908,7 @@
       "cost_estimate": "Show the pass-through lines as a cost estimate while no expense is approved",
       "collection_due_days": "Days after issue an invoice with no due date of its own is due",
       "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
+      "revenue_definition": "What Commercial revenue counts: its basis, services, client types and whether commissions count",
       "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
     },
     "auth": {
