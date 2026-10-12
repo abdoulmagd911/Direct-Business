@@ -17,13 +17,17 @@ const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
 /**
- * A year-month long ago that no invoice uses yet, so a test's figures are its own and a month closes once. The
- * sabotage step runs this spec dozens of times on one database, so a bare random month would soon repeat; the month is
- * looked up before it is used (a race between two workers needs the same free month within milliseconds).
+ * A year-month long ago that nothing else uses, so a test's figures are its own and a month closes once. Unique by
+ * construction: a database sequence hands out the next number and the number is a month (720 months, 1960-2019), so
+ * two workers can never be given the same one however close together they ask; a month that already holds an invoice or
+ * a close (from an earlier run on the same database) is skipped.
  */
 async function oldMonth(): Promise<string> {
-  for (let i = 0; i < 100; i += 1) {
-    const ym = `${1990 + Math.floor(Math.random() * 30)}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, '0')}`;
+  await sql(`create sequence if not exists public.e2e_finance_old_month`);
+  for (let i = 0; i < 720; i += 1) {
+    const next = await sql<{ n: string }>(`select nextval('public.e2e_finance_old_month') as n`);
+    const k = Number(next[0]?.n) % 720;
+    const ym = `${1960 + Math.floor(k / 12)}-${String((k % 12) + 1).padStart(2, '0')}`;
     const used = await sql(`select 1 from finance.invoice where month_on = $1::date limit 1`, [`${ym}-01`]);
     const closed = await sql(`select 1 from finance.month_close where month = $1::date limit 1`, [`${ym}-01`]);
     if (!used.length && !closed.length) return ym;
@@ -37,7 +41,9 @@ type Door = (fn: string, args: Record<string, unknown>) => Promise<{ id?: string
 
 async function signedInAdmin(page: Page, ym: string): Promise<Door> {
   const admin = await makePerson({ admin: true });
-  await signIn(page, admin.email, addressOf(ym));
+  // sign in on the light home page: the Overview reads the whole ledger and may take longer than the sign-in's timeout
+  await signIn(page, admin.email);
+  await page.goto(addressOf(ym));
   await hydrated(page);
   return async (fn, args) => {
     const r = await callAs(page.context(), fn, args);
@@ -138,13 +144,13 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   const confirm = page.getByRole('alertdialog');
   await expect(confirm).toContainText('It will never change. Later news becomes a dated note.');
   await confirm.getByRole('button', { name: 'Close month' }).click();
+  // the toast first: it lives a few seconds and the refreshed page can take longer than that on a busy machine
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: 'closed' });
+  await expect(toast, 'closing says so').toBeVisible();
+  await expect(toast, 'closing has no Undo (V620)').not.toContainText('Undo');
   await expect(row).toHaveAttribute('data-state', 'closed');
   await expect(row, 'the chip reads Closed with its day').toContainText(`Closed ${today()}`);
   await expect(row.locator('[data-close-month]')).toHaveCount(0);
-  await expect(
-    page.locator('[data-sonner-toast]').filter({ hasText: 'closed' }),
-    'closing has no Undo (V620)',
-  ).not.toContainText('Undo');
 
   // a payment that lands after the close is a dated line under the month; the month's own figures do not change
   await call('finance_row_add', {
@@ -184,7 +190,8 @@ test('a member sees the month is not closed and has no Close month; the Provisio
   }, ym);
   const member = await makePerson();
   await page.context().clearCookies();
-  await signIn(page, member.email, addressOf(ym));
+  await signIn(page, member.email);
+  await page.goto(addressOf(ym));
   await hydrated(page);
   const row = page.locator(`[data-finance-month="${ym}-01"]`);
   await expect(row, 'a member sees the month is not closed').toContainText('Not closed');
