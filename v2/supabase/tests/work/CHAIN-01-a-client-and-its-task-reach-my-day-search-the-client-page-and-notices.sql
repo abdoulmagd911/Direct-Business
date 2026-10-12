@@ -33,7 +33,7 @@ select test.eq((select count(*)::int from jsonb_array_elements(api.search('chain
 
 -- (c) the client's page
 select set_config('t.card', api.partner(current_setting('t.p')::uuid)::text, true);
-select test.eq((select count(*)::int from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid, 100)) n
+select test.eq((select count(*)::int from jsonb_array_elements(api.notes('partner', current_setting('t.p')::uuid)) n
                 where n ->> 'body' like 'Task % added: Made-up chain follow-up'), 1,
   '(c) the client''s timeline has the task''s event');
 select test.eq((select count(*)::int from jsonb_array_elements(current_setting('t.card')::jsonb -> 'tasks') x
