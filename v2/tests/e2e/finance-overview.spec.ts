@@ -12,6 +12,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { oldMonth } from './support/finance-month';
+import { blocksSettled } from './support/finance-blocks';
 import { callAs, makePerson, signIn } from './support/stack';
 
 const hydrated = (page: Page) =>
@@ -28,6 +29,7 @@ async function signedInAdmin(page: Page, ym: string): Promise<Door> {
   await signIn(page, admin.email);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   return async (fn, args) => {
     const r = await callAs(page.context(), fn, args);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
@@ -95,6 +97,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await seed(call, ym);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
 
   // only paid units count: 1,000 + 500 revenue, 600 cost, 900 profit; the unit with no approved expense is Provisional
   await expect(tile(page, 'revenue').locator('[data-finance-figure]'), 'revenue is its short form').toContainText(
@@ -151,6 +154,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   });
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   await expect(page.locator(`[data-finance-late-toggle="${ym}-01"]`)).toContainText('Late changes · 1');
   await page.locator(`[data-finance-late-toggle="${ym}-01"]`).click();
   const line = page.locator('[data-finance-late-line="late_paid"]');
@@ -176,6 +180,7 @@ test('a member sees the month is not closed and has no Close month; the Provisio
   await signIn(page, member.email);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   const row = page.locator(`[data-finance-month="${ym}-01"]`);
   await expect(row, 'a member sees the month is not closed').toContainText('Not closed');
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);
@@ -191,6 +196,7 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
   await seed(call, ym);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth), 'no sideways scroll').toBeLessThanOrEqual(
     390,
@@ -204,11 +210,21 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
     ).toBeLessThan(60);
     expect(part!.x + part!.width, `${kind}: nothing is clipped`).toBeLessThanOrEqual(390);
   }
-  // the floating + sits at the right edge (56 px wide, 16 px in): the Needs attention row stays clear of it
-  const strip = await page
-    .locator('[data-finance-attention] > :not(h2)')
-    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().right));
-  expect(Math.max(...strip), 'the Needs attention row stays clear of the + button').toBeLessThanOrEqual(390 - 72);
+  // the floating + sits at the right edge (56 px wide, 16 px in): the Needs attention row and every month row stay clear of it
+  const clear = await page.evaluate(() => {
+    const rightmost = (root: Element) =>
+      Math.max(
+        ...[...root.querySelectorAll('*')]
+          .filter((el) => el.children.length === 0)
+          .map((el) => el.getBoundingClientRect().right),
+      );
+    return {
+      attention: rightmost(document.querySelector('[data-finance-attention]')!),
+      months: Math.max(...[...document.querySelectorAll('[data-finance-month]')].map(rightmost)),
+    };
+  });
+  expect(clear.attention, 'the Needs attention row stays clear of the + button').toBeLessThanOrEqual(390 - 72);
+  expect(clear.months, 'the month rows stay clear of the + button').toBeLessThanOrEqual(390 - 72);
   await expect(
     page.locator(`[data-finance-month="${ym}-01"] [data-finance-month-card]`),
     'the month is a card on a phone',

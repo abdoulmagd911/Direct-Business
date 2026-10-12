@@ -8,6 +8,8 @@ const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
 const NEW_E2E = 'e2e:tests/e2e/finance-new-invoice.spec.ts';
 const FORM = 'src/modules/finance/invoice-form.ts';
 const NEW_SCREEN = 'src/modules/finance/screens/NewInvoice.tsx';
+const READS_E2E = 'e2e:tests/e2e/finance-overview-reads.spec.ts';
+const READS = 'src/modules/finance/use-reads.ts';
 
 export const sabotages = [
   {
@@ -270,5 +272,83 @@ export const sabotages = [
     breaks: [E2E],
     expect: 'the Needs attention row stays clear of the + button',
     edits: [{ file: OVERVIEW, find: ' max-sm:mb-16 max-sm:pe-20', replace: '' }],
+  },
+  {
+    name: 'month-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the month rows stay clear of the + button',
+    edits: [{ file: OVERVIEW, find: 'last:border-b-0 max-sm:pe-20', replace: 'last:border-b-0' }],
+  },
+  {
+    name: 'finance-reads-all-at-once',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [{ file: READS, find: 'export const LIMIT = 2;', replace: 'export const LIMIT = 99;' }],
+  },
+  {
+    name: 'finance-read-is-never-asked-again',
+    breaks: [READS_E2E],
+    expect: 'a timeout is retried, not shown',
+    edits: [
+      {
+        file: READS,
+        find: "if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;",
+        replace: 'throw e;',
+      },
+    ],
+  },
+  {
+    name: 'finance-aborted-read-overwrites-the-answer',
+    breaks: [READS_E2E],
+    expect: 'no block is left on loading or failed after going back to a period',
+    edits: [
+      {
+        file: READS,
+        find: "if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });",
+        replace: "setState({ key, block: { status: 'ready', data } });",
+      },
+      {
+        file: READS,
+        find: "signal.addEventListener('abort', cancelled, { once: true });\n    request.then(",
+        replace: 'request.then(',
+      },
+    ],
+  },
+  {
+    name: 'finance-cancelled-read-frees-its-slot',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [
+      {
+        file: READS,
+        find: 'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))',
+        replace:
+          'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never).abortSignal(signal))',
+      },
+    ],
+  },
+  {
+    name: 'try-again-reloads-the-whole-page',
+    breaks: [READS_E2E],
+    expect: 'Try again brings the months back',
+    edits: [
+      {
+        file: OVERVIEW,
+        find: 'onRetry={retryBlock?.[block] ?? (() => router.refresh())}',
+        replace: 'onRetry={() => router.refresh()}',
+      },
+    ],
+  },
+  {
+    name: 'month-label-says-the-day',
+    breaks: [READS_E2E],
+    expect: 'the month is its name and year',
+    edits: [{ file: OVERVIEW, find: 'day: undefined, month:', replace: 'month:' }],
+  },
+  {
+    name: 'by-service-empty-says-nothing',
+    breaks: [READS_E2E],
+    expect: 'nothing to split says so',
+    edits: [{ file: OVERVIEW, find: 'service.rows.length === 0 && Math.abs(gap) < 1', replace: 'false' }],
   },
 ];

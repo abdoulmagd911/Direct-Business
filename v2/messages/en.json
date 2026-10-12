@@ -203,7 +203,8 @@
     "failed": "{what} could not be loaded",
     "noAccess": "You do not have access to {what}",
     "empty": "Nothing here yet",
-    "notMeasured": "Not measured"
+    "notMeasured": "Not measured",
+    "loading": "Loading {what}"
   },
   "confirm": {
     "title": "Remove {item}?",
@@ -2107,7 +2108,8 @@
       "not_income": "Not income",
       "no_service": "No service",
       "not_split": "Not split",
-      "gap": "Not itemised"
+      "gap": "Not itemised",
+      "empty": "No income in this period"
     },
     "failed": {
       "figures": "Finance figures",
