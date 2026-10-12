@@ -4,7 +4,8 @@
 -- commissions off the commission leaves; named services keep only those lines; named client types keep only those
 -- organisations; the margin basis sums profit. Collected sums the receipts by the day paid, by scope and segment.
 -- Every value is made up.
--- Sabotages: supabase/tests/sabotage/a-segment-is-ignored.sql, supabase/tests/sabotage/a-commission-counts-whatever-the-definition.sql.
+-- Sabotages: supabase/tests/sabotage/a-segment-is-ignored.sql, a-commission-counts-whatever-the-definition.sql,
+-- a-money-row-has-no-segment.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.d', (core.riyadh_today() - 40)::text, true);
@@ -97,3 +98,7 @@ select test.eq(measure.finance_collected(null, 'company', null, current_setting(
 select test.eq(measure.finance_collected('{"segment": "government"}', 'person', current_setting('t.am')::uuid,
                                          current_setting('t.from')::date, current_setting('t.to')::date),
   (200, true, 1)::measure.result, 'a person''s collections from government clients');
+
+-- every money row carries its segment
+select test.eq((select jsonb_object_agg(r.ref, r.segment) from finance.money_row r where r.ref in ('TX-51', 'TX-52')),
+  '{"TX-51": "corporate", "TX-52": "government"}'::jsonb, 'each money row carries its organisation''s client type');

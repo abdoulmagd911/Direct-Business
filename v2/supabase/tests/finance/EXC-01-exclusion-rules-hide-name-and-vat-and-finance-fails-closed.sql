@@ -48,6 +48,8 @@ select test.as_owner();
 select test.eq((select string_agg(n.nspname || '.' || p.proname, ', ' order by p.proname)
                 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                 where n.nspname in ('finance', 'api', 'measure') and p.proname not like '%import%'
+                  -- the import's row readers hold a bad row; they read no figure
+                  and p.proname not like 'row\_%'
                   and (n.nspname <> 'api' or p.proname like 'finance%')
                   and (n.nspname <> 'measure' or p.proname like 'finance%')
                   and p.prosrc ~* 'exception\s+when\s+others'),
