@@ -5,6 +5,8 @@ const UNIT =
   'unit:tests/unit/finance/the-overview-prints-exact-figures-and-names-a-gap-and-lists-months-newest-first.test.ts';
 const FAILED = 'unit:tests/unit/finance/a-failed-read-fails-only-its-own-block-on-the-overview.test.tsx';
 const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
+const READS_E2E = 'e2e:tests/e2e/finance-overview-reads.spec.ts';
+const READS = 'src/modules/finance/use-reads.ts';
 
 export const sabotages = [
   {
@@ -182,5 +184,59 @@ export const sabotages = [
         replace: '  if (a >= 1_000_000)',
       },
     ],
+  },
+  {
+    name: 'attention-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the Needs attention row stays clear of the + button',
+    edits: [{ file: OVERVIEW, find: ' max-sm:mb-16 max-sm:pe-20', replace: '' }],
+  },
+  {
+    name: 'month-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the month rows stay clear of the + button',
+    edits: [{ file: OVERVIEW, find: 'last:border-b-0 max-sm:pe-20', replace: 'last:border-b-0' }],
+  },
+  {
+    name: 'finance-reads-all-at-once',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [{ file: READS, find: 'export const LIMIT = 2;', replace: 'export const LIMIT = 99;' }],
+  },
+  {
+    name: 'finance-read-is-never-asked-again',
+    breaks: [READS_E2E],
+    expect: 'a timeout is retried, not shown',
+    edits: [
+      {
+        file: READS,
+        find: "if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;",
+        replace: 'throw e;',
+      },
+    ],
+  },
+  {
+    name: 'try-again-reloads-the-whole-page',
+    breaks: [READS_E2E],
+    expect: 'Try again brings the months back',
+    edits: [
+      {
+        file: OVERVIEW,
+        find: 'onRetry={retryBlock?.[block] ?? (() => router.refresh())}',
+        replace: 'onRetry={() => router.refresh()}',
+      },
+    ],
+  },
+  {
+    name: 'month-label-says-the-day',
+    breaks: [READS_E2E],
+    expect: 'the month is its name and year',
+    edits: [{ file: OVERVIEW, find: 'day: undefined, month:', replace: 'month:' }],
+  },
+  {
+    name: 'by-service-empty-says-nothing',
+    breaks: [READS_E2E],
+    expect: 'nothing to split says so',
+    edits: [{ file: OVERVIEW, find: 'service.rows.length === 0 && Math.abs(gap) < 1', replace: 'false' }],
   },
 ];
