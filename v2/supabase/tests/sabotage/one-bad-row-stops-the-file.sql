@@ -17,6 +17,11 @@ declare
   n int := 0;
   c_new int := 0; c_changed int := 0; c_unchanged int := 0; c_held int := 0;
   answer jsonb;
+  -- the file's own fingerprint, made here from what was sent: its kind, export time and rows (QA-539)
+  content text := pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
+                    p_file || '|' || extract(epoch from p_export_time)::text || '|' || coalesce(p_rows::text, ''),
+                    'UTF8')), 'hex');
+  newest timestamptz;
 begin
   if p_file not in ('invoices', 'expenses', 'receipts') then
     raise exception using errcode = 'P0001', message = 'finance.import_unknown_file', detail = p_file;
@@ -28,7 +33,7 @@ begin
     raise exception using errcode = 'P0001', message = 'finance.import_export_time', detail = coalesce(p_export_time::text, '');
   end if;
   -- The same file twice changes nothing (§3.11.6).
-  select * into prior from finance.import_batch x where x.file_sha256 = p_sha256;
+  select * into prior from finance.import_batch x where x.content_sha256 = content;
   if prior.id is not null then
     return pg_catalog.jsonb_build_object('already_imported', true, 'batch_id', prior.id, 'on', prior.created_at,
                                          'by', prior.started_by, 'counts', prior.counts);
@@ -36,8 +41,9 @@ begin
 
   req := audit.begin('import', 'finance.imported',
                      pg_catalog.jsonb_build_object('file', p_file, 'rows', pg_catalog.jsonb_array_length(p_rows)));
-  insert into finance.import_batch (file, file_name, file_sha256, export_time, started_by, request_id)
-  values (p_file, p_file_name, p_sha256, p_export_time, me, req)
+  select pg_catalog.max(x.export_time) into newest from finance.import_batch x where x.file = p_file;
+  insert into finance.import_batch (file, file_name, file_sha256, content_sha256, export_time, started_by, request_id)
+  values (p_file, p_file_name, p_sha256, content, p_export_time, me, req)
   returning id into b;
 
   -- each expense and receipt row carries its key, numbered where the file repeats one (QA-539)
@@ -87,6 +93,10 @@ begin
                                                          order by h.row_no, h.reason_key)
                              from finance.import_held h where h.batch_id = b), '[]'::jsonb))
   into answer from finance.import_batch x where x.id = b;
+  -- a file exported before one already imported fills blanks only; the answer says so (QA-539, D21)
+  if newest is not null and p_export_time < newest then
+    answer := answer || pg_catalog.jsonb_build_object('older_than', newest);
+  end if;
   perform audit.end();
   if p_dry_run then
     raise exception using errcode = 'P0001', message = 'finance.import_dry_run', detail = answer::text;
