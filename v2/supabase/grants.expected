@@ -99,6 +99,8 @@ function api.finance_tender_client_id_set(p_tender uuid, p_identifier uuid, p_re
 function api.finance_tender_credit(p_from date, p_to date) execute authenticated
 function api.finance_tenders(p_partner uuid) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
+function api.follow_up(p_entity text, p_id uuid, p_due_on date, p_assignee uuid, p_title text) execute authenticated
+function api.follow_ups(p_entity text, p_id uuid) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
 function api.from_note(p_entity text, p_id uuid) execute authenticated
 function api.hover_partner(p_id uuid) execute authenticated
@@ -188,6 +190,8 @@ function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.reminder_move(p_id uuid, p_at timestamp with time zone) execute authenticated
+function api.reminders_due() execute authenticated
 function api.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
@@ -316,6 +320,8 @@ function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
 function core.recently_deleted(p_limit integer) execute authenticated
+function core.reminder_move(p_id uuid, p_at timestamp with time zone) execute authenticated
+function core.reminders_due() execute authenticated
 function core.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
@@ -460,6 +466,8 @@ function work.action_items_remove(p_ids uuid[], p_reason text) execute authentic
 function work.backfill_keys_held(p_keys text[]) execute authenticated
 function work.backfill_tasks(p_request jsonb) execute authenticated
 function work.contract_renewal_task(p_contract uuid) execute authenticated
+function work.follow_up(p_entity text, p_id uuid, p_due_on date, p_assignee uuid, p_title text) execute authenticated
+function work.follow_ups(p_entity text, p_id uuid) execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
 function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
@@ -496,4 +504,5 @@ schema partner usage authenticated
 schema perf usage authenticated
 schema pipeline usage authenticated
 schema work usage authenticated
+table notify.notification select authenticated
 type core.level usage public

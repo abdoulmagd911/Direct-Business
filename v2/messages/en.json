@@ -1765,6 +1765,12 @@
       "kind_invalid": "Only tasks and notes can be wrapped up",
       "not_yours": "Only your own items can be wrapped up",
       "not_open": "This item is already closed"
+    },
+    "follow_up": {
+      "entity_invalid": "A follow-up goes on a client, a task or an invoice",
+      "due_required": "Choose the day to follow up",
+      "due_passed": "Choose today or a later day",
+      "assignee_cannot_see": "That person cannot see this record, so they cannot follow it up"
     }
   },
   "notifications": {
