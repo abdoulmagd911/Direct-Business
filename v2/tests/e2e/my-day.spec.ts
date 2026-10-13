@@ -219,9 +219,7 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
   await expect(page.locator('[data-finish-meeting]'), 'a finished meeting is not finished twice').toHaveCount(0);
 });
 
-test('Wrap up today carries the open captures to the next working day, keeping the day they happened', async ({
-  page,
-}) => {
+test('Wrap up carries the open captures to the next working day, keeping the day they happened', async ({ page }) => {
   const person = await makePerson();
   const t = tag();
   await signIn(page, person.email, '/my-day');
@@ -231,7 +229,7 @@ test('Wrap up today carries the open captures to the next working day, keeping t
   await page.locator('[data-wrap-open]').click();
   const dialog = page.getByRole('dialog');
   for (const id of ids)
-    await expect(dialog.locator(`[data-wrap-note="${id}"] [data-wrap-choice="carry"]`)).toHaveAttribute(
+    await expect(dialog.locator(`[data-wrap-item="${id}"] [data-wrap-move="tomorrow"]`)).toHaveAttribute(
       'aria-checked',
       'true',
     );
