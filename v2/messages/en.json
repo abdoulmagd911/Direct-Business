@@ -161,7 +161,8 @@
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement"
+    "achievement": "Achievement",
+    "capture": "Capture"
   },
   "common": {
     "filter": "Filter",
@@ -316,13 +317,18 @@
       "wrap": {
         "label": "Wrap up",
         "title": "Wrap up today",
-        "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
-        "carry": "Carry over to {date}",
+        "summary": "{count, plural, one {# thing to wrap up} other {# things to wrap up}}",
         "done": "Done",
+        "notDone": "Not done",
+        "tomorrow": "Tomorrow",
+        "nextWeek": "Next week",
+        "drop": "Drop",
         "turn": "Turn into",
         "save": "Done for today",
         "saved": "Day wrapped up",
-        "none": "Nothing left to handle today."
+        "none": "Nothing left to wrap up today.",
+        "task": "Task",
+        "note": "Note"
       },
       "reminder": {
         "removeTitle": "Remove the reminder “{name}”?",
@@ -341,7 +347,28 @@
         "overdue": "Overdue",
         "today": "Today",
         "next": "Next",
-        "empty": "Nothing due today"
+        "empty": "Nothing due today",
+        "carried": "Carried over from yesterday ({count})"
+      },
+      "quick": {
+        "title": "Quick capture",
+        "kind": "What to capture",
+        "kinds": {
+          "note": "Note",
+          "idea": "Idea",
+          "checklist": "Checklist",
+          "reminder": "Reminder"
+        },
+        "text": "What to capture",
+        "placeholder": {
+          "note": "A note for yourself",
+          "idea": "An idea worth keeping",
+          "checklist": "First line is the title, each next line an item",
+          "reminder": "What to be reminded of"
+        },
+        "when": "When",
+        "save": "Capture",
+        "saved": "{kind} captured"
       }
     },
     "settings": {
@@ -2056,7 +2083,8 @@
     "client": "New client",
     "supplier": "New supplier",
     "invoice": "New invoice",
-    "achievement": "New achievement"
+    "achievement": "New achievement",
+    "capture": "Quick capture"
   },
   "finance": {
     "title": "Finance",

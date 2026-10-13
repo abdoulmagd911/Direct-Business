@@ -14,7 +14,18 @@ import type { TodayTask } from '../types';
  * (the rest of this week). A row is a done tick (Undo comes with it), the title (opens the task), the client and the due
  * day. Nothing due → "Nothing due today".
  */
-export function TodayBlock({ tasks, day, statuses }: { tasks: TodayTask[]; day: string; statuses: TaskStatus[] }) {
+export function TodayBlock({
+  tasks,
+  day,
+  statuses,
+  carried = 0,
+}: {
+  tasks: TodayTask[];
+  day: string;
+  statuses: TaskStatus[];
+  /** What yesterday's wrap-up carried to today and is still open. */
+  carried?: number;
+}) {
   const t = useTranslations();
   const g = todayGroups(tasks, day);
   const groups = [
@@ -26,6 +37,11 @@ export function TodayBlock({ tasks, day, statuses }: { tasks: TodayTask[]; day: 
   return (
     <section className="rounded-lg border border-border bg-raised px-4 py-2" data-today-block>
       <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.today.title')}</h2>
+      {carried > 0 ? (
+        <p className="border-b border-border py-2.5 text-sm text-muted" data-today-carried>
+          {t('pages.myDay.today.carried', { count: carried })}
+        </p>
+      ) : null}
       {none ? (
         <DataState kind="empty" message={t('pages.myDay.today.empty')} />
       ) : (

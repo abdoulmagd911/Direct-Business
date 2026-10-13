@@ -1,12 +1,4 @@
-import {
-  TURN_KINDS,
-  type TodayTask,
-  type MyNote,
-  type NoteKind,
-  type NoteLink,
-  type TurnKind,
-  type WrapChoice,
-} from './types';
+import { TURN_KINDS, type TodayTask, type MyNote, type NoteKind, type NoteLink, type TurnKind } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -87,13 +79,6 @@ export function openCaptures(notes: MyNote[]): MyNote[] {
   return notes.filter((n) => n.mine && !n.finished_at && n.links.length === 0);
 }
 
-/** The choices api.note_wrap_up takes: only those made. */
-export function wrapUpChoices(choices: Record<string, WrapChoice | undefined>) {
-  return Object.entries(choices)
-    .filter((e): e is [string, WrapChoice] => e[1] === 'carry' || e[1] === 'done')
-    .map(([note, choice]) => ({ note, choice }));
-}
-
 /** The next working day in Riyadh: Sunday after a Thursday (OLD-WRK-022; Friday and Saturday are the weekend). */
 export function nextWorkingDay(day: string): string {
   const d = new Date(`${day}T12:00:00Z`);
@@ -117,4 +102,42 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
     out[g].push(t);
   }
   return out;
+}
+
+export type WrapMove = 'tomorrow' | 'next_week' | 'drop';
+export type WrapItem = { kind: 'task' | 'note'; id: string; title: string; client: string | null; route: string };
+/** What a person decides about one item: done, or not done and where it goes (Tomorrow unless they say otherwise). */
+export type WrapState = { done: boolean; move: WrapMove };
+export const WRAP_DEFAULT: WrapState = { done: false, move: 'tomorrow' };
+
+/**
+ * Wrap up v2 walks the day's tasks (mine, overdue or due today) and my open captures. The rows I only help on are
+ * not mine to close, and a task due later is not today's.
+ */
+export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
+  const mine = tasks
+    .filter((t) => t.role === 'owner' && (t.group === 'overdue' || t.group === 'today'))
+    .map((t): WrapItem => ({
+      kind: 'task',
+      id: t.id,
+      title: t.title,
+      client: t.partner_name,
+      route: `/tasks/${t.number}`,
+    }));
+  const captured = openCaptures(notes).map((n): WrapItem => ({
+    kind: 'note',
+    id: n.id,
+    title: noteTitle(n),
+    client: null,
+    route: noteRoute(n.id),
+  }));
+  return [...mine, ...captured];
+}
+
+/** The one request for the lot: api.wrap_up's items, Done winning over any move. */
+export function wrapPayload(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+  return items.map((i) => {
+    const s = states[i.id] ?? WRAP_DEFAULT;
+    return { kind: i.kind, id: i.id, choice: s.done ? 'done' : s.move };
+  });
 }

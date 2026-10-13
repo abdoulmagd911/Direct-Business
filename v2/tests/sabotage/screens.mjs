@@ -786,19 +786,6 @@ export const sabotages = [
   },
 
   {
-    name: 'wrap-up-defaults-to-done',
-    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-wrap-choice',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "choices[id] ?? 'carry'",
-        replace: "choices[id] ?? 'done'",
-      },
-    ],
-  },
-
-  {
     name: 'action-item-chip-leads-nowhere',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
     expect: 'an action item brought along from a checklist leads to its task',
