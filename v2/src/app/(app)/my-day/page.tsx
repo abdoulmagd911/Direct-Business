@@ -8,6 +8,7 @@ import { MyDay } from '@/modules/my-day/screens/MyDay';
 import { myDay } from '@/modules/my-day/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
+import type { TaskStatus } from '@/modules/tasks/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
@@ -50,13 +51,18 @@ export default async function MyDayPage({
 
   const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
   const all = sp.more === '1';
-  const [answer, org] = await Promise.all([
+  const [answer, org, statuses] = await Promise.all([
     myDay(scope, all ? ALL : BLOCK + 1),
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+    scope === 'me'
+      ? (serverRpc('list', { p_list: 'task_status' }) as unknown as Promise<TaskStatus[]>).catch(
+          () => [] as TaskStatus[],
+        )
+      : Promise.resolve([] as TaskStatus[]),
   ]);
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, all, people: org.people }} />
+      <MyDay data={{ title, scope, answer, all, people: org.people, statuses }} />
     </Page>
   );
 }
