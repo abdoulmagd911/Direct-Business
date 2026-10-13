@@ -5,8 +5,7 @@
  * cards, a person's Access is one line, the words are the new ones, and a phone at 390 px never scrolls sideways.
  * Each test runs at 390 × 844 and 1440 × 900 where the brief asks for both. The access is the one the oversight sets
  * after merge (brief E), made by tests/e2e/support/employee-view-access.ts before the specs. Every value is made up.
- * Sabotage: tests/sabotage/screens.mjs "create-offers-an-unbuilt-screen",
- * "access-list-closed-for-admins".
+ * Sabotage: tests/sabotage/screens.mjs "access-list-closed-for-admins"; tests/sabotage/nav-access.mjs "menu-shows-work-pages-only-on-screen".
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql, type TestPerson } from './support/stack';
@@ -300,10 +299,17 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   page,
   browser,
 }) => {
-  // a manager: Task, Client, Supplier and Achievement (Tasks and KPIs are built) are at Full; Invoice is not built — absent
+  // a manager: Task, Client, Supplier, Invoice and Achievement (Tasks, Finance and KPIs are built, QA-556) are at Full
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Client', 'Supplier', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText([
+    'Capture',
+    'Task',
+    'Client',
+    'Supplier',
+    'Invoice',
+    'Achievement',
+  ]);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
