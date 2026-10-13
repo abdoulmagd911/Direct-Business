@@ -11,7 +11,10 @@ with closed as (
          -- the organisation and the credit owner as the close took them (QA-541); a snapshot taken before they were
          -- kept says neither, and the unit's own are read
          false as kept_who, (e ->> 'partner_id')::uuid as partner_id,
-         (e ->> 'channel_credits_owner')::boolean as channel_credits_owner
+         (e ->> 'channel_credits_owner')::boolean as channel_credits_owner,
+         -- the segment as the close took it (QA-546); a snapshot taken before it was kept says none, and the kept
+         -- organisation's type is read
+         e ? 'segment_id' as kept_segment, (e ->> 'segment_id')::uuid as segment_id
   from finance.month_close c cross join pg_catalog.jsonb_array_elements(c.snapshot) e
   where c.deleted_at is null
 )
@@ -30,11 +33,14 @@ select r.invoice_id, r.unit_kind, r.ref, r.dpin,
        case when s.invoice_id is null then r.profit else s.revenue - s.cost end as profit,
        case when s.invoice_id is null then r.loss else s.revenue - s.cost < 0 end as loss,
        r.fee_on_monthly_invoice, r.payment_type, r.estimate,
-       (select t.key from partner.side_type t
-        where t.id = measure.client_segment(case when s.kept_who then s.partner_id else r.partner_id end)) as segment
+       (select t.key from partner.side_type t where t.id = g.segment_id) as segment,
+       g.segment_id
 from finance.money_row_live r
 left join closed cl on cl.month = r.month_on
 left join snap s on s.month = r.month_on and s.invoice_id = r.invoice_id and s.unit_kind = r.unit_kind
+cross join lateral (select case when s.kept_segment then s.segment_id
+                                when s.kept_who then measure.client_segment(s.partner_id)
+                                else r.segment_id end as segment_id) g
 union all
 -- a unit the snapshot counted that is no longer there at all (its invoice removed) still counts in its closed month
 select s.invoice_id, s.unit_kind, s.ref, null::text, s.partner_id, null::text, s.month,
@@ -42,7 +48,9 @@ select s.invoice_id, s.unit_kind, s.ref, null::text, s.partner_id, null::text, s
        null::text, true, null::boolean, null::boolean, true, null::text, null::text,
        s.revenue, s.cost, s.cost_status, s.cost_status = 'provisional', s.revenue - s.cost, s.revenue - s.cost < 0,
        s.unit_kind = 'monthly_fee', null::text, null::numeric,
-       (select t.key from partner.side_type t where t.id = measure.client_segment(s.partner_id))
+       (select t.key from partner.side_type t
+        where t.id = case when s.kept_segment then s.segment_id else measure.client_segment(s.partner_id) end),
+       case when s.kept_segment then s.segment_id else measure.client_segment(s.partner_id) end
 from snap s
 where not exists (select 1 from finance.money_row_live r
                   where r.month_on = s.month and r.invoice_id = s.invoice_id and r.unit_kind = s.unit_kind);
