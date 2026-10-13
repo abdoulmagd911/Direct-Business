@@ -7,6 +7,9 @@ import { RecentlyDeleted, type DeletedRow } from '@/modules/settings/screens/Rec
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('recentlyDeleted.title');
 
 /**
  * Recently deleted, everyone's own (QA-71, V401): what this person may see and restore, from the profile menu — a

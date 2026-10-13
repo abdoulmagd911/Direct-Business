@@ -117,7 +117,6 @@ test('Side type shows each side and Status reason each status, and Add entry ask
   // Add entry asks for the status, and Save waits for it
   await reasons.locator('[data-list-add]').click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Key', { exact: true }).fill('made_up_reason');
   await dialog.getByLabel('Name', { exact: true }).fill('Made-up reason');
   await dialog.getByLabel('Name (Arabic)').fill('سبب تجريبي');
   await expect(dialog.locator('[data-list-save]'), 'no status, no save').toBeDisabled();

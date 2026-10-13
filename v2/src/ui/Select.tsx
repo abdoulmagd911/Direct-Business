@@ -15,6 +15,9 @@ export function Select({
   className,
   disabled,
   'aria-label': ariaLabel,
+  'aria-required': ariaRequired,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: {
   value?: string;
   onValueChange: (v: string) => void;
@@ -24,12 +27,18 @@ export function Select({
   className?: string;
   disabled?: boolean;
   'aria-label'?: string;
+  'aria-required'?: boolean | 'true' | 'false';
+  'aria-invalid'?: boolean | 'true' | 'false';
+  'aria-describedby'?: string;
 }) {
   return (
     <RS.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <RS.Trigger
         id={id}
         aria-label={ariaLabel}
+        aria-required={ariaRequired}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         className={cn(
           inputClass,
           'inline-flex h-[var(--control-h)] items-center justify-between gap-2 text-start data-[placeholder]:text-muted',

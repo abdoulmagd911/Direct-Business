@@ -61,7 +61,7 @@ export function TaskCalendar({
       <div className="flex items-center justify-between gap-2">
         <Link
           href={filtersHref(filters, { month: shiftMonth(month, -1) })}
-          className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+          className="inline-flex size-9 max-sm:size-11 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
           aria-label={t('pages.tasks.calendar.previous')}
           data-calendar-previous
         >
@@ -72,7 +72,7 @@ export function TaskCalendar({
         </h2>
         <Link
           href={filtersHref(filters, { month: shiftMonth(month, 1) })}
-          className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+          className="inline-flex size-9 max-sm:size-11 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
           aria-label={t('pages.tasks.calendar.next')}
           data-calendar-next
         >

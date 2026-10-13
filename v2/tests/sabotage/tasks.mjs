@@ -109,8 +109,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/(app)/activity/page.tsx',
-        find: " message={t('activity.locked')} />",
-        replace: ' />',
+        find: "message={t('activity.locked')}",
+        replace: '',
       },
     ],
   },
@@ -121,8 +121,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/(app)/activity/page.tsx',
-        find: " message={t('activity.locked')} />",
-        replace: " message={t('nav.activity')} />",
+        find: "message={t('activity.locked')}",
+        replace: "message={t('nav.activity')}",
       },
     ],
   },

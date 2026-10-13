@@ -45,6 +45,16 @@ async function memberWithTeam(): Promise<TestPerson> {
   return person;
 }
 
+/**
+ * Enough made-up members with a team that the owner list is taller than a phone screen, whatever specs ran before this
+ * one. The sabotage "e2e-select-list-runs-off-the-phone" only goes red when the list overflows AND the person picked is
+ * far down it (the top of the list is always reachable), so the picked name sorts last and the list is topped up here.
+ */
+async function crowdTheOwnerList(wanted = 40): Promise<void> {
+  const [row] = await sql<{ n: number }>(`select count(*)::int as n from core.person where team_id is not null`);
+  for (let i = row?.n ?? 0; i < wanted; i += 1) await memberWithTeam();
+}
+
 /** A task put straight into the database (a fixture), owned by `owner` in `department`'s test team. */
 async function taskIn(department: string, owner: string, title: string): Promise<string> {
   const team = await testTeam(department, owner);
@@ -56,6 +66,18 @@ async function taskIn(department: string, owner: string, title: string): Promise
     [number, title, owner, team],
   );
   return number;
+}
+
+/** Adds a task the way the screen offers it: the header's Add task on a wide screen, the floating + on a phone (V630). */
+async function openAdd(page: Page) {
+  const header = page.locator('[data-add-task]');
+  if (await header.isVisible()) return header.click();
+  await page.locator('[data-create-floating]').click();
+  const item = page.locator('[data-create-item="task"]');
+  await item.waitFor({ state: 'visible', timeout: 2000 }).then(
+    () => item.click(),
+    () => undefined, // the + opens its only item directly
+  );
 }
 
 async function signedIn(browser: Browser, person: TestPerson, width: number, height: number, path = '/tasks') {
@@ -89,7 +111,7 @@ for (const w of WIDTHS) {
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
     const title = `Made-up task ${randomUUID().slice(0, 6)}`;
 
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     const form = page.locator('form[data-quick-add]');
     await form.locator('input[name="title"]').fill(title);
     await form.locator('input[name="due"]').fill(riyadhToday());
@@ -132,7 +154,7 @@ for (const w of WIDTHS) {
     const member = await memberWithTeam();
     const title = `Made-up blocked ${randomUUID().slice(0, 6)}`;
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     await page.locator('form[data-quick-add] input[name="title"]').fill(title);
     await page.locator('form[data-quick-add] button[type="submit"]').click();
     await page.locator('li[data-task-row]', { hasText: title }).getByRole('link', { name: title }).click();
@@ -166,7 +188,7 @@ for (const w of WIDTHS) {
     const title = `Made-up no-team task ${randomUUID().slice(0, 6)}`;
     const { ctx, page } = await signedIn(browser, admin, w.width, w.height);
 
-    await page.locator('[data-add-task]').click();
+    await openAdd(page);
     const form = page.locator('form[data-quick-add]');
     const pickOwner = form.getByRole('combobox', { name: 'Owner' });
     await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick an owner');
@@ -192,7 +214,7 @@ test('phone: see what is due today and tick one off (V509)', async ({ browser })
   const member = await memberWithTeam();
   const title = `Made-up due today ${randomUUID().slice(0, 6)}`;
   const { ctx, page } = await signedIn(browser, member, 390, 844, '/tasks?due=today');
-  await page.locator('[data-add-task]').click();
+  await openAdd(page);
   await page.locator('form[data-quick-add] input[name="title"]').fill(title);
   await page.locator('form[data-quick-add] input[name="due"]').fill(riyadhToday());
   await page.locator('form[data-quick-add] button[type="submit"]').click();
@@ -302,9 +324,10 @@ for (const w of WIDTHS) {
     browser,
   }) => {
     const admin = await makePerson({ admin: true }); // in no team, as the owner's admin account is (V444)
+    await crowdTheOwnerList();
     const owner = await memberWithTeam();
     const tag = randomUUID().slice(0, 6);
-    const ownerName = `Aa Past owner ${tag}`;
+    const ownerName = `Zz Past owner ${tag}`;
     await sql(`update core.person set full_name_en = $1 where id = $2`, [ownerName, owner.id]);
     const { ctx, page } = await signedIn(browser, admin, w.width, w.height, '/tasks?view=past');
     const grid = page.locator('[data-past-work-grid="tasks"]');
@@ -326,6 +349,10 @@ for (const w of WIDTHS) {
     await expect(grid.locator('[data-past-work-save]'), 'no Save without an owner').toBeDisabled();
 
     await picker.getByRole('combobox', { name: 'Owner for these rows' }).click();
+    // the open list stays on the screen: its bottom edge sits inside the viewport, so every owner can be reached (QA-555)
+    const open = await page.getByRole('listbox').boundingBox();
+    expect(open, 'the owner list is open').not.toBeNull();
+    expect(open!.y + open!.height, 'the open owner list ends inside the window').toBeLessThanOrEqual(w.height);
     await page.getByRole('option', { name: ownerName, exact: true }).click();
     await expect(grid.locator('[data-past-work-summary]')).toContainText('3 rows ready · 0 refused');
     await noSidewaysScroll(page, `${w.name} past work, no team`);

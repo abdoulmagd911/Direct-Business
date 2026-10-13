@@ -22,6 +22,12 @@ import { VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKin
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
 import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
+import { useMe } from '@/core/auth/me-context';
+import { AchievementFromNoteDialog } from '@/modules/perf/screens/AchievementFromNote';
+import type { OrgAnswer } from '@/modules/org/types';
+import { TITLE_MAX } from '@/modules/tasks/rules';
+import { QuickAdd } from '@/modules/tasks/screens/QuickAdd';
+import type { NamePick } from '@/modules/tasks/types';
 
 type Draft = {
   title: string;
@@ -53,15 +59,21 @@ export function NotePage({
   author,
   types,
   outcomes,
+  taskLookups,
 }: {
   note: MyNote;
   author?: string;
+  /** The names a task from this note points at; absent for someone who may not make tasks (no Task in Turn into). */
+  taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
   types: ListEntry[];
   outcomes: ListEntry[];
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
+  // an achievement is logged by its own people: Own or Full on KPIs (V377); anyone else is not offered it
+  const kpis = useMe().levels.kpis ?? 'none';
+  const canAchieve = kpis === 'own' || kpis === 'full';
   const router = useRouter();
   const partner = note.meeting_partner;
   const fresh = () => draftOf(note, partner);
@@ -147,7 +159,10 @@ export function NotePage({
                   {t('pages.myDay.finish.label')}
                 </Button>
               ) : null}
-              <TurnIntoMenu onPick={setTurning} />
+              <TurnIntoMenu
+                onPick={setTurning}
+                hide={[...(canAchieve ? [] : (['achievement'] as const)), ...(taskLookups ? [] : (['task'] as const))]}
+              />
               <Menu>
                 <MenuTrigger asChild>
                   <IconButton label={t('common.actions')} icon={<MoreHorizontal />} data-note-menu />
@@ -340,6 +355,27 @@ export function NotePage({
             note={note}
             open={turning === 'reminder'}
             onOpenChange={(o) => setTurning(o ? 'reminder' : null)}
+          />
+          {taskLookups ? (
+            <QuickAdd
+              open={turning === 'task'}
+              onOpenChange={(o) => setTurning(o ? 'task' : null)}
+              org={taskLookups.org}
+              partners={taskLookups.partners}
+              projects={taskLookups.projects}
+              initial={{
+                title: noteTitle(note).slice(0, TITLE_MAX),
+                partnerId: taskLookups.partners.some((p) => p.id === note.meeting_partner?.id)
+                  ? note.meeting_partner?.id
+                  : undefined,
+              }}
+              fromNote={{ id: note.id, hasItems: note.items.some((i) => i.text.trim() !== '') }}
+            />
+          ) : null}
+          <AchievementFromNoteDialog
+            note={note}
+            open={turning === 'achievement'}
+            onOpenChange={(o) => setTurning(o ? 'achievement' : null)}
           />
           <Confirm
             open={removing}

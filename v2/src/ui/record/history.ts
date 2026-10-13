@@ -64,3 +64,60 @@ export function historyRows(
   }
   return [...out.values()];
 }
+
+/** The personal preference fields a person flips often: runs of them are one line in the log (W38). */
+export const PREFERENCE_FIELDS = ['theme', 'density'];
+
+const isPreferenceChange = (r: HistoryRow) =>
+  r.kind === 'ui' &&
+  !r.undone &&
+  !r.undo_of &&
+  r.changes.length > 0 &&
+  r.changes.every(
+    (c) => c.action === 'update' && c.fields.length > 0 && c.fields.every((f) => PREFERENCE_FIELDS.includes(f)),
+  );
+
+/**
+ * Consecutive changes of one person's own Theme or Density (newest first) become one row (W38): each field once, from
+ * what it was before the first of them to what it is after the last, with how many there were. The row's request is the
+ * newest one, so its Undo takes back the latest change, as any row's Undo takes back its own request.
+ */
+export function groupPreferenceRuns(rows: HistoryRow[]): (HistoryRow & { grouped?: number })[] {
+  const out: (HistoryRow & { grouped?: number })[] = [];
+  let i = 0;
+  while (i < rows.length) {
+    const first = rows[i]!;
+    if (!isPreferenceChange(first)) {
+      out.push(first);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < rows.length && isPreferenceChange(rows[j]!) && rows[j]!.actor_id === first.actor_id) j++;
+    const run = rows.slice(i, j);
+    if (run.length === 1) {
+      out.push(first);
+    } else {
+      const before: Record<string, unknown> = {};
+      const after: Record<string, unknown> = {};
+      for (const r of [...run].reverse())
+        for (const c of r.changes) {
+          const b = c.before && typeof c.before === 'object' ? (c.before as Record<string, unknown>) : {};
+          const a = c.after && typeof c.after === 'object' ? (c.after as Record<string, unknown>) : {};
+          for (const f of c.fields) {
+            if (!(f in before) && f in b) before[f] = b[f];
+            if (f in a) after[f] = a[f];
+          }
+        }
+      const fields = PREFERENCE_FIELDS.filter((f) => f in before || f in after);
+      const lead = first.changes[0]!;
+      out.push({
+        ...first,
+        grouped: run.length,
+        changes: [{ entity: lead.entity, id: lead.id, action: 'update', fields, before, after }],
+      });
+    }
+    i = j;
+  }
+  return out;
+}

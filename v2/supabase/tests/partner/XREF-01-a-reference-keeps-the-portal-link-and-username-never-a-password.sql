@@ -54,7 +54,7 @@ select test.as_person(current_setting('t.desk')::uuid);
 select test.eq(api.partner_references(current_setting('t.p')::uuid),
   jsonb_build_array(jsonb_build_object('id', current_setting('t.t'), 'side', null, 'system', 'ticket', 'system_en', 'Ticket',
     'system_ar', 'تذكرة', 'value', 'TCK-000123', 'url', null, 'link', 'https://tickets.example.test/view/TCK-000123',
-    'version', 1)),
+    'held_by', null, 'code_goes_to', null, 'version', 1)),
   'the client desk sees only the shared ticket, linked through the system''s URL pattern');
 select test.eq(jsonb_array_length(api.partner(current_setting('t.p')::uuid) -> 'references'), 1, 'on the card too');
 

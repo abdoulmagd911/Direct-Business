@@ -14,17 +14,23 @@ export function blockOf<T>(rows: T[], total: number): { rows: T[]; more: boolean
  * V377). Until its flag is set the menu leaves a kind out, never greyed (GC-1, cut 3, V605 (3)).
  */
 export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
-  task: 'tasks.turn_into',
+  task: 'tasks.turn_into_task',
   action_item: 'tasks.turn_into',
   achievement: 'kpis.turn_into',
 };
 
+/**
+ * The Turn into flags that are set: their dialog and their database door are both in (V605 (3)) — an achievement
+ * (V381) and a task (V226: the task door and the checklist option are live in production since 7 Oct).
+ */
+export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into', 'tasks.turn_into_task']);
+
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
-  const page = TURN_NEEDS[kind];
-  return !page || built.has(page);
+  const flag = TURN_NEEDS[kind];
+  return !flag || built.has(flag);
 }
 
-/** The Turn into kinds the menu offers: a kind whose page is not built is left out, never greyed (GC-1, cut 3). */
+/** The Turn into kinds the menu offers: a kind whose flag is not set is left out, never greyed (GC-1, cut 3). */
 export const liveKinds = (built: ReadonlySet<string>): TurnKind[] => TURN_KINDS.filter((k) => turnLive(k, built));
 
 /** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */
@@ -55,7 +61,10 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 
 /** Where a "turned into" chip leads: a logged call or meeting opens its organisation's record; a reminder has no page. */
 export function linkRoute(link: NoteLink): string | null {
-  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
+  // the call a note became is a line of the organisation's Activity: the chip opens it there
+  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}?tab=activity`;
+  if (link.entity === 'achievement') return `/kpis/achievements/${link.id}`;
+  if ((link.entity === 'task' || link.entity === 'action_item') && link.number) return `/tasks/${link.number}`;
   return null;
 }
 

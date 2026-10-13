@@ -33,7 +33,10 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await expect(page.getByRole('heading', { level: 1, name: 'Clients' })).toBeVisible();
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
 
-  // New supplier & partner: trade name, Arabic name, type — the record opens once saved
+  // New supplier (QA-247, V507 cut 8: the button says what the tab says — Suppliers): trade name, Arabic name, type
+  await expect(page.locator('[data-partner-new]'), 'the button is New supplier, not New supplier & partner').toHaveText(
+    'New supplier',
+  );
   await page.locator('[data-partner-new]').click();
   const form = page.locator('[data-partner-form]');
   await form.getByLabel('Trade name', { exact: true }).fill(name);
@@ -86,6 +89,10 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await activity.getByLabel('What happened').fill(`Called about ${t}`);
   await page.locator('[data-activity-save]').click();
   await expect(toast(page, 'Call logged')).toBeVisible();
+  await page
+    .locator('main [data-tabs]')
+    .getByRole('link', { name: /^Activity/ })
+    .click();
   await expect(page.locator('[data-partner-notes]')).toContainText(`Called about ${t}`);
 
   // the Arabic name finds it on the Clients list (the side is on now); the hover card names number and both sides

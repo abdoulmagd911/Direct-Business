@@ -35,15 +35,22 @@ export function LinkChip({ link }: { link: NoteLink }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const name = (locale === 'ar' && link.partner_name_ar) || link.partner_name_en || '';
-  const type = (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
+  const type =
+    link.entity === 'achievement'
+      ? t('pages.myDay.turn.kinds.achievement')
+      : (locale === 'ar' && link.type_ar) || link.type_en || t('pages.myDay.turn.kinds.activity');
   const label =
-    link.entity === 'reminder' && link.remind_at
-      ? t('pages.myDay.note.linkReminder', {
-          when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-        })
-      : name
-        ? t('pages.myDay.note.linkActivity', { type, name })
-        : type;
+    link.entity === 'action_item' && link.number
+      ? t('pages.myDay.note.linkActionItem', { number: link.number, text: link.text ?? '' })
+      : link.entity === 'task' && link.number
+        ? t('pages.myDay.note.linkTask', { number: link.number, title: link.title ?? '' })
+        : link.entity === 'reminder' && link.remind_at
+          ? t('pages.myDay.note.linkReminder', {
+              when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
+            })
+          : name
+            ? t('pages.myDay.note.linkActivity', { type, name })
+            : type;
   const route = linkRoute(link);
   const cls = cn(chipClass, 'border-accent/40 text-text');
   return route ? (

@@ -57,7 +57,7 @@
         "email_required": "أدخل بريدك الإلكتروني للعمل.",
         "password_required": "أدخل كلمة المرور.",
         "too_long": "طويلة جدًا — اختر كلمة مرور أقصر",
-        "same_as_email": "لا تستخدم بريدك الإلكتروني كلمةً للمرور",
+        "same_as_email": "لا تستخدم بريدك الإلكتروني ككلمة مرور",
         "not_needed": "لا تحتاج كلمة مرورك إلى تغيير هنا — استخدم «ملفي الشخصي» ← «تغيير كلمة المرور»."
       },
       "subtitle": "سجّل الدخول ببريدك الإلكتروني للعمل وكلمة المرور.",
@@ -164,6 +164,7 @@
     "achievement": "إنجاز"
   },
   "common": {
+    "filter": "تصفية",
     "cancel": "إلغاء",
     "save": "حفظ",
     "close": "إغلاق",
@@ -202,7 +203,8 @@
     "failed": "تعذّر تحميل {what}",
     "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
     "empty": "لا شيء هنا بعد",
-    "notMeasured": "غير متاح"
+    "notMeasured": "غير متاح",
+    "loading": "جارٍ تحميل {what}"
   },
   "confirm": {
     "title": "إزالة {item}؟",
@@ -276,7 +278,9 @@
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "تذكير · {when}"
+        "linkReminder": "تذكير · {when}",
+        "linkTask": "المهمة {number} · {title}",
+        "linkActionItem": "بند عمل في {number} · {text}"
       },
       "turn": {
         "label": "تحويل إلى",
@@ -298,7 +302,9 @@
         "when": "متى",
         "text": "ذكّرني بـ",
         "logged": "تم تسجيل {type} على {name}",
-        "reminded": "تم ضبط التذكير في {when}"
+        "reminded": "تم ضبط التذكير في {when}",
+        "taskTitle": "إنشاء مهمة من هذه الملاحظة",
+        "withItems": "حوّل القائمة أيضًا إلى بنود عمل"
       },
       "finish": {
         "label": "إنهاء الاجتماع",
@@ -473,6 +479,10 @@
         "askAdmin": "اطلب من مسؤول النظام فتحها.",
         "opened": "خطة {year} مفتوحة",
         "noDepartment": "ملفك الشخصي بلا إدارة بعد. اطلب من مسؤول النظام تحديدها في «الأشخاص والصلاحيات»."
+      },
+      "fromNote": {
+        "title": "إنجاز من ملاحظة",
+        "noCategories": "لا توجد فئات لعام {year} بعد. يشرح «تسجيل إنجاز» كيف تفتح الخطة."
       }
     },
     "beingBuilt": "قيد الإنشاء.",
@@ -729,6 +739,12 @@
     }
   },
   "entity": {
+    "pipeline_stage_change": "تغيير المرحلة",
+    "opportunity": "فرصة",
+    "tender": "منافسة",
+    "pipeline_lost_reason": "سبب الخسارة",
+    "pipeline_source": "المصدر",
+    "pipeline_stage": "مرحلة الفرص",
     "partner": "شريك",
     "invoice": "فاتورة",
     "task": "مهمة",
@@ -749,6 +765,7 @@
     "person_level": "مستوى الصفحة",
     "person_capability": "إذن",
     "role_level": "مستوى الدور في الصفحة",
+    "team_level": "مستوى الفريق في الصفحة",
     "role_capability": "إذن الدور",
     "page": "صفحة",
     "capability": "تعريف إذن",
@@ -765,6 +782,7 @@
     "code_terms": "شروط الرمز",
     "campaign_code": "رمز حملة",
     "individual_name": "فرد",
+    "match_pin": "تثبيت مطابقة",
     "identifier_block": "قيمة محظورة",
     "contract_term": "شرط العقد",
     "priority": "الأولوية",
@@ -799,7 +817,29 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
-    "project_health": "صحة المشروع"
+    "task_template": "قالب مهمة",
+    "task_occurrence": "مهمة من قالب",
+    "project_health": "صحة المشروع",
+    "invoice_line": "بند الفاتورة",
+    "billing_link": "ربط الفاتورة المجمعة",
+    "billing_proposal": "اقتراح ربط الفاتورة المجمعة",
+    "import_difference": "اختلاف عن الاستيراد",
+    "expense_line": "مصروف",
+    "tax_invoice": "فاتورة ضريبية",
+    "credit_split": "توزيع الإسناد",
+    "month_close": "شهر مقفل",
+    "receipt": "إيصال دفع",
+    "exclusion_rule": "قاعدة استبعاد",
+    "status_map": "حالة الفاتورة",
+    "expense_status_word": "حالة المصروف",
+    "service": "خدمة",
+    "product": "منتج",
+    "wallet_rule": "قاعدة المحفظة",
+    "commission_word": "كلمة العمولة",
+    "channel": "القناة",
+    "import_map": "عمود الاستيراد",
+    "item_service": "خدمة البند",
+    "item_class": "تصنيف البند"
   },
   "status": {
     "done": "منجزة",
@@ -826,6 +866,9 @@
     "remove": "إزالة التصفية {field}: {value}"
   },
   "cap": {
+    "pipeline": {
+      "assign": "إسناد المنافسات والفرص إلى الآخرين"
+    },
     "clients": {
       "identify": "تغيير معرّفات العملاء وحسم المطابقات",
       "merge": "دمج الجهات",
@@ -853,6 +896,7 @@
   },
   "setting": {
     "work": {
+      "handover_follow_days": "أيام متابعة المالك السابق للجهة بعد تسليمها",
       "no_update_days": "أيام بلا تحديث قبل أن تُعدّ المهمة راكدة",
       "week_starts_on": "بداية الأسبوع",
       "meeting_note_on_time_days": "أيام كتابة محضر الاجتماع في وقته",
@@ -860,6 +904,13 @@
       "pipeline_weekly_target": "تحديثات الفرص المتوقعة أسبوعيًا",
       "late_days": "الأيام التي يُعدّ بعدها الإدخال متأخرًا",
       "project_update_days": "أيام بلا تحديث للحالة قبل تذكير مالك المشروع"
+    },
+    "finance": {
+      "cost_estimate": "إظهار بنود التمرير كتقدير للتكلفة حتى اعتماد المصروف",
+      "collection_due_days": "أيام الاستحقاق بعد الإصدار للفاتورة التي ليس لها تاريخ استحقاق",
+      "quiet_client_days": "أيام بلا فاتورة مدفوعة بالكامل قبل أن يُعد العميل خاملاً",
+      "revenue_definition": "ما تحتسبه الإيرادات التجارية: الأساس والخدمات وأنواع العملاء واحتساب العمولات",
+      "unpaid_alert_days": "أيام بعد الإصدار تبقى فيها الفاتورة غير مدفوعة قبل إبلاغ مدير الحساب"
     },
     "auth": {
       "device_idle_days": "أيام عدم استخدام الجهاز قبل تسجيل الدخول من جديد",
@@ -888,11 +939,14 @@
       "id_format": "صيغة رقم الشريك",
       "name_stop_words": "كلمات تُهمل عند مطابقة الأسماء",
       "one_code_per_partner": "رمز خصم فعّال واحد لكل شريك",
+      "open_client_ids": "عدد معرّفات العميل المفتوحة المسموح بها للجهة، لكل نوع",
       "contract_reminder_days": "تذكيرات العقد، بالأيام قبل انتهائه",
       "contract_expiring_from_days": "يظهر العقد «ينتهي خلال» قبل هذا العدد من الأيام",
       "contract_notify": "من يُبلَّغ بقرب انتهاء العقد",
+      "contract_renewal_task": "إنشاء مهمة التجديد عند أول تذكير بالعقد",
       "logo_fallback": "ما يظهر للجهة التي ليس لها شعار",
-      "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة"
+      "stale_after_days": "أيام بلا نشاط قبل أن تُعدّ الجهة راكدة",
+      "active_client_days": "أيام يبقى فيها العميل نشطاً بعد فاتورة محتسبة"
     },
     "core": {
       "file_download_display_name": "التنزيل باسم العرض للملف",
@@ -942,6 +996,7 @@
     "none": "لا تغييرات بعد",
     "undone": "تم التراجع",
     "undoneChip": "تم التراجع",
+    "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "revert": "استرجاع",
     "reverted": "تم استرجاع الإعداد",
     "revertTitle": "استرجاع {setting}؟",
@@ -957,6 +1012,7 @@
       "insert": "إضافة {what}",
       "update": "تعديل {what}: {fields}",
       "remove": "إزالة {what}",
+      "delete": "حُذف {what}",
       "restore": "استعادة {what}",
       "request": "تغيير"
     },
@@ -1001,6 +1057,9 @@
       },
       "record": {
         "restored": "استعادة سجل"
+      },
+      "tender": {
+        "signed": "تم توقيع العقد، من المناقصة {number}"
       }
     },
     "signIn": {
@@ -1136,7 +1195,8 @@
       "note_mention": "الإشارة إليّ في ملاحظة",
       "escalated": "أمر تم تصعيده إليّ",
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
-      "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها"
+      "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
+      "alert_quiet_client": "عميل لي توقف عن الشراء"
     },
     "devices": {
       "label": "الجهاز",
@@ -1199,6 +1259,7 @@
       "clear": "العودة إلى القيمة العامة لكل الإدارات",
       "cleared": "تم مسح قيمة الإدارة",
       "default": "الافتراضي",
+      "notSet": "غير محدد",
       "edit": "تغيير {setting}",
       "values": {
         "true": "مفعّل",
@@ -1424,6 +1485,39 @@
     }
   },
   "errors": {
+    "overview": {
+      "period_invalid": "تنتهي الفترة قبل أن تبدأ",
+      "unknown_period": "اختر من بداية الشهر أو الربع أو السنة، أو حدّد التاريخين"
+    },
+    "opportunity": {
+      "handover_needs_ticket": "التسليم للمنتج يحتاج تذكرة دايركت",
+      "partner_fixed": "تبقى الفرصة مع جهتها",
+      "type_of_other_side": "هذا النوع من الجانب الآخر",
+      "type_required": "اختر ما ستصبح عليه الجهة",
+      "side_required": "اختر عميل أو مورد وشريك",
+      "partner_required": "اختر الجهة"
+    },
+    "tender": {
+      "awarded_needs_value": "أدخل قيمة الترسية",
+      "segment_reason_required": "اذكر سبب كون هذه المنافسة خارج القطاع الحكومي",
+      "not_government": "يضيف المدير وحده منافسة لجهة خارج القطاع الحكومي",
+      "partner_required": "اختر الجهة الحكومية"
+    },
+    "pipeline": {
+      "owner_required": "اختر من يتسلّم البطاقات",
+      "value_invalid": "لا يمكن أن تقل القيمة عن صفر",
+      "title_required": "العنوان مطلوب",
+      "date_is_the_moves": "تواريخ البطاقة تأتي من نقلها بين المراحل",
+      "reason_of_other_board": "هذا السبب من اللوحة الأخرى",
+      "stage_of_other_board": "هذه المرحلة من اللوحة الأخرى",
+      "lost_needs_reason": "اختر سبب الخسارة أو الإلغاء",
+      "backward_needs_reason": "إعادة البطاقة إلى الخلف تحتاج سببًا",
+      "before_last_move": "لا يمكن تأريخ النقل قبل آخر نقل للبطاقة ({detail})",
+      "same_stage": "هي في هذه المرحلة بالفعل",
+      "unknown_stage": "ليست مرحلة في هذه اللوحة: {detail}",
+      "unknown_board": "ليست لوحة: {detail}",
+      "source_required": "اختر من أين جاءت"
+    },
     "kind": {
       "PermissionDenied": "ليس لديك صلاحية لهذا الإجراء",
       "Conflict": "غيّر أحدهم هذا منذ أن فتحته. أعد التحميل ثم حاول مجددًا.",
@@ -1449,6 +1543,19 @@
       "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
     },
     "person": {
+      "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها",
+      "head_needs_successor": "هذا الشخص يرأس {detail} — اختر رئيسًا جديدًا أولًا",
+      "hand_over_to_self": "اختر شخصًا آخر ليتسلّم العمل",
+      "reassign_needs_off": "يُسلَّم العمل فقط عند إيقاف الشخص",
+      "has_left": "غادر هذا الشخص — امسح تاريخ مغادرته أولًا",
+      "left_on_future": "لا يمكن أن يكون تاريخ المغادرة بعد اليوم — ضع تاريخًا لاحقًا في سجل الشخص",
+      "left_before_joined": "تاريخ المغادرة قبل تاريخ الانضمام",
+      "already_left": "غادر هذا الشخص بالفعل",
+      "unavailable": "ليس عضوًا نشطًا في الفريق",
+      "manager_unavailable": "يجب أن يكون المدير المباشر عضوًا نشطًا في الفريق",
+      "team_inactive": "اختر فريقًا نشطًا",
+      "assist_team_inactive": "يساعد الشخص فريقًا نشطًا فقط",
+      "assist_home_team": "لا يساعد الشخص فريقه الأساسي",
       "full_name_required": "الاسم الكامل مطلوب",
       "department_required": "الإدارة مطلوبة",
       "manager_cycle": "لا يتبع شخصٌ شخصًا يتبعه",
@@ -1461,7 +1568,8 @@
       "account_in_no_team": "حساب مسؤول النظام وحساب الاختبار ليسا في أي فريق وليس لهما مدير"
     },
     "people": {
-      "email_taken": "هذا البريد يخص {detail} بالفعل"
+      "email_taken": "هذا البريد يخص {detail} بالفعل",
+      "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته"
     },
     "list": {
       "key_taken": "هذا المفتاح مستخدم",
@@ -1551,18 +1659,26 @@
       "name_follows_partner": "تتغير الأسماء من أسماء السجل؛ أضف اسمًا آخر بدلًا من ذلك",
       "one_code_per_partner": "رمز خصم فعّال واحد لكل جهة؛ ويحتاج الرمز الثاني إلى مدير",
       "taken": "جهة أخرى تحمل {detail} بالفعل",
-      "blocked": "لا تصلح هذه القيمة معرّفًا أبدًا: {detail}"
+      "blocked": "لا تصلح هذه القيمة معرّفًا أبدًا: {detail}",
+      "open_client_id_limit": "لدى هذه الجهة معرّفات العميل المفتوحة من هذا النوع بالفعل — حدّد تاريخ إغلاق لأحدها أولًا",
+      "not_client_id": "تاريخ الإغلاق لمعرّف العميل في المدفوعات فقط",
+      "close_date_required": "اختر تاريخ الإغلاق",
+      "not_closed": "معرّف العميل هذا ليس مغلقًا"
     },
     "contact": {
       "unknown_field": "حقل غير معروف: {detail}",
       "unknown_role": "دور جهة اتصال غير معروف"
     },
     "contract": {
+      "term_takes_words": "يأخذ هذا الشرط كلمات لا أرقامًا",
+      "term_takes_numbers": "يأخذ هذا الشرط أرقامًا لا كلمات",
       "unknown_field": "حقل غير معروف: {detail}",
       "terms_list_expected": "يجب أن تكون الشروط قائمة",
       "side_required": "يحتاج العقد إلى جانبه"
     },
     "reference": {
+      "unknown_department": "لا يوجد قسم نشط: {detail}",
+      "mailbox_invalid": "يجب أن تكون وجهة الرموز عنوان بريد إلكتروني",
       "unknown_field": "حقل غير معروف: {detail}",
       "unknown_system": "نظام غير معروف: {detail}",
       "no_secrets": "يبدو هذا كلمة مرور أو سرًّا؛ البطاقات تحمل المراجع فقط"
@@ -1608,6 +1724,16 @@
     "reminder": {
       "time_required": "اختر موعد التذكير",
       "time_passed": "اختر وقتًا في المستقبل"
+    },
+    "finance": {
+      "month_not_over": "لا يُقفل الشهر إلا بعد انتهائه",
+      "month_closed": "هذا الشهر مقفل بالفعل",
+      "status_unknown": "حالة غير معروفة: {detail}",
+      "expense_status_unknown": "حالة مصروف غير معروفة: {detail}",
+      "product_unknown": "منتج غير معروف: {detail}",
+      "unknown_entry": "بند غير معروف: {detail}",
+      "channel_on_units_only": "تُحدَّد القناة على معاملة أو فاتورة مستقلة.",
+      "commercial_names_the_person": "الفريق التجاري يحتاج إلى الشخص الذي تُنسب إليه."
     }
   },
   "notifications": {
@@ -1692,6 +1818,7 @@
     "search": "ابحث بالاسم أو الرقم",
     "newClient": "عميل جديد",
     "newSupplier": "مورد وشريك جديد",
+    "chooseType": "اختر النوع",
     "created": "تمت إضافة {name}",
     "updated": "تم تحديث {name}",
     "edit": "تعديل {name}",
@@ -1759,7 +1886,9 @@
       "contacts": "جهات الاتصال",
       "files": "الملفات",
       "notes": "الملاحظات",
-      "client_since": "عميل منذ"
+      "client_since": "عميل منذ",
+      "noActivity": "لا نشاط بعد",
+      "noNextStep": "لا خطوة تالية"
     },
     "sideTabs": "العملاء والموردون",
     "tabs": {
@@ -1778,6 +1907,10 @@
       "nextStepOn": "موعد الخطوة التالية",
       "demoDay": "يوم العرض التوضيحي",
       "loggedLate": "سُجّل متأخرًا",
+      "event": {
+        "task_added": "أُضيفت مهمة: {title}",
+        "task_done": "أُنجزت المهمة: {title}"
+      },
       "timeline": "الملاحظات والأنشطة",
       "none": "لم يُسجَّل شيء بعد",
       "by": "بواسطة {name}"
@@ -1925,5 +2058,144 @@
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",
     "achievement": "إنجاز جديد"
+  },
+  "finance": {
+    "title": "المالية",
+    "period": {
+      "label": "الفترة",
+      "mtd": "الشهر الحالي",
+      "qtd": "الربع الحالي",
+      "ytd": "السنة الحالية",
+      "custom": "مخصصة",
+      "from": "من",
+      "to": "إلى",
+      "apply": "تطبيق",
+      "total": {
+        "mtd": "الشهر حتى اليوم",
+        "qtd": "الربع حتى اليوم",
+        "ytd": "السنة حتى اليوم",
+        "custom": "الإجمالي"
+      }
+    },
+    "stamp": "المدفوعات · حتى {date}",
+    "stampNone": "المدفوعات · حتى —",
+    "tile": {
+      "revenue": "الإيرادات",
+      "cost": "التكلفة",
+      "profit": "الربح"
+    },
+    "sar": "ريال",
+    "provisional": "منها مؤقتة",
+    "provisionalUnits": "{count, plural, one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
+    "notInvoiced": "لم تُفوتَر بعد",
+    "ready": "جاهزة",
+    "pending": "قيد الانتظار",
+    "commissions": "العمولات المدفوعة خارج المدفوعات غير محسوبة.",
+    "attention": {
+      "title": "تحتاج إلى انتباه",
+      "checks": "فحوص فاشلة",
+      "noClient": "بلا عميل",
+      "late": "تغييرات متأخرة"
+    },
+    "months": {
+      "title": "الأشهر",
+      "month": "الشهر",
+      "revenue": "الإيرادات",
+      "cost": "التكلفة",
+      "profit": "الربح",
+      "provisional": "ربح مؤقت",
+      "open": "مفتوح",
+      "notClosed": "غير مقفل",
+      "closed": "أُقفل في {date}",
+      "close": "إقفال الشهر",
+      "lateChanges": "تغييرات متأخرة · {count}",
+      "afterClose": "بعد الإقفال",
+      "gap": "{amount} ريال خارج الأشهر",
+      "none": "—"
+    },
+    "late": {
+      "late_paid": "مدفوعة متأخرًا",
+      "dropped": "أُلغيت متأخرًا",
+      "cost_changed": "تكلفة متأخرة",
+      "revenue_changed": "تغيّر الإيراد"
+    },
+    "close": {
+      "title": "إقفال {month}؟",
+      "body": "لن يتغيّر بعد ذلك. تُسجَّل الأخبار اللاحقة كملاحظة مؤرخة.",
+      "done": "أُقفل {month}"
+    },
+    "service": {
+      "title": "حسب الخدمة",
+      "not_income": "ليست دخلًا",
+      "no_service": "بلا خدمة",
+      "not_split": "غير موزّعة",
+      "gap": "غير مفصّلة",
+      "empty": "لا دخل في هذه الفترة"
+    },
+    "failed": {
+      "figures": "أرقام المالية",
+      "months": "الأشهر",
+      "service": "الدخل حسب الخدمة",
+      "health": "ما يحتاج إلى انتباه",
+      "invoiced": "لم تُفوتَر بعد",
+      "stamp": "تاريخ المدفوعات"
+    },
+    "state": {
+      "provisional": "مؤقتة",
+      "final": "نهائية",
+      "pending": "قيد الانتظار",
+      "notCounted": "غير محسوبة"
+    },
+    "kind": {
+      "transaction": "معاملة",
+      "standalone": "مستقلة",
+      "billing": "فاتورة شهرية",
+      "wallet_topup": "شحن المحفظة"
+    },
+    "source": {
+      "typed": "مُدخلة يدويًا"
+    },
+    "number": {
+      "transaction": "رقم المعاملة",
+      "status": "الحالة",
+      "channel": "القناة",
+      "created": "تاريخ الإنشاء",
+      "paid": "المدفوع",
+      "total": "الإجمالي"
+    },
+    "new": {
+      "title": "فاتورة جديدة",
+      "kind": "النوع",
+      "saveNew": "حفظ + جديد",
+      "saved": "تم حفظ {ref}",
+      "customer": "العميل",
+      "clientId": "رقم العميل",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "lines": "البنود",
+      "addLine": "إضافة بند",
+      "removeLine": "حذف البند",
+      "product": "المنتج",
+      "service": "الخدمة",
+      "item": "البند",
+      "qty": "الكمية",
+      "price": "السعر",
+      "expenses": "المصروفات",
+      "addExpense": "إضافة مصروف",
+      "removeExpense": "حذف المصروف",
+      "type": "النوع",
+      "amount": "المبلغ",
+      "merchant": "التاجر",
+      "reference": "المرجع",
+      "problem": {
+        "required": "مطلوب",
+        "invalid": "غير صالح",
+        "too_long": "طويل جدًا",
+        "used": "مستخدم من قبل"
+      },
+      "lists": "قوائم الكلمات",
+      "lastSaved": "آخر حفظ",
+      "noFigures": "ليس في أي رقم"
+    }
   }
 }

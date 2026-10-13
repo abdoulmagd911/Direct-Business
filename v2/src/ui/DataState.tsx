@@ -1,6 +1,8 @@
 import { Lock, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Button } from './Button';
+import { buttonVariants } from './button-variants';
 import { cn } from './cn';
 
 export type DataStateKind = 'loading' | 'failed' | 'empty' | 'no-access' | 'not-measured';
@@ -17,6 +19,7 @@ export function DataState({
   action,
   onRetry,
   retryLabel,
+  goHome,
   className,
   children,
 }: {
@@ -28,6 +31,8 @@ export function DataState({
   action?: ReactNode;
   onRetry?: () => void;
   retryLabel?: string;
+  /** A whole-page no-access state (W40): the label of the button that goes back to My day. */
+  goHome?: string;
   className?: string;
   children?: ReactNode;
 }) {
@@ -76,12 +81,17 @@ export function DataState({
         role="status"
         data-state="no-access"
         className={cn(
-          'flex items-center gap-3 rounded-md border border-dashed border-border-strong px-4 py-3 text-base text-muted',
+          'flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border-strong px-4 py-3 text-base text-muted',
           className,
         )}
       >
         <Lock className="size-4 shrink-0" aria-hidden="true" />
         <span>{message ?? what}</span>
+        {goHome ? (
+          <Link href="/my-day" className={cn(buttonVariants({ size: 'sm' }), 'ms-auto')} data-no-access-home>
+            {goHome}
+          </Link>
+        ) : null}
       </div>
     );
   }

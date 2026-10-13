@@ -265,6 +265,18 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
+  // in a team: someone in no team without tasks.assign is not offered Task in the + (QA-245)
+  await sql(
+    `insert into core.team (department_id, code, name_en, name_ar, created_by)
+     values ((select id from core.department where code = 'commercial'), 'test_create', 'Test create team', 'فريق تجريبي', $1)
+     on conflict (department_id, code) do nothing`,
+    [member.id],
+  );
+  await sql(
+    `update core.person set team_id = (select t.id from core.team t join core.department d on d.id = t.department_id
+                                       where d.code = 'commercial' and t.code = 'test_create') where id = $1`,
+    [member.id],
+  );
   await sql(
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
      values ($1, 'clients', 'view', 'Made up: clients read only', $1),
@@ -313,7 +325,7 @@ test('11 · the avatar menu holds exactly My profile and Sign out', async ({ pag
   await expect(page.getByRole('menuitem')).toHaveText(['My profile', 'Sign out']);
 });
 
-test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-one", async ({
+test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-two", async ({
   page,
   browser,
 }) => {
@@ -330,8 +342,8 @@ test("12 · a member's My profile: five cards, seven notification switches, none
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();
   await openAs(manager, 'manager', '/profile');
-  // V217's eighteen and P5-1's escalated, alert_project_no_update and alert_due_tomorrow (V199)
-  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(21);
+  // V217's eighteen, P5-1's escalated, alert_project_no_update and alert_due_tomorrow (V199), and P4-2's alert_quiet_client (V401)
+  await expect(manager.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(22);
   await ctx.close();
 });
 
@@ -453,6 +465,7 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   const started = Date.now();
   await tap(page.locator('[data-bottom-bar]').getByRole('link', { name: 'Clients' }));
   await hydrated(page);
+  await tap(page.locator('[data-filter-toggle]')); // the search sits behind the one Filter button on a phone (V630)
   await page.getByPlaceholder('Search by name or number').fill(name);
   await page.keyboard.press('Enter');
   await tap(page.locator(`[data-partner-link="${id}"]`).first());

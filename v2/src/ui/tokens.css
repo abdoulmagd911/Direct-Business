@@ -84,6 +84,16 @@
   --row-font: 13px;
 }
 
+/* On a phone every control is a 44 px target, whatever the density (the owner's phone round on production, 8 Oct, V228) */
+@media (max-width: 639px) {
+  :root {
+    --control-h: 44px;
+    --control-h-sm: 44px;
+    --control-h-xs: 44px;
+    --hit: 44px;
+  }
+}
+
 /* ---------- Light · Sea-glass ---------- */
 [data-theme='light'] {
   color-scheme: light;

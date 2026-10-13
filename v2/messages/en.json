@@ -164,6 +164,7 @@
     "achievement": "Achievement"
   },
   "common": {
+    "filter": "Filter",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
@@ -202,7 +203,8 @@
     "failed": "{what} could not be loaded",
     "noAccess": "You do not have access to {what}",
     "empty": "Nothing here yet",
-    "notMeasured": "Not measured"
+    "notMeasured": "Not measured",
+    "loading": "Loading {what}"
   },
   "confirm": {
     "title": "Remove {item}?",
@@ -276,7 +278,9 @@
         "notFound": "This note is not there, or it is not yours to read.",
         "details": "Details",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "Reminder · {when}"
+        "linkReminder": "Reminder · {when}",
+        "linkTask": "Task {number} · {title}",
+        "linkActionItem": "Action item on {number} · {text}"
       },
       "turn": {
         "label": "Turn into",
@@ -298,7 +302,9 @@
         "when": "When",
         "text": "Remind me to",
         "logged": "{type} logged on {name}",
-        "reminded": "Reminder set for {when}"
+        "reminded": "Reminder set for {when}",
+        "taskTitle": "Make a task from this note",
+        "withItems": "Also turn the checklist into action items"
       },
       "finish": {
         "label": "Finish meeting",
@@ -473,6 +479,10 @@
         "askAdmin": "Ask an admin to open it.",
         "opened": "The {year} plan is open",
         "noDepartment": "Your account has no department yet. Ask an admin to set it."
+      },
+      "fromNote": {
+        "title": "Achievement from note",
+        "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       }
     },
     "beingBuilt": "Being built.",
@@ -729,7 +739,13 @@
     }
   },
   "entity": {
-    "partner": "Partner",
+    "pipeline_stage_change": "Stage change",
+    "opportunity": "Opportunity",
+    "tender": "Tender",
+    "pipeline_lost_reason": "Lost reason",
+    "pipeline_source": "Source",
+    "pipeline_stage": "Pipeline stage",
+    "partner": "Organisation",
     "invoice": "Invoice",
     "task": "Task",
     "achievement": "Achievement",
@@ -749,6 +765,7 @@
     "person_level": "Page level",
     "person_capability": "Capability",
     "role_level": "Role's page level",
+    "team_level": "Team's page level",
     "role_capability": "Role's capability",
     "page": "Page",
     "capability": "Capability definition",
@@ -765,6 +782,7 @@
     "code_terms": "Code terms",
     "campaign_code": "Campaign code",
     "individual_name": "Individual",
+    "match_pin": "Match pin",
     "identifier_block": "Blocked value",
     "contract_term": "Contract term",
     "priority": "Priority",
@@ -799,7 +817,29 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
-    "project_health": "Project health"
+    "task_template": "Task template",
+    "task_occurrence": "Task made from a template",
+    "project_health": "Project health",
+    "invoice_line": "Invoice line",
+    "billing_link": "Billing link",
+    "billing_proposal": "Billing proposal",
+    "import_difference": "Difference from import",
+    "expense_line": "Expense",
+    "tax_invoice": "Tax invoice",
+    "credit_split": "Credit split",
+    "month_close": "Closed month",
+    "receipt": "Receipt",
+    "exclusion_rule": "Exclusion rule",
+    "status_map": "Invoice status word",
+    "expense_status_word": "Expense status word",
+    "service": "Service",
+    "product": "Product",
+    "wallet_rule": "Wallet rule",
+    "commission_word": "Commission word",
+    "channel": "Channel",
+    "import_map": "Import column",
+    "item_service": "Item service",
+    "item_class": "Item class"
   },
   "status": {
     "done": "Done",
@@ -826,6 +866,9 @@
     "remove": "Remove filter {field}: {value}"
   },
   "cap": {
+    "pipeline": {
+      "assign": "Give tenders and opportunities to others"
+    },
     "clients": {
       "identify": "Change client identifiers and decide matches",
       "merge": "Merge organisations",
@@ -853,6 +896,7 @@
   },
   "setting": {
     "work": {
+      "handover_follow_days": "Days the previous owner follows an organisation after a hand-over",
       "no_update_days": "Days without an update before a task goes stale",
       "week_starts_on": "The week starts on",
       "meeting_note_on_time_days": "Days to write meeting notes on time",
@@ -860,6 +904,13 @@
       "pipeline_weekly_target": "Pipeline updates expected each week",
       "late_days": "Days after which an entry is logged late",
       "project_update_days": "Days without a health update before a project's owner is reminded"
+    },
+    "finance": {
+      "cost_estimate": "Show the pass-through lines as a cost estimate while no expense is approved",
+      "collection_due_days": "Days after issue an invoice with no due date of its own is due",
+      "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
+      "revenue_definition": "What Commercial revenue counts: its basis, services, client types and whether commissions count",
+      "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
@@ -888,11 +939,14 @@
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
       "one_code_per_partner": "One live discount code per partner",
+      "open_client_ids": "Open client IDs an organisation may hold, per kind",
       "contract_reminder_days": "Contract reminders, days before the end",
       "contract_expiring_from_days": "A contract shows \"Expires in\" from this many days",
       "contract_notify": "Who is told a contract is expiring",
+      "contract_renewal_task": "Make the renewal task at a contract's first reminder",
       "logo_fallback": "An organisation with no logo shows",
-      "stale_after_days": "Days without activity before an organisation is stale"
+      "stale_after_days": "Days without activity before an organisation is stale",
+      "active_client_days": "Days a client counts as active after a counted invoice"
     },
     "core": {
       "file_download_display_name": "Downloads use the file's display name",
@@ -942,6 +996,7 @@
     "none": "No changes yet",
     "undone": "Undone",
     "undoneChip": "Undone",
+    "groupedChanges": "{count, plural, one {# change} other {# changes}}",
     "revert": "Revert",
     "reverted": "Setting reverted",
     "revertTitle": "Revert {setting}?",
@@ -957,6 +1012,7 @@
       "insert": "{what} added",
       "update": "{what} changed: {fields}",
       "remove": "{what} removed",
+      "delete": "{what} deleted",
       "restore": "{what} restored",
       "request": "Change"
     },
@@ -979,7 +1035,8 @@
       "view.saved": "View saved",
       "record.restored": "Record restored",
       "list.removed": "List entry removed",
-      "list.retired": "List entry archived"
+      "list.retired": "List entry archived",
+      "tender.signed": "Contract signed, from tender {number}"
     },
     "signIn": {
       "at": "When",
@@ -1059,7 +1116,7 @@
       "until": "Until"
     },
     "moreFields": "+{count} more",
-    "fieldsCount": "{count} fields",
+    "fieldsCount": "{count, plural, one {# field} other {# fields}}",
     "reportsTo": "reports to {name}"
   },
   "profile": {
@@ -1114,7 +1171,8 @@
       "note_mention": "Mentioned in a note",
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
-      "alert_due_tomorrow": "A task of mine is coming due"
+      "alert_due_tomorrow": "A task of mine is coming due",
+      "alert_quiet_client": "A client of mine has gone quiet"
     },
     "devices": {
       "label": "Device",
@@ -1124,7 +1182,7 @@
       "signOut": "Sign out",
       "signOutOthers": "Sign out every other device",
       "signedOut": "Device signed out",
-      "othersSignedOut": "{count} devices signed out",
+      "othersSignedOut": "{count, plural, one {# device signed out} other {# devices signed out}}",
       "unknown": "A browser"
     },
     "saved": "Profile saved",
@@ -1166,7 +1224,7 @@
         "title": "What changes",
         "from": "From",
         "to": "To",
-        "departments": "{count} departments keep their own value",
+        "departments": "{count, plural, one {# department keeps its own value} other {# departments keep their own value}}",
         "fromToday": "Applies from today",
         "fromDate": "Applies from {date}",
         "replacesSameDay": "replaces today's earlier change"
@@ -1177,6 +1235,7 @@
       "clear": "Back to the value for all departments",
       "cleared": "Department value cleared",
       "default": "Default",
+      "notSet": "Not set",
       "edit": "Change {setting}",
       "values": {
         "true": "On",
@@ -1198,7 +1257,7 @@
       "replaceWith": "Move its records to",
       "retireTitle": "Archive {name}?",
       "retireBody": "Archived entries leave the pickers and stay on the records that hold them.",
-      "retireBodyUsed": "{count} records hold {name}. They move to the entry you pick, in one change with one Undo.",
+      "retireBodyUsed": "{count, plural, one {# record holds {name}. It moves} other {# records hold {name}. They move}} to the entry you pick, in one change with one Undo.",
       "saved": "Entry saved",
       "archivedDone": "{name} archived",
       "restored": "{name} restored",
@@ -1206,7 +1265,7 @@
       "new": "New entry",
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
-      "entries": "{count} entries",
+      "entries": "{count, plural, one {# entry} other {# entries}}",
       "banned": "The app never says {word}",
       "side": "Side",
       "status": "Status",
@@ -1309,7 +1368,7 @@
       "members": "Members",
       "retire": "Retire",
       "retireTitle": "Retire {name}?",
-      "retireBody": "{count} people are in {name}. Pick the team they move to, or none.",
+      "retireBody": "{count, plural, one {# person is} other {# people are}} in {name}. Pick the team they move to, or none.",
       "moveTo": "Move its people to",
       "noTeam": "No team",
       "retired": "{name} retired",
@@ -1399,7 +1458,7 @@
         }
       }
     },
-    "emptyGroup": "No settings here yet. They arrive with the step that builds this area.",
+    "emptyGroup": "Nothing to set up here yet.",
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
@@ -1411,6 +1470,39 @@
     }
   },
   "errors": {
+    "overview": {
+      "period_invalid": "The period ends before it starts",
+      "unknown_period": "Choose month, quarter or year to date, or your own dates"
+    },
+    "opportunity": {
+      "handover_needs_ticket": "Handed to Product needs the Direct ticket",
+      "partner_fixed": "An opportunity stays with its organisation",
+      "type_of_other_side": "That type belongs to the other side",
+      "type_required": "Choose what the organisation would become",
+      "side_required": "Choose Client or Supplier & partner",
+      "partner_required": "Choose the organisation"
+    },
+    "tender": {
+      "awarded_needs_value": "Enter the awarded value",
+      "segment_reason_required": "Say why this tender is outside the Government segment",
+      "not_government": "Only a manager adds a tender for an organisation outside the Government segment",
+      "partner_required": "Choose the government entity"
+    },
+    "pipeline": {
+      "owner_required": "Choose who takes the cards",
+      "value_invalid": "A value cannot be below zero",
+      "title_required": "A title is required",
+      "date_is_the_moves": "A card's dates come from its moves",
+      "reason_of_other_board": "That reason belongs to the other board",
+      "stage_of_other_board": "That stage belongs to the other board",
+      "lost_needs_reason": "Choose why it was lost or cancelled",
+      "backward_needs_reason": "Moving a card back needs a reason",
+      "before_last_move": "A move cannot be dated before the card's last move ({detail})",
+      "same_stage": "It is already at that stage",
+      "unknown_stage": "That is not a stage of this board: {detail}",
+      "unknown_board": "That is not a board: {detail}",
+      "source_required": "Choose where it came from"
+    },
     "kind": {
       "PermissionDenied": "You do not have access to do this",
       "Conflict": "Someone changed this since you opened it. Reload and try again.",
@@ -1436,6 +1528,19 @@
       "date_in_future": "A note cannot happen after today"
     },
     "person": {
+      "open_work": "This person still holds open work — name who takes it over in the same step",
+      "head_needs_successor": "This person heads {detail} — choose a new head first",
+      "hand_over_to_self": "Choose someone else to take the work over",
+      "reassign_needs_off": "Work is handed over only when switching someone off",
+      "has_left": "This person has left — clear their leaving day first",
+      "left_on_future": "The leaving day cannot be after today — put a later day on the person's record instead",
+      "left_before_joined": "The leaving day is before the day they joined",
+      "already_left": "This person has already left",
+      "unavailable": "Not an active team member",
+      "manager_unavailable": "Reports-to must be an active team member",
+      "team_inactive": "Choose an active team",
+      "assist_team_inactive": "A person assists only an active team",
+      "assist_home_team": "A person does not assist their own home team",
       "full_name_required": "A full name is required",
       "department_required": "A department is required",
       "manager_cycle": "A person cannot report to someone who reports to them",
@@ -1448,7 +1553,8 @@
       "account_in_no_team": "The admin account and the test account are in no team and have no manager"
     },
     "people": {
-      "email_taken": "That email already belongs to {detail}"
+      "email_taken": "That email already belongs to {detail}",
+      "own_last_email": "This is your last email you can sign in with — add another before removing it"
     },
     "list": {
       "key_taken": "That key is already used",
@@ -1538,18 +1644,26 @@
       "name_follows_partner": "Names change from the record's names; add an alias instead",
       "one_code_per_partner": "One live discount code per organisation; a second needs a manager",
       "taken": "Another organisation already holds {detail}",
-      "blocked": "This value can never be an identifier: {detail}"
+      "blocked": "This value can never be an identifier: {detail}",
+      "open_client_id_limit": "This organisation already has its open client IDs of this kind — give one a close date first",
+      "not_client_id": "Only a Payments client ID has a close date",
+      "close_date_required": "Choose the close date",
+      "not_closed": "This client ID is not closed"
     },
     "contact": {
       "unknown_field": "Unknown field: {detail}",
       "unknown_role": "Unknown contact role"
     },
     "contract": {
+      "term_takes_words": "This term takes words, not numbers",
+      "term_takes_numbers": "This term takes numbers, not words",
       "unknown_field": "Unknown field: {detail}",
       "terms_list_expected": "Terms must be a list",
       "side_required": "A contract needs its side"
     },
     "reference": {
+      "unknown_department": "No active department: {detail}",
+      "mailbox_invalid": "Where the codes go must be an email address",
       "unknown_field": "Unknown field: {detail}",
       "unknown_system": "Unknown system: {detail}",
       "no_secrets": "That looks like a password or a secret; cards hold references only"
@@ -1595,6 +1709,16 @@
     "reminder": {
       "time_required": "Choose when to be reminded",
       "time_passed": "Choose a time in the future"
+    },
+    "finance": {
+      "month_not_over": "A month closes only after it has ended",
+      "month_closed": "That month is already closed",
+      "status_unknown": "Unknown status: {detail}",
+      "expense_status_unknown": "Unknown expense status: {detail}",
+      "product_unknown": "Unknown product: {detail}",
+      "unknown_entry": "Unknown entry: {detail}",
+      "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
+      "commercial_names_the_person": "Commercial needs the person credited."
     }
   },
   "notifications": {
@@ -1673,12 +1797,13 @@
     "label": "Views"
   },
   "partners": {
-    "count": "{count} organisations",
+    "count": "{count, plural, one {# organisation} other {# organisations}}",
     "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
     "newClient": "New client",
-    "newSupplier": "New supplier & partner",
+    "newSupplier": "New supplier",
+    "chooseType": "Choose a type",
     "created": "{name} added",
     "updated": "{name} updated",
     "edit": "Edit {name}",
@@ -1722,7 +1847,7 @@
     "bulk": {
       "assign": "Assign owner and priority",
       "assigned": "{count} assigned",
-      "title": "Assign {count} organisations",
+      "title": "{count, plural, one {Assign # organisation} other {Assign # organisations}}",
       "keepOwner": "Keep the owner",
       "keepPriority": "Keep the priority"
     },
@@ -1746,7 +1871,9 @@
       "contacts": "Contacts",
       "files": "Files",
       "notes": "Notes",
-      "client_since": "Client since"
+      "client_since": "Client since",
+      "noActivity": "No activity yet",
+      "noNextStep": "No next step"
     },
     "sideTabs": "Clients and suppliers",
     "tabs": {
@@ -1765,6 +1892,10 @@
       "nextStepOn": "Next step on",
       "demoDay": "Demo day",
       "loggedLate": "Logged late",
+      "event": {
+        "task_added": "Task added: {title}",
+        "task_done": "Task done: {title}"
+      },
       "timeline": "Notes and activities",
       "none": "Nothing logged yet",
       "by": "by {name}"
@@ -1912,5 +2043,145 @@
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement"
+  },
+  "finance": {
+    "title": "Finance",
+    "period": {
+      "label": "Period",
+      "mtd": "MTD",
+      "qtd": "QTD",
+      "ytd": "YTD",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "total": {
+        "mtd": "Month to date",
+        "qtd": "Quarter to date",
+        "ytd": "Year to date",
+        "custom": "Total"
+      }
+    },
+    "stamp": "Payments · as of {date}",
+    "stampNone": "Payments · as of —",
+    "tile": {
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit"
+    },
+    "sar": "SAR",
+    "provisional": "of which Provisional",
+    "provisionalUnits": "{count, plural, one {# unit} other {# units}}",
+    "notInvoiced": "Not yet invoiced",
+    "ready": "Ready",
+    "pending": "Pending",
+    "commissions": "Commissions paid outside Payments are not included.",
+    "attention": {
+      "title": "Needs attention",
+      "checks": "Checks failing",
+      "noClient": "No client",
+      "late": "Late changes"
+    },
+    "months": {
+      "title": "Months",
+      "month": "Month",
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit",
+      "provisional": "Provisional profit",
+      "open": "Open",
+      "notClosed": "Not closed",
+      "closed": "Closed {date}",
+      "close": "Close month",
+      "lateChanges": "Late changes · {count}",
+      "afterClose": "After close",
+      "gap": "{amount} SAR not in the months",
+      "none": "—"
+    },
+    "late": {
+      "late_paid": "Paid late",
+      "dropped": "Cancelled late",
+      "cost_changed": "Late cost",
+      "revenue_changed": "Revenue changed"
+    },
+    "close": {
+      "title": "Close {month}?",
+      "body": "It will never change. Later news becomes a dated note.",
+      "done": "{month} closed"
+    },
+    "service": {
+      "title": "By service",
+      "not_income": "Not income",
+      "no_service": "No service",
+      "not_split": "Not split",
+      "gap": "Not itemised",
+      "empty": "No income in this period"
+    },
+    "failed": {
+      "figures": "Finance figures",
+      "months": "The months",
+      "service": "Income by service",
+      "health": "What needs attention",
+      "invoiced": "Not yet invoiced",
+      "stamp": "Payments date"
+    },
+    "state": {
+      "provisional": "Provisional",
+      "final": "Final",
+      "pending": "Pending",
+      "notCounted": "Not counted"
+    },
+    "kind": {
+      "transaction": "Transaction",
+      "standalone": "Standalone",
+      "billing": "Monthly invoice",
+      "wallet_topup": "Wallet top-up"
+    },
+    "source": {
+      "typed": "Typed"
+    },
+    "number": {
+      "transaction": "Transaction no.",
+      "status": "Status",
+      "channel": "Channel",
+      "created": "Created",
+      "paid": "Paid",
+      "total": "Total"
+    },
+    "channel": {},
+    "new": {
+      "title": "New invoice",
+      "kind": "Kind",
+      "saveNew": "Save + new",
+      "saved": "{ref} saved",
+      "customer": "Customer",
+      "clientId": "Client ID",
+      "name": "Name",
+      "email": "Email",
+      "lines": "Lines",
+      "addLine": "Add line",
+      "removeLine": "Remove line",
+      "product": "Product",
+      "service": "Service",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "expenses": "Expenses",
+      "addExpense": "Add expense",
+      "removeExpense": "Remove expense",
+      "type": "Type",
+      "amount": "Amount",
+      "merchant": "Merchant",
+      "reference": "Reference",
+      "problem": {
+        "required": "Required",
+        "invalid": "Not valid",
+        "too_long": "Too long",
+        "used": "Already used"
+      },
+      "lists": "The word lists",
+      "lastSaved": "Last saved",
+      "noFigures": "In no figures"
+    }
   }
 }

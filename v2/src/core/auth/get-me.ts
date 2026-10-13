@@ -4,6 +4,7 @@ import 'server-only';
 import { cache } from 'react';
 import { serverDb } from '@/core/db/server';
 import { toDbError } from '@/core/db/errors';
+import { readTwice } from '@/core/db/retry';
 import type { MeAnswer } from './me';
 
 /** api.me() for this request's session, or null when there is no session at all. */
@@ -12,7 +13,8 @@ export const getMe = cache(async (): Promise<MeAnswer | null> => {
   // Only whether a session cookie is there; the database verifies the token itself when api.me() is called.
   const { data } = await db.auth.getSession();
   if (!data.session) return null;
-  const { data: me, error } = await db.rpc('me');
+  // A call that failed on its way is tried once more before the error screen (W43).
+  const { data: me, error } = await readTwice(() => db.rpc('me'));
   if (error) {
     // A token the database no longer accepts (expired past refresh, or its session deleted) is "no session".
     if (error.code === 'PGRST301' || error.code === 'PGRST303') return null;

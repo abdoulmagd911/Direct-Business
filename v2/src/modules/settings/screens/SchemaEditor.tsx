@@ -18,11 +18,11 @@ const FILE_TYPES: Record<string, string> = {
   'text/csv': 'CSV',
   'text/plain': 'Text',
   'application/msword': 'Word (.doc)',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word (.docx)',
   'application/vnd.ms-excel': 'Excel (.xls)',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel (.xlsx)',
   'application/vnd.ms-powerpoint': 'PowerPoint (.ppt)',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint (.pptx)',
   'application/zip': 'ZIP',
 };
 
@@ -54,6 +54,8 @@ export function useValueWords(settingKey: string) {
 export function SchemaValue({ settingKey, value }: { settingKey: string; value: unknown }) {
   const word = useValueWords(settingKey);
   const keyWord = useKeyWords();
+  const t = useTranslations();
+  if (value === '' || value === null || value === undefined) return <>{t('settings.setting.notSet')}</>;
   if (Array.isArray(value)) return <>{value.length ? value.map(word).join(' · ') : '—'}</>;
   if (value && typeof value === 'object')
     return (

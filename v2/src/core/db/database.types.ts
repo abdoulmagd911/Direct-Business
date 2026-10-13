@@ -17,6 +17,7 @@ export type Database = {
         Returns: Json;
       };
       access_clear_person_level: { Args: { p_page: string; p_person: string; p_reason: string }; Returns: Json };
+      access_clear_team_level: { Args: { p_page: string; p_reason: string; p_team: string }; Returns: Json };
       access_matrix: { Args: Record<PropertyKey, never>; Returns: Json };
       access_of_person: { Args: { p_person: string }; Returns: Json };
       access_set_person_capability: {
@@ -34,6 +35,10 @@ export type Database = {
       };
       access_set_role_level: {
         Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_role: string };
+        Returns: Json;
+      };
+      access_set_team_level: {
+        Args: { p_level: 'none' | 'view' | 'own' | 'full'; p_page: string; p_reason: string; p_team: string };
         Returns: Json;
       };
       achievement: { Args: { p_id: string }; Returns: Json };
@@ -100,6 +105,8 @@ export type Database = {
         Returns: Json;
       };
       can_see: { Args: { p_entity: string; p_id: string }; Returns: boolean };
+      client_id_close: { Args: { p_closed_on: string; p_id: string; p_reason: string }; Returns: Json };
+      client_id_reopen: { Args: { p_id: string; p_reason: string }; Returns: Json };
       code_terms_add: {
         Args: {
           p_approved_by: string;
@@ -117,6 +124,7 @@ export type Database = {
       };
       contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
       contacts_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      contract_renewal_task: { Args: { p_contract: string }; Returns: Json };
       contract_save: {
         Args: { p_id: string; p_partner: string; p_reason?: string; p_values: Json; p_version?: number };
         Returns: Json;
@@ -169,6 +177,107 @@ export type Database = {
       file_review_set: { Args: { p_id: string; p_review_on: string; p_version?: number }; Returns: Json };
       files: { Args: { p_entity: string; p_id: string; p_side?: string }; Returns: Json };
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      finance_channel_set: {
+        Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
+        Returns: Json;
+      };
+      finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_difference_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          differences: number;
+          invoice_id: string;
+        }[];
+      };
+      finance_difference_decide: {
+        Args: { p_choice: string; p_id: string; p_reason?: string; p_version: number };
+        Returns: Json;
+      };
+      finance_differences: {
+        Args: { p_invoice?: string };
+        Returns: {
+          field: string;
+          from_import: string;
+          id: string;
+          import_time: string;
+          invoice_id: string;
+          invoice_ref: string;
+          line_no: number;
+          mine: string;
+          row_id: string;
+          row_table: string;
+          version: number;
+        }[];
+      };
+      finance_exclusion_rule_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      finance_exclusion_rule_save: {
+        Args: { p_fields: Json; p_id: string; p_reason?: string; p_version?: number };
+        Returns: Json;
+      };
+      finance_exclusion_rules: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_health: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_import: {
+        Args: {
+          p_dry_run?: boolean;
+          p_export_time: string;
+          p_file: string;
+          p_file_name?: string;
+          p_rows: Json;
+          p_sha256?: string;
+        };
+        Returns: Json;
+      };
+      finance_import_map: { Args: { p_source?: string }; Returns: Json };
+      finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
+      finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
+      finance_no_supplier_cost_set: {
+        Args: { p_product: string; p_reason?: string; p_value: boolean; p_version: number };
+        Returns: Json;
+      };
+      finance_not_invoiced: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_partner_credit: { Args: { p_partner: string }; Returns: Json };
+      finance_partner_months: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_payments_as_of: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_period: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_period_units: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          channel: string;
+          cost: number;
+          cost_is: string;
+          counted: boolean;
+          dpin: string;
+          estimate: number;
+          excluded_reason: string;
+          invoice_id: string;
+          loss: boolean;
+          month_on: string;
+          paid_on: string;
+          partner_id: string;
+          profit: number;
+          ref: string;
+          revenue: number;
+          unit_kind: string;
+        }[];
+      };
+      finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
+      finance_receivables: { Args: { p_partner?: string }; Returns: Json };
+      finance_row_add: { Args: { p_fields: Json; p_reason?: string; p_table: string }; Returns: Json };
+      finance_row_edit: {
+        Args: { p_fields: Json; p_id: string; p_reason?: string; p_table: string; p_version: number };
+        Returns: Json;
+      };
+      finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
+      finance_sales_by_code: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
+      finance_tender_client_id_set: {
+        Args: { p_identifier: string; p_reason?: string; p_tender: string };
+        Returns: Json;
+      };
+      finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
@@ -202,6 +311,16 @@ export type Database = {
         Returns: Json;
       };
       list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
+      match_decide: {
+        Args: { p_decision: string; p_key: string; p_partner?: string; p_reason?: string };
+        Returns: Json;
+      };
+      match_pin_clear: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      match_pin_set: {
+        Args: { p_invoice: string; p_kind: string; p_partner: string; p_reason: string };
+        Returns: Json;
+      };
+      match_queue: { Args: Record<PropertyKey, never>; Returns: Json };
       me: { Args: Record<PropertyKey, never>; Returns: Json };
       my_day: { Args: { p_limit?: number; p_offset?: number; p_scope?: string; p_since?: string }; Returns: Json };
       my_devices: {
@@ -242,7 +361,10 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      opportunity_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
+      overview: { Args: { p_from?: string; p_period?: string; p_segment?: string; p_to?: string }; Returns: Json };
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
@@ -250,12 +372,14 @@ export type Database = {
         Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_client_counts: { Args: { p_on?: string }; Returns: Json };
       partner_create: { Args: { p_partner: Json; p_reason?: string }; Returns: Json };
       partner_merge: { Args: { p_kept: string; p_merged: string; p_reason: string }; Returns: Json };
       partner_owner_set: {
         Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_pipeline: { Args: { p_partner: string }; Returns: Json };
       partner_references: { Args: { p_partner: string }; Returns: Json };
       partner_side_off: { Args: { p_id: string; p_reason?: string; p_side: string; p_until?: string }; Returns: Json };
       partner_side_set: { Args: { p_id: string; p_reason?: string; p_side: string; p_values: Json }; Returns: Json };
@@ -303,10 +427,29 @@ export type Database = {
       };
       person_email_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       person_emails_unlinked: { Args: { p_person: string }; Returns: string[] };
+      person_leave: {
+        Args: { p_id: string; p_left_on?: string; p_reason: string; p_reassign_to?: string };
+        Returns: Json;
+      };
+      person_open_work: { Args: { p_id: string }; Returns: Json };
       person_password_set: { Args: { p_person: string; p_reason: string; p_replace?: boolean }; Returns: Json };
       person_sign_out: { Args: { p_device?: string; p_person: string }; Returns: number };
-      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string }; Returns: Json };
+      person_switch: { Args: { p_id: string; p_on: boolean; p_reason: string; p_reassign_to?: string }; Returns: Json };
       person_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
+      pipeline_board: { Args: { p_entity: string; p_filter?: Json }; Returns: Json };
+      pipeline_card: { Args: { p_entity: string; p_id: string }; Returns: Json };
+      pipeline_move: {
+        Args: {
+          p_entity: string;
+          p_happened_on?: string;
+          p_id: string;
+          p_stage: string;
+          p_values?: Json;
+          p_version?: number;
+        };
+        Returns: Json;
+      };
+      pipeline_remove: { Args: { p_entity: string; p_ids: string[]; p_reason?: string }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
@@ -377,6 +520,7 @@ export type Database = {
       };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
+      task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
@@ -384,6 +528,9 @@ export type Database = {
         Args: { p_close_items?: boolean; p_happened_on?: string; p_id: string; p_reason?: string; p_status: string };
         Returns: Json;
       };
+      task_template_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
+      task_templates: { Args: Record<PropertyKey, never>; Returns: Json };
+      task_templates_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       task_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
@@ -403,6 +550,9 @@ export type Database = {
         };
         Returns: Json;
       };
+      templates_offered: { Args: { p_event: string; p_partner?: string }; Returns: Json };
+      tender_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };

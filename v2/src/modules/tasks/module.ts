@@ -100,6 +100,10 @@ export default defineModule({
       // What happened stays as it was logged: retiring a status leaves its history alone (V161).
       history: true,
     },
+    // Templates, generated on a schedule or offered by an event (§3.7, V479), and the occurrences made: admins' own, on
+    // Settings › Work; a person reads an offered template only through its door (api.templates_offered).
+    { key: 'task_template', table: 'work.task_template', page: 'settings.work', label: 'entity.task_template' },
+    { key: 'task_occurrence', table: 'work.task_occurrence', page: 'settings.work', label: 'entity.task_occurrence' },
   ],
   settings: [
     {

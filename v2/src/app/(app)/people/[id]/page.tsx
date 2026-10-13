@@ -7,6 +7,9 @@ import { PersonRecord, type PersonRecordData } from '@/modules/org/screens/Perso
 import type { OrgAnswer, PeopleAnswer, PersonAccess } from '@/modules/org/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.settings.org');
 
 export default async function PersonPage({
   params,

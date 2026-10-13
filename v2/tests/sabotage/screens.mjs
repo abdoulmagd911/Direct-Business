@@ -18,18 +18,20 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-white-on-accent',
     breaks: ['check:accent-fill-only'],
-    expect: 'src/ui/Button.tsx',
+    expect: 'src/ui/button-variants.ts',
     edits: [
       {
-        file: 'src/ui/Button.tsx',
+        file: 'src/ui/button-variants.ts',
         find: 'bg-primary text-on-primary hover:bg-primary-hover',
         replace: 'bg-accent text-on-accent hover:bg-accent-hover',
       },
     ],
   },
+
   {
     name: 'plant-stray-ar-key',
     breaks: ['check:i18n-catalogs'],
@@ -42,6 +44,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-hard-coded-sentence',
     breaks: ['check:i18n-catalogs'],
@@ -54,6 +57,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'plant-screen-word',
     breaks: ['check:screen-words'],
@@ -68,12 +72,14 @@ export const sabotages = [
     ],
   },
   // ---- blind checks: the unit test of each check must catch a check that stopped looking
+
   {
     name: 'blind-ui-no-hints',
     breaks: [unit('the-no-hints-check-refuses-banners-callouts-and-hint-text')],
     expect: 'refuses a hint or banner component',
     edits: [{ file: 'scripts/checks/ui-no-hints.mjs', find: '[COMPONENT, ', replace: '[/$^/g, ' }],
   },
+
   {
     name: 'blind-accent-fill-only',
     breaks: [unit('the-accent-check-refuses-text-in-the-accent-and-labels-on-it')],
@@ -82,6 +88,7 @@ export const sabotages = [
       { file: 'scripts/checks/accent-fill-only.mjs', find: 'if (TEXT_ACCENT.test(line))', replace: 'if (false)' },
     ],
   },
+
   {
     name: 'blind-i18n-catalogs',
     breaks: [unit('the-catalog-check-refuses-a-missing-key-and-a-hard-coded-sentence')],
@@ -90,6 +97,7 @@ export const sabotages = [
       { file: 'scripts/checks/i18n-catalogs.mjs', find: "if (lit.kind !== 'jsx') continue;", replace: 'continue;' },
     ],
   },
+
   {
     name: 'blind-catalog-duplicates',
     breaks: [unit('the-catalog-check-refuses-a-missing-key-and-a-hard-coded-sentence')],
@@ -115,12 +123,14 @@ export const sabotages = [
     ],
   },
   // ---- tokens: the design system table is the truth
+
   {
     name: 'tokens-drift',
     breaks: ['unit:tests/unit/tokens.test.ts'],
     expect: 'direct --primary',
     edits: [{ file: 'src/ui/tokens.css', find: '--primary: #c94c14;', replace: '--primary: #f06820;' }],
   },
+
   {
     name: 'prefs-accept-anything',
     breaks: ['unit:tests/unit/prefs.test.ts'],
@@ -134,6 +144,7 @@ export const sabotages = [
     ],
   },
   // ---- end to end
+
   {
     name: 'confirm-focuses-remove',
     breaks: ['e2e:tests/e2e/dialogs.spec.ts'],
@@ -146,6 +157,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'panel-ignores-escape',
     breaks: ['e2e:tests/e2e/dialogs.spec.ts'],
@@ -158,6 +170,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'label-on-orange',
     breaks: ['e2e:tests/e2e/kit.spec.ts'],
@@ -170,6 +183,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'nav-shows-every-page',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -198,6 +212,7 @@ export const sabotages = [
     ],
   },
   // ---- P3-7 (V401, FLOW-08): each promise of tests/e2e/p3-7.spec.ts seen red
+
   {
     name: 'conflict-silently-overwrites',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -210,6 +225,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bell-never-marks-read',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -222,12 +238,14 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'follow-does-nothing',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
     expect: 'data-follow][data-following',
     edits: [{ file: 'src/ui/FollowButton.tsx', find: 'p_on: !on }', replace: 'p_on: false }' }],
   },
+
   {
     name: 'restore-never-restores',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -240,6 +258,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bulk-one-request-per-row',
     breaks: ['e2e:tests/e2e/p3-7.spec.ts'],
@@ -252,6 +271,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'team-arabic-optional',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -264,6 +284,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'list-arabic-optional',
     breaks: ['e2e:tests/e2e/settings.spec.ts'],
@@ -276,6 +297,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'setting-saves-without-reason',
     breaks: ['e2e:tests/e2e/settings.spec.ts'],
@@ -288,6 +310,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-saves-nothing',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -300,6 +323,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'sign-in-grows-a-google-door',
     breaks: ['e2e:tests/e2e/password.spec.ts'],
@@ -314,6 +338,7 @@ export const sabotages = [
     ],
   },
   // ---- the door (the visual spec of 29 Sep, V213)
+
   {
     name: 'door-offline-reads-as-wrong-password',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -326,6 +351,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'door-eye-shows-nothing',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -338,6 +364,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'door-panel-grows-a-tagline',
     breaks: ['e2e:tests/e2e/door.spec.ts'],
@@ -352,6 +379,7 @@ export const sabotages = [
     ],
   },
   // ---- the QA fixes on #92 (My profile reachable, failed reads named, only changed fields sent, Undo resyncs)
+
   {
     name: 'profile-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -364,6 +392,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-keeps-the-undone-value',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -376,6 +405,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
@@ -388,6 +418,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'person-edit-sends-every-field',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -400,6 +431,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'person-edit-starts-from-a-stale-copy',
     breaks: ['e2e:tests/e2e/org.spec.ts'],
@@ -412,6 +444,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'failed-read-drawn-as-no-access',
     breaks: ['unit:tests/unit/org/a-failed-read-is-named-never-drawn-empty.test.ts'],
@@ -425,6 +458,7 @@ export const sabotages = [
     ],
   },
   // ---- the catalogue gaps (ACC-090/091/127/129/139, PRF-002/123)
+
   {
     name: 'none-gets-an-empty-page',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -437,6 +471,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'root-ignores-the-start-page',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -449,6 +484,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'admins-start-page-ignored',
     breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
@@ -461,6 +497,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'arabic-never-switched-on',
     breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
@@ -473,6 +510,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -485,6 +523,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-link-lost-in-the-drawer',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -497,6 +536,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'failed-read-drawn-as-empty',
     breaks: ['e2e:tests/e2e/person-reads.spec.ts'],
@@ -509,6 +549,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'profile-link-lost-in-the-bottom-bar',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
@@ -521,6 +562,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'at-risk-needs-no-reason',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -533,6 +575,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'bulk-assign-one-by-one',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -545,6 +588,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'hover-card-shows-one-side',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -557,6 +601,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'no-role-reads-as-allowed',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -569,6 +614,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'not-found-shows-the-raw-path',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -582,6 +628,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'activity-shows-column-names',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -594,6 +641,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'setting-value-shows-the-key',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -606,6 +654,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'account-read-from-kind',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -631,6 +680,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'create-offers-an-unbuilt-screen',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
@@ -638,11 +688,12 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: '  return CREATE_ACTIONS.filter((a) => BUILT.has(a.page) && ',
-        replace: '  return CREATE_ACTIONS.filter((a) => BUILT.size > 0 && ',
+        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
+        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
       },
     ],
   },
+
   {
     name: 'access-list-closed-for-admins',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
@@ -655,6 +706,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'list-hides-its-side',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -667,6 +719,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'page-squeezes-its-tabs',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -679,6 +732,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'admin-account-gets-a-day',
     breaks: ['e2e:tests/e2e/qa-127.spec.ts'],
@@ -691,6 +745,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'turn-into-offers-a-task-too-soon',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -698,11 +753,12 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  action_item: 'tasks.turn_into',\n",
       },
     ],
   },
+
   {
     name: 'block-draws-every-row',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -715,6 +771,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'wrap-up-carries-to-a-friday',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -727,6 +784,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'private-note-reads-as-everyone',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -739,6 +797,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'capture-starts-shared',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -751,6 +810,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'wrap-up-defaults-to-done',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -763,6 +823,33 @@ export const sabotages = [
       },
     ],
   },
+
+  {
+    name: 'action-item-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'an action item brought along from a checklist leads to its task',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'task' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'action-item-chip-reads-as-a-meeting',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'it names the item, not a logged meeting',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: "link.entity === 'action_item' && link.number",
+        replace: "link.entity === 'action_item' && link.number === 'never'",
+      },
+    ],
+  },
+
   {
     name: 'turned-into-chip-leads-nowhere',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -770,11 +857,12 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;",
+        find: "if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}?tab=activity`;",
         replace: 'if (link.partner_id === "never") return null;',
       },
     ],
   },
+
   {
     name: 'from-note-chip-hidden',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -787,6 +875,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'record-tabs-lose-their-words',
     breaks: ['e2e:tests/e2e/partners.spec.ts'],
@@ -799,6 +888,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'mark-seen-keeps-the-block',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
@@ -811,6 +901,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'prefsync-copies-the-default-as-a-choice',
     breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
@@ -823,6 +914,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'own-last-email-offers-remove',
     breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
@@ -835,6 +927,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'remove-email-skips-the-ban',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
@@ -847,6 +940,25 @@ export const sabotages = [
       },
     ],
   },
+
+  {
+    name: 'history-lists-a-field-twice',
+    breaks: ['unit:tests/unit/shell/a-request-that-changes-one-field-on-two-records-names-it-once.test.tsx'],
+    expect: 'one chip for the field',
+    edits: [
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'const seen = byField.get(f) ?? [];',
+        replace: 'const seen = byField.get(`${c.id}-${f}`) ?? [];',
+      },
+      {
+        file: 'src/ui/record/ActivityTimeline.tsx',
+        find: 'byField.set(f, seen);',
+        replace: 'byField.set(`${c.id}-${f}`, seen);',
+      },
+    ],
+  },
+
   {
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
@@ -859,6 +971,21 @@ export const sabotages = [
       },
     ],
   },
+
+  {
+    name: 'add-person-email-allows-autofill',
+    breaks: ['e2e:tests/e2e/work-email-fields-turn-autofill-off.spec.ts'],
+    expect: "Add person's Work email turns autofill off",
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n              autoComplete="off"\n',
+        replace:
+          '              onChange={(e) => field(\'email\')(e.target.value)}\n              className="font-data"\n',
+      },
+    ],
+  },
+
   {
     name: 'suppliers-door-lost-when-clients-none',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
@@ -871,6 +998,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'capped-list-says-nothing',
     breaks: ['unit:tests/unit/partners/a-list-that-reads-its-first-rows-says-so.test.tsx'],
@@ -883,6 +1011,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'achievement-record-has-no-address',
     breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
@@ -895,6 +1024,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-page-no-longer-opens-achievements',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -907,6 +1037,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'achievements-short-address-lost',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -919,6 +1050,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'create-offers-achievement-at-full-only',
     breaks: ['e2e:tests/e2e/achievements-doors.spec.ts'],
@@ -931,6 +1063,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-page-not-built-for-create',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -943,6 +1076,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'kpis-built-offers-an-achievement-turn-into-nobody-can-take',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -955,6 +1089,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'task-record-has-no-address',
     breaks: ['unit:tests/unit/shell/an-achievement-opens-on-its-record-page.test.ts'],
@@ -967,6 +1102,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tasks-page-not-built-for-create',
     breaks: ['e2e:tests/e2e/shell.spec.ts'],
@@ -979,6 +1115,7 @@ export const sabotages = [
       },
     ],
   },
+
   {
     name: 'tasks-built-offers-a-turn-into-nobody-can-take',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
@@ -986,8 +1123,719 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: "  task: 'tasks.turn_into',\n  action_item: 'tasks.turn_into',\n",
+        find: "  task: 'tasks.turn_into_task',\n  action_item: 'tasks.turn_into',\n",
         replace: "  task: 'tasks',\n  action_item: 'tasks',\n",
+      },
+    ],
+  },
+
+  {
+    name: 'plus-offers-task-with-no-team-to-work-in',
+    breaks: ['unit:tests/unit/shell/the-plus-leaves-out-task-for-someone-with-no-team-to-work-in.test.ts'],
+    expect: 'Task is not offered to someone with no team to work in',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: ' && !a.except?.(me),',
+        replace: ',',
+      },
+    ],
+  },
+
+  {
+    name: 'tab-title-is-lost',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'is titled with its page',
+    edits: [
+      {
+        file: 'src/ui/shell/page-title.ts',
+        find: '({ title: (await getTranslations())(key) })',
+        replace: '({})',
+      },
+    ],
+  },
+
+  {
+    name: 'record-title-is-cut-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the title wraps to a second line',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'className="line-clamp-2 break-words text-3xl',
+        replace: 'className="truncate text-3xl',
+      },
+    ],
+  },
+
+  {
+    name: 'breadcrumb-link-is-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'a breadcrumb link is 24 px or taller',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
+        replace: 'className="hover:underline"',
+      },
+    ],
+  },
+
+  {
+    name: 'header-breadcrumb-link-is-short',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'a header breadcrumb link is 24 px or taller',
+    edits: [
+      {
+        file: 'src/ui/PageHeader.tsx',
+        find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
+        replace: 'className="hover:underline"',
+      },
+    ],
+  },
+
+  {
+    name: 'tab-is-narrow',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the Me tab is 24 px wide or more',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: 'inline-flex min-h-11 min-w-6 items-center justify-center whitespace-nowrap',
+        replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-header-switch-is-small',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the header switch is 24 px wide or more',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'className="relative size-6 before:absolute',
+        replace: 'className="relative size-5 before:absolute',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-keeps-empty-columns-on-a-phone',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'the Title column gets the spare width',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: "? 'max-sm:hidden'",
+        replace: '? undefined',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-has-the-layout-switch',
+    breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
+    expect: 'Past work has no List / Board / Calendar switch',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "{f.scope === 'past' ? null : <LayoutSwitch filters={f} />}",
+        replace: '<LayoutSwitch filters={f} />',
+      },
+    ],
+  },
+
+  {
+    name: 'page-titles-lost',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'My day · Commercial',
+    edits: [
+      {
+        file: 'src/ui/shell/page-title.ts',
+        find: 'title: (await getTranslations())(key)',
+        replace: "title: 'Commercial'",
+      },
+    ],
+  },
+
+  {
+    name: 'no-access-has-no-way-out',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-no-access-home',
+    edits: [
+      {
+        file: 'src/ui/DataState.tsx',
+        find: '{goHome ? (',
+        replace: '{goHome && false ? (',
+      },
+    ],
+  },
+
+  {
+    name: 'phone-search-too-short',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a finger-sized Search box',
+    edits: [
+      {
+        file: 'src/ui/shell/TopBar.tsx',
+        find: "'flex h-11 min-w-0",
+        replace: "'flex h-[38px] min-w-0",
+      },
+    ],
+  },
+
+  {
+    name: 'setting-default-shows-a-date',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'a setting nobody changed says Default',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: "companyRow && companyRow.reason !== 'default'",
+        replace: 'companyRow',
+      },
+    ],
+  },
+
+  {
+    name: 'file-types-without-extensions',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Word (.docx)',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        find: "wordprocessingml.document': 'Word (.docx)'",
+        replace: "wordprocessingml.document': 'Word'",
+      },
+    ],
+  },
+
+  {
+    name: 'list-key-stays-in-the-table',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the key sits behind Details',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: '<details className="rounded-md border border-border px-3 py-2" data-list-details>',
+        replace: '<details open className="rounded-md border border-border px-3 py-2" data-list-details>',
+      },
+    ],
+  },
+
+  {
+    name: 'list-key-needs-typing',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'data-list-save',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/ListEditor.tsx',
+        find: 'draft.key.trim() ||',
+        replace: 'draft.key.trim() &&',
+      },
+    ],
+  },
+
+  {
+    name: 'settings-empty-group-explains-the-build',
+    breaks: ['unit:tests/unit/pages/an-empty-settings-group-says-what-it-is-in-one-line.test.tsx'],
+    expect: 'Nothing to set up here yet.',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"emptyGroup": "Nothing to set up here yet."',
+        replace: '"emptyGroup": "No settings here yet. They arrive with the step that builds this area."',
+      },
+    ],
+  },
+
+  {
+    // QA-537: Settings › Finance without the two lists kept on the finance page (V627) must turn W44's test red.
+    name: 'settings-finance-loses-its-kept-lists',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'the channel list is shown',
+    edits: [
+      {
+        file: 'src/modules/settings/groups.ts',
+        find: '(e.page === pageKey || e.shownIn === pageKey)',
+        replace: '(e.page === pageKey)',
+      },
+    ],
+  },
+
+  {
+    name: 'sign-in-boxes-turn-autofill-off',
+    breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
+    expect: 'Expected: "username"',
+    edits: [
+      {
+        file: 'src/modules/org/screens/PasswordDoor.tsx',
+        find: 'autoComplete="username"',
+        replace: 'autoComplete="off"',
+      },
+    ],
+  },
+
+  {
+    name: 'preference-runs-stay-separate',
+    breaks: ['unit:tests/unit/shell/a-run-of-theme-and-density-changes-is-one-row-in-the-log.test.ts'],
+    expect: 'three changes, one row',
+    edits: [
+      {
+        file: 'src/ui/record/history.ts',
+        find: 'if (run.length === 1) {',
+        replace: 'if (run.length >= 1) {',
+      },
+    ],
+  },
+
+  {
+    name: 'activity-delete-has-no-words',
+    breaks: ['unit:tests/unit/shell/the-activity-log-has-words-for-a-deleted-record.test.tsx'],
+    expect: 'a deleted record has words',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '      "delete": "{what} deleted",\n',
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'new-supplier-button-says-and-partner',
+    breaks: ['e2e:tests/e2e/partners.spec.ts'],
+    expect: 'the button is New supplier, not New supplier & partner',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"newSupplier": "New supplier",',
+        replace: '"newSupplier": "New supplier & partner",',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-chip-leads-nowhere',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: 'a note turned into a task leads to the task by its number',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "(link.entity === 'task' || link.entity === 'action_item') && link.number",
+        replace: "link.entity === 'action_item' && link.number",
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-forgets-the-checklist-ask',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the checklist came along when asked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '...(withItems ? { action_items: true } : {})',
+        replace: '',
+      },
+    ],
+  },
+
+  {
+    name: 'turn-into-task-makes-it-without-the-note',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'the note says it became a task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: '(fromNote\n          ? rpc(',
+        replace: "(fromNote?.id === 'never'\n          ? rpc(",
+      },
+    ],
+  },
+
+  {
+    name: 'own-last-email-refusal-has-no-words',
+    breaks: ['e2e:tests/e2e/own-last-email.spec.ts'],
+    expect: "the guard's refusal is said in plain words",
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"own_last_email": "This is your last email you can sign in with — add another before removing it"',
+        replace:
+          '"own_last_email_unused": "This is your last email you can sign in with — add another before removing it"',
+      },
+    ],
+  },
+
+  {
+    name: 'phone-controls-shrink-again',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a layout link is 44 px tall',
+    edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
+  },
+
+  {
+    name: 'done-tick-target-is-the-circle',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'and its button is a finger wide',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'inline-grid size-11 shrink-0 place-items-center rounded-full focus-visible',
+        replace: 'inline-grid size-6 shrink-0 place-items-center rounded-full focus-visible',
+      },
+    ],
+  },
+
+  {
+    name: 'new-client-hides-what-it-needs',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type each say Required',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/NewPartnerDialog.tsx',
+        find: "<Field label={t('partners.columns.type')} required={t('common.required')}>",
+        replace: "<Field label={t('partners.columns.type')}>",
+      },
+    ],
+  },
+
+  {
+    name: 'back-link-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Back link is 44 px wide',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-grid size-8 max-sm:size-11 place-items-center',
+        replace: 'inline-grid size-8 place-items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'breadcrumb-shrinks-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'a breadcrumb: a tap',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: 'inline-flex min-h-6 items-center hover:underline max-sm:min-h-11',
+        replace: 'inline-flex min-h-6 items-center hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'calendar-arrows-shrink-on-a-phone',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'is 44 px wide',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskCalendar.tsx',
+        find: 'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 max-sm:size-11 items-center',
+        replace:
+          'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 items-center',
+      },
+    ],
+  },
+
+  {
+    name: 'status-pill-target-is-the-chip',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the Status pill: a tap',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'before:absolute before:inset-x-0 before:-inset-y-2.5',
+        replace: 'before:hidden',
+      },
+    ],
+  },
+
+  {
+    name: 'past-work-tick-label-is-small',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'tick: a tap',
+    edits: [
+      {
+        file: 'src/ui/grid/PastWorkGrid.tsx',
+        find: 'text-sm max-sm:min-h-11" data-past-work-header-tick',
+        replace: 'text-sm" data-past-work-header-tick',
+      },
+    ],
+  },
+
+  {
+    name: 'select-drops-aria-required',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'the name and the type picker both tell a screen reader',
+    edits: [
+      {
+        file: 'src/ui/Select.tsx',
+        find: 'aria-required={ariaRequired}',
+        replace: 'aria-required={undefined}',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-header-add-stays-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the header has no Add task on a phone',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '              data-add-task\n              className="max-sm:hidden"',
+        replace: '              data-add-task\n              className=""',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-all-tabs-stay-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a member sees My work and Owned',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "folded.includes(t) && 'max-sm:hidden'",
+        replace: "folded.includes(t) && ''",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-manager-gets-the-members-tabs',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a manager sees My work and Team',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: "['my_work', 'team'] : ['my_work', 'owned']",
+        replace: "['my_work', 'owned'] : ['my_work', 'owned']",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-member-gets-the-managers-tabs',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'a member sees My work and Owned',
+    edits: [
+      {
+        file: 'src/modules/tasks/rules.ts',
+        find: "['my_work', 'team'] : ['my_work', 'owned']",
+        replace: "['my_work', 'team'] : ['my_work', 'team']",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filters-stay-in-the-row-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the search is folded behind Filter',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: ": 'max-sm:hidden',",
+        replace: ": '',",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filter-button-forgets-its-count',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'Filter shows how many are on',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length',
+        replace: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length * 0',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-layout-switch-keeps-its-words-on-a-phone',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'the layout switch is icons on a phone',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: '<span className="max-sm:sr-only">',
+        replace: '<span className="">',
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-more-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'no More on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "className={cn(tabClass(foldedOn), 'gap-1 sm:hidden')}",
+        replace: "className={cn(tabClass(foldedOn), 'gap-1')}",
+      },
+    ],
+  },
+
+  {
+    name: 'tasks-filter-button-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'no Filter button on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: 'focus-visible:outline-focus sm:hidden"',
+        replace: 'focus-visible:outline-focus"',
+      },
+    ],
+  },
+
+  {
+    name: 'capture-card-overflows-at-320',
+    breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
+    expect: 'ends inside a 320 px screen',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/CaptureRow.tsx',
+        find: 'flex min-w-0 flex-[1_1_16rem] gap-2',
+        replace: 'flex min-w-[24rem] flex-[1_1_16rem] gap-2',
+      },
+    ],
+  },
+
+  {
+    name: 'task-row-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the row opens the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "after:absolute after:inset-0 after:content-[''] hover:underline",
+        replace: 'hover:underline',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-hides-its-mark',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check control shows its mark before any touch',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'text-muted group-hover:border-success',
+        replace: 'text-transparent group-hover:border-success',
+      },
+    ],
+  },
+
+  {
+    name: 'task-check-sits-under-the-row-link',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'the check does not open the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/StatusControl.tsx',
+        find: 'group relative z-10 -mx-2.5',
+        replace: 'group relative -mx-2.5',
+      },
+    ],
+  },
+
+  {
+    name: 'client-card-tap-opens-nothing',
+    breaks: ['e2e:tests/e2e/deliberate-taps.spec.ts'],
+    expect: 'a tap on the card opens the record',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: "text-link after:absolute after:inset-0 after:content-['']",
+        replace: 'text-link',
+      },
+    ],
+  },
+
+  {
+    name: 'tabs-clip-at-the-edge',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'no tab is cut off at the right edge',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
+        replace:
+          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
+      },
+    ],
+  },
+  {
+    name: 'clients-header-add-stays-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the header New client button is not drawn on a phone',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'data-partner-new\n              className="max-sm:hidden"',
+        replace: 'data-partner-new\n              className=""',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filters-stay-in-the-row-on-a-phone',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the search is folded away',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: ": 'max-sm:hidden',",
+        replace: ": '',",
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-forgets-its-count',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'the button counts the search',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'const activeFilters =\n    [filters.q].filter(Boolean).length +',
+        replace: 'const activeFilters =\n    0 * [filters.q].filter(Boolean).length +',
+      },
+    ],
+  },
+
+  {
+    name: 'clients-filter-button-shows-on-a-wide-screen',
+    breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
+    expect: 'no Filter button on a wide screen',
+    edits: [
+      {
+        file: 'src/ui/PhoneFilter.tsx',
+        find: 'focus-visible:outline-focus sm:hidden"',
+        replace: 'focus-visible:outline-focus"',
+      },
+    ],
+  },
+  {
+    name: 'clients-plus-on-the-list-opens-nothing',
+    breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
+    expect: 'Save is off until the form is whole',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'if (wantsNew && full) setCreating(true);',
+        replace: 'if (wantsNew && full && !wantsNew) setCreating(true);',
       },
     ],
   },

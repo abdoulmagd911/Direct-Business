@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { accountOf } from '@/core/auth/account';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
@@ -11,6 +11,9 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.my_day');
 
 /** What `?more=1` reads: the first block is 7 notes, the rest a person keeps open is a few dozen. */
 const ALL = 100;
@@ -22,8 +25,8 @@ export default async function MyDayPage({
 }: {
   searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
 }) {
-  const [t, me, sp] = await Promise.all([getTranslations(), requireMe(), searchParams]);
-  const title = formatDate(new Date(), 'en', { weekday: 'long' });
+  const [t, me, sp, locale] = await Promise.all([getTranslations(), requireMe(), searchParams, getLocale()]);
+  const title = formatDate(new Date(), locale === 'ar' ? 'ar' : 'en', { weekday: 'long' });
   if ((await accountOf(me.person.id)) === 'admin_account')
     return (
       <Page>

@@ -115,7 +115,7 @@ $$;
 create function test.v2_schemas() returns text[]
 language sql immutable as $$
   select array['core', 'audit', 'notify', 'authz', 'api', 'norm', 'measure',
-               'partner', 'finance', 'work', 'perf', 'report', 'appraisal', 'io', 'my']
+               'partner', 'finance', 'work', 'perf', 'report', 'appraisal', 'io', 'my', 'pipeline']
 $$;
 
 -- The roles a request can act as. Grants to the owner and to platform roles are not part of the promise.

@@ -25,7 +25,7 @@ export function Switch({
       disabled={disabled}
       aria-label={label}
       className={cn(
-        'relative inline-flex h-6 w-10 shrink-0 items-center rounded-pill bg-border-strong transition-colors duration-[var(--dur)] data-[state=checked]:bg-primary disabled:opacity-50',
+        'relative inline-flex h-6 w-10 shrink-0 before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[""] items-center rounded-pill bg-border-strong transition-colors duration-[var(--dur)] data-[state=checked]:bg-primary disabled:opacity-50',
         className,
       )}
     >

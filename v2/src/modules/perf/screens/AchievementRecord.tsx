@@ -7,6 +7,8 @@ import { useState } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate, formatMoney, formatNumber } from '@/core/i18n/format';
+import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
+import type { FromNote } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import { avatarOf, describeWith, nameOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
@@ -42,6 +44,8 @@ export type AchievementRecordData = {
   /** Full on KPIs for this record: move it, give it an owner, change anyone's (with a reason). */
   full: boolean;
   meId: string;
+  /** The note it was turned from (V379), for a reader who may see that note. */
+  fromNote: FromNote | null;
   failed: string[];
 };
 
@@ -173,7 +177,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         ]
           .filter(Boolean)
           .join(' · ')}
-        chips={<Marks row={a} />}
+        chips={
+          <>
+            <Marks row={a} />
+            {data.fromNote ? <FromNoteChip note={data.fromNote} /> : null}
+          </>
+        }
         figures={figures}
         actions={
           a.can_edit ? (

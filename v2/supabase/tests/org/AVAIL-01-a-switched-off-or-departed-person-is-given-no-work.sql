@@ -1,6 +1,7 @@
 -- AVAIL-01 — work goes only to people who can work here (WRK-092): a person switched off or past the day they left is
--- refused as an owner or a mention (person.unavailable); one leaving later still takes work until that day; what a
--- person already holds stays when they are switched off, for an admin to hand over. Made up.
+-- refused as an owner or a mention (person.unavailable); one leaving later still takes work until that day; nobody is
+-- switched off while holding work (V463), and what a person holds stays when their leaving day comes, for an admin to
+-- hand over. Made up.
 -- Sabotage: supabase/tests/sabotage/work-goes-to-a-switched-off-person.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
@@ -27,7 +28,11 @@ select test.raises(format('select api.note_add(%L, %L, %L, %L, null, %L)', 'part
   'Made-up note', array[current_setting('t.off')::uuid]), 'P0001', 'and a switched-off person is mentioned by nobody',
   'person.unavailable');
 select test.as_owner();
-update core.person set can_sign_in = false where id = current_setting('t.later')::uuid;
+select test.raises(format('update core.person set can_sign_in = false where id = %L', current_setting('t.later')),
+  'P0001', 'nobody is switched off while still holding work (V463)', 'person.open_work');
+select set_config('v2.test_now', (now() + interval '11 days')::text, true);
+select test.ok(not core.person_available(current_setting('t.later')::uuid), 'their leaving day come, they are gone');
 select test.eq((select array_agg(o.person_id) from partner.side_owner o where o.partner_id = current_setting('t.p')::uuid
                 and o.deleted_at is null and o.effective_to is null),
-  array[current_setting('t.later')::uuid], 'what a switched-off person holds stays, for an admin to hand over');
+  array[current_setting('t.later')::uuid], 'and what they hold stays, for an admin to hand over');
+select set_config('v2.test_now', '', true);

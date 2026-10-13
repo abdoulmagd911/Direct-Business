@@ -6,6 +6,9 @@ import { apiFilter, parseFilters, showsTeamLoad } from '@/modules/tasks/rules';
 import { TaskListScreen } from '@/modules/tasks/screens/TaskListScreen';
 import type { TaskList, TeamLoad } from '@/modules/tasks/types';
 import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.tasks');
 
 /** The Tasks list (§3.7; P5-2's first PR, V517): the view and chips are in the address, read here on the server. */
 export default async function TasksPage({

@@ -31,11 +31,14 @@ select test.eq(api.task_create(jsonb_build_object('title', 'Made-up for the clie
   ->> 'owner_id', current_setting('t.am1'), 'else the organisation''s account manager');
 select test.eq(api.task_create(jsonb_build_object('title', 'Made-up of my own')) ->> 'owner_id', current_setting('t.am2'),
   'else the maker');
+-- leaving tomorrow, they keep their organisations (nobody goes while holding work — V463); the day after, they are gone
 select test.as_owner();
-update core.person set active = false where id = current_setting('t.am1')::uuid;
+update core.person set left_on = core.riyadh_today() + 1 where id = current_setting('t.am1')::uuid;
+select set_config('v2.test_now', (now() + interval '2 days')::text, true);
 select test.as_person(current_setting('t.am2')::uuid);
 select test.eq(api.task_create(jsonb_build_object('title', 'Made-up after they left', 'partner_id', current_setting('t.p')))
-  ->> 'owner_id', current_setting('t.am2'), 'an account manager switched off is skipped');
+  ->> 'owner_id', current_setting('t.am2'), 'an account manager who has left is skipped');
+select set_config('v2.test_now', '', true);
 
 -- client work and its organisation
 select test.raises(format('select api.task_create(%L::jsonb)', jsonb_build_object('title', 'Made up', 'work_type', 'client')),

@@ -65,9 +65,10 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(page).toHaveURL(/\/my-day\/notes\//);
   await hydrated(page);
   await page.locator('[data-turn-into]').click();
+  await expect(page.locator('[data-turn-kind="task"]'), 'a task is offered now that its door is live').toHaveCount(1);
   await expect(
-    page.locator('[data-turn-kind="task"]'),
-    'a task is left out until Tasks is built, not greyed',
+    page.locator('[data-turn-kind="action_item"]'),
+    'an action item waits for its own dialog, left out, not greyed',
   ).toHaveCount(0);
   await page.locator('[data-turn-kind="activity"]').click();
   const dialog = page.getByRole('dialog');
@@ -96,6 +97,60 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await hydrated(page);
   await expect(page.locator('[data-note-page]')).toBeVisible();
   await expect(page.locator('[data-note-links] [data-turned-into]')).toHaveCount(0);
+});
+
+test('a note becomes a task through the note door, with the checklist as action items only when asked; the chip opens the task', async ({
+  page,
+}) => {
+  const member = await makePerson();
+  await sameTeam([member]);
+  const t = tag();
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+
+  const make = async (title: string, ask: boolean) => {
+    const r = await callAs(page.context(), 'note_capture', {
+      p_kind: 'checklist',
+      p_values: {
+        title,
+        visibility: 'private',
+        items: [
+          { text: `First step ${title}`, done: false },
+          { text: `Second step ${title}`, done: true },
+        ],
+      },
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    await page.goto(`/my-day/notes/${(r.body as { id: string }).id}`);
+    await hydrated(page);
+    await page.locator('[data-turn-into]').click();
+    await page.locator('[data-turn-kind="task"]').click();
+    const form = page.locator('[data-quick-add]');
+    await expect(form.getByLabel('Title'), "the note's title starts the task").toHaveValue(title);
+    if (ask) await form.locator('[data-with-items]').click();
+    await form.locator('[data-quick-add-save]').click();
+    await expect(toast(page, 'added')).toBeVisible();
+    const chip = page.locator('[data-note-links] [data-turned-into="task"]');
+    await expect(chip, 'the note says it became a task').toContainText(title);
+    const [row] = await sql<{ id: string }>(`select id from work.task where title = $1`, [title]);
+    const [n] = await sql<{ n: string }>(`select count(*)::text as n from work.action_item where task_id = $1`, [
+      row!.id,
+    ]);
+    return { chip, items: Number(n!.n) };
+  };
+
+  const asked = await make(`Plan the offsite ${t}`, true);
+  expect(asked.items, 'the checklist came along when asked').toBe(2);
+  const itemChips = page.locator('[data-note-links] [data-turned-into="action_item"]');
+  await expect(itemChips, 'each brought-along item has a chip').toHaveCount(2);
+  await expect(itemChips.first(), 'it names the item, not a logged meeting').toContainText(/Action item on .* step/);
+  await expect(itemChips.first(), 'and leads to the task').toHaveAttribute('href', /\/tasks\/[^/]+$/);
+  await asked.chip.click();
+  await expect(page, 'the chip opens the task').toHaveURL(/\/tasks\/[^/]+$/);
+
+  const unasked = await make(`Book the venue ${t}`, false);
+  expect(unasked.items, 'unasked, the checklist stays on the note').toBe(0);
 });
 
 test('no colleague reads a private note — not on any tab, not at its address, not an admin; a team note is under My team', async ({
