@@ -6,8 +6,10 @@ import { cn } from '../cn';
 export type KeyFigure = {
   key: string;
   label: ReactNode;
-  /** Null draws "not measured" — never a dash that could be read as zero (§2.5). */
+  /** Null draws `empty` ("No activity yet") or, when the screen gives none, the generic not-measured word — never a dash that could be read as zero (§2.5). */
   value: string | null;
+  /** What a figure with no value says in plain words ("No next step"). */
+  empty?: string;
   unit?: string;
   href?: string;
   /** The line under the value, in data terms (a date, a comparison). */
@@ -52,7 +54,7 @@ export function KeyFigures({
                   f.value === null && 'text-base font-normal text-muted',
                 )}
               >
-                {f.value ?? notMeasured}
+                {f.value ?? f.empty ?? notMeasured}
               </span>
               {f.value !== null && f.unit ? (
                 <span className={cn('font-data text-muted', size === 'md' ? 'text-sm' : 'text-xs')}>{f.unit}</span>

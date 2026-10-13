@@ -1,10 +1,15 @@
 // Sabotages for the Finance Overview (builder B, GC-5, P4-5): each breaks one promise of the brief's section F, and the
-// named test must go red for that reason.
+// named test must go red for that reason. The New invoice entries (P4-4) follow the Overview's.
 const E2E = 'e2e:tests/e2e/finance-overview.spec.ts';
 const UNIT =
   'unit:tests/unit/finance/the-overview-prints-exact-figures-and-names-a-gap-and-lists-months-newest-first.test.ts';
 const FAILED = 'unit:tests/unit/finance/a-failed-read-fails-only-its-own-block-on-the-overview.test.tsx';
 const OVERVIEW = 'src/modules/finance/screens/FinanceOverview.tsx';
+const NEW_E2E = 'e2e:tests/e2e/finance-new-invoice.spec.ts';
+const FORM = 'src/modules/finance/invoice-form.ts';
+const NEW_SCREEN = 'src/modules/finance/screens/NewInvoice.tsx';
+const READS_E2E = 'e2e:tests/e2e/finance-overview-reads.spec.ts';
+const READS = 'src/modules/finance/use-reads.ts';
 
 export const sabotages = [
   {
@@ -182,5 +187,168 @@ export const sabotages = [
         replace: '  if (a >= 1_000_000)',
       },
     ],
+  },
+
+  {
+    name: 'new-invoice-skips-the-required-check',
+    breaks: [NEW_E2E],
+    expect: 'an empty form says what is missing',
+    edits: [{ file: FORM, find: "if (d.ref.trim() === '')", replace: 'if (false)' }],
+  },
+  {
+    name: 'new-invoice-saves-a-duplicate-number',
+    breaks: [NEW_E2E],
+    expect: 'the same number twice is refused in its field',
+    edits: [{ file: NEW_SCREEN, find: 'if ((hits ?? []).some(', replace: 'if (false && (hits ?? []).some(' }],
+  },
+  {
+    name: 'new-invoice-undo-leaves-the-lines',
+    breaks: [NEW_E2E],
+    expect: 'Undo takes the line and the invoice back',
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: 'for (const rid of [...made].reverse()) await undoRequest(rid);',
+        replace: 'if (made[0]) await undoRequest(made[0]);',
+      },
+    ],
+  },
+  {
+    name: 'new-invoice-offers-a-fifth-kind',
+    breaks: [NEW_E2E],
+    expect: 'four kinds, no Credit note',
+    edits: [
+      {
+        file: FORM,
+        find: "['transaction', 'standalone', 'billing', 'wallet_topup'];",
+        replace: "['transaction', 'standalone', 'billing', 'wallet_topup', 'wallet_topup'];",
+      },
+    ],
+  },
+  {
+    name: 'new-invoice-panel-ignores-the-count',
+    breaks: [NEW_E2E],
+    expect: 'counted as the database says',
+    edits: [{ file: NEW_SCREEN, find: 'data-counted={u.counted}', replace: 'data-counted={true}' }],
+  },
+  {
+    name: 'new-invoice-panel-says-final-for-all',
+    breaks: [NEW_E2E],
+    expect: 'the state is the database',
+    edits: [{ file: NEW_SCREEN, find: "? t('finance.state.provisional')", replace: "? t('finance.state.final')" }],
+  },
+  {
+    name: 'new-invoice-panel-works-out-its-own-cost',
+    breaks: [NEW_E2E],
+    expect: 'cost is the database',
+    edits: [{ file: NEW_SCREEN, find: "['cost', u.cost],", replace: "['cost', u.revenue * 0.5]," }],
+  },
+  {
+    name: 'new-invoice-undo-keeps-the-last-saved-panel',
+    breaks: [NEW_E2E],
+    expect: 'an undone invoice is no longer shown as last saved',
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: 'setSaved((now) => (now?.ref === d.ref.trim() ? null : now));',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'month-helper-creates-its-sequence-unlocked',
+    breaks: ['e2e:tests/e2e/finance-month-helper.spec.ts'],
+    expect: 'pg_class_relname_nsp_index',
+    edits: [
+      {
+        file: 'tests/e2e/support/finance-month.ts',
+        find: 'perform pg_advisory_xact_lock(7231001); ',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'attention-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the Needs attention row stays clear of the + button',
+    edits: [{ file: OVERVIEW, find: ' max-sm:mb-16 max-sm:pe-20', replace: '' }],
+  },
+  {
+    name: 'month-row-sits-under-the-add-button',
+    breaks: [E2E],
+    expect: 'the month rows stay clear of the + button',
+    edits: [{ file: OVERVIEW, find: 'last:border-b-0 max-sm:pe-20', replace: 'last:border-b-0' }],
+  },
+  {
+    name: 'finance-reads-all-at-once',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [{ file: READS, find: 'export const LIMIT = 2;', replace: 'export const LIMIT = 99;' }],
+  },
+  {
+    name: 'finance-read-is-never-asked-again',
+    breaks: [READS_E2E],
+    expect: 'a timeout is retried, not shown',
+    edits: [
+      {
+        file: READS,
+        find: "if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;",
+        replace: 'throw e;',
+      },
+    ],
+  },
+  {
+    name: 'finance-aborted-read-overwrites-the-answer',
+    breaks: [READS_E2E],
+    expect: 'no block is left on loading or failed after going back to a period',
+    edits: [
+      {
+        file: READS,
+        find: "if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });",
+        replace: "setState({ key, block: { status: 'ready', data } });",
+      },
+      {
+        file: READS,
+        find: "signal.addEventListener('abort', cancelled, { once: true });\n    request.then(",
+        replace: 'request.then(',
+      },
+    ],
+  },
+  {
+    name: 'finance-cancelled-read-frees-its-slot',
+    breaks: [READS_E2E],
+    expect: 'at most two Finance reads are in flight at once',
+    edits: [
+      {
+        file: READS,
+        find: 'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))',
+        replace:
+          'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never).abortSignal(signal))',
+      },
+    ],
+  },
+  {
+    name: 'try-again-reloads-the-whole-page',
+    breaks: [READS_E2E],
+    expect: 'Try again brings the months back',
+    edits: [
+      {
+        file: OVERVIEW,
+        find: 'onRetry={retryBlock?.[block] ?? (() => router.refresh())}',
+        replace: 'onRetry={() => router.refresh()}',
+      },
+    ],
+  },
+  {
+    name: 'month-label-says-the-day',
+    breaks: [READS_E2E],
+    expect: 'the month is its name and year',
+    edits: [{ file: OVERVIEW, find: 'day: undefined, month:', replace: 'month:' }],
+  },
+  {
+    name: 'by-service-empty-says-nothing',
+    breaks: [READS_E2E],
+    expect: 'nothing to split says so',
+    edits: [{ file: OVERVIEW, find: 'service.rows.length === 0 && Math.abs(gap) < 1', replace: 'false' }],
   },
 ];

@@ -80,7 +80,7 @@ for (const theme of THEMES) {
       await page.screenshot({ path: shot(`clients-${theme}-${width}`) });
       await noSeriousIssue(page, 'the Clients list');
 
-      await page.goto(`/clients/${id}`);
+      await page.goto(`/clients/${id}?tab=activity`);
       await hydrated(page);
       await expect(page.getByRole('heading', { level: 1, name: `Shot Key Org ${tag}` })).toBeVisible();
       await expect(page.locator('[data-partner-notes]')).toContainText('Called to confirm');

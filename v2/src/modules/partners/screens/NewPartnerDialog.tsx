@@ -166,7 +166,12 @@ export function NewPartnerDialog({
             )}
           </Field>
         ) : null}
-        <Switch checked={f.key} onCheckedChange={(v) => setF({ ...f, key: v })} label={t('partners.keyPartner')} />
+        <div className="flex min-h-11 items-center justify-between gap-3" data-key-partner>
+          <span className="text-sm font-medium" id="new-partner-key">
+            {t('partners.keyPartner')}
+          </span>
+          <Switch checked={f.key} onCheckedChange={(v) => setF({ ...f, key: v })} label={t('partners.keyPartner')} />
+        </div>
       </div>
     </Dialog>
   );
