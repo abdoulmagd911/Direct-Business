@@ -40,3 +40,25 @@ export const sabotages = [
     ],
   },
 ];
+
+// QA-557: the door on My day.
+sabotages.push(
+  {
+    name: 'week-door-marks-friday',
+    breaks: ['unit:tests/unit/weekly-review/thursday-is-review-day-in-riyadh.test.ts'],
+    expect: 'marks Thursday',
+    edits: [{ file: 'src/modules/weekly-review/logic.ts', find: '.getUTCDay() === 4', replace: '.getUTCDay() === 5' }],
+  },
+  {
+    name: 'week-door-opens-my-day',
+    breaks: ['e2e:tests/e2e/week-door.spec.ts'],
+    expect: 'opens the weekly review',
+    edits: [
+      {
+        file: 'src/modules/weekly-review/screens/WeekDoor.tsx',
+        find: 'href="/my-day/week"',
+        replace: 'href="/my-day"',
+      },
+    ],
+  },
+);

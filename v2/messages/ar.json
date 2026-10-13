@@ -719,7 +719,9 @@
       "more": "{count, plural, one {وواحد آخر} two {واثنان آخران} few {و# أخرى} many {و# أخرى} other {و# أخرى}}",
       "note": "ملاحظة",
       "idea": "فكرة",
-      "private": "لي وحدي"
+      "private": "لي وحدي",
+      "door": "هذا الأسبوع",
+      "reviewDay": "يوم المراجعة"
     }
   },
   "entity": {

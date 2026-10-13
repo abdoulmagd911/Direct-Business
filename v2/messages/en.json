@@ -800,7 +800,9 @@
       "more": "{count, plural, one {and 1 more} other {and # more}}",
       "note": "Note",
       "idea": "Idea",
-      "private": "Only me"
+      "private": "Only me",
+      "door": "This week",
+      "reviewDay": "Review day"
     }
   },
   "entity": {
