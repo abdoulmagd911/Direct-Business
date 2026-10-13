@@ -12,7 +12,7 @@
  * Destructive presses (sign out, delete, remove, archive, switch off, merge, close month) are never made. Writes are
  * counted. Kept out of the full sweep: QA_ROUND=1 run.sh -- --grep "every control". Made-up people only.
  */
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { fx, hydrated, info, shot, signIn, sql, user, verdict } from './lib';
@@ -33,6 +33,24 @@ const NAMESPACES = new Set(
 const CODE_WORDS =
   /(?<![\w-])(null|undefined|NaN|Invalid Date|\[object Object\]|true|false|uuid|payload|enum|TODO|lorem|V\d{3}|QA-\d+|P\d-\d+[a-z]?)(?![\w-])/g;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+/** The coverage matrix (the owner's ask of 13 Oct): one JSON line per cell — a page, a link or a control, at a width, in
+ * a language, as a role — with what a real press did and the screenshot that shows it. QA_MATRIX names the file. */
+type Cell = {
+  role: string;
+  lang: string;
+  width: number;
+  route: string;
+  kind: string;
+  control: string;
+  result: string;
+  ok: boolean;
+  shot: string;
+};
+function cell(c: Cell): void {
+  if (process.env.QA_MATRIX)
+    appendFileSync(process.env.QA_MATRIX, `${JSON.stringify({ ...c, at: new Date().toISOString() })}\n`);
+}
 
 type Finding = { who: string; lang: string; width: number; page: string; problem: string; severity: string };
 
@@ -138,7 +156,7 @@ async function menuLinks(page: Page, width: number): Promise<{ label: string; hr
   return out;
 }
 
-async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, press: boolean) {
+async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, press: boolean, start = '/my-day') {
   const findings: Finding[] = [];
   const add = (pg: string, problem: string, severity: string) =>
     findings.push({ who, lang, width, page: pg, problem, severity });
@@ -154,9 +172,24 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
       errors.push((m.text().match(/MISSING_MESSAGE: [\w.]+/) ?? [m.text()])[0]!);
   });
 
-  await page.goto('/my-day');
+  await page.goto(start);
   await hydrated(page);
-  const menu = await menuLinks(page, width);
+  // signed out, the "menu" is the sign-in page and every main page's address, each of which must lead to sign-in
+  const menu =
+    start === '/my-day'
+      ? await menuLinks(page, width)
+      : [
+          start,
+          '/my-day',
+          '/tasks',
+          '/clients',
+          '/suppliers',
+          '/pipeline',
+          '/finance',
+          '/kpis',
+          '/settings',
+          '/profile',
+        ].map((href) => ({ label: href, href }));
   info({
     area: AREA,
     user: `${who} · ${lang} · ${width}`,
@@ -182,7 +215,7 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
       add(pg, `the link ${path} (on ${from.get(path) ?? '?'}) opens Not found`, 'High');
     if (r.sideways > 1) add(pg, `sideways scroll ${r.sideways}px`, 'Medium');
     if (r.cut.length) add(pg, `text cut off: ${r.cut.slice(0, 3).join('; ')}`, 'Low');
-    if (r.covered.length) add(pg, `covered: ${r.covered.slice(0, 3).join('; ')}`, 'Medium');
+    if (r.covered.length) add(pg, `covered (unscrolled): ${r.covered.slice(0, 3).join('; ')}`, 'Low');
     const keys = [...new Set(r.text.match(RAW_KEY) ?? [])].filter((k) => NAMESPACES.has(k.split('.')[0]!));
     if (keys.length) add(pg, `raw catalogue keys: ${keys.slice(0, 5).join(', ')}`, 'Medium');
     const code = [...new Set([...r.text.replace(UUID, '').matchAll(CODE_WORDS)].map((m) => m[0]))];
@@ -194,7 +227,27 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
       );
       if (left.length > 2) add(pg, `English left: ${left.slice(0, 10).join(' ')}`, 'Medium');
     }
-    await shot(page, `control-${who}-${lang}-${width}-${pg.replace(/\W+/g, '-').slice(0, 60)}`);
+    if (who === 'signed_out' && path !== start && !/^\/sign-in/.test(new URL(page.url()).pathname))
+      add(pg, `signed out, ${path} does not lead to sign-in (landed on ${new URL(page.url()).pathname})`, 'High');
+    const pageShot = `control-${who}-${lang}-${width}-${pg.replace(/\W+/g, '-').slice(0, 60)}`;
+    await shot(page, pageShot);
+    const mine = findings.filter((f) => f.page === pg && f.width === width && f.lang === lang && f.who === who);
+    cell({
+      role: who,
+      lang,
+      width,
+      route: pg,
+      kind: from.get(path) === 'the menu' ? 'menu entry' : 'link',
+      control: `${r.h1 || '(no heading)'} (from ${from.get(path) ?? '?'})`,
+      result: mine.length
+        ? mine
+            .map((f) => `[${f.severity}] ${f.problem}`)
+            .join(' | ')
+            .slice(0, 400)
+        : 'opens; nothing wrong found',
+      ok: !mine.some((f) => f.severity !== 'Low'),
+      shot: pageShot,
+    });
     // the page's own links, one per pattern
     for (const href of r.links) {
       if (!href.startsWith('/') || href.startsWith('//')) continue;
@@ -226,6 +279,15 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
           e.getAttribute('data-state') === 'active',
       );
       if (on) continue;
+      const kind = await el.evaluate((e) => {
+        const role = e.getAttribute('role');
+        if (role === 'tab') return 'tab';
+        if (role === 'switch' || role === 'checkbox') return 'toggle';
+        if (e.tagName === 'SUMMARY') return 'section';
+        if (e.getAttribute('aria-haspopup')) return 'menu';
+        if (e.closest('[data-filters], [data-filter-bar]') || /^\+/.test((e.textContent || '').trim())) return 'filter';
+        return 'button';
+      });
       const before = await page.evaluate(() => ({
         url: location.href,
         text: document.body.innerText,
@@ -252,6 +314,17 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
       pressed++;
       if (!clicked) {
         add(pg, `"${name || '(no name)'}" cannot be pressed (covered or moving)`, 'Medium');
+        cell({
+          role: who,
+          lang,
+          width,
+          route: pg,
+          kind,
+          control: name || '(no name)',
+          result: 'cannot be pressed (covered or moving)',
+          ok: false,
+          shot: pageShot,
+        });
         await page.goto(path).catch(() => undefined);
         await hydrated(page);
         continue;
@@ -286,6 +359,61 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
         dead++;
         add(pg, `"${name || '(no name)'}" does nothing when pressed`, 'Medium');
       }
+      // a dialog or a menu that opened is a state of its own: its title, its controls, its wording, its picture
+      let stateShot = '';
+      let what = '';
+      if (after.layers > before.layers) {
+        const layer = await page.evaluate(() => {
+          const l = Array.from(
+            document.querySelectorAll(
+              '[role=dialog], [role=menu], [role=listbox], [data-radix-popper-content-wrapper]',
+            ),
+          ).pop() as HTMLElement | undefined;
+          return {
+            title: (
+              l?.querySelector('h1, h2, [role=heading]')?.textContent ||
+              l?.getAttribute('aria-label') ||
+              ''
+            ).trim(),
+            controls: Array.from(l?.querySelectorAll('button, a, input, select, [role=menuitem], [role=option]') ?? [])
+              .map((c) =>
+                (c.getAttribute('aria-label') || (c as HTMLElement).innerText || c.getAttribute('name') || '').trim(),
+              )
+              .filter(Boolean)
+              .slice(0, 12),
+            text: (l?.innerText || '').replace(/\s+/g, ' '),
+          };
+        });
+        const keys = [...new Set(layer.text.match(RAW_KEY) ?? [])].filter((k) => NAMESPACES.has(k.split('.')[0]!));
+        if (keys.length) add(pg, `"${name}" opens with raw keys: ${keys.slice(0, 4).join(', ')}`, 'Medium');
+        stateShot = `${pageShot}-state-${j}`;
+        await shot(page, stateShot);
+        what = `opens ${layer.title ? `"${layer.title.slice(0, 40)}"` : 'a panel'} with ${layer.controls.length} control(s): ${layer.controls.join(', ').slice(0, 160)}${keys.length ? `; raw keys ${keys.join(', ')}` : ''}`;
+      }
+      const result = !did
+        ? 'does nothing'
+        : got
+          ? `downloads ${got.suggestedFilename()}`
+          : after.url !== before.url
+            ? `goes to ${new URL(after.url).pathname}${new URL(after.url).search}`
+            : what
+              ? what
+              : writes.length > w0
+                ? `saves (${writes.slice(w0).join(', ')})`
+                : after.pressed !== before.pressed
+                  ? 'switches on or off'
+                  : 'changes the page';
+      cell({
+        role: who,
+        lang,
+        width,
+        route: pg,
+        kind,
+        control: name || '(no name)',
+        result: errors.length ? `${result}; ${[...new Set(errors)].slice(0, 2).join('; ')}` : result,
+        ok: did && !errors.length,
+        shot: stateShot || pageShot,
+      });
       if (after.url !== before.url && !after.url.startsWith(new URL(before.url).origin))
         add(pg, `"${name}" leaves the app (${after.url.slice(0, 60)})`, 'Medium');
       if (errors.length) add(pg, `"${name}": ${[...new Set(errors)].slice(0, 2).join('; ')}`, 'Medium');
@@ -313,13 +441,15 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
   return findings;
 }
 
-const PEOPLE = ['admin', 'manager', 'member', 'viewer'] as const;
-// one person's four runs one after another (their language lives on their profile); the four people side by side
+/** The owner's matrix (13 Oct): the admin, a Commercial member in a team, and someone signed out; QA_CONTROL_ROLES widens it. */
+const PEOPLE = (process.env.QA_CONTROL_ROLES ?? 'admin,member,signed_out').split(',');
+const WIDTHS = [1440, 375];
+// one person's runs one after another (their language lives on their profile); the people side by side
 for (const who of PEOPLE)
   test.describe(`every control: ${who}`, () => {
     test.describe.configure({ mode: 'serial' });
     for (const lang of ['en', 'ar'] as const)
-      for (const width of [1440, 390])
+      for (const width of WIDTHS)
         test(`every control: ${who} · ${lang} · ${width}`, async ({ browser }) => {
           test.setTimeout(3_600_000);
           if (lang === 'ar')
@@ -330,29 +460,47 @@ for (const who of PEOPLE)
                                    and valid_from = core.riyadh_today() and deleted_at is null)`,
               [user('admin').id, ARABIC],
             );
-          // the profile is the source of truth for the language (V216)
-          await sql(
-            `insert into core.person_profile (person_id, locale, created_by) values ($1, $2, $1)
-             on conflict (person_id) do update set locale = excluded.locale`,
-            [user(who).id, lang],
-          );
+          const signedOut = who === 'signed_out';
+          if (!signedOut) {
+            // the profile is the source of truth for the language (V216)
+            await sql(
+              `insert into core.person_profile (person_id, locale, created_by) values ($1, $2, $1)
+               on conflict (person_id) do update set locale = excluded.locale`,
+              [user(who).id, lang],
+            );
+            // the Commercial member works in a team of their department (the pilot's member, as the desktop round)
+            if (who === 'member')
+              await sql(
+                `with t as (
+                   insert into core.team (department_id, code, name_en, name_ar)
+                   select department_id, 'qa_ctl', 'Test Commercial Team', 'فريق تجاري للاختبار' from core.person where id = $1
+                   on conflict do nothing returning id)
+                 update core.person set team_id = coalesce((select id from t), (select id from core.team where code = 'qa_ctl'))
+                  where id = $1 and team_id is null`,
+                [user('member').id],
+              );
+          }
           const ctx = await browser.newContext({
             baseURL: test.info().project.use.baseURL,
-            viewport: { width, height: width > 600 ? 900 : 844 },
+            viewport: { width, height: width > 600 ? 900 : 812 },
             isMobile: width < 600,
             hasTouch: width < 600,
           });
           const page = await ctx.newPage();
           page.setDefaultTimeout(15_000);
           try {
-            await signIn(page, who, '/my-day');
-            const press = lang === 'en' || (who === 'admin' && width === 390);
-            const found = await sweep(page, who, lang, width, press);
+            if (signedOut) {
+              // signed out, the language is the cookie's (there is no profile yet)
+              await ctx.addCookies([
+                { name: 'v2.locale', value: lang, url: test.info().project.use.baseURL as string },
+              ]);
+            } else await signIn(page, who, '/my-day');
+            const found = await sweep(page, who, lang, width, true, signedOut ? '/sign-in' : '/my-day');
             verdict(
               {
                 area: AREA,
                 user: `${who} · ${lang} · ${width}`,
-                check: 'the sweep ran (its findings are listed as INFO)',
+                check: 'the sweep ran (its findings are listed as INFO, its cells in QA_MATRIX)',
                 detail: `${found.length} finding(s); run ${fx().tag}`,
               },
               true,
