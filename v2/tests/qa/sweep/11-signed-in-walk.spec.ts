@@ -92,6 +92,12 @@ async function walk(browser: Browser, persona: string, lang: 'en' | 'ar') {
   });
   page.on('pageerror', (e) => errors.push(`uncaught: ${e.message.slice(0, 200)}`));
   try {
+    // the profile is the source of truth for the language (V216; the cookie is only a cache), so Arabic is set there
+    await sql(
+      `insert into core.person_profile (person_id, locale, created_by) values ($1, $2, $1)
+         on conflict (person_id) do update set locale = excluded.locale`,
+      [user(persona).id, lang],
+    );
     await signIn(page, persona, '/my-day');
     if (lang === 'ar') {
       await ctx.addCookies([{ name: 'v2.locale', value: 'ar', url: page.url() }]);
@@ -243,6 +249,7 @@ async function walk(browser: Browser, persona: string, lang: 'en' | 'ar') {
     }
   } finally {
     await ctx.close();
+    await sql(`update core.person_profile set locale = 'en' where person_id = $1`, [user(persona).id]);
   }
   info({
     area: AREA,
