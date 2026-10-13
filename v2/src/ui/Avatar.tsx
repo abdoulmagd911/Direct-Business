@@ -36,9 +36,12 @@ const colorTint: Record<AvatarColor, string> = {
 };
 
 export function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  // a word that starts with a digit or a mark ("13Oct", "8Oct", "-") is not a name: initials come from letters
+  const named = words.filter((w) => /^\p{L}/u.test(w));
+  const use = named.length ? named : words;
+  const first = use[0]?.[0] ?? '';
+  const last = use.length > 1 ? (use[use.length - 1]?.[0] ?? '') : '';
   return (first + last).toUpperCase();
 }
 
