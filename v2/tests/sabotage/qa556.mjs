@@ -2,8 +2,8 @@
 export const sabotages = [
   {
     name: 'finance-page-not-built',
-    breaks: ['e2e:tests/e2e/qa556-invoice-doors.alone.spec.ts'],
-    expect: 'Full on Finance: the desktop Create menu, Ctrl K and the phone + all offer Invoice',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'Full on Finance — the desktop Create menu, Ctrl K and the phone + all offer Invoice',
     edits: [
       {
         file: 'src/modules/finance/module.ts',
