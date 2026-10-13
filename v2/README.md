@@ -156,7 +156,7 @@ pages, so out of the menu is never locked. Suppliers is Clients' second tab (`na
 `built` flag and the person's level (`createActionsFor`). The specs start from the oversight's access steps
 (`tests/e2e/support/employee-view-access.ts`). Proof: `tests/e2e/employee-view.spec.ts`,
 `tests/unit/shell/the-menu-shows-work-pages-to-all-and-manage-pages-by-role.test.ts`; sabotages
-`menu-shows-own-manage-page`, `create-offers-an-unbuilt-screen`, `access-list-closed-for-admins`.
+`menu-shows-own-manage-page`, `access-list-closed-for-admins` (Create's "only built screens" is held per page: `kpis-page-not-built-for-create`, `tasks-page-not-built-for-create`, `finance-page-not-built`).
 
 My day, Capture then Convert (V218, P3-14): `src/modules/my-day/` — the capture row ("/" anywhere on My day), the
 blocks of 7 (`logic.ts` `BLOCK_ROWS`), a note's own page (`/my-day/notes/<id>`) with Turn into, Finish meeting and the

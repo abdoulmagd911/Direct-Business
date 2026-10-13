@@ -670,19 +670,6 @@ export const sabotages = [
   },
 
   {
-    name: 'create-offers-an-unbuilt-screen',
-    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'Create offers only built screens',
-    edits: [
-      {
-        file: 'src/ui/shell/CreateMenu.tsx',
-        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
-        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
-      },
-    ],
-  },
-
-  {
     name: 'access-list-closed-for-admins',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
     expect: 'open with Show less',
