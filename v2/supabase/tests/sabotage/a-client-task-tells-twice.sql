@@ -11,12 +11,14 @@ begin
   end if;
   if tg_op = 'INSERT' then
     perform notify.push_assigned(new.owner_id, 'assigned', 'work.task', new.id);
-    insert into core.note (entity_table, entity_id, kind, body, created_by)
-    values ('partner.partner', new.partner_id, 'update', pg_catalog.format('Task %s added: %s', new.number, new.title),
+    insert into core.note (entity_table, entity_id, kind, event_type, event_task_id, created_by)
+    values ('partner.partner', new.partner_id, 'update', 'task_added',
+            new.id,
             coalesce(authz.me(), new.created_by));
   elsif old.closed_at is null and new.closed_at is not null then
-    insert into core.note (entity_table, entity_id, kind, body, created_by)
-    values ('partner.partner', new.partner_id, 'update', pg_catalog.format('Task %s done: %s', new.number, new.title),
+    insert into core.note (entity_table, entity_id, kind, event_type, event_task_id, created_by)
+    values ('partner.partner', new.partner_id, 'update', 'task_done',
+            new.id,
             coalesce(authz.me(), new.closed_by, new.created_by));
   end if;
   return null;
