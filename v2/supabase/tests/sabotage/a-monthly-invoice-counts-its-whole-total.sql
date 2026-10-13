@@ -32,7 +32,8 @@ select u.invoice_id, u.unit_kind, u.ref, u.dpin, u.partner_id, u.match_state, u.
        coalesce(pt.subkind, case when u.code_key is not null then 'code' end) as payment_type,
        u.estimate,
        -- the organisation's Client type (V98), for every Finance filter and figure by segment
-       (select t.key from partner.side_type t where t.id = measure.client_segment(u.partner_id)) as segment
+       (select t.key from partner.side_type t where t.id = measure.client_segment(u.partner_id)) as segment,
+       measure.client_segment(u.partner_id) as segment_id
 from units u
 left join lateral finance.exclusion_of(u.invoice_id) x on x.id is not null
 left join lateral (select d.subkind from finance.invoice i join partner.identifier d
