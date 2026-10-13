@@ -303,11 +303,11 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   // a manager: Task, Client, Supplier and Achievement (Tasks and KPIs are built) are at Full; Invoice is not built — absent
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Client', 'Supplier', 'Achievement']);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Clients, Suppliers and KPIs are View): Create and the + open it directly, no menu
+  // one item left (a member whose Clients, Suppliers, KPIs and My day are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
@@ -327,7 +327,8 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
      values ($1, 'clients', 'view', 'Made up: clients read only', $1),
             ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
-            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
+            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1),
+            ($1, 'my_day', 'view', 'Made up: My day read only, so Capture is not offered either', $1)`,
     [member.id],
   );
   await one.setViewportSize(DESKTOP);
