@@ -48,6 +48,7 @@ import {
   type Side,
   type SideFull,
 } from '../types';
+import { eventWords } from '../event-words';
 
 export type PartnerRecordData = {
   me: Me;
@@ -574,16 +575,23 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const noteLine = (n: Note): ReactNode => {
     const who = personOf(n.author_id);
     const head =
-      n.kind === 'activity'
+      eventWords(n.event, t) ??
+      (n.kind === 'activity'
         ? [
             locale === 'ar' && n.type_ar ? n.type_ar : n.type_en,
             locale === 'ar' && n.outcome_ar ? n.outcome_ar : n.outcome_en,
           ]
             .filter(Boolean)
             .join(' · ')
-        : t(`partners.note.kinds.${n.kind}`);
+        : t(`partners.note.kinds.${n.kind}`));
     return (
-      <li key={n.id} className="flex gap-3 py-3" data-note={n.id} data-note-kind={n.kind}>
+      <li
+        key={n.id}
+        className="flex gap-3 py-3"
+        data-note={n.id}
+        data-note-kind={n.kind}
+        data-note-event={n.event?.type}
+      >
         <span className="mt-1 size-2 shrink-0 rounded-pill bg-border-strong" aria-hidden="true" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2 text-sm">
