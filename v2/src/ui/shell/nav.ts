@@ -23,9 +23,10 @@ import { canSee } from '../person';
 /**
  * The drawer, the bottom bar and Ctrl K read the module registry (TECH-SPEC §2.3, V123): every page with
  * `nav.group === 'main'`, in `nav.order`, as one entry — or as the entries the page declares. Which of them make the
- * menu is the employee view's rule (V217), and it lives here alone: `navFor`. A page the database does not know is
- * hidden, never guessed. Settings is the admin's door at the foot (owner, 29 Sep); everyone reaches My profile from the
- * profile chip.
+ * menu is one rule (V217, V238), and it lives here alone: `navFor`. A page is in the menu where the person's access
+ * opens it, and nowhere else; the desktop menu, the phone bar, More and Ctrl K all read it from here. A page the database
+ * does not know is hidden, never guessed. Settings is the admin's door at the foot (owner, 29 Sep); everyone reaches My
+ * profile from the profile chip.
  */
 export type NavEntry = {
   /** `<page>` or `<page>:<entry>` — the drawer's own key. */
@@ -34,11 +35,6 @@ export type NavEntry = {
   route: string;
   label: string;
   icon: LucideIcon;
-  tier: 'work' | 'manage';
-  /** A manage page a Viewer still gets (KPIs, Reports). */
-  viewer: boolean;
-  /** A manage page for Head and Admin only (Overview, Activity). */
-  headUp: boolean;
   /** The main page this one is a tab of (Suppliers → Clients); never in the menu itself. */
   tabOf: string | null;
 };
@@ -62,13 +58,7 @@ const ICONS: Record<string, LucideIcon> = {
 
 const iconOf = (name?: string) => (name && ICONS[name]) || Circle;
 
-// A page that names no tier is a manage page: nothing new reaches a Member's menu by default (simplicity gate, item 4).
-const menuOf = (nav: NonNullable<PageDef['nav']>) => ({
-  tier: nav.tier ?? ('manage' as const),
-  viewer: nav.viewer === true,
-  headUp: nav.from === 'head',
-  tabOf: nav.tabOf ?? null,
-});
+const menuOf = (nav: NonNullable<PageDef['nav']>) => ({ tabOf: nav.tabOf ?? null });
 
 function build(): NavEntry[] {
   const out: { order: number; entry: NavEntry }[] = [];
@@ -114,35 +104,25 @@ export const SETTINGS_ENTRY: NavEntry = {
   route: '/settings',
   label: 'nav.settings_home',
   icon: Settings,
-  tier: 'manage',
-  viewer: false,
-  headUp: true,
   tabOf: null,
 };
 
-/** The roles whose menu carries the manage pages (V217). */
+/** The roles of the manage tier (V217) — no longer a menu rule (V238); My profile offers them the manage notifications. */
 const MANAGE_ROLES = ['manager', 'head', 'admin'];
 
-/** Manager, Head and Admin: the manage tier, whose menu carries the manage pages (V217). */
+/** Manager, Head and Admin: the manage tier (V217). */
 export function isManageTier(me: Me): boolean {
   const role = me.person.role;
   return !!role && (role.is_admin || MANAGE_ROLES.includes(role.key));
 }
 
 /**
- * Whether an entry is in this person's menu: work pages at any level above none; manage pages by role (V217). A tab
- * (Suppliers) is reached from the page it is a tab of (Clients) — unless the person cannot see that page, and then it
- * is their own door (QA-504).
+ * Whether an entry is in this person's menu: the page is open to them (any level above none), whatever their role (V238).
+ * A tab (Suppliers) is reached from the page it is a tab of (Clients) — unless the person cannot see that page, and then
+ * it is their own door (QA-504). Settings is not here: it is the admin's door at the foot (`menuFor`).
  */
 export function inMenu(me: Me, e: NavEntry): boolean {
-  if (!canSee(me, e.page) || (e.tabOf && canSee(me, e.tabOf))) return false;
-  if (e.tier === 'work') return true;
-  const role = me.person.role;
-  if (!role) return false;
-  if (role.is_admin) return true;
-  if (role.key === 'viewer') return e.viewer;
-  if (e.headUp) return role.key === 'head';
-  return MANAGE_ROLES.includes(role.key);
+  return canSee(me, e.page) && !(e.tabOf && canSee(me, e.tabOf));
 }
 
 /** The menu: the drawer's main list, the phone bar's first four and More's rest (V217). */

@@ -5,7 +5,7 @@
  * cards, a person's Access is one line, the words are the new ones, and a phone at 390 px never scrolls sideways.
  * Each test runs at 390 × 844 and 1440 × 900 where the brief asks for both. The access is the one the oversight sets
  * after merge (brief E), made by tests/e2e/support/employee-view-access.ts before the specs. Every value is made up.
- * Sabotage: tests/sabotage/screens.mjs "menu-shows-own-manage-page", "access-list-closed-for-admins".
+ * Sabotage: tests/sabotage/screens.mjs "access-list-closed-for-admins"; tests/sabotage/nav-access.mjs "menu-shows-work-pages-only-on-screen".
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql, type TestPerson } from './support/stack';
@@ -85,28 +85,34 @@ const tag = () => Math.random().toString(36).slice(2, 8);
 
 // ── Menu and bar ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('1 · a member: the drawer is My day, Tasks, Clients; the phone bar adds More, which holds My profile and Sign out only', async ({
+test('1 · a member: the drawer is every page their access opens (V238); the phone bar is the first four and More', async ({
   page,
 }) => {
   await openAs(page, 'member');
-  expect(await drawerLabels(page), 'the member menu').toEqual(['My day', 'Tasks', 'Clients']);
+  expect(await drawerLabels(page), 'the member menu').toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Projects',
+    'Finance',
+    'KPIs',
+    'Reports',
+    'Appraisal',
+  ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'More']);
-  expect(await morePages(page), 'More holds no page for a member').toEqual([]);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Projects', 'More']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual([
+    'Finance',
+    'KPIs',
+    'Reports',
+    'Appraisal',
+  ]);
 });
 
-test('2 · a Business Development member (Pipeline Own by a person change) gains Pipeline; More is unchanged', async ({
+test('2 · a Business Development member (Pipeline Own by a person change) gains Pipeline, and only that', async ({
   page,
 }) => {
   await openAs(page, 'bd_member');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline']);
-  await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
-  expect(await morePages(page)).toEqual([]);
-});
-
-test('3 · a manager: the nine of the brief in order; the bar is the first four and More', async ({ page }) => {
-  await openAs(page, 'manager');
   expect(await drawerLabels(page)).toEqual([
     'My day',
     'Tasks',
@@ -121,6 +127,36 @@ test('3 · a manager: the nine of the brief in order; the bar is the first four 
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
   expect(await morePages(page)).toEqual(['Projects', 'Finance', 'KPIs', 'Reports', 'Appraisal']);
+});
+
+test('3 · a manager: every page their access opens, in order (Overview and Activity at View); the bar is the first four and More', async ({
+  page,
+}) => {
+  await openAs(page, 'manager');
+  expect(await drawerLabels(page)).toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Pipeline',
+    'Overview',
+    'Projects',
+    'Finance',
+    'KPIs',
+    'Reports',
+    'Appraisal',
+    'Activity',
+  ]);
+  await page.setViewportSize(PHONE);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
+  expect(await morePages(page)).toEqual([
+    'Overview',
+    'Projects',
+    'Finance',
+    'KPIs',
+    'Reports',
+    'Appraisal',
+    'Activity',
+  ]);
 });
 
 test('4 · a head adds Overview and Activity; an admin adds Settings at the foot and in More', async ({
@@ -156,17 +192,18 @@ test('4 · a head adds Overview and Activity; an admin adds Settings at the foot
   await ctx.close();
 });
 
-test('5 · a viewer: My day, Clients, KPIs, Reports; no Create or + anywhere; no More', async ({ page }) => {
+test('5 · a viewer: the pages their access opens; no Create or + anywhere', async ({ page }) => {
   await openAs(page, 'viewer');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'KPIs', 'Reports']);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'Finance', 'KPIs', 'Reports']);
   await expect(page.locator('[data-create]')).toHaveCount(0);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'KPIs', 'Reports']);
-  await expect(page.locator('[data-bottom-more]')).toHaveCount(0);
+  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'More']);
+  expect(await morePages(page)).toEqual(['Finance', 'KPIs', 'Reports']);
+  await page.keyboard.press('Escape');
   await expect(page.locator('[data-create-floating]')).toHaveCount(0);
 });
 
-test('6 · out of the menu is not locked: a member opens KPIs, Finance and Reports by address and finds KPIs with Ctrl K', async ({
+test('6 · a member opens KPIs, Finance and Reports from the menu and by address, finds KPIs with Ctrl K, and meets no closed page', async ({
   page,
 }) => {
   await openAs(page, 'member');
@@ -179,10 +216,16 @@ test('6 · out of the menu is not locked: a member opens KPIs, Finance and Repor
     await hydrated(page);
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
     await expect(page.locator('[data-state="no-access"]'), `${route} opens at the member's level`).toHaveCount(0);
-    await expect(page.locator('[data-drawer]').getByRole('link', { name: title }), 'yet not in the menu').toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('[data-drawer]').getByRole('link', { name: title }),
+      `${title} is in the menu: the member's access opens it`,
+    ).toHaveCount(1);
   }
+  // a page the access closes is in no menu and shows the no-access state at its address
+  await page.goto('/pipeline');
+  await hydrated(page);
+  await expect(page.locator('[data-state="no-access"]'), 'Pipeline is closed to a member').toBeVisible();
+  await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' })).toHaveCount(0);
   await page.goto('/my-day');
   await hydrated(page);
   await page.keyboard.press('Control+k');
@@ -224,7 +267,10 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
   await page.goto('/partners?view=suppliers');
   await hydrated(page);
   await expect(page).toHaveURL(/\/suppliers$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Clients' }), 'one page, two tabs').toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Suppliers' }),
+    'the title is the page on screen',
+  ).toBeVisible();
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
   await page.goto(`/suppliers?q=${encodeURIComponent(`Test Supplier ${t}`)}`);
   await hydrated(page);
