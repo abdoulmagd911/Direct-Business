@@ -349,6 +349,10 @@ for (const w of WIDTHS) {
     await expect(grid.locator('[data-past-work-save]'), 'no Save without an owner').toBeDisabled();
 
     await picker.getByRole('combobox', { name: 'Owner for these rows' }).click();
+    // the open list stays on the screen: its bottom edge sits inside the viewport, so every owner can be reached (QA-555)
+    const open = await page.getByRole('listbox').boundingBox();
+    expect(open, 'the owner list is open').not.toBeNull();
+    expect(open!.y + open!.height, 'the open owner list ends inside the window').toBeLessThanOrEqual(w.height);
     await page.getByRole('option', { name: ownerName, exact: true }).click();
     await expect(grid.locator('[data-past-work-summary]')).toContainText('3 rows ready · 0 refused');
     await noSidewaysScroll(page, `${w.name} past work, no team`);
