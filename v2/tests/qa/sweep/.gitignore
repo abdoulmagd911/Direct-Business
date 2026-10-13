@@ -1,0 +1,6 @@
+# Run output of the QA sweep — never committed (fixtures carry made-up passwords; results are per run).
+.run/
+.stack/
+results.json
+results.jsonl
+test-results/
