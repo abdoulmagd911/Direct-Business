@@ -144,10 +144,9 @@ jobs:
   e2e:
     name: build and end-to-end
     runs-on: ubuntu-latest
-    # one build per end-to-end sabotage (over 50 now): 30 minutes no longer covers the suite and them; 60 no longer
-    # either (50–53 minutes measured on #167, one run cut off at 60 with no test at fault); nor 90 (80 minutes on #197,
-    # 85 on #200, #198 cut off at 90 with every spec green and its sabotages still running — 8 Oct)
-    timeout-minutes: 150
+    # the suite alone: its sabotages run in e2e-sabotage below since 12 Oct (they had grown to 105 minutes here, and
+    # this limit from 30 to 150 with them)
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -171,14 +170,47 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
       - run: pnpm test:e2e
-      - name: every end-to-end spec fails under its sabotage
-        run: node scripts/sabotage.mjs --kind e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
           path: v2/playwright-report
           retention-days: 7
+      - if: always()
+        run: supabase stop --no-backup
+
+  e2e-sabotage:
+    name: every end-to-end spec fails under its sabotage (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    # one build per sabotage: on a single runner the sweep alone took 105 minutes at #211 (12 Oct) and kept growing
+    # with every PR, so it runs as three shards side by side; each shard is about a third of that plus its setup
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: v2/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+          cache: pnpm
+          cache-dependency-path: v2/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      - name: start the stack (database, auth, the Data API and the mail catcher; every migration applied)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+      - name: the stack's addresses and keys for the app and the specs (its fixed local ones, never the cloud's — V120)
+        run: node scripts/e2e/stack-env.mjs >> "$GITHUB_ENV"
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - name: this shard's end-to-end sabotages each turn their spec red
+        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3
       - if: always()
         run: supabase stop --no-backup
 

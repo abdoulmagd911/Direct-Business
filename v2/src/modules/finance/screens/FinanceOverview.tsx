@@ -1,5 +1,5 @@
 'use client';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -8,7 +8,7 @@ import { refetchAll } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { formatDate, formatMoney } from '@/core/i18n/format';
-import { Button } from '@/ui/Button';
+import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { cn } from '@/ui/cn';
@@ -23,9 +23,9 @@ import type { IncomeByService, LateChange, OverviewData, Period } from '../types
 
 type Locale = 'en' | 'ar';
 
-/** A month start as "Sep 2026" (Riyadh calendar, Latin digits). */
+/** A month start as "September 2026" (Riyadh calendar, Latin digits) — never "1 Sep 2026". */
 const monthName = (m: string, locale: Locale) =>
-  formatDate(`${m}T12:00:00Z`, locale, { month: 'short', year: 'numeric' });
+  formatDate(`${m}T12:00:00Z`, locale, { day: undefined, month: 'long', year: 'numeric' });
 
 /**
  * The Finance Overview, as drawn (GC-5): the period's three tiles each with the Provisional part directly under the
@@ -38,33 +38,60 @@ export function FinanceOverview({
   today,
   full,
   data,
+  loading,
+  retry: retryBlock,
 }: {
   ask: PeriodAsk;
   today: string;
   /** Full on Finance: the person who closes a month (V620). */
   full: boolean;
   data: OverviewData;
+  /** A block still being read: drawn as loading, not as failed. */
+  loading?: Partial<Record<keyof OverviewData, boolean>>;
+  /** Repeats one block's own read; the page's refresh is only the fallback. */
+  retry?: Partial<Record<keyof OverviewData, () => void>>;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const router = useRouter();
-  const retry = () => router.refresh();
+  /** A block that has no data: still loading, or failed in words with a Try again that repeats only its own read. */
+  const missing = (block: keyof OverviewData, what: string, className?: string) =>
+    loading?.[block] ? (
+      <DataState kind="loading" message={t('state.loading', { what })} className={className} />
+    ) : (
+      <DataState
+        kind="failed"
+        message={t('state.failed', { what })}
+        onRetry={retryBlock?.[block] ?? (() => router.refresh())}
+        retryLabel={t('common.tryAgain')}
+        className={className}
+      />
+    );
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
   const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
   const asOf = data.asOf ? data.asOf.as_of : undefined;
   return (
     <div className="flex flex-col gap-5" data-finance-overview>
-      <PageHeader title={t('nav.finance')} />
+      <PageHeader
+        title={t('nav.finance')}
+        actions={
+          // Full on Finance types an invoice here; on a phone the floating + already offers it, one main action (V630)
+          full ? (
+            <Link
+              href="/finance/new"
+              className={cn(buttonVariants({ variant: 'primary' }), 'max-sm:hidden')}
+              data-new-invoice-link
+            >
+              <Plus aria-hidden="true" />
+              {t('createNew.invoice')}
+            </Link>
+          ) : null
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PeriodSwitch ask={ask} />
         {data.asOf === null ? (
-          <DataState
-            kind="failed"
-            message={t('state.failed', { what: t('finance.failed.stamp') })}
-            onRetry={retry}
-            retryLabel={t('common.tryAgain')}
-            className="items-end"
-          />
+          missing('asOf', t('finance.failed.stamp'), 'items-end')
         ) : (
           <span className="font-data text-sm text-muted tabular" data-finance-stamp>
             {asOf ? t('finance.stamp', { date: formatDate(`${asOf}T12:00:00Z`, locale) }) : t('finance.stampNone')}
@@ -72,16 +99,7 @@ export function FinanceOverview({
         )}
       </div>
 
-      {data.period ? (
-        <Tiles period={data.period} />
-      ) : (
-        <DataState
-          kind="failed"
-          message={t('state.failed', { what: t('finance.failed.figures') })}
-          onRetry={retry}
-          retryLabel={t('common.tryAgain')}
-        />
-      )}
+      {data.period ? <Tiles period={data.period} /> : missing('period', t('finance.failed.figures'))}
 
       <div className="flex flex-col gap-1 text-sm" data-finance-lines>
         {data.notInvoiced ? (
@@ -93,12 +111,7 @@ export function FinanceOverview({
             <b className="font-data tabular">{data.notInvoiced.pending.units}</b>
           </p>
         ) : (
-          <DataState
-            kind="failed"
-            message={t('state.failed', { what: t('finance.failed.invoiced') })}
-            onRetry={retry}
-            retryLabel={t('common.tryAgain')}
-          />
+          missing('notInvoiced', t('finance.failed.invoiced'))
         )}
         <p className="text-xs text-muted" data-finance-commissions>
           {t('finance.commissions')}
@@ -108,7 +121,7 @@ export function FinanceOverview({
       {flags ? (
         <section
           aria-label={t('finance.attention.title')}
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3"
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:mb-16 max-sm:pe-20"
           data-finance-attention
         >
           <h2 className="font-ui text-xs font-semibold uppercase tracking-wide text-muted">
@@ -119,35 +132,16 @@ export function FinanceOverview({
           <AttentionChip kind="late" count={flags.late} label={t('finance.attention.late')} />
         </section>
       ) : data.health ? null : (
-        <DataState
-          kind="failed"
-          message={t('state.failed', { what: t('finance.failed.health') })}
-          onRetry={retry}
-          retryLabel={t('common.tryAgain')}
-        />
+        missing('health', t('finance.failed.health'))
       )}
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         {rows && data.period ? (
           <Months rows={rows} period={data.period} ask={ask} full={full} />
         ) : (
-          <DataState
-            kind="failed"
-            message={t('state.failed', { what: t('finance.failed.months') })}
-            onRetry={retry}
-            retryLabel={t('common.tryAgain')}
-          />
+          missing(data.period ? 'closed' : 'period', t('finance.failed.months'))
         )}
-        {data.service ? (
-          <ByService service={data.service} />
-        ) : (
-          <DataState
-            kind="failed"
-            message={t('state.failed', { what: t('finance.failed.service') })}
-            onRetry={retry}
-            retryLabel={t('common.tryAgain')}
-          />
-        )}
+        {data.service ? <ByService service={data.service} /> : missing('service', t('finance.failed.service'))}
       </div>
     </div>
   );
@@ -168,6 +162,7 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
         {keys.map((k) => (
           <Link
             key={k}
+            prefetch={false}
             href={k === 'custom' ? `/finance?period=custom&from=${ask.from}&to=${ask.to}` : `/finance?period=${k}`}
             aria-current={ask.key === k ? 'page' : undefined}
             data-finance-period-key={k}
@@ -384,7 +379,7 @@ function MonthItem({ row, full, onClose }: { row: MonthRow; full: boolean; onClo
   const late = row.late.length;
   return (
     <li
-      className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0"
+      className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0 max-sm:pe-20"
       data-finance-month={row.month}
       data-state={row.state}
     >
@@ -525,6 +520,11 @@ function ByService({ service }: { service: IncomeByService }) {
       <h2 id="finance-service" className="font-display text-lg font-semibold">
         {t('finance.service.title')}
       </h2>
+      {service.rows.length === 0 && Math.abs(gap) < 1 ? (
+        <p className="text-sm text-muted" data-finance-service-empty>
+          {t('finance.service.empty')}
+        </p>
+      ) : null}
       <ul className="flex flex-col gap-2">
         {service.rows.map((r, i) => (
           <li key={`${r.part}-${r.service_id ?? i}`} className="flex flex-col gap-1" data-finance-service-row={r.part}>

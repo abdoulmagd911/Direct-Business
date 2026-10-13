@@ -61,7 +61,8 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
 
 /** Where a "turned into" chip leads: a logged call or meeting opens its organisation's record; a reminder has no page. */
 export function linkRoute(link: NoteLink): string | null {
-  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}`;
+  // the call a note became is a line of the organisation's Activity: the chip opens it there
+  if (link.entity === 'activity' && link.partner_id) return `/partners/${link.partner_id}?tab=activity`;
   if (link.entity === 'achievement') return `/kpis/achievements/${link.id}`;
   if ((link.entity === 'task' || link.entity === 'action_item') && link.number) return `/tasks/${link.number}`;
   return null;

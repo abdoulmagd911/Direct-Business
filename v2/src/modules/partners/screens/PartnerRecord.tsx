@@ -48,6 +48,7 @@ import {
   type Side,
   type SideFull,
 } from '../types';
+import { eventWords } from '../event-words';
 
 export type PartnerRecordData = {
   me: Me;
@@ -154,12 +155,14 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         return {
           key: k,
           label: t('partners.figures.last_activity'),
+          empty: t('partners.figures.noActivity'),
           value: card.last_activity_on ? formatDate(card.last_activity_on, locale, { dateStyle: 'medium' }) : null,
         };
       case 'next_step':
         return {
           key: k,
           label: t('partners.figures.next_step'),
+          empty: t('partners.figures.noNextStep'),
           value: card.next_step ? formatDate(card.next_step.on, locale, { dateStyle: 'medium' }) : null,
           note: card.next_step?.text ?? undefined,
         };
@@ -572,16 +575,23 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const noteLine = (n: Note): ReactNode => {
     const who = personOf(n.author_id);
     const head =
-      n.kind === 'activity'
+      eventWords(n.event, t) ??
+      (n.kind === 'activity'
         ? [
             locale === 'ar' && n.type_ar ? n.type_ar : n.type_en,
             locale === 'ar' && n.outcome_ar ? n.outcome_ar : n.outcome_en,
           ]
             .filter(Boolean)
             .join(' · ')
-        : t(`partners.note.kinds.${n.kind}`);
+        : t(`partners.note.kinds.${n.kind}`));
     return (
-      <li key={n.id} className="flex gap-3 py-3" data-note={n.id} data-note-kind={n.kind}>
+      <li
+        key={n.id}
+        className="flex gap-3 py-3"
+        data-note={n.id}
+        data-note-kind={n.kind}
+        data-note-event={n.event?.type}
+      >
         <span className="mt-1 size-2 shrink-0 rounded-pill bg-border-strong" aria-hidden="true" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-2 text-sm">
@@ -641,37 +651,48 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
-        rail={rail}
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
         {tab === 'overview' ? (
-          <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
-            <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
-              <h2 className="text-base font-semibold">{t('partners.activity.timeline')}</h2>
-              {mayWrite ? (
-                <span className="flex gap-2">
-                  <Button size="sm" onClick={() => setNoting(true)} data-note-add-inline>
-                    {t('partners.note.add')}
-                  </Button>
-                  <Button size="sm" variant="primary" icon={<Plus />} onClick={() => setLogging(true)}>
-                    {t('partners.activity.log')}
-                  </Button>
-                </span>
-              ) : null}
-            </div>
-            {notes.length ? (
-              <ul className="divide-y divide-border">{notes.map(noteLine)}</ul>
-            ) : (
-              <DataState kind="empty" message={t('partners.activity.none')} />
-            )}
+          <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
+            {rail}
           </section>
         ) : null}
         {tab === 'activity' ? (
-          history ? (
-            <ActivityTimeline rows={history} people={people} onChanged={refresh} />
-          ) : (
-            <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
-          )
+          <>
+            <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
+              <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
+                <h2 className="text-base font-semibold">{t('partners.activity.timeline')}</h2>
+                {mayWrite ? (
+                  <span className="flex gap-2">
+                    <Button size="sm" onClick={() => setNoting(true)} data-note-add-inline>
+                      {t('partners.note.add')}
+                    </Button>
+                    <Button size="sm" variant="primary" icon={<Plus />} onClick={() => setLogging(true)}>
+                      {t('partners.activity.log')}
+                    </Button>
+                  </span>
+                ) : null}
+              </div>
+              {notes.length ? (
+                <ul className="divide-y divide-border">{notes.map(noteLine)}</ul>
+              ) : (
+                <DataState kind="empty" message={t('partners.activity.none')} />
+              )}
+            </section>
+            {history ? (
+              <ActivityTimeline
+                rows={history}
+                people={people}
+                onChanged={refresh}
+                entityWords={{
+                  partner: side === 'client' ? t('partners.side.client') : t('partners.side.supplier_partner'),
+                }}
+              />
+            ) : (
+              <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
+            )}
+          </>
         ) : null}
         {tab === 'related' ? (
           <section className="rounded-lg border border-border bg-raised p-5" data-partner-related>

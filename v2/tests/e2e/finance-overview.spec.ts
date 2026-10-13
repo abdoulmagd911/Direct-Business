@@ -11,29 +11,13 @@
  * "commissions-sentence-missing", "two-payments-stamps".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { callAs, makePerson, signIn, sql } from './support/stack';
+import { oldMonth } from './support/finance-month';
+import { blocksSettled } from './support/finance-blocks';
+import { callAs, makePerson, signIn } from './support/stack';
 
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
-/**
- * A year-month long ago that nothing else uses, so a test's figures are its own and a month closes once. Unique by
- * construction: a database sequence hands out the next number and the number is a month (720 months, 1960-2019), so
- * two workers can never be given the same one however close together they ask; a month that already holds an invoice or
- * a close (from an earlier run on the same database) is skipped.
- */
-async function oldMonth(): Promise<string> {
-  await sql(`create sequence if not exists public.e2e_finance_old_month`);
-  for (let i = 0; i < 720; i += 1) {
-    const next = await sql<{ n: string }>(`select nextval('public.e2e_finance_old_month') as n`);
-    const k = Number(next[0]?.n) % 720;
-    const ym = `${1960 + Math.floor(k / 12)}-${String((k % 12) + 1).padStart(2, '0')}`;
-    const used = await sql(`select 1 from finance.invoice where month_on = $1::date limit 1`, [`${ym}-01`]);
-    const closed = await sql(`select 1 from finance.month_close where month = $1::date limit 1`, [`${ym}-01`]);
-    if (!used.length && !closed.length) return ym;
-  }
-  throw new Error('no unused month left to seed');
-}
 const addressOf = (ym: string) => `/finance?period=custom&from=${ym}-01&to=${ym}-28`;
 const ref = () => `TX-9${Math.floor(Math.random() * 900000 + 100000)}`;
 
@@ -45,6 +29,7 @@ async function signedInAdmin(page: Page, ym: string): Promise<Door> {
   await signIn(page, admin.email);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   return async (fn, args) => {
     const r = await callAs(page.context(), fn, args);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
@@ -112,6 +97,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await seed(call, ym);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
 
   // only paid units count: 1,000 + 500 revenue, 600 cost, 900 profit; the unit with no approved expense is Provisional
   await expect(tile(page, 'revenue').locator('[data-finance-figure]'), 'revenue is its short form').toContainText(
@@ -168,6 +154,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   });
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   await expect(page.locator(`[data-finance-late-toggle="${ym}-01"]`)).toContainText('Late changes · 1');
   await page.locator(`[data-finance-late-toggle="${ym}-01"]`).click();
   const line = page.locator('[data-finance-late-line="late_paid"]');
@@ -193,6 +180,7 @@ test('a member sees the month is not closed and has no Close month; the Provisio
   await signIn(page, member.email);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
   const row = page.locator(`[data-finance-month="${ym}-01"]`);
   await expect(row, 'a member sees the month is not closed').toContainText('Not closed');
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);
@@ -208,6 +196,7 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
   await seed(call, ym);
   await page.goto(addressOf(ym));
   await hydrated(page);
+  await blocksSettled(page);
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth), 'no sideways scroll').toBeLessThanOrEqual(
     390,
@@ -221,6 +210,21 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
     ).toBeLessThan(60);
     expect(part!.x + part!.width, `${kind}: nothing is clipped`).toBeLessThanOrEqual(390);
   }
+  // the floating + sits at the right edge (56 px wide, 16 px in): the Needs attention row and every month row stay clear of it
+  const clear = await page.evaluate(() => {
+    const rightmost = (root: Element) =>
+      Math.max(
+        ...[...root.querySelectorAll('*')]
+          .filter((el) => el.children.length === 0)
+          .map((el) => el.getBoundingClientRect().right),
+      );
+    return {
+      attention: rightmost(document.querySelector('[data-finance-attention]')!),
+      months: Math.max(...[...document.querySelectorAll('[data-finance-month]')].map(rightmost)),
+    };
+  });
+  expect(clear.attention, 'the Needs attention row stays clear of the + button').toBeLessThanOrEqual(390 - 72);
+  expect(clear.months, 'the month rows stay clear of the + button').toBeLessThanOrEqual(390 - 72);
   await expect(
     page.locator(`[data-finance-month="${ym}-01"] [data-finance-month-card]`),
     'the month is a card on a phone',

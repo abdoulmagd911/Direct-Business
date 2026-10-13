@@ -137,7 +137,7 @@ test('a team retires with its people moved, in one change with one Undo', async 
   const rowA = page.locator(`[data-team-row="ta_${tag}"]`);
   await rowA.locator('[data-team-retire]').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('1 people');
+  await expect(dialog).toContainText('1 person is in');
   await dialog.getByLabel('Move its people to').click();
   await page.getByRole('option', { name: `Test team tb_${tag}` }).click();
   await dialog.getByLabel('Reason').fill('Made-up reason');
