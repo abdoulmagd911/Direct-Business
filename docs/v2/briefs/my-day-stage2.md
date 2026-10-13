@@ -37,6 +37,8 @@ Stage 1 shipped as #230 (6ea08a0); this builds on it and changes nothing else.
 | Follow up | One entry in an existing menu, per record type; no button, no screen | Yes: it is the Capture sheet in Reminder mode | Yes: the sheet is the Stage 1 sheet with the record already named | No second sheet; the chip on the record replaces any "next step" field someone might ask for |
 Counts: menu entries +1 on a client and +1 on a task; buttons +0; fields +0 (one removed); screens +0.
 
+**One capture, everywhere (Architect's ruling of 13 Oct, V633).** The in-page Capture row on My day is a single line that **opens the same Capture sheet** (a bottom sheet on a phone, the card on a wide screen) with the same four kinds, Note, Idea, Checklist and Reminder, and **Only me** on. It has no kind menu or visibility menu of its own; typing in it, `/`, Ctrl K, Create > Capture and the phone + all land in the one sheet, and anything typed in the row carries into the sheet. This is how `MyDayToday`, `MyDayReminderAlert` and `MyDayCaptureWhen` already draw it.
+
 ## D. Words (two words or fewer on a chip or button)
 Reminder · Now · Done · Snooze · Later today · Tomorrow · Next week · Pick a day · When · Day · Time · Follow up · Only me · Save · Undo.
 The alert and the notification use the same words. **Snooze** is the word everywhere (the bell already uses it).
