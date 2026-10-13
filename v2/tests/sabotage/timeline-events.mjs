@@ -10,6 +10,12 @@ export const sabotages = [
     name: 'timeline-event-has-no-words-on-the-page',
     breaks: ['e2e:tests/e2e/timeline-events.spec.ts'],
     expect: 'a task added to a client',
-    edits: [{ file: 'src/modules/partners/event-words.ts', find: 'partners.activity.event.', replace: 'partners.activity.eventless.' }],
+    edits: [
+      {
+        file: 'src/modules/partners/event-words.ts',
+        find: 'partners.activity.event.',
+        replace: 'partners.activity.eventless.',
+      },
+    ],
   },
 ];
