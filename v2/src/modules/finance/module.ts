@@ -11,6 +11,8 @@ export default defineModule({
       label: 'nav.finance',
       icon: 'wallet',
       nav: { group: 'main', order: 70, tier: 'manage' },
+      // The screens are built (Overview, New invoice): Create, the phone + and Ctrl K may offer New invoice (QA-556)
+      built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
     {
