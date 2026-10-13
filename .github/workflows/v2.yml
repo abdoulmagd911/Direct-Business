@@ -232,9 +232,9 @@ jobs:
     # 5 for the stack, the build and the seed; 150 leaves room for a slower runner
     timeout-minutes: 150
     env:
-      QA_RUN_DIR: ${{ runner.temp }}/qa-sweep
-      QA_MATRIX: ${{ runner.temp }}/qa-sweep/matrix.jsonl
-      QA_SHOTS: ${{ runner.temp }}/qa-sweep/shots
+      QA_RUN_DIR: /tmp/qa-sweep
+      QA_MATRIX: /tmp/qa-sweep/matrix.jsonl
+      QA_SHOTS: /tmp/qa-sweep/shots
       QA_ROUND: "1"
       SUPABASE_BIN: supabase
       SIGN_IN_METHOD: password
