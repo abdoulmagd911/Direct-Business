@@ -1,4 +1,12 @@
-import { TURN_KINDS, type MyNote, type NoteKind, type NoteLink, type TurnKind, type WrapChoice } from './types';
+import {
+  TURN_KINDS,
+  type TodayTask,
+  type MyNote,
+  type NoteKind,
+  type NoteLink,
+  type TurnKind,
+  type WrapChoice,
+} from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -92,4 +100,21 @@ export function nextWorkingDay(day: string): string {
   do d.setUTCDate(d.getUTCDate() + 1);
   while (d.getUTCDay() === 5 || d.getUTCDay() === 6);
   return d.toISOString().slice(0, 10);
+}
+
+export type TodayGroups = { overdue: TodayTask[]; today: TodayTask[]; next: TodayTask[] };
+
+/**
+ * The Today block's three groups (Overdue, Today, Next). The database already names each task's group by its Riyadh due
+ * day (D3); a task without one is grouped here from `day` — Riyadh's date, never the browser's (V40, D20). Tasks I only
+ * help on are not mine to chase and stay out.
+ */
+export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
+  const out: TodayGroups = { overdue: [], today: [], next: [] };
+  for (const t of tasks) {
+    if (t.role === 'helper' || t.group === 'helping') continue;
+    const g = t.group ?? (t.due_on < day ? 'overdue' : t.due_on === day ? 'today' : 'next');
+    out[g].push(t);
+  }
+  return out;
 }

@@ -335,6 +335,13 @@
           "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
           "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
         }
+      },
+      "today": {
+        "title": "Today",
+        "overdue": "Overdue",
+        "today": "Today",
+        "next": "Next",
+        "empty": "Nothing due today"
       }
     },
     "settings": {
