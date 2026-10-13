@@ -839,7 +839,8 @@
     "channel": "Channel",
     "import_map": "Import column",
     "item_service": "Item service",
-    "item_class": "Item class"
+    "item_class": "Item class",
+    "my_carry": "Wrap-up move"
   },
   "status": {
     "done": "Done",
@@ -1707,7 +1708,7 @@
       "confirm_required": "A Reset replaces the password they hold — confirm it first"
     },
     "reminder": {
-      "time_required": "Choose when to be reminded",
+      "time_required": "Choose a time in the future for the reminder",
       "time_passed": "Choose a time in the future"
     },
     "finance": {
@@ -1719,6 +1720,12 @@
       "unknown_entry": "Unknown entry: {detail}",
       "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
       "commercial_names_the_person": "Commercial needs the person credited."
+    },
+    "wrap_up": {
+      "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",
+      "kind_invalid": "Only tasks and notes can be wrapped up",
+      "not_yours": "Only your own items can be wrapped up",
+      "not_open": "This item is already closed"
     }
   },
   "notifications": {

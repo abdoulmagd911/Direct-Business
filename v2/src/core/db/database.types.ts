@@ -570,6 +570,7 @@ export type Database = {
       };
       views: { Args: { p_page: string }; Returns: Json };
       views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      wrap_up: { Args: { p_items: Json }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;
