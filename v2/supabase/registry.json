@@ -395,6 +395,33 @@
       "effective_dated": true
     },
     {
+      "key": "finance.revenue_definition",
+      "group": "settings.finance",
+      "label": "setting.finance.revenue_definition",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "basis": { "type": "string", "enum": ["revenue", "margin"] },
+          "services": {
+            "maxItems": 50,
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+          },
+          "client_types": {
+            "maxItems": 50,
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+          },
+          "commissions": { "type": "boolean" }
+        },
+        "required": ["basis", "services", "client_types", "commissions"],
+        "additionalProperties": false
+      },
+      "default": { "basis": "revenue", "services": [], "client_types": [], "commissions": true },
+      "effective_dated": true
+    },
+    {
       "key": "finance.unpaid_alert_days",
       "group": "settings.finance",
       "label": "setting.finance.unpaid_alert_days",

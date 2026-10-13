@@ -46,7 +46,8 @@ export function RecordPage({
   tabs: RecordTab[];
   tab: string;
   tabHref: (key: string) => string;
-  rail: ReactNode;
+  /** The details rail beside the main column; leave it out on a tab that has no details of its own. */
+  rail?: ReactNode;
   children: ReactNode;
   words: { tabs: string; notMeasured: string };
 }) {
@@ -97,13 +98,21 @@ export function RecordPage({
         ) : null}
         <Tabs tabs={tabDefs} value={tab} label={words.tabs} />
       </header>
-      <div className={cn('grid gap-8 pt-6 lg:grid-cols-[minmax(0,960px)_300px] lg:gap-10')} data-record-body>
+      <div
+        className={cn(
+          'grid gap-8 pt-6 lg:gap-10',
+          rail ? 'lg:grid-cols-[minmax(0,960px)_300px]' : 'lg:grid-cols-[minmax(0,960px)]',
+        )}
+        data-record-body
+      >
         <div className="flex min-w-0 flex-col gap-8" data-record-main>
           {children}
         </div>
-        <aside className="flex flex-col gap-6 lg:border-s lg:border-border lg:ps-8" data-record-rail>
-          {rail}
-        </aside>
+        {rail ? (
+          <aside className="flex flex-col gap-6 lg:border-s lg:border-border lg:ps-8" data-record-rail>
+            {rail}
+          </aside>
+        ) : null}
       </div>
     </PageFrame>
   );

@@ -35,6 +35,8 @@ begin
       cross join lateral (
         select k.rk, k.dk, pg_catalog.strpos(k.rk, q) > 0 as r, q <> '' and false as d) x
       where i.deleted_at is null and (x.r or x.d)
+        -- a hidden row is shown nowhere but the rules (D16, MF5)
+        and (finance.exclusion_of(i.id)).mode is distinct from 'hide'
       order by rank, i.created_on desc, i.ref
       limit greatest(1, least(coalesce(p_limit, 20), 100))) h), '[]'::jsonb);
 end

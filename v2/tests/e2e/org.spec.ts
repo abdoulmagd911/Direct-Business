@@ -82,12 +82,13 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await expect(page.locator('[data-record-rail]').getByRole('combobox')).toHaveCount(0);
   await expect(page.locator('[data-person-edit]')).toHaveCount(0);
 
-  // the member before: Overview says no access (a member starts at none there). Overview is a manage page, so it
-  // never joins a member's menu (V217) — the change is seen on the page itself.
+  // the member before: Overview says no access (a member starts at none there), and is not in their menu. The menu
+  // follows the access (V238): the change is seen on the page and in the menu.
   const theirs = await browser.newContext();
   const their = await theirs.newPage();
   await signIn(their, member.email, '/overview');
   await expect(their.locator('[data-state="no-access"]')).toBeVisible();
+  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toHaveCount(0);
 
   // the admin gives the member role View on Overview, with a reason
   const adminCtx = await browser.newContext();
@@ -105,7 +106,10 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await their.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   await expect(their.locator('[data-state="no-access"]')).toHaveCount(0);
   await expect(their.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
-  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toHaveCount(0);
+  await expect(
+    their.locator('[data-drawer]').getByRole('link', { name: 'Overview' }),
+    'the access opens Overview, so the menu carries it',
+  ).toHaveCount(1);
   // and back (one Undo), so the seed stays as it was for the other specs
   await toast(adminPage, 'Access changed').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(adminPage, 'Undone')).toBeVisible();
@@ -137,7 +141,7 @@ test('a team retires with its people moved, in one change with one Undo', async 
   const rowA = page.locator(`[data-team-row="ta_${tag}"]`);
   await rowA.locator('[data-team-retire]').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('1 people');
+  await expect(dialog).toContainText('1 person is in');
   await dialog.getByLabel('Move its people to').click();
   await page.getByRole('option', { name: `Test team tb_${tag}` }).click();
   await dialog.getByLabel('Reason').fill('Made-up reason');

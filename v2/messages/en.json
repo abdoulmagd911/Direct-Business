@@ -203,7 +203,8 @@
     "failed": "{what} could not be loaded",
     "noAccess": "You do not have access to {what}",
     "empty": "Nothing here yet",
-    "notMeasured": "Not measured"
+    "notMeasured": "Not measured",
+    "loading": "Loading {what}"
   },
   "confirm": {
     "title": "Remove {item}?",
@@ -744,7 +745,7 @@
     "pipeline_lost_reason": "Lost reason",
     "pipeline_source": "Source",
     "pipeline_stage": "Pipeline stage",
-    "partner": "Partner",
+    "partner": "Organisation",
     "invoice": "Invoice",
     "task": "Task",
     "achievement": "Achievement",
@@ -908,6 +909,7 @@
       "cost_estimate": "Show the pass-through lines as a cost estimate while no expense is approved",
       "collection_due_days": "Days after issue an invoice with no due date of its own is due",
       "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
+      "revenue_definition": "What Commercial revenue counts: its basis, services, client types and whether commissions count",
       "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
     },
     "auth": {
@@ -995,7 +997,7 @@
     "none": "No changes yet",
     "undone": "Undone",
     "undoneChip": "Undone",
-    "groupedChanges": "{count} changes",
+    "groupedChanges": "{count, plural, one {# change} other {# changes}}",
     "revert": "Revert",
     "reverted": "Setting reverted",
     "revertTitle": "Revert {setting}?",
@@ -1115,7 +1117,7 @@
       "until": "Until"
     },
     "moreFields": "+{count} more",
-    "fieldsCount": "{count} fields",
+    "fieldsCount": "{count, plural, one {# field} other {# fields}}",
     "reportsTo": "reports to {name}"
   },
   "profile": {
@@ -1181,7 +1183,7 @@
       "signOut": "Sign out",
       "signOutOthers": "Sign out every other device",
       "signedOut": "Device signed out",
-      "othersSignedOut": "{count} devices signed out",
+      "othersSignedOut": "{count, plural, one {# device signed out} other {# devices signed out}}",
       "unknown": "A browser"
     },
     "saved": "Profile saved",
@@ -1223,7 +1225,7 @@
         "title": "What changes",
         "from": "From",
         "to": "To",
-        "departments": "{count} departments keep their own value",
+        "departments": "{count, plural, one {# department keeps its own value} other {# departments keep their own value}}",
         "fromToday": "Applies from today",
         "fromDate": "Applies from {date}",
         "replacesSameDay": "replaces today's earlier change"
@@ -1256,7 +1258,7 @@
       "replaceWith": "Move its records to",
       "retireTitle": "Archive {name}?",
       "retireBody": "Archived entries leave the pickers and stay on the records that hold them.",
-      "retireBodyUsed": "{count} records hold {name}. They move to the entry you pick, in one change with one Undo.",
+      "retireBodyUsed": "{count, plural, one {# record holds {name}. It moves} other {# records hold {name}. They move}} to the entry you pick, in one change with one Undo.",
       "saved": "Entry saved",
       "archivedDone": "{name} archived",
       "restored": "{name} restored",
@@ -1264,7 +1266,7 @@
       "new": "New entry",
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
-      "entries": "{count} entries",
+      "entries": "{count, plural, one {# entry} other {# entries}}",
       "banned": "The app never says {word}",
       "side": "Side",
       "status": "Status",
@@ -1367,7 +1369,7 @@
       "members": "Members",
       "retire": "Retire",
       "retireTitle": "Retire {name}?",
-      "retireBody": "{count} people are in {name}. Pick the team they move to, or none.",
+      "retireBody": "{count, plural, one {# person is} other {# people are}} in {name}. Pick the team they move to, or none.",
       "moveTo": "Move its people to",
       "noTeam": "No team",
       "retired": "{name} retired",
@@ -1708,6 +1710,16 @@
     "reminder": {
       "time_required": "Choose when to be reminded",
       "time_passed": "Choose a time in the future"
+    },
+    "finance": {
+      "month_not_over": "A month closes only after it has ended",
+      "month_closed": "That month is already closed",
+      "status_unknown": "Unknown status: {detail}",
+      "expense_status_unknown": "Unknown expense status: {detail}",
+      "product_unknown": "Unknown product: {detail}",
+      "unknown_entry": "Unknown entry: {detail}",
+      "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
+      "commercial_names_the_person": "Commercial needs the person credited."
     }
   },
   "notifications": {
@@ -1786,7 +1798,7 @@
     "label": "Views"
   },
   "partners": {
-    "count": "{count} organisations",
+    "count": "{count, plural, one {# organisation} other {# organisations}}",
     "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
@@ -1836,7 +1848,7 @@
     "bulk": {
       "assign": "Assign owner and priority",
       "assigned": "{count} assigned",
-      "title": "Assign {count} organisations",
+      "title": "{count, plural, one {Assign # organisation} other {Assign # organisations}}",
       "keepOwner": "Keep the owner",
       "keepPriority": "Keep the priority"
     },
@@ -1860,7 +1872,9 @@
       "contacts": "Contacts",
       "files": "Files",
       "notes": "Notes",
-      "client_since": "Client since"
+      "client_since": "Client since",
+      "noActivity": "No activity yet",
+      "noNextStep": "No next step"
     },
     "sideTabs": "Clients and suppliers",
     "tabs": {
@@ -1879,6 +1893,10 @@
       "nextStepOn": "Next step on",
       "demoDay": "Demo day",
       "loggedLate": "Logged late",
+      "event": {
+        "task_added": "Task added: {title}",
+        "task_done": "Task done: {title}"
+      },
       "timeline": "Notes and activities",
       "none": "Nothing logged yet",
       "by": "by {name}"
@@ -2026,5 +2044,145 @@
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement"
+  },
+  "finance": {
+    "title": "Finance",
+    "period": {
+      "label": "Period",
+      "mtd": "MTD",
+      "qtd": "QTD",
+      "ytd": "YTD",
+      "custom": "Custom",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "total": {
+        "mtd": "Month to date",
+        "qtd": "Quarter to date",
+        "ytd": "Year to date",
+        "custom": "Total"
+      }
+    },
+    "stamp": "Payments · as of {date}",
+    "stampNone": "Payments · as of —",
+    "tile": {
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit"
+    },
+    "sar": "SAR",
+    "provisional": "of which Provisional",
+    "provisionalUnits": "{count, plural, one {# unit} other {# units}}",
+    "notInvoiced": "Not yet invoiced",
+    "ready": "Ready",
+    "pending": "Pending",
+    "commissions": "Commissions paid outside Payments are not included.",
+    "attention": {
+      "title": "Needs attention",
+      "checks": "Checks failing",
+      "noClient": "No client",
+      "late": "Late changes"
+    },
+    "months": {
+      "title": "Months",
+      "month": "Month",
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit",
+      "provisional": "Provisional profit",
+      "open": "Open",
+      "notClosed": "Not closed",
+      "closed": "Closed {date}",
+      "close": "Close month",
+      "lateChanges": "Late changes · {count}",
+      "afterClose": "After close",
+      "gap": "{amount} SAR not in the months",
+      "none": "—"
+    },
+    "late": {
+      "late_paid": "Paid late",
+      "dropped": "Cancelled late",
+      "cost_changed": "Late cost",
+      "revenue_changed": "Revenue changed"
+    },
+    "close": {
+      "title": "Close {month}?",
+      "body": "It will never change. Later news becomes a dated note.",
+      "done": "{month} closed"
+    },
+    "service": {
+      "title": "By service",
+      "not_income": "Not income",
+      "no_service": "No service",
+      "not_split": "Not split",
+      "gap": "Not itemised",
+      "empty": "No income in this period"
+    },
+    "failed": {
+      "figures": "Finance figures",
+      "months": "The months",
+      "service": "Income by service",
+      "health": "What needs attention",
+      "invoiced": "Not yet invoiced",
+      "stamp": "Payments date"
+    },
+    "state": {
+      "provisional": "Provisional",
+      "final": "Final",
+      "pending": "Pending",
+      "notCounted": "Not counted"
+    },
+    "kind": {
+      "transaction": "Transaction",
+      "standalone": "Standalone",
+      "billing": "Monthly invoice",
+      "wallet_topup": "Wallet top-up"
+    },
+    "source": {
+      "typed": "Typed"
+    },
+    "number": {
+      "transaction": "Transaction no.",
+      "status": "Status",
+      "channel": "Channel",
+      "created": "Created",
+      "paid": "Paid",
+      "total": "Total"
+    },
+    "channel": {},
+    "new": {
+      "title": "New invoice",
+      "kind": "Kind",
+      "saveNew": "Save + new",
+      "saved": "{ref} saved",
+      "customer": "Customer",
+      "clientId": "Client ID",
+      "name": "Name",
+      "email": "Email",
+      "lines": "Lines",
+      "addLine": "Add line",
+      "removeLine": "Remove line",
+      "product": "Product",
+      "service": "Service",
+      "item": "Item",
+      "qty": "Qty",
+      "price": "Price",
+      "expenses": "Expenses",
+      "addExpense": "Add expense",
+      "removeExpense": "Remove expense",
+      "type": "Type",
+      "amount": "Amount",
+      "merchant": "Merchant",
+      "reference": "Reference",
+      "problem": {
+        "required": "Required",
+        "invalid": "Not valid",
+        "too_long": "Too long",
+        "used": "Already used"
+      },
+      "lists": "The word lists",
+      "lastSaved": "Last saved",
+      "noFigures": "In no figures"
+    }
   }
 }

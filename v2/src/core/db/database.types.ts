@@ -211,6 +211,12 @@ export type Database = {
           version: number;
         }[];
       };
+      finance_exclusion_rule_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      finance_exclusion_rule_save: {
+        Args: { p_fields: Json; p_id: string; p_reason?: string; p_version?: number };
+        Returns: Json;
+      };
+      finance_exclusion_rules: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_health: { Args: { p_from?: string; p_to?: string }; Returns: Json };
       finance_import: {
         Args: {
