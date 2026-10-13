@@ -18,7 +18,8 @@ begin
   end if;
   if pg_catalog.cardinality(types) > 0
      and not exists (select 1 from partner.side_type t
-                     where t.id = measure.client_segment(p_partner) and t.key = any (types)) then
+                     where t.id = measure.unit_segment(p_invoice, p_unit_kind, p_month, p_partner)
+                       and t.key = any (types)) then
     return null;
   end if;
   if pg_catalog.cardinality(services) = 0 then

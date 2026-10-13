@@ -24,8 +24,8 @@ export function FinanceOverviewLive({ ask, today, full }: { ask: PeriodAsk; toda
   const at = `${ask.from}|${ask.to}`;
   const period = useFinanceRead<Period, 'finance_period'>('finance_period', range, `period|${at}`);
   const asOf = useFinanceRead<PaymentsAsOf, 'finance_payments_as_of'>('finance_payments_as_of', {}, 'as-of');
-  const closed = useFinanceRead<ClosedMonth[], 'finance_closed_months'>('finance_closed_months', {}, 'closed');
-  const health = useFinanceRead<HealthEntry[], 'finance_health'>('finance_health', range, `health|${at}`);
+  // Asked in the order a person looks: tiles, then the two lists beside them, then the heavy ones below (the months and
+  // the health line), so the first screenful fills first (13 Oct sweep: the lists sat on a skeleton for 13 s behind them)
   const notInvoiced = useFinanceRead<NotInvoiced, 'finance_not_invoiced'>(
     'finance_not_invoiced',
     range,
@@ -36,6 +36,8 @@ export function FinanceOverviewLive({ ask, today, full }: { ask: PeriodAsk; toda
     range,
     `service|${at}`,
   );
+  const closed = useFinanceRead<ClosedMonth[], 'finance_closed_months'>('finance_closed_months', {}, 'closed');
+  const health = useFinanceRead<HealthEntry[], 'finance_health'>('finance_health', range, `health|${at}`);
   const data: OverviewData = {
     period: dataOf(period.block),
     closed: dataOf(closed.block),

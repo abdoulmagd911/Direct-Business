@@ -1,5 +1,5 @@
 'use client';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -8,7 +8,7 @@ import { refetchAll } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { formatDate, formatMoney } from '@/core/i18n/format';
-import { Button } from '@/ui/Button';
+import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { cn } from '@/ui/cn';
@@ -72,7 +72,22 @@ export function FinanceOverview({
   const asOf = data.asOf ? data.asOf.as_of : undefined;
   return (
     <div className="flex flex-col gap-5" data-finance-overview>
-      <PageHeader title={t('nav.finance')} />
+      <PageHeader
+        title={t('nav.finance')}
+        actions={
+          // Full on Finance types an invoice here; on a phone the floating + already offers it, one main action (V630)
+          full ? (
+            <Link
+              href="/finance/new"
+              className={cn(buttonVariants({ variant: 'primary' }), 'max-sm:hidden')}
+              data-new-invoice-link
+            >
+              <Plus aria-hidden="true" />
+              {t('createNew.invoice')}
+            </Link>
+          ) : null
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PeriodSwitch ask={ask} />
         {data.asOf === null ? (

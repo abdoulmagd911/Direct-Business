@@ -29,8 +29,8 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/suppliers');
   await hydrated(page);
-  // Suppliers is the second tab of Clients (V217): the title is Clients, the Suppliers tab is the one on
-  await expect(page.getByRole('heading', { level: 1, name: 'Clients' })).toBeVisible();
+  // Suppliers is the second tab of Clients (V217); its title is Suppliers, and the Suppliers tab is the one on (V238)
+  await expect(page.getByRole('heading', { level: 1, name: 'Suppliers' })).toBeVisible();
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
 
   // New supplier (QA-247, V507 cut 8: the button says what the tab says — Suppliers): trade name, Arabic name, type
@@ -89,6 +89,10 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await activity.getByLabel('What happened').fill(`Called about ${t}`);
   await page.locator('[data-activity-save]').click();
   await expect(toast(page, 'Call logged')).toBeVisible();
+  await page
+    .locator('main [data-tabs]')
+    .getByRole('link', { name: /^Activity/ })
+    .click();
   await expect(page.locator('[data-partner-notes]')).toContainText(`Called about ${t}`);
 
   // the Arabic name finds it on the Clients list (the side is on now); the hover card names number and both sides

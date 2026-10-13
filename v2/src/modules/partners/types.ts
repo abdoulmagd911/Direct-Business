@@ -153,6 +153,8 @@ export type Note = {
   mentions: string[];
   /** The My day note it was made from (V433) — null for a reader who may not see it, so a private note's chip hides (V454). */
   from_note?: { id: string; title: string | null } | null;
+  /** A line the system wrote (D5): its type and values; the screen words it in the reader's language. Null on a person's note. */
+  event?: { type: string; values: { task_id: string; number: string | null; title: string | null } | null } | null;
 };
 
 export type PartnerCard = {
