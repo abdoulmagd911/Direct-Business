@@ -15,3 +15,6 @@ export const weekIsEmpty = (a: WeeklyReviewAnswer): boolean =>
 /** How many rows a list holds beyond those drawn (the read caps each list). */
 export const moreThanShown = (list: { total: number; rows: unknown[] }): number =>
   Math.max(0, list.total - list.rows.length);
+
+/** Thursday is review day (V632 Stage 3): `day` is Riyadh's date from the database (D20), never the browser's. */
+export const isReviewDay = (day: string): boolean => new Date(`${day}T12:00:00Z`).getUTCDay() === 4;
