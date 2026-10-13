@@ -10,7 +10,8 @@
  *  - the layout: sideways scroll, text cut off, and a control covered by something else (the + button, the bar);
  *  - the page's heading, recorded so a heading that names the wrong thing (Suppliers headed Clients) is seen.
  * Destructive presses (sign out, delete, remove, archive, switch off, merge, close month) are never made. Writes are
- * counted. Kept out of the full sweep: QA_ROUND=1 run.sh -- --grep "every control". Made-up people only.
+ * counted. Runs only when asked (QA_ROUND=1, --grep "every control"): in CI after every merge to v2/main, as a report
+ * that never fails the run (.github/workflows/v2.yml, "every control on main (report)"). Made-up people only.
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -124,14 +125,17 @@ async function readPage(page: Page, lang: string) {
 }
 
 /** The menus a person uses to move about: the drawer (desktop), the phone bar and its More, the settings tabs. */
-async function menuLinks(page: Page, width: number): Promise<{ label: string; href: string }[]> {
-  const out: { label: string; href: string }[] = [];
-  const grab = async (sel: string) => {
+async function menuLinks(page: Page, width: number): Promise<{ label: string; href: string; from: string }[]> {
+  const out: { label: string; href: string; from: string }[] = [];
+  const grab = async (sel: string, from = 'menu') => {
     for (const a of await page.locator(sel).all()) {
       if (!(await a.isVisible().catch(() => false))) continue;
       const href = (await a.getAttribute('href')) || '';
       const label = ((await a.getAttribute('aria-label')) || (await a.innerText().catch(() => '')) || '').trim();
-      if (href.startsWith('/')) out.push({ label: label.replace(/\s+/g, ' ').slice(0, 40), href });
+      // a page's own tab row (inside main) and the profile chip are not menu entries
+      const inPage = await a.evaluate((e) => !!e.closest('main'));
+      const kind = inPage ? 'page' : from === 'menu' && /^\/profile/.test(href) ? 'profile' : from;
+      if (href.startsWith('/')) out.push({ label: label.replace(/\s+/g, ' ').slice(0, 40), href, from: kind });
     }
   };
   if (width > 600) await grab('nav a[href], aside a[href]');
@@ -150,7 +154,7 @@ async function menuLinks(page: Page, width: number): Promise<{ label: string; hr
   if (await chip.isVisible().catch(() => false)) {
     await chip.click().catch(() => undefined);
     await page.waitForTimeout(300);
-    await grab('[role=menu] a[href]');
+    await grab('[role=menu] a[href]', 'profile');
     await page.keyboard.press('Escape').catch(() => undefined);
   }
   return out;
@@ -189,12 +193,28 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
           '/kpis',
           '/settings',
           '/profile',
-        ].map((href) => ({ label: href, href }));
+        ].map((href) => ({ label: href, href, from: 'menu' }));
   info({
     area: AREA,
     user: `${who} · ${lang} · ${width}`,
     check: `the menu: ${menu.map((m) => `${m.label} → ${m.href}`).join(' · ')}`,
   });
+  // V633: the size of this role's menu (the drawer, or the phone bar and its More; not the profile menu)
+  if (start === '/my-day') {
+    const entries = new Set(menu.filter((m) => m.from === 'menu').map((m) => m.href.split('#')[0])).size;
+    cell({
+      role: who,
+      lang,
+      width,
+      route: 'the menu',
+      kind: 'count',
+      control: 'menu entries',
+      result: String(entries),
+      ok: entries <= 9,
+      shot: '',
+    });
+    if (entries > 9) add('the menu', `${entries} menu entries for this role (V633: at most 9)`, 'Medium');
+  }
   // pages to visit: the menu's, then each page's own links, one address per pattern, at most 60
   const queue = [...new Set(menu.map((m) => m.href.split('#')[0]!))];
   const seen = new Set<string>(queue.map(pattern));
@@ -211,6 +231,33 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
     const r = await readPage(page, lang);
     const pg = pattern(path);
     headings.push(`${pg} = ${r.h1 || '(no heading)'}`);
+    // V633: the visible actions on the page (buttons, links, tabs, toggles, menus and choosers in its main area)
+    const actions = await page.evaluate(
+      () =>
+        Array.from(
+          document.querySelectorAll(
+            'main button, main a[href], main [role=tab], main [role=switch], main [role=button], main select, main summary',
+          ),
+        ).filter((e) => {
+          const r = e.getBoundingClientRect();
+          const st = getComputedStyle(e);
+          return r.width > 0 && r.height > 0 && st.visibility !== 'hidden' && st.display !== 'none';
+        }).length,
+    );
+    if (who !== 'signed_out' || path === start) {
+      cell({
+        role: who,
+        lang,
+        width,
+        route: pg,
+        kind: 'count',
+        control: 'visible actions',
+        result: String(actions),
+        ok: width >= 600 || actions <= 12,
+        shot: '',
+      });
+      if (width < 600 && actions > 12) add(pg, `${actions} visible actions on a phone (V633: at most 12)`, 'Medium');
+    }
     if (((resp && resp.status() === 404) || /not found|غير موجودة/i.test(r.h1)) && !/no\/such/.test(path))
       add(pg, `the link ${path} (on ${from.get(path) ?? '?'}) opens Not found`, 'High');
     if (r.sideways > 1) add(pg, `sideways scroll ${r.sideways}px`, 'Medium');
