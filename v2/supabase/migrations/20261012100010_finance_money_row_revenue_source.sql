@@ -1,6 +1,7 @@
 -- V629 (2), (5): every money row says where it came from — revenue_source, payments or manual — so any view or total
 -- can take or leave the manual rows; and a manual row with no cost typed keeps an empty cost, never 0: it adds nothing
--- to Cost, its profit is its revenue, and it stays Provisional until a cost is typed. Forward-only.
+-- to Cost, its profit is its revenue, and it stays Provisional until a cost is typed. The column follows QA-546's
+-- segment_id. Forward-only.
 
 create or replace view finance.money_row_live with (security_invoker = true) as
 with units as (
@@ -38,6 +39,7 @@ select u.invoice_id, u.unit_kind, u.ref, u.dpin, u.partner_id, u.match_state, u.
        u.estimate,
        -- the organisation's Client type (V98), for every Finance filter and figure by segment
        (select t.key from partner.side_type t where t.id = measure.client_segment(u.partner_id)) as segment,
+       measure.client_segment(u.partner_id) as segment_id,
        u.revenue_source
 from units u
 left join lateral finance.exclusion_of(u.invoice_id) x on x.id is not null
@@ -55,7 +57,10 @@ with closed as (
          -- the organisation and the credit owner as the close took them (QA-541); a snapshot taken before they were
          -- kept says neither, and the unit's own are read
          e ? 'partner_id' as kept_who, (e ->> 'partner_id')::uuid as partner_id,
-         (e ->> 'channel_credits_owner')::boolean as channel_credits_owner
+         (e ->> 'channel_credits_owner')::boolean as channel_credits_owner,
+         -- the segment as the close took it (QA-546); a snapshot taken before it was kept says none, and the kept
+         -- organisation's type is read
+         e ? 'segment_id' as kept_segment, (e ->> 'segment_id')::uuid as segment_id
   from finance.month_close c cross join pg_catalog.jsonb_array_elements(c.snapshot) e
   where c.deleted_at is null
 )
@@ -74,12 +79,15 @@ select r.invoice_id, r.unit_kind, r.ref, r.dpin,
        case when s.invoice_id is null then r.profit else s.revenue - coalesce(s.cost, 0) end as profit,
        case when s.invoice_id is null then r.loss else s.revenue - coalesce(s.cost, 0) < 0 end as loss,
        r.fee_on_monthly_invoice, r.payment_type, r.estimate,
-       (select t.key from partner.side_type t
-        where t.id = measure.client_segment(case when s.kept_who then s.partner_id else r.partner_id end)) as segment,
+       (select t.key from partner.side_type t where t.id = g.segment_id) as segment,
+       g.segment_id,
        r.revenue_source
 from finance.money_row_live r
 left join closed cl on cl.month = r.month_on
 left join snap s on s.month = r.month_on and s.invoice_id = r.invoice_id and s.unit_kind = r.unit_kind
+cross join lateral (select case when s.kept_segment then s.segment_id
+                                when s.kept_who then measure.client_segment(s.partner_id)
+                                else r.segment_id end as segment_id) g
 union all
 -- a unit the snapshot counted that is no longer there at all (its invoice removed) still counts in its closed month
 select s.invoice_id, s.unit_kind, s.ref, null::text, s.partner_id, null::text, s.month,
@@ -88,7 +96,9 @@ select s.invoice_id, s.unit_kind, s.ref, null::text, s.partner_id, null::text, s
        s.revenue, s.cost, s.cost_status, s.cost_status = 'provisional', s.revenue - coalesce(s.cost, 0),
        s.revenue - coalesce(s.cost, 0) < 0,
        s.unit_kind = 'monthly_fee', null::text, null::numeric,
-       (select t.key from partner.side_type t where t.id = measure.client_segment(s.partner_id)),
+       (select t.key from partner.side_type t
+        where t.id = case when s.kept_segment then s.segment_id else measure.client_segment(s.partner_id) end),
+       case when s.kept_segment then s.segment_id else measure.client_segment(s.partner_id) end,
        coalesce((select i.revenue_source from finance.invoice i where i.id = s.invoice_id), 'payments')
 from snap s
 where not exists (select 1 from finance.money_row_live r
