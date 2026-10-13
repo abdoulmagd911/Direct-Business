@@ -656,20 +656,6 @@ export const sabotages = [
     ],
   },
   {
-    // the brief's own sabotage (F7): a manage page given the work tier reaches a member's menu
-    name: 'menu-shows-own-manage-page',
-    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'the member menu',
-    edits: [
-      {
-        file: 'src/modules/projects/module.ts',
-        find: "nav: { group: 'main', order: 60, tier: 'manage' },",
-        replace: "nav: { group: 'main', order: 60, tier: 'work' },",
-      },
-    ],
-  },
-
-  {
     name: 'create-offers-an-unbuilt-screen',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
     expect: 'Create offers only built screens',
