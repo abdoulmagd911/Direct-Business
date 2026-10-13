@@ -1719,6 +1719,24 @@
       "unknown_entry": "Unknown entry: {detail}",
       "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
       "commercial_names_the_person": "Commercial needs the person credited."
+    },
+    "report": {
+      "editors_only": "Only this department's report editors can change its drafts",
+      "not_a_draft": "This report is issued ({detail}); open a correction to change it",
+      "period_start": "A report starts on the first day of its period",
+      "no_template": "There is no template for this kind of report yet",
+      "draft_exists": "A draft for this period is already open",
+      "unknown_section": "This section takes no lines",
+      "note_cites_nothing": "A note line cites nothing and carries no amount",
+      "note_has_money": "A note cannot hold a money figure; use an Achievement line",
+      "line_cites_an_achievement": "An Achievement line cites at least one achievement",
+      "achievement_in_another_department": "The achievement belongs to another department",
+      "already_issued": "Already issued as {detail}",
+      "line_missing_language": "A line has no text in a language this report prints ({detail})",
+      "correct_issued_only": "Only an issued report can be corrected",
+      "correction_says_why": "Say what the correction changes",
+      "correction_open": "A correction of this report is already open",
+      "issued_never_removed": "An issued report is never removed ({detail}); correct it instead"
     }
   },
   "notifications": {
@@ -2182,6 +2200,23 @@
       "lists": "The word lists",
       "lastSaved": "Last saved",
       "noFigures": "In no figures"
+    }
+  },
+  "report": {
+    "section": {
+      "cover": "Cover",
+      "kpi_tiles": "Figures against last year",
+      "kpi_month_additions": "Each KPI's addition this month",
+      "kpi_results": "KPI results",
+      "achievements_by_category": "Achievements by category",
+      "challenges": "Challenges",
+      "period_targets": "Next period's targets",
+      "operational_plan": "Operational plan",
+      "revenue_by_service": "Revenue by service",
+      "cases": "Cases",
+      "partners_at_risk": "Partners at risk or lost",
+      "added_to_earlier_periods": "Added to earlier periods",
+      "free_text": "Notes"
     }
   }
 }

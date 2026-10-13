@@ -469,6 +469,19 @@ export type Database = {
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       reminders_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      report: { Args: { p_report: string }; Returns: Json };
+      report_add_achievement_line: {
+        Args: { p_achievement: Json; p_report: string; p_section: string; p_text_ar?: string; p_text_en?: string };
+        Returns: Json;
+      };
+      report_correct: { Args: { p_note: string; p_report: string }; Returns: Json };
+      report_create: { Args: { p_department?: string; p_kind: string; p_period_start: string }; Returns: Json };
+      report_issue: { Args: { p_report: string; p_version: number }; Returns: Json };
+      report_line_add: { Args: { p_fields: Json; p_report: string }; Returns: Json };
+      report_line_update: { Args: { p_fields: Json; p_line: string; p_version: number }; Returns: Json };
+      report_lines_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      reports: { Args: { p_kind?: string; p_year?: number }; Returns: Json };
+      reports_remove: { Args: { p_ids: string[]; p_reason: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       restore_ticketed: {
         Args: { p_entity: string; p_id: string; p_reason?: string; p_ticket: string };

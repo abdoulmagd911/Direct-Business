@@ -26,3 +26,4 @@ finance.import_held.raw — the held row's own columns as the file gave them, so
 finance.invoice_line.src — which fields of a line a person set or added by hand ('person'), so an import leaves them (V622) — §3.6, §3.11
 finance.import_difference.import_value — the columns of one field as a newer Payments file gave them, where they differ from what a person set (V622, Keep mine / Use import) — §3.11
 finance.receipt.src — each field's export time from the Payments receipt rows it came from (V618) — §3.6, §3.11
+report.report.snapshot — the frozen report as issued: every section's rendered lines and figures, whose shape follows its template — §3.9
