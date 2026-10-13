@@ -88,7 +88,7 @@ export type TodayTask = {
   due_on: string;
   partner_id: string | null;
   partner_name: string | null;
-  group: 'overdue' | 'today' | 'this_week' | 'helping';
+  group: 'overdue' | 'today' | 'next' | 'helping';
   role: 'owner' | 'helper';
 };
 

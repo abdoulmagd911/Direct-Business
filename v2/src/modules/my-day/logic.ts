@@ -113,8 +113,8 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
   const out: TodayGroups = { overdue: [], today: [], next: [] };
   for (const t of tasks) {
     if (t.role === 'helper' || t.group === 'helping') continue;
-    const g = t.group ?? (t.due_on < day ? 'overdue' : t.due_on === day ? 'today' : 'this_week');
-    out[g === 'this_week' ? 'next' : (g as 'overdue' | 'today')].push(t);
+    const g = t.group ?? (t.due_on < day ? 'overdue' : t.due_on === day ? 'today' : 'next');
+    out[g].push(t);
   }
   return out;
 }

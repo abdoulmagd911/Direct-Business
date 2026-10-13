@@ -38,9 +38,7 @@ for (const width of [375, 1440]) {
     const { me, t, make } = await personWithTasks();
     const late = await make(`Late task ${t}`, -2);
     await make(`Due task ${t}`, 0);
-    const [dowRow] = await sql<{ dow: number }>(`select extract(dow from core.riyadh_today())::int as dow`);
-    const hasNext = (dowRow?.dow ?? 6) < 6;
-    if (hasNext) await make(`Later task ${t}`, 1);
+    await make(`Later task ${t}`, 1);
     await page.setViewportSize({ width, height: width === 375 ? 800 : 1000 });
     await signIn(page, me.email, '/my-day');
     await hydrated(page);
@@ -63,7 +61,7 @@ for (const width of [375, 1440]) {
       'Overdue shows its count',
     ).toHaveText('1');
     await expect(block.locator('[data-today-group="today"]')).toContainText(`Due task ${t}`);
-    if (hasNext) await expect(block.locator('[data-today-group="next"]')).toContainText(`Later task ${t}`);
+    await expect(block.locator('[data-today-group="next"]')).toContainText(`Later task ${t}`);
     await expect(block.locator('[data-today-task]').first().locator('[data-done-tick]')).toBeVisible();
     const tick = await block.locator('[data-done-tick]').first().boundingBox();
     expect(tick!.width, 'the tick is a 44 px target').toBeGreaterThanOrEqual(44);

@@ -16,7 +16,7 @@ describe('the Today block groups my tasks by the Riyadh day', () => {
       [
         task('A', '2026-10-12', { group: 'overdue' }),
         task('B', '2026-10-13', { group: 'today' }),
-        task('C', '2026-10-15', { group: 'this_week' }),
+        task('C', '2026-10-15', { group: 'next' }),
       ],
       '2026-10-13',
     );
