@@ -100,15 +100,27 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   page,
   context,
 }) => {
-  // The employee view (V217): a member's menu is the work pages at a level above none — Pipeline is none for a member
-  // (brief E) — and Settings is the admin's door.
+  // The menu rule (V238): a member's menu is every page their access opens — Pipeline is none for a member (brief E) —
+  // and Settings is the admin's door.
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   const member = await makePerson();
   await signIn(page, member.email, '/my-day');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   const labels = await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts();
-  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual(['My day', 'Tasks', 'Clients']);
+  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Projects',
+    'Finance',
+    'KPIs',
+    'Reports',
+    'Appraisal',
+  ]);
+  await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' }), 'none for a member').toHaveCount(
+    0,
+  );
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
   await page.locator('[data-profile-chip]').click();
   await expect(page.getByRole('menuitem', { name: 'My profile' })).toBeVisible();

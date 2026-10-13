@@ -4,7 +4,7 @@
  * says "Client added"; a figure with no value says so in plain words; "1 organisation" agrees in number; the floating +
  * never ends up over the last row of a list (the page keeps its height clear); New client's Key partner switch has a
  * visible label; the task form's ?new=1 is spent when it closes; Finance and Settings are in the menu of the people whose
- * role opens them, in the drawer and in the phone's More sheet. Every value is made up.
+ * access opens them, in the drawer and in the phone's More sheet. Every value is made up.
  * Sabotage: tests/sabotage/sweep.mjs "overview-tab-repeats-the-timeline", "activity-tab-repeats-the-details",
  * "client-page-says-partner-added", "empty-figure-says-not-measured", "one-organisations", "page-ends-under-the-plus",
  * "key-partner-switch-has-no-label", "task-form-keeps-new-in-the-address", "admin-menu-loses-finance-and-settings".
@@ -109,7 +109,7 @@ test('phone 390: a page keeps the floating + clear of its last row, New client l
   await expect(page, 'the address no longer opens the form again').not.toHaveURL(/new=1/);
 });
 
-test('Finance and Settings are in the menu of the people whose role opens them: drawer on a desktop, More on a phone', async ({
+test('Finance and Settings are in the menu of the people whose access opens them: drawer on a desktop, More on a phone', async ({
   page,
 }) => {
   const links = async (sel: string) => page.locator(sel).evaluateAll((els) => els.map((e) => e.getAttribute('href')));
@@ -123,7 +123,7 @@ test('Finance and Settings are in the menu of the people whose role opens them: 
   for (const [who, finance, settings] of [
     [admin, true, true],
     [manager, true, false],
-    [member, false, false],
+    [member, true, false], // a member's Finance is Own: the page opens, so the menu carries it (V238)
   ] as const) {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 1440, height: 900 });

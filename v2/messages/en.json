@@ -1892,6 +1892,10 @@
       "nextStepOn": "Next step on",
       "demoDay": "Demo day",
       "loggedLate": "Logged late",
+      "event": {
+        "task_added": "Task added: {title}",
+        "task_done": "Task done: {title}"
+      },
       "timeline": "Notes and activities",
       "none": "Nothing logged yet",
       "by": "by {name}"
