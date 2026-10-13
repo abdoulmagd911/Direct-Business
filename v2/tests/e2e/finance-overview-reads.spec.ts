@@ -6,7 +6,7 @@
  * block. Also: a month reads "October 2026", never "1 Oct 2026"; an empty By service says so in one line.
  * Every value is made up.
  * Sabotage: tests/sabotage/finance.mjs "finance-reads-all-at-once", "finance-read-is-never-asked-again",
- * "finance-aborted-read-overwrites-the-answer", "finance-cancelled-read-frees-its-slot", "try-again-reloads-the-whole-page", "month-label-says-the-day", "by-service-empty-says-nothing".
+ * "finance-aborted-read-overwrites-the-answer", "finance-cancelled-read-frees-its-slot", "try-again-reloads-the-whole-page", "month-label-says-the-day", "by-service-empty-says-nothing", "finance-heavy-reads-asked-first".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { blocksSettled } from './support/finance-blocks';
@@ -163,4 +163,33 @@ test('an empty By service says so in one line', async ({ page }) => {
   await expect(page.locator('[data-finance-service-empty]'), 'nothing to split says so').toHaveText(
     'No income in this period',
   );
+});
+
+test('the reads are asked in the order a person looks: tiles, the two lists, then months and health', async ({
+  page,
+}) => {
+  await admin(page);
+  const asked: string[] = [];
+  await page.route(reads, async (route) => {
+    const fn = new URL(route.request().url()).pathname.split('/').pop()!;
+    if (!asked.includes(fn)) asked.push(fn);
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+      const response = await route.fetch();
+      await route.fulfill({ response }).catch(() => {});
+    } catch {
+      // the test ended while the server was still answering
+    }
+  });
+  await page.goto('/finance?period=mtd');
+  await hydrated(page);
+  await settled(page);
+  const at = (fn: string) => asked.indexOf(fn);
+  expect(at('finance_period'), 'the tiles are asked first').toBe(0);
+  for (const early of ['finance_not_invoiced', 'finance_income_by_service']) {
+    for (const heavy of ['finance_closed_months', 'finance_health']) {
+      expect(at(early), `${early} is asked before ${heavy}`).toBeGreaterThanOrEqual(0);
+      expect(at(early), `${early} is asked before ${heavy}`).toBeLessThan(at(heavy));
+    }
+  }
 });

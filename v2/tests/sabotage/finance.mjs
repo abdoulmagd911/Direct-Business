@@ -9,6 +9,7 @@ const NEW_E2E = 'e2e:tests/e2e/finance-new-invoice.spec.ts';
 const FORM = 'src/modules/finance/invoice-form.ts';
 const NEW_SCREEN = 'src/modules/finance/screens/NewInvoice.tsx';
 const READS_E2E = 'e2e:tests/e2e/finance-overview-reads.spec.ts';
+const LIVE = 'src/modules/finance/screens/FinanceOverviewLive.tsx';
 const READS = 'src/modules/finance/use-reads.ts';
 
 export const sabotages = [
@@ -350,5 +351,23 @@ export const sabotages = [
     breaks: [READS_E2E],
     expect: 'nothing to split says so',
     edits: [{ file: OVERVIEW, find: 'service.rows.length === 0 && Math.abs(gap) < 1', replace: 'false' }],
+  },
+  {
+    name: 'finance-heavy-reads-asked-first',
+    breaks: [READS_E2E],
+    expect: 'the reads are asked in the order a person looks',
+    edits: [
+      {
+        file: LIVE,
+        find: "  const closed = useFinanceRead<ClosedMonth[], 'finance_closed_months'>('finance_closed_months', {}, 'closed');\n  const health = useFinanceRead<HealthEntry[], 'finance_health'>('finance_health', range, `health|${at}`);\n",
+        replace: '',
+      },
+      {
+        file: LIVE,
+        find: '  const notInvoiced = useFinanceRead',
+        replace:
+          "  const closed = useFinanceRead<ClosedMonth[], 'finance_closed_months'>('finance_closed_months', {}, 'closed');\n  const health = useFinanceRead<HealthEntry[], 'finance_health'>('finance_health', range, `health|${at}`);\n  const notInvoiced = useFinanceRead",
+      },
+    ],
   },
 ];
