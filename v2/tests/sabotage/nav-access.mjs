@@ -32,4 +32,54 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'menu-ignores-the-access-list',
+    breaks: ['unit:tests/unit/shell/the-menu-shows-a-page-where-the-person-can-open-it.test.ts'],
+    expect: 'shows a member every page their access opens',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: 'return canSee(me, e.page) && !(e.tabOf && canSee(me, e.tabOf));',
+        replace:
+          "return canSee(me, e.page) && !(e.tabOf && canSee(me, e.tabOf)) && ['my_day', 'tasks', 'clients', 'pipeline'].includes(e.page);",
+      },
+    ],
+  },
+  {
+    name: 'menu-shows-work-pages-only-on-screen',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: '1 · a member: the drawer is every page their access opens',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: 'return canSee(me, e.page) && !(e.tabOf && canSee(me, e.tabOf));',
+        replace:
+          "return canSee(me, e.page) && !(e.tabOf && canSee(me, e.tabOf)) && ['my_day', 'tasks', 'clients', 'pipeline'].includes(e.page);",
+      },
+    ],
+  },
+  {
+    name: 'phone-more-drops-the-last-page',
+    breaks: [E2E],
+    expect: 'the desktop menu, the phone bar and More are one list',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: 'const rest = menu.slice(4);',
+        replace: 'const rest = menu.slice(4, -1);',
+      },
+    ],
+  },
+  {
+    name: 'settings-shown-to-everyone',
+    breaks: [E2E],
+    expect: 'the desktop menu, the phone bar and More are one list',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: 'return [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];',
+        replace: 'return [...navFor(me), SETTINGS_ENTRY];',
+      },
+    ],
+  },
 ];
