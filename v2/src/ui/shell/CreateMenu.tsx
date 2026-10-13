@@ -1,10 +1,11 @@
 'use client';
-import { Building2, CheckSquare, Handshake, Plus, Receipt, Trophy, type LucideIcon } from 'lucide-react';
+import { Building2, CheckSquare, Handshake, Plus, Receipt, StickyNote, Trophy, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { modules } from '@/core/registry';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { noTeamToWorkIn } from '@/modules/tasks/rules';
 import type { Level } from '@/core/registry/define-module';
 import { Button, buttonVariants } from '../Button';
@@ -21,9 +22,12 @@ export const CREATE_ACTIONS: {
   route: string;
   icon: LucideIcon;
   at: Level[];
+  /** Opens the Quick capture sheet where the person stands instead of going to a page (productivity stage 1). */
+  sheet?: boolean;
   /** Leaves the item out for someone the level alone would let in (the item is never greyed, W4/W28). */
   except?: (me: Me) => boolean;
 }[] = [
+  { key: 'capture', page: 'my_day', route: '', icon: StickyNote, at: ['own', 'full'], sheet: true },
   {
     key: 'task',
     page: 'tasks',
@@ -64,6 +68,31 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
   const actions = createActionsFor(me);
   if (!actions.length) return null;
   const a = actions.length === 1 ? actions[0] : undefined;
+  if (a?.sheet) {
+    return floating ? (
+      <button
+        type="button"
+        onClick={openQuickCapture}
+        aria-label={t('top.create')}
+        data-create-floating
+        data-create-direct={a.key}
+        className={floatingClass}
+      >
+        <Plus aria-hidden="true" />
+      </button>
+    ) : (
+      <Button
+        variant="primary"
+        icon={<Plus />}
+        onClick={openQuickCapture}
+        data-create
+        data-create-direct={a.key}
+        className="hidden sm:inline-flex"
+      >
+        {t(`createNew.${a.key}`)}
+      </Button>
+    );
+  }
   if (a) {
     const label = t(`createNew.${a.key}`);
     return floating ? (
@@ -100,10 +129,17 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
           const Icon = a.icon;
           return (
             <MenuItem key={a.key} asChild>
-              <Link href={a.route} data-create-item={a.key}>
-                <Icon />
-                {t(`create.${a.key}`)}
-              </Link>
+              {a.sheet ? (
+                <button type="button" onClick={openQuickCapture} data-create-item={a.key}>
+                  <Icon />
+                  {t(`create.${a.key}`)}
+                </button>
+              ) : (
+                <Link href={a.route} data-create-item={a.key}>
+                  <Icon />
+                  {t(`create.${a.key}`)}
+                </Link>
+              )}
             </MenuItem>
           );
         })}

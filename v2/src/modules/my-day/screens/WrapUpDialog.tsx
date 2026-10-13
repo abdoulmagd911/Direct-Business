@@ -10,19 +10,36 @@ import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
-import { nextWorkingDay, noteRoute, noteTitle, openCaptures, wrapUpChoices } from '../logic';
-import type { MyDayAnswer, MyNote, WrapChoice } from '../types';
-import { KIND_ICON } from './NoteBits';
+import {
+  nextWorkingDay,
+  wrapItems,
+  wrapLabel,
+  wrapPayload,
+  wrapRecover,
+  wrapSummary,
+  WRAP_DEFAULT,
+  type WrapItem,
+  type WrapMove,
+  type WrapState,
+} from '../logic';
+import type { MyDayAnswer } from '../types';
 
 const choiceClass = (on: boolean) =>
   cn(
-    'inline-flex min-h-10 items-center rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+    'inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
     on ? 'border-accent bg-accent-soft text-text' : 'border-border bg-raised text-muted hover:text-text',
   );
 
+const MOVES: { move: WrapMove; word: 'tomorrow' | 'nextWeek' | 'drop' }[] = [
+  { move: 'tomorrow', word: 'tomorrow' },
+  { move: 'next_week', word: 'nextWeek' },
+  { move: 'drop', word: 'drop' },
+];
+
 /**
- * Wrap up today (V433): the day's open captures, each carried over to the next working day (the default — Sunday after
- * a Thursday, keeping the day it happened) or done; Turn into opens the note. One request for the lot; nothing is deleted.
+ * Wrap up v2 (productivity stage 1): today's tasks and captures, each Done or Not done. A Not done row has one tap for
+ * Tomorrow (already chosen), Next week or Drop; one Save moves the lot through api.wrap_up as one request with one Undo.
+ * Nothing is deleted: Drop cancels a task and closes a note.
  */
 export function WrapUpDialog({
   day,
@@ -36,40 +53,67 @@ export function WrapUpDialog({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  // the page shows seven notes; Wrap up reads every open one when it opens
-  const [notes, setNotes] = useState<MyNote[] | null>(null);
-  const [choices, setChoices] = useState<Record<string, WrapChoice | undefined>>({});
+  const [items, setItems] = useState<WrapItem[] | null>(null);
+  const [states, setStates] = useState<Record<string, WrapState | undefined>>({});
   const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState<WrapItem[]>([]);
   useEffect(() => {
     if (!open) return;
     let live = true;
     rpc('my_day', { p_scope: 'me', p_limit: 200 })
-      .then((a) => live && setNotes((a as unknown as MyDayAnswer).notes))
-      .catch(() => live && setNotes([]));
+      .then((a) => {
+        const answer = a as unknown as MyDayAnswer;
+        if (live) setItems(wrapItems(answer.tasks ?? [], answer.notes));
+      })
+      .catch(() => live && setItems([]));
     return () => {
       live = false;
-      setNotes(null);
+      setItems(null);
     };
   }, [open]);
-  const open_ = notes ? openCaptures(notes) : [];
-  const choiceOf = (id: string): WrapChoice => choices[id] ?? 'carry';
-  const next = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const stateOf = (id: string) => states[id] ?? WRAP_DEFAULT;
+  const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
+  const tomorrow = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
   const save = async () => {
+    if (!items?.length) return;
     setBusy(true);
-    const all = Object.fromEntries(open_.map((n) => [n.id, choiceOf(n.id)]));
-    await command(
+    setGone([]);
+    const sent = await command(
       words(t('pages.myDay.wrap.saved')),
-      () =>
-        rpc('note_wrap_up', { p_day: day, p_choices: wrapUpChoices(all) }) as Promise<{ request_id?: string | null }>,
+      () => rpc('wrap_up', { p_items: wrapPayload(items, states) as never }) as Promise<{ request_id?: string | null }>,
       {
         after: () => {
           onOpenChange(false);
-          setChoices({});
+          setStates({});
         },
       },
     );
+    if (!sent) {
+      // refused as a whole (an item changed under the dialog): read the rows again, name what left, keep every other choice
+      try {
+        const answer = (await rpc('my_day', { p_scope: 'me', p_limit: 200 })) as unknown as MyDayAnswer;
+        const fresh = wrapItems(answer.tasks ?? [], answer.notes);
+        const back = wrapRecover(items, fresh);
+        setGone(back.gone);
+        setItems(back.items);
+      } catch {
+        // the refusal toast has said it; the rows stay as they were
+      }
+    }
     setBusy(false);
   };
+  const sum = wrapSummary(items ?? [], states);
+  const parts = (
+    [
+      ['tomorrow', 'partTomorrow'],
+      ['next_week', 'partNextWeek'],
+      ['drop', 'partDrop'],
+      ['done', 'partDone'],
+    ] as const
+  )
+    .filter(([k]) => sum[k] > 0)
+    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k] }))
+    .join(', ');
   return (
     <Dialog
       open={open}
@@ -80,57 +124,80 @@ export function WrapUpDialog({
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
-          <Button variant="primary" disabled={!open_.length} loading={busy} onClick={() => void save()} data-wrap-save>
-            {t('pages.myDay.wrap.save')}
+          <Button variant="primary" disabled={!items?.length} loading={busy} onClick={() => void save()} data-wrap-save>
+            {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
           </Button>
         </>
       }
     >
-      {notes === null ? (
+      {gone.length ? (
+        <p role="alert" className="mb-3 rounded-md border border-border bg-surface p-3 text-sm" data-wrap-gone>
+          {t('pages.myDay.wrap.gone', { items: gone.map((i) => `“${wrapLabel(i)}”`).join(', ') })}
+        </p>
+      ) : null}
+      {items === null ? (
         <DataState kind="loading" />
-      ) : open_.length ? (
+      ) : items.length ? (
         <div className="flex flex-col gap-3" data-wrap-up>
-          <h3 className="text-sm font-semibold">{t('pages.myDay.wrap.open', { count: open_.length })}</h3>
+          <h3 className="text-sm font-semibold">{t('pages.myDay.wrap.summary', { count: items.length })}</h3>
           <ul className="flex flex-col divide-y divide-border">
-            {open_.map((n) => {
-              const Icon = KIND_ICON[n.kind];
-              const c = choiceOf(n.id);
+            {items.map((i) => {
+              const s = stateOf(i.id);
               return (
-                <li key={n.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3" data-wrap-note={n.id}>
-                  <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="min-w-0 flex-[1_1_12rem] truncate">
-                    {noteTitle(n) || t('pages.myDay.note.untitled')}
-                  </span>
-                  <span className="flex flex-wrap gap-2" role="radiogroup" aria-label={noteTitle(n)}>
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={c === 'carry'}
-                      className={choiceClass(c === 'carry')}
-                      onClick={() => setChoices({ ...choices, [n.id]: 'carry' })}
-                      data-wrap-choice="carry"
+                <li key={i.id} className="flex flex-col gap-2 py-3" data-wrap-item={i.id} data-wrap-kind={i.kind}>
+                  <div className="flex items-baseline gap-2">
+                    <Link
+                      href={i.route}
+                      onClick={() => onOpenChange(false)}
+                      className="min-w-0 flex-1 break-words hover:underline"
+                      data-wrap-turn
                     >
-                      {t('pages.myDay.wrap.carry', { date: next })}
-                    </button>
+                      {i.title || t('pages.myDay.note.untitled')}
+                    </Link>
+                    <span className="shrink-0 text-xs text-muted">{t(`pages.myDay.wrap.${i.kind}`)}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={i.title}>
                     <button
                       type="button"
                       role="radio"
-                      aria-checked={c === 'done'}
-                      className={choiceClass(c === 'done')}
-                      onClick={() => setChoices({ ...choices, [n.id]: 'done' })}
-                      data-wrap-choice="done"
+                      aria-checked={s.done}
+                      className={choiceClass(s.done)}
+                      onClick={() => set(i.id, { done: true })}
+                      data-wrap-state="done"
                     >
                       {t('pages.myDay.wrap.done')}
                     </button>
-                    <Link
-                      href={noteRoute(n.id)}
-                      onClick={() => onOpenChange(false)}
-                      className={choiceClass(false)}
-                      data-wrap-turn
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={!s.done}
+                      className={choiceClass(!s.done)}
+                      onClick={() => set(i.id, { done: false })}
+                      data-wrap-state="not_done"
                     >
-                      {t('pages.myDay.wrap.turn')}
-                    </Link>
-                  </span>
+                      {t('pages.myDay.wrap.notDone')}
+                    </button>
+                  </div>
+                  {!s.done ? (
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.wrap.notDone')}>
+                      {MOVES.map(({ move, word }) => (
+                        <button
+                          key={move}
+                          type="button"
+                          role="radio"
+                          aria-checked={s.move === move}
+                          className={choiceClass(s.move === move)}
+                          onClick={() => set(i.id, { move })}
+                          data-wrap-move={move}
+                        >
+                          {t(`pages.myDay.wrap.${word}`)}
+                          {move === 'tomorrow' ? (
+                            <span className="ms-1.5 font-data text-xs text-muted">{tomorrow}</span>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
