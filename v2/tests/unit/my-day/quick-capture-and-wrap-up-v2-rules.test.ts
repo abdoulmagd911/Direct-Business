@@ -4,7 +4,14 @@
  * Sabotage: tests/sabotage/capture-wrap.mjs.
  */
 import { describe, expect, it } from 'vitest';
-import { WRAP_DEFAULT, wrapItems, wrapPayload } from '../../../src/modules/my-day/logic';
+import {
+  WRAP_DEFAULT,
+  wrapItems,
+  wrapLabel,
+  wrapPayload,
+  wrapRecover,
+  wrapSummary,
+} from '../../../src/modules/my-day/logic';
 import { quickCaptureArgs, riyadhInstant, tomorrowMorning } from '../../../src/modules/my-day/quick-capture';
 import type { MyNote, TodayTask } from '../../../src/modules/my-day/types';
 
@@ -78,5 +85,23 @@ describe('Wrap up v2 walks the day and sends one request', () => {
     expect(WRAP_DEFAULT).toEqual({ done: false, move: 'tomorrow' });
     expect(sent.map((s) => s.choice)).toEqual(['tomorrow', 'next_week', 'done']);
     expect(sent[0]).toEqual({ kind: 'task', id: 'a', choice: 'tomorrow' });
+  });
+  it('counts what one Save will do, rows left alone going to tomorrow', () => {
+    const items = wrapItems([task('a', 'today'), task('b', 'today'), task('c', 'today'), task('d', 'overdue')], []);
+    expect(
+      wrapSummary(items, {
+        b: { done: false, move: 'next_week' },
+        c: { done: true, move: 'drop' },
+        d: { done: false, move: 'drop' },
+      }),
+    ).toEqual({ done: 1, tomorrow: 1, next_week: 1, drop: 1 });
+  });
+  it('after a refused Save names the rows that left and keeps the rest', () => {
+    const before = wrapItems([task('a', 'today'), task('b', 'today')], []);
+    const after = wrapItems([task('b', 'today')], []);
+    const back = wrapRecover(before, after);
+    expect(back.gone.map((i) => i.id)).toEqual(['a']);
+    expect(back.items.map((i) => i.id)).toEqual(['b']);
+    expect(wrapLabel(back.gone[0]!), 'a task is named by its number').toBe('T-a a');
   });
 });

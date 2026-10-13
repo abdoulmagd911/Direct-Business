@@ -13,7 +13,10 @@ import { Dialog } from '@/ui/Dialog';
 import {
   nextWorkingDay,
   wrapItems,
+  wrapLabel,
   wrapPayload,
+  wrapRecover,
+  wrapSummary,
   WRAP_DEFAULT,
   type WrapItem,
   type WrapMove,
@@ -53,6 +56,7 @@ export function WrapUpDialog({
   const [items, setItems] = useState<WrapItem[] | null>(null);
   const [states, setStates] = useState<Record<string, WrapState | undefined>>({});
   const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState<WrapItem[]>([]);
   useEffect(() => {
     if (!open) return;
     let live = true;
@@ -73,7 +77,8 @@ export function WrapUpDialog({
   const save = async () => {
     if (!items?.length) return;
     setBusy(true);
-    await command(
+    setGone([]);
+    const sent = await command(
       words(t('pages.myDay.wrap.saved')),
       () => rpc('wrap_up', { p_items: wrapPayload(items, states) as never }) as Promise<{ request_id?: string | null }>,
       {
@@ -83,8 +88,32 @@ export function WrapUpDialog({
         },
       },
     );
+    if (!sent) {
+      // refused as a whole (an item changed under the dialog): read the rows again, name what left, keep every other choice
+      try {
+        const answer = (await rpc('my_day', { p_scope: 'me', p_limit: 200 })) as unknown as MyDayAnswer;
+        const fresh = wrapItems(answer.tasks ?? [], answer.notes);
+        const back = wrapRecover(items, fresh);
+        setGone(back.gone);
+        setItems(back.items);
+      } catch {
+        // the refusal toast has said it; the rows stay as they were
+      }
+    }
     setBusy(false);
   };
+  const sum = wrapSummary(items ?? [], states);
+  const parts = (
+    [
+      ['tomorrow', 'partTomorrow'],
+      ['next_week', 'partNextWeek'],
+      ['drop', 'partDrop'],
+      ['done', 'partDone'],
+    ] as const
+  )
+    .filter(([k]) => sum[k] > 0)
+    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k] }))
+    .join(', ');
   return (
     <Dialog
       open={open}
@@ -96,11 +125,16 @@ export function WrapUpDialog({
         <>
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!items?.length} loading={busy} onClick={() => void save()} data-wrap-save>
-            {t('pages.myDay.wrap.save')}
+            {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
           </Button>
         </>
       }
     >
+      {gone.length ? (
+        <p role="alert" className="mb-3 rounded-md border border-border bg-surface p-3 text-sm" data-wrap-gone>
+          {t('pages.myDay.wrap.gone', { items: gone.map((i) => `“${wrapLabel(i)}”`).join(', ') })}
+        </p>
+      ) : null}
       {items === null ? (
         <DataState kind="loading" />
       ) : items.length ? (

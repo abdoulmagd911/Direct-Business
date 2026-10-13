@@ -115,4 +115,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'wrap-up-summary-hides-the-default',
+    breaks: [UNIT],
+    expect: 'counts what one Save will do',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'out[p.choice as keyof typeof out] += 1;',
+        replace: "if (p.choice !== 'tomorrow') out[p.choice as keyof typeof out] += 1;",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-refusal-keeps-the-gone-row',
+    breaks: [UNIT],
+    expect: 'names the rows that left and keeps the rest',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'return { gone: before.filter((i) => !still.has(i.id)), items: after };',
+        replace: 'return { gone: [], items: after };',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-refusal-forgets-the-other-choices',
+    breaks: [E2E],
+    expect: 'a Save refused because a task changed hands',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '        setItems(back.items);',
+        replace: '        setItems(back.items);\n        setStates({});',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-save-does-not-say-what-it-does',
+    breaks: [E2E],
+    expect: WRAP,
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}",
+        replace: "{t('pages.myDay.wrap.title')}",
+      },
+    ],
+  },
 ];

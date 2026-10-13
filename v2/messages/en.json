@@ -324,11 +324,16 @@
         "nextWeek": "Next week",
         "drop": "Drop",
         "turn": "Turn into",
-        "save": "Done for today",
         "saved": "Day wrapped up",
         "none": "Nothing left to wrap up today.",
         "task": "Task",
-        "note": "Note"
+        "note": "Note",
+        "saveWith": "Save · {parts}",
+        "partTomorrow": "{count} to tomorrow",
+        "partNextWeek": "{count} next week",
+        "partDrop": "{count} dropped",
+        "partDone": "{count} done",
+        "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
       },
       "reminder": {
         "removeTitle": "Remove the reminder “{name}”?",

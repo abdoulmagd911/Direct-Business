@@ -140,8 +140,13 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
     'Tomorrow is already chosen',
   ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    dialog.locator('[data-wrap-save]'),
+    'Save says what it will do, rows left alone going to tomorrow',
+  ).toHaveText('Save · 3 to tomorrow');
   await rowOf(`Late task ${t}`).locator('[data-wrap-state="done"]').click();
   await rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]').click();
+  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 to tomorrow, 1 next week, 1 done');
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
   const state = async () =>
@@ -187,4 +192,47 @@ test('the morning after, the Today block says what was carried over', async ({ p
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
   await expect(page.locator('[data-today-carried]')).toHaveText('Carried over from yesterday (1)');
+});
+
+test('a Save refused because a task changed hands names it, keeps the other choices and saves the rest on one more tap', async ({
+  page,
+}) => {
+  const { me, t, make } = await personWithTeam();
+  const lost = await make(`Lost task ${t}`, 0);
+  const kept = await make(`Kept task ${t}`, 0);
+  const other = await makePerson({ admin: true });
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, me.email, '/my-day');
+  await hydrated(page);
+  await page.locator('[data-wrap-open]').click();
+  const dialog = page.getByRole('dialog');
+  const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
+  await expect(rowOf(`Lost task ${t}`)).toBeVisible();
+  await rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]').click();
+
+  // while the dialog is open, the task changes hands
+  await sql(`update work.task set owner_id = $2 where number = $1`, [lost, other.id]);
+  await dialog.locator('[data-wrap-save]').click();
+
+  await expect(toast(page, 'Only your own items can be wrapped up')).toBeVisible();
+  await expect(dialog.locator('[data-wrap-gone]'), 'the row that left is named').toContainText(lost);
+  await expect(rowOf(`Lost task ${t}`), 'and is out of the list').toHaveCount(0);
+  await expect(
+    rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]'),
+    'the other choice is kept',
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 next week');
+  const [still] = await sql<{ due_on: string; today: string }>(
+    `select due_on::text, core.riyadh_today()::text as today from work.task where number = $1`,
+    [kept],
+  );
+  expect(still!.due_on, 'a refused Save changes nothing').toBe(still!.today);
+
+  await dialog.locator('[data-wrap-save]').click();
+  await expect(toast(page, 'Day wrapped up')).toBeVisible();
+  const [moved] = await sql<{ later: boolean }>(
+    `select due_on > core.riyadh_today() as later from work.task where number = $1`,
+    [kept],
+  );
+  expect(moved!.later, 'one more tap saved the rest').toBe(true);
 });

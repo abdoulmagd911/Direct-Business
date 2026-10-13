@@ -105,7 +105,18 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
 }
 
 export type WrapMove = 'tomorrow' | 'next_week' | 'drop';
-export type WrapItem = { kind: 'task' | 'note'; id: string; title: string; client: string | null; route: string };
+export type WrapItem = {
+  kind: 'task' | 'note';
+  id: string;
+  title: string;
+  client: string | null;
+  route: string;
+  number?: string;
+};
+
+/** How a row is named when it is spoken about: a task by its number, a note by its words. */
+export const wrapLabel = (i: { title: string; number?: string | null }) =>
+  i.number ? `${i.number} ${i.title}` : i.title;
 /** What a person decides about one item: done, or not done and where it goes (Tomorrow unless they say otherwise). */
 export type WrapState = { done: boolean; move: WrapMove };
 export const WRAP_DEFAULT: WrapState = { done: false, move: 'tomorrow' };
@@ -123,6 +134,7 @@ export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
       title: t.title,
       client: t.partner_name,
       route: `/tasks/${t.number}`,
+      number: t.number,
     }));
   const captured = openCaptures(notes).map((n): WrapItem => ({
     kind: 'note',
@@ -140,4 +152,20 @@ export function wrapPayload(items: WrapItem[], states: Record<string, WrapState 
     const s = states[i.id] ?? WRAP_DEFAULT;
     return { kind: i.kind, id: i.id, choice: s.done ? 'done' : s.move };
   });
+}
+
+/** What one Save will do, counted from the choices on screen, so no one re-dates the list without seeing it. */
+export function wrapSummary(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+  const out = { done: 0, tomorrow: 0, next_week: 0, drop: 0 };
+  for (const p of wrapPayload(items, states)) out[p.choice as keyof typeof out] += 1;
+  return out;
+}
+
+/**
+ * After a refused Save the rows are read again: the ones that are gone (no longer mine, or closed meanwhile) are named
+ * and left out; every other choice is kept, so one more tap saves the rest.
+ */
+export function wrapRecover(before: WrapItem[], after: WrapItem[]) {
+  const still = new Set(after.map((i) => i.id));
+  return { gone: before.filter((i) => !still.has(i.id)), items: after };
 }
