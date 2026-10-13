@@ -26,6 +26,16 @@ export default defineModule({
       ruleOnly: true,
     },
     {
+      // Every wrap-up move — where an item came from and went to (Stage 1): its person's alone.
+      key: 'my_carry',
+      table: 'my.carry',
+      page: null,
+      label: 'entity.my_carry',
+      owners: 'person_id',
+      visible: 'my.carry_visible',
+      ruleOnly: true,
+    },
+    {
       key: 'my_note_link',
       table: 'my.note_link',
       page: null,

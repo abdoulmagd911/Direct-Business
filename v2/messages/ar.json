@@ -765,7 +765,8 @@
     "channel": "القناة",
     "import_map": "عمود الاستيراد",
     "item_service": "خدمة البند",
-    "item_class": "تصنيف البند"
+    "item_class": "تصنيف البند",
+    "my_carry": "نقل في ختام اليوم"
   },
   "status": {
     "done": "منجزة",
