@@ -3,7 +3,15 @@
  * theme and density a person without their own gets, and the language switch once Arabic is on. Each changes a setting
  * of the whole app, which every other spec running at the same moment would see — so these run alone, after all the
  * others (playwright.config.ts, the `alone` project). Every value is made up.
+ *
+ * QA-556 lives here too: New invoice is offered at the three doors (the desktop Create menu, Ctrl K and the phone's
+ * floating +) to a person with Full on Finance, who lands on /finance/new, and to nobody with Finance at View — each in
+ * English and in Arabic. It needs Arabic on, so it belongs with the other tests that switch it, in the one file: two
+ * files of the `alone` project may run at the same moment, and two of them switching Arabic would meet.
+ * Sabotage: tests/sabotage/qa556.mjs "finance-page-not-built".
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
@@ -83,3 +91,119 @@ test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)',
     await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
   }
 });
+
+// ---- QA-556: New invoice at the three doors, in English and in Arabic
+
+type Words = { top: { create: string }; create: { invoice: string } };
+/** The words as the catalogs spell them, so the screen is held to the catalog in each language. */
+const catalog = (code: 'en' | 'ar') =>
+  JSON.parse(readFileSync(join(process.cwd(), 'messages', `${code}.json`), 'utf8')) as Words;
+
+/** Arabic on for the length of one case, then off again (the setting reaches every screen, which is why this file runs alone). */
+async function withArabic(run: () => Promise<void>) {
+  const admin = await makePerson({ admin: true });
+  await sql(
+    `insert into core.setting (key, value, valid_from, reason, created_by)
+       values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason: QA-556 specs', $1)`,
+    [admin.id],
+  );
+  try {
+    await run();
+  } finally {
+    await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
+  }
+}
+
+for (const code of ['en', 'ar'] as const) {
+  const words = catalog(code);
+  const create = words.top.create;
+  const invoice = words.create.invoice;
+
+  test(`in ${code}: Full on Finance — the desktop Create menu, Ctrl K and the phone + all offer Invoice, which opens /finance/new`, async ({
+    page,
+    context,
+  }) => {
+    await withArabic(async () => {
+      const admin = await makePerson({ admin: true });
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await signIn(page, admin.email, '/my-day');
+      await hydrated(page);
+      // the language is chosen after signing in: the sign-in helper types into the English form
+      await setPrefs(context, { locale: code });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await expect(page.locator('html')).toHaveAttribute('lang', code);
+
+      // 1 · the desktop Create menu
+      await page.locator('[data-create]').click();
+      const item = page.locator('[data-create-item="invoice"]');
+      await expect(item, 'Create offers Invoice').toBeVisible();
+      await expect(item).toHaveText(invoice);
+      await item.click();
+      await expect(page).toHaveURL(/\/finance\/new$/);
+      await hydrated(page);
+      await expect(page.locator('[data-new-invoice]')).toBeVisible();
+
+      // 2 · Ctrl K
+      await page.goto('/my-day');
+      await hydrated(page);
+      await page.keyboard.press('Control+k');
+      const palette = page.locator('[data-command-palette]');
+      await palette.getByRole('combobox').fill(invoice);
+      const option = palette.getByRole('option', { name: `${create} · ${invoice}`, exact: true });
+      await expect(option, 'Ctrl K offers Invoice').toBeVisible();
+      await option.click();
+      await expect(page).toHaveURL(/\/finance\/new$/);
+
+      // 3 · the phone's floating +
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await page.locator('[data-create-floating]').click();
+      const phoneItem = page.locator('[data-create-item="invoice"]');
+      await expect(phoneItem, 'the + offers Invoice').toBeVisible();
+      await phoneItem.click();
+      await expect(page).toHaveURL(/\/finance\/new$/);
+    });
+  });
+
+  test(`in ${code}: View on Finance — no Invoice at any of the three doors, and the other items are still there`, async ({
+    page,
+    context,
+  }) => {
+    await withArabic(async () => {
+      // a member with Finance at View: Create still offers their other items, never Invoice
+      const person = await makePerson();
+      await sql(
+        `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+         values ($1, 'finance', 'view', 'Made-up: view only on Finance (QA-556)', $1)`,
+        [person.id],
+      );
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await signIn(page, person.email, '/my-day');
+      await hydrated(page);
+      await setPrefs(context, { locale: code });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await expect(page.locator('html')).toHaveAttribute('lang', code);
+
+      await page.locator('[data-create]').click();
+      await expect(page.locator('[data-create-item="client"]'), 'Create still offers other items').toBeVisible();
+      await expect(page.locator('[data-create-item="invoice"]'), 'no Invoice in Create').toHaveCount(0);
+      await page.keyboard.press('Escape');
+
+      await page.keyboard.press('Control+k');
+      const palette = page.locator('[data-command-palette]');
+      await palette.getByRole('combobox').fill(invoice);
+      await expect(palette.getByRole('option', { name: `${create} · ${invoice}`, exact: true })).toHaveCount(0);
+      await page.keyboard.press('Escape');
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await page.locator('[data-create-floating]').click();
+      await expect(page.locator('[data-create-item="client"]'), 'the + still offers other items').toBeVisible();
+      await expect(page.locator('[data-create-item="invoice"]'), 'no Invoice in the +').toHaveCount(0);
+    });
+  });
+}
