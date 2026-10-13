@@ -189,6 +189,16 @@ function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.report(p_report uuid) execute authenticated
+function api.report_add_achievement_line(p_report uuid, p_section text, p_achievement jsonb, p_text_en text, p_text_ar text) execute authenticated
+function api.report_correct(p_report uuid, p_note text) execute authenticated
+function api.report_create(p_kind text, p_period_start date, p_department uuid) execute authenticated
+function api.report_issue(p_report uuid, p_version integer) execute authenticated
+function api.report_line_add(p_report uuid, p_fields jsonb) execute authenticated
+function api.report_line_update(p_line uuid, p_fields jsonb, p_version integer) execute authenticated
+function api.report_lines_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.reports(p_kind text, p_year integer) execute authenticated
+function api.reports_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
@@ -451,6 +461,16 @@ function pipeline.overview(p_period text, p_from date, p_to date, p_segment text
 function pipeline.partner_cards(p_partner uuid) execute authenticated
 function pipeline.remove(p_entity text, p_ids uuid[], p_reason text) execute authenticated
 function pipeline.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function report.add_achievement_line(p_report uuid, p_section text, p_achievement jsonb, p_text_en text, p_text_ar text) execute authenticated
+function report.correct(p_report uuid, p_note text) execute authenticated
+function report.create(p_kind text, p_period_start date, p_department uuid) execute authenticated
+function report.get(p_report uuid) execute authenticated
+function report.issue(p_report uuid, p_version integer) execute authenticated
+function report.line_add(p_report uuid, p_fields jsonb) execute authenticated
+function report.line_update(p_line uuid, p_fields jsonb, p_version integer) execute authenticated
+function report.lines_remove(p_ids uuid[], p_reason text) execute authenticated
+function report.list(p_kind text, p_year integer) execute authenticated
+function report.reports_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.action_item_add(p_task uuid, p_values jsonb) execute authenticated
 function work.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
 function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
@@ -493,5 +513,6 @@ schema notify usage authenticated
 schema partner usage authenticated
 schema perf usage authenticated
 schema pipeline usage authenticated
+schema report usage authenticated
 schema work usage authenticated
 type core.level usage public
