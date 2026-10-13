@@ -225,7 +225,8 @@ jobs:
     # filter, toggle and menu on it pressed once (never sign out, Undo, delete, archive, switch off, merge or close
     # month). A report, never a gate: it runs after a merge, it is in no job's needs, and its findings never fail it.
     # Findings come out as warning annotations (readable through the check-run annotations API; GitHub keeps 10 per
-    # step, so five steps carry the 50 most severe) and all of them as a table in the step summary.
+    # step and 50 per job, so one step carries V633's size warnings and four more the 40 most severe) and all of them
+    # as a table in the step summary, with V633's counts of menu entries and visible actions per role and width.
     # a push to v2/main or a run by hand there (this workflow's only other trigger is pull_request)
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/v2/main'
     runs-on: ubuntu-latest
@@ -284,18 +285,36 @@ jobs:
               if (!seen.has(key)) seen.set(key, { sev: m[1], page: r.screen || "", problem: m[2], who: [] });
               seen.get(key).who.push(r.user || "");
             }
-            const all = [...seen.values()].sort((a, b) => rank[a.sev] - rank[b.sev] || a.page.localeCompare(b.page));
+            // the V633 counts first: they get a step of their own, so the size warnings always show
+            const v633 = (f) => /V633/.test(f.problem) ? 0 : 1;
+            const all = [...seen.values()].sort((a, b) => v633(a) - v633(b) || rank[a.sev] - rank[b.sev] || a.page.localeCompare(b.page));
             const clean = (s) => String(s).replace(/[\r\n%]/g, " ").replace(/::/g, ": ");
-            fs.writeFileSync(dir + "/annotations.txt", all.map((f) =>
+            const line = (f) => `::warning title=${clean(f.sev + " · " + f.page)}::${clean(f.who.join(", ") + " · " + f.page + " · " + f.problem)}`;
+            fs.writeFileSync(dir + "/v633.txt", all.filter((f) => !v633(f)).map(line).join("\n") + "\n");
+            fs.writeFileSync(dir + "/annotations.txt", all.filter(v633).map((f) =>
               `::warning title=${clean(f.sev + " · " + f.page)}::${clean(f.who.join(", ") + " · " + f.page + " · " + f.problem)}`).join("\n") + "\n");
             const cells = read(process.env.QA_MATRIX);
+            // V633: menu entries per role and width, and visible actions per page (phone limit 12, menu limit 9)
+            const counts = cells.filter((c) => c.kind === "count");
+            const cols = [...new Set(counts.map((c) => c.role + " · " + c.width))].sort();
+            const rows = [...new Set(counts.map((c) => c.route + " | " + c.control))].sort((a, b) => (a.startsWith("the menu") ? -1 : b.startsWith("the menu") ? 1 : a.localeCompare(b)));
+            const cellOf = (row, col) => {
+              const hit = counts.filter((c) => c.route + " | " + c.control === row && c.role + " · " + c.width === col && c.lang === "en");
+              return hit.length ? hit.map((c) => (c.ok ? c.result : "**" + c.result + "**")).join(" / ") : "";
+            };
+            const countTable = ["", "### V633 counts (English; over the limit in bold)", "",
+              "| Page · count | " + cols.join(" | ") + " |", "|---|" + cols.map(() => "---|").join(""),
+              ...rows.map((r) => "| `" + r.split(" | ")[0] + "` · " + r.split(" | ")[1] + " | " + cols.map((c) => cellOf(r, c)).join(" | ") + " |")];
             const bad = cells.filter((c) => !c.ok).length;
             const sum = [`## Every control on ${process.env.GITHUB_SHA.slice(0, 7)}`, "",
               `${cells.length} cells (pages, links and controls), ${cells.length - bad} fine, ${bad} need a fix; ${all.length} distinct findings.`, "",
               "| Severity | Page | Problem | Who · language · width |", "|---|---|---|---|",
-              ...all.map((f) => `| ${f.sev} | \`${f.page}\` | ${clean(f.problem).replace(/\|/g, "/")} | ${f.who.join(", ")} |`)];
+              ...all.map((f) => `| ${f.sev} | \`${f.page}\` | ${clean(f.problem).replace(/\|/g, "/")} | ${f.who.join(", ")} |`), ...countTable];
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, sum.join("\n") + "\n");
           '
+      - name: V633 size warnings (a phone page over 12 actions, a menu over 9 entries)
+        if: always()
+        run: sed -n '1,10p' "$QA_RUN_DIR/v633.txt" || true
       - name: annotations 1–10
         if: always()
         run: sed -n '1,10p' "$QA_RUN_DIR/annotations.txt" || true
@@ -308,9 +327,6 @@ jobs:
       - name: annotations 31–40
         if: always()
         run: sed -n '31,40p' "$QA_RUN_DIR/annotations.txt" || true
-      - name: annotations 41–50
-        if: always()
-        run: sed -n '41,50p' "$QA_RUN_DIR/annotations.txt" || true
       - if: always()
         run: supabase stop --no-backup --workdir "$QA_RUN_DIR/stack"
 
