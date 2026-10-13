@@ -225,7 +225,10 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
   await page.goto('/partners?view=suppliers');
   await hydrated(page);
   await expect(page).toHaveURL(/\/suppliers$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Clients' }), 'one page, two tabs').toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Suppliers' }),
+    'the title is the page on screen',
+  ).toBeVisible();
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
   await page.goto(`/suppliers?q=${encodeURIComponent(`Test Supplier ${t}`)}`);
   await hydrated(page);

@@ -45,8 +45,8 @@ export async function PartnersListPage({
   const [q, me] = await Promise.all([searchParams, requireMe()]);
   const t = await getTranslations();
   const page = SIDE_PAGE[side];
-  // one page, two tabs: the title is Clients on both (V217)
-  const title = t('nav.clients');
+  // the title is the page on screen: Clients on /clients, Suppliers on /suppliers; the two tabs sit under it (V217, V238)
+  const title = side === 'client' ? t('nav.clients') : t('nav.suppliers_partners');
   if ((me.levels[page] ?? 'none') === 'none')
     return (
       <Page>
