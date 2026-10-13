@@ -226,7 +226,8 @@ jobs:
     # month). A report, never a gate: it runs after a merge, it is in no job's needs, and its findings never fail it.
     # Findings come out as warning annotations (readable through the check-run annotations API; GitHub keeps 10 per
     # step, so five steps carry the 50 most severe) and all of them as a table in the step summary.
-    if: github.ref == 'refs/heads/v2/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # a push to v2/main or a run by hand there (this workflow's only other trigger is pull_request)
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/v2/main'
     runs-on: ubuntu-latest
     # QA 1's local run of 13 Oct on 4d63b0f: 59 minutes for the crawl (2,758 cells, three people side by side) plus about
     # 5 for the stack, the build and the seed; 150 leaves room for a slower runner
