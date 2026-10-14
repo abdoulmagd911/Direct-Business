@@ -53,6 +53,24 @@ describe('the When chips', () => {
     expect(nextWeek(at('2026-10-14T06:00:00Z'))).toEqual({ day: '2026-10-18', time: '09:00' });
     expect(nextWeek(at('2026-10-18T06:00:00Z')), 'on a Sunday').toEqual({ day: '2026-10-25', time: '09:00' });
   });
+  it('puts Next week on the Sunday after Tomorrow on every day of the week, so it is never the same day as Tomorrow (QA-566)', () => {
+    // Sun 11 – Sat 17 Oct 2026; Friday and Saturday are the weekend. [day, Tomorrow, Next week]
+    const table = [
+      ['2026-10-11', '2026-10-12', '2026-10-18'],
+      ['2026-10-12', '2026-10-13', '2026-10-18'],
+      ['2026-10-13', '2026-10-14', '2026-10-18'],
+      ['2026-10-14', '2026-10-15', '2026-10-18'],
+      ['2026-10-15', '2026-10-18', '2026-10-25'],
+      ['2026-10-16', '2026-10-18', '2026-10-25'],
+      ['2026-10-17', '2026-10-18', '2026-10-25'],
+    ] as const;
+    for (const [day, tmrw, next] of table) {
+      const now = at(`${day}T06:00:00Z`);
+      expect(tomorrow(now).day, `${day}: Tomorrow`).toBe(tmrw);
+      expect(nextWeek(now).day, `${day}: Next week`).toBe(next);
+      expect(nextWeek(now).day > tomorrow(now).day, `${day}: Next week is later than Tomorrow`).toBe(true);
+    }
+  });
   it('sends the Riyadh day and time at UTC+3, and takes Pick a day as given', () => {
     expect(instantOf({ day: '2026-10-15', time: '15:00' })).toBe('2026-10-15T15:00:00+03:00');
     expect(whenFor('pick', at('2026-10-14T06:00:00Z'), { day: '2026-10-16', time: '12:00' })).toEqual({

@@ -6,9 +6,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   WRAP_DEFAULT,
-  moveDaysCollide,
-  nextWeekDay,
-  wrapMoves,
   wrapItems,
   wrapLabel,
   wrapPayload,
@@ -117,45 +114,5 @@ describe('Wrap up v2 walks the day and sends one request', () => {
     expect(back.gone.map((i) => i.id)).toEqual(['a']);
     expect(back.items.map((i) => i.id)).toEqual(['b']);
     expect(wrapLabel(back.gone[0]!), 'a task is named by its number').toBe('T-a a');
-  });
-});
-
-// 2026-10-13 is a Tuesday. Friday and Saturday are the weekend; the week starts on Sunday (D20).
-describe('Wrap up offers one choice when Tomorrow and Next week are the same day', () => {
-  const days = {
-    sunday: '2026-10-18',
-    monday: '2026-10-19',
-    tuesday: '2026-10-13',
-    wednesday: '2026-10-14',
-    thursday: '2026-10-15',
-    friday: '2026-10-16',
-    saturday: '2026-10-17',
-  };
-  it('puts Next week on the first Sunday after the day', () => {
-    expect(nextWeekDay(days.tuesday)).toBe('2026-10-18');
-    expect(nextWeekDay(days.thursday)).toBe('2026-10-18');
-    expect(nextWeekDay(days.sunday), 'a Sunday asks for the one after').toBe('2026-10-25');
-  });
-  it('offers Tomorrow, Next week and Drop on an ordinary working day', () => {
-    for (const d of [days.sunday, days.monday, days.tuesday, days.wednesday]) {
-      expect(moveDaysCollide(d), d).toBe(false);
-      expect(wrapMoves(d), d).toEqual(['tomorrow', 'next_week', 'drop']);
-    }
-  });
-  it('offers only Tomorrow and Drop on the last working day and on the weekend, when both are Sunday', () => {
-    for (const d of [days.thursday, days.friday, days.saturday]) {
-      expect(moveDaysCollide(d), d).toBe(true);
-      expect(wrapMoves(d), d).toEqual(['tomorrow', 'drop']);
-    }
-  });
-  it('sends a leftover Next week as Tomorrow when the two are the same day, and counts it so', () => {
-    const items = wrapItems([task('a', 'today'), task('b', 'today')], []);
-    const states = { b: { done: false, move: 'next_week' as const } };
-    expect(wrapPayload(items, states, true).map((p) => p.choice)).toEqual(['tomorrow', 'tomorrow']);
-    expect(wrapSummary(items, states, true)).toEqual({ done: 0, tomorrow: 2, next_week: 0, drop: 0 });
-    expect(
-      wrapPayload(items, states).map((p) => p.choice),
-      'on other days it is kept',
-    ).toEqual(['tomorrow', 'next_week']);
   });
 });

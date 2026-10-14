@@ -27,7 +27,9 @@ export const sabotages = [
     name: 'wrap-up-lets-done-lose-to-a-move',
     breaks: [UNIT],
     expect: 'chooses Tomorrow unless told otherwise, and Done wins',
-    edits: [{ file: 'src/modules/my-day/logic.ts', find: "choice: s.done ? 'done' : move", replace: 'choice: move' }],
+    edits: [
+      { file: 'src/modules/my-day/logic.ts', find: "choice: s.done ? 'done' : s.move", replace: 'choice: s.move' },
+    ],
   },
   {
     name: 'wrap-up-walks-later-tasks',
@@ -96,8 +98,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: 'p_items: wrapPayload(items, states, merged) as never',
-        replace: 'p_items: wrapPayload(items, states, merged).slice(0, 1) as never',
+        find: 'p_items: wrapPayload(items, states) as never',
+        replace: 'p_items: wrapPayload(items, states).slice(0, 1) as never',
       },
     ],
   },
@@ -158,42 +160,6 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
         find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}",
         replace: "{t('pages.myDay.wrap.title')}",
-      },
-    ],
-  },
-  {
-    name: 'wrap-up-offers-next-week-on-the-same-day-as-tomorrow',
-    breaks: [UNIT],
-    expect: 'offers only Tomorrow and Drop on the last working day',
-    edits: [
-      {
-        file: 'src/modules/my-day/logic.ts',
-        find: "moveDaysCollide(day) ? ['tomorrow', 'drop']",
-        replace: "false ? ['tomorrow', 'drop']",
-      },
-    ],
-  },
-  {
-    name: 'wrap-up-sends-a-stale-next-week-on-the-same-day',
-    breaks: [UNIT],
-    expect: 'sends a leftover Next week as Tomorrow',
-    edits: [
-      {
-        file: 'src/modules/my-day/logic.ts',
-        find: "merged && s.move === 'next_week' ? 'tomorrow' : s.move",
-        replace: 's.move',
-      },
-    ],
-  },
-  {
-    name: 'wrap-up-next-week-starts-on-the-coming-day',
-    breaks: [UNIT],
-    expect: 'puts Next week on the first Sunday after the day',
-    edits: [
-      {
-        file: 'src/modules/my-day/logic.ts',
-        find: 'while (d.getUTCDay() !== 0);\n  return d.toISOString().slice(0, 10);\n}\n\n/**\n * On the last working day',
-        replace: 'while (false);\n  return d.toISOString().slice(0, 10);\n}\n\n/**\n * On the last working day',
       },
     ],
   },
