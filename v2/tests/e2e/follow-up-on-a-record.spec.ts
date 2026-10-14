@@ -137,8 +137,8 @@ for (const w of WIDTHS) {
     await page.locator('[data-task-more]').click();
     await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Escalate').toHaveText(['Escalate']);
     await page.keyboard.press('Escape');
-    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} ${title}`);
-    await listedOnceOnMyDay(page, noteId, `${number} ${title}`);
+    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`);
+    await listedOnceOnMyDay(page, noteId, `${number} · ${title}`);
     await ctx.close();
   });
 

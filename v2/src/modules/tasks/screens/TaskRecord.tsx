@@ -108,7 +108,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('common.edit')}
         </Button>
       ) : null}
-      <FollowUpButton about={{ entity: 'task', id: task.id, label: `${task.number} ${task.title}` }} />
+      <FollowUpButton about={{ entity: 'task', id: task.id, label: `${task.number} · ${task.title}` }} />
       {task.can_edit && !closed ? (
         <Menu>
           <MenuTrigger asChild>
