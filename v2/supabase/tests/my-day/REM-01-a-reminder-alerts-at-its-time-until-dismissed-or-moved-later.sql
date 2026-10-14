@@ -53,7 +53,8 @@ select test.eq(jsonb_array_length(api.reminders_due() -> 'due'), 1, 'until its s
 select api.notifications_mark_read(array[current_setting('t.nid')::uuid]);
 select test.eq(api.reminders_due() -> 'due', '[]'::jsonb, 'dismissed, it is due no more');
 
--- one Undo takes a move back
+-- one Undo takes a move back (on the real clock: Undo's window is counted from when the request was really made)
+select set_config('v2.test_now', '', true);
 select set_config('t.req2', api.reminder_move(current_setting('t.r')::uuid, (current_setting('t.d1') || ' 15:00:00+03')::timestamptz)
   ->> 'request_id', true);
 select api.undo(current_setting('t.req2')::uuid);
