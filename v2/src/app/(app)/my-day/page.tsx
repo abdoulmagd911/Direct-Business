@@ -5,7 +5,7 @@ import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { MyDay } from '@/modules/my-day/screens/MyDay';
-import { myDay } from '@/modules/my-day/server';
+import { myDay, remindersDue } from '@/modules/my-day/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import type { TaskStatus } from '@/modules/tasks/types';
@@ -32,7 +32,7 @@ export default async function MyDayPage({
   // mark comes from it (V444) — so the owner's admin account, whose page is a note, simply ignores the rest.
   const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
   const all = sp.more === '1';
-  const [answerRead, orgRead, statusesRead] = await Promise.allSettled([
+  const [answerRead, orgRead, statusesRead, dueRead] = await Promise.allSettled([
     myDay(scope, all ? ALL : BLOCK + 1),
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     scope === 'me'
@@ -40,6 +40,7 @@ export default async function MyDayPage({
           () => [] as TaskStatus[],
         )
       : Promise.resolve([] as TaskStatus[]),
+    scope === 'me' ? remindersDue() : Promise.resolve(null),
   ]);
   const org = orgRead.status === 'fulfilled' ? orgRead.value : null;
   if (org && accountOfOrg(org, me.person.id) === 'admin_account')
@@ -69,9 +70,11 @@ export default async function MyDayPage({
   const answer = answerRead.value;
   const statuses = statusesRead.value;
   const people = orgRead.value.people;
+  // remindersDue() answers null when it cannot be read: the Today block says so and the rest of My day still draws
+  const due = dueRead.status === 'fulfilled' ? dueRead.value : null;
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, all, people, statuses }} />
+      <MyDay data={{ title, scope, answer, all, people, statuses, due }} />
     </Page>
   );
 }

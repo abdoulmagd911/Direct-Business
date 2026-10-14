@@ -10,9 +10,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/(app)/my-day/page.tsx',
-        find: 'const [answerRead, orgRead, statusesRead] = await Promise.allSettled([',
+        find: 'const [answerRead, orgRead, statusesRead, dueRead] = await Promise.allSettled([',
         replace:
-          "await serverRpc('org', {} as never);\n  const [answerRead, orgRead, statusesRead] = await Promise.allSettled([",
+          "await serverRpc('org', {} as never);\n  const [answerRead, orgRead, statusesRead, dueRead] = await Promise.allSettled([",
       },
     ],
   },
