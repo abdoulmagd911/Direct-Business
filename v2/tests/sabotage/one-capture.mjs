@@ -22,7 +22,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/CaptureButton.tsx',
-        find: 'onClick={openQuickCapture}',
+        find: 'onClick={() => openQuickCapture()}',
         replace: 'onClick={() => undefined}',
       },
     ],

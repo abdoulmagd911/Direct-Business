@@ -449,7 +449,21 @@
         },
         "when": "متى",
         "save": "تدوين",
-        "saved": "تم تدوين: {kind}"
+        "saved": "تم تدوين: {kind}",
+        "whenChips": {
+          "later_today": "لاحقًا اليوم",
+          "tomorrow": "غدًا",
+          "next_week": "الأسبوع القادم",
+          "pick": "اختر يومًا"
+        },
+        "day": "التاريخ",
+        "time": "الوقت",
+        "followUp": "متابعة",
+        "followUpTitle": "متابعة",
+        "followUpFor": "متابعة بشأن",
+        "followUpPlaceholder": "ما الذي تتابعه",
+        "followUpSaved": "تم تحديد المتابعة",
+        "passed": "هذا الوقت مضى"
       }
     },
     "settings": {

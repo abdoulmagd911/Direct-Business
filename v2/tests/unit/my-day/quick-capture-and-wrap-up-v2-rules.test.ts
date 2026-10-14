@@ -12,7 +12,7 @@ import {
   wrapRecover,
   wrapSummary,
 } from '../../../src/modules/my-day/logic';
-import { quickCaptureArgs, riyadhInstant, tomorrowMorning } from '../../../src/modules/my-day/quick-capture';
+import { quickCaptureArgs } from '../../../src/modules/my-day/quick-capture';
 import type { MyNote, TodayTask } from '../../../src/modules/my-day/types';
 
 const opts = { visibility: 'private', day: '2026-10-13' };
@@ -61,17 +61,21 @@ describe('Quick capture sends what each kind needs', () => {
     const one = quickCaptureArgs('checklist', 'Only this', opts);
     expect((one?.values.items as { text: string }[])[0]?.text).toBe('Only this');
   });
+  it('ties a Reminder to its record when it is a Follow up', () => {
+    const args = quickCaptureArgs('reminder', 'Ask about the offer', {
+      ...opts,
+      remindAt: '2026-10-15T09:00:00+03:00',
+      about: { entity: 'partner', id: 'c1' },
+    });
+    expect(args?.values.about, 'the record travels with the reminder').toEqual({ entity: 'partner', id: 'c1' });
+    expect(args?.values.visibility, 'private').toBe('private');
+  });
   it('refuses a reminder with no time and nothing when there are no words', () => {
     expect(quickCaptureArgs('reminder', 'Call back', opts), 'a reminder asks when').toBeNull();
     expect(quickCaptureArgs('reminder', 'Call back', { ...opts, remindAt: '2026-10-14T09:00:00+03:00' })?.kind).toBe(
       'reminder',
     );
     expect(quickCaptureArgs('note', '  \n ', opts)).toBeNull();
-  });
-  it('reads the picked time as Riyadh time and starts a reminder at nine the next morning', () => {
-    expect(riyadhInstant('2026-10-14T09:00')).toBe('2026-10-14T09:00:00+03:00');
-    expect(tomorrowMorning('2026-10-13')).toBe('2026-10-14T09:00');
-    expect(tomorrowMorning('2026-12-31')).toBe('2027-01-01T09:00');
   });
 });
 
