@@ -26,7 +26,8 @@ import { canSee } from '../person';
  * menu is one rule (V217, V238), and it lives here alone: `navFor`. A page is in the menu where the person's access
  * opens it, and nowhere else; the desktop menu, the phone bar, More and Ctrl K all read it from here. A page the database
  * does not know is hidden, never guessed. Settings is the admin's door at the foot (owner, 29 Sep); everyone reaches My
- * profile from the profile chip.
+ * profile from the profile chip. A page whose screen is not built (`built` unset in its module) is in no menu, no bar
+ * and not in Ctrl K, for anyone (QA3-002, V633): it would open "Being built". Its address still answers, for QA.
  */
 export type NavEntry = {
   /** `<page>` or `<page>:<entry>` — the drawer's own key. */
@@ -64,7 +65,7 @@ function build(): NavEntry[] {
   const out: { order: number; entry: NavEntry }[] = [];
   for (const m of modules)
     for (const p of m.pages ?? []) {
-      if (p.nav?.group !== 'main') continue;
+      if (p.nav?.group !== 'main' || !p.built) continue;
       const entries = p.nav.entries?.length
         ? p.nav.entries.map((e, i) => ({
             order: p.nav!.order + i / 100,

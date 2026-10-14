@@ -188,6 +188,8 @@ function api.recently_deleted(p_limit integer) execute authenticated
 function api.record_history(p_entity text, p_id uuid) execute authenticated
 function api.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.references_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.reminder_move(p_id uuid, p_at timestamp with time zone) execute authenticated
+function api.reminders_due() execute authenticated
 function api.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
@@ -235,6 +237,8 @@ function api.view_default_set(p_page text, p_view uuid) execute authenticated
 function api.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function api.views(p_page text) execute authenticated
 function api.views_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.weekly_review(p_day date) execute authenticated
+function api.wrap_up(p_items jsonb) execute authenticated
 function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
@@ -315,6 +319,8 @@ function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_rea
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
 function core.recently_deleted(p_limit integer) execute authenticated
+function core.reminder_move(p_id uuid, p_at timestamp with time zone) execute authenticated
+function core.reminders_due() execute authenticated
 function core.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
 function core.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function core.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
@@ -386,6 +392,8 @@ function my.note_get(p_id uuid) execute authenticated
 function my.note_turn_into(p_note uuid, p_kind text, p_values jsonb) execute authenticated
 function my.note_update(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
 function my.note_wrap_up(p_day date, p_choices jsonb) execute authenticated
+function my.weekly_review(p_day date) execute authenticated
+function my.wrap_up(p_items jsonb) execute authenticated
 function notify.follow_set(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function notify.following(p_entity text, p_id uuid) execute authenticated
 function notify.list(p_tab text, p_before timestamp with time zone, p_limit integer) execute authenticated
@@ -494,4 +502,5 @@ schema partner usage authenticated
 schema perf usage authenticated
 schema pipeline usage authenticated
 schema work usage authenticated
+table notify.notification select authenticated
 type core.level usage public

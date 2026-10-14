@@ -49,15 +49,18 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await hydrated(page);
   await createClient(page.context(), org);
 
-  // one keystroke: "/" comes to the capture row wherever the focus is on My day
+  // one keystroke: "/" opens the one Quick capture sheet wherever the focus is on My day
   await page.locator('main').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('/');
-  const input = page.locator('[data-capture-input]');
+  const input = page.locator('[data-quick-text]');
   await expect(input).toBeFocused();
-  await expect(page.locator('[data-capture-visibility]'), 'private by default (V454)').toHaveText(/Only me/);
+  await expect(page.locator('[data-quick-visibility="private"]'), 'private by default (V454)').toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
   await input.fill(`Call Test Person about the offsite ${t}`);
-  await input.press('Enter');
-  await expect(toast(page, 'Note filed in My notes')).toBeVisible();
+  await page.locator('[data-quick-save]').click();
+  await expect(toast(page, 'Note captured')).toBeVisible();
   const row = page.locator('[data-my-note]', { hasText: `offsite ${t}` });
   await expect(row).toBeVisible();
 
@@ -198,9 +201,9 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
   await signIn(page, admin.email, '/my-day');
   await hydrated(page);
   await createClient(page.context(), org);
-  await page.locator('[data-capture-input]').fill(`/meeting Kick-off ${t}`);
-  await page.locator('[data-capture-input]').press('Enter');
-  await expect(page).toHaveURL(/\/my-day\/notes\//);
+  // a meeting note is made through the API (the sheet offers Note, Idea, Checklist and Reminder only)
+  const meetingId = await capture(page.context(), `Kick-off ${t}`, 'private', 'meeting');
+  await page.goto(`/my-day/notes/${meetingId}`);
   await hydrated(page);
   await page.locator('[data-note-add-item]').click();
   await page.getByRole('textbox', { name: 'Row 1' }).fill('Share the made-up approver list');
@@ -219,9 +222,7 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
   await expect(page.locator('[data-finish-meeting]'), 'a finished meeting is not finished twice').toHaveCount(0);
 });
 
-test('Wrap up today carries the open captures to the next working day, keeping the day they happened', async ({
-  page,
-}) => {
+test('Wrap up carries the open captures to the next working day, keeping the day they happened', async ({ page }) => {
   const person = await makePerson();
   const t = tag();
   await signIn(page, person.email, '/my-day');
@@ -231,7 +232,7 @@ test('Wrap up today carries the open captures to the next working day, keeping t
   await page.locator('[data-wrap-open]').click();
   const dialog = page.getByRole('dialog');
   for (const id of ids)
-    await expect(dialog.locator(`[data-wrap-note="${id}"] [data-wrap-choice="carry"]`)).toHaveAttribute(
+    await expect(dialog.locator(`[data-wrap-item="${id}"] [data-wrap-move="tomorrow"]`)).toHaveAttribute(
       'aria-checked',
       'true',
     );

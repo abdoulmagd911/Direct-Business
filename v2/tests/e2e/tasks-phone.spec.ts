@@ -158,25 +158,32 @@ test('desk 1440: Tasks keeps every control in its row — Add task, five tabs, t
   expect(word!.width, 'the layout switch keeps its words').toBeGreaterThan(10);
 });
 
-test('phone 320: the My day capture card sits inside the screen, every control a finger high (V630)', async ({
+test('phone 320: the My day capture button and its sheet sit inside the screen, every control a finger high (V630)', async ({
   page,
 }) => {
   const member = await memberWithTeam();
   await page.setViewportSize({ width: 320, height: 640 });
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
+  const button = (await page.locator('[data-capture-open]').boundingBox())!;
+  expect(button.x + button.width, 'the capture button ends inside a 320 px screen').toBeLessThanOrEqual(320);
+  expect(button.height, 'the capture button is 44 px tall').toBeGreaterThanOrEqual(43.5);
+  await page.locator('[data-capture-open]').click();
+  await expect(page.locator('[data-quick-capture]')).toBeVisible();
   for (const selector of [
-    '[data-capture-kind]',
-    '[data-capture-visibility]',
-    '[data-capture-input]',
-    '[data-capture-save]',
+    '[data-quick-capture]',
+    '[data-quick-kind="note"]',
+    '[data-quick-kind="reminder"]',
+    '[data-quick-visibility="workspace"]',
+    '[data-quick-text]',
+    '[data-quick-save]',
   ]) {
     const b = (await page.locator(selector).boundingBox())!;
     expect(b.x + b.width, `${selector} ends inside a 320 px screen`).toBeLessThanOrEqual(320);
     expect(b.x, `${selector} starts inside it`).toBeGreaterThanOrEqual(0);
-    expect(b.height, `${selector} is 44 px tall`).toBeGreaterThanOrEqual(43.5);
+    if (selector !== '[data-quick-capture]' && selector !== '[data-quick-text]')
+      expect(b.height, `${selector} is 44 px tall`).toBeGreaterThanOrEqual(43.5);
   }
-  const card = (await page.locator('[data-capture]').boundingBox())!;
-  expect(card.x + card.width, 'capture card fits 320').toBeLessThanOrEqual(320);
+  await page.keyboard.press('Escape');
   await noSidewaysScroll(page, 320, 'My day');
 });

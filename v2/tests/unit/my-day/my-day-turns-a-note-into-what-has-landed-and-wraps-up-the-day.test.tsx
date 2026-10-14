@@ -19,10 +19,8 @@ import {
   nextWorkingDay,
   noteRoute,
   openCaptures,
-  parseCapture,
   turnLive,
   TURN_READY,
-  wrapUpChoices,
   liveKinds,
 } from '../../../src/modules/my-day/logic';
 import { FromNoteChip, LinkChip, VisibilityChip } from '../../../src/modules/my-day/screens/NoteBits';
@@ -137,21 +135,6 @@ describe('a block', () => {
   });
 });
 
-describe('capture', () => {
-  it('reads "/meeting" and "/checklist" as the kind, plain words as a note', () => {
-    expect(parseCapture('/meeting Kick-off with the made-up client', 'sticky')).toEqual({
-      kind: 'meeting',
-      title: 'Kick-off with the made-up client',
-    });
-    expect(parseCapture('/checklist Offsite', 'sticky')).toEqual({ kind: 'checklist', title: 'Offsite' });
-    expect(parseCapture('  Call back tomorrow ', 'sticky')).toEqual({ kind: 'sticky', title: 'Call back tomorrow' });
-    expect(parseCapture('/unknown words', 'checklist'), 'an unknown word is text').toEqual({
-      kind: 'checklist',
-      title: '/unknown words',
-    });
-  });
-});
-
 describe('Wrap up today', () => {
   it("walks only my open captures: not a colleague's, not a finished meeting, not one already turned into something", () => {
     const notes = [
@@ -167,12 +150,6 @@ describe('Wrap up today', () => {
     expect(nextWorkingDay('2026-10-01'), 'Sunday after a Thursday').toBe('2026-10-04');
     expect(nextWorkingDay('2026-09-29')).toBe('2026-09-30');
     expect(nextWorkingDay('2026-10-03'), 'Saturday to Sunday').toBe('2026-10-04');
-  });
-  it('sends only the choices made, carry or done, as api.note_wrap_up takes them', () => {
-    expect(wrapUpChoices({ a: 'carry', b: 'done', c: undefined })).toEqual([
-      { note: 'a', choice: 'carry' },
-      { note: 'b', choice: 'done' },
-    ]);
   });
 });
 

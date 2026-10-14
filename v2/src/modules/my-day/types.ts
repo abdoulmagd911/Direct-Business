@@ -80,6 +80,23 @@ export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number
 
 export type PendingReminder = { id: string; note_id: string | null; remind_at: string; text: string | null };
 
+/** One of my open tasks as `my.my_tasks` serves it (D3): grouped by Riyadh day; `helping` are the ones I only help on. */
+export type TodayTask = {
+  id: string;
+  number: string;
+  title: string;
+  due_on: string;
+  partner_id: string | null;
+  partner_name: string | null;
+  group: 'overdue' | 'today' | 'next' | 'helping';
+  role: 'owner' | 'helper';
+  /** How many times a wrap-up carried it over. */
+  carried_over?: number;
+};
+
+/** What a wrap-up carried to today and is still open (`api.my_day` `carried_over`). */
+export type CarriedItem = { kind: 'task' | 'note'; id: string; from: string | null; times: number };
+
 export type MyDayAnswer = {
   scope: Scope;
   day: string;
@@ -90,6 +107,10 @@ export type MyDayAnswer = {
   /** Notes shared with the team or everyone since `p_since`. */
   since: SinceCount[];
   reminders: PendingReminder[];
+  /** Me only: my open tasks due by the end of this week (absent from an older answer). */
+  tasks?: TodayTask[];
+  /** Me only: what yesterday's wrap-up carried to today. */
+  carried_over?: CarriedItem[];
 };
 
 /** The note a record came from (api.notes `from_note`), for a reader who may see that note. */
@@ -98,5 +119,3 @@ export type FromNote = { id: string; kind: NoteKind; title: string | null; autho
 /** Turn into (V433): each kind arrives with its own door. `activity` is a logged call or meeting. */
 export type TurnKind = 'activity' | 'reminder' | 'task' | 'action_item' | 'achievement';
 export const TURN_KINDS: TurnKind[] = ['activity', 'reminder', 'task', 'action_item', 'achievement'];
-
-export type WrapChoice = 'carry' | 'done';

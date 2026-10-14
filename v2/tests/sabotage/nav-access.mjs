@@ -48,7 +48,7 @@ export const sabotages = [
   {
     name: 'menu-shows-work-pages-only-on-screen',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: '1 · a member: the drawer is every page their access opens',
+    expect: '1 · a member: the drawer is every built page their access opens',
     edits: [
       {
         file: 'src/ui/shell/nav.ts',
@@ -79,6 +79,30 @@ export const sabotages = [
         file: 'src/ui/shell/nav.ts',
         find: 'return [...navFor(me), ...(isAdmin(me) ? [SETTINGS_ENTRY] : [])];',
         replace: 'return [...navFor(me), SETTINGS_ENTRY];',
+      },
+    ],
+  },
+  {
+    name: 'menu-shows-unbuilt-pages',
+    breaks: ['unit:tests/unit/shell/the-menu-shows-a-page-where-the-person-can-open-it.test.ts'],
+    expect: 'never shows a page whose screen is not built',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: "if (p.nav?.group !== 'main' || !p.built) continue;",
+        replace: "if (p.nav?.group !== 'main') continue;",
+      },
+    ],
+  },
+  {
+    name: 'menu-shows-unbuilt-pages-on-screen',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: '1 · a member: the drawer is every built page their access opens',
+    edits: [
+      {
+        file: 'src/ui/shell/nav.ts',
+        find: "if (p.nav?.group !== 'main' || !p.built) continue;",
+        replace: "if (p.nav?.group !== 'main') continue;",
       },
     ],
   },
