@@ -193,14 +193,15 @@ for (const width of [375, 1440]) {
     await sheet.locator('[data-quick-save]').click();
     await expect(toast(page, 'Follow-up set')).toBeVisible();
     await expect(sheet).toHaveCount(0);
-    const [row] = await sql<{ about_table: string; visibility: string; at: string }>(
-      `select n.about_table, n.visibility, to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at
+    const [row] = await sql<{ about_table: string; visibility: string; at: string; title: string }>(
+      `select n.title, n.about_table, n.visibility, to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at
          from my.note n join core.reminder r on r.note_id = n.id
         where n.about_id = $1 and n.person_id = $2 and n.deleted_at is null`,
       [id, me.id],
     );
     expect(row?.about_table, 'a follow-up about the client').toBe('partner.partner');
     expect(row?.visibility, 'private, Only me').toBe('private');
+    expect(row?.title, 'a neutral title, never the record’s name (QA-560)').toBe('Follow-up');
     expect(row?.at, 'at the day and time chosen').toBe(`${d.tomorrow} 09:00`);
     expect(page.url(), 'and the person is still where they were').toMatch(/\/my-day$/);
   });

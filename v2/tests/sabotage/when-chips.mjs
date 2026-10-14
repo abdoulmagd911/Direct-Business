@@ -107,4 +107,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'follow-up-title-is-the-record-name',
+    breaks: [E2E],
+    expect: FOLLOW,
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/QuickCapture.tsx',
+        find: "t('pages.myDay.quick.followUpTitle') : text;",
+        replace: "`${t('pages.myDay.quick.followUp')}: ${about.label}` : text;",
+      },
+    ],
+  },
 ];
