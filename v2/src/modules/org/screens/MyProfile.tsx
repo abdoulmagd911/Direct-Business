@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { run } from '@/core/commands/run';
 import type { Me } from '@/core/auth/me';
+import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { DENSITIES, DIRS, PREF_DEFS, readPrefs, setPref } from '@/core/prefs';
@@ -351,6 +352,7 @@ export function MyProfile({
 /** Change password (owner, 29 Sep 13:50): the new password twice; the rule is one line — at least ten characters. */
 function PasswordSection() {
   const t = useTranslations();
+  const me = useMe();
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
@@ -372,6 +374,19 @@ function PasswordSection() {
   return (
     <Section title={t('profile.sections.password')} data-profile-card="password">
       <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
+      {/* The browser's password manager fills a saved sign-in into the text box before a password field; this one is
+          that box, read-only and out of sight, so it never lands in the display names above (they save on blur). */}
+      <input
+        type="email"
+        name="username"
+        autoComplete="username"
+        value={me.session.email}
+        readOnly
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
+        data-password-username
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label={t('sign_in.password.current')}
