@@ -27,7 +27,7 @@ Builder A owns the wording and data items; builder B the screens; builder S the 
 | 17 | Top bar bunched to the left at 1,440 px | As item 1 | B |
 | 18 | The name shown twice | The top-bar badge keeps it (avatar and name at 1,440, avatar only at 375); the drawer's bottom chip is removed, so the drawer's bottom is only its one Collapse control | B |
 | 19 | Unlabelled drawer icons | Every icon-only control in the drawer has a tooltip on hover and keyboard focus (beside the icon in the collapsed rail) and an accessible name; the open drawer shows words | B |
-| 20 | Create and Capture both orange | Orange is never a button fill. Create is slate filled, the one filled button in the chrome; page buttons are outline; a dialog's Save may be filled | B |
+| 20 | Create and Capture both orange | One filled button in the chrome (Create) and outline page buttons; a dialog's Save may be filled. The fill colour is the theme's own `--primary` (orange with dark text in the Direct theme, V636) | B |
 | 21 | Wrap up placed differently per width | Wrap up is the one button in My day's header row at every width (item 35); on a phone that row sits under the date | B |
 | 22 | ⋯ wraps onto its own line at 375 px | Header action rows never wrap: one primary button plus ⋯ stay inline; the other actions move into ⋯ | B |
 | 23 | "Follow" vs "Follow up" (one Arabic word for both) | The eye is **Watch / Watching** (Arabic تتبّع); **Follow up** (the reminder) stays Follow up (Arabic متابعة); wording only; Builder C confirms the Arabic | A, C |

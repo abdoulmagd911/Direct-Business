@@ -1,6 +1,6 @@
-# The Direct theme: dimmed black, modern, with Direct's orange (V636) — the token values for builder B
+# The Direct theme: dimmed black, modern, with Direct's orange (V636) — the token values for builder B (#254)
 
-Design lead, 14 Oct night. Replaces the values of `[data-theme='direct']` in `v2/src/ui/tokens.css` (the only file that may hold a colour). The names do not change; only the values do.
+Design lead, 14 Oct night. **Three themes, each person picks in My profile (owner, 14 Oct 23:05): Light is the default, Dark is optional, and Direct is this one.** Collapse of the earlier idea of retiring Direct: it stays, in this new form. Replaces the values of `[data-theme='direct']` in `v2/src/ui/tokens.css` (the only file that may hold a colour). The names do not change; only the values do.
 The door tokens (`--door-*`: sign-in and new password) stay as they are, one light set whatever the theme (V213).
 `tests/unit/tokens.test.ts` and the BUILD-PLAN "Design tokens" table must be updated in the same PR.
 
@@ -88,3 +88,14 @@ Chart colours (the five series, on a dark surface): contrast over 3:1 for all; t
 3. Nothing white sits on `--accent` or `--primary`; the unit test for that rule stays.
 4. At 375 and 1,440 px, English and Arabic, the screens to look at first: My day, Tasks, Clients, Finance overview, the bell, the Capture sheet. A hover or selected row uses `--nav-active` or `--accent-soft`, never a new colour.
 5. The door (sign in) stays light.
+
+## Boards (docs/v2/briefs/direct-theme/, one PNG each, all axe-clean including contrast)
+`MyDayTodayDim` (1440), `MyDayCaptureDim`, `MyDayWrapUpDim`, `MyDayTodayArDim` (Arabic 1440), `PhoneTodayDim` (390), `PhoneCaptureReminderDim`, `PhoneWrapUpDim`, `PhoneTodayArDim`. They are the My day Stage 1 and 2 screens in the Direct theme, so the owner can judge the look on the screens he uses every day: soft near-black page, a darker drawer, raised cards one step lighter, one orange primary button with dark text, a selected control as a soft orange tint (never a white block), status colours with their words.
+Selected controls in the Direct theme use `--accent-soft` with `--link` text and an `--accent` border (segmented controls, chips, the three Wrap up buttons); a Drop choice uses the danger tint.
+
+## Light and Dark checks (the values as built in `tokens.css`, checked against the same WCAG table)
+- **Dark (Night oasis): passes every pair.** No change.
+- **Light (Sea-glass): one pair fails:** `--border-strong` `#858f88` on the page `--bg` is 2.996:1 and needs 3:1 (an input's border). **Change `--border-strong` to `#7c867f`** (3.4 on the page, 3.6 on surface, 3.8 on raised, 3.1 on the drawer). Nothing else changes in Light.
+- The old Direct slate theme failed one pair (white on orange, 3.1:1); the new Direct values replace it, with dark text on orange at 5.8:1.
+- **Colorful** is not one of the three themes; its one near-miss (link on its soft tint 4.4:1) is moot unless the owner keeps it (V635 Q55).
+- **A reminder for the buttons:** the primary button is each theme's own `--primary` (orange with dark text in Direct; the theme's teal in Light and Dark). This amends my earlier "orange is never a button fill" (item 20 of the sense list): in the Direct theme it is, because the theme is Direct's orange.
