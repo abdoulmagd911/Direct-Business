@@ -13,6 +13,19 @@ const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySele
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
 const tag = () => Math.random().toString(36).slice(2, 8);
 
+/**
+ * Whether Tomorrow and Next week are the same day today in Riyadh (the last working day of the week, and the weekend:
+ * both are the coming Sunday). Then the sheet offers one choice, Tomorrow, named by its day. The unit tests pin the
+ * fixed dates; the specs below follow whichever day they run on, so none of them depends on the day of the week.
+ */
+async function wrapDays() {
+  const [d] = await sql<{ merged: boolean; name: string }>(
+    `select core.next_working_day(core.riyadh_today()) = my.next_week_day(core.riyadh_today()) as merged,
+            trim(to_char(core.next_working_day(core.riyadh_today()), 'FMDay')) as name`,
+  );
+  return d!;
+}
+
 async function personWithTeam() {
   const me = await makePerson({ admin: true });
   const t = tag();
@@ -129,6 +142,7 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const late = await make(`Late task ${t}`, -1);
   const due = await make(`Due task ${t}`, 0);
   const third = await make(`Third task ${t}`, 0);
+  const { merged, name } = await wrapDays();
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
@@ -142,11 +156,20 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   ).toHaveAttribute('aria-checked', 'true');
   await expect(
     dialog.locator('[data-wrap-save]'),
-    'Save says what it will do, rows left alone going to tomorrow',
-  ).toHaveText('Save · 3 to tomorrow');
+    'Save says what it will do, rows left alone going to tomorrow (named by its day when Next week is the same day)',
+  ).toHaveText(merged ? `Save · 3 to ${name}` : 'Save · 3 to tomorrow');
   await rowOf(`Late task ${t}`).locator('[data-wrap-state="done"]').click();
-  await rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]').click();
-  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 to tomorrow, 1 next week, 1 done');
+  if (merged) {
+    await expect(
+      rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]'),
+      'Next week is the same day as Tomorrow, so it is not offered',
+    ).toHaveCount(0);
+    await expect(rowOf(`Third task ${t}`).locator('[data-wrap-move="tomorrow"]')).toHaveText(name);
+    await expect(dialog.locator('[data-wrap-save]')).toHaveText(`Save · 2 to ${name}, 1 done`);
+  } else {
+    await rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]').click();
+    await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 to tomorrow, 1 next week, 1 done');
+  }
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
   const state = async () =>
@@ -161,7 +184,8 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     `select core.next_working_day(core.riyadh_today())::text as tomorrow, core.riyadh_today()::text as today`,
   );
   expect(by(due).due_on, 'Tomorrow is the next working day').toBe(days!.tomorrow);
-  expect(by(third).due_on > days!.tomorrow, 'Next week is later still').toBe(true);
+  if (merged) expect(by(third).due_on, 'left alone, it goes to the same day as Tomorrow').toBe(days!.tomorrow);
+  else expect(by(third).due_on > days!.tomorrow, 'Next week is later still').toBe(true);
 
   await toast(page, 'Day wrapped up').getByRole('button', { name: 'Undo' }).click();
   await expect
@@ -201,6 +225,7 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   const lost = await make(`Lost task ${t}`, 0);
   const kept = await make(`Kept task ${t}`, 0);
   const other = await makePerson({ admin: true });
+  const { merged, name } = await wrapDays();
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
@@ -208,7 +233,9 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   const dialog = page.getByRole('dialog');
   const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
   await expect(rowOf(`Lost task ${t}`)).toBeVisible();
-  await rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]').click();
+  // the choice that is kept through the refusal: Next week, or on a day when that is the same as Tomorrow, Tomorrow
+  const choice = merged ? 'tomorrow' : 'next_week';
+  await rowOf(`Kept task ${t}`).locator(`[data-wrap-move="${choice}"]`).click();
 
   // while the dialog is open, the task changes hands
   await sql(`update work.task set owner_id = $2 where number = $1`, [lost, other.id]);
@@ -218,10 +245,10 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   await expect(dialog.locator('[data-wrap-gone]'), 'the row that left is named').toContainText(lost);
   await expect(rowOf(`Lost task ${t}`), 'and is out of the list').toHaveCount(0);
   await expect(
-    rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]'),
+    rowOf(`Kept task ${t}`).locator(`[data-wrap-move="${choice}"]`),
     'the other choice is kept',
   ).toHaveAttribute('aria-checked', 'true');
-  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 next week');
+  await expect(dialog.locator('[data-wrap-save]')).toHaveText(merged ? `Save · 1 to ${name}` : 'Save · 1 next week');
   const [still] = await sql<{ due_on: string; today: string }>(
     `select due_on::text, core.riyadh_today()::text as today from work.task where number = $1`,
     [kept],

@@ -11,8 +11,10 @@ import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import {
+  moveDaysCollide,
   nextWorkingDay,
   wrapItems,
+  wrapMoves,
   wrapLabel,
   wrapPayload,
   wrapRecover,
@@ -30,16 +32,17 @@ const choiceClass = (on: boolean) =>
     on ? 'border-accent bg-accent-soft text-text' : 'border-border bg-raised text-muted hover:text-text',
   );
 
-const MOVES: { move: WrapMove; word: 'tomorrow' | 'nextWeek' | 'drop' }[] = [
-  { move: 'tomorrow', word: 'tomorrow' },
-  { move: 'next_week', word: 'nextWeek' },
-  { move: 'drop', word: 'drop' },
-];
+const WORDS: Record<WrapMove, 'tomorrow' | 'nextWeek' | 'drop'> = {
+  tomorrow: 'tomorrow',
+  next_week: 'nextWeek',
+  drop: 'drop',
+};
 
 /**
  * Wrap up v2 (productivity stage 1): today's tasks and captures, each Done or Not done. A Not done row has one tap for
  * Tomorrow (already chosen), Next week or Drop; one Save moves the lot through api.wrap_up as one request with one Undo.
- * Nothing is deleted: Drop cancels a task and closes a note.
+ * Nothing is deleted: Drop cancels a task and closes a note. On the last working day of the week Tomorrow and Next week
+ * are the same Sunday, so only one is offered, named by its day: "Sunday" (the Architect's ruling of 14 Oct).
  */
 export function WrapUpDialog({
   day,
@@ -73,14 +76,20 @@ export function WrapUpDialog({
   }, [open]);
   const stateOf = (id: string) => states[id] ?? WRAP_DEFAULT;
   const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
+  const merged = moveDaysCollide(day);
+  const moves = wrapMoves(day);
   const tomorrow = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const tomorrowName = formatDate(nextWorkingDay(day), locale, { weekday: 'long' });
   const save = async () => {
     if (!items?.length) return;
     setBusy(true);
     setGone([]);
     const sent = await command(
       words(t('pages.myDay.wrap.saved')),
-      () => rpc('wrap_up', { p_items: wrapPayload(items, states) as never }) as Promise<{ request_id?: string | null }>,
+      () =>
+        rpc('wrap_up', { p_items: wrapPayload(items, states, merged) as never }) as Promise<{
+          request_id?: string | null;
+        }>,
       {
         after: () => {
           onOpenChange(false);
@@ -102,7 +111,7 @@ export function WrapUpDialog({
     }
     setBusy(false);
   };
-  const sum = wrapSummary(items ?? [], states);
+  const sum = wrapSummary(items ?? [], states, merged);
   const parts = (
     [
       ['tomorrow', 'partTomorrow'],
@@ -112,7 +121,11 @@ export function WrapUpDialog({
     ] as const
   )
     .filter(([k]) => sum[k] > 0)
-    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k] }))
+    .map(([k, word]) =>
+      k === 'tomorrow' && merged
+        ? t('pages.myDay.wrap.partToDay', { count: sum[k], day: tomorrowName })
+        : t(`pages.myDay.wrap.${word}`, { count: sum[k] }),
+    )
     .join(', ');
   return (
     <Dialog
@@ -180,7 +193,7 @@ export function WrapUpDialog({
                   </div>
                   {!s.done ? (
                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.wrap.notDone')}>
-                      {MOVES.map(({ move, word }) => (
+                      {moves.map((move) => (
                         <button
                           key={move}
                           type="button"
@@ -190,8 +203,8 @@ export function WrapUpDialog({
                           onClick={() => set(i.id, { move })}
                           data-wrap-move={move}
                         >
-                          {t(`pages.myDay.wrap.${word}`)}
-                          {move === 'tomorrow' ? (
+                          {move === 'tomorrow' && merged ? tomorrowName : t(`pages.myDay.wrap.${WORDS[move]}`)}
+                          {move === 'tomorrow' && !merged ? (
                             <span className="ms-1.5 font-data text-xs text-muted">{tomorrow}</span>
                           ) : null}
                         </button>

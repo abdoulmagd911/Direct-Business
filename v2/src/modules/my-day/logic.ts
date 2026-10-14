@@ -136,18 +136,22 @@ export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
   return [...mine, ...captured];
 }
 
-/** The one request for the lot: api.wrap_up's items, Done winning over any move. */
-export function wrapPayload(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+/**
+ * The one request for the lot: api.wrap_up's items, Done winning over any move. When Next week is not offered (`merged`:
+ * it would be the same day as Tomorrow) a choice left over from before is sent as Tomorrow.
+ */
+export function wrapPayload(items: WrapItem[], states: Record<string, WrapState | undefined>, merged = false) {
   return items.map((i) => {
     const s = states[i.id] ?? WRAP_DEFAULT;
-    return { kind: i.kind, id: i.id, choice: s.done ? 'done' : s.move };
+    const move = merged && s.move === 'next_week' ? 'tomorrow' : s.move;
+    return { kind: i.kind, id: i.id, choice: s.done ? 'done' : move };
   });
 }
 
 /** What one Save will do, counted from the choices on screen, so no one re-dates the list without seeing it. */
-export function wrapSummary(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+export function wrapSummary(items: WrapItem[], states: Record<string, WrapState | undefined>, merged = false) {
   const out = { done: 0, tomorrow: 0, next_week: 0, drop: 0 };
-  for (const p of wrapPayload(items, states)) out[p.choice as keyof typeof out] += 1;
+  for (const p of wrapPayload(items, states, merged)) out[p.choice as keyof typeof out] += 1;
   return out;
 }
 
@@ -159,3 +163,24 @@ export function wrapRecover(before: WrapItem[], after: WrapItem[]) {
   const still = new Set(after.map((i) => i.id));
   return { gone: before.filter((i) => !still.has(i.id)), items: after };
 }
+
+/**
+ * The day "Next week" moves to: the first working day of the week after `day`. The week starts on Sunday (the default of
+ * work.week_starts_on; mirrors my.next_week_day, V620, D20), so it is the first Sunday after `day`.
+ */
+export function nextWeekDay(day: string): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  do d.setUTCDate(d.getUTCDate() + 1);
+  while (d.getUTCDay() !== 0);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * On the last working day of the week (and on the weekend) Tomorrow is Sunday, which is also where Next week lands: two
+ * choices for one day. Then the sheet offers one, Tomorrow, named by its day (V632 Wrap up, the Architect's ruling of 14 Oct).
+ */
+export const moveDaysCollide = (day: string): boolean => nextWorkingDay(day) === nextWeekDay(day);
+
+/** The moves a Not done row offers on `day`: Next week is left out when it would be the same day as Tomorrow. */
+export const wrapMoves = (day: string): WrapMove[] =>
+  moveDaysCollide(day) ? ['tomorrow', 'drop'] : ['tomorrow', 'next_week', 'drop'];

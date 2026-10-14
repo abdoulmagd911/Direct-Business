@@ -84,3 +84,8 @@ select test.eq((select count(*)::int from my.carry where person_id = current_set
 select test.eq(my.next_week_day(date '2026-10-13'), date '2026-10-18', 'a Tuesday: next week starts on the Sunday');
 select test.eq(my.next_week_day(date '2026-10-15'), date '2026-10-18', 'a Thursday: the coming Sunday');
 select test.eq(my.next_week_day(date '2026-10-18'), date '2026-10-25', 'a Sunday: the Sunday after');
+-- Tomorrow and Next week are the same Sunday on the last working day and on the weekend: the screen then offers one
+-- choice, named by its day (the Architect's ruling of 14 Oct; src/modules/my-day/logic.ts mirrors these two functions)
+select test.eq(core.next_working_day(date '2026-10-15'), my.next_week_day(date '2026-10-15'), 'a Thursday: the two choices are one day');
+select test.eq(core.next_working_day(date '2026-10-17'), my.next_week_day(date '2026-10-17'), 'a Saturday: the same');
+select test.ok(core.next_working_day(date '2026-10-14') <> my.next_week_day(date '2026-10-14'), 'a Wednesday: two different days');
