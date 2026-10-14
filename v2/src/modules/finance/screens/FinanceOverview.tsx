@@ -70,6 +70,15 @@ export function FinanceOverview({
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
   const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
   const asOf = data.asOf ? data.asOf.as_of : undefined;
+  // Nothing imported from Payments yet and nothing in the period (V622): the figures are one clear empty state, never
+  // a dash over three zeros. A read that failed is never this — it says which read failed.
+  const notImported =
+    !!data.asOf &&
+    !data.asOf.as_of &&
+    !!data.period &&
+    data.period.units === 0 &&
+    data.period.revenue === 0 &&
+    data.period.cost === 0;
   return (
     <div className="flex flex-col gap-5" data-finance-overview>
       <PageHeader
@@ -99,7 +108,15 @@ export function FinanceOverview({
         )}
       </div>
 
-      {data.period ? <Tiles period={data.period} /> : missing('period', t('finance.failed.figures'))}
+      {notImported ? (
+        <div data-finance-not-imported>
+          <DataState kind="empty" message={t('finance.notImported')} />
+        </div>
+      ) : data.period ? (
+        <Tiles period={data.period} />
+      ) : (
+        missing('period', t('finance.failed.figures'))
+      )}
 
       <div className="flex flex-col gap-1 text-sm" data-finance-lines>
         {data.notInvoiced ? (

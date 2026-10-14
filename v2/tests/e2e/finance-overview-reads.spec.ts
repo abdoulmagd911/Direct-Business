@@ -57,7 +57,8 @@ test('quick switching between the periods never leaves an error block, and never
     page.locator('[data-finance-overview] [data-state="failed"]'),
     'no block says it could not be loaded',
   ).toHaveCount(0);
-  await expect(page.locator('[data-finance-tiles]')).toBeVisible();
+  // the figures, as tiles or — before any Payments import, in an empty stack — as the not-imported state (V622)
+  await expect(page.locator('[data-finance-tiles], [data-finance-not-imported]')).toBeVisible();
   await expect(page.locator('[data-finance-months]')).toBeVisible();
   await expect(page.locator('[data-finance-attention]')).toBeVisible();
   expect(peak, 'at most two Finance reads are in flight at once').toBeLessThanOrEqual(2);
@@ -132,7 +133,10 @@ test('a read that keeps failing says so in its own block, and Try again repeats 
   const failed = page.locator('[data-finance-overview] [data-state="failed"]');
   await expect(failed, 'only the months block failed').toHaveCount(1);
   await expect(failed).toContainText('The months could not be loaded');
-  await expect(page.locator('[data-finance-tiles]'), 'the figures are still there').toBeVisible();
+  await expect(
+    page.locator('[data-finance-tiles], [data-finance-not-imported]'),
+    'the figures are still there',
+  ).toBeVisible();
   const before = { ...asked };
 
   failing = false;
