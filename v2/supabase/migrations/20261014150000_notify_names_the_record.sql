@@ -1,7 +1,8 @@
 -- The bell names each notification's record (Builder B's request on #203, the oversight's order of 13 Oct): every row of
 -- notify.list (api.notifications) carries title and title_ar — a task as "TSK-2026-0010 · Call the hotel", a client
 -- by its trade name — or nulls where the reader may not see the record or it has no name; the screen then shows the
--- kind's word. One read, no lookup per row. Forward-only.
+-- kind's word. One read, no lookup per row. And a task coming due tells a person at most once a day, held by the
+-- database (the Architect's order of 14 Oct, after the owner's bell showed three unnamed "coming due" rows). Forward-only.
 
 -- A notification's record by name, for the bell: a task, project, opportunity or tender as its number and title, a
 -- client or supplier as its trade name (Arabic where it has one). Only for a reader who may see the record now
@@ -75,5 +76,46 @@ begin
       order by n.created_at desc, n.id
       limit greatest(1, least(coalesce(p_limit, 50), 200))
     ) x), '[]'::jsonb);
+end
+$$;
+
+-- ================================================================ a task coming due: at most once a day per person
+-- The alert's key carries the due day, so a task whose due day moved could be told twice on one day. A unique key now
+-- holds one "coming due" row per person, task and day.
+create unique index notification_due_once_a_day on notify.notification (person_id, entity_id, alert_day)
+  where kind = 'alert_due_tomorrow';
+
+-- The daily job skips a row any unique key refuses (no conflict target), so the key above never fails a kind's run.
+create or replace function notify.generate_alerts() returns int
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  f record;
+  k int;
+  n int := 0;
+  day date := core.riyadh_today();
+begin
+  for f in
+    select p.proname
+    from pg_catalog.pg_proc p join pg_catalog.pg_namespace s on s.oid = p.pronamespace
+    where s.nspname = 'notify' and p.proname like 'alert\_%' and p.proretset
+      and p.prorettype = 'notify.alert'::regtype and p.pronargs = 0
+    order by p.proname
+  loop
+    begin
+      execute pg_catalog.format(
+        'insert into notify.notification (person_id, kind, entity_table, entity_id, label_key, label_args, alert_key,'
+        || ' alert_day) select a.person_id, %L, a.entity_table, a.entity_id, a.label_key, a.label_args, a.alert_key, $1'
+        || ' from notify.%I() a where a.alert_key is not null and notify.may_notify(a.person_id, %L)'
+        || ' and (a.entity_table is null or authz.can_see_as(a.person_id, a.entity_table, a.entity_id))'
+        || ' on conflict do nothing',
+        f.proname, f.proname, f.proname) using day;
+      get diagnostics k = row_count;
+      n := n + k;
+    exception when others then
+      raise warning 'notify.generate_alerts: % failed: %', f.proname, sqlerrm;
+    end;
+  end loop;
+  return n;
 end
 $$;
