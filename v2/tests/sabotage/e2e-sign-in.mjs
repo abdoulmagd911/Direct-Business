@@ -253,7 +253,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/auth/sign-out/route.ts',
-        find: '  if (isBackground(request)) return NextResponse.redirect(new URL(`/sign-in?${params}`, request.url));\n',
+        find: '  if (isBackground(request)) return goTo(`/sign-in?${params}`);\n',
         replace: '',
       },
     ],
@@ -318,6 +318,24 @@ export const sabotages = [
         file: 'src/modules/org/screens/OrgAccess.tsx',
         find: 'if (!body.ok) throw new DbError(body.error.kind, body.error.key, body.error.detail);',
         replace: 'if (!body.ok) throw new Error(body.error.key);',
+      },
+    ],
+  },
+  {
+    // QA-561: the Sign out redirect built from the server's own host again — the CSP blocks it and the page stays.
+    name: 'e2e-sign-out-redirects-to-the-server-host',
+    breaks: [e2e('the-real-sign-out-button-lands-on-sign-in-with-nothing-left')],
+    expect: 'the browser lands on the sign-in page',
+    edits: [
+      {
+        file: 'src/app/auth/sign-out/route.ts',
+        find: 'export async function POST() {',
+        replace: 'export async function POST(request: NextRequest) {',
+      },
+      {
+        file: 'src/app/auth/sign-out/route.ts',
+        find: "  return goTo('/sign-in', 303);",
+        replace: "  return NextResponse.redirect(new URL('/sign-in', request.url), 303);",
       },
     ],
   },
