@@ -202,9 +202,9 @@ export function MyProfile({
       <Section title={t('profile.sections.profile')} data-profile-card="profile">
         <div className="flex items-center gap-5">
           <Avatar person={person} size="2xl" />
-          <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-2">
             <span className="text-sm text-muted">{t('profile.colour')}</span>
-            <div className="flex gap-2" role="radiogroup" aria-label={t('profile.colour')}>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('profile.colour')}>
               {COLOURS.map((c) => (
                 <button
                   key={c}
@@ -214,7 +214,7 @@ export function MyProfile({
                   aria-label={t(`profile.colours.${c}`)}
                   onClick={() => void save({ avatar_color: c })}
                   className={cn(
-                    'size-8 rounded-pill focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
+                    'size-11 rounded-pill focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:size-8',
                     person.avatarColor === c && 'ring-2 ring-text ring-offset-2 ring-offset-raised',
                   )}
                   style={{ background: `var(--${c})` }}

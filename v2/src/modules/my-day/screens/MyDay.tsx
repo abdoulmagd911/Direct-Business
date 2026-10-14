@@ -13,6 +13,8 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
+import { laterReminders } from '../today-reminders';
+import type { DueAnswer } from '../reminder-alert';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
 import { CaptureButton } from './CaptureButton';
 import { NoteRow } from './NoteBits';
@@ -31,6 +33,8 @@ export type MyDayData = {
   people: OrgPerson[];
   /** The task statuses, so the Today block's tick can say Done. */
   statuses: TaskStatus[];
+  /** My reminders whose time has come (`api.reminders_due`); null when it could not be read. */
+  due: DueAnswer | null;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -47,6 +51,8 @@ export function MyDay({ data }: { data: MyDayData }) {
   const { scope, answer, all } = data;
   const [wrapping, setWrapping] = useState(false);
   const [removing, setRemoving] = useState<PendingReminder | null>(null);
+  // what falls today or is overdue is in the Today block; this block keeps only the reminders for later days
+  const later = laterReminders(answer.reminders, answer.day);
   const people = new Map(data.people.map((p) => [p.id, p]));
   const authorOf = (id: string) => {
     const p = people.get(id);
@@ -78,6 +84,8 @@ export function MyDay({ data }: { data: MyDayData }) {
           day={answer.day}
           statuses={data.statuses}
           carried={answer.carried_over?.length ?? 0}
+          pending={answer.reminders}
+          due={data.due}
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
@@ -113,11 +121,11 @@ export function MyDay({ data }: { data: MyDayData }) {
           </div>
         ) : null}
       </section>
-      {scope === 'me' && answer.reminders.length ? (
+      {scope === 'me' && later.length ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
           <ul className="divide-y divide-border">
-            {answer.reminders.slice(0, BLOCK_ROWS).map((r) => (
+            {later.slice(0, BLOCK_ROWS).map((r) => (
               <li key={r.id} className="flex min-h-14 items-center gap-3 py-3" data-reminder={r.id}>
                 <span className="min-w-0 flex-1 truncate">{r.text}</span>
                 <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">

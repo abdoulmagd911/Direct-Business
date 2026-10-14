@@ -1,11 +1,12 @@
 'use client';
-import { Check, Megaphone, Pencil } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { avatarOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -13,6 +14,7 @@ import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
+import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
@@ -84,9 +86,11 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       ) : null}
     </>
   );
-  const actions = task.can_edit ? (
+  // One ⋯ menu for the less frequent actions (V630: Mark done stays the one main action): Follow up for anyone who
+  // sees the task — a private Reminder about it (V632 Stage 2) — and Escalate for whoever may change it (V401).
+  const actions = (
     <>
-      {!closed && move.markDone ? (
+      {task.can_edit && !closed && move.markDone ? (
         <Button
           variant="primary"
           icon={<Check />}
@@ -97,17 +101,36 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('pages.tasks.markDoneShort')}
         </Button>
       ) : null}
-      <Button icon={<Pencil />} onClick={() => setEditing(true)}>
-        {t('common.edit')}
-      </Button>
-      {!closed ? (
-        <Button icon={<Megaphone />} onClick={() => setEscalating(true)} data-escalate-open>
-          {t('pages.tasks.escalate.open')}
+      {task.can_edit ? (
+        <Button icon={<Pencil />} onClick={() => setEditing(true)}>
+          {t('common.edit')}
         </Button>
       ) : null}
-      {move.dialogs}
+      <Menu>
+        <MenuTrigger asChild>
+          <Button aria-label={t('common.more')} data-task-more>
+            ⋯
+          </Button>
+        </MenuTrigger>
+        <MenuContent>
+          <MenuItem
+            onSelect={() =>
+              openQuickCapture({ about: { entity: 'task', id: task.id, label: `${task.number} ${task.title}` } })
+            }
+            data-follow-up
+          >
+            {t('record.followUp')}
+          </MenuItem>
+          {task.can_edit && !closed ? (
+            <MenuItem onSelect={() => setEscalating(true)} data-escalate-open>
+              {t('pages.tasks.escalate.open')}
+            </MenuItem>
+          ) : null}
+        </MenuContent>
+      </Menu>
+      {task.can_edit ? move.dialogs : null}
     </>
-  ) : null;
+  );
 
   const rail = (
     <RailSection title={t('record.details')}>

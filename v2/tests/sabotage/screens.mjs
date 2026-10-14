@@ -1159,7 +1159,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: 'inline-flex min-h-11 min-w-6 items-center justify-center whitespace-nowrap',
+        find: 'inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap',
         replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
       },
     ],

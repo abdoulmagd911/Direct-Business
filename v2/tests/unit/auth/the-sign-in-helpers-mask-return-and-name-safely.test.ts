@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deviceLabel } from '../../../src/core/auth/device-label';
 import { maskEmail } from '../../../src/core/auth/mask';
 import { refusalOf } from '../../../src/core/auth/me';
-import { safeNext } from '../../../src/core/auth/safe-next';
+import { safeNext, sitePath } from '../../../src/core/auth/safe-next';
 import { toDbError } from '../../../src/core/db/errors';
 
 // P3-2's small rules, one promise each. Sabotages: tests/sabotage/blind-sign-in-helpers.mjs turn each red.
@@ -27,6 +27,29 @@ describe('the sign-in helpers mask, return and name safely', () => {
       '',
     ])
       expect(safeNext(bad)).toBe('/');
+  });
+
+  it('judges a return address as the browser resolves it, so dot segments never reach another host (QA-562)', () => {
+    // dot segments that collapse into "//host" once resolved
+    for (const bad of ['/.//evil.example', '/%2e%2e//evil.example', '/x/..//evil.example', '/./%2e//evil.example/y'])
+      expect(safeNext(bad), bad).toBe('/');
+    // encoded slashes and backslashes stay encoded: a harmless path on this site, never "//" or "/\"
+    for (const odd of ['/%2f%2fevil.example', '/%2F%2Fevil.example', '/%5c%5cevil.example', '/.%2f/evil.example']) {
+      const out = safeNext(odd);
+      expect(out.startsWith('/') && !out.startsWith('//') && !out.startsWith('/\\'), `${odd} → ${out}`).toBe(true);
+    }
+    // the sign-in page reached by dot segments is still refused
+    expect(safeNext('/./sign-in')).toBe('/');
+    // every redirect's own guard: anything that would leave the site is null
+    for (const bad of [
+      '//evil.example',
+      '/.//evil.example',
+      '/%2e%2e//evil.example',
+      'https://evil.example/x',
+      '/\\evil.example',
+    ])
+      expect(sitePath(bad), bad).toBeNull();
+    expect(sitePath('/my-day?tab=notes#x')).toBe('/my-day?tab=notes#x');
   });
 
   it('names a device by its browser and system only', () => {

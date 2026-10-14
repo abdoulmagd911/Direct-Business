@@ -427,7 +427,12 @@
         "today": "اليوم",
         "next": "التالية",
         "empty": "لا شيء مستحق اليوم",
-        "carried": "مرحّلة من أمس ({count})"
+        "carried": "مرحّلة من أمس ({count})",
+        "reminder": "تذكير",
+        "followUpAbout": "متابعة: {name}",
+        "markDone": "تعليم “{title}” كمنجز",
+        "reminderDone": "تم إنجاز التذكير",
+        "failed": "تعذّرت قراءة التذكيرات الآن."
       },
       "quick": {
         "title": "تدوين سريع",
@@ -1500,6 +1505,7 @@
   },
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
-    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
+    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
+    "followUp": "متابعة"
   }
 }

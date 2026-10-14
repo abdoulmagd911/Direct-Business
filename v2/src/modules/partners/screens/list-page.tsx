@@ -76,26 +76,29 @@ export async function PartnersListPage({
       return { answer: null, failed: true };
     }
   };
-  const [org, types, tiers, priorities, { answer, failed }] = await Promise.all([
-    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
-    serverRpc('list', { p_list: 'side_type' }) as unknown as Promise<ListEntry[]>,
-    serverRpc('list', { p_list: 'side_tier' }) as unknown as Promise<ListEntry[]>,
-    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,
-    read(),
-  ]);
   const other: Side = side === 'client' ? 'supplier_partner' : 'client';
   const both = (me.levels[SIDE_PAGE[other]] ?? 'none') !== 'none';
-  let otherTotal: number | null = null;
-  if (both)
+  // the other side's count (for its tab) goes out with the rest — one round after me, not one more after it (W47)
+  const otherCount = async (): Promise<number | null> => {
+    if (!both) return null;
     try {
       const a = (await serverRpc('partners', {
         p_filters: { side: other } as never,
         p_limit: 1,
       })) as unknown as PartnersAnswer;
-      otherTotal = a.total;
+      return a.total;
     } catch {
-      otherTotal = null;
+      return null;
     }
+  };
+  const [org, types, tiers, priorities, { answer, failed }, otherTotal] = await Promise.all([
+    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+    serverRpc('list', { p_list: 'side_type' }) as unknown as Promise<ListEntry[]>,
+    serverRpc('list', { p_list: 'side_tier' }) as unknown as Promise<ListEntry[]>,
+    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,
+    read(),
+    otherCount(),
+  ]);
   const totals: Record<Side, number | null> = {
     [side]: answer?.total ?? null,
     [other]: otherTotal,
