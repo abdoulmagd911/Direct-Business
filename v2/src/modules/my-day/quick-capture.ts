@@ -5,10 +5,13 @@ export const openQuickCapture = () => {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(QUICK_CAPTURE_EVENT));
 };
 
-export type CaptureKind = 'note' | 'idea' | 'checklist' | 'reminder';
-export const CAPTURE_KINDS: CaptureKind[] = ['note', 'idea', 'checklist', 'reminder'];
+export type CaptureKind = 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
+export const CAPTURE_KINDS: CaptureKind[] = ['note', 'idea', 'checklist', 'reminder', 'meeting'];
 
-export type QuickValues = { kind: 'sticky' | 'idea' | 'checklist' | 'reminder'; values: Record<string, unknown> };
+export type QuickValues = {
+  kind: 'sticky' | 'idea' | 'checklist' | 'reminder' | 'meeting';
+  values: Record<string, unknown>;
+};
 
 /**
  * What the sheet sends to `api.note_capture`: the first line is the title; Note, Idea and Reminder keep the rest as
@@ -41,7 +44,7 @@ export function quickCaptureArgs(
     if (!opts.remindAt) return null;
     return { kind: 'reminder', values: { ...values, remind_at: opts.remindAt } };
   }
-  return { kind: kind === 'idea' ? 'idea' : 'sticky', values };
+  return { kind: kind === 'idea' ? 'idea' : kind === 'meeting' ? 'meeting' : 'sticky', values };
 }
 
 /** `datetime-local`'s value ("2026-10-14T09:00") read as Riyadh time (UTC+3, no daylight saving). */

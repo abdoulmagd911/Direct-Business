@@ -19,7 +19,6 @@ import {
   nextWorkingDay,
   noteRoute,
   openCaptures,
-  parseCapture,
   turnLive,
   TURN_READY,
   liveKinds,
@@ -133,21 +132,6 @@ describe('a block', () => {
     expect(b.more).toBe(true);
     expect(blockOf(rows.slice(0, 7), 7).more, 'seven fit without "more"').toBe(false);
     expect(blockOf(rows.slice(0, 7), 12).more, 'the total counts, not what was read').toBe(true);
-  });
-});
-
-describe('capture', () => {
-  it('reads "/meeting" and "/checklist" as the kind, plain words as a note', () => {
-    expect(parseCapture('/meeting Kick-off with the made-up client', 'sticky')).toEqual({
-      kind: 'meeting',
-      title: 'Kick-off with the made-up client',
-    });
-    expect(parseCapture('/checklist Offsite', 'sticky')).toEqual({ kind: 'checklist', title: 'Offsite' });
-    expect(parseCapture('  Call back tomorrow ', 'sticky')).toEqual({ kind: 'sticky', title: 'Call back tomorrow' });
-    expect(parseCapture('/unknown words', 'checklist'), 'an unknown word is text').toEqual({
-      kind: 'checklist',
-      title: '/unknown words',
-    });
   });
 });
 

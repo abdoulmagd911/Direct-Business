@@ -14,7 +14,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
-import { CaptureRow } from './CaptureRow';
+import { CaptureButton } from './CaptureButton';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
@@ -81,7 +81,7 @@ export function MyDay({ data }: { data: MyDayData }) {
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
-      {scope === 'me' ? <CaptureRow /> : null}
+      {scope === 'me' ? <CaptureButton /> : null}
       {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">

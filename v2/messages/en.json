@@ -223,11 +223,7 @@
       },
       "tabsLabel": "Whose notes",
       "capture": {
-        "label": "Capture",
-        "placeholder": "Capture a note",
-        "save": "Capture",
-        "kind": "Kind",
-        "captured": "Note filed in My notes"
+        "label": "Capture"
       },
       "kinds": {
         "sticky": "Note",
@@ -362,14 +358,16 @@
           "note": "Note",
           "idea": "Idea",
           "checklist": "Checklist",
-          "reminder": "Reminder"
+          "reminder": "Reminder",
+          "meeting": "Meeting"
         },
         "text": "What to capture",
         "placeholder": {
           "note": "A note for yourself",
           "idea": "An idea worth keeping",
           "checklist": "First line is the title, each next line an item",
-          "reminder": "What to be reminded of"
+          "reminder": "What to be reminded of",
+          "meeting": "What the meeting is about"
         },
         "when": "When",
         "save": "Capture",

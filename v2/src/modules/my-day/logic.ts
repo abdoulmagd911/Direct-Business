@@ -1,4 +1,4 @@
-import { TURN_KINDS, type TodayTask, type MyNote, type NoteKind, type NoteLink, type TurnKind } from './types';
+import { TURN_KINDS, type TodayTask, type MyNote, type NoteLink, type TurnKind } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -32,16 +32,6 @@ export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
 
 /** The Turn into kinds the menu offers: a kind whose flag is not set is left out, never greyed (GC-1, cut 3). */
 export const liveKinds = (built: ReadonlySet<string>): TurnKind[] => TURN_KINDS.filter((k) => turnLive(k, built));
-
-/** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */
-export const SLASH: Record<string, NoteKind> = { '/note': 'sticky', '/meeting': 'meeting', '/checklist': 'checklist' };
-
-export function parseCapture(text: string, kind: NoteKind): { kind: NoteKind; title: string } {
-  const t = text.trim();
-  const [head, ...rest] = t.split(/\s+/);
-  const slashed = head ? SLASH[head.toLowerCase()] : undefined;
-  return slashed ? { kind: slashed, title: rest.join(' ') } : { kind, title: t };
-}
 
 /** A note's line: its title, else its first words, else its first checklist row. */
 export function noteTitle(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {

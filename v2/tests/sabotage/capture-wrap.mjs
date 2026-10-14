@@ -74,7 +74,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: "at: ['own', 'full'], sheet: true",
+        find: "at: ['view', 'own', 'full'], sheet: true",
         replace: "at: ['full'], sheet: true, except: () => true",
       },
     ],
