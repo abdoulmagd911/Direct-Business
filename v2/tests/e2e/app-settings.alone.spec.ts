@@ -9,13 +9,17 @@
  * English and in Arabic. It needs Arabic on, so it belongs with the other tests that switch it, in the one file: two
  * files of the `alone` project may run at the same moment, and two of them switching Arabic would meet.
  * Sabotage: tests/sabotage/qa556.mjs "finance-page-not-built".
+ *
+ * The weekly review in Arabic (V632 Stage 3) lives here for the same reason: it switches Arabic on, and a second `alone`
+ * file doing so at the same moment collided on the one setting per date (main b8ad0c3).
+ * Sabotage: tests/sabotage/weekly-review.mjs "weekly-review-title-is-the-door-word".
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
-import { makePerson, signIn, sql } from './support/stack';
+import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -207,3 +211,31 @@ for (const code of ['en', 'ar'] as const) {
     });
   });
 }
+
+// ---- The weekly review in Arabic (V632 Stage 3): right to left at 375 px, in the catalog's own words
+
+type ReviewWords = { pages: { weeklyReview: { title: string; notes: { title: string }; done: { empty: string } } } };
+
+test('in Arabic at 375 px: the weekly review reads right to left in the catalog’s words', async ({ page, context }) => {
+  await withArabic(async () => {
+    const w = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as ReviewWords).pages
+      .weeklyReview;
+    const me = await makePerson();
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/my-day');
+    await hydrated(page);
+    const note = await callAs(context, 'note_capture', { p_kind: 'sticky', p_values: { title: 'ملاحظة تجريبية' } });
+    expect(note.status, JSON.stringify(note.body)).toBe(200);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto('/my-day/week');
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('h1')).toHaveText(w.title);
+    await expect(page.locator('[data-review-section="notes"] h2')).toContainText(w.notes.title);
+    await expect(page.locator('[data-review-section="done"]')).toContainText(w.done.empty);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+  });
+});

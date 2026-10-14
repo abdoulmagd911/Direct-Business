@@ -10,6 +10,8 @@ export default defineModule({
       label: 'nav.my_day',
       icon: 'sun',
       nav: { group: 'main', order: 10, tier: 'work' },
+      // The screen is built: Create, the phone + and Ctrl K may offer Capture (productivity stage 1)
+      built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],
