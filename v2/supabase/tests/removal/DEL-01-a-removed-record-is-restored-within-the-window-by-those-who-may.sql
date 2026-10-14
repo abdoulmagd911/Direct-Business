@@ -2,7 +2,7 @@
 -- Recently deleted for audit.recently_deleted_days (30, a setting), to those who may see it, with who removed it and
 -- why. Within the window it is restored, in one request that Undo takes back, by whoever removed it, its owner, Full on
 -- its page or an admin — not a viewer; never over a live duplicate; after the window it is gone for good. Made up.
--- Sabotages: supabase/tests/sabotage/restore-ignores-the-window.sql,
+-- Sabotages: supabase/tests/sabotage/restore-ignores-the-window.sql, recently-deleted-reads-no-removal-log.sql,
 --            supabase/tests/sabotage/restore-by-rights-then.sql,
 --            supabase/tests/sabotage/restore-by-owners-and-full-only.sql,
 --            supabase/tests/sabotage/access-restored-by-anyone.sql,
