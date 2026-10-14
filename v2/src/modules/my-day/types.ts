@@ -78,7 +78,13 @@ export type MyNote = {
 
 export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number };
 
-export type PendingReminder = { id: string; note_id: string | null; remind_at: string; text: string | null };
+export type PendingReminder = {
+  id: string;
+  note_id: string | null;
+  remind_at: string;
+  text: string | null;
+  about?: AboutRecord | null;
+};
 
 /** One of my open tasks as `my.my_tasks` serves it (D3): grouped by Riyadh day; `helping` are the ones I only help on. */
 export type TodayTask = {
@@ -93,6 +99,12 @@ export type TodayTask = {
   /** How many times a wrap-up carried it over. */
   carried_over?: number;
 };
+
+/**
+ * What a follow-up (a Reminder note) is about, as THIS reader may see it (`work.about_of`): null when they may not, and
+ * then nothing names the record (V454).
+ */
+export type AboutRecord = { entity: 'partner' | 'task' | 'invoice'; id: string; label: string | null };
 
 /** What a wrap-up carried to today and is still open (`api.my_day` `carried_over`). */
 export type CarriedItem = { kind: 'task' | 'note'; id: string; from: string | null; times: number };
