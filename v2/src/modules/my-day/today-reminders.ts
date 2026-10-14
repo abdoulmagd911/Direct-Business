@@ -17,7 +17,7 @@ export type TodayReminder = {
 type DueWithAbout = DueReminder & { about?: AboutRecord | null };
 
 /** An instant's Riyadh date ("2026-10-14") and clock ("09:00"); Riyadh is UTC+3 all year (D20). */
-const riyadhParts = (iso: string) => {
+export const riyadhParts = (iso: string) => {
   const r = new Date(Date.parse(iso) + 3 * 3_600_000).toISOString();
   return { day: r.slice(0, 10), time: r.slice(11, 16) };
 };
@@ -38,6 +38,10 @@ const row = (r: PendingReminder | DueWithAbout, notification_id: string | null):
  * Today. A reminder on a later day is not today's. Each appears once, the copy with its alert winning, since Done clears
  * that too.
  */
+/** The reminders for a later Riyadh day: what the Reminders block below keeps, so none is listed twice on My day. */
+export const laterReminders = (pending: PendingReminder[], day: string): PendingReminder[] =>
+  pending.filter((r) => riyadhParts(r.remind_at).day > day);
+
 export function todayReminders(
   pending: PendingReminder[],
   due: DueWithAbout[],

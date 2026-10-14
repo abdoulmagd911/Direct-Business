@@ -116,9 +116,11 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
         <StatusChip tone="info" className="max-w-full">
-          {r.about?.label
-            ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
-            : t('pages.myDay.today.reminder')}
+          <span className="truncate">
+            {r.about?.label
+              ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
+              : t('pages.myDay.today.reminder')}
+          </span>
         </StatusChip>
         <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
           {overdue ? formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }) : r.time}

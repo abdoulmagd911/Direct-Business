@@ -4,7 +4,7 @@
  * name and time is made up. Sabotage: tests/sabotage/stage2-capture-today.mjs.
  */
 import { describe, expect, it } from 'vitest';
-import { todayReminders } from '../../../src/modules/my-day/today-reminders';
+import { laterReminders, todayReminders } from '../../../src/modules/my-day/today-reminders';
 import type { DueReminder } from '../../../src/modules/my-day/reminder-alert';
 import type { PendingReminder } from '../../../src/modules/my-day/types';
 
@@ -58,5 +58,16 @@ describe('a follow-up keeps its record as a tag, never as its words', () => {
     expect(g.today.find((r) => r.id === 'f1')?.about?.label).toBe('Waha Foods');
     expect(g.today.find((r) => r.id === 'f1')?.text, "the words stay the person's own (QA-560)").toBe('f1');
     expect(g.today.find((r) => r.id === 'f2')?.about).toBeNull();
+  });
+});
+
+describe('no reminder is listed twice on My day', () => {
+  it('keeps in the Reminders block only the ones for a later day', () => {
+    const rows = [
+      pending('today', '2026-10-14T15:00:00+03:00'),
+      pending('late-night-utc', '2026-10-14T22:30:00Z'),
+      pending('tomorrow', '2026-10-15T09:00:00+03:00'),
+    ];
+    expect(laterReminders(rows, '2026-10-14').map((r) => r.id)).toEqual(['late-night-utc', 'tomorrow']);
   });
 });

@@ -96,4 +96,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'today-reminder-listed-in-both-blocks',
+    breaks: [GROUP],
+    expect: 'keeps in the Reminders block only the ones for a later day',
+    edits: [
+      {
+        file: 'src/modules/my-day/today-reminders.ts',
+        find: 'riyadhParts(r.remind_at).day > day',
+        replace: 'riyadhParts(r.remind_at).day >= day',
+      },
+    ],
+  },
 ];
