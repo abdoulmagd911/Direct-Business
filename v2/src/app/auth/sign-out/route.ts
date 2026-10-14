@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getMe } from '@/core/auth/get-me';
 import { refusalOf } from '@/core/auth/me';
 import { CHANGE_PASSWORD_PATH } from '@/core/auth/password';
-import { safeNext } from '@/core/auth/safe-next';
+import { safeNext, sitePath } from '@/core/auth/safe-next';
 import { serverDb } from '@/core/db/server';
 
 // Signing out (TECH-SPEC §4, V74).
@@ -46,9 +46,9 @@ export async function GET(request: NextRequest) {
  * its data stayed.
  */
 function goTo(path: string, status: 303 | 307 = 307): NextResponse {
-  // parsed against a placeholder origin only to percent-encode it (a header holds no Arabic letters); the origin is dropped
-  const url = new URL(path, 'http://placeholder.invalid');
-  return new NextResponse(null, { status, headers: { Location: url.pathname + url.search + url.hash } });
+  // resolved and percent-encoded (a header holds no Arabic letters); a path that would leave the site — one resolving
+  // to "//host" — goes home instead (QA-562)
+  return new NextResponse(null, { status, headers: { Location: sitePath(path) ?? '/' } });
 }
 
 /** The router's own fetches (a prefetch, a page's data) carry these; a visit to the address does not. */
