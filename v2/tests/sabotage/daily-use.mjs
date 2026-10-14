@@ -98,4 +98,21 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'toast-covers-the-bottom-bar-on-a-phone',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'the toast ends above the bottom bar',
+    edits: [
+      {
+        file: 'src/ui/globals.css',
+        find: '--offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;',
+        replace: '--offset-bottom: 20px !important;',
+      },
+      {
+        file: 'src/ui/globals.css',
+        find: '--mobile-offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;',
+        replace: '--mobile-offset-bottom: 20px !important;',
+      },
+    ],
+  },
 ];
