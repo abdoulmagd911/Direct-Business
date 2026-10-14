@@ -63,11 +63,7 @@ never loaded in bulk. Since then an HR review has suggested loading the staff li
 keep V440 for go-live, because the staff list is short, and revisit after go-live if HR sends a clean export. *Effect:*
 an import screen and its checks if the answer is "export".
 
-**Q55 — The other colour themes.** Direct is the starting theme (V126); the other themes were built and are now
-unused. **Reopened 14 Oct:** the owner finds the app too dark and cannot change it; today only an admin sets one
-default. *Recommended:* a choice of two themes for each person in My profile, Direct and Light (the light theme already
-exists), saved per person; the dark and colourful themes stay hidden. *Effect:* one small screen change and its test;
-the owner also says which of the two is the default.
+**Q55 — answered 14 Oct → V636** (Light by default, Dark and Direct to choose in My profile; Colorful dropped; the ring colour removed).
 
 **Q56 — Later, from the calls: which comes first after go-live?** (a) a credit limit per client; (b) off-system
 bookings shown as operations, not only money (Q51); (c) group and project deals as their own records; (d) the Q4 target
