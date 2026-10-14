@@ -12,6 +12,11 @@ test('the drawer is 232 px pinned, 56 px collapsed, and the choice survives a re
   await open(page, '/my-day');
   const drawer = page.locator('[data-drawer]');
   expect((await drawer.boundingBox())!.width).toBeCloseTo(232, 0);
+  // the foot's two controls say what they do in words while the drawer is open (no unlabelled icons)
+  await expect(page.locator('[data-drawer-pin]'), 'the pin control has a visible label').toHaveText('Unpin drawer');
+  await expect(page.locator('[data-drawer-collapse]'), 'the collapse control has a visible label').toHaveText(
+    'Collapse drawer',
+  );
   await page.locator('[data-drawer-collapse]').click();
   await expect(drawer).toHaveAttribute('data-expanded', 'false');
   expect((await drawer.boundingBox())!.width).toBeCloseTo(56, 0);

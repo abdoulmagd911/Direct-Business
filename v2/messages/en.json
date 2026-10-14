@@ -243,7 +243,7 @@
       "more": "Show all",
       "fewer": "Show fewer",
       "empty": {
-        "me": "No notes yet. What you capture here stays yours until you share it.",
+        "me": "No notes yet. Notes you capture with Create (or + on a phone) appear here.",
         "team": "Nothing shared with your team yet.",
         "workspace": "Nothing shared with everyone yet."
       },

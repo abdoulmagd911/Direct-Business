@@ -50,6 +50,10 @@ for (const size of [PHONE, PC]) {
 
     await expect(page.locator('[data-capture-input]'), 'no note-only box').toHaveCount(0);
     await expect(page.locator('[data-capture-open]'), 'no Capture button of its own on My day').toHaveCount(0);
+    await expect(
+      page.locator('[data-state="empty"]', { hasText: 'No notes yet' }),
+      'the empty line points to the one add control',
+    ).toHaveText('No notes yet. Notes you capture with Create (or + on a phone) appear here.');
 
     await openCapture(page);
     await expect(page.locator('[data-quick-kind]'), 'five kinds').toHaveText([

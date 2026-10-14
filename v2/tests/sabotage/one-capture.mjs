@@ -113,4 +113,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'my-day-empty-line-points-nowhere',
+    breaks: [E2E],
+    expect: DOOR,
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"me": "No notes yet. Notes you capture with Create (or + on a phone) appear here.",',
+        replace: '"me": "No notes yet. What you capture here stays yours until you share it.",',
+      },
+    ],
+  },
 ];

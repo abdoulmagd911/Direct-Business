@@ -1776,4 +1776,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'drawer-foot-icons-lose-their-words',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'the pin control has a visible label',
+    edits: [
+      {
+        file: 'src/ui/shell/Drawer.tsx',
+        find: '  if (!expanded) return <IconButton',
+        replace: '  if (expanded || !expanded) return <IconButton',
+      },
+    ],
+  },
 ];
