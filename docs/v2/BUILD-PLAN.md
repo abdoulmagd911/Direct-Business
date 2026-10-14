@@ -386,3 +386,241 @@ Q:        one read-only branch per round (v2/q-<n>) after every merge — findin
 **[SUPERSEDED in the block above** — V519: P5-2 is lane D's, not lane B's. V517: the pilot's order is "Pilot cut" (slim readiness from P6-5 before the pilot; Projects, KPIs beyond achievements, Pipeline, Overview and Finance deferred); the deferred modules are hidden by page level none until P3-17's switches land, so P3-17 no longer comes before P5-1 or with P3-14; P7-4, the corporate-client import, comes first after the pilot, then P7-2 and P7-3. V605 (6): Tasks, Past work and achievements open on day one. V534: Stage L after stage 0.**]**
 
 B starts with the design system while A lays the database; from P3-5 on, each B step follows the A step it needs.
+
+## Owner notes: what happened to each (14 Oct 2026, evening)
+
+Every ruling or request from the owner in DECISIONS (V-numbers), plus the items from the walks of 14 Oct. **Live** means merged to v2/main; production deploys every merge. Statuses come from searching the code, migrations and merged changes, and the architect checked the flagged ones. Refresh this table at each owner review.
+
+**Counts.** 130 owner decisions: 95 live, 3 in progress, 1 paused (V632), 18 not started, 11 deferred, 2 superseded. Plus 9 walk items from 14 Oct: 2 live, 4 in progress, 3 awaiting a ruling (two of them the owner's).
+
+**Never acted on, now flagged.** These were neither built nor scheduled:
+- V435: SOPs and SLAs shown as named Drive links.
+- V522: B2C becomes a banned word.
+
+These are planned but not yet done:
+- V493: zodiac badge out, optional photo in; the zodiac badge is still in the app.
+- V436: contact authority field and re-confirm date.
+- V513: one on/off switch per module.
+- V514: importance star.
+- V442: admin views the app as any person.
+
+These wait on Reports, KPIs and Appraisal, which V632 paused: V31, V34, V35, V38, V39, V42, V43, V449, V505, V515. V529 (the weekly nudge) is planned for early November, after stage 2 (see "After the pilot's stages"); not started.
+
+**Owner actions open:**
+- V609: set day one and give the go.
+- V446: type each temporary password once.
+- V445: remove the test account before go-live.
+- V43: hand over the appraisal tool's export.
+- V22: pay for the backup plan at go-live.
+- V51: decide VAT in the margin at go-live.
+- V71: give the word to widen the pilot.
+- V122: approve Arabic on the sign-in page (still off).
+- V526: whose Vision board it is.
+- V506: enter 2025's past work.
+- Q49, Q51, Q53–Q56.
+- From 14 Oct: the default theme (light or dark) and what the profile colour does.
+
+### Walk items of 14 Oct
+
+| Item | Status | Where |
+|---|---|---|
+| "Today" shown twice | live | #241 (QA-564) |
+| Bell rows with no task name; repeated alerts | live for new alerts (#223); wording in progress | #255 |
+| Slow tab switch, no loading sign (W47) | in progress | #250 |
+| + button over content; search box under 44 px (W41) | in progress | #252 |
+| Arabic name box shows the email | in progress | builder B |
+| Search bar placement; two drawer buttons | awaiting the design lead's ruling | design lead |
+| Dark colours, no light theme; theme differs between tabs | tab bug in progress (builder B); default theme is the **owner's** call | design lead, owner |
+| Profile colour only changes the ring | **owner's** call | design lead, owner |
+| Phone app feel (V630) | live on Tasks, Clients and tap sizes; other screens not yet confirmed | #200, #204, #205, #252 |
+
+### V1–V399
+
+| V | One-line summary | Status | Evidence | Owner action |
+|---|---|---|---|---|
+| V6 | Owner approves creating new Supabase and Vercel projects | live (rule in force) | Projects exist (V84); v2 deploys | none |
+| V21 | Free plan: old app's database paused | live (done) | Marked DONE 28 Sep | none |
+| V22 | Backups: paid plan at go-live, not before | deferred | Decision says at go-live | pay for the plan at go-live |
+| V23 | Google and Zoom keys: later | deferred | DEFERRED; V431 password door makes it optional | none until wanted |
+| V24 | Emailed codes via a free email sender | superseded by V431 | V431: not needed while the door is a password | none |
+| V25 | Words "Sales (GMV)" and "Margin" | superseded by V73 | Status says REPLACED by V73 | none |
+| V26 | Everyone edits partner details; money-moving changes held back | live | `v2/src/modules/partners/module.ts`; migrations 20260929060100/060200 | none |
+| V27 | Credit follows the account manager on the invoice | live (split in #210) | `20261011080000_finance_facts.sql`; the date part is superseded by V610; credit split in open #210 | none |
+| V28 | Discount code matches on the invoice's booking date | in progress | #210 (campaign codes, invoice keys); discount fields exist on the partner record | none |
+| V29 | A pin is the last resort for a conflict | in progress | #210 (Needs a decision); the pin UI is partial | none |
+| V30 | Individuals count, credited to nobody, listed apart | live | `partner.individual_name` in `20260929060100_partner_core.sql` | none |
+| V31 | Last year's figures typed once until imports bring history | not started | No typed last-year readings or "client before 2026" flag found | none |
+| V32 | Test values never become identifiers | live | partner_core / partner_api migrations (test-value list) | none |
+| V33 | Achievements without proof count, flagged "no evidence yet" | live | `v2/src/modules/perf/screens/AchievementList.tsx`, `AchievementRecord.tsx` | none |
+| V34 | Report layout from the issued PDFs and artboards | not started | Reports page is a placeholder; #225 covers data only | none |
+| V35 | KPI sheet export follows the "Departmental KPIs 2026" sheet | not started | No KPI sheet export found | none |
+| V36 | A report correction keeps the issued report and supersedes it | in progress | #225 (reports, lines, issue and correction) | none |
+| V37 | Achievements and challenges live inside KPIs | live | `v2/src/app/(app)/kpis/achievements`; `20261002040000_perf_achievements.sql` | none |
+| V38 | A next-month target becomes a task at once | not started | Depends on reports; no code found | none |
+| V39 | Operational-plan indicators are checklist KPIs | not started | KPI engine not built; the PR on this is the old app's #63 | none |
+| V40 | Gregorian dates and Latin digits in both languages | live | `v2/src/core/i18n/format.ts` | none |
+| V41 | Partner categories and tiers typed by the owner in Settings | live | Settings registry migrations (partner categories); owner types the values in Settings | type the category and tier lists in Settings (not blocking) |
+| V42 | Appraisal details where the tool is silent | not started | Appraisal page is a placeholder | none |
+| V43 | Past appraisals from the tool's export; ClickUp imported once | not started | No import found; legacy handling absent | hand over the appraisal tool's export |
+| V44 | Imports and jobs act as "Import" and "System" | live | `20260929000100_core_people_audit.sql` | none |
+| V45 | Notifications in the app only for v1 | live | `20260929040000_core_notify.sql`; MyProfile.tsx | none |
+| V46 | Vercel free plan for now | live (rule in force) | Production runs on it | none |
+| V47 | v2 lives in this repository, folder `v2/` | live | The `v2/` folder | none |
+| V48 | No main-builder handover note exists | live (closed; nothing to build) | Status CLOSED | none |
+| V49 | Everyone types invoices; a typist may pin a partner | live | #211 New invoice (V232); `finance/screens/new-page.tsx` | none |
+| V50 | A person may adopt a typed invoice so imports keep it current | live | `20261011080400_finance_rows.sql` cites V50; #209 hand-entered revenue is open | none |
+| V51 | VAT inside the margin: decided at go-live | deferred | DEFERRED, with the revenue definition | decide at go-live |
+| V71 | Go-live is a staged pilot, then everyone on the owner's word | deferred | Go-live is later; pilot group redefined by V517/V605 | give the word to widen after the pilot |
+| V73 | Screens use Revenue, Cost, Profit | live | `v2/src/core/words/banned.ts`; `forbidden-words.mjs` | none |
+| V84 | New environments exist; keys pasted by the owner only | live | Environments exist and v2 deploys | none |
+| V122 | Sign-in page English only; Arabic off until the owner approves | live (rule in force); approval not recorded | `app.arabic_enabled` defaults false in `20260929014307_core_registry_sync.sql` and in `core/settings/app.ts`. No migration or seed sets it true. No later decision records his approval. A SCENARIOS row says an admin switches it on in Settings. Production's current value was not checked. | approve Arabic when the Arabic catalog is done (P6-7), or tell us if it is already switched on |
+| V138 | Settings, access, people and e-mails are admins' only | live | `v2/src/core/auth/allow-list.ts`; `modules/settings/module.ts` | none |
+| V140 | Settings are safe to change | live | `20260929062000_core_round6.sql` | none |
+| V142 | Dates rule: records get their own `happened_on` | live | `happened_on` in `database.types.ts`; `my-day/quick-capture.ts` | none |
+| V145 | Banned words checked in the e-mail templates too | live | `v2/scripts/checks/forbidden-words.mjs` | none |
+| V166 | Sign-in by e-mail and password, server side | live | `v2/src/core/auth/password-actions.ts`; #109, #117 | none |
+| V179 | Admin and test accounts belong to no team | live | `core.person.account`; #127 | none |
+| V181 | Production database written by one job from main | live (rule in force) | `.github/workflows/v2.yml`; `v2/scripts/db/prod-sync.mjs`; #135 | none |
+| V207 | Shell navigation as built | live | `v2/src/ui/shell/nav.ts`, `Drawer.tsx` | none |
+| V209 | Navigation read from the module registry; Settings for admins | live | `nav.ts`; #213 (Partners two-entry part superseded by V507) | none |
+| V212 | The password door as built | live | `set-password/page.tsx`; #109 | none |
+| V216 | Visual review round 1 | live | #127, commit 7e0a2f4d | none |
+| V217 | Employee view as built (borderline) | live | #132 (menu rule/Suppliers title amended by V238) | none |
+| V228 | Phone at 375 px: 44 px targets | live | #200; `v2/tests/e2e/phone-375.spec.ts` | none |
+| V306 | Past work grid as built, with owner amendments | live | `v2/src/ui/grid/PastWorkGrid.tsx` | none |
+| V380 | Every department has its 2025 and 2026 plans (borderline) | live | #163, #169; `20261002133000_perf_plans_open.sql` | none |
+
+### V400–V699
+
+| V | One-line summary | Status | Evidence | Owner action |
+|---|---|---|---|---|
+| V410 | Owner allowed more sessions: builder C and a QA session, own branches | live (rule in force) | Lanes in use; merges by v2/c-, v2/q- branches (e.g. #87 QA, #95/#100/#104 builder C) | - |
+| V431 | Sign-in is email plus password for now | live | PR #107 password door; migration core_password_sign_in | - |
+| V433 | My day: capture a note, then turn it into something | live | 289fa46f (P5-1 part 4), #198, #230; migration my_day_notes | - |
+| V434 | Owner made the Scout's money rulings active; numbers become settings | live | Settings partner.open_client_ids etc. in core_registry_sync; V420-V424 built in P4-3 (#186, open #210 for matching part) | - |
+| V435 | SOP/SLA library stays in Drive, shown as named links | not started | No doc_link setting in src or migrations | - |
+| V436 | Contacts get an authority field and a re-confirm date | not started | Only the re-confirm alert kind exists (work_follow_ups.sql); no authority field | - |
+| V437 | Academies is a service, never a segment | live (rule in force) | finance.service list in registry; segment list carries none | - |
+| V438 | Subtasks are checklists; task categories are a setting; dependencies later | live | work.task_type in registry; checklists in tasks (Checklist.tsx); dependencies not built, as decided | - |
+| V440 | People are added through the app, never seeded | live (rule in force) | Settings > People; PR #106 recorded; no seed files | - |
+| V441 | Temporary passwords are generated, never typed | live | e09140df / PR #107 Generate temporary password | - |
+| V442 | Admin can view the app as any person, read-only (oversight proposal; owner may veto) | not started | Planned P3-15 in BUILD-PLAN; no view-as code in v2/src | Owner may veto; none recorded |
+| V443 | Ten people, twelve sign-ins | live (rule in force) | PR #113 correction; People added in app | - |
+| V444 | Owner has a separate admin account, never a team member | live | 5a67951d P3-2b (core.person.kind admin_account) | - |
+| V445 | One test account, removed before go-live | live | 5a67951d P3-2b; removal is a go-live checklist step | Remove test account before go-live (checklist) |
+| V446 | Owner types each temporary password himself, once | live (rule in force) | Process; no code | OWNER ACTION: type the passwords before go-live |
+| V447 | Hard testing via test account and View as on production, fixtures on localhost | live (part) | Test account and localhost fixtures in use; View as half missing (V442) | - |
+| V448 | Supplier and partner types are the owner's seven | live | migration core_accounts_in_no_team_and_supplier_types.sql | - |
+| V449 | KPI pace bands 90/70 by default, admin setting | not started | No pace_bands setting; KPIs not built (no perf.kpi in registry) | - |
+| V450 | Supplier statuses: Prospect, Active, On hold, Ended | live | partner_sides.sql; ListEditor/SideDialogs | - |
+| V491 | Past work from 1 Jan 2026 via the grid; owner Unknown allowed | live | #150 Past work grid on Tasks; backfill_achievements (94ff70a4); PastWorkPanel | - |
+| V492 | Dropped: referred-by, public-reference consent, Quote sent | live (rule in force) | Items absent from code by design | - |
+| V493 | No zodiac badge; optional profile photo with initials fallback | not started | Zodiac still in src/ui/badges.tsx and me.ts; no photo upload found | - |
+| V500 | Every figure carries as-of and Provisional/Final; history kept | live (part) | Finance: finance_as_of.sql, #186; KPI readings not built | - |
+| V501 | Supplier commissions count as revenue | live | finance.commission_word, revenue_definition (#186) | - |
+| V502 | Newest issued report wins when reports disagree | live (part) | Grid rule test (a-newer-reports-deal-value...); Reports module itself not built (paused) | - |
+| V503 | Government tender counts at signing; new Signed stage | live | pipeline_contract_signed.sql (signed_on); finance_tender_use | - |
+| V504 | Undated report item is dated the last day of its month | live (part) | Past work grid (#105 assumption); fixtures only, not confirmed in code | - |
+| V505 | Deal revenue is its own KPI | not started | No field_sum KPI; KPIs not built | - |
+| V506 | 2025 registered as past work from 1 Jan 2025 | live (part) | Past work grid live (#150); 2025 entry is data work still to be done | Owner/team to enter 2025 data (data task) |
+| V507 | Employee view: member menu is My day, Tasks, Clients, +; Reports out | live (part) | #221 menus follow access; #240 unbuilt pages in no menu | - |
+| V508 | A PR names its simplicity gate card or is not merged | live (rule in force) | Followed on merges; V633 adds the simplicity gate | - |
+| V509 | Three-job phone test before any module goes live | live (rule in force) | Process; QA phone rounds (#87, #252) | - |
+| V510 | Access by team level between role default and person override | live | core_team_page_level.sql; org/module.ts | - |
+| V511 | P5 (work and performance) before Finance | live (rule in force) | P5 screens first; Finance part 1 merged after; V632 now reorders again | - |
+| V512 | Access comes from role and team, never job title | live (rule in force) | Access screens (OrgAccess.tsx) | - |
+| V513 | Every module behind one on/off switch in Settings | not started | No core.module_switch in migrations; planned P3-17 | - |
+| V514 | One importance star and a due date; urgency derived | not started | No star field found; planned in P3-14 | - |
+| V515 | Direct HR joins the never-duplicate systems; appraisal exports to HR | not started | No HR export; Appraisal module is a stub | - |
+| V516 | Direct theme copies the real brand (orange, header) | live | tokens.css uses brand orange; icon.svg | - |
+| V517 | Pilot cut: four modules first, the rest deferred | live (rule in force) | Clients, My day, Tasks, Past work on production | - |
+| V518 | Fast lane for small edits after go-live | deferred | Applies after go-live; not yet in use | - |
+| V519 | Two more builders: D (Tasks screens) and E (achievements) | live (rule in force) | Tasks screens and achievements merged (#140, #150, #175) | - |
+| V520 | A contact's sides sort it, never hide it | live (rule in force) | partner_side_access; not separately tested by V-number | - |
+| V521 | An MoU sets the side the logger chose | live | my_turn_into_achievement.sql; V601 (#148) | - |
+| V522 | B2C becomes a banned word | not started | No B2C in banned_words migration or words-check test | - |
+| V523 | Partnerships and improvements reports are monthly | live (part) | Grid periods are months; Reports module not built (paused) | - |
+| V524 | A note on a record says who can see it | deferred | Stage after go-live (P5-11), by 25 Oct at latest; my_note_about_a_record.sql is data only | - |
+| V525 | Undo on money parked until Finance is redesigned around transactions | deferred | Parked by owner; joint design session later | OWNER ACTION (later): joint Finance design session |
+| V526 | Vision board joins the later modules | deferred | Not v1, not pilot, no spec | OWNER ACTION (later): say whose board and what goes on it |
+| V527 | Vision board is a read-only view of what is recorded | deferred | Direction only; module 10, no spec | - |
+| V528 | Ideas label on notes and a quick idea from the + | live | #230 quick capture (Note, Idea); quick-capture.ts | - |
+| V529 | Weekly nudge: closed tasks become achievements in one tap | not started | Planned early November, after stage 2 ("After the pilot's stages"); no code | - |
+| V530 | Later: forward an email into a private note | deferred | Later, undated | - |
+| V531 | Automatic numbers on tasks and achievements; repeats marked | live | TSK-/ACH- numbers, repeat_of (perf_achievements, work tasks); 4d496c24 | - |
+| V532 | Owner does not wait; finished work goes ahead | live (rule in force) | Followed; oversight signs gate cards | - |
+| V533 | Test data may be entered in production until the wipe | live (rule in force) | Process | Go-live wipe only on owner's word |
+| V534 | Linked records, one file library, one comments feature | live (part) | Related area and links (#214); file library and comments (Stage L) not seen | - |
+| V605 | Task and Log achievement in the +; person in no team picks an owner | live | #147 #151 #162 #166 #174 #175 #179 #180 | - |
+| V606 | The organisation is the home of its work (open tasks first) | live (part) | #214 links between modules; Related on org pages | - |
+| V607 | A feature earns its place; reviewed after four weeks | live (rule in force) | Process; gate cards | - |
+| V609 | Go-live postponed; owner sets day one after the test round | live (rule in force) | Recorded 7 Oct (b5cf8cc3) | OWNER ACTION: set day one and give the go |
+| V610 | A sale belongs to its created month and counts once fully paid | live | #186 Finance part 1 | - |
+| V611 | Every paid transaction counts; cost is approved expenses only | live | #186; finance_counts.sql | - |
+| V612 | Supplier commissions arrive only as Payments invoice lines | live | #186 (commission_word) | - |
+| V613 | Channel tag on a transaction; individual credited only if Commercial | live | #186, #206/#208; channel in invoice-form | - |
+| V614 | A tender counts at signing at signed value; its transactions consume it | live | finance_tender_use.sql | - |
+| V615 | Money is the Payments SAR figure; VAT never shown | live | #186 | - |
+| V619 | Signed tender value is sales credit, not revenue | live | finance_tender_use.sql, #186 | - |
+| V620 | A closed month never changes; later news is a dated note | live | finance_close_never_reopens.sql; #220 | - |
+| V621 | Products with no supplier cost named once; Final at cost 0 | live | finance_no_supplier_cost_door.sql | - |
+| V622 | 2026 money imported from Payments files; every row editable | live (part) | finance_import.sql, #186 import; hand-entry test round still to run | - |
+| V623 | Monthly invoice excess above linked bookings is revenue | live | #186; finance_counts.sql | - |
+| V624 | Ask: request a decision, feedback or help on a task | deferred | After go-live; no code | - |
+| V625 | Personal credit: finished work counts for the person too | live (part) | perf_personal_credit.sql (category scope); screens and nudge question not seen | - |
+| V629 | Revenue that never reaches Payments entered by hand | paused (V632) | Open draft PR #209 | - |
+| V630 | On a phone the app feels like an app | live (part) | LIVE: Tasks (#204), Clients (#205), 44 px targets (#200). OPEN: tap sizes #252. NOT YET: other screens (Finance, Settings, People, Pipeline) | - |
+| V632 | Personal productivity comes first: Today, capture, wrap-up, reminders, review | live | Stage 1 #227/#228/#230; Stage 2 #234 #238 #242 #244 #245 a49f885e; Stage 3 #232 #235. Pauses #209, #210, Reports, Pipeline | Daily use from Sun 18 Oct |
+| V633 | Every sweep covers the same quality dimensions; PRs pass a simplicity gate | live (rule in force) | #231, #253, #226 crawl | - |
+| V634 | Work runs in parallel; CI checks a PR by what it touches | live | #215 shards, #233 per-PR sabotages | - |
+
+### The owner's 34 notes against the roadmap (14 Oct 2026, night)
+
+The owner's notes since 25 Sep, each checked against this plan, the decisions, FUTURE-MODULES, OPEN-QUESTIONS and the
+code on `v2/main` (a49f885e). **Counts:** live 7 · partly live 10 · on the roadmap with a step 5 · paused by V632 with
+no resume date 6 · after go-live 6 · lost 0.
+
+- **Nothing is lost, but six are stranded:** notes 12, 16, 17, 19, 26 and 27 were paused by V632 "until Stage 1
+  ships". Stage 1 has shipped, and no date to resume them is written yet. The architect proposes the dates to the
+  oversight; once agreed they are recorded as a V-number here.
+- **Two have no build step:** note 30 (leads), now Q57, and note 32 (from the calls), Q56. Both wait on the owner.
+- **Note 14, the theme:** no person can switch theme today. Only an admin default exists (Settings), and the Direct
+  theme has a dark sidebar and header. The light theme exists but is hidden (Q55, now reopened).
+- **Dates tied to day one** (Stage L, P5-11) stay proposals until the owner sets day one (V609).
+
+| # | Owner note | Status | Stage / step and target date | Evidence (V-number, step, PR or file) | What to do |
+|---|---|---|---|---|---|
+| 1 | Personal productivity: daily checklist, follow-ups, quick notes and ideas, end-of-day view, private | LIVE | V632 Stages 1–2, daily use from Sun 18 Oct | V632; #227/#228/#230 (Today block, Capture, Wrap up v2); #234/#238/#242/#244/#245/#241 (reminders, follow-ups); V454 private; `v2/src/modules/my-day/` (WrapUpDialog, TodayBlock, QuickCapture) | none |
+| 2 | Ideas label on notes; quick note from every screen | LIVE | V528 / V242; was due Stage 1, 18 Oct | V528 "live" in BUILD-PLAN; #230; `my-day/quick-capture.ts` (kinds note, idea, checklist, reminder, meeting); #236 | none |
+| 3 | Thursday nudge turns closed tasks into achievements (V529) | ON ROADMAP | "After stage 2, early November" (BUILD-PLAN After the pilot's stages; FUTURE-MODULES). Owner-notes section says "after go-live". The two disagree. | V529 "not started". The Thursday weekly review is live (#232, #235, `modules/weekly-review/`) but it does not turn tasks into achievements. Nothing in `v2/src` does. | Architect: settle early Nov vs after go-live. E + A: build per BUILD-PLAN (weekly job, notification kind, V625's Routine or Achievement question). |
+| 4 | Forward an email or message into a note (V530) | AFTER GO-LIVE | "Later, not dated"; needs an inbound-mail service, cost flagged first (V6) | V530; BUILD-PLAN After the pilot's stages (owner A); FUTURE-MODULES "Later items" | Architect: write the cost flag when the owner asks. A builds it then. |
+| 5 | Manager feedback notes (Q37) | ON ROADMAP | P5-11 (A + B), V524: after stage 1 opens, stage 2 at the latest (25 Oct); V524 text also says "after go-live". Pilot cut row 15. | Q37 answered as V524. Not built: no "Who can see" choice (record / named) in `v2/src` or migrations. Migration `20261014120000_my_note_about_a_record` is only the follow-up link. | A + B: build P5-11. Architect: say whether 25 Oct or after go-live. |
+| 6 | Vision board (Nov, V527) | ON ROADMAP | About November, module 10 (A + B). Needs P5-4 and P5-6 live, a brief and a gate card first. | V526, V527; FUTURE-MODULES #10. No code. KPIs page is a redirect, so the data it would show is not built. Whose board is still open (owner). | Architect: write the brief and gate card. Owner: say whose board (V526). Note it depends on the paused KPI work. |
+| 7 | Ask (V624) | AFTER GO-LIVE | Not dated; brief and gate card first; V524's restricted-note rule | V624; BUILD-PLAN After the pilot's stages; V635 (3). No code. Stopgap: Escalate plus a restricted note. | Architect: brief and gate card when go-live is set. A + B build. |
+| 8 | Personal credit (V625) | PARTLY LIVE | Live: the data (`perf.achievement_category.scope` department / personal). Planned: the "Routine or Achievement?" question and screens follow the weekly nudge; V635 (3) says after go-live. | V625; `20261007085930_perf_personal_credit.sql`; V529 | E + A: build the question with the nudge. Architect: date it with note 3. |
+| 9 | Everything linked: a record shows on every related record (L-1/L-2) | PARTLY LIVE | Live: Related tab on clients/suppliers, tasks, achievements, people; tasks listed on an organisation. Planned: L-1 `api.record_related`, L-2 the common Related area with counts, Show all, Export. Stage L proposed to open with stage 2 (25 Oct), after day one (V609). | V534 "live (part)"; #214 (`20261012092000_sweep_links_between_modules.sql`), #218; `PartnerRecord.tsx`, `TaskRecord.tsx`, `AchievementRecord.tsx`, `PersonRecord.tsx`. No `record_related` in v2. | A: L-1. B: L-2 and L-7. |
+| 10 | File library, searchable and exportable (L-3, L-4, L-6) | ON ROADMAP | Stage L: L-3 (A), L-4 (E), L-6 (C); proposed opening with stage 2, 25 Oct; day one not set | V534; BUILD-PLAN Stage L table. Not built: no `file_list`, `file_purge` or Files page in v2. Only file tables and doors exist (`20260929090100_core_files_notes.sql`). | A: L-3. E: L-4. Architect: confirm the date and write the Stage L brief and gate card. |
+| 11 | Comments with mentions and file uploads on records (L-5) | ON ROADMAP | Stage L step L-5 (A + B), after L-3 and L-4; proposed 25 Oct | V534. Not built: no comment component or upload control in `v2/src`; the database accepts `p_mentions` on tasks and notes, but there is no mention picker. | A + B: L-5 after L-3/L-4. |
+| 12 | Revenue entered by hand for sales made outside the system, with a commission ID, views by funnel (10 Oct) | PAUSED | Paused by V632. Waits on Stage 1 shipping (now met), then PR #209 (A) is to resume. No new date. | V629 (11 Oct); BUILD-PLAN "V629 paused (V632)", draft PR #209; V617 (counts as money). No manual-revenue code in `v2/src/modules/finance`. | Architect: say #209 resumes now that Stage 1 is live. A: finish #209. |
+| 13 | Phone app feel (V630) | PARTLY LIVE | Live: Tasks (#204/#229), Clients (#205/#230-V230), 44 px targets (#200). In progress: tap sizes #252. Not yet confirmed: Finance, Settings, People, Pipeline. | V630, V228, V229, V230; BUILD-PLAN V630 row | B: finish #252, then the other screens. Architect: list the remaining screens. |
+| 14 | Fourth Direct theme (orange and dimmed black), photo per user, nickname, badge, roomier pages (V516 / P3-18). Owner complained 14 Oct: too dark, cannot change it. | PARTLY LIVE | Live: the Direct theme in orange and slate (V516 "live", `tokens.css`), the default; Comfortable density default; display name editable in My profile; nickname edited by admins; badge supported in the avatar (icon; the zodiac option is still in the code). Not live: a theme switch (none in v2: only admin default, Settings `app.default_theme`); a photo upload (V493 "not started", no upload screen; zodiac not removed). The light, dark and colorful themes exist in `tokens.css` but are hidden (Q55). | V516, V60, V493, V126, Q55; walk items of 14 Oct ("no light theme", "theme differs between tabs", default theme is the owner's call); `core/prefs/index.ts`, `MyProfile.tsx`, `ui/Avatar.tsx`, `ui/badges.tsx` | Owner: choose default light or dark and what the profile colour does. Architect: rule on Q55. B: add a theme switch to My profile; fix the tab bug; V493 photo and zodiac removal. |
+| 15 | A look matching directksa.com and the corporate portal | PARTLY LIVE | Live: brand colours and slate header (V516, P3-18). Not live: Proxima Nova Alt headings ("when licensed"; not in code). The corporate portal is not named in any roadmap doc, only "Direct's sites". | V516 ("one look across Direct's sites"); `tokens.css` | Architect: name the corporate portal as a target in V516 or say it is out. B: font when licensed. |
+| 16 | Exported reports in Arabic, monthly and quarterly, with same-month-last-year comparisons | PAUSED | Paused by V632 (P6-1 Reports data, P6-2c exports). Waits on Stage 1 (met); no date set. The comparison rule is in the spec only. | V403, V76, V10, V83; BUILD-PLAN P6-1, P6-2c; TECH-SPEC lines 1631–1635 and 2512 (last year's figures typed once, V31, "not started"). `/reports` is a "Being built" placeholder. | Architect: reschedule P6-1. A: P6-1. C: P6-2c. |
+| 17 | Report registration replacing the Google Sheet, lines added straight to the final report | PAUSED | Paused by V632. P6-1 (V79 achievement lines, `api.report_add_achievement_line`) and P6-2. #225 (reports data, lines, issue and correction) is in progress. Waits on Stage 1 (met). | V79, V36, V632; no `report` migration on v2/main | Architect: reschedule. A: finish #225. |
+| 18 | Backfill of all 2025 and 2026 reports as tasks and achievements (Past work grid, V491, V506) | PARTLY LIVE | Live: the Past work grid and the backfill door (#150, #105, `backfill_achievements`, `PastWorkGrid.tsx`). Not done: entering the 2025 and 2026 data. | V491 live; V506 "live (part)", 2025 entry is data work; V306 | Owner / team: enter the data. D + E: nothing to build. Architect: set a date and owner for the data entry. |
+| 19 | Tenders, prepaid, postpaid and partnerships in one place, by filters | PAUSED | Pipeline page (P5-9) is paused with the Pipeline brief (V632). The Finance payment-type chip and filters (V87, P4-5 PR 2) are not built and have no date. | V80, V99, V87; `/pipeline` is a placeholder; no payment-type chip in `v2/src`; `pipeline_core.sql` is data only | Architect: reschedule P5-9 and P4-5 PR 2. B: build them. |
+| 20 | Every tender, funnel, project and client can be linked to tasks | PARTLY LIVE | Live: tasks link to clients, projects, achievements (V606, #214, #218). Not live: tenders and funnel cards (the Pipeline screens are paused). L-7 and L-9 are planned in Stage L. | V606, V534; L-7 (B), L-8 (A + B), L-9 (D) | D: L-9. B: L-7. A + B: L-8. Pipeline link follows P5-9. |
+| 21 | Manual exclusion and merging | PARTLY LIVE | Live: Finance exclusion rules (D16) editable in Settings → Finance by admins (`finance.exclusion_rule`, `20261012090020_finance_exclusion_rule_doors.sql`); the merge door `partner.partner_merge` with test MRG-01 (V26, V136). Not live: a merge screen, and row-level exclusion on the Invoices list. | V412, V413, V26; `finance/module.ts`; no merge dialog in `v2/src` | B: merge dialog on the client record and the Invoices list (P4-5 PR 2). |
+| 22 | Confirm pop-up on every delete; margins check on all pages | LIVE | Live: the app's own confirm box. The margins check is a standing sweep rule. | D19 `v2/src/ui/Confirm.tsx` (names the item, Cancel focused); V633 dimensions (layout at 375/768/1,440 px); V633 (3); #226 every-control crawl after each merge | none |
+| 23 | Long sign-in session; emails on .com and .net | LIVE | Live | V74 (device stays signed in; re-verify after 30 idle days, `auth.device_idle_days` 30, V126); V2 (one person, several allowed emails); V166 password door (#109); V443 | none |
+| 24 | People working across several teams | LIVE | Live | `core.person_team_assist` ("teams a person helps besides their home team", `20260929000100_core_people_audit.sql`); V510 team access; `org/module.ts` entity `person_team` | none (B could add a People-screen control if the owner wants one) |
+| 25 | Company record: client IDs per billing type, discount codes, files | PARTLY LIVE | Live: client IDs (prepaid, postpaid, tender) and discount codes with dates on the client record. Not live: file upload and the file list. Only a file count shows. Comes with Stage L (L-4). | V422, V471, V411; `partners/screens/record/RailDialogs.tsx`; `PartnerRecord.tsx` (files count only); BUILD-PLAN D10 hold in CLAUDE.md | E: L-4 upload control. A: L-3. |
+| 26 | KPI behind-pace warnings | PAUSED | Paused by V632 (KPIs: P5-5, P5-6, the pace bands). Waits on Stage 1 (met); no date. | V449 "not started"; V425 superseded; `/kpis` redirects to Achievements; BUILD-PLAN "wait on Reports, KPIs and Appraisal" | Architect: reschedule P5-5/P5-6. A + B: build. |
+| 27 | Appraisal tool, April to March | PAUSED | Paused by V632. Steps P6-3 (A) and P6-4 (B); needs P6-1 first. Waits on Stage 1 (met); no date. | V42, V68, V96, V506; BUILD-PLAN P6-3, P6-4; `/appraisal` is a placeholder. The cycle's April-to-March shape appears only in V506 and V68 ("2026-27"). | Architect: reschedule. Owner: V43 hand over the appraisal export. |
+| 28 | Payments imports (P7) | AFTER GO-LIVE | P7-1 … P7-6, started only when the owner says so (decision 4). Not dated. P7-4 is first. (The first Finance import, P4-1b, is already live: V618, V622.) | BUILD-PLAN P7; FUTURE-MODULES #9; `20261011080200_finance_import.sql` | A: P7-4 first when the owner gives the word. |
+| 29 | Future modules: report generator, tender generator, guarantees, events, supplier payables, supplier evaluation, airline analytics | AFTER GO-LIVE | Not dated; none is built or planned into a step until the owner decides and gives it a V-number, a brief and a step. Guarantees and supplier payables are "out of v1" (V70). | FUTURE-MODULES #1–#8 | Architect: write the brief and V-number when the owner picks one. |
+| 30 | How to handle leads (open question) | AFTER GO-LIVE | The owner decides after go-live whether a Leads inbox is needed. Stopgap in v1: a daily "New lead tickets" task, ticket number and company size on the card, bulk assign. No Q-number, no step. | V99 ("no Leads module in v1"), V472, V479; seeded template in `20261007085600_work_templates.sql`; TECH-SPEC §3.7a | Architect: open a Q-number so the question is not buried in V472. B: card fields and bulk assign come with Pipeline (paused). |
+| 31 | His login: the admin account vs the business test account | LIVE | Done | V444 (owner's separate admin account, `core.person.kind admin_account`); V445 (one test account, removed before go-live); V179 | Owner: remove the test account at go-live (V445). |
+| 32 | From calls: credit limit per client, bookings outside the system, group deals, Q4 target of 40 corporate clients (Q56) | AFTER GO-LIVE | Open question Q56, after go-live. Recommended order: (d) the 40-client target first, then (a) credit limit, (c) group deals, (b) bookings, after Reports and Pipeline. No build step, no date. The credit-limit data and door already exist (V70, `credit_limit_set`). | Q56, V617, V70, Q51; `partners/types.ts` (credit_limits) | Owner: answer Q56. Architect: turn the answer into steps. |
+| 33 | Reminders at a time of day | LIVE | Live | V635 (1), V455 (fires within 5 minutes); #245 (alert with Done and Snooze), #242 (When chips) | none |
+| 34 | Handing over a leaver's work (Q53) | PARTLY LIVE | Live: switch off plus reassign in one request with Undo (V452, V463). Planned: Q53's extension (follow-ups, owned records, "Taken over from" on Today for 30 days) waits for the owner's answer, no date. | V452, `api.person_leave`; `PersonRecord.tsx` (left_on); Q53 | Owner: answer Q53. A + B: build the extension. Architect: date it. |

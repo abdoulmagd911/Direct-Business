@@ -23,7 +23,7 @@ begin
         'insert into notify.notification (person_id, kind, entity_table, entity_id, label_key, label_args, alert_key,'
         || ' alert_day) select a.person_id, %L, a.entity_table, a.entity_id, a.label_key, a.label_args, a.alert_key, $1'
         || ' from notify.%I() a where a.alert_key is not null and notify.may_notify(a.person_id, %L)'
-        || ' on conflict (person_id, alert_key, alert_day) where alert_key is not null do nothing',
+        || ' on conflict do nothing',
         f.proname, f.proname, f.proname) using day;
       get diagnostics k = row_count;
       n := n + k;

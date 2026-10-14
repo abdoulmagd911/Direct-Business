@@ -82,21 +82,21 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await expect(page.locator('[data-record-rail]').getByRole('combobox')).toHaveCount(0);
   await expect(page.locator('[data-person-edit]')).toHaveCount(0);
 
-  // the member before: Overview says no access (a member starts at none there), and is not in their menu. The menu
+  // the member before: Activity says no access (a member starts at none there), and is not in their menu. The menu
   // follows the access (V238): the change is seen on the page and in the menu.
   const theirs = await browser.newContext();
   const their = await theirs.newPage();
-  await signIn(their, member.email, '/overview');
+  await signIn(their, member.email, '/activity');
   await expect(their.locator('[data-state="no-access"]')).toBeVisible();
-  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Overview' })).toHaveCount(0);
+  await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Activity' })).toHaveCount(0);
 
-  // the admin gives the member role View on Overview, with a reason
+  // the admin gives the member role View on Activity, with a reason
   const adminCtx = await browser.newContext();
   const adminPage = await adminCtx.newPage();
   await adminPage.setViewportSize({ width: 1500, height: 1000 });
   await signIn(adminPage, admin.email, '/settings/org?tab=access');
   await hydrated(adminPage);
-  const cell = adminPage.locator('[data-access-page="overview"] [data-access-role="member"]');
+  const cell = adminPage.locator('[data-access-page="activity"] [data-access-role="member"]');
   await cell.getByRole('combobox').click();
   await adminPage.getByRole('option', { name: 'View' }).click();
   await adminPage.getByRole('dialog').getByLabel('Reason').fill('Made-up reason');
@@ -105,13 +105,18 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await their.reload();
   await their.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   await expect(their.locator('[data-state="no-access"]')).toHaveCount(0);
-  await expect(their.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
+  await expect(their.getByRole('heading', { level: 1, name: 'Activity' })).toBeVisible();
   await expect(
-    their.locator('[data-drawer]').getByRole('link', { name: 'Overview' }),
-    'the access opens Overview, so the menu carries it',
+    their.locator('[data-drawer]').getByRole('link', { name: 'Activity' }),
+    'the access opens Activity, so the menu carries it',
   ).toHaveCount(1);
-  // and back (one Undo), so the seed stays as it was for the other specs
-  await toast(adminPage, 'Access changed').getByRole('button', { name: 'Undo', exact: true }).click();
+  // and back (one Undo), so the seed stays as it was for the other specs. A toast already leaving
+  // (data-removed="true") can lie over the live one, so wait for it to go and click the live one.
+  await expect(adminPage.locator('[data-sonner-toast][data-removed="true"]')).toHaveCount(0);
+  await adminPage
+    .locator('[data-sonner-toast][data-removed="false"]', { hasText: 'Access changed' })
+    .getByRole('button', { name: 'Undo', exact: true })
+    .click();
   await expect(toast(adminPage, 'Undone')).toBeVisible();
   await theirs.close();
   await adminCtx.close();

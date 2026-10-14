@@ -428,7 +428,12 @@
         "today": "اليوم",
         "next": "التالية",
         "empty": "لا شيء مستحق اليوم",
-        "carried": "مرحّلة من أمس ({count})"
+        "carried": "مرحّلة من أمس ({count})",
+        "reminder": "تذكير",
+        "followUpAbout": "متابعة: {name}",
+        "markDone": "تعليم “{title}” كمنجز",
+        "reminderDone": "تم إنجاز التذكير",
+        "failed": "تعذّرت قراءة التذكيرات الآن."
       },
       "quick": {
         "title": "تدوين سريع",
@@ -450,7 +455,28 @@
         },
         "when": "متى",
         "save": "تدوين",
-        "saved": "تم تدوين: {kind}"
+        "saved": "تم تدوين: {kind}",
+        "whenChips": {
+          "later_today": "لاحقًا اليوم",
+          "tomorrow": "غدًا",
+          "next_week": "الأسبوع القادم",
+          "pick": "اختر يومًا"
+        },
+        "day": "التاريخ",
+        "time": "الوقت",
+        "followUp": "متابعة",
+        "followUpTitle": "متابعة",
+        "followUpFor": "متابعة بشأن",
+        "followUpPlaceholder": "ما الذي تتابعه",
+        "followUpSaved": "تم تحديد المتابعة",
+        "passed": "هذا الوقت مضى"
+      },
+      "alert": {
+        "title": "تذكير",
+        "now": "الآن",
+        "done": "تم",
+        "snooze": "تأجيل",
+        "snoozed": "تم التأجيل إلى {when}"
       }
     },
     "settings": {
@@ -1210,7 +1236,8 @@
       "body_required": "تحتاج الملاحظة إلى كلمات",
       "turn_into_type_invalid": "اختر مكالمة أو اجتماعًا",
       "turn_into_invalid": "لا يمكن التحويل إلى هذا النوع",
-      "wrap_up_choice_invalid": "اختر الترحيل أو تم"
+      "wrap_up_choice_invalid": "اختر الترحيل أو تم",
+      "about_invalid": "تكون المتابعة على عميل أو مهمة أو فاتورة"
     },
     "crash": {
       "title": "حدث خطأ ما",
@@ -1232,12 +1259,6 @@
       "kind_invalid": "يمكن ختام المهام والملاحظات فقط",
       "not_yours": "يمكن ختام عناصرك أنت فقط",
       "not_open": "هذا العنصر مغلق بالفعل"
-    },
-    "follow_up": {
-      "entity_invalid": "تكون المتابعة على عميل أو مهمة أو فاتورة",
-      "due_required": "اختر يوم المتابعة",
-      "due_passed": "اختر اليوم أو يومًا لاحقًا",
-      "assignee_cannot_see": "لا يستطيع هذا الشخص رؤية هذا السجل، فلا يمكنه متابعته"
     }
   },
   "notifications": {
@@ -1494,9 +1515,7 @@
   },
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
-    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
-  },
-  "follow_up": {
-    "default_title": "متابعة"
+    "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
+    "followUp": "متابعة"
   }
 }
