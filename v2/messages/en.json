@@ -161,7 +161,8 @@
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
-    "achievement": "Achievement"
+    "achievement": "Achievement",
+    "capture": "Capture"
   },
   "common": {
     "filter": "Filter",
@@ -222,11 +223,7 @@
       },
       "tabsLabel": "Whose notes",
       "capture": {
-        "label": "Capture",
-        "placeholder": "Capture a note",
-        "save": "Capture",
-        "kind": "Kind",
-        "captured": "Note filed in My notes"
+        "label": "Capture"
       },
       "kinds": {
         "sticky": "Note",
@@ -316,13 +313,23 @@
       "wrap": {
         "label": "Wrap up",
         "title": "Wrap up today",
-        "open": "{count, plural, one {# note not handled} other {# notes not handled}}",
-        "carry": "Carry over to {date}",
+        "summary": "{count, plural, one {# thing to wrap up} other {# things to wrap up}}",
         "done": "Done",
+        "notDone": "Not done",
+        "tomorrow": "Tomorrow",
+        "nextWeek": "Next week",
+        "drop": "Drop",
         "turn": "Turn into",
-        "save": "Done for today",
         "saved": "Day wrapped up",
-        "none": "Nothing left to handle today."
+        "none": "Nothing left to wrap up today.",
+        "task": "Task",
+        "note": "Note",
+        "saveWith": "Save · {parts}",
+        "partTomorrow": "{count} to tomorrow",
+        "partNextWeek": "{count} next week",
+        "partDrop": "{count} dropped",
+        "partDone": "{count} done",
+        "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
       },
       "reminder": {
         "removeTitle": "Remove the reminder “{name}”?",
@@ -341,7 +348,51 @@
         "overdue": "Overdue",
         "today": "Today",
         "next": "Next",
-        "empty": "Nothing due today"
+        "empty": "Nothing due today",
+        "carried": "Carried over from yesterday ({count})"
+      },
+      "quick": {
+        "title": "Quick capture",
+        "kind": "What to capture",
+        "kinds": {
+          "note": "Note",
+          "idea": "Idea",
+          "checklist": "Checklist",
+          "reminder": "Reminder",
+          "meeting": "Meeting"
+        },
+        "text": "What to capture",
+        "placeholder": {
+          "note": "A note for yourself",
+          "idea": "An idea worth keeping",
+          "checklist": "First line is the title, each next line an item",
+          "reminder": "What to be reminded of",
+          "meeting": "What the meeting is about"
+        },
+        "when": "When",
+        "save": "Capture",
+        "saved": "{kind} captured",
+        "whenChips": {
+          "later_today": "Later today",
+          "tomorrow": "Tomorrow",
+          "next_week": "Next week",
+          "pick": "Pick a day"
+        },
+        "day": "Day",
+        "time": "Time",
+        "followUp": "Follow up",
+        "followUpTitle": "Follow-up",
+        "followUpFor": "Follow up on",
+        "followUpPlaceholder": "What to follow up on",
+        "followUpSaved": "Follow-up set",
+        "passed": "That time has passed"
+      },
+      "alert": {
+        "title": "Reminder",
+        "now": "Now",
+        "done": "Done",
+        "snooze": "Snooze",
+        "snoozed": "Snoozed to {when}"
       }
     },
     "settings": {
@@ -743,6 +794,34 @@
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       }
+    },
+    "weeklyReview": {
+      "title": "Weekly review",
+      "range": "{from} – {to}",
+      "emptyWeek": "Nothing done, slipped or due this week yet",
+      "done": {
+        "title": "Done this week",
+        "empty": "Nothing done yet this week"
+      },
+      "slipped": {
+        "title": "Slipped",
+        "empty": "Nothing slipped"
+      },
+      "next": {
+        "title": "Due next week",
+        "empty": "Nothing due next week"
+      },
+      "notes": {
+        "title": "My notes this week",
+        "empty": "No notes this week"
+      },
+      "carried": "{count, plural, one {Carried once} other {Carried # times}}",
+      "more": "{count, plural, one {and 1 more} other {and # more}}",
+      "note": "Note",
+      "idea": "Idea",
+      "private": "Only me",
+      "door": "This week",
+      "reviewDay": "Review day"
     }
   },
   "entity": {
@@ -1692,7 +1771,8 @@
       "body_required": "A note needs words",
       "turn_into_type_invalid": "Choose call or meeting",
       "turn_into_invalid": "This cannot be turned into that",
-      "wrap_up_choice_invalid": "Choose carry over or done"
+      "wrap_up_choice_invalid": "Choose carry over or done",
+      "about_invalid": "A follow-up goes on a client, a task or an invoice"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -2056,7 +2136,8 @@
     "client": "New client",
     "supplier": "New supplier",
     "invoice": "New invoice",
-    "achievement": "New achievement"
+    "achievement": "New achievement",
+    "capture": "Quick capture"
   },
   "finance": {
     "title": "Finance",

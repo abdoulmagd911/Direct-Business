@@ -67,6 +67,7 @@ export default defineModule({
       label: 'nav.activity',
       icon: 'history',
       nav: { group: 'main', order: 110, tier: 'manage', from: 'head' },
+      built: true,
       defaults: { admin: 'full', head: 'view', manager: 'view' },
     },
   ],

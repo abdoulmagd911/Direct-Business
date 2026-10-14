@@ -45,10 +45,17 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   await setPrefs(context, { theme: 'colorful' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
-  // Tasks, Clients, Suppliers, Finance (Invoice, QA-556) and the KPIs page (Achievement) are built; a page not yet built
-  // would be absent, never greyed
+  // Capture, Tasks, Clients, Suppliers, Finance (Invoice, QA-556) and the KPIs page (Achievement) are built; a page not
+  // yet built would be absent, never greyed
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Invoice', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText([
+    'Capture',
+    'Task',
+    'Client',
+    'Supplier',
+    'Invoice',
+    'Achievement',
+  ]);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');
   await expect(page.locator('h1')).toHaveText('Clients');
@@ -65,7 +72,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await expect(page.locator('[data-drawer]')).toBeHidden();
   const bar = page.locator('[data-bottom-bar]');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
   await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
@@ -93,7 +100,8 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  await expect(links).toHaveCount(14); // logo, the admin's 11 entries (Suppliers is a tab of Clients — V217), Settings, the profile
+  // logo, the admin's 6 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings, the profile
+  await expect(links).toHaveCount(9);
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 
@@ -109,16 +117,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   await signIn(page, member.email, '/my-day');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   const labels = await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts();
-  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual([
-    'My day',
-    'Tasks',
-    'Clients',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-  ]);
+  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' }), 'none for a member').toHaveCount(
     0,
   );

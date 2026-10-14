@@ -85,93 +85,50 @@ const tag = () => Math.random().toString(36).slice(2, 8);
 
 // ── Menu and bar ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('1 · a member: the drawer is every page their access opens (V238); the phone bar is the first four and More', async ({
+// QA3-002: a page whose screen is not built (Overview, Pipeline, Projects, Reports, Appraisal) is in no menu, no bar,
+// no More and not in Ctrl K, for any role; its address still answers. Sabotage: nav-access.mjs "menu-shows-unbuilt-pages-on-screen".
+const UNBUILT = ['Overview', 'Pipeline', 'Projects', 'Reports', 'Appraisal'];
+
+test('1 · a member: the drawer is every built page their access opens (V238, QA3-002); the phone bar is the first four and More', async ({
   page,
 }) => {
   await openAs(page, 'member');
-  expect(await drawerLabels(page), 'the member menu').toEqual([
-    'My day',
-    'Tasks',
-    'Clients',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-  ]);
+  expect(await drawerLabels(page), 'the member menu').toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Projects', 'More']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual([
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-  ]);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['KPIs']);
 });
 
-test('2 · a Business Development member (Pipeline Own by a person change) gains Pipeline, and only that', async ({
+test('2 · a Business Development member (Pipeline Own by a person change) gets no Pipeline entry while Pipeline is not built', async ({
   page,
 }) => {
   await openAs(page, 'bd_member');
-  expect(await drawerLabels(page)).toEqual([
-    'My day',
-    'Tasks',
-    'Clients',
-    'Pipeline',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-  ]);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
-  expect(await morePages(page)).toEqual(['Projects', 'Finance', 'KPIs', 'Reports', 'Appraisal']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await morePages(page)).toEqual(['KPIs']);
 });
 
-test('3 · a manager: every page their access opens, in order (Overview and Activity at View); the bar is the first four and More', async ({
+test('3 · a manager: every built page their access opens, in order (Activity at View); the bar is the first four and More', async ({
   page,
 }) => {
   await openAs(page, 'manager');
-  expect(await drawerLabels(page)).toEqual([
-    'My day',
-    'Tasks',
-    'Clients',
-    'Pipeline',
-    'Overview',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-    'Activity',
-  ]);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs', 'Activity']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Pipeline', 'More']);
-  expect(await morePages(page)).toEqual([
-    'Overview',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-    'Activity',
-  ]);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await morePages(page)).toEqual(['KPIs', 'Activity']);
 });
 
-test('4 · a head adds Overview and Activity; an admin adds Settings at the foot and in More', async ({
-  page,
-  browser,
-}) => {
+test('4 · a head has Activity; an admin adds Settings at the foot and in More', async ({ page, browser }) => {
   await openAs(page, 'head');
-  const head = ['My day', 'Tasks', 'Clients', 'Pipeline', 'Overview', 'Projects', 'Finance', 'KPIs', 'Reports'];
-  expect(await drawerLabels(page)).toEqual([...head, 'Appraisal', 'Activity']);
+  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'KPIs', 'Activity'];
+  expect(await drawerLabels(page)).toEqual(head);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
 
   const ctx = await browser.newContext();
   const admin = await ctx.newPage();
   await openAs(admin, 'admin');
-  expect(await drawerLabels(admin)).toEqual([...head, 'Appraisal', 'Activity', 'Settings']);
+  expect(await drawerLabels(admin)).toEqual([...head, 'Settings']);
   const settings = admin.locator('[data-drawer]').getByRole('link', { name: 'Settings' });
   const last = admin.locator('[data-drawer] a[href]:not([data-entity])').last();
   await expect(last, 'Settings sits at the foot').toHaveText('Settings');
@@ -179,38 +136,30 @@ test('4 · a head adds Overview and Activity; an admin adds Settings at the foot
     (await admin.locator('[data-drawer]').getByRole('link', { name: 'Activity' }).boundingBox())!.y + 40,
   );
   await admin.setViewportSize(PHONE);
-  expect(await morePages(admin)).toEqual([
-    'Overview',
-    'Projects',
-    'Finance',
-    'KPIs',
-    'Reports',
-    'Appraisal',
-    'Activity',
-    'Settings',
-  ]);
+  expect(await morePages(admin)).toEqual(['KPIs', 'Activity', 'Settings']);
   await ctx.close();
 });
 
-test('5 · a viewer: the pages their access opens; no Create or + anywhere', async ({ page }) => {
+test('5 · a viewer: the built pages their access opens fill the bar, with no More; Create offers Capture and nothing else (V242)', async ({
+  page,
+}) => {
   await openAs(page, 'viewer');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'Finance', 'KPIs', 'Reports']);
-  await expect(page.locator('[data-create]')).toHaveCount(0);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'KPIs']);
+  // Capture is for anyone who can open My day, view-only included; Create's other items stay hidden
+  await expect(page.locator('[data-create]')).toHaveAttribute('data-create-direct', 'capture');
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'More']);
-  expect(await morePages(page)).toEqual(['Finance', 'KPIs', 'Reports']);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('[data-create-floating]')).toHaveCount(0);
+  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'KPIs']);
+  await expect(page.locator('[data-bottom-more]'), 'four fill the bar: no More').toHaveCount(0);
+  await expect(page.locator('[data-create-floating]')).toHaveAttribute('data-create-direct', 'capture');
 });
 
-test('6 · a member opens KPIs, Finance and Reports from the menu and by address, finds KPIs with Ctrl K, and meets no closed page', async ({
+test('6 · a member opens KPIs and Finance from the menu; Reports answers by address but is in no menu and not in Ctrl K', async ({
   page,
 }) => {
   await openAs(page, 'member');
   for (const [route, heading, title] of [
     ['/kpis', 'Achievements', 'KPIs'], // /kpis opens the Achievements list until the KPIs page is built (V605)
     ['/finance', 'Finance', 'Finance'],
-    ['/reports', 'Reports', 'Reports'],
   ] as const) {
     await page.goto(route);
     await hydrated(page);
@@ -221,19 +170,40 @@ test('6 · a member opens KPIs, Finance and Reports from the menu and by address
       `${title} is in the menu: the member's access opens it`,
     ).toHaveCount(1);
   }
-  // a page the access closes is in no menu and shows the no-access state at its address
-  await page.goto('/pipeline');
+  // a page not built yet: its address still answers (for QA), and it is in no menu
+  await page.goto('/reports');
   await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]'), 'Pipeline is closed to a member').toBeVisible();
-  await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1, name: 'Reports' })).toBeVisible();
+  for (const name of UNBUILT)
+    await expect(page.locator('[data-drawer]').getByRole('link', { name }), `${name} is not built`).toHaveCount(0);
   await page.goto('/my-day');
   await hydrated(page);
   await page.keyboard.press('Control+k');
   const palette = page.locator('[data-command-palette]');
+  await palette.getByPlaceholder('Go to a page or search…').fill('Reports');
+  await expect(
+    palette.getByRole('option', { name: 'Reports', exact: true }),
+    'Ctrl K offers no unbuilt page',
+  ).toHaveCount(0);
   await palette.getByPlaceholder('Go to a page or search…').fill('KPIs');
   await palette.getByRole('option', { name: 'KPIs' }).click();
   await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
-  // An invoice by "INV" and a client's Finance tab come with Finance's own screens (P4); nothing to find yet.
+});
+
+test('7 · an admin sees no unbuilt page in the drawer, the phone bar, More or Ctrl K (QA3-002)', async ({ page }) => {
+  await openAs(page, 'admin');
+  const wide = await drawerLabels(page);
+  await page.keyboard.press('Control+k');
+  const palette = page.locator('[data-command-palette]');
+  const offered: string[] = [];
+  for (const name of UNBUILT) {
+    await palette.getByPlaceholder('Go to a page or search…').fill(name);
+    offered.push(...(await palette.getByRole('option', { name, exact: true }).allInnerTexts()));
+  }
+  await page.keyboard.press('Escape');
+  await page.setViewportSize(PHONE);
+  const phone = [...(await barLabels(page)), ...(await morePages(page))];
+  expect([...wide, ...phone, ...offered].filter((l) => UNBUILT.includes(l))).toEqual([]);
 });
 
 // ── Suppliers tab ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -295,18 +265,25 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
 
 // ── Create ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('9 · Create offers only built screens at Full, opens a lone item directly, and never says Partner', async ({
+test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture and Task, never Partner', async ({
   page,
   browser,
 }) => {
   // a manager: Task, Client, Supplier, Invoice and Achievement (Tasks, Finance and KPIs are built, QA-556) are at Full
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
-  await expect(page.getByRole('menuitem')).toHaveText(['Task', 'Client', 'Supplier', 'Invoice', 'Achievement']);
+  await expect(page.getByRole('menuitem')).toHaveText([
+    'Capture',
+    'Task',
+    'Client',
+    'Supplier',
+    'Invoice',
+    'Achievement',
+  ]);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Clients, Suppliers and KPIs are View): Create and the + open it directly, no menu
+  // one item left (a member whose Clients, Suppliers, KPIs and My day are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
@@ -332,19 +309,18 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
-  const create = one.locator('[data-create]');
-  await expect(create).toHaveText('New task');
-  await expect(create).toHaveAttribute('data-create-direct', 'task');
-  await create.click();
+  // Clients, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task
+  await one.locator('[data-create]').click();
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
+  await one.locator('[data-create-item="task"]').click();
   await expect(one).toHaveURL(/\/tasks\?new=1$/);
   await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
   await one.keyboard.press('Escape');
   await one.setViewportSize(PHONE);
   await one.goto('/my-day');
   await hydrated(one);
-  const plus = one.locator('[data-create-floating]');
-  await expect(plus).toHaveAttribute('data-create-direct', 'task');
-  await expect(plus).toHaveAttribute('href', '/tasks/new');
+  await one.locator('[data-create-floating]').click();
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
   await ctx.close();
 });
 

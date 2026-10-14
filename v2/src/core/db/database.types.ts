@@ -468,6 +468,8 @@ export type Database = {
         Returns: Json;
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      reminder_move: { Args: { p_at: string; p_id: string }; Returns: Json };
+      reminders_due: { Args: Record<PropertyKey, never>; Returns: Json };
       reminders_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       restore_ticketed: {
@@ -570,6 +572,7 @@ export type Database = {
       };
       views: { Args: { p_page: string }; Returns: Json };
       views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      weekly_review: { Args: { p_day?: string }; Returns: Json };
       wrap_up: { Args: { p_items: Json }; Returns: Json };
     };
     Enums: {

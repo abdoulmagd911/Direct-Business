@@ -59,8 +59,8 @@ select test.as_owner();
 do $$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    perform test.eq((select schedule from cron.job where jobname = 'notify-send-reminders'), '*/5 * * * *',
-      'pg_cron runs the reminder job every five minutes');
+    perform test.eq((select schedule from cron.job where jobname = 'notify-send-reminders'), '* * * * *',
+      'pg_cron runs the reminder job every minute (V632 Stage 2)');
     perform test.eq((select command from cron.job where jobname = 'notify-send-reminders'),
       'select notify.send_reminders()', 'and the job is the reminder job');
   end if;

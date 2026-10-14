@@ -1,12 +1,4 @@
-import {
-  TURN_KINDS,
-  type TodayTask,
-  type MyNote,
-  type NoteKind,
-  type NoteLink,
-  type TurnKind,
-  type WrapChoice,
-} from './types';
+import { TURN_KINDS, type TodayTask, type MyNote, type NoteLink, type TurnKind } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -40,16 +32,6 @@ export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
 
 /** The Turn into kinds the menu offers: a kind whose flag is not set is left out, never greyed (GC-1, cut 3). */
 export const liveKinds = (built: ReadonlySet<string>): TurnKind[] => TURN_KINDS.filter((k) => turnLive(k, built));
-
-/** The capture row's "/" words: "/meeting Kick-off" makes a meeting note titled "Kick-off"; plain words, a note. */
-export const SLASH: Record<string, NoteKind> = { '/note': 'sticky', '/meeting': 'meeting', '/checklist': 'checklist' };
-
-export function parseCapture(text: string, kind: NoteKind): { kind: NoteKind; title: string } {
-  const t = text.trim();
-  const [head, ...rest] = t.split(/\s+/);
-  const slashed = head ? SLASH[head.toLowerCase()] : undefined;
-  return slashed ? { kind: slashed, title: rest.join(' ') } : { kind, title: t };
-}
 
 /** A note's line: its title, else its first words, else its first checklist row. */
 export function noteTitle(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {
@@ -87,13 +69,6 @@ export function openCaptures(notes: MyNote[]): MyNote[] {
   return notes.filter((n) => n.mine && !n.finished_at && n.links.length === 0);
 }
 
-/** The choices api.note_wrap_up takes: only those made. */
-export function wrapUpChoices(choices: Record<string, WrapChoice | undefined>) {
-  return Object.entries(choices)
-    .filter((e): e is [string, WrapChoice] => e[1] === 'carry' || e[1] === 'done')
-    .map(([note, choice]) => ({ note, choice }));
-}
-
 /** The next working day in Riyadh: Sunday after a Thursday (OLD-WRK-022; Friday and Saturday are the weekend). */
 export function nextWorkingDay(day: string): string {
   const d = new Date(`${day}T12:00:00Z`);
@@ -117,4 +92,70 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
     out[g].push(t);
   }
   return out;
+}
+
+export type WrapMove = 'tomorrow' | 'next_week' | 'drop';
+export type WrapItem = {
+  kind: 'task' | 'note';
+  id: string;
+  title: string;
+  client: string | null;
+  route: string;
+  number?: string;
+};
+
+/** How a row is named when it is spoken about: a task by its number, a note by its words. */
+export const wrapLabel = (i: { title: string; number?: string | null }) =>
+  i.number ? `${i.number} ${i.title}` : i.title;
+/** What a person decides about one item: done, or not done and where it goes (Tomorrow unless they say otherwise). */
+export type WrapState = { done: boolean; move: WrapMove };
+export const WRAP_DEFAULT: WrapState = { done: false, move: 'tomorrow' };
+
+/**
+ * Wrap up v2 walks the day's tasks (mine, overdue or due today) and my open captures. The rows I only help on are
+ * not mine to close, and a task due later is not today's.
+ */
+export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
+  const mine = tasks
+    .filter((t) => t.role === 'owner' && (t.group === 'overdue' || t.group === 'today'))
+    .map((t): WrapItem => ({
+      kind: 'task',
+      id: t.id,
+      title: t.title,
+      client: t.partner_name,
+      route: `/tasks/${t.number}`,
+      number: t.number,
+    }));
+  const captured = openCaptures(notes).map((n): WrapItem => ({
+    kind: 'note',
+    id: n.id,
+    title: noteTitle(n),
+    client: null,
+    route: noteRoute(n.id),
+  }));
+  return [...mine, ...captured];
+}
+
+/** The one request for the lot: api.wrap_up's items, Done winning over any move. */
+export function wrapPayload(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+  return items.map((i) => {
+    const s = states[i.id] ?? WRAP_DEFAULT;
+    return { kind: i.kind, id: i.id, choice: s.done ? 'done' : s.move };
+  });
+}
+
+/** What one Save will do, counted from the choices on screen, so no one re-dates the list without seeing it. */
+export function wrapSummary(items: WrapItem[], states: Record<string, WrapState | undefined>) {
+  const out = { done: 0, tomorrow: 0, next_week: 0, drop: 0 };
+  for (const p of wrapPayload(items, states)) out[p.choice as keyof typeof out] += 1;
+  return out;
+}
+
+/**
+ * After a refused Save the rows are read again: the ones that are gone (no longer mine, or closed meanwhile) are named
+ * and left out; every other choice is kept, so one more tap saves the rest.
+ */
+export function wrapRecover(before: WrapItem[], after: WrapItem[]) {
+  const still = new Set(after.map((i) => i.id));
+  return { gone: before.filter((i) => !still.has(i.id)), items: after };
 }
