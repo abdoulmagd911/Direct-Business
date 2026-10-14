@@ -10,7 +10,8 @@ import { describe, expect, it, vi } from 'vitest';
 import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
 import { TodayBlock } from '../../../src/modules/my-day/screens/TodayBlock';
-import type { TodayTask } from '../../../src/modules/my-day/types';
+import type { DueReminder } from '../../../src/modules/my-day/reminder-alert';
+import type { AboutRecord } from '../../../src/modules/my-day/types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }) }));
 
@@ -21,17 +22,20 @@ const draw = (props: Partial<Parameters<typeof TodayBlock>[0]>, locale: 'en' | '
       <TodayBlock tasks={[]} day={DAY} statuses={[]} due={{ due: [], next_at: null }} {...props} />
     </NextIntlClientProvider>,
   );
-const followUp = (about: TodayTask['about']): TodayTask => ({
-  id: 't1',
-  number: 'T-1',
-  title: 'Follow-up',
-  due_on: DAY,
-  partner_id: null,
-  partner_name: null,
-  group: 'today',
-  role: 'owner',
-  follow_up: true,
-  about,
+const dueFollowUp = (
+  about: AboutRecord | null,
+): { due: (DueReminder & { about: AboutRecord | null })[]; next_at: null } => ({
+  next_at: null,
+  due: [
+    {
+      id: 'f1',
+      note_id: 'n1',
+      text: 'Ask about the renewal',
+      remind_at: '2026-10-14T08:00:00+03:00',
+      notification_id: 'a1',
+      about,
+    },
+  ],
 });
 
 describe('the Today block with reminders', () => {
@@ -42,17 +46,17 @@ describe('the Today block with reminders', () => {
         due: [
           {
             id: 'r1',
-            note_id: null,
+            note_id: 'n-r1',
             text: 'Call Sahab Tech',
             remind_at: '2026-10-14T08:00:00+03:00',
             notification_id: 'n1',
           },
           {
             id: 'r2',
-            note_id: null,
+            note_id: 'n-r2',
             text: 'Send the Dune Foods file',
             remind_at: '2026-10-13T09:00:00+03:00',
-            notification_id: null,
+            notification_id: 'a2',
           },
         ],
       },
@@ -84,7 +88,21 @@ describe('the Today block with reminders', () => {
     expect(html).not.toMatch(/pages\.myDay\.today/);
   });
   it('draws its own failed line when the reminders could not be read, and still draws the tasks', () => {
-    const html = draw({ due: null, tasks: [followUp(null)] });
+    const html = draw({
+      due: null,
+      tasks: [
+        {
+          id: 't1',
+          number: 'T-1',
+          title: 'A task',
+          due_on: DAY,
+          partner_id: null,
+          partner_name: null,
+          group: 'today',
+          role: 'owner',
+        },
+      ],
+    });
     expect(html).toContain('data-state="failed"');
     expect(html).toContain('Reminders could not be read just now.');
     expect(html).toContain('data-today-task="T-1"');
@@ -92,14 +110,21 @@ describe('the Today block with reminders', () => {
 });
 
 describe('a follow-up names its record only to a reader who may see it (V454)', () => {
-  it('names the record when the database gave it', () => {
-    const html = draw({ tasks: [followUp({ entity: 'partner', id: 'c1', label: 'Waha Foods' })] });
+  it('tags the record when the database named it, and keeps the words the person wrote as the title', () => {
+    const html = draw({ due: dueFollowUp({ entity: 'partner', id: 'c1', label: 'Waha Foods' }) });
     expect(html).toContain('Follow up: Waha Foods');
+    expect(html).toContain('Ask about the renewal');
   });
-  it('says only "Follow up" when the record is not this reader\'s to see', () => {
-    const html = draw({ tasks: [followUp(null)] });
-    expect(html).toContain('Follow up');
+  it('says only "Reminder" when the record is not this reader\'s to see', () => {
+    const html = draw({ due: dueFollowUp(null) });
+    expect(html).toContain('Ask about the renewal');
     expect(html).not.toContain('Follow up:');
     expect(html).not.toContain('Waha Foods');
+  });
+  it("never takes the record's name as the title when a follow-up has no words (QA-560)", () => {
+    const f = dueFollowUp({ entity: 'partner', id: 'c1', label: 'Waha Foods' });
+    f.due[0]!.text = '';
+    const html = draw({ due: f });
+    expect(html.replace('Follow up: Waha Foods', '')).not.toContain('Waha Foods');
   });
 });

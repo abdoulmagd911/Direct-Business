@@ -62,7 +62,7 @@ for (const width of [375, 1440]) {
       'aria-checked',
       'true',
     );
-    await expect(page.locator('[data-quick-when]'), 'a plain note does not ask when').toHaveCount(0);
+    await expect(page.locator('[data-when]'), 'a plain note does not ask when').toHaveCount(0);
     await page.locator('[data-quick-text]').fill(`Plain note ${t}`);
     await page.locator('[data-quick-save]').click();
     await expect(toast(page, 'Note captured')).toBeVisible();
@@ -99,7 +99,7 @@ for (const width of [375, 1440]) {
 
     await openSheet(page, wide);
     await page.locator('[data-quick-kind="reminder"]').click();
-    await expect(page.locator('[data-quick-when]'), 'a reminder asks when').toBeVisible();
+    await expect(page.locator('[data-when]'), 'a reminder asks when').toBeVisible();
     await page.locator('[data-quick-text]').fill(`Call back ${t}`);
     await page.locator('[data-quick-save]').click();
     await expect(toast(page, 'Reminder captured')).toBeVisible();

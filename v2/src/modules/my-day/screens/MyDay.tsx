@@ -13,7 +13,8 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
-import { SCOPES, type MyDayAnswer, type PendingReminder, type RemindersDue, type Scope } from '../types';
+import type { DueAnswer } from '../reminder-alert';
+import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
 import { CaptureButton } from './CaptureButton';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
@@ -32,7 +33,7 @@ export type MyDayData = {
   /** The task statuses, so the Today block's tick can say Done. */
   statuses: TaskStatus[];
   /** My reminders whose time has come (`api.reminders_due`); null when it could not be read. */
-  due: RemindersDue | null;
+  due: DueAnswer | null;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);

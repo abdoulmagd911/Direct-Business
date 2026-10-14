@@ -351,7 +351,6 @@
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",
-        "followUp": "Follow up",
         "followUpAbout": "Follow up: {name}",
         "markDone": "Mark “{title}” done",
         "reminderDone": "Reminder done",
@@ -376,16 +375,29 @@
           "meeting": "What the meeting is about"
         },
         "when": "When",
-        "whenChoices": {
-          "later": "Later today",
+        "save": "Capture",
+        "saved": "{kind} captured",
+        "whenChips": {
+          "later_today": "Later today",
           "tomorrow": "Tomorrow",
-          "next": "Next week",
+          "next_week": "Next week",
           "pick": "Pick a day"
         },
         "day": "Day",
         "time": "Time",
-        "save": "Capture",
-        "saved": "{kind} captured"
+        "followUp": "Follow up",
+        "followUpTitle": "Follow-up",
+        "followUpFor": "Follow up on",
+        "followUpPlaceholder": "What to follow up on",
+        "followUpSaved": "Follow-up set",
+        "passed": "That time has passed"
+      },
+      "alert": {
+        "title": "Reminder",
+        "now": "Now",
+        "done": "Done",
+        "snooze": "Snooze",
+        "snoozed": "Snoozed to {when}"
       }
     },
     "settings": {
@@ -1764,7 +1776,8 @@
       "body_required": "A note needs words",
       "turn_into_type_invalid": "Choose call or meeting",
       "turn_into_invalid": "This cannot be turned into that",
-      "wrap_up_choice_invalid": "Choose carry over or done"
+      "wrap_up_choice_invalid": "Choose carry over or done",
+      "about_invalid": "A follow-up goes on a client, a task or an invoice"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -1805,12 +1818,6 @@
       "kind_invalid": "Only tasks and notes can be wrapped up",
       "not_yours": "Only your own items can be wrapped up",
       "not_open": "This item is already closed"
-    },
-    "follow_up": {
-      "entity_invalid": "A follow-up goes on a client, a task or an invoice",
-      "due_required": "Choose the day to follow up",
-      "due_passed": "Choose today or a later day",
-      "assignee_cannot_see": "That person cannot see this record, so they cannot follow it up"
     }
   },
   "notifications": {
@@ -2276,8 +2283,5 @@
       "lastSaved": "Last saved",
       "noFigures": "In no figures"
     }
-  },
-  "follow_up": {
-    "default_title": "Follow-up"
   }
 }

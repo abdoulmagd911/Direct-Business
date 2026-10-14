@@ -1,74 +1,14 @@
-// Sabotages for Productivity Stage 2, builder B2's half (the Reminder's When, the Today block's reminders and follow-ups):
-// each breaks one promise of its specs.
-const WHEN = 'unit:tests/unit/my-day/when-and-today-reminders.test.ts';
+// Sabotages for Productivity Stage 2, builder B2's half (the reminders and follow-up tags in the Today block): each breaks
+// one promise of its specs.
+const GROUP = 'unit:tests/unit/my-day/today-reminders.test.ts';
 const TODAY =
   'unit:tests/unit/my-day/the-today-block-lists-reminders-and-names-a-followups-record-only-to-who-may-see-it.test.tsx';
+const E2E = 'e2e:tests/e2e/stage2-capture-today.spec.ts';
 
 export const sabotages = [
   {
-    name: 'when-thursday-reads-friday',
-    breaks: [WHEN],
-    expect: 'reads Sunday for Tomorrow on a Thursday',
-    edits: [
-      {
-        file: 'src/modules/my-day/when.ts',
-        find: 'const tomorrowDay = nextWorkingDay(day);',
-        replace:
-          'const tomorrowDay = new Date(Date.parse(`${day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);',
-      },
-    ],
-  },
-  {
-    name: 'when-later-today-passes-the-end-of-the-day',
-    breaks: [WHEN],
-    expect: 'never past 17:30',
-    edits: [
-      {
-        file: 'src/modules/my-day/when.ts',
-        find: 'Math.min(Math.ceil((minutes + 180) / 5) * 5, DAY_END)',
-        replace: 'Math.ceil((minutes + 180) / 5) * 5',
-      },
-    ],
-  },
-  {
-    name: 'when-next-week-equals-tomorrow',
-    breaks: [WHEN],
-    expect: 'makes Next week the first Sunday after Tomorrow',
-    edits: [
-      {
-        file: 'src/modules/my-day/when.ts',
-        find: 'next: `${nextSunday(tomorrowDay)}T${MORNING}`',
-        replace: 'next: `${nextSunday(day)}T${MORNING}`',
-      },
-    ],
-  },
-  {
-    name: 'when-pick-with-no-day-blocks-save',
-    breaks: [WHEN],
-    expect: 'never leaves Save without a time',
-    edits: [
-      {
-        file: 'src/modules/my-day/when.ts',
-        find: '`${pick.day || opts.tomorrow.slice(0, 10)}T${pick.time || MORNING}`',
-        replace: '`${pick.day}T${pick.time}`',
-      },
-    ],
-  },
-  {
-    name: 'when-riyadh-day-from-the-browser-clock',
-    breaks: [WHEN],
-    expect: 'takes the day from Riyadh',
-    edits: [
-      {
-        file: 'src/modules/my-day/when.ts',
-        find: 'const r = new Date(now.getTime() + 3 * 3_600_000);',
-        replace: 'const r = new Date(now.getTime());',
-      },
-    ],
-  },
-  {
     name: 'today-lists-reminders-of-later-days',
-    breaks: [WHEN],
+    breaks: [GROUP],
     expect: 'leaving later days out',
     edits: [
       {
@@ -80,7 +20,7 @@ export const sabotages = [
   },
   {
     name: 'today-lists-a-reminder-twice',
-    breaks: [WHEN],
+    breaks: [GROUP],
     expect: 'lists a reminder once',
     edits: [
       {
@@ -91,14 +31,38 @@ export const sabotages = [
     ],
   },
   {
+    name: 'today-riyadh-day-from-the-browser-clock',
+    breaks: [GROUP],
+    expect: 'reads the day in Riyadh',
+    edits: [
+      {
+        file: 'src/modules/my-day/today-reminders.ts',
+        find: 'Date.parse(iso) + 3 * 3_600_000',
+        replace: 'Date.parse(iso)',
+      },
+    ],
+  },
+  {
     name: 'today-followup-names-a-record-the-reader-may-not-see',
     breaks: [TODAY],
-    expect: 'says only "Follow up" when the record is not',
+    expect: 'says only "Reminder" when the record is not',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: '{task.about?.label',
-        replace: "{(task.about?.label ?? task.partner_name ?? 'Waha Foods')",
+        find: '{r.about?.label',
+        replace: "{(r.about?.label ?? 'Waha Foods')",
+      },
+    ],
+  },
+  {
+    name: 'today-followup-is-titled-by-its-record',
+    breaks: [TODAY],
+    expect: 'never takes the record',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: 'const title = r.text ||',
+        replace: 'const title = r.text || r.about?.label ||',
       },
     ],
   },
@@ -121,14 +85,14 @@ export const sabotages = [
     edits: [{ file: 'src/modules/my-day/screens/TodayBlock.tsx', find: '{due === null ? (', replace: '{false ? (' }],
   },
   {
-    name: 'when-opens-on-pick-a-day',
-    breaks: ['e2e:tests/e2e/stage2-capture-today.spec.ts'],
-    expect: 'a Reminder asks When with chips',
+    name: 'today-reminder-tick-does-nothing',
+    breaks: [E2E],
+    expect: 'a reminder due today shows in Today',
     edits: [
       {
-        file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: "setChoice('tomorrow');",
-        replace: "setChoice('pick');",
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: 'onClick={() => void done()}',
+        replace: 'onClick={() => undefined}',
       },
     ],
   },

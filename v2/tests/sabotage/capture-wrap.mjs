@@ -50,8 +50,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: "setVisibility('private');\n      setOpts",
-        replace: "setVisibility('workspace');\n      setOpts",
+        find: "setVisibility('private');\n      setWhen",
+        replace: "setVisibility('workspace');\n      setWhen",
       },
     ],
   },
@@ -62,8 +62,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: '{ after: () => setOpen(false) }',
-        replace: "{ after: () => { setOpen(false); window.location.assign('/my-day'); } }",
+        find: "if (args.kind === 'reminder') askToNotify();",
+        replace: "if (args.kind === 'reminder') askToNotify();\n          window.location.assign('/my-day');",
       },
     ],
   },

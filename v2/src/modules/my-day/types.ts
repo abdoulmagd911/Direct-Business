@@ -78,7 +78,13 @@ export type MyNote = {
 
 export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number };
 
-export type PendingReminder = { id: string; note_id: string | null; remind_at: string; text: string | null };
+export type PendingReminder = {
+  id: string;
+  note_id: string | null;
+  remind_at: string;
+  text: string | null;
+  about?: AboutRecord | null;
+};
 
 /** One of my open tasks as `my.my_tasks` serves it (D3): grouped by Riyadh day; `helping` are the ones I only help on. */
 export type TodayTask = {
@@ -92,27 +98,13 @@ export type TodayTask = {
   role: 'owner' | 'helper';
   /** How many times a wrap-up carried it over. */
   carried_over?: number;
-  /** A follow-up (Stage 2): a task of type Follow-up tied to a record. */
-  follow_up?: boolean;
-  /**
-   * What the follow-up is about, as THIS reader may see it (`work.about_of`): null when they may not, and then the row
-   * never names the record (V454).
-   */
-  about?: AboutRecord | null;
 };
 
+/**
+ * What a follow-up (a Reminder note) is about, as THIS reader may see it (`work.about_of`): null when they may not, and
+ * then nothing names the record (V454).
+ */
 export type AboutRecord = { entity: 'partner' | 'task' | 'invoice'; id: string; label: string | null };
-
-/** A reminder whose time has come and that its person has not put away (`api.reminders_due`). */
-export type DueReminder = {
-  id: string;
-  note_id: string | null;
-  text: string | null;
-  remind_at: string;
-  /** Its open alert in the bell: Done clears this too. */
-  notification_id: string | null;
-};
-export type RemindersDue = { due: DueReminder[]; next_at: string | null };
 
 /** What a wrap-up carried to today and is still open (`api.my_day` `carried_over`). */
 export type CarriedItem = { kind: 'task' | 'note'; id: string; from: string | null; times: number };

@@ -14,7 +14,8 @@ import type { TaskStatus } from '@/modules/tasks/types';
 import { todayGroups, noteRoute } from '../logic';
 import { markReminderDone } from '../reminder-done';
 import { todayReminders, type TodayReminder } from '../today-reminders';
-import type { PendingReminder, RemindersDue, TodayTask } from '../types';
+import type { DueAnswer } from '../reminder-alert';
+import type { PendingReminder, TodayTask } from '../types';
 
 /**
  * The Today block at the top of My day (productivity stage 1): my tasks as Overdue (with its count), Today and Next
@@ -38,7 +39,7 @@ export function TodayBlock({
   /** My reminders the job has not sent yet (`api.my_day`). */
   pending?: PendingReminder[];
   /** Those whose time has come and are not put away (`api.reminders_due`); null when that could not be read. */
-  due: RemindersDue | null;
+  due: DueAnswer | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -113,7 +114,12 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
     <>
       <span className="block break-words">{title}</span>
       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <StatusChip tone="info">{t('pages.myDay.today.reminder')}</StatusChip>
+        {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
+        <StatusChip tone="info" className="max-w-full">
+          {r.about?.label
+            ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
+            : t('pages.myDay.today.reminder')}
+        </StatusChip>
         <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
           {overdue ? formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }) : r.time}
         </span>
@@ -153,7 +159,6 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
 }
 
 function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: TaskStatus[]; overdue: boolean }) {
-  const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const tick = {
     id: task.id,
@@ -174,16 +179,7 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
       >
         <span className="block break-words">{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {task.follow_up ? (
-            // the record is named only when this reader may see it (about is null otherwise, V454)
-            <StatusChip tone="info" className="max-w-full">
-              {task.about?.label
-                ? t('pages.myDay.today.followUpAbout', { name: task.about.label })
-                : t('pages.myDay.today.followUp')}
-            </StatusChip>
-          ) : task.partner_name ? (
-            <StatusChip tone="neutral">{task.partner_name}</StatusChip>
-          ) : null}
+          {task.partner_name ? <StatusChip tone="neutral">{task.partner_name}</StatusChip> : null}
           <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
             {formatDate(task.due_on, locale, { dateStyle: 'medium' })}
           </span>

@@ -1,5 +1,5 @@
-import type { DueReminder, PendingReminder } from './types';
-import { riyadhParts } from './when';
+import type { DueReminder } from './reminder-alert';
+import type { AboutRecord, PendingReminder } from './types';
 
 /** A reminder as the Today block draws it: when it falls in Riyadh time, and its alert in the bell if it has gone out. */
 export type TodayReminder = {
@@ -10,15 +10,26 @@ export type TodayReminder = {
   day: string;
   time: string;
   notification_id: string | null;
+  /** The record a follow-up is about, named only if this reader may see it (V454). */
+  about: AboutRecord | null;
 };
 
-const row = (r: PendingReminder | DueReminder, notification_id: string | null): TodayReminder => ({
+type DueWithAbout = DueReminder & { about?: AboutRecord | null };
+
+/** An instant's Riyadh date ("2026-10-14") and clock ("09:00"); Riyadh is UTC+3 all year (D20). */
+const riyadhParts = (iso: string) => {
+  const r = new Date(Date.parse(iso) + 3 * 3_600_000).toISOString();
+  return { day: r.slice(0, 10), time: r.slice(11, 16) };
+};
+
+const row = (r: PendingReminder | DueWithAbout, notification_id: string | null): TodayReminder => ({
   id: r.id,
   note_id: r.note_id,
   text: (r.text ?? '').trim(),
   remind_at: r.remind_at,
   ...riyadhParts(r.remind_at),
   notification_id,
+  about: r.about ?? null,
 });
 
 /**
@@ -29,7 +40,7 @@ const row = (r: PendingReminder | DueReminder, notification_id: string | null): 
  */
 export function todayReminders(
   pending: PendingReminder[],
-  due: DueReminder[],
+  due: DueWithAbout[],
   day: string,
 ): { overdue: TodayReminder[]; today: TodayReminder[] } {
   const byId = new Map<string, TodayReminder>();

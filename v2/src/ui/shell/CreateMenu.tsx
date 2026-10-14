@@ -72,7 +72,7 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
     return floating ? (
       <button
         type="button"
-        onClick={openQuickCapture}
+        onClick={() => openQuickCapture()}
         aria-label={t('top.create')}
         data-create-floating
         data-create-direct={a.key}
@@ -84,7 +84,7 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
       <Button
         variant="primary"
         icon={<Plus />}
-        onClick={openQuickCapture}
+        onClick={() => openQuickCapture()}
         data-create
         data-create-direct={a.key}
         className="hidden sm:inline-flex"
@@ -130,7 +130,7 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
           return (
             <MenuItem key={a.key} asChild>
               {a.sheet ? (
-                <button type="button" onClick={openQuickCapture} data-create-item={a.key}>
+                <button type="button" onClick={() => openQuickCapture()} data-create-item={a.key}>
                   <Icon />
                   {t(`create.${a.key}`)}
                 </button>
