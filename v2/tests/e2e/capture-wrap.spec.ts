@@ -13,6 +13,19 @@ const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySele
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
 const tag = () => Math.random().toString(36).slice(2, 8);
 
+/**
+ * What the Tomorrow choice is called today in Riyadh: "Tomorrow", or the day's own name ("Sunday") from a Thursday, a
+ * Friday or a Saturday, when the next working day is not tomorrow. The unit tests pin the fixed dates; the browser specs
+ * follow whichever day they run on.
+ */
+async function tomorrowWord() {
+  const [d] = await sql<{ name: string | null }>(
+    `select case when core.next_working_day(core.riyadh_today()) = core.riyadh_today() + 1 then null
+                 else trim(to_char(core.next_working_day(core.riyadh_today()), 'FMDay')) end as name`,
+  );
+  return d!.name;
+}
+
 async function personWithTeam() {
   const me = await makePerson({ admin: true });
   const t = tag();
@@ -129,6 +142,7 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const late = await make(`Late task ${t}`, -1);
   const due = await make(`Due task ${t}`, 0);
   const third = await make(`Third task ${t}`, 0);
+  const named = await tomorrowWord(); // null on a weekday: the word stays "Tomorrow"
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
@@ -150,6 +164,10 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     `select to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as tomorrow,
             to_char(my.next_week_day(core.riyadh_today()), 'Dy FMDD Mon') as next`,
   );
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
+    'Tomorrow is called by its day when the next working day is not tomorrow',
+  ).toContainText(named ?? 'Tomorrow');
   await expect(rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]')).toContainText(lands!.tomorrow);
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-move="next_week"]'),
@@ -158,10 +176,12 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   await expect(
     dialog.locator('[data-wrap-save]'),
     'Save says what it will do, rows left alone going to tomorrow',
-  ).toHaveText('Save · 3 to tomorrow');
+  ).toHaveText(`Save · 3 to ${named ?? 'tomorrow'}`);
   await rowOf(`Late task ${t}`).locator('[data-wrap-state="done"]').click();
   await rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]').click();
-  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 to tomorrow, 1 next week, 1 done');
+  await expect(dialog.locator('[data-wrap-save]')).toHaveText(
+    `Save · 1 to ${named ?? 'tomorrow'}, 1 next week, 1 done`,
+  );
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
   const state = async () =>

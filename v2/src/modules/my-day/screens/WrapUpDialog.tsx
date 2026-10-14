@@ -23,7 +23,7 @@ import {
   type WrapState,
 } from '../logic';
 import type { MyDayAnswer } from '../types';
-import { nextWeekDay } from '../when';
+import { nextWeekDay, tomorrowDayNameOf } from '../when';
 
 const choiceClass = (on: boolean) =>
   cn(
@@ -74,6 +74,8 @@ export function WrapUpDialog({
   }, [open]);
   const stateOf = (id: string) => states[id] ?? WRAP_DEFAULT;
   const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
+  // on a Thursday, a Friday and a Saturday the next working day is not tomorrow: the choice is called by its day
+  const tomorrowName = tomorrowDayNameOf(day, locale);
   const shortDay = (d: string) => formatDate(d, locale, { weekday: 'short', day: 'numeric', month: 'short' });
   // the day each choice lands on, written under its word (Drop lands nowhere)
   const landsOn: Partial<Record<WrapMove, string>> = {
@@ -111,14 +113,14 @@ export function WrapUpDialog({
   const sum = wrapSummary(items ?? [], states);
   const parts = (
     [
-      ['tomorrow', 'partTomorrow'],
+      ['tomorrow', tomorrowName ? 'partToDay' : 'partTomorrow'],
       ['next_week', 'partNextWeek'],
       ['drop', 'partDrop'],
       ['done', 'partDone'],
     ] as const
   )
     .filter(([k]) => sum[k] > 0)
-    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k] }))
+    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k], day: tomorrowName ?? '' }))
     .join(', ');
   return (
     <Dialog
@@ -204,7 +206,7 @@ export function WrapUpDialog({
                           onClick={() => set(i.id, { move })}
                           data-wrap-move={move}
                         >
-                          <span>{t(`pages.myDay.wrap.${word}`)}</span>
+                          <span>{(move === 'tomorrow' ? tomorrowName : null) ?? t(`pages.myDay.wrap.${word}`)}</span>
                           {landsOn[move] ? (
                             <span className="font-data text-xs font-normal text-muted">{landsOn[move]}</span>
                           ) : null}
