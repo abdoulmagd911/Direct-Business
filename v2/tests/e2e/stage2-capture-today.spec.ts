@@ -104,6 +104,13 @@ test('a follow-up on a client shows in Today as "Follow up: <client>"', async ({
   const me = await makePerson({ admin: true });
   const t = tag();
   await page.setViewportSize({ width: 1440, height: 1000 });
+  // the follow-up is seeded in the database: the door that makes one (api.follow_up) is builder A's and is tested in SQL (FUP-01)
+  const [team] = await sql<{ id: string }>(
+    `insert into core.team (department_id, code, name_en, name_ar)
+       select department_id, $2, $3, $4 from core.person where id = $1 returning id`,
+    [me.id, `s2_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
+  );
+  await sql(`update core.person set team_id = $2 where id = $1`, [me.id, team!.id]);
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
   const org = `Waha Foods ${t}`;
@@ -111,14 +118,16 @@ test('a follow-up on a client shows in Today as "Follow up: <client>"', async ({
     p_partner: { trade_name_en: org, sides: [{ side: 'client', type: 'corporate' }] },
   });
   expect(client.status, JSON.stringify(client.body)).toBe(200);
-  const f = await callAs(page.context(), 'follow_up', {
-    p_entity: 'partner',
-    p_id: (client.body as { id: string }).id,
-    p_due_on: new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10),
-    p_assignee: null,
-    p_title: null,
-  });
-  expect(f.status, JSON.stringify(f.body)).toBe(200);
+  const clientId = (client.body as { id: string }).id;
+  await sql(
+    `insert into work.task (number, title, owner_id, team_id, department_id, status_id, type_id, work_type, partner_id,
+                            created_by, due_on, about_table, about_id)
+     values ($1, 'Follow-up', $2, $3, (select department_id from core.team where id = $3),
+             (select id from work.task_status where is_default and deleted_at is null),
+             (select id from work.task_type where key = 'follow_up' and deleted_at is null), 'client', $4,
+             $2, core.riyadh_today(), 'partner.partner', $4)`,
+    [`TSK-1999-${String(Math.floor(Math.random() * 90000) + 10000)}`, me.id, team!.id, clientId],
+  );
   await page.reload();
   await hydrated(page);
   await expect(page.locator('[data-today-block]')).toContainText(`Follow up: ${org}`);
