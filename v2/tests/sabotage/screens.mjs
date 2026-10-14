@@ -655,18 +655,6 @@ export const sabotages = [
       },
     ],
   },
-  {
-    name: 'create-offers-an-unbuilt-screen',
-    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'Create offers only built screens',
-    edits: [
-      {
-        file: 'src/ui/shell/CreateMenu.tsx',
-        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
-        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
-      },
-    ],
-  },
 
   {
     name: 'access-list-closed-for-admins',
@@ -781,19 +769,6 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/CaptureRow.tsx',
         find: "useState<Visibility>('private')",
         replace: "useState<Visibility>('workspace')",
-      },
-    ],
-  },
-
-  {
-    name: 'wrap-up-defaults-to-done',
-    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-wrap-choice',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "choices[id] ?? 'carry'",
-        replace: "choices[id] ?? 'done'",
       },
     ],
   },

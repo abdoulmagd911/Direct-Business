@@ -1266,6 +1266,18 @@
       "rule_only": false
     },
     {
+      "key": "my_carry",
+      "table": "my.carry",
+      "page": null,
+      "owners": "person_id",
+      "list": false,
+      "private": false,
+      "visible": "my.carry_visible",
+      "level": null,
+      "history": false,
+      "rule_only": true
+    },
+    {
       "key": "my_note",
       "table": "my.note",
       "page": null,

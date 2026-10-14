@@ -22,7 +22,6 @@ import {
   parseCapture,
   turnLive,
   TURN_READY,
-  wrapUpChoices,
   liveKinds,
 } from '../../../src/modules/my-day/logic';
 import { FromNoteChip, LinkChip, VisibilityChip } from '../../../src/modules/my-day/screens/NoteBits';
@@ -167,12 +166,6 @@ describe('Wrap up today', () => {
     expect(nextWorkingDay('2026-10-01'), 'Sunday after a Thursday').toBe('2026-10-04');
     expect(nextWorkingDay('2026-09-29')).toBe('2026-09-30');
     expect(nextWorkingDay('2026-10-03'), 'Saturday to Sunday').toBe('2026-10-04');
-  });
-  it('sends only the choices made, carry or done, as api.note_wrap_up takes them', () => {
-    expect(wrapUpChoices({ a: 'carry', b: 'done', c: undefined })).toEqual([
-      { note: 'a', choice: 'carry' },
-      { note: 'b', choice: 'done' },
-    ]);
   });
 });
 

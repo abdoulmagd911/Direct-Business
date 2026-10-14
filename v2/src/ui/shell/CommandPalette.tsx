@@ -10,6 +10,7 @@ import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
 import { reachableFor } from './nav';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { createActionsFor } from './CreateMenu';
 
 // Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
@@ -175,7 +176,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       <Command.Item
                         key={a.key}
                         value={`${t('top.create')} ${t(`create.${a.key}`)}`}
-                        onSelect={() => go(a.route)}
+                        onSelect={() => (a.sheet ? (close(false), openQuickCapture()) : go(a.route))}
                         className={itemClass}
                       >
                         <Icon className="size-4 text-muted" aria-hidden="true" />

@@ -17,7 +17,10 @@ import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../t
 import { CaptureRow } from './CaptureRow';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
+import { TodayBlock } from './TodayBlock';
+import type { TaskStatus } from '@/modules/tasks/types';
 import { WrapUpDialog } from './WrapUpDialog';
+import { WeekDoor } from '@/modules/weekly-review/screens/WeekDoor';
 
 export type MyDayData = {
   title: string;
@@ -26,6 +29,8 @@ export type MyDayData = {
   /** Every note read (`?more=1`) rather than the first block. */
   all: boolean;
   people: OrgPerson[];
+  /** The task statuses, so the Today block's tick can say Done. */
+  statuses: TaskStatus[];
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -67,6 +72,15 @@ export function MyDay({ data }: { data: MyDayData }) {
         value={scope}
         tabs={SCOPES.map((s) => ({ value: s, label: t(`pages.myDay.tabs.${s}`), href: tabHref(s) }))}
       />
+      {scope === 'me' ? (
+        <TodayBlock
+          tasks={answer.tasks ?? []}
+          day={answer.day}
+          statuses={data.statuses}
+          carried={answer.carried_over?.length ?? 0}
+        />
+      ) : null}
+      {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
       {scope === 'me' ? <CaptureRow /> : null}
       {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
