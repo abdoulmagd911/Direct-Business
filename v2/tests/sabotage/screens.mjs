@@ -546,7 +546,8 @@ export const sabotages = [
       {
         file: 'src/ui/shell/BottomBar.tsx',
         find: '            <button\n              type="button"\n              onClick={signOut}',
-        replace: '            <a href="/profile">My profile</a>\n            <button\n              type="button"\n              onClick={signOut}',
+        replace:
+          '            <a href="/profile">My profile</a>\n            <button\n              type="button"\n              onClick={signOut}',
       },
     ],
   },
