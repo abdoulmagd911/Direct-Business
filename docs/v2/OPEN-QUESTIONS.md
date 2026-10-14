@@ -47,9 +47,34 @@ on real work (V618).
 which product or kind? If it is "Other Income", no rule may exclude Other Income wholesale, or they vanish from revenue.
 *Recommended:* finance names it; any exclusion stays a typed rule with a reason (D16) (V617).
 
+## Open — from the oversight's audit of 14 Oct (asked 14 Oct)
+
+Productivity comes first (V632); none of these holds up Stage 2 or 3. Each has the answer the spec assumes until the
+owner rules.
+
+**Q53 — A leaver's open work.** When someone leaves, who takes their open tasks, follow-ups and records they own?
+*Recommended:* turning a person off asks for one receiver, and their open tasks, follow-ups and owned records move to
+that person in one step with Undo, all logged. For 30 days the receiver's Today shows "Taken over from <name>". Private
+notes and ideas are never handed over (V454); they stay with the leaver's account, which is off. *Effect:* a new step
+in Settings → People and one database command.
+
+**Q54 — People data: typed in the app, or loaded from an HR export?** V440 says every person is added in the app and
+never loaded in bulk. Since then an HR review has suggested loading the staff list from an HR export. *Recommended:*
+keep V440 for go-live, because the staff list is short, and revisit after go-live if HR sends a clean export. *Effect:*
+an import screen and its checks if the answer is "export".
+
+**Q55 — The other colour themes.** Direct is the starting theme (V126); the other themes were built and are now
+unused. *Recommended:* keep them hidden and unused until after go-live, then delete the ones nobody chose. *Effect:*
+less to test.
+
+**Q56 — Later, from the calls: which comes first after go-live?** (a) a credit limit per client; (b) off-system
+bookings shown as operations, not only money (Q51); (c) group and project deals as their own records; (d) the Q4 target
+of 40 corporate clients shown against the pipeline. *Recommended:* (d) first, because it is a view over data the app
+already has. Then (a), (c) and (b) after Reports and Pipeline (V632's pause).
+
 ## Answered
 
-**No other question is open.** The owner answered the last round on 1 Oct 2026, night (relayed by the oversight): Q37
+**Earlier rounds, all answered.** The owner answered the 1 Oct round on 1 Oct 2026, night (relayed by the oversight): Q37
 manager-only notes → **V524** (the reverse: a note on a record says who can see it — everyone on the record, only me,
 or me and the people I name; built after stage 1 opens); Q39 a contact's sides → **V520** (no — every contact shows);
 Q40 an MoU's side → **V521** (the side chosen on the achievement; never a new client); Q43 "B2C" → **V522** (banned);
