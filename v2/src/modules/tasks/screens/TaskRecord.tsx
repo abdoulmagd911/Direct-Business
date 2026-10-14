@@ -1,5 +1,5 @@
 'use client';
-import { Check, MoreHorizontal, Pencil } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -108,7 +108,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       ) : null}
       <Menu>
         <MenuTrigger asChild>
-          <Button icon={<MoreHorizontal />} aria-label={t('common.more')} data-task-more />
+          <Button aria-label={t('common.more')} data-task-more>
+            ⋯
+          </Button>
         </MenuTrigger>
         <MenuContent>
           <MenuItem
