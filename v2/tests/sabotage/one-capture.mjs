@@ -78,7 +78,7 @@ export const sabotages = [
   {
     name: 'capture-hidden-from-view-only-people',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'a viewer: the pages their access opens',
+    expect: 'a viewer: the built pages their access opens',
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
