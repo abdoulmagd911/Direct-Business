@@ -119,7 +119,7 @@ export function WrapUpDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('pages.myDay.wrap.title')}
-      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'short' })}
       closeLabel={t('common.close')}
       footer={
         <>

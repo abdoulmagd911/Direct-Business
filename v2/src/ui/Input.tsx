@@ -1,21 +1,93 @@
 'use client';
-import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useLocale } from 'next-intl';
+import {
+  forwardRef,
+  useCallback,
+  useState,
+  type ChangeEvent,
+  type InputHTMLAttributes,
+  type MouseEvent,
+  type TextareaHTMLAttributes,
+} from 'react';
+import { formatDate } from '@/core/i18n/format';
 import { cn } from './cn';
 
 export const inputClass =
   'w-full rounded-md border border-border-strong bg-raised px-3 text-base text-text placeholder:text-muted disabled:bg-surface disabled:text-muted focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger';
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { mono?: boolean }>(
-  function Input({ className, mono, ...rest }, ref) {
-    return (
+type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
+
+/**
+ * A date box (W-daily 13): the browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
+ * so the box shows the date the way the whole app writes it — `14 Oct 2026` — and the real date input sits invisibly
+ * on top of it, keeping the label, the keyboard, the value (always `YYYY-MM-DD`, or `YYYY-MM-DDThh:mm` with a time)
+ * and the native picker.
+ */
+const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
+  { className, mono, placeholder, value, defaultValue, onChange, onClick, type, ...rest },
+  ref,
+) {
+  const locale = useLocale() as 'en' | 'ar';
+  const [own, setOwn] = useState(String(defaultValue ?? ''));
+  const shown = value !== undefined ? String(value) : own;
+  const change = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setOwn(e.target.value);
+      onChange?.(e);
+    },
+    [onChange],
+  );
+  const open = (e: MouseEvent<HTMLInputElement>) => {
+    onClick?.(e);
+    try {
+      e.currentTarget.showPicker?.();
+    } catch {
+      // a browser that will not open it from here still has its own control
+    }
+  };
+  return (
+    <div className={cn('relative', className)} data-date-box>
       <input
         ref={ref}
-        className={cn(inputClass, 'h-[var(--control-h)]', mono && 'font-data tabular', className)}
+        type={type}
+        value={value}
+        defaultValue={defaultValue}
+        onChange={change}
+        onClick={open}
+        className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
         {...rest}
       />
-    );
-  },
-);
+      <div
+        aria-hidden="true"
+        data-date-text
+        className={cn(
+          inputClass,
+          'flex min-h-[var(--control-h)] items-center peer-focus-visible:outline-2 peer-focus-visible:outline-focus peer-focus-visible:outline-offset-1 peer-aria-invalid:border-danger peer-disabled:bg-surface peer-disabled:text-muted',
+          mono && 'font-data tabular',
+          !shown && 'text-muted',
+        )}
+      >
+        {!shown
+          ? (placeholder ?? '—')
+          : type === 'datetime-local'
+            ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
+            : formatDate(`${shown}T12:00:00+03:00`, locale)}
+      </div>
+    </div>
+  );
+});
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, mono, ...rest }, ref) {
+  if (rest.type === 'date' || rest.type === 'datetime-local')
+    return <DateInput ref={ref} className={className} mono={mono} {...rest} />;
+  return (
+    <input
+      ref={ref}
+      className={cn(inputClass, 'h-[var(--control-h)]', mono && 'font-data tabular', className)}
+      {...rest}
+    />
+  );
+});
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
   { className, rows = 3, ...rest },

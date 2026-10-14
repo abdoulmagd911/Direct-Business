@@ -331,10 +331,6 @@
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
       },
-      "reminder": {
-        "removeTitle": "Remove the reminder “{name}”?",
-        "removed": "Reminder removed"
-      },
       "since": {
         "at": "Last visit {when}",
         "markSeen": "Mark seen",
