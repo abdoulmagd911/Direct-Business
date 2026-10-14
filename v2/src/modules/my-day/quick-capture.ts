@@ -31,7 +31,7 @@ export type QuickValues = {
 export function quickCaptureArgs(
   kind: CaptureKind,
   text: string,
-  opts: { visibility: string; day: string; remindAt?: string },
+  opts: { visibility: string; day: string; remindAt?: string; about?: { entity: string; id: string } },
 ): QuickValues | null {
   const lines = text
     .split('\n')
@@ -52,7 +52,10 @@ export function quickCaptureArgs(
   };
   if (kind === 'reminder') {
     if (!opts.remindAt) return null;
-    return { kind: 'reminder', values: { ...values, remind_at: opts.remindAt } };
+    return {
+      kind: 'reminder',
+      values: { ...values, remind_at: opts.remindAt, ...(opts.about ? { about: opts.about } : {}) },
+    };
   }
   return { kind: kind === 'idea' ? 'idea' : kind === 'meeting' ? 'meeting' : 'sticky', values };
 }

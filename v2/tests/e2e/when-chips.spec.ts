@@ -153,7 +153,7 @@ test('a time that has passed is refused in words and the sheet stays', async ({ 
 });
 
 for (const width of [375, 1440]) {
-  test(`a door that opens the sheet with a record gets a Follow up: the record is named, no kind or visibility menu, a day not a time — at ${width} px`, async ({
+  test(`a door that opens the sheet with a record gets a Follow up: the record is named, no kind or visibility menu, a private timed reminder — at ${width} px`, async ({
     page,
   }) => {
     const { me, t } = await personWithTeam();
@@ -186,19 +186,22 @@ for (const width of [375, 1440]) {
     await expect(sheet.locator('[data-when-chip="tomorrow"]')).toHaveAttribute('aria-checked', 'true');
     await sheet.locator('[data-when-chip="pick"]').click();
     await expect(sheet.locator('[data-when-day]')).toBeVisible();
-    await expect(sheet.locator('[data-when-time-field]'), 'a follow-up is kept for a day, not a time').toHaveCount(0);
-    await expect(sheet.locator('[data-when-time]')).toHaveCount(0);
+    await expect(sheet.locator('[data-when-time-field]'), 'a follow-up keeps its time').toBeVisible();
+    await expect(sheet.locator('[data-when-time]')).toHaveCount(5);
     await sheet.locator('[data-when-chip="tomorrow"]').click();
 
     await sheet.locator('[data-quick-save]').click();
     await expect(toast(page, 'Follow-up set')).toBeVisible();
     await expect(sheet).toHaveCount(0);
-    const [row] = await sql<{ due_on: string; about_table: string }>(
-      `select due_on::text, about_table from work.task where about_id = $1 and deleted_at is null`,
-      [id],
+    const [row] = await sql<{ about_table: string; visibility: string; at: string }>(
+      `select n.about_table, n.visibility, to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at
+         from my.note n join core.reminder r on r.note_id = n.id
+        where n.about_id = $1 and n.person_id = $2 and n.deleted_at is null`,
+      [id, me.id],
     );
     expect(row?.about_table, 'a follow-up about the client').toBe('partner.partner');
-    expect(row?.due_on, 'due the day chosen').toBe(d.tomorrow);
+    expect(row?.visibility, 'private, Only me').toBe('private');
+    expect(row?.at, 'at the day and time chosen').toBe(`${d.tomorrow} 09:00`);
     expect(page.url(), 'and the person is still where they were').toMatch(/\/my-day$/);
   });
 }

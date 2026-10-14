@@ -63,39 +63,30 @@ export function QuickCapture() {
     return () => window.removeEventListener(QUICK_CAPTURE_EVENT, show);
   }, []);
 
-  // A Reminder is told at its time; a Follow up is kept for a day (api.follow_up makes a task due that day)
+  // A Reminder is told at its time; a Follow up is the same Reminder, private and tied to its record (#238)
   const chosen = whenFor(whenKey, now, pick);
-  const args = quickCaptureArgs(kind, text, {
-    visibility,
+  const words_ = about && !text.trim() ? `${t('pages.myDay.quick.followUp')}: ${about.label}` : text;
+  const args = quickCaptureArgs(kind, words_, {
+    visibility: about ? 'private' : visibility,
     day: today(),
     remindAt: chosen ? instantOf(chosen) : undefined,
+    about: about ? { entity: about.entity, id: about.id } : undefined,
   });
-  const ready = about ? !!chosen : !!args;
   const save = async () => {
-    if (!ready) return;
+    if (!args) return;
     setBusy(true);
-    if (about && chosen) {
-      await command(
-        words(t('pages.myDay.quick.followUpSaved')),
-        () =>
-          rpc('follow_up', {
-            p_entity: about.entity,
-            p_id: about.id,
-            p_due_on: chosen.day,
-            p_title: text.trim() || undefined,
-          }) as Promise<{ request_id?: string | null }>,
-        { after: () => setOpen(false) },
-      );
-    } else if (args) {
-      await command(
-        words(t('pages.myDay.quick.saved', { kind: t(`pages.myDay.quick.kinds.${kind}`) })),
-        () =>
-          rpc('note_capture', { p_kind: args.kind, p_values: args.values as never }) as Promise<{
-            request_id?: string | null;
-          }>,
-        { after: () => setOpen(false) },
-      );
-    }
+    await command(
+      words(
+        about
+          ? t('pages.myDay.quick.followUpSaved')
+          : t('pages.myDay.quick.saved', { kind: t(`pages.myDay.quick.kinds.${kind}`) }),
+      ),
+      () =>
+        rpc('note_capture', { p_kind: args.kind, p_values: args.values as never }) as Promise<{
+          request_id?: string | null;
+        }>,
+      { after: () => setOpen(false) },
+    );
     setBusy(false);
   };
 
@@ -153,14 +144,7 @@ export function QuickCapture() {
             data-quick-text
           />
           {kind === 'reminder' ? (
-            <WhenPicker
-              value={whenKey}
-              onChange={setWhenKey}
-              pick={pick}
-              onPick={setPick}
-              now={now}
-              dayOnly={!!about}
-            />
+            <WhenPicker value={whenKey} onChange={setWhenKey} pick={pick} onPick={setPick} now={now} />
           ) : null}
           {about ? null : (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
@@ -179,7 +163,7 @@ export function QuickCapture() {
               ))}
             </div>
           )}
-          <Button variant="primary" disabled={!ready} loading={busy} onClick={() => void save()} data-quick-save>
+          <Button variant="primary" disabled={!args} loading={busy} onClick={() => void save()} data-quick-save>
             {about ? t('pages.myDay.quick.followUp') : t('pages.myDay.quick.save')}
           </Button>
         </RD.Content>

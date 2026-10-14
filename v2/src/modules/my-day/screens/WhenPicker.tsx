@@ -25,7 +25,7 @@ export function whenLine(w: When, locale: 'en' | 'ar'): string {
 /**
  * When (productivity stage 2): Later today · Tomorrow · Next week · Pick a day, and always one line saying the result.
  * Pick a day opens a Day field, a Time field and five time chips. Later today is not drawn when too little of the day is
- * left. `dayOnly` is for a Follow up, which is kept for a day: the time chips and the Time field are left out.
+ * left.
  */
 export function WhenPicker({
   value,
@@ -33,14 +33,12 @@ export function WhenPicker({
   pick,
   onPick,
   now,
-  dayOnly = false,
 }: {
   value: WhenKey;
   onChange: (k: WhenKey) => void;
   pick: When;
   onPick: (w: When) => void;
   now: Date;
-  dayOnly?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -76,43 +74,37 @@ export function WhenPicker({
                 data-when-day
               />
             </label>
-            {dayOnly ? null : (
-              <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
-                {t('pages.myDay.quick.time')}
-                <Input
-                  type="time"
-                  value={pick.time}
-                  onChange={(e) => e.target.value && onPick({ ...pick, time: e.target.value })}
-                  data-when-time-field
-                />
-              </label>
-            )}
+            <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
+              {t('pages.myDay.quick.time')}
+              <Input
+                type="time"
+                value={pick.time}
+                onChange={(e) => e.target.value && onPick({ ...pick, time: e.target.value })}
+                data-when-time-field
+              />
+            </label>
           </div>
-          {dayOnly ? null : (
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.time')}>
-              {TIME_CHIPS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  role="radio"
-                  aria-checked={pick.time === c}
-                  className={chip(pick.time === c)}
-                  onClick={() => onPick({ ...pick, time: c })}
-                  data-when-time={c}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.time')}>
+            {TIME_CHIPS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={pick.time === c}
+                className={chip(pick.time === c)}
+                onClick={() => onPick({ ...pick, time: c })}
+                data-when-time={c}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
       {chosen ? (
         <p className="text-sm text-muted" data-when-result>
-          {dayOnly ? whenLine({ ...chosen, time: '' }, locale).replace(/ · $/, '') : whenLine(chosen, locale)}
-          {!dayOnly && hasPassed(chosen, now) ? (
-            <span className="ms-2 text-danger">{t('pages.myDay.quick.passed')}</span>
-          ) : null}
+          {whenLine(chosen, locale)}
+          {hasPassed(chosen, now) ? <span className="ms-2 text-danger">{t('pages.myDay.quick.passed')}</span> : null}
         </p>
       ) : null}
     </div>

@@ -72,26 +72,26 @@ export const sabotages = [
     ],
   },
   {
-    name: 'follow-up-keeps-the-time-field',
+    name: 'follow-up-forgets-its-record',
     breaks: [E2E],
     expect: FOLLOW,
     edits: [
       {
-        file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: 'dayOnly={!!about}',
-        replace: 'dayOnly={false}',
+        file: 'src/modules/my-day/quick-capture.ts',
+        find: '...(opts.about ? { about: opts.about } : {})',
+        replace: '',
       },
     ],
   },
   {
-    name: 'follow-up-is-saved-as-a-note',
+    name: 'follow-up-is-shared-with-the-team',
     breaks: [E2E],
     expect: FOLLOW,
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: 'if (about && chosen) {',
-        replace: 'if (about && chosen && busy) {',
+        find: "visibility: about ? 'private' : visibility,",
+        replace: "visibility: about ? 'team' : visibility,",
       },
     ],
   },

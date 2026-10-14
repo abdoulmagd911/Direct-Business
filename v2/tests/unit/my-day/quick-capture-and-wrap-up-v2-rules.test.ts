@@ -61,6 +61,15 @@ describe('Quick capture sends what each kind needs', () => {
     const one = quickCaptureArgs('checklist', 'Only this', opts);
     expect((one?.values.items as { text: string }[])[0]?.text).toBe('Only this');
   });
+  it('ties a Reminder to its record when it is a Follow up', () => {
+    const args = quickCaptureArgs('reminder', 'Ask about the offer', {
+      ...opts,
+      remindAt: '2026-10-15T09:00:00+03:00',
+      about: { entity: 'partner', id: 'c1' },
+    });
+    expect(args?.values.about, 'the record travels with the reminder').toEqual({ entity: 'partner', id: 'c1' });
+    expect(args?.values.visibility, 'private').toBe('private');
+  });
   it('refuses a reminder with no time and nothing when there are no words', () => {
     expect(quickCaptureArgs('reminder', 'Call back', opts), 'a reminder asks when').toBeNull();
     expect(quickCaptureArgs('reminder', 'Call back', { ...opts, remindAt: '2026-10-14T09:00:00+03:00' })?.kind).toBe(
