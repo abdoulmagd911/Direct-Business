@@ -5,7 +5,7 @@ import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { MyDay } from '@/modules/my-day/screens/MyDay';
-import { myDay } from '@/modules/my-day/server';
+import { myDay, remindersDue } from '@/modules/my-day/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import type { TaskStatus } from '@/modules/tasks/types';
@@ -51,7 +51,7 @@ export default async function MyDayPage({
 
   const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
   const all = sp.more === '1';
-  const [answer, org, statuses] = await Promise.all([
+  const [answer, org, statuses, due] = await Promise.all([
     myDay(scope, all ? ALL : BLOCK + 1),
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     scope === 'me'
@@ -59,10 +59,11 @@ export default async function MyDayPage({
           () => [] as TaskStatus[],
         )
       : Promise.resolve([] as TaskStatus[]),
+    scope === 'me' ? remindersDue() : Promise.resolve(null),
   ]);
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, all, people: org.people, statuses }} />
+      <MyDay data={{ title, scope, answer, all, people: org.people, statuses, due }} />
     </Page>
   );
 }

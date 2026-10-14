@@ -349,7 +349,12 @@
         "today": "Today",
         "next": "Next",
         "empty": "Nothing due today",
-        "carried": "Carried over from yesterday ({count})"
+        "carried": "Carried over from yesterday ({count})",
+        "reminder": "Reminder",
+        "followUpAbout": "Follow up: {name}",
+        "markDone": "Mark “{title}” done",
+        "reminderDone": "Reminder done",
+        "failed": "Reminders could not be read just now."
       },
       "quick": {
         "title": "Quick capture",
