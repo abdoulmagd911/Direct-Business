@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { Suspense, useState, type ReactNode } from 'react';
 import { QuickCapture } from '@/modules/my-day/screens/QuickCapture';
 import { ReminderAlert } from '@/modules/my-day/screens/ReminderAlert';
 import { useNotifications, type NotificationTab } from '@/core/notify/useNotifications';
@@ -9,6 +9,7 @@ import { TooltipProvider } from '../Tooltip';
 import { BottomBar } from './BottomBar';
 import { CommandPalette } from './CommandPalette';
 import { Drawer } from './Drawer';
+import { NavProgress } from './NavProgress';
 import { NotificationsPanel } from './NotificationsPanel';
 import { RefetchBridge } from './RefetchBridge';
 import { TopBar } from './TopBar';
@@ -56,6 +57,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ReminderAlert />
       <ConflictDialog />
       <RefetchBridge />
+      <Suspense fallback={null}>
+        <NavProgress />
+      </Suspense>
       <Toaster />
     </TooltipProvider>
   );
