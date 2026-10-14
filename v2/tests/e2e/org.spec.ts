@@ -110,8 +110,13 @@ test('a manager sees no access controls; a changed starting level reaches the me
     their.locator('[data-drawer]').getByRole('link', { name: 'Activity' }),
     'the access opens Activity, so the menu carries it',
   ).toHaveCount(1);
-  // and back (one Undo), so the seed stays as it was for the other specs
-  await toast(adminPage, 'Access changed').getByRole('button', { name: 'Undo', exact: true }).click();
+  // and back (one Undo), so the seed stays as it was for the other specs. A toast already leaving
+  // (data-removed="true") can lie over the live one, so wait for it to go and click the live one.
+  await expect(adminPage.locator('[data-sonner-toast][data-removed="true"]')).toHaveCount(0);
+  await adminPage
+    .locator('[data-sonner-toast][data-removed="false"]', { hasText: 'Access changed' })
+    .getByRole('button', { name: 'Undo', exact: true })
+    .click();
   await expect(toast(adminPage, 'Undone')).toBeVisible();
   await theirs.close();
   await adminCtx.close();
