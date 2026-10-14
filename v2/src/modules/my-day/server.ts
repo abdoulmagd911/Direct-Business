@@ -1,6 +1,7 @@
 import 'server-only';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { ListEntry } from '@/modules/partners/types';
+import type { DueAnswer } from './reminder-alert';
 import type { MyDayAnswer, MyNote, Scope } from './types';
 
 /** My day's page (api.my_day). */
@@ -20,3 +21,12 @@ export const activityTypes = async () =>
   (await serverRpc('list', { p_list: 'activity_type' })) as unknown as ListEntry[];
 export const activityOutcomes = async () =>
   (await serverRpc('list', { p_list: 'activity_outcome' })) as unknown as ListEntry[];
+
+/** My reminders whose time has come and are not put away (api.reminders_due); null when it cannot be read — the Today block says so and the rest of My day still draws. */
+export async function remindersDue(): Promise<DueAnswer | null> {
+  try {
+    return (await serverRpc('reminders_due', {} as never)) as unknown as DueAnswer;
+  } catch {
+    return null;
+  }
+}
