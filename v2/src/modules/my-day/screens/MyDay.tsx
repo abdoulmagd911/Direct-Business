@@ -8,6 +8,7 @@ import { formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
+import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
@@ -90,6 +91,32 @@ export function MyDay({ data }: { data: MyDayData }) {
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
       {scope === 'me' ? <CaptureButton /> : null}
+      {scope === 'me' && later.length ? (
+        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
+          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
+          <ul className="divide-y divide-border">
+            {later.slice(0, BLOCK_ROWS).map((r) => (
+              <li key={r.id} className="flex min-h-14 items-center gap-3 py-3" data-reminder={r.id}>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{r.text}</span>
+                  {/* a follow-up says what it is about, as a tag — never in its title (QA-560), only if the reader may see it */}
+                  {r.about?.label ? (
+                    <StatusChip tone="info" className="mt-1 max-w-full">
+                      <span className="truncate">{t('pages.myDay.today.followUpAbout', { name: r.about.label })}</span>
+                    </StatusChip>
+                  ) : null}
+                </span>
+                <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
+                  {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setRemoving(r)} data-reminder-remove>
+                  {t('common.remove')}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
@@ -121,24 +148,6 @@ export function MyDay({ data }: { data: MyDayData }) {
           </div>
         ) : null}
       </section>
-      {scope === 'me' && later.length ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
-          <ul className="divide-y divide-border">
-            {later.slice(0, BLOCK_ROWS).map((r) => (
-              <li key={r.id} className="flex min-h-14 items-center gap-3 py-3" data-reminder={r.id}>
-                <span className="min-w-0 flex-1 truncate">{r.text}</span>
-                <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
-                  {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => setRemoving(r)} data-reminder-remove>
-                  {t('common.remove')}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
       {scope === 'me' ? <WrapUpDialog day={answer.day} open={wrapping} onOpenChange={setWrapping} /> : null}
       <Confirm
         open={!!removing}

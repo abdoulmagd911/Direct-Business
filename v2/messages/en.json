@@ -1068,7 +1068,9 @@
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
     "lockedPartner": "An organisation's history is for the people who may open it",
-    "followUp": "Follow up"
+    "followUp": "Follow up",
+    "followUpOn": "Follow up · {when}",
+    "followUpsFailed": "Follow-ups · try again"
   },
   "activity": {
     "title": "Activity",
@@ -1869,10 +1871,10 @@
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
   },
   "follow": {
-    "follow": "Follow",
-    "following": "Following",
-    "unfollowed": "No longer following",
-    "failed": "Follow · try again"
+    "follow": "Watch",
+    "following": "Watching",
+    "unfollowed": "No longer watching",
+    "failed": "Watch · try again"
   },
   "conflict": {
     "title": "Someone changed this since you opened it",

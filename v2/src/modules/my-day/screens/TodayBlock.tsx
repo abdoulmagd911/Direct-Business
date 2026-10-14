@@ -177,19 +177,26 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
   return (
     <li className="relative flex min-h-14 items-start gap-3 py-3" data-today-task={task.number}>
       <DoneTick task={tick} statuses={statuses} title={task.title} />
-      <Link
-        href={`/tasks/${task.number}`}
-        className="min-w-0 flex-1 after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
-        data-today-open
-      >
-        <span className="block break-words">{task.title}</span>
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/tasks/${task.number}`}
+          className="block break-words after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
+          data-today-open
+        >
+          {task.title}
+        </Link>
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {task.partner_name ? <StatusChip tone="neutral">{task.partner_name}</StatusChip> : null}
+          {/* the client opens the client, above the row's own link (the read names it only to a reader who may see it) */}
+          {task.partner_id && task.partner_name ? (
+            <Link href={`/clients/${task.partner_id}`} className="relative z-10" data-today-client>
+              <StatusChip tone="neutral">{task.partner_name}</StatusChip>
+            </Link>
+          ) : null}
           <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
             {formatDate(task.due_on, locale, { dateStyle: 'medium' })}
           </span>
         </span>
-      </Link>
+      </div>
     </li>
   );
 }

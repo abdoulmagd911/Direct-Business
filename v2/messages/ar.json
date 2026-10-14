@@ -1506,6 +1506,14 @@
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
-    "followUp": "متابعة"
+    "followUp": "متابعة",
+    "followUpOn": "متابعة · {when}",
+    "followUpsFailed": "المتابعات · حاول مرة أخرى"
+  },
+  "follow": {
+    "follow": "مراقبة",
+    "following": "قيد المراقبة",
+    "unfollowed": "لم تعد تراقب",
+    "failed": "مراقبة · حاول مرة أخرى"
   }
 }
