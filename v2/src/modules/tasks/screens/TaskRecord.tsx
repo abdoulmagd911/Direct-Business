@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { openFollowUp } from '@/ui/record/follow-up';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { avatarOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -112,7 +112,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         </MenuTrigger>
         <MenuContent>
           <MenuItem
-            onSelect={() => openFollowUp({ entity: 'task', id: task.id, label: `${task.number} ${task.title}` })}
+            onSelect={() =>
+              openQuickCapture({ about: { entity: 'task', id: task.id, label: `${task.number} ${task.title}` } })
+            }
             data-follow-up
           >
             {t('record.followUp')}

@@ -8,7 +8,7 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
-import { openFollowUp } from '@/ui/record/follow-up';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -198,7 +198,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         <MenuContent>
           {/* Follow up (V632 Stage 2): the one Capture sheet, on Reminder, about this client — private to its author */}
           <MenuItem
-            onSelect={() => openFollowUp({ entity: 'partner', id: card.id, label: tradeName(card, locale) })}
+            onSelect={() =>
+              openQuickCapture({ about: { entity: 'partner', id: card.id, label: tradeName(card, locale) } })
+            }
             data-follow-up
           >
             {t('record.followUp')}
