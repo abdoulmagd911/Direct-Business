@@ -71,9 +71,10 @@ test('My profile is reached from the avatar menu at the top, its one place, at 1
   page,
 }) => {
   const member = await makePerson();
+  await signIn(page, member.email, '/tasks');
   for (const width of [1500, 400]) {
     await page.setViewportSize({ width, height: 900 });
-    await signIn(page, member.email, '/tasks');
+    await page.goto('/tasks');
     await hydrated(page);
     // the drawer, or on a phone More, does not repeat it (daily use 10)
     if (width > 700) await expect(page.locator('[data-drawer] a[href="/profile"]')).toHaveCount(0);

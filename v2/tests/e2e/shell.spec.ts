@@ -100,8 +100,9 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  // logo, the admin's 6 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings, the profile
-  await expect(links).toHaveCount(9);
+  // logo, the admin's 6 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings; My
+  // profile is in the avatar menu only (daily use 10)
+  await expect(links).toHaveCount(8);
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 
