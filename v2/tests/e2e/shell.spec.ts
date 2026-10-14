@@ -77,7 +77,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
   await expect(sheet).toBeVisible();
-  await expect(sheet.getByRole('link', { name: 'KPIs' })).toBeVisible();
+  await expect(sheet.getByRole('link', { name: 'Achievements' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
@@ -117,7 +117,13 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   await signIn(page, member.email, '/my-day');
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   const labels = await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts();
-  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
+  expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Finance',
+    'Achievements',
+  ]);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' }), 'none for a member').toHaveCount(
     0,
   );

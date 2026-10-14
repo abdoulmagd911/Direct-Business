@@ -7,6 +7,7 @@
  * and the sheet stays. At 375 and 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openCapture } from './support/capture';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -47,7 +48,7 @@ async function days() {
 }
 
 const openReminder = async (page: Page) => {
-  await page.locator('[data-capture-open]').click();
+  await openCapture(page);
   await page.locator('[data-quick-kind="reminder"]').click();
   await expect(page.locator('[data-when]')).toBeVisible();
 };

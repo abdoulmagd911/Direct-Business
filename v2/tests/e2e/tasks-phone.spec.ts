@@ -9,6 +9,7 @@
  * "tasks-more-shows-on-a-wide-screen", "tasks-filter-button-shows-on-a-wide-screen", "capture-card-overflows-at-320".
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openCapture } from './support/capture';
 import { makePerson, signIn, sql, type TestPerson } from './support/stack';
 
 const hydrated = (page: Page) =>
@@ -158,18 +159,17 @@ test('desk 1440: Tasks keeps every control in its row — Add task, five tabs, t
   expect(word!.width, 'the layout switch keeps its words').toBeGreaterThan(10);
 });
 
-test('phone 320: the My day capture button and its sheet sit inside the screen, every control a finger high (V630)', async ({
+test('phone 320: the + and the capture sheet sit inside the screen, every control a finger high (V630)', async ({
   page,
 }) => {
   const member = await memberWithTeam();
   await page.setViewportSize({ width: 320, height: 640 });
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
-  const button = (await page.locator('[data-capture-open]').boundingBox())!;
-  expect(button.x + button.width, 'the capture button ends inside a 320 px screen').toBeLessThanOrEqual(320);
-  expect(button.height, 'the capture button is 44 px tall').toBeGreaterThanOrEqual(43.5);
-  await page.locator('[data-capture-open]').click();
-  await expect(page.locator('[data-quick-capture]')).toBeVisible();
+  const plus = (await page.locator('[data-create-floating]').boundingBox())!;
+  expect(plus.x + plus.width, 'the + ends inside a 320 px screen').toBeLessThanOrEqual(320);
+  expect(plus.height, 'the + is 44 px tall').toBeGreaterThanOrEqual(43.5);
+  await openCapture(page);
   for (const selector of [
     '[data-quick-capture]',
     '[data-quick-kind="note"]',

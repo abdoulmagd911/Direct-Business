@@ -16,7 +16,7 @@ import { BLOCK_ROWS } from '../logic';
 import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
-import { CaptureButton } from './CaptureButton';
+import { CaptureShortcut } from './CaptureShortcut';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
@@ -40,8 +40,8 @@ export type MyDayData = {
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
 
 /**
- * My day (V433): Capture, then Convert. Tabs Me · My team · Workspace; on Me the capture row, my notes and the reminders
- * waiting; on the other two what my team or everyone shares. Every block draws at most 7 rows and a "more" link. P5-7
+ * My day (V433): Capture (Create → Capture, the + or "/"), then Convert. Tabs Me · My team · Workspace; on Me my
+ * notes and the reminders waiting; on the other two what my team or everyone shares. Every block draws at most 7 rows and a "more" link. P5-7
  * adds the task, money and KPI blocks here as their data lands.
  */
 export function MyDay({ data }: { data: MyDayData }) {
@@ -89,7 +89,7 @@ export function MyDay({ data }: { data: MyDayData }) {
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
-      {scope === 'me' ? <CaptureButton /> : null}
+      {scope === 'me' ? <CaptureShortcut /> : null}
       {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">

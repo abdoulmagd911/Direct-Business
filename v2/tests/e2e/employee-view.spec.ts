@@ -49,13 +49,13 @@ const drawerLabels = async (page: Page) =>
 const barLabels = async (page: Page) =>
   (await page.locator('[data-bottom-bar] a, [data-bottom-bar] button').allInnerTexts()).map((l) => l.trim());
 
-/** The pages More lists (its profile link and Sign out aside). */
+/** The pages More lists (Sign out aside; My profile is only in the avatar menu, daily use 10). */
 const morePages = async (page: Page) => {
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
   await expect(sheet).toBeVisible();
-  const pages = (await sheet.locator('a[href]:not([data-entity])').allInnerTexts()).map((l) => l.trim());
-  await expect(sheet.locator('a[data-entity="person"]'), 'More leads to My profile').toBeVisible();
+  const pages = (await sheet.locator('a[href]').allInnerTexts()).map((l) => l.trim());
+  await expect(sheet.locator('a[href="/profile"]'), 'More does not repeat My profile').toHaveCount(0);
   await expect(sheet.locator('[data-more-sign-out]'), 'More signs out').toHaveText('Sign out');
   await page.keyboard.press('Escape');
   return pages;
@@ -93,35 +93,41 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
   page,
 }) => {
   await openAs(page, 'member');
-  expect(await drawerLabels(page), 'the member menu').toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
+  expect(await drawerLabels(page), 'the member menu').toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Finance',
+    'Achievements',
+  ]);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['KPIs']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Achievements']);
 });
 
 test('2 · a Business Development member (Pipeline Own by a person change) gets no Pipeline entry while Pipeline is not built', async ({
   page,
 }) => {
   await openAs(page, 'bd_member');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs']);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'Achievements']);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
-  expect(await morePages(page)).toEqual(['KPIs']);
+  expect(await morePages(page)).toEqual(['Achievements']);
 });
 
 test('3 · a manager: every built page their access opens, in order (Activity at View); the bar is the first four and More', async ({
   page,
 }) => {
   await openAs(page, 'manager');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'KPIs', 'Activity']);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Activity']);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
-  expect(await morePages(page)).toEqual(['KPIs', 'Activity']);
+  expect(await morePages(page)).toEqual(['Achievements', 'Activity']);
 });
 
 test('4 · a head has Activity; an admin adds Settings at the foot and in More', async ({ page, browser }) => {
   await openAs(page, 'head');
-  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'KPIs', 'Activity'];
+  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Activity'];
   expect(await drawerLabels(page)).toEqual(head);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
 
@@ -136,7 +142,7 @@ test('4 · a head has Activity; an admin adds Settings at the foot and in More',
     (await admin.locator('[data-drawer]').getByRole('link', { name: 'Activity' }).boundingBox())!.y + 40,
   );
   await admin.setViewportSize(PHONE);
-  expect(await morePages(admin)).toEqual(['KPIs', 'Activity', 'Settings']);
+  expect(await morePages(admin)).toEqual(['Achievements', 'Activity', 'Settings']);
   await ctx.close();
 });
 
@@ -144,11 +150,11 @@ test('5 · a viewer: the built pages their access opens fill the bar, with no Mo
   page,
 }) => {
   await openAs(page, 'viewer');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'KPIs']);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements']);
   // Capture is for anyone who can open My day, view-only included; Create's other items stay hidden
   await expect(page.locator('[data-create]')).toHaveAttribute('data-create-direct', 'capture');
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'KPIs']);
+  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements']);
   await expect(page.locator('[data-bottom-more]'), 'four fill the bar: no More').toHaveCount(0);
   await expect(page.locator('[data-create-floating]')).toHaveAttribute('data-create-direct', 'capture');
 });
@@ -158,7 +164,7 @@ test('6 · a member opens KPIs and Finance from the menu; Reports answers by add
 }) => {
   await openAs(page, 'member');
   for (const [route, heading, title] of [
-    ['/kpis', 'Achievements', 'KPIs'], // /kpis opens the Achievements list until the KPIs page is built (V605)
+    ['/kpis', 'Achievements', 'Achievements'], // the menu says Achievements (daily use 8); /kpis opens the list
     ['/finance', 'Finance', 'Finance'],
   ] as const) {
     await page.goto(route);
@@ -185,8 +191,8 @@ test('6 · a member opens KPIs and Finance from the menu; Reports answers by add
     palette.getByRole('option', { name: 'Reports', exact: true }),
     'Ctrl K offers no unbuilt page',
   ).toHaveCount(0);
-  await palette.getByPlaceholder('Go to a page or search…').fill('KPIs');
-  await palette.getByRole('option', { name: 'KPIs' }).click();
+  await palette.getByPlaceholder('Go to a page or search…').fill('Achievements');
+  await palette.getByRole('option', { name: 'Achievements', exact: true }).click();
   await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
 });
 
