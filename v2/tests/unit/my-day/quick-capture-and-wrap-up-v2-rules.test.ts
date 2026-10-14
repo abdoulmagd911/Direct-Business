@@ -47,6 +47,13 @@ describe('Quick capture sends what each kind needs', () => {
       values: { visibility: 'private', happened_on: '2026-10-13', title: 'Hello', body: 'more words' },
     });
     expect(quickCaptureArgs('idea', 'An idea', opts)?.kind).toBe('idea');
+    expect(
+      quickCaptureArgs('meeting', 'Kick-off with the made-up client', opts),
+      'a meeting note keeps its kind',
+    ).toEqual({
+      kind: 'meeting',
+      values: { visibility: 'private', happened_on: '2026-10-13', title: 'Kick-off with the made-up client' },
+    });
   });
   it('makes every line after the title a checklist item, or the one line its own item', () => {
     const two = quickCaptureArgs('checklist', 'Pack\nPassports\nChargers', opts);

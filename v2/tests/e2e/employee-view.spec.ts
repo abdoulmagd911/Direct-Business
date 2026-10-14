@@ -192,15 +192,16 @@ test('4 · a head adds Overview and Activity; an admin adds Settings at the foot
   await ctx.close();
 });
 
-test('5 · a viewer: the pages their access opens; no Create or + anywhere', async ({ page }) => {
+test('5 · a viewer: the pages their access opens; Create offers Capture and nothing else (V242)', async ({ page }) => {
   await openAs(page, 'viewer');
   expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'Finance', 'KPIs', 'Reports']);
-  await expect(page.locator('[data-create]')).toHaveCount(0);
+  // Capture is for anyone who can open My day, view-only included; Create's other items stay hidden
+  await expect(page.locator('[data-create]')).toHaveAttribute('data-create-direct', 'capture');
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Overview', 'Projects', 'More']);
   expect(await morePages(page)).toEqual(['Finance', 'KPIs', 'Reports']);
   await page.keyboard.press('Escape');
-  await expect(page.locator('[data-create-floating]')).toHaveCount(0);
+  await expect(page.locator('[data-create-floating]')).toHaveAttribute('data-create-direct', 'capture');
 });
 
 test('6 · a member opens KPIs, Finance and Reports from the menu and by address, finds KPIs with Ctrl K, and meets no closed page', async ({
@@ -295,7 +296,7 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
 
 // ── Create ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('9 · Create offers only built screens at Full, opens a lone item directly, and never says Partner', async ({
+test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture and Task, never Partner', async ({
   page,
   browser,
 }) => {
@@ -333,26 +334,24 @@ test('9 · Create offers only built screens at Full, opens a lone item directly,
     `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
      values ($1, 'clients', 'view', 'Made up: clients read only', $1),
             ($1, 'suppliers_partners', 'view', 'Made up: suppliers read only', $1),
-            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1),
-            ($1, 'my_day', 'view', 'Made up: My day read only, so Capture is not offered either', $1)`,
+            ($1, 'kpis', 'view', 'Made up: achievements read only (a member at Own may log one, V605)', $1)`,
     [member.id],
   );
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
-  const create = one.locator('[data-create]');
-  await expect(create).toHaveText('New task');
-  await expect(create).toHaveAttribute('data-create-direct', 'task');
-  await create.click();
+  // Clients, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task
+  await one.locator('[data-create]').click();
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
+  await one.locator('[data-create-item="task"]').click();
   await expect(one).toHaveURL(/\/tasks\?new=1$/);
   await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
   await one.keyboard.press('Escape');
   await one.setViewportSize(PHONE);
   await one.goto('/my-day');
   await hydrated(one);
-  const plus = one.locator('[data-create-floating]');
-  await expect(plus).toHaveAttribute('data-create-direct', 'task');
-  await expect(plus).toHaveAttribute('href', '/tasks/new');
+  await one.locator('[data-create-floating]').click();
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
   await ctx.close();
 });
 

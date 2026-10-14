@@ -34,8 +34,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/quick-capture.ts',
-        find: "['note', 'idea', 'checklist', 'reminder']",
-        replace: "['note', 'checklist', 'reminder']",
+        find: "['note', 'idea', 'checklist', 'reminder', 'meeting']",
+        replace: "['note', 'checklist', 'reminder', 'meeting']",
       },
     ],
   },
@@ -48,6 +48,42 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/CaptureButton.tsx',
         find: '        e.preventDefault();\n        openQuickCapture();',
         replace: '        e.preventDefault();',
+      },
+    ],
+  },
+  {
+    name: 'capture-sheet-loses-the-meeting-kind',
+    breaks: [E2E],
+    expect: DOOR,
+    edits: [
+      {
+        file: 'src/modules/my-day/quick-capture.ts',
+        find: "['note', 'idea', 'checklist', 'reminder', 'meeting']",
+        replace: "['note', 'idea', 'checklist', 'reminder']",
+      },
+    ],
+  },
+  {
+    name: 'capture-files-a-meeting-as-a-plain-note',
+    breaks: [E2E],
+    expect: 'a Meeting captured from the sheet is a meeting note',
+    edits: [
+      {
+        file: 'src/modules/my-day/quick-capture.ts',
+        find: "kind === 'meeting' ? 'meeting' : 'sticky'",
+        replace: "'sticky'",
+      },
+    ],
+  },
+  {
+    name: 'capture-hidden-from-view-only-people',
+    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
+    expect: 'a viewer: the pages their access opens',
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "at: ['view', 'own', 'full'], sheet: true",
+        replace: "at: ['own', 'full'], sheet: true",
       },
     ],
   },

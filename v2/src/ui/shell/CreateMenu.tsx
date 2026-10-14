@@ -27,7 +27,7 @@ export const CREATE_ACTIONS: {
   /** Leaves the item out for someone the level alone would let in (the item is never greyed, W4/W28). */
   except?: (me: Me) => boolean;
 }[] = [
-  { key: 'capture', page: 'my_day', route: '', icon: StickyNote, at: ['own', 'full'], sheet: true },
+  { key: 'capture', page: 'my_day', route: '', icon: StickyNote, at: ['view', 'own', 'full'], sheet: true },
   {
     key: 'task',
     page: 'tasks',
