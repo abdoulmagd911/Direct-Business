@@ -9,16 +9,19 @@ import { useWords, today } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { IconButton } from '@/ui/IconButton';
-import { Input, Textarea } from '@/ui/Input';
+import { Textarea } from '@/ui/Input';
 import {
   CAPTURE_KINDS,
   QUICK_CAPTURE_EVENT,
   quickCaptureArgs,
-  riyadhInstant,
-  tomorrowMorning,
+  type CaptureAbout,
   type CaptureKind,
+  type OpenOptions,
 } from '../quick-capture';
+import { askToNotify } from '../notify-permission';
 import { VISIBILITIES, type Visibility } from '../types';
+import { instantOf, tomorrow, whenFor, type When, type WhenKey } from '../when';
+import { WhenPicker } from './WhenPicker';
 
 const pill = (on: boolean) =>
   cn(
@@ -38,32 +41,59 @@ export function QuickCapture() {
   const [kind, setKind] = useState<CaptureKind>('note');
   const [text, setText] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
-  const [when, setWhen] = useState('');
+  const [whenKey, setWhenKey] = useState<WhenKey>('tomorrow');
+  const [pick, setPick] = useState<When>({ day: '', time: '09:00' });
+  const [about, setAbout] = useState<CaptureAbout | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const show = () => {
-      setKind('note');
-      setText('');
+    const show = (e: Event) => {
+      const opts = ((e as CustomEvent).detail ?? {}) as OpenOptions;
+      const at = new Date();
+      setNow(at);
+      setAbout(opts.about ?? null);
+      setKind(opts.about ? 'reminder' : (opts.kind ?? 'note'));
+      setText(opts.text ?? '');
       setVisibility('private');
-      setWhen(tomorrowMorning(today()));
+      setWhenKey('tomorrow');
+      setPick(tomorrow(at));
       setOpen(true);
     };
     window.addEventListener(QUICK_CAPTURE_EVENT, show);
     return () => window.removeEventListener(QUICK_CAPTURE_EVENT, show);
   }, []);
 
-  const args = quickCaptureArgs(kind, text, { visibility, day: today(), remindAt: riyadhInstant(when) });
+  // A Reminder is told at its time; a Follow up is the same Reminder, private and tied to its record (#238)
+  const chosen = whenFor(whenKey, now, pick);
+  // A neutral title, never the record's name: the note can be shared and the record shows only through `about`, which is
+  // filtered per reader (QA-560).
+  const words_ = about && !text.trim() ? t('pages.myDay.quick.followUpTitle') : text;
+  const args = quickCaptureArgs(kind, words_, {
+    visibility: about ? 'private' : visibility,
+    day: today(),
+    remindAt: chosen ? instantOf(chosen) : undefined,
+    about: about ? { entity: about.entity, id: about.id } : undefined,
+  });
   const save = async () => {
     if (!args) return;
     setBusy(true);
     await command(
-      words(t('pages.myDay.quick.saved', { kind: t(`pages.myDay.quick.kinds.${kind}`) })),
+      words(
+        about
+          ? t('pages.myDay.quick.followUpSaved')
+          : t('pages.myDay.quick.saved', { kind: t(`pages.myDay.quick.kinds.${kind}`) }),
+      ),
       () =>
         rpc('note_capture', { p_kind: args.kind, p_values: args.values as never }) as Promise<{
           request_id?: string | null;
         }>,
-      { after: () => setOpen(false) },
+      {
+        after: () => {
+          if (args.kind === 'reminder') askToNotify();
+          setOpen(false);
+        },
+      },
     );
     setBusy(false);
   };
@@ -78,58 +108,71 @@ export function QuickCapture() {
           data-quick-capture
         >
           <div className="flex items-center justify-between gap-3">
-            <RD.Title className="text-lg font-semibold">{t('pages.myDay.quick.title')}</RD.Title>
+            <RD.Title className="text-lg font-semibold">
+              {about ? t('pages.myDay.quick.followUp') : t('pages.myDay.quick.title')}
+            </RD.Title>
             <RD.Close asChild>
               <IconButton label={t('common.close')} icon={<X />} />
             </RD.Close>
           </div>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.kind')}>
-            {CAPTURE_KINDS.map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="radio"
-                aria-checked={kind === k}
-                className={pill(kind === k)}
-                onClick={() => setKind(k)}
-                data-quick-kind={k}
-              >
-                {t(`pages.myDay.quick.kinds.${k}`)}
-              </button>
-            ))}
-          </div>
+          {about ? (
+            <p
+              className="min-w-0 break-words rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              data-quick-about
+            >
+              <span className="text-muted">{t('pages.myDay.quick.followUpFor')} </span>
+              <span className="font-medium">{about.label}</span>
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.kind')}>
+              {CAPTURE_KINDS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={kind === k}
+                  className={pill(kind === k)}
+                  onClick={() => setKind(k)}
+                  data-quick-kind={k}
+                >
+                  {t(`pages.myDay.quick.kinds.${k}`)}
+                </button>
+              ))}
+            </div>
+          )}
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            rows={kind === 'checklist' ? 5 : 3}
-            placeholder={t(`pages.myDay.quick.placeholder.${kind}`)}
+            rows={about ? 2 : kind === 'checklist' ? 5 : 3}
+            placeholder={
+              about ? t('pages.myDay.quick.followUpPlaceholder') : t(`pages.myDay.quick.placeholder.${kind}`)
+            }
             aria-label={t('pages.myDay.quick.text')}
             autoFocus
             data-quick-text
           />
           {kind === 'reminder' ? (
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              {t('pages.myDay.quick.when')}
-              <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} data-quick-when />
-            </label>
+            <WhenPicker value={whenKey} onChange={setWhenKey} pick={pick} onPick={setPick} now={now} />
           ) : null}
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
-            {VISIBILITIES.map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={visibility === v}
-                className={pill(visibility === v)}
-                onClick={() => setVisibility(v)}
-                data-quick-visibility={v}
-              >
-                {t(`pages.myDay.visibility.${v}`)}
-              </button>
-            ))}
-          </div>
+          {about ? null : (
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
+              {VISIBILITIES.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={visibility === v}
+                  className={pill(visibility === v)}
+                  onClick={() => setVisibility(v)}
+                  data-quick-visibility={v}
+                >
+                  {t(`pages.myDay.visibility.${v}`)}
+                </button>
+              ))}
+            </div>
+          )}
           <Button variant="primary" disabled={!args} loading={busy} onClick={() => void save()} data-quick-save>
-            {t('pages.myDay.quick.save')}
+            {about ? t('pages.myDay.quick.followUp') : t('pages.myDay.quick.save')}
           </Button>
         </RD.Content>
       </RD.Portal>

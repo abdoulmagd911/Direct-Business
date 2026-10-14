@@ -371,7 +371,28 @@
         },
         "when": "When",
         "save": "Capture",
-        "saved": "{kind} captured"
+        "saved": "{kind} captured",
+        "whenChips": {
+          "later_today": "Later today",
+          "tomorrow": "Tomorrow",
+          "next_week": "Next week",
+          "pick": "Pick a day"
+        },
+        "day": "Day",
+        "time": "Time",
+        "followUp": "Follow up",
+        "followUpTitle": "Follow-up",
+        "followUpFor": "Follow up on",
+        "followUpPlaceholder": "What to follow up on",
+        "followUpSaved": "Follow-up set",
+        "passed": "That time has passed"
+      },
+      "alert": {
+        "title": "Reminder",
+        "now": "Now",
+        "done": "Done",
+        "snooze": "Snooze",
+        "snoozed": "Snoozed to {when}"
       }
     },
     "settings": {
