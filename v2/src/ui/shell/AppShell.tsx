@@ -1,6 +1,7 @@
 'use client';
 import { useState, type ReactNode } from 'react';
 import { QuickCapture } from '@/modules/my-day/screens/QuickCapture';
+import { ReminderAlert } from '@/modules/my-day/screens/ReminderAlert';
 import { useNotifications, type NotificationTab } from '@/core/notify/useNotifications';
 import { ConflictDialog } from '../ConflictDialog';
 import { Toaster } from '../Toast';
@@ -52,6 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         snooze={notifications.snooze}
       />
       <QuickCapture />
+      <ReminderAlert />
       <ConflictDialog />
       <RefetchBridge />
       <Toaster />
