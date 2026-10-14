@@ -5,7 +5,7 @@
 // (supabase/templates/*.html — V145), every piece of literal text in src/ (strings, template pieces, JSX text — the
 // page templates, and the settings' defaults), and — since V404 — the string literals of every migration from
 // SEEDS_FROM on: list values and seeds are wording too, and the segment is Government, never "B2G" beside it. In data
-// (seeds here, and the database's own copy, core.banned_word) only V59's five and B2G are banned: Google, Zoom, the
+// (seeds here, and the database's own copy, core.banned_word) only V59's five, B2G and B2C (V522) are banned: Google, Zoom, the
 // sign-in tick and GMV are words for the chrome, and a meeting channel or a reference system may be named after them
 // (QA-67). Older migrations are history (V103); WORDS-01 scans the database they build. Comments are not wording.
 // Spacing, hyphens and case do not matter ("Direct-KSA", "b2b").
@@ -23,6 +23,8 @@ export const FORBIDDEN = [
   [/\bb[\s\-_.]*2[\s\-_.]*b\b/gi, 'B2B'],
   // V404: the segment is Government, never with "(B2G)" after it.
   [/\bb[\s\-_.]*2[\s\-_.]*g\b/gi, 'B2G'],
+  // V522: the segment is Individuals, never "B2C".
+  [/\bb[\s\-_.]*2[\s\-_.]*c\b/gi, 'B2C'],
   [/\bmice\b/gi, 'MICE'],
   // The owner's additions (29 Sep): the door has no Google or Zoom (V59), no "keep me signed in" tick (V74), and the
   // money words are Revenue · Cost · Profit (V73) — never GMV.
@@ -34,7 +36,7 @@ export const FORBIDDEN = [
 
 /** The words banned in data too — list values, seeds, names typed in (V59, V404): the database holds this list. */
 export const FORBIDDEN_IN_DATA = FORBIDDEN.filter(([, word]) =>
-  ['Direct KSA', 'Direct Corporate', 'B2B', 'B2G', 'MICE'].includes(word),
+  ['Direct KSA', 'Direct Corporate', 'B2B', 'B2G', 'B2C', 'MICE'].includes(word),
 );
 
 /**
@@ -53,7 +55,7 @@ export function forbiddenIn(text, list = FORBIDDEN) {
 
 export default defineCheck({
   name: CHECK,
-  rule: 'V59/V73/V74/V404: never "Direct KSA", "Direct Corporate", "B2B", "B2G", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs, the e-mail templates or page text; never V59\'s five or "B2G" in seeds',
+  rule: 'V59/V73/V74/V404: never "Direct KSA", "Direct Corporate", "B2B", "B2G", "B2C", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs, the e-mail templates or page text; never V59\'s five, "B2G" or "B2C" in seeds',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];

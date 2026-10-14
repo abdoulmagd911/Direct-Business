@@ -16,6 +16,14 @@ export const sabotages = [
     ],
   },
   {
+    name: 'plant-forbidden-b2c',
+    breaks: ['check:forbidden-words'],
+    expect: j('messages/en.json:3 [forbidden-words] "B', '2C"'),
+    edits: [
+      { file: 'messages/en.json', find: '"name": "Commercial Workspace"', replace: j('"name": "B', '2C Workspace"') },
+    ],
+  },
+  {
     name: 'plant-forbidden-gmv',
     breaks: ['check:forbidden-words'],
     expect: j('messages/en.json:3 [forbidden-words] "GM', 'V" — the app never says Sales (GMV)'),

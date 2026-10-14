@@ -49,7 +49,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
         '{ "app": { "name": "Commercial Workspace", "department": "Commercial", "copy": "© Direct" } }\n',
       'src/app/page.tsx': [
         `// never "Direct KSA" or B2B in the wording (V59) — a comment is not wording`,
-        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c · zooming · googly · signed in · sales</p>;`,
+        `export const A = () => <p>Direct · Commercial · microphone · mimic · b2d · zooming · googly · signed in · sales</p>;`,
         `export const host = 'www.directksab2b.com';`,
         '',
       ].join('\n'),

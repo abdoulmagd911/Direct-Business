@@ -6,6 +6,7 @@ import { BANNED, bannedIn } from '../../../src/core/words/banned';
 describe('the app refuses a typed value with a banned word', () => {
   it('names the word', () => {
     expect(bannedIn('Government (B2G) clients')).toBe('B2G');
+    expect(bannedIn('Individuals (b-2-c)')).toBe('B2C'); // V522
     expect(bannedIn('Our company')).toBe('Company');
     expect(bannedIn('Gross margin')).toBe('Margin');
     expect(bannedIn('Government')).toBeNull();
