@@ -213,7 +213,7 @@ export function MyProfile({
                   aria-label={t(`profile.colours.${c}`)}
                   onClick={() => void save({ avatar_color: c })}
                   className={cn(
-                    'size-8 rounded-pill focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
+                    'size-11 rounded-pill focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:size-8',
                     person.avatarColor === c && 'ring-2 ring-text ring-offset-2 ring-offset-raised',
                   )}
                   style={{ background: `var(--${c})` }}
