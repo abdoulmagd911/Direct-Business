@@ -253,7 +253,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/auth/sign-out/route.ts',
-        find: '  if (isBackground(request)) return NextResponse.redirect(new URL(`/sign-in?${params}`, request.url));\n',
+        find: '  if (isBackground(request)) return goTo(`/sign-in?${params}`);\n',
         replace: '',
       },
     ],
