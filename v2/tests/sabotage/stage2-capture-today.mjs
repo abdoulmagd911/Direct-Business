@@ -108,4 +108,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'today-says-today-twice',
+    breaks: [TODAY],
+    expect: 'says Today once when the first group is Today',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: "x.key === 'today' && i === 0 ? null : (",
+        replace: 'false ? null : (',
+      },
+    ],
+  },
 ];

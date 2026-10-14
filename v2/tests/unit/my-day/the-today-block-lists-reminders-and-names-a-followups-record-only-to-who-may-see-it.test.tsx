@@ -128,3 +128,33 @@ describe('a follow-up names its record only to a reader who may see it (V454)', 
     expect(html.replace('Follow up: Waha Foods', '')).not.toContain('Waha Foods');
   });
 });
+
+describe('"Today" is drawn once in a row (QA-564)', () => {
+  const now = {
+    next_at: null,
+    due: [
+      {
+        id: 'a',
+        note_id: 'n-a',
+        text: 'Call Sahab Tech',
+        remind_at: '2026-10-14T08:00:00+03:00',
+        notification_id: 'x1',
+      },
+    ],
+  };
+  const late = {
+    id: 'b',
+    note_id: 'n-b',
+    text: 'Send the Dune Foods file',
+    remind_at: '2026-10-13T09:00:00+03:00',
+    notification_id: 'x2',
+  };
+  const headings = (html: string) =>
+    (html.match(/<h[23][^>]*>.*?<\/h[23]>/g) ?? []).map((h) => h.replace(/<[^>]+>/g, ''));
+  it('says Today once when the first group is Today: the card title only', () => {
+    expect(headings(draw({ due: now }))).toEqual(['Today']);
+  });
+  it('keeps the Today group heading after an Overdue group, to tell the two apart', () => {
+    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Overdue1', 'Today']);
+  });
+});
