@@ -26,7 +26,10 @@ async function personWithTeam() {
   return { me, t };
 }
 
-/** Riyadh's today, tomorrow (next working day) and next Sunday, written the way the result line writes them. */
+/**
+ * Riyadh's today, tomorrow (next working day) and next week (the first Sunday after tomorrow, QA-566: on a Thursday,
+ * Friday or Saturday tomorrow is already Sunday and next week is the Sunday after), written the way the result line writes them.
+ */
 async function days() {
   const [r] = await sql<{
     today: string;
@@ -39,8 +42,8 @@ async function days() {
     `select core.riyadh_today()::text as today,
             core.next_working_day(core.riyadh_today())::text as tomorrow,
             to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as line_tomorrow,
-            (core.riyadh_today() + (7 - extract(dow from core.riyadh_today())::int))::text as sunday,
-            to_char(core.riyadh_today() + (7 - extract(dow from core.riyadh_today())::int), 'Dy FMDD Mon') as line_sunday,
+            (core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int))::text as sunday,
+            to_char(core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int), 'Dy FMDD Mon') as line_sunday,
             (extract(hour from (now() at time zone 'Asia/Riyadh'))::int * 60 + extract(minute from (now() at time zone 'Asia/Riyadh'))::int) as mins`,
   );
   return r!;
@@ -71,7 +74,7 @@ for (const width of [375, 1440]) {
       `${d.line_tomorrow} · 09:00`,
     );
     await page.locator('[data-when-chip="next_week"]').click();
-    await expect(page.locator('[data-when-result]'), 'Next week is the next Sunday').toHaveText(
+    await expect(page.locator('[data-when-result]'), 'Next week is the first Sunday after tomorrow').toHaveText(
       `${d.line_sunday} · 09:00`,
     );
     if (width < 700) {
