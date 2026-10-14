@@ -62,3 +62,17 @@ sabotages.push(
     ],
   },
 );
+
+// The weekly review in Arabic, in the one file that switches Arabic (app-settings.alone.spec.ts, after main b8ad0c3).
+sabotages.push({
+  name: 'weekly-review-title-is-the-door-word',
+  breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+  expect: 'the weekly review reads right to left',
+  edits: [
+    {
+      file: 'src/app/(app)/my-day/week/page.tsx',
+      find: "title={t('pages.weeklyReview.title')}",
+      replace: "title={t('pages.weeklyReview.door')}",
+    },
+  ],
+});
