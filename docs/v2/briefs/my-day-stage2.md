@@ -41,12 +41,12 @@ Counts: menu entries +1 on a client and +1 on a task; buttons +0; fields +0 (one
 ## D. Words (two words or fewer on a chip or button)
 Reminder · Now · Done · Later today · Tomorrow · Next week · Pick a day · When · Day · Time · Follow up · Only me · Save · Undo.
 The alert, the bell row and the browser notification use the same words. There is no Snooze in v1.
-Times: Riyadh time, 24-hour, Latin digits, Gregorian dates, in Arabic too. **Later today** is three hours on, or 17:30 if that is later than the end of the working day; the result line always shows the real time.
+Times: Riyadh time, 24-hour, in the body font with tabular figures (never monospace; mono is for IDs, amounts and codes), Latin digits, Gregorian dates, in Arabic too. **Later today** is three hours on, or 17:30 if that is later than the end of the working day; the result line always shows the real time.
 **Tomorrow** and **Next week** are the next working day and the next Sunday; on a Thursday, Tomorrow reads Sunday (the weekend is Friday and Saturday).
 Arabic (Builder C via QA 1 confirms): Reminder تذكير · Now الآن · Done تم · Later today لاحقًا اليوم · Tomorrow غدًا · Next week الأسبوع القادم · Pick a day اختر يومًا · When متى · Day التاريخ · Time الوقت · Follow up متابعة · Only me أنا فقط.
 
 ## E. Behaviour
-1. **The alert** shows on any page while the app is open, over the content under the top bar. It has the reminder's words (a tap opens the item), **Done**, **Tomorrow** and **Next week**. It does not cover the floating +, and it never takes focus from a field being typed in. Done ends the reminder. Tomorrow and Next week move it (09:00 Riyadh) and Today shows the new day.
+1. **The alert** shows on any page while the app is open. It docks at the **bottom**: above the floating + on a phone, bottom-right on a wide screen, 16 px from the edge, so it never covers a header action (QA-563). It has the reminder's words (a tap opens the item), **Done**, **Tomorrow** and **Next week**. It does not cover the floating +, and it never takes focus from a field being typed in. Done ends the reminder. Tomorrow and Next week move it (09:00 Riyadh) and Today shows the new day.
 2. **If the app is closed** the person gets a **browser notification** if they allow it: the same two lines as the alert ("Reminder" and the words), no buttons. The browser's own permission prompt appears once, when the first Reminder is saved; no screen of ours. A true push to a closed app comes later.
 3. **When**: Tomorrow is chosen when the sheet opens (09:00 Riyadh). The result line is always visible. Save is never blocked by the time.
 4. **Follow up** is private: it starts on Only me and the chip on the record shows only to its author (V454). It is a reminder tied to the record: the Today row says "Follow up: <name>" with the clock; done there ends it everywhere. The record can hold one open follow-up per person; setting another asks nothing and replaces the first (Undo restores it).
