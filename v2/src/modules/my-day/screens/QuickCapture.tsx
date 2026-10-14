@@ -18,6 +18,7 @@ import {
   type CaptureKind,
   type OpenOptions,
 } from '../quick-capture';
+import { askToNotify } from '../notify-permission';
 import { VISIBILITIES, type Visibility } from '../types';
 import { instantOf, tomorrow, whenFor, type When, type WhenKey } from '../when';
 import { WhenPicker } from './WhenPicker';
@@ -87,7 +88,12 @@ export function QuickCapture() {
         rpc('note_capture', { p_kind: args.kind, p_values: args.values as never }) as Promise<{
           request_id?: string | null;
         }>,
-      { after: () => setOpen(false) },
+      {
+        after: () => {
+          if (args.kind === 'reminder') askToNotify();
+          setOpen(false);
+        },
+      },
     );
     setBusy(false);
   };

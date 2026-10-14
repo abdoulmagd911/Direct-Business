@@ -386,6 +386,13 @@
         "followUpPlaceholder": "What to follow up on",
         "followUpSaved": "Follow-up set",
         "passed": "That time has passed"
+      },
+      "alert": {
+        "title": "Reminder",
+        "now": "Now",
+        "done": "Done",
+        "snooze": "Snooze",
+        "snoozed": "Snoozed to {when}"
       }
     },
     "settings": {

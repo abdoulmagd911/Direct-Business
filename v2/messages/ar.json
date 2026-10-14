@@ -464,6 +464,13 @@
         "followUpPlaceholder": "ما الذي تتابعه",
         "followUpSaved": "تم تحديد المتابعة",
         "passed": "هذا الوقت مضى"
+      },
+      "alert": {
+        "title": "تذكير",
+        "now": "الآن",
+        "done": "تم",
+        "snooze": "تأجيل",
+        "snoozed": "تم التأجيل إلى {when}"
       }
     },
     "settings": {
