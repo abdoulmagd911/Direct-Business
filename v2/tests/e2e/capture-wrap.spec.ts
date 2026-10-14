@@ -161,7 +161,13 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     `select core.next_working_day(core.riyadh_today())::text as tomorrow, core.riyadh_today()::text as today`,
   );
   expect(by(due).due_on, 'Tomorrow is the next working day').toBe(days!.tomorrow);
-  expect(by(third).due_on > days!.tomorrow, 'Next week is later still').toBe(true);
+  // Next week is the next Sunday; when tomorrow is already that Sunday (any Thursday, Friday or Saturday in Riyadh) the
+  // two are the same day, otherwise next week is later still
+  const tomorrowIsSunday = new Date(`${days!.tomorrow}T12:00:00Z`).getUTCDay() === 0;
+  expect(
+    tomorrowIsSunday ? by(third).due_on >= days!.tomorrow : by(third).due_on > days!.tomorrow,
+    'Next week is the next Sunday: later than tomorrow unless tomorrow is that Sunday',
+  ).toBe(true);
 
   await toast(page, 'Day wrapped up').getByRole('button', { name: 'Undo' }).click();
   await expect

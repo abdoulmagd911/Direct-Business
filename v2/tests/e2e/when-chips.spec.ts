@@ -38,9 +38,9 @@ async function days() {
   }>(
     `select core.riyadh_today()::text as today,
             core.next_working_day(core.riyadh_today())::text as tomorrow,
-            to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as line_tomorrow,
+            to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon YYYY') as line_tomorrow,
             (core.riyadh_today() + (7 - extract(dow from core.riyadh_today())::int))::text as sunday,
-            to_char(core.riyadh_today() + (7 - extract(dow from core.riyadh_today())::int), 'Dy FMDD Mon') as line_sunday,
+            to_char(core.riyadh_today() + (7 - extract(dow from core.riyadh_today())::int), 'Dy FMDD Mon YYYY') as line_sunday,
             (extract(hour from (now() at time zone 'Asia/Riyadh'))::int * 60 + extract(minute from (now() at time zone 'Asia/Riyadh'))::int) as mins`,
   );
   return r!;
@@ -90,7 +90,7 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when-time-field]')).toBeVisible();
     await expect(page.locator('[data-when-time]')).toHaveText(['08:00', '09:00', '12:00', '15:00', '17:00']);
     const [pickDay] = await sql<{ later: string; line: string }>(
-      `select (core.riyadh_today() + 3)::text as later, to_char(core.riyadh_today() + 3, 'Dy FMDD Mon') as line`,
+      `select (core.riyadh_today() + 3)::text as later, to_char(core.riyadh_today() + 3, 'Dy FMDD Mon YYYY') as line`,
     );
     const { later, line } = pickDay!;
     await page.locator('[data-when-day]').fill(later);
