@@ -46,11 +46,15 @@ export const tomorrow = (now: Date): When => ({ day: nextWorkingDay(riyadhNow(no
  * Sunday that starts a new week, and Next week is the Sunday after it. Mirrors my.next_week_day.
  */
 export function nextWeek(now: Date): When {
-  const { day } = riyadhNow(now);
+  return { day: nextWeekDay(riyadhNow(now).day), time: MORNING };
+}
+
+/** The same day for a Riyadh day given as "2026-10-15": Wrap up names it on its Next week choice. */
+export function nextWeekDay(day: string): string {
   const d = new Date(`${nextWorkingDay(day)}T12:00:00Z`);
   do d.setUTCDate(d.getUTCDate() + 1);
   while (d.getUTCDay() !== 0);
-  return { day: d.toISOString().slice(0, 10), time: MORNING };
+  return d.toISOString().slice(0, 10);
 }
 
 /** The When a chip names; Pick a day takes the person's own day and time. Later today is null when it is not offered. */

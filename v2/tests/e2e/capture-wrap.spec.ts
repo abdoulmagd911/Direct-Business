@@ -140,6 +140,21 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
     'Tomorrow is already chosen',
   ).toHaveAttribute('aria-checked', 'true');
+  // at 375 px Tomorrow, Next week and Drop stay on one line, and each of the first two names the day it lands on
+  const tops = await rowOf(`Due task ${t}`)
+    .locator('[data-wrap-move]')
+    .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(tops, 'three choices').toHaveLength(3);
+  expect(new Set(tops).size, 'on one line').toBe(1);
+  const [lands] = await sql<{ tomorrow: string; next: string }>(
+    `select to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as tomorrow,
+            to_char(my.next_week_day(core.riyadh_today()), 'Dy FMDD Mon') as next`,
+  );
+  await expect(rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]')).toContainText(lands!.tomorrow);
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-move="next_week"]'),
+    'Next week shows its date, as Tomorrow does',
+  ).toContainText(lands!.next);
   await expect(
     dialog.locator('[data-wrap-save]'),
     'Save says what it will do, rows left alone going to tomorrow',
