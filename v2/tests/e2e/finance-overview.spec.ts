@@ -121,8 +121,9 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
     'Commissions paid outside Payments are not included.',
   );
   await expect(page.locator('[data-finance-stamp]'), 'one Payments stamp').toHaveCount(1);
-  // no Payments file in this stack: the stamp says so in words, never a dash (V622)
-  await expect(page.locator('[data-finance-stamp]')).toContainText('Payments · not imported yet');
+  // the stamp is a date or, before any Payments file, words — never a dash (V622); other specs may log a file
+  await expect(page.locator('[data-finance-stamp]')).toContainText('Payments · ');
+  await expect(page.locator('[data-finance-stamp]')).not.toContainText('as of —');
 
   // the month has ended and is not closed: Close month, with a confirm that names it and says it never changes
   const row = page.locator(`[data-finance-month="${ym}-01"]`);

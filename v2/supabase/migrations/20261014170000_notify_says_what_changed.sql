@@ -79,18 +79,20 @@ end
 $$;
 
 -- What a change notice's request changed on its record: the field names a person changed — never the version, and never
--- a time or a "by whom" the system stamps alongside (updated_at, closed_at, closed_by …). Empty for every other notice.
-create function notify.changed_fields(p_kind text, p_request uuid, p_table text, p_id uuid) returns jsonb
+-- a time or a "by whom" the system stamps alongside (updated_at, closed_at, closed_by …). Empty for every other notice,
+-- and empty for a reader who may not see the record now — the same current-access rule as its title (QA-553).
+create function notify.changed_fields(p_kind text, p_request uuid, p_table text, p_id uuid, p_person uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
   select coalesce(pg_catalog.jsonb_agg(distinct f), '[]'::jsonb)
   from audit.change c cross join lateral pg_catalog.unnest(c.fields) f
   where p_kind in ('changed_by_other', 'followed_change')
+    and p_table is not null and authz.can_see_as(p_person, p_table, p_id)
     and c.request_id = p_request and c.table_name = p_table and c.row_id = p_id
     and f <> 'version' and f not like '%\_at' and f not like '%\_by'
 $$;
 
-revoke all on function notify.changed_fields(text, uuid, text, uuid) from public;
+revoke all on function notify.changed_fields(text, uuid, text, uuid, uuid) from public;
 
 create or replace function notify.list(p_tab text default 'all', p_before timestamptz default null, p_limit int default 50)
 returns jsonb
@@ -110,8 +112,9 @@ begin
              'id', x.id, 'kind', x.kind, 'entity', x.entity, 'entity_id', x.entity_id, 'request_id', x.request_id,
              'actor_id', x.actor_id, 'actor_name_en', x.actor_name_en, 'actor_name_ar', x.actor_name_ar,
              'label_key', x.label_key, 'label_args', x.label_args, 'created_at', x.created_at, 'read_at', x.read_at,
-             -- what the request changed on the record (field names only), for "<who> changed <what> on <record>"
-             'fields', notify.changed_fields(x.kind, x.request_id, x.entity_table, x.entity_id))
+             -- what the request changed on the record (field names only), for "<who> changed <what> on <record>";
+             -- like the name below, only for a reader who may see the record now
+             'fields', notify.changed_fields(x.kind, x.request_id, x.entity_table, x.entity_id, me))
              -- the record by name, for a reader who may see it (Builder B's request, 13 Oct)
              || notify.entity_title(x.entity_table, x.entity_id, me)
              order by x.created_at desc, x.id)

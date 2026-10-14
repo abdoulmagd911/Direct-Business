@@ -70,8 +70,8 @@ export function FinanceOverview({
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
   const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
   const asOf = data.asOf ? data.asOf.as_of : undefined;
-  // Nothing imported from Payments yet and nothing in the period (V622): the figures are one clear empty state, never
-  // a dash over three zeros. A read that failed is never this — it says which read failed.
+  // Nothing imported from Payments yet and nothing in the period (V622): the page is one clear note under the period and
+  // the stamp — no tiles of zeros, no months of dashes. A read that failed is never this — it says which read failed.
   const notImported =
     !!data.asOf &&
     !data.asOf.as_of &&
@@ -112,54 +112,54 @@ export function FinanceOverview({
         <div data-finance-not-imported>
           <DataState kind="empty" message={t('finance.notImported')} />
         </div>
-      ) : data.period ? (
-        <Tiles period={data.period} />
       ) : (
-        missing('period', t('finance.failed.figures'))
+        <>
+          {data.period ? <Tiles period={data.period} /> : missing('period', t('finance.failed.figures'))}
+
+          <div className="flex flex-col gap-1 text-sm" data-finance-lines>
+            {data.notInvoiced ? (
+              <p data-finance-not-invoiced>
+                <span className="font-medium">{t('finance.notInvoiced')}</span>{' '}
+                <span className="text-muted">{t('finance.ready')}</span>{' '}
+                <b className="font-data tabular">{data.notInvoiced.ready.units}</b>
+                <span className="text-muted"> · {t('finance.pending')} </span>
+                <b className="font-data tabular">{data.notInvoiced.pending.units}</b>
+              </p>
+            ) : (
+              missing('notInvoiced', t('finance.failed.invoiced'))
+            )}
+            <p className="text-xs text-muted" data-finance-commissions>
+              {t('finance.commissions')}
+            </p>
+          </div>
+
+          {flags ? (
+            <section
+              aria-label={t('finance.attention.title')}
+              className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:mb-16 max-sm:pe-20"
+              data-finance-attention
+            >
+              <h2 className="font-ui text-xs font-semibold uppercase tracking-wide text-muted">
+                {t('finance.attention.title')}
+              </h2>
+              <AttentionChip kind="checks" count={flags.checks} label={t('finance.attention.checks')} />
+              <AttentionChip kind="no-client" count={flags.noClient} label={t('finance.attention.noClient')} />
+              <AttentionChip kind="late" count={flags.late} label={t('finance.attention.late')} />
+            </section>
+          ) : data.health ? null : (
+            missing('health', t('finance.failed.health'))
+          )}
+
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            {rows && data.period ? (
+              <Months rows={rows} period={data.period} ask={ask} full={full} />
+            ) : (
+              missing(data.period ? 'closed' : 'period', t('finance.failed.months'))
+            )}
+            {data.service ? <ByService service={data.service} /> : missing('service', t('finance.failed.service'))}
+          </div>
+        </>
       )}
-
-      <div className="flex flex-col gap-1 text-sm" data-finance-lines>
-        {data.notInvoiced ? (
-          <p data-finance-not-invoiced>
-            <span className="font-medium">{t('finance.notInvoiced')}</span>{' '}
-            <span className="text-muted">{t('finance.ready')}</span>{' '}
-            <b className="font-data tabular">{data.notInvoiced.ready.units}</b>
-            <span className="text-muted"> · {t('finance.pending')} </span>
-            <b className="font-data tabular">{data.notInvoiced.pending.units}</b>
-          </p>
-        ) : (
-          missing('notInvoiced', t('finance.failed.invoiced'))
-        )}
-        <p className="text-xs text-muted" data-finance-commissions>
-          {t('finance.commissions')}
-        </p>
-      </div>
-
-      {flags ? (
-        <section
-          aria-label={t('finance.attention.title')}
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:mb-16 max-sm:pe-20"
-          data-finance-attention
-        >
-          <h2 className="font-ui text-xs font-semibold uppercase tracking-wide text-muted">
-            {t('finance.attention.title')}
-          </h2>
-          <AttentionChip kind="checks" count={flags.checks} label={t('finance.attention.checks')} />
-          <AttentionChip kind="no-client" count={flags.noClient} label={t('finance.attention.noClient')} />
-          <AttentionChip kind="late" count={flags.late} label={t('finance.attention.late')} />
-        </section>
-      ) : data.health ? null : (
-        missing('health', t('finance.failed.health'))
-      )}
-
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {rows && data.period ? (
-          <Months rows={rows} period={data.period} ask={ask} full={full} />
-        ) : (
-          missing(data.period ? 'closed' : 'period', t('finance.failed.months'))
-        )}
-        {data.service ? <ByService service={data.service} /> : missing('service', t('finance.failed.service'))}
-      </div>
     </div>
   );
 }

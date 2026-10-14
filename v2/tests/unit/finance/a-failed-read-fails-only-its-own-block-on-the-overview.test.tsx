@@ -72,11 +72,12 @@ describe('before any Payments import (V622)', () => {
     asOf: { as_of: null, files: {} },
   };
 
-  it('shows one clear empty state, never a dash and zeros', () => {
+  it('shows only the note — never a dash and zeros, never months of dashes', () => {
     const out = html(empty);
     expect(out).toContain('data-finance-not-imported');
     expect(out).toContain('Not imported yet. The figures appear here after the first Payments import.');
-    expect(out).not.toContain('data-finance-tiles');
+    for (const block of ['data-finance-tiles', 'data-finance-months', 'data-finance-lines', 'data-finance-attention'])
+      expect(out, block).not.toContain(block);
     expect(out).not.toContain('as of —');
   });
 
