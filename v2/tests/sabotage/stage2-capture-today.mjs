@@ -120,4 +120,16 @@ export const sabotages = [
     expect: 'draws its own failed line',
     edits: [{ file: 'src/modules/my-day/screens/TodayBlock.tsx', find: '{due === null ? (', replace: '{false ? (' }],
   },
+  {
+    name: 'when-opens-on-pick-a-day',
+    breaks: ['e2e:tests/e2e/stage2-capture-today.spec.ts'],
+    expect: 'a Reminder asks When with chips',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/QuickCapture.tsx',
+        find: "setChoice('tomorrow');",
+        replace: "setChoice('pick');",
+      },
+    ],
+  },
 ];

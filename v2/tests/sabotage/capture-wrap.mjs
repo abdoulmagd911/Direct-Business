@@ -50,8 +50,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: "setVisibility('private');\n      setWhen",
-        replace: "setVisibility('workspace');\n      setWhen",
+        find: "setVisibility('private');\n      setOpts",
+        replace: "setVisibility('workspace');\n      setOpts",
       },
     ],
   },
