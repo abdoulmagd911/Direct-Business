@@ -94,7 +94,7 @@ export const sabotages = [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
         find: "move === 'next_week'",
-        replace: "move === 'never'",
+        replace: "(move as string) === 'never'",
       },
     ],
   },
