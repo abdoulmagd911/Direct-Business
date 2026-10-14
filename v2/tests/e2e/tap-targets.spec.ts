@@ -106,3 +106,42 @@ test('the + clears the last row on every page and the list searches are 44 px â€
     expect(h, `${path}: the search box is a 44 px target`).toBeGreaterThanOrEqual(43.5);
   }
 });
+
+for (const [width, rtl] of [
+  [375, false],
+  [375, true],
+  [320, false],
+] as const) {
+  test(`the bell's three tabs sit on one row, each 44 px and with its words whole â€” at ${width} px${rtl ? ', right to left' : ''}`, async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    const me = await makePerson({ admin: true });
+    if (rtl) await context.addCookies([{ name: 'v2.dir', value: 'rtl', url: baseURL! }]);
+    await page.setViewportSize({ width, height: 700 });
+    await signIn(page, me.email, '/my-day');
+    await hydrated(page);
+    if (rtl) expect(await page.evaluate(() => document.documentElement.dir), 'the page is right to left').toBe('rtl');
+    await page.locator('[data-bell]').click();
+    const tabs = page.locator('[data-notifications-panel] [role=tab]');
+    await expect(tabs).toHaveCount(3);
+    const boxes = await tabs.evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return { top: Math.round(r.top), w: r.width, h: r.height, whole: e.scrollWidth <= e.clientWidth + 1 };
+      }),
+    );
+    expect(new Set(boxes.map((b) => b.top)).size, 'the three tabs share one row').toBe(1);
+    for (const b of boxes) {
+      expect(b.w, 'each tab is 44 px wide').toBeGreaterThanOrEqual(43.5);
+      expect(b.h, 'and 44 px high').toBeGreaterThanOrEqual(43.5);
+      expect(b.whole, 'its words are not cut off').toBe(true);
+    }
+    const panel = (await page.locator('[data-notifications-panel]').boundingBox())!;
+    const last = await tabs.last().boundingBox();
+    const first = await tabs.first().boundingBox();
+    const edge = rtl ? first! : last!;
+    expect(edge.x + edge.width, 'the row stays inside the panel').toBeLessThanOrEqual(panel.x + panel.width + 0.5);
+  });
+}

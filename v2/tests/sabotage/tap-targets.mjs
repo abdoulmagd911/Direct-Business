@@ -20,6 +20,7 @@ export const sabotages = [
     expect: 'the search, the palette rows and the bell',
     edits: [
       { file: 'src/ui/Tabs.tsx', find: 'min-h-11 min-w-11 items-center', replace: 'min-h-11 min-w-6 items-center' },
+      { file: 'src/ui/Tabs.tsx', find: "fill && 'min-w-0 flex-auto px-1',", replace: "fill && 'min-w-0 px-1'," },
     ],
   },
   {
@@ -75,6 +76,18 @@ export const sabotages = [
         file: 'src/modules/partners/screens/PartnersList.tsx',
         find: 'className="h-[var(--control-h-sm)] w-[220px]"',
         replace: 'className="h-9 w-[220px]"',
+      },
+    ],
+  },
+  {
+    name: 'bell-tabs-get-a-narrow-strip-again',
+    breaks: [E2E],
+    expect: "the bell's three tabs sit on one row",
+    edits: [
+      {
+        file: 'src/ui/shell/NotificationsPanel.tsx',
+        find: 'className="mt-2"',
+        replace: 'className="mt-2 max-w-[164px]"',
       },
     ],
   },

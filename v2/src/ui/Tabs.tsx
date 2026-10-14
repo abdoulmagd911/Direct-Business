@@ -20,6 +20,7 @@ export function Tabs({
   onValueChange,
   label,
   moreLabel,
+  fill = false,
   className,
 }: {
   tabs: TabDef[];
@@ -28,11 +29,14 @@ export function Tabs({
   label: string;
   /** The word on the phone's overflow control; needed when any tab has `more`. */
   moreLabel?: string;
+  /** The tabs fill one row, each as wide as its words need and sharing the rest, and never wrap (a short strip in a narrow place, like the bell's). */
+  fill?: boolean;
   className?: string;
 }) {
   const tabClass = (active: boolean) =>
     cn(
       '-mb-px inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
+      fill && 'min-w-0 flex-auto px-1',
       active ? 'border-accent font-semibold text-text' : 'border-transparent text-muted hover:text-text',
     );
   const count = (n?: number) =>
@@ -97,7 +101,11 @@ export function Tabs({
     <div
       role="tablist"
       aria-label={label}
-      className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}
+      className={cn(
+        'flex gap-6 overflow-x-auto border-b border-border',
+        fill ? 'gap-2' : 'max-sm:flex-wrap max-sm:gap-x-4',
+        className,
+      )}
       data-tabs
     >
       {tabs.map((t, i) => {

@@ -118,28 +118,30 @@ export function NotificationsPanel({
             className="fixed inset-y-0 end-0 z-50 flex w-[480px] max-w-full flex-col border-s border-border bg-raised text-text shadow-2 focus:outline-none"
             data-notifications-panel
           >
-            <header className="flex items-start gap-3 border-b border-border px-5 pb-3 pt-4">
-              <div className="min-w-0 flex-1">
-                <RD.Title className="truncate text-xl">{t('notifications.title')}</RD.Title>
-                <Tabs
-                  className="mt-2"
-                  label={t('notifications.title')}
-                  value={tab}
-                  onValueChange={(v) => onTabChange(v as NotificationTab)}
-                  tabs={NOTIFICATION_TABS.map((k) => ({ value: k, label: t(`notifications.tabs.${k}`) }))}
-                />
+            <header className="border-b border-border px-5 pb-3 pt-4">
+              <div className="flex items-center gap-3">
+                <RD.Title className="min-w-0 flex-1 truncate text-xl">{t('notifications.title')}</RD.Title>
+                <Button
+                  size="sm"
+                  disabled={!unreadHere}
+                  onClick={() => void act(() => markRead(unreadShown))}
+                  data-notifications-mark-all
+                >
+                  {t('notifications.markAllRead')}
+                </Button>
+                <RD.Close asChild>
+                  <IconButton label={t('common.close')} icon={<X />} size="sm" data-panel-close />
+                </RD.Close>
               </div>
-              <Button
-                size="sm"
-                disabled={!unreadHere}
-                onClick={() => void act(() => markRead(unreadShown))}
-                data-notifications-mark-all
-              >
-                {t('notifications.markAllRead')}
-              </Button>
-              <RD.Close asChild>
-                <IconButton label={t('common.close')} icon={<X />} size="sm" data-panel-close />
-              </RD.Close>
+              {/* the tabs have the whole width of their own row: beside the two buttons a phone left them 164 px (QA-565) */}
+              <Tabs
+                fill
+                className="mt-2"
+                label={t('notifications.title')}
+                value={tab}
+                onValueChange={(v) => onTabChange(v as NotificationTab)}
+                tabs={NOTIFICATION_TABS.map((k) => ({ value: k, label: t(`notifications.tabs.${k}`) }))}
+              />
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
               {failed ? (
