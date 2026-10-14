@@ -72,10 +72,3 @@ describe('a list page asks for all its data in one round after me', () => {
     expect(round.sort()).toEqual(['list', 'list', 'list', 'org', 'partners', 'partners']);
   });
 });
-
-describe('the app says Loading at once', () => {
-  it('a loading boundary sits around every page, inside the shell', async () => {
-    const { default: Loading } = await import('@/app/(app)/loading');
-    expect(typeof Loading).toBe('function');
-  });
-});

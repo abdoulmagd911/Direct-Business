@@ -1,5 +1,5 @@
 // Sabotages for W47 / V635: a list page asks for its data in one round after me, and the app says Loading at once
-// (tests/unit/pages/a-list-page-asks-for-its-data-in-one-round.test.ts).
+// (tests/unit/pages/a-list-page-asks-for-its-data-in-one-round.test.ts, and tests/unit/shell/a-click-on-a-link-shows-loading-at-once.test.tsx).
 const T = 'unit:tests/unit/pages/a-list-page-asks-for-its-data-in-one-round.test.ts';
 
 export const sabotages = [
@@ -30,14 +30,15 @@ export const sabotages = [
     ],
   },
   {
-    name: 'no-loading-boundary-around-the-pages',
-    breaks: [T],
-    expect: '> the app says Loading at once',
+    name: 'a-click-on-a-link-shows-no-bar',
+    breaks: ['unit:tests/unit/shell/a-click-on-a-link-shows-loading-at-once.test.tsx'],
+    expect:
+      '> a click on a link shows Loading at once > a tab switch, a Settings group or a query change leaves the page',
     edits: [
       {
-        file: 'src/app/(app)/loading.tsx',
-        find: 'export default async function Loading',
-        replace: 'export async function Loading',
+        file: 'src/ui/shell/NavProgress.tsx',
+        find: '  return to.pathname !== here.pathname || to.search !== here.search;',
+        replace: '  return false;',
       },
     ],
   },
