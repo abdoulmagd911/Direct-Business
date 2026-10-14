@@ -161,8 +161,8 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   expect(tops, 'three choices').toHaveLength(3);
   expect(new Set(tops).size, 'on one line').toBe(1);
   const [lands] = await sql<{ tomorrow: string; next: string }>(
-    `select to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as tomorrow,
-            to_char(my.next_week_day(core.riyadh_today()), 'Dy FMDD Mon') as next`,
+    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon') as tomorrow,
+            to_char(my.next_week_day(core.riyadh_today()), 'FMDD Mon') as next`,
   );
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),

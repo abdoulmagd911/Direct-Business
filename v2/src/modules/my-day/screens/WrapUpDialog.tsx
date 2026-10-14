@@ -76,7 +76,8 @@ export function WrapUpDialog({
   const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
   // on a Thursday, a Friday and a Saturday the next working day is not tomorrow: the choice is called by its day
   const tomorrowName = tomorrowDayNameOf(day, locale);
-  const shortDay = (d: string) => formatDate(d, locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const shortDay = (d: string) =>
+    formatDate(d, locale, { weekday: 'short', day: 'numeric', month: 'short', year: undefined });
   // the day each choice lands on, written under its word (Drop lands nowhere)
   const landsOn: Partial<Record<WrapMove, string>> = {
     tomorrow: shortDay(nextWorkingDay(day)),
