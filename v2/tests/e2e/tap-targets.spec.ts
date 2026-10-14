@@ -61,8 +61,14 @@ for (const width of [375, 320, 1440]) {
     expect(h.length, 'six colours').toBe(6);
     if (phone) {
       expect(Math.min(...h, ...w), 'each swatch is a 44 px target').toBeGreaterThanOrEqual(43.5);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect(overflow, 'and the page does not scroll sideways').toBeLessThanOrEqual(0);
+      const overflow = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth - window.innerWidth,
+        swatches: Math.max(
+          ...Array.from(document.querySelectorAll('[data-colour]')).map((e) => e.getBoundingClientRect().right),
+        ),
+      }));
+      expect(overflow.page, 'and the page does not scroll sideways').toBeLessThanOrEqual(0);
+      expect(overflow.swatches, 'every swatch is inside the screen').toBeLessThanOrEqual(width);
     } else {
       expect(Math.max(...h, ...w), 'on a wide screen the swatches keep their size').toBeLessThanOrEqual(33);
     }

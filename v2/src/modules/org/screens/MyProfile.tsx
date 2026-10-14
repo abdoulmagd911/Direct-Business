@@ -201,9 +201,9 @@ export function MyProfile({
       <Section title={t('profile.sections.profile')} data-profile-card="profile">
         <div className="flex items-center gap-5">
           <Avatar person={person} size="2xl" />
-          <div className="flex flex-col gap-2">
+          <div className="flex min-w-0 flex-col gap-2">
             <span className="text-sm text-muted">{t('profile.colour')}</span>
-            <div className="flex gap-2" role="radiogroup" aria-label={t('profile.colour')}>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('profile.colour')}>
               {COLOURS.map((c) => (
                 <button
                   key={c}
