@@ -119,4 +119,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'when-next-week-is-the-same-day-as-tomorrow',
+    breaks: [UNIT],
+    expect: 'puts Next week on the Sunday after Tomorrow on every day of the week',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'const d = new Date(`${nextWorkingDay(day)}T12:00:00Z`);',
+        replace: 'const d = new Date(`${day}T12:00:00Z`);',
+      },
+    ],
+  },
 ];
