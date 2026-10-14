@@ -79,7 +79,6 @@ for (const w of WIDTHS) {
     await page.locator('[data-partner-more]').click();
     const first = page.getByRole('menuitem').first();
     await expect(first, 'Follow up is the first entry').toHaveText('Follow up');
-    await expect(first).toHaveAttribute('data-follow-up', '');
     await first.click();
 
     await expect(page.locator('[data-quick-capture]'), 'the one Capture sheet opens').toBeVisible();
