@@ -20,14 +20,20 @@
 // suite applies it after the migrations (V2_DB_AFTER) of a database built from zero (a copy of one such build, kept
 // while the migrations stay the same: test.mjs --reuse); targets are sql:<test ID>.
 //
-// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]... [--shard k/n] [--list]
+// Usage (from v2/): node scripts/sabotage.mjs [--only <name>]... [--kind check|lint|unit|e2e|sql]...
+//                     [--changed-since <ref>] [--shard k/n] [--plan] [--list] [--map]
+// --changed-since <ref> keeps only the sabotages the change `<ref>...HEAD` could have broken (V634 (2), V281; the rule
+// is in scripts/sabotage-select.mjs) and says why each one was kept; when none is kept it says so and passes.
 // --shard k/n keeps every n-th chosen sabotage starting at the k-th (1-based), so n jobs together run each one once.
+// --plan prints what would run and why, runs nothing, and writes `count=<n>` to $GITHUB_OUTPUT when CI sets it.
+// --map prints the spec↔module mapping the selection reads from the sabotages.
 // If it is killed half-way, the tree may still hold a sabotage: `git status` shows it; `git checkout -- <file>` and
 // removing the planted files restores it.
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { mapping, select } from './sabotage-select.mjs';
 
 const V2 = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(V2, 'tests', 'sabotage');
@@ -37,7 +43,7 @@ const REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: V2 }).
 /**
  * @typedef {{ file: string, find: string, replace: string }} Edit
  * @typedef {{ file: string, content: string }} Write
- * @typedef {{ name: string, breaks: string[], expect: string, source: string, patch?: string,
+ * @typedef {{ name: string, breaks: string[], expect: string, source: string, plants: string[], patch?: string,
  *             edits?: Edit[], writes?: Write[], sqlAfter?: string }} Sabotage
  */
 
@@ -61,27 +67,56 @@ function header(head, f) {
   return s;
 }
 
-/** @returns {Promise<Sabotage[]>} */
-async function load() {
-  /** @type {Sabotage[]} */
-  const all = [];
-  if (fs.existsSync(SQL_DIR))
-    for (const f of fs.readdirSync(SQL_DIR).sort())
-      if (f.endsWith('.sql')) {
-        const abs = path.join(SQL_DIR, f);
-        all.push({ ...header(fs.readFileSync(abs, 'utf8'), f), source: `supabase/tests/sabotage/${f}`, sqlAfter: abs });
-      }
-  for (const f of fs.readdirSync(DIR).sort()) {
-    const abs = path.join(DIR, f);
-    if (f.endsWith('.patch')) {
-      const text = fs.readFileSync(abs, 'utf8');
-      const head = text.slice(0, Math.max(0, text.indexOf('diff --git')));
-      all.push({ ...header(head, f), source: f, patch: abs });
-    } else if (f.endsWith('.mjs')) {
-      const mod = await import(pathToFileURL(abs).href);
-      for (const s of mod.sabotages ?? []) all.push({ ...s, source: f });
-    }
+/** The v2 files a patch plants into. @param {string} text */
+function patchFiles(text) {
+  return [...text.matchAll(/^diff --git a\/v2\/(\S+)/gm)].map((m) => /** @type {string} */ (m[1]));
+}
+
+/**
+ * The sabotages one definition file holds; `fingerprint` is what a change to that sabotage alters.
+ * @param {string} source path from v2/ @param {string} text its content
+ * @returns {Promise<(Sabotage & { fingerprint: string })[]>}
+ */
+async function parse(source, text) {
+  const abs = path.join(V2, source);
+  const f = path.basename(source);
+  if (f.endsWith('.sql')) return [{ ...header(text, f), source, plants: [], sqlAfter: abs, fingerprint: text }];
+  if (f.endsWith('.patch')) {
+    const head = text.slice(0, Math.max(0, text.indexOf('diff --git')));
+    return [{ ...header(head, f), source: f, plants: patchFiles(text), patch: abs, fingerprint: text }];
   }
+  // the text, not the file, so an older version read from git loads the same way (a sabotage file imports nothing)
+  const mod = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`);
+  return (mod.sabotages ?? []).map((/** @type {Sabotage} */ s) => ({
+    ...s,
+    source: f,
+    plants: [...(s.edits ?? []).map((e) => e.file), ...(s.writes ?? []).map((w) => w.file)],
+    fingerprint: JSON.stringify(s),
+  }));
+}
+
+/** The definition files, from v2/. */
+function sources() {
+  const sql = fs.existsSync(SQL_DIR)
+    ? fs
+        .readdirSync(SQL_DIR)
+        .sort()
+        .filter((f) => f.endsWith('.sql'))
+        .map((f) => `supabase/tests/sabotage/${f}`)
+    : [];
+  const rest = fs
+    .readdirSync(DIR)
+    .sort()
+    .filter((f) => f.endsWith('.patch') || f.endsWith('.mjs'))
+    .map((f) => `tests/sabotage/${f}`);
+  return [...sql, ...rest];
+}
+
+/** @returns {Promise<(Sabotage & { fingerprint: string })[]>} */
+async function load() {
+  /** @type {(Sabotage & { fingerprint: string })[]} */
+  const all = [];
+  for (const src of sources()) all.push(...(await parse(src, fs.readFileSync(path.join(V2, src), 'utf8'))));
   const names = new Set();
   for (const s of all) {
     if (names.has(s.name)) throw new Error(`two sabotages are named "${s.name}"`);
@@ -206,6 +241,84 @@ function plantFiles(s) {
   };
 }
 
+// ---------------------------------------------------------------- what a change touches
+
+/**
+ * The files `<ref>...HEAD` adds, edits or deletes (both names of a rename), from v2/; others as `../<path>`.
+ * @param {string} ref
+ */
+function changedSince(ref) {
+  let out;
+  try {
+    out = git(['diff', '--name-only', '--no-renames', `${ref}...HEAD`]);
+  } catch (e) {
+    console.error(
+      `--changed-since: git cannot compare ${ref} with HEAD — ${String(/** @type {any} */ (e).stderr ?? e)}`,
+    );
+    process.exit(2);
+  }
+  return out
+    .split('\n')
+    .filter(Boolean)
+    .map((f) => (f.startsWith('v2/') ? f.slice(3) : `../${f}`));
+}
+
+/**
+ * The sabotages a change adds or edits: those in a changed definition file that are new or differ from `ref`'s.
+ * @param {(Sabotage & { fingerprint: string })[]} all @param {string[]} changed @param {string} ref
+ */
+async function editedSince(all, changed, ref) {
+  /** @type {Set<string>} */
+  const edited = new Set();
+  for (const src of new Set(all.filter((s) => changed.includes(sourcePath(s))).map(sourcePath))) {
+    /** @type {Map<string, string>} */
+    const before = new Map();
+    let text = null;
+    try {
+      text = git(['show', `${ref}:v2/${src}`]);
+    } catch {
+      // a new file: every sabotage in it is new
+    }
+    if (text !== null) for (const s of await parse(src, text)) before.set(s.name, s.fingerprint);
+    for (const s of all) if (sourcePath(s) === src && before.get(s.name) !== s.fingerprint) edited.add(s.name);
+  }
+  return edited;
+}
+
+/** A sabotage's definition file, from v2/. @param {Sabotage} s */
+function sourcePath(s) {
+  return s.source.includes('/') ? s.source : `tests/sabotage/${s.source}`;
+}
+
+/**
+ * Each spec a sabotage breaks and the local files it imports, followed through their own imports (`from './x'`).
+ * @param {Sabotage[]} all
+ */
+function specImports(all) {
+  /** @type {Map<string, string[]>} */
+  const uses = new Map();
+  for (const t of new Set(all.flatMap((s) => s.breaks))) {
+    const spec = t.replace(/^(?:e2e|unit):/, '');
+    if (spec === t || !fs.existsSync(path.join(V2, spec))) continue;
+    /** @type {Set<string>} */
+    const seen = new Set();
+    const todo = [spec];
+    while (todo.length) {
+      const f = /** @type {string} */ (todo.pop());
+      for (const m of fs.readFileSync(path.join(V2, f), 'utf8').matchAll(/from '(\.{1,2}\/[^']+)'/g)) {
+        const rel = path.posix.join(path.posix.dirname(f), /** @type {string} */ (m[1]));
+        const file = [rel, `${rel}.ts`, `${rel}.tsx`].find((c) => /\.tsx?$/.test(c) && fs.existsSync(path.join(V2, c)));
+        if (file && !seen.has(file)) {
+          seen.add(file);
+          todo.push(file);
+        }
+      }
+    }
+    uses.set(spec, [...seen]);
+  }
+  return uses;
+}
+
 // ---------------------------------------------------------------- main
 
 const argv = process.argv.slice(2);
@@ -214,6 +327,10 @@ const only = [];
 /** @type {string[]} */
 const kinds = [];
 let list = false;
+let plan = false;
+let showMap = false;
+/** @type {string | null} */
+let since = null;
 let shard = 1;
 let shards = 1;
 for (let i = 0; i < argv.length; i++) {
@@ -227,7 +344,15 @@ for (let i = 0; i < argv.length; i++) {
     }
     shard = k;
     shards = n;
+  } else if (argv[i] === '--changed-since') {
+    since = argv[++i] ?? '';
+    if (!since) {
+      console.error('--changed-since wants a git ref, such as origin/v2/main');
+      process.exit(2);
+    }
   } else if (argv[i] === '--list') list = true;
+  else if (argv[i] === '--plan') plan = true;
+  else if (argv[i] === '--map') showMap = true;
   else {
     console.error(`unknown argument ${argv[i]}`);
     process.exit(2);
@@ -235,15 +360,45 @@ for (let i = 0; i < argv.length; i++) {
 }
 
 const all = await load();
-const chosen = all
-  .filter(
-    (s) =>
-      (!only.length || only.includes(s.name)) &&
-      (!kinds.length || s.breaks.every((b) => kinds.includes(/** @type {string} */ (b.split(':')[0])))),
-  )
-  .filter((_, i) => i % shards === shard - 1);
+const ofKind = all.filter(
+  (s) => !kinds.length || s.breaks.every((b) => kinds.includes(/** @type {string} */ (b.split(':')[0]))),
+);
 if (list) {
   for (const s of all) console.log(`${s.name.padEnd(34)} ${s.breaks.join(' ')}  (${s.source})`);
+  process.exit(0);
+}
+if (showMap) {
+  for (const [t, areas] of mapping(ofKind)) console.log(`${t}\n    ${areas.join('\n    ')}`);
+  process.exit(0);
+}
+/** @type {Map<string, string> | null} why each sabotage was kept, under --changed-since */
+let why = null;
+if (since !== null) {
+  const changed = changedSince(since);
+  const picked = select(ofKind, changed, await editedSince(all, changed, since), specImports(ofKind));
+  why = picked.reasons;
+  console.log(
+    picked.full
+      ? `Changed since ${since}: ${changed.length} file(s); ${picked.full} is one the whole set leans on, so every sabotage runs.`
+      : `Changed since ${since}: ${changed.length} file(s); ${why.size} of ${ofKind.length} sabotage(s) cover them.`,
+  );
+}
+const chosen = ofKind
+  .filter((s) => (!only.length || only.includes(s.name)) && (!why || why.has(s.name)))
+  .filter((_, i) => i % shards === shard - 1);
+if (why) {
+  if (!chosen.length)
+    console.log(
+      why.size
+        ? `None of them falls to shard ${shard}/${shards}: nothing to run here.`
+        : 'No spec, sabotage or module this change touches has a sabotage of this kind: nothing to run (v2/main runs the full set on every push).',
+    );
+  else if (!plan) for (const s of chosen) console.log(`  ${s.name} — ${why.get(s.name)}`);
+}
+if (plan) {
+  for (const s of chosen) console.log(`  ${s.name} — ${why?.get(s.name) ?? 'chosen'}`);
+  console.log(`${chosen.length} sabotage(s) would run.`);
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `count=${chosen.length}\n`);
   process.exit(0);
 }
 if (only.some((n) => !all.some((s) => s.name === n))) {
