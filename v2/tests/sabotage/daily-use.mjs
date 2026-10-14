@@ -77,7 +77,7 @@ export const sabotages = [
   {
     name: 'wrap-next-week-lands-on-the-wrong-day',
     breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
-    expect: '> shows the day Next week lands on: the first Sunday after the day',
+    expect: '> shows the day Next week lands on: the first Sunday after the next working day',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',

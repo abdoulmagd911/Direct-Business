@@ -152,11 +152,21 @@ describe('Wrap up today', () => {
     expect(nextWorkingDay('2026-09-29')).toBe('2026-09-30');
     expect(nextWorkingDay('2026-10-03'), 'Saturday to Sunday').toBe('2026-10-04');
   });
-  it('shows the day Next week lands on: the first Sunday after the day', () => {
-    expect(nextWeekDay('2026-10-14'), 'a Wednesday').toBe('2026-10-18');
-    expect(nextWeekDay('2026-10-15'), 'a Thursday: the same Sunday as tomorrow').toBe('2026-10-18');
-    expect(nextWeekDay('2026-10-18'), 'a Sunday asks for the one after').toBe('2026-10-25');
-    expect(nextWeekDay('2026-12-31'), 'across a year').toBe('2027-01-03');
+  it('shows the day Next week lands on: the first Sunday after the next working day, always after Tomorrow', () => {
+    expect(nextWeekDay('2026-10-14'), 'a Wednesday: tomorrow is Thursday').toBe('2026-10-18');
+    expect(nextWeekDay('2026-10-15'), 'a Thursday: tomorrow is Sunday, next week the Sunday after').toBe('2026-10-25');
+    expect(nextWeekDay('2026-10-18'), 'a Sunday').toBe('2026-10-25');
+    expect(nextWeekDay('2026-12-31'), 'across a year').toBe('2027-01-10');
+    for (const day of [
+      '2026-10-11',
+      '2026-10-12',
+      '2026-10-13',
+      '2026-10-14',
+      '2026-10-15',
+      '2026-10-16',
+      '2026-10-17',
+    ])
+      expect(nextWeekDay(day) > nextWorkingDay(day), day).toBe(true);
   });
 });
 
