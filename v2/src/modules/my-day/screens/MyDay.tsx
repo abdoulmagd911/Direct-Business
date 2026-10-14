@@ -13,7 +13,7 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
-import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
+import { SCOPES, type MyDayAnswer, type PendingReminder, type RemindersDue, type Scope } from '../types';
 import { CaptureButton } from './CaptureButton';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
@@ -31,6 +31,8 @@ export type MyDayData = {
   people: OrgPerson[];
   /** The task statuses, so the Today block's tick can say Done. */
   statuses: TaskStatus[];
+  /** My reminders whose time has come (`api.reminders_due`); null when it could not be read. */
+  due: RemindersDue | null;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -78,6 +80,8 @@ export function MyDay({ data }: { data: MyDayData }) {
           day={answer.day}
           statuses={data.statuses}
           carried={answer.carried_over?.length ?? 0}
+          pending={answer.reminders}
+          due={data.due}
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}

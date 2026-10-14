@@ -49,10 +49,3 @@ export function quickCaptureArgs(
 
 /** `datetime-local`'s value ("2026-10-14T09:00") read as Riyadh time (UTC+3, no daylight saving). */
 export const riyadhInstant = (local: string): string | undefined => (local ? `${local}:00+03:00` : undefined);
-
-/** The next morning at 9:00 in Riyadh, as `datetime-local` writes it, from today's Riyadh date. */
-export function tomorrowMorning(day: string): string {
-  const d = new Date(`${day}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return `${d.toISOString().slice(0, 10)}T09:00`;
-}

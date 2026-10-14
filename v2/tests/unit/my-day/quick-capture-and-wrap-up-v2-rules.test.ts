@@ -12,7 +12,7 @@ import {
   wrapRecover,
   wrapSummary,
 } from '../../../src/modules/my-day/logic';
-import { quickCaptureArgs, riyadhInstant, tomorrowMorning } from '../../../src/modules/my-day/quick-capture';
+import { quickCaptureArgs, riyadhInstant } from '../../../src/modules/my-day/quick-capture';
 import type { MyNote, TodayTask } from '../../../src/modules/my-day/types';
 
 const opts = { visibility: 'private', day: '2026-10-13' };
@@ -68,10 +68,8 @@ describe('Quick capture sends what each kind needs', () => {
     );
     expect(quickCaptureArgs('note', '  \n ', opts)).toBeNull();
   });
-  it('reads the picked time as Riyadh time and starts a reminder at nine the next morning', () => {
+  it('reads the picked time as Riyadh time (when it starts is in when-and-today-reminders.test.ts)', () => {
     expect(riyadhInstant('2026-10-14T09:00')).toBe('2026-10-14T09:00:00+03:00');
-    expect(tomorrowMorning('2026-10-13')).toBe('2026-10-14T09:00');
-    expect(tomorrowMorning('2026-12-31')).toBe('2027-01-01T09:00');
   });
 });
 

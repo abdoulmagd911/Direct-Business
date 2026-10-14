@@ -1,7 +1,7 @@
 'use client';
 import * as RD from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
@@ -15,10 +15,10 @@ import {
   QUICK_CAPTURE_EVENT,
   quickCaptureArgs,
   riyadhInstant,
-  tomorrowMorning,
   type CaptureKind,
 } from '../quick-capture';
 import { VISIBILITIES, type Visibility } from '../types';
+import { MORNING, TIME_CHIPS, WHEN_CHOICES, resolveWhen, whenLine, whenOptions, type WhenChoice } from '../when';
 
 const pill = (on: boolean) =>
   cn(
@@ -28,17 +28,21 @@ const pill = (on: boolean) =>
 
 /**
  * Quick capture (productivity stage 1): one sheet, from any page — the Create menu, the phone + and Ctrl K open it. A
- * bottom sheet on a phone, a card on a wide screen. Note, Idea, Checklist or Reminder (a Reminder asks "when");
- * Only me is the default (V454). One tap files it and leaves the person exactly where they were.
+ * bottom sheet on a phone, a card on a wide screen. Note, Idea, Checklist or Reminder; a Reminder asks "When" with
+ * chips (Stage 2): Later today · Tomorrow · Next week · Pick a day, Tomorrow chosen, and one line saying the result in
+ * Riyadh time (D20). Only me is the default (V454). One tap files it and leaves the person exactly where they were.
  */
 export function QuickCapture() {
   const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<CaptureKind>('note');
   const [text, setText] = useState('');
   const [visibility, setVisibility] = useState<Visibility>('private');
-  const [when, setWhen] = useState('');
+  const [opts, setOpts] = useState(() => whenOptions(new Date()));
+  const [choice, setChoice] = useState<WhenChoice>('tomorrow');
+  const [pick, setPick] = useState({ day: '', time: MORNING });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -46,13 +50,23 @@ export function QuickCapture() {
       setKind('note');
       setText('');
       setVisibility('private');
-      setWhen(tomorrowMorning(today()));
+      setOpts(whenOptions(new Date()));
+      setChoice('tomorrow');
       setOpen(true);
     };
     window.addEventListener(QUICK_CAPTURE_EVENT, show);
     return () => window.removeEventListener(QUICK_CAPTURE_EVENT, show);
   }, []);
 
+  const when = resolveWhen(choice, opts, pick);
+  // "Pick a day" starts from what was chosen, so the line under the chips does not jump
+  const choose = (c: WhenChoice) => {
+    if (c === 'pick') {
+      const [day = '', time = MORNING] = when.split('T');
+      setPick({ day, time });
+    }
+    setChoice(c);
+  };
   const args = quickCaptureArgs(kind, text, { visibility, day: today(), remindAt: riyadhInstant(when) });
   const save = async () => {
     if (!args) return;
@@ -108,10 +122,67 @@ export function QuickCapture() {
             data-quick-text
           />
           {kind === 'reminder' ? (
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              {t('pages.myDay.quick.when')}
-              <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} data-quick-when />
-            </label>
+            <fieldset className="flex flex-col gap-2" data-quick-when>
+              <legend className="mb-1.5 text-sm font-medium">{t('pages.myDay.quick.when')}</legend>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.when')}>
+                {WHEN_CHOICES.filter((c) => c !== 'later' || opts.later).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={choice === c}
+                    className={pill(choice === c)}
+                    onClick={() => choose(c)}
+                    data-quick-when-choice={c}
+                  >
+                    {t(`pages.myDay.quick.whenChoices.${c}`)}
+                  </button>
+                ))}
+              </div>
+              {choice === 'pick' ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1.5 text-sm font-medium">
+                      {t('pages.myDay.quick.day')}
+                      <Input
+                        type="date"
+                        value={pick.day}
+                        min={opts.day}
+                        onChange={(e) => setPick({ ...pick, day: e.target.value })}
+                        data-quick-day
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-sm font-medium">
+                      {t('pages.myDay.quick.time')}
+                      <Input
+                        type="time"
+                        value={pick.time}
+                        onChange={(e) => setPick({ ...pick, time: e.target.value })}
+                        data-quick-time
+                      />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.time')}>
+                    {TIME_CHIPS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        role="radio"
+                        aria-checked={pick.time === c}
+                        className={cn(pill(pick.time === c), 'font-data')}
+                        onClick={() => setPick({ ...pick, time: c })}
+                        data-quick-time-chip={c}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              <p className="font-data text-sm text-muted" aria-live="polite" data-quick-when-line>
+                {whenLine(when, locale)}
+              </p>
+            </fieldset>
           ) : null}
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
             {VISIBILITIES.map((v) => (
