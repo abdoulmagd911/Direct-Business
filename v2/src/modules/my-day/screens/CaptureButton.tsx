@@ -28,7 +28,7 @@ export function CaptureButton() {
       <Button
         variant="primary"
         icon={<StickyNote />}
-        onClick={openQuickCapture}
+        onClick={() => openQuickCapture()}
         className="w-full sm:w-auto"
         data-capture-open
       >

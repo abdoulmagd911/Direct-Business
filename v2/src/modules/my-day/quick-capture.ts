@@ -1,8 +1,18 @@
 /** Quick capture from anywhere (productivity stage 1): the Create menu, the phone + and Ctrl K ask the one sheet in the shell to open. */
 export const QUICK_CAPTURE_EVENT = 'quick-capture:open';
 
-export const openQuickCapture = () => {
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(QUICK_CAPTURE_EVENT));
+/** The record a Follow up is about: its entity (a client, a task or an invoice), id and the name to show. */
+export type CaptureAbout = { entity: 'partner' | 'task' | 'invoice'; id: string; label: string };
+
+/**
+ * What a door can ask of the sheet. `about` opens it as a Follow up on that record (a Reminder in the record's name);
+ * `kind` opens it on a kind; `text` carries words already typed.
+ */
+export type OpenOptions = { kind?: CaptureKind; about?: CaptureAbout; text?: string };
+
+export const openQuickCapture = (opts?: OpenOptions) => {
+  if (typeof window !== 'undefined')
+    window.dispatchEvent(new CustomEvent(QUICK_CAPTURE_EVENT, { detail: opts ?? null }));
 };
 
 export type CaptureKind = 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
@@ -45,14 +55,4 @@ export function quickCaptureArgs(
     return { kind: 'reminder', values: { ...values, remind_at: opts.remindAt } };
   }
   return { kind: kind === 'idea' ? 'idea' : kind === 'meeting' ? 'meeting' : 'sticky', values };
-}
-
-/** `datetime-local`'s value ("2026-10-14T09:00") read as Riyadh time (UTC+3, no daylight saving). */
-export const riyadhInstant = (local: string): string | undefined => (local ? `${local}:00+03:00` : undefined);
-
-/** The next morning at 9:00 in Riyadh, as `datetime-local` writes it, from today's Riyadh date. */
-export function tomorrowMorning(day: string): string {
-  const d = new Date(`${day}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return `${d.toISOString().slice(0, 10)}T09:00`;
 }
