@@ -223,11 +223,7 @@
       },
       "tabsLabel": "Whose notes",
       "capture": {
-        "label": "Capture",
-        "placeholder": "Capture a note",
-        "save": "Capture",
-        "kind": "Kind",
-        "captured": "Note filed in My notes"
+        "label": "Capture"
       },
       "kinds": {
         "sticky": "Note",
