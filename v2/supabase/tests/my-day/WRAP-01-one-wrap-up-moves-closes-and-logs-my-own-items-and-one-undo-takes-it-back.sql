@@ -82,5 +82,14 @@ select test.eq((select count(*)::int from my.carry where person_id = current_set
 
 -- the days, for fixed weekdays
 select test.eq(my.next_week_day(date '2026-10-13'), date '2026-10-18', 'a Tuesday: next week starts on the Sunday');
-select test.eq(my.next_week_day(date '2026-10-15'), date '2026-10-18', 'a Thursday: the coming Sunday');
+select test.eq(my.next_week_day(date '2026-10-15'), date '2026-10-25', 'a Thursday: Next week is the Sunday after Tomorrow');
 select test.eq(my.next_week_day(date '2026-10-18'), date '2026-10-25', 'a Sunday: the Sunday after');
+-- QA-566, every weekday Sun 11 – Sat 17 Oct 2026: Next week is the first working day of the week after the next working day
+select test.eq(my.next_week_day(date '2026-10-11'), date '2026-10-18', 'a Sunday, 11 Oct: next week is Sunday 18');
+select test.eq(my.next_week_day(date '2026-10-12'), date '2026-10-18', 'a Monday: next week is Sunday 18');
+select test.eq(my.next_week_day(date '2026-10-14'), date '2026-10-18', 'a Wednesday: next week is Sunday 18');
+select test.eq(my.next_week_day(date '2026-10-16'), date '2026-10-25', 'a Friday: Tomorrow is Sunday 18, next week Sunday 25');
+select test.eq(my.next_week_day(date '2026-10-17'), date '2026-10-25', 'a Saturday: Tomorrow is Sunday 18, next week Sunday 25');
+select test.ok(not exists (select 1 from generate_series(date '2026-10-11', date '2026-11-14', interval '1 day') g(d)
+                           where my.next_week_day(g.d::date) <= core.next_working_day(g.d::date)),
+  'Next week is later than Tomorrow on every day of five weeks');

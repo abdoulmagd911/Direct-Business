@@ -368,6 +368,30 @@ deleted (V61).
 
 **The four-week review (V607)**, before the first review (about four weeks after day one): where each field shows (main · Details · archived) as an admin setting per record type, logged and undoable (A + B), and one read of the change log per field and action for the review (A). Never before day one.
 
+## Daily use (V638, owner 14 Oct): what is left before Sunday 18 Oct
+
+The owner works daily from **Sunday 18 Oct**, on his employee sign-in (V637). Everything below lands by **Saturday 17 Oct**; QA 2 clears each PR at 375 and 1,440 px with the sense check (V633 (3)). The architect's rulings stand in for the design lead's on these items, so nothing waits for a board.
+
+| # | Walk finding (14 Oct) | Ruling | PR · owner | Target |
+|---|---|---|---|---|
+| 1 | Follow-up saved twice (a note and a reminder) | It shows once, as its reminder | #258 · D | 15 Oct |
+| 2 | Follow up hidden in the ⋯ menu | A visible button beside Edit | #258 · D | 15 Oct |
+| 3 | Follow vs Follow up | Watching a record says **Watch** | #258 · D | 15 Oct |
+| 4 | The task page shows no follow-up; client chip opens the task | Chips on the record; the chip opens the client | #258 · D | 15 Oct |
+| 5 | Bell rows without names | "<who> changed <what> on <record>" | #255 · A | 15 Oct |
+| 6 | Arabic name box shows the e-mail | The browser filled it; never stored again | #259 · A | 15 Oct |
+| 7 | Too dark, cannot change it; profile colour only changes the ring | V636: Light default, Dark and Direct to choose; ring colour removed | #254, then a V636 PR · B | 16 Oct |
+| 8 | KPIs menu label vs the Achievements page title | The menu says **Achievements** (the KPIs page is paused, V638) | E | 16 Oct |
+| 9 | "This week" vs "Weekly review" | One name: **Weekly review** | E | 16 Oct |
+| 10 | Profile shows twice | One entry: the avatar menu at the top; the drawer's entry goes | E | 16 Oct |
+| 11 | Four ways to add | One add control per width: **Create** in the top bar on a PC, the **+** on a phone (the same menu); each list keeps its own "New <thing>"; My day's Capture button goes, Create → Capture replaces it; Ctrl K stays (keyboard only) | E | 17 Oct |
+| 12 | Scroll arrows beside the tab rows | Tab rows scroll without a visible bar or arrows; a fade at the edge shows there is more | S | 16 Oct |
+| 13 | Date formats (Sept vs Sep; the date box shows 2026-10-14) | One format everywhere: **14 Oct 2026** (three-letter month); the date box displays the same | S | 16 Oct |
+| 14 | A reminder row says Remove; its title is cut off on a phone | The row says **Done**, as the alert does; the title wraps to two lines | S | 16 Oct |
+| 15 | "Today" twice | Live in #241; QA 2 re-checks on production, and S fixes any second one left | QA 2, then S | 15 Oct |
+
+Before Sunday the oversight also sets the two sign-ins (V637) and the owner's team, and the owner walks My day, a task, a note, a follow-up and a reminder once, on a PC and a phone.
+
 ## Order at a glance
 
 ```
