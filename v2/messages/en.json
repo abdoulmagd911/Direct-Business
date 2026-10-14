@@ -775,6 +775,34 @@
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       }
+    },
+    "weeklyReview": {
+      "title": "Weekly review",
+      "range": "{from} – {to}",
+      "emptyWeek": "Nothing done, slipped or due this week yet",
+      "done": {
+        "title": "Done this week",
+        "empty": "Nothing done yet this week"
+      },
+      "slipped": {
+        "title": "Slipped",
+        "empty": "Nothing slipped"
+      },
+      "next": {
+        "title": "Due next week",
+        "empty": "Nothing due next week"
+      },
+      "notes": {
+        "title": "My notes this week",
+        "empty": "No notes this week"
+      },
+      "carried": "{count, plural, one {Carried once} other {Carried # times}}",
+      "more": "{count, plural, one {and 1 more} other {and # more}}",
+      "note": "Note",
+      "idea": "Idea",
+      "private": "Only me",
+      "door": "This week",
+      "reviewDay": "Review day"
     }
   },
   "entity": {
