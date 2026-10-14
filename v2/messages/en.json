@@ -1041,7 +1041,8 @@
     "details": "Details",
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
-    "lockedPartner": "An organisation's history is for the people who may open it"
+    "lockedPartner": "An organisation's history is for the people who may open it",
+    "followUp": "Follow up"
   },
   "activity": {
     "title": "Activity",
