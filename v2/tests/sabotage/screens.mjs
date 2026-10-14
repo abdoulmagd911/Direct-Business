@@ -399,9 +399,25 @@ export const sabotages = [
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone density is gone from the page',
     edits: [
+      // the old regime for density: this browser's own value outranks the profile and nothing brings it back in line
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);",
+        replace: "const own = (key: 'theme' | 'density') => ownChoice(key, get);",
+      },
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);\n",
+        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });\n",
+        replace: '',
+      },
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "if (changes.density) setPref('density', changes.density, { cache: true });",
+        replace: "if (changes.density) setPref('density', changes.density);",
+      },
+      {
+        file: 'src/ui/shell/PrefsSync.tsx',
+        find: "if (now.density !== density) setPref('density', density, { cache: true });",
         replace: '',
       },
     ],
