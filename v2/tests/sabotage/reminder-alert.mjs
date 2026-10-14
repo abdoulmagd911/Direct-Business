@@ -78,8 +78,8 @@ export const sabotages = [
     edits: [
       {
         file: COMPONENT,
-        find: 'className="mt-3 block min-h-11',
-        replace: 'autoFocus\n        className="mt-3 block min-h-11',
+        find: 'onClick={() => void done()}',
+        replace: 'autoFocus onClick={() => void done()}',
       },
     ],
   },
