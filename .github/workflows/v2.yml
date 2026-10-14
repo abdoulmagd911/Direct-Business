@@ -183,14 +183,20 @@ jobs:
     name: every end-to-end spec fails under its sabotage (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     # one build per sabotage: on a single runner the sweep alone took 105 minutes at #211 (12 Oct) and kept growing
-    # with every PR, so it runs as three shards side by side; each shard is about a third of that plus its setup
+    # with every PR, so it runs as three shards side by side (V631). On a pull request only the sabotages of what the
+    # PR touches run (V634 (2), V281 — the rule is in scripts/sabotage-select.mjs); a push to v2/main runs them all.
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+    env:
+      # empty on v2/main and on a manual run: the full set
+      CHANGED_SINCE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: v2/package.json
@@ -199,19 +205,29 @@ jobs:
           node-version-file: v2/.nvmrc
           cache: pnpm
           cache-dependency-path: v2/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - uses: supabase/setup-cli@v1
+      - name: which sabotages this shard runs, and why
+        id: plan
+        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"} --plan
+      - if: steps.plan.outputs.count != '0'
+        run: pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.count != '0'
+        uses: supabase/setup-cli@v1
         with:
           version: 2.118.0
       - name: start the stack (database, auth, the Data API and the mail catcher; every migration applied)
+        if: steps.plan.outputs.count != '0'
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
       - name: the stack's addresses and keys for the app and the specs (its fixed local ones, never the cloud's — V120)
+        if: steps.plan.outputs.count != '0'
         run: node scripts/e2e/stack-env.mjs >> "$GITHUB_ENV"
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm build
+      - if: steps.plan.outputs.count != '0'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.plan.outputs.count != '0'
+        run: pnpm build
       - name: this shard's end-to-end sabotages each turn their spec red
-        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3
-      - if: always()
+        if: steps.plan.outputs.count != '0'
+        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"}
+      - if: always() && steps.plan.outputs.count != '0'
         run: supabase stop --no-backup
 
   # The one writer of the production database (the owner, 30 Sep — V181). On every merge to v2/main it applies the
