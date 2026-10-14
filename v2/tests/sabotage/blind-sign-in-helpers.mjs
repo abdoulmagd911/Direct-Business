@@ -12,7 +12,24 @@ export const sabotages = [
     name: 'blind-safe-next',
     breaks: [target],
     expect: '> returns only to an address on this site, never to the sign-in page',
-    edits: [{ file: 'src/core/auth/safe-next.ts', find: " || next.startsWith('//')", replace: '' }],
+    // both doors a "//host" could pass: the raw check and the resolved address's origin (QA-562)
+    edits: [
+      { file: 'src/core/auth/safe-next.ts', find: " || next.startsWith('//')", replace: '' },
+      { file: 'src/core/auth/safe-next.ts', find: '  if (url.origin !== PLACEHOLDER) return null;\n', replace: '' },
+    ],
+  },
+  {
+    // QA-562: the resolved path's "//host" guard removed — "/.//evil.example" returns as "//evil.example"
+    name: 'blind-resolved-return-address',
+    breaks: [target],
+    expect: '> judges a return address as the browser resolves it',
+    edits: [
+      {
+        file: 'src/core/auth/safe-next.ts',
+        find: "  if (url.pathname.startsWith('//') || url.pathname.startsWith('/\\\\')) return null;\n",
+        replace: '',
+      },
+    ],
   },
   {
     name: 'blind-device-label',
