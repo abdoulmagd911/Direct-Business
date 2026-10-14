@@ -539,14 +539,14 @@ export const sabotages = [
   },
 
   {
-    name: 'profile-link-lost-in-the-bottom-bar',
+    name: 'profile-back-in-more',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
-    expect: 'the bottom bar opens My profile',
+    expect: 'More has no profile entry',
     edits: [
       {
         file: 'src/ui/shell/BottomBar.tsx',
-        find: '              href="/profile"\n              data-entity="person"',
-        replace: '              href="/settings/profile"\n              data-entity="person"',
+        find: '            <button\n              type="button"\n              onClick={signOut}',
+        replace: '            <a href="/profile">My profile</a>\n            <button\n              type="button"\n              onClick={signOut}',
       },
     ],
   },
