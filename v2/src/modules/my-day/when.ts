@@ -40,10 +40,14 @@ export function laterToday(now: Date): When | null {
 /** The next working day (Sunday after a Thursday) at nine. */
 export const tomorrow = (now: Date): When => ({ day: nextWorkingDay(riyadhNow(now).day), time: MORNING });
 
-/** The next Sunday after today (a Sunday asks for the one after) at nine. */
+/**
+ * The first Sunday after the next working day, at nine (QA-566, the Architect's ruling of 14 Oct): Next week is the week
+ * AFTER Tomorrow's, so it is always later than Tomorrow. On a Thursday, a Friday and a Saturday Tomorrow is already the
+ * Sunday that starts a new week, and Next week is the Sunday after it. Mirrors my.next_week_day.
+ */
 export function nextWeek(now: Date): When {
   const { day } = riyadhNow(now);
-  const d = new Date(`${day}T12:00:00Z`);
+  const d = new Date(`${nextWorkingDay(day)}T12:00:00Z`);
   do d.setUTCDate(d.getUTCDate() + 1);
   while (d.getUTCDay() !== 0);
   return { day: d.toISOString().slice(0, 10), time: MORNING };
