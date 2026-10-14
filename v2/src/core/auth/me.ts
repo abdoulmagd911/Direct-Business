@@ -1,6 +1,8 @@
 // "Who am I" (A5): the shape api.me() answers in. The (app) gate asks before anything is drawn; screens read it through
 // useMe() (me-context.tsx). Levels and capabilities come from the database — the browser never decides access (A12).
 
+import type { StoredTheme } from '@/core/prefs';
+
 export type Level = 'none' | 'view' | 'own' | 'full';
 
 export interface MePerson {
@@ -25,7 +27,7 @@ export interface MeProfile {
   avatar_color: string | null;
   badge_kind: 'none' | 'icon';
   badge_value: string | null;
-  theme: 'light' | 'dark' | 'colorful' | 'direct' | null;
+  theme: StoredTheme | null;
   density: 'comfortable' | 'compact' | null;
   locale: 'en' | 'ar' | null;
   start_page: string | null;

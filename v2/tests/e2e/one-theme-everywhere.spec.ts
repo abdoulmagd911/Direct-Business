@@ -77,5 +77,5 @@ test('with no profile theme the admin default stands, the same in two tabs', asy
   await tab2.goto('/my-day');
   await hydrated(tab2);
   expect(await theme(tab2)).toBe(first);
-  expect(first, 'the registry default is the Direct theme').toBe('direct');
+  expect(first, 'the admin default is Light (V636, owner 14 Oct)').toBe('light');
 });

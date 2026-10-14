@@ -7,15 +7,14 @@ import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { DENSITIES, DIRS, PREF_DEFS, readPrefs, setPref } from '@/core/prefs';
+import { DENSITIES, DIRS, PREF_DEFS, THEMES, readPrefs, readTheme, setPref } from '@/core/prefs';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { NOTIFICATION_KINDS, WORK_NOTIFICATION_KINDS } from '@/modules/settings/module';
-import { Avatar, type AvatarColor } from '@/ui/Avatar';
+import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { changePassword, type PasswordError } from '@/core/auth/password-actions';
 import { MIN_PASSWORD } from '@/core/auth/password-rules';
 import { StatusChip } from '@/ui/Chip';
-import { cn } from '@/ui/cn';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
@@ -40,7 +39,6 @@ type Changes = Partial<
     Profile,
     | 'display_name_en'
     | 'display_name_ar'
-    | 'avatar_color'
     | 'badge_kind'
     | 'badge_value'
     | 'theme'
@@ -50,8 +48,6 @@ type Changes = Partial<
     | 'drawer_pinned'
   > & { full_name_en: string; full_name_ar: string | null; nickname_en: string | null; nickname_ar: string | null }
 > & { notify?: Record<string, { in_app: boolean }> };
-
-const COLOURS: AvatarColor[] = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
 
 /**
  * My profile (V9, V97; artboard 7): everyone's own page, from the profile chip. Profile (initials in a colour, names,
@@ -95,7 +91,7 @@ export function MyProfile({
   useEffect(() => {
     const before = readPrefs();
     // the cookies are a cache of the profile, never a choice of this browser (one source, the same in every tab)
-    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default, { cache: true });
+    setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default, { cache: true });
     setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });
     setPref('locale', me.profile?.locale ?? PREF_DEFS.locale.default);
     if (me.profile?.drawer_pinned !== null && me.profile?.drawer_pinned !== undefined)
@@ -156,7 +152,7 @@ export function MyProfile({
           };
           return { person: nextPerson, profile: nextProfile, personVersion: r?.person_version ?? s.personVersion };
         });
-        if (changes.theme) setPref('theme', changes.theme, { cache: true });
+        if (changes.theme) setPref('theme', readTheme(changes.theme) ?? PREF_DEFS.theme.default, { cache: true });
         if (changes.density) setPref('density', changes.density, { cache: true });
         if (changes.locale) setPref('locale', changes.locale);
         if (changes.drawer_pinned !== undefined) setPref('drawer', changes.drawer_pinned ? 'pinned' : 'collapsed');
@@ -193,6 +189,8 @@ export function MyProfile({
 
   const notify = (state.profile?.notify as Record<string, { in_app?: boolean }> | null) ?? {};
   const density = state.profile?.density ?? 'comfortable';
+  // a profile saved while Colorful was offered reads as Light (V636); with none saved, what the screen shows now
+  const theme = readTheme(state.profile?.theme) ?? prefs.theme;
   // a work-tier person sees the five that are about their own work; Manager, Head and Admin see every kind (V217)
   const notifyKinds = isManageTier(me) ? NOTIFICATION_KINDS : WORK_NOTIFICATION_KINDS;
 
@@ -201,30 +199,7 @@ export function MyProfile({
       <PageHeader title={t('profile.title')} />
 
       <Section title={t('profile.sections.profile')} data-profile-card="profile">
-        <div className="flex items-center gap-5">
-          <Avatar person={person} size="2xl" />
-          <div className="flex min-w-0 flex-col gap-2">
-            <span className="text-sm text-muted">{t('profile.colour')}</span>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('profile.colour')}>
-              {COLOURS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  role="radio"
-                  aria-checked={person.avatarColor === c}
-                  aria-label={t(`profile.colours.${c}`)}
-                  onClick={() => void save({ avatar_color: c })}
-                  className={cn(
-                    'size-11 rounded-pill focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:size-8',
-                    person.avatarColor === c && 'ring-2 ring-text ring-offset-2 ring-offset-raised',
-                  )}
-                  style={{ background: `var(--${c})` }}
-                  data-colour={c}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <Avatar person={person} size="2xl" />
         <div className="grid gap-4 sm:grid-cols-2">
           {/* the full name and the nickname are edited by admins on the person's record (V217, cut 6) */}
           <TextField
@@ -244,6 +219,16 @@ export function MyProfile({
 
       <Section title={t('profile.sections.preferences')} data-profile-card="preferences">
         <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t('profile.theme')}>
+            {(p) => (
+              <Select
+                {...p}
+                value={theme}
+                onValueChange={(v) => void save({ theme: v as Profile['theme'] })}
+                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}
+              />
+            )}
+          </Field>
           <Field label={t('profile.density')}>
             {(p) => (
               <Select

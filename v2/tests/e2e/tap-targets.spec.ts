@@ -1,8 +1,7 @@
 /**
  * QA3-004 to 006 and W41 — tap size on a phone (V630). Every control a finger meets is 44 px: the top bar's search, the
- * rows of the Ctrl K palette, the bell's tabs and the colour swatches on My profile. On a wide screen the same controls
- * keep their compact size. At 375 and 1,440 px; the swatch row also checked at 320 px for sideways scroll. Every value is
- * made up.
+ * rows of the Ctrl K palette and the bell's tabs (the colour swatches that stood on My profile are gone, V636). On a wide
+ * screen the same controls keep their compact size. At 375 and 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { makePerson, signIn } from './support/stack';
@@ -42,35 +41,6 @@ for (const width of [375, 1440]) {
     if (phone) {
       expect(Math.min(...tabW), 'every bell tab is 44 px wide').toBeGreaterThanOrEqual(43.5);
       expect(Math.min(...tabH), 'and 44 px high').toBeGreaterThanOrEqual(43.5);
-    }
-  });
-}
-
-for (const width of [375, 320, 1440]) {
-  const phone = width < 700;
-  test(`the colour swatches on My profile are ${phone ? '44 px and do not scroll sideways' : 'compact'} — at ${width} px`, async ({
-    page,
-  }) => {
-    const me = await makePerson({ admin: true });
-    await page.setViewportSize({ width, height: phone ? 800 : 1000 });
-    await signIn(page, me.email, '/profile');
-    await hydrated(page);
-    await expect(page.locator('[data-colour]').first()).toBeVisible();
-    const h = await heights(page, '[data-colour]');
-    const w = await widths(page, '[data-colour]');
-    expect(h.length, 'six colours').toBe(6);
-    if (phone) {
-      expect(Math.min(...h, ...w), 'each swatch is a 44 px target').toBeGreaterThanOrEqual(43.5);
-      const overflow = await page.evaluate(() => ({
-        page: document.documentElement.scrollWidth - window.innerWidth,
-        swatches: Math.max(
-          ...Array.from(document.querySelectorAll('[data-colour]')).map((e) => e.getBoundingClientRect().right),
-        ),
-      }));
-      expect(overflow.page, 'and the page does not scroll sideways').toBeLessThanOrEqual(0);
-      expect(overflow.swatches, 'every swatch is inside the screen').toBeLessThanOrEqual(width);
-    } else {
-      expect(Math.max(...h, ...w), 'on a wide screen the swatches keep their size').toBeLessThanOrEqual(33);
     }
   });
 }

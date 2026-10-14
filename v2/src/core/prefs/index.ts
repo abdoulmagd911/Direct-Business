@@ -5,8 +5,16 @@
  * no flash of the wrong theme. Once "My profile" lands (P3-5) the person's profile is the source of truth
  * and these cookies are its cache.
  */
-export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;
+/** The themes a person can pick (V636, owner 14 Oct): Colorful is no longer offered. */
+export const THEMES = ['light', 'dark', 'direct'] as const;
 export type Theme = (typeof THEMES)[number];
+/**
+ * A theme as the database may still hold it: a profile saved while Colorful was offered reads as Light (V636). A read
+ * rule, so no stored value is rewritten and nothing needs undoing.
+ */
+export type StoredTheme = Theme | 'colorful';
+export const readTheme = (stored: string | null | undefined): Theme | null =>
+  stored === 'colorful' ? 'light' : (THEMES.find((t) => t === stored) ?? null);
 export const DENSITIES = ['comfortable', 'compact'] as const;
 export type Density = (typeof DENSITIES)[number];
 export const DRAWER_STATES = ['pinned', 'collapsed'] as const;
@@ -25,11 +33,11 @@ export type Prefs = {
   dir: DirOverride;
 };
 
-/** The allow-list: nothing else may be stored. Default theme is Direct (OPEN-QUESTIONS Q32, recommended). */
+/** The allow-list: nothing else may be stored. Default theme is Light (V636, owner 14 Oct; it was Direct under Q32). */
 export const PREF_DEFS: {
   [K in keyof Prefs]: { cookie: string; values: readonly Prefs[K][]; default: Prefs[K] };
 } = {
-  theme: { cookie: 'v2.theme', values: THEMES, default: 'direct' },
+  theme: { cookie: 'v2.theme', values: THEMES, default: 'light' },
   density: { cookie: 'v2.density', values: DENSITIES, default: 'comfortable' },
   drawer: { cookie: 'v2.drawer', values: DRAWER_STATES, default: 'pinned' },
   locale: { cookie: 'v2.locale', values: LOCALES, default: 'en' },
