@@ -157,11 +157,13 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const after = await state();
   const by = (n: string) => after.find((r) => r.number === n)!;
   expect(by(late).closed, 'Done closes it').toBe(true);
-  const [days] = await sql<{ tomorrow: string; today: string }>(
-    `select core.next_working_day(core.riyadh_today())::text as tomorrow, core.riyadh_today()::text as today`,
+  const [days] = await sql<{ tomorrow: string; today: string; next_week: string }>(
+    `select core.next_working_day(core.riyadh_today())::text as tomorrow, core.riyadh_today()::text as today,
+            my.next_week_day(core.riyadh_today())::text as next_week`,
   );
   expect(by(due).due_on, 'Tomorrow is the next working day').toBe(days!.tomorrow);
-  expect(by(third).due_on > days!.tomorrow, 'Next week is later still').toBe(true);
+  // on a Thursday the next working day is already next week's first, so the two land on the same Sunday
+  expect(by(third).due_on, "Next week is next week's first working day").toBe(days!.next_week);
 
   await toast(page, 'Day wrapped up').getByRole('button', { name: 'Undo' }).click();
   await expect
