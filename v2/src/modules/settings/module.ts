@@ -84,6 +84,8 @@ export default defineModule({
     { key: 'saved_view', table: 'core.saved_view', page: null, label: 'entity.saved_view', owners: 'owner_id' },
     // Files and notes belong to whatever record they are linked to: seen and changed as it allows (V150, V152).
     { key: 'file_kind', table: 'core.file_kind', page: 'settings.app', label: 'entity.file_kind', list: true },
+    // The SOP and SLA links to Drive, shown under Documents in the profile menu (V435).
+    { key: 'doc_link', table: 'core.doc_link', page: 'settings.app', label: 'entity.doc_link', list: true },
     {
       key: 'file',
       table: 'core.file',

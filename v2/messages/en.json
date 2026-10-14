@@ -135,7 +135,8 @@
     "direction": "Direction (development)",
     "signOut": "Sign out",
     "myProfile": "My profile",
-    "recentlyDeleted": "Recently deleted"
+    "recentlyDeleted": "Recently deleted",
+    "documents": "Documents"
   },
   "theme": {
     "light": "Light",
@@ -905,7 +906,8 @@
     "import_map": "Import column",
     "item_service": "Item service",
     "item_class": "Item class",
-    "my_carry": "Wrap-up move"
+    "my_carry": "Wrap-up move",
+    "doc_link": "Document link"
   },
   "status": {
     "done": "Done",
@@ -1343,8 +1345,16 @@
         "status": {
           "at_risk": "At risk",
           "lost": "Lost"
+        },
+        "kind": {
+          "sop": "SOP",
+          "sla": "SLA",
+          "other": "Other"
         }
-      }
+      },
+      "link": "Link",
+      "linkInvalid": "Use a full address starting with https://",
+      "kind": "Kind"
     },
     "people": {
       "add": "Add person",

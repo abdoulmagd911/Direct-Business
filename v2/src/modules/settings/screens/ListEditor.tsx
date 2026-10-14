@@ -24,16 +24,24 @@ export type ListEntry = {
   [column: string]: unknown;
 };
 
-type Draft = { key: string; name_en: string; name_ar: string; sort: string; extra: string };
+type Draft = { key: string; name_en: string; name_ar: string; sort: string; extra: string; link: string };
+
+/** The one list whose entries carry a link to Drive (V435): it is typed here, never seeded, and must be a secure address. */
+const LINK_LIST = 'doc_link';
+const linkOk = (v: string) => /^https:\/\/\S+$/.test(v.trim());
 
 /**
  * The lists whose entries belong to one side or one status (QA-176, QA-177): the column shows it, the rows group by
  * it, and Add entry asks for it (a status reason without its status is refused — `list.invalid: status`, #129).
  */
-const EXTRA: Record<string, { col: 'side' | 'status'; options: readonly string[]; label: (v: string) => string }> = {
+const EXTRA: Record<
+  string,
+  { col: 'side' | 'status' | 'kind'; options: readonly string[]; label: (v: string) => string }
+> = {
   side_type: { col: 'side', options: ['client', 'supplier_partner'], label: (v) => `settings.list.values.side.${v}` },
   side_tier: { col: 'side', options: ['client', 'supplier_partner'], label: (v) => `settings.list.values.side.${v}` },
   side_status_reason: { col: 'status', options: ['at_risk', 'lost'], label: (v) => `settings.list.values.status.${v}` },
+  doc_link: { col: 'kind', options: ['sop', 'sla', 'other'], label: (v) => `settings.list.values.kind.${v}` },
 };
 
 /**
@@ -48,8 +56,9 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
   const [editing, setEditing] = useState<ListEntry | 'new' | null>(null);
-  const [draft, setDraft] = useState<Draft>({ key: '', name_en: '', name_ar: '', sort: '', extra: '' });
+  const [draft, setDraft] = useState<Draft>({ key: '', name_en: '', name_ar: '', sort: '', extra: '', link: '' });
   const extra = EXTRA[entity];
+  const hasLink = entity === LINK_LIST;
   const extraOf = (r: ListEntry) => (extra ? String(r[extra.col] ?? '') : '');
   const extraWord = (v: string) => (extra && v && t.has(extra.label(v)) ? t(extra.label(v)) : v || '—');
   const [reason, setReason] = useState('');
@@ -77,8 +86,15 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   const startEdit = (r: ListEntry | 'new') => {
     setDraft(
       r === 'new'
-        ? { key: '', name_en: '', name_ar: '', sort: String(rows.length + 1), extra: '' }
-        : { key: r.key, name_en: r.name_en, name_ar: r.name_ar ?? '', sort: String(r.sort ?? ''), extra: extraOf(r) },
+        ? { key: '', name_en: '', name_ar: '', sort: String(rows.length + 1), extra: '', link: '' }
+        : {
+            key: r.key,
+            name_en: r.name_en,
+            name_ar: r.name_ar ?? '',
+            sort: String(r.sort ?? ''),
+            extra: extraOf(r),
+            link: String(r.link ?? ''),
+          },
     );
     setReason('');
     setEditing(r);
@@ -97,7 +113,8 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     keyOf().length > 0 &&
     draft.name_en.trim().length > 0 &&
     draft.name_ar.trim().length > 0 &&
-    (!extra || editing !== 'new' || !!draft.extra);
+    (!extra || editing !== 'new' || !!draft.extra) &&
+    (!hasLink || linkOk(draft.link));
   const save = async () => {
     if (editing === null) return;
     setBusy(true);
@@ -105,6 +122,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
       name_en: draft.name_en.trim(),
       name_ar: draft.name_ar.trim(),
       sort: draft.sort === '' ? null : Number(draft.sort),
+      ...(hasLink ? { link: draft.link.trim() } : {}),
     };
     // An edit sends only what changed (the old app's lesson: an untouched Save changes nothing, and the version is
     // checked per field it is asked to write); a new entry sends everything with its key.
@@ -336,6 +354,24 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               />
             )}
           </Field>
+          {hasLink ? (
+            <Field
+              label={t('settings.list.link')}
+              error={draft.link && !linkOk(draft.link) ? t('settings.list.linkInvalid') : undefined}
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  type="url"
+                  dir="ltr"
+                  value={draft.link}
+                  onChange={(e) => setDraft({ ...draft, link: e.target.value })}
+                  className="font-data"
+                  data-list-link
+                />
+              )}
+            </Field>
+          ) : null}
           <details className="rounded-md border border-border px-3 py-2" data-list-details>
             <summary className="cursor-pointer text-sm font-medium">{t('record.details')}</summary>
             <div className="mt-3 flex flex-col gap-4">
