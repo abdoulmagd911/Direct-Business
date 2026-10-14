@@ -839,14 +839,20 @@ export const sabotages = [
   },
 
   {
-    name: 'prefsync-copies-the-default-as-a-choice',
+    name: 'theme-served-from-the-cookie-not-the-profile',
     breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
-    expect: 'the profile still wins over what was copied',
+    expect: 'Expected: "dark"',
     edits: [
+      // the server renders the browser's cookie instead of the profile, and nothing brings the cookie in line
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "theme: own('theme') ? raw.theme : eff.theme,",
+        replace: 'theme: raw.theme,',
+      },
       {
         file: 'src/ui/shell/PrefsSync.tsx',
-        find: "setPref('theme', theme, { cache: true });",
-        replace: "setPref('theme', theme);",
+        find: "if (now.theme !== theme) setPref('theme', theme, { cache: true });",
+        replace: '',
       },
     ],
   },
