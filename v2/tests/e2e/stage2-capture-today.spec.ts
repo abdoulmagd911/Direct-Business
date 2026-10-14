@@ -115,6 +115,8 @@ test('a follow-up on a client shows in Today as "Follow up: <client>"', async ({
     p_entity: 'partner',
     p_id: (client.body as { id: string }).id,
     p_due_on: new Date(Date.now() + 3 * 3_600_000).toISOString().slice(0, 10),
+    p_assignee: null,
+    p_title: null,
   });
   expect(f.status, JSON.stringify(f.body)).toBe(200);
   await page.reload();
