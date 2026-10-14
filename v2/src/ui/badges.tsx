@@ -12,19 +12,3 @@ export const BADGE_ICONS: Record<string, ComponentType<LucideProps>> = {
   palm: Palmtree,
   anchor: Anchor,
 };
-
-/** The 12 zodiac signs (kind 'zodiac'), shown as their glyph. */
-export const ZODIAC: Record<string, string> = {
-  aries: '♈',
-  taurus: '♉',
-  gemini: '♊',
-  cancer: '♋',
-  leo: '♌',
-  virgo: '♍',
-  libra: '♎',
-  scorpio: '♏',
-  sagittarius: '♐',
-  capricorn: '♑',
-  aquarius: '♒',
-  pisces: '♓',
-};
