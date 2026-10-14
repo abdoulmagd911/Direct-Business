@@ -74,3 +74,35 @@ for (const width of [375, 320, 1440]) {
     }
   });
 }
+
+test('the + clears the last row on every page and the list searches are 44 px — at 375 px', async ({ page }) => {
+  test.setTimeout(120_000);
+  const me = await makePerson({ admin: true });
+  await page.setViewportSize({ width: 375, height: 667 });
+  await signIn(page, me.email, '/my-day');
+  await hydrated(page);
+  for (const path of ['/my-day', '/tasks', '/clients', '/suppliers', '/finance', '/kpis', '/profile']) {
+    await page.goto(path);
+    await hydrated(page);
+    const gap = await page.evaluate(() => {
+      const main = document.querySelector('#main [class*="overflow-y-auto"]') as HTMLElement | null;
+      const plus = document.querySelector('[data-create-floating]') as HTMLElement | null;
+      if (!main || !plus) return null;
+      main.scrollTop = main.scrollHeight;
+      const last = main.lastElementChild as HTMLElement;
+      return Math.round(plus.getBoundingClientRect().top - last.getBoundingClientRect().bottom);
+    });
+    expect(gap, `${path}: the + and the scrolling page area are there`).not.toBeNull();
+    expect(gap, `${path}: the last row ends above the floating +`).toBeGreaterThanOrEqual(8);
+  }
+  // the list searches live behind the Filter button on a phone: 44 px each
+  for (const path of ['/clients', '/suppliers', '/tasks']) {
+    await page.goto(path);
+    await hydrated(page);
+    await page.locator('[data-filter-toggle]').click();
+    const input = page.locator('[data-filter-panel] input').first();
+    await expect(input, `${path}: the search box is there`).toBeVisible();
+    const h = (await input.boundingBox())!.height;
+    expect(h, `${path}: the search box is a 44 px target`).toBeGreaterThanOrEqual(43.5);
+  }
+});

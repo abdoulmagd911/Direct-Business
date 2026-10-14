@@ -54,4 +54,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'the-plus-covers-the-last-row',
+    breaks: [E2E],
+    expect: 'the + clears the last row on every page',
+    edits: [
+      {
+        file: 'src/ui/shell/AppShell.tsx',
+        find: 'overflow-y-auto px-4 pb-40 pt-6',
+        replace: 'overflow-y-auto px-4 pb-16 pt-6',
+      },
+    ],
+  },
+  {
+    name: 'client-search-is-36-on-a-phone',
+    breaks: [E2E],
+    expect: 'the + clears the last row on every page',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'className="h-[var(--control-h-sm)] w-[220px]"',
+        replace: 'className="h-9 w-[220px]"',
+      },
+    ],
+  },
 ];
