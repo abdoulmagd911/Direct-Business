@@ -2,8 +2,9 @@
  * The menu rule (V238, replacing V217's work/manage tiers): a page is in the menu where the person's access opens it
  * (any level above none), whatever their role, and nowhere else; Suppliers is a tab of Clients, never an entry while
  * Clients is open; Settings is the admin's alone, at the foot; the phone bar is the first four and More, with no More for
- * a Viewer whose four fill it. Ctrl K's pages are the same list. Every person and level is made up.
- * Sabotage: tests/sabotage/nav-access.mjs "menu-ignores-the-access-list".
+ * a Viewer whose four fill it. Ctrl K's pages are the same list. A page whose screen is not built (Overview, Pipeline,
+ * Projects, Reports, Appraisal today) is in none of them, for any role (QA3-002). Every person and level is made up.
+ * Sabotage: tests/sabotage/nav-access.mjs "menu-ignores-the-access-list", "menu-shows-unbuilt-pages".
  */
 import { describe, expect, it } from 'vitest';
 import type { Me } from '../../../src/core/auth/me';
@@ -30,7 +31,7 @@ const keys = (m: Me) => navFor(m).map((e) => e.page);
 describe('the menu (V238)', () => {
   it('shows a member every page their access opens, in order — Finance and KPIs included', () => {
     const member = me('member', everywhere('own', { pipeline: 'none', overview: 'none', activity: 'none' }));
-    expect(keys(member)).toEqual(['my_day', 'tasks', 'clients', 'projects', 'finance', 'kpis', 'reports', 'appraisal']);
+    expect(keys(member)).toEqual(['my_day', 'tasks', 'clients', 'finance', 'kpis']);
   });
 
   it('shows no page the access closes, whatever the role', () => {
@@ -38,29 +39,36 @@ describe('the menu (V238)', () => {
     expect(keys(me('head', closed))).not.toContain('finance');
     expect(keys(me('head', closed))).not.toContain('kpis');
     expect(keys(me('head', closed))).not.toContain('pipeline');
-    expect(keys(me('head', closed))).toContain('projects');
+    expect(keys(me('head', closed))).toContain('tasks');
   });
 
-  it('follows the level, not the role: a member with Pipeline gets it, a head without it does not', () => {
-    expect(keys(me('member', everywhere('own', { overview: 'none', activity: 'none' })))).toContain('pipeline');
-    expect(keys(me('head', everywhere('full', { pipeline: 'none' })))).not.toContain('pipeline');
+  it('follows the level, not the role: a member with Activity gets it, a head without it does not', () => {
+    expect(keys(me('member', everywhere('own', { activity: 'view' })))).toContain('activity');
+    expect(keys(me('head', everywhere('full', { activity: 'none' })))).not.toContain('activity');
   });
 
-  it('shows Overview and Activity to anyone whose access opens them', () => {
+  it('shows Activity to anyone whose access opens it', () => {
     const levels = everywhere('full', { overview: 'view', activity: 'view' });
-    expect(keys(me('manager', levels))).toEqual([
-      'my_day',
-      'tasks',
-      'clients',
-      'pipeline',
-      'overview',
-      'projects',
-      'finance',
-      'kpis',
-      'reports',
-      'appraisal',
-      'activity',
-    ]);
+    expect(keys(me('manager', levels))).toEqual(['my_day', 'tasks', 'clients', 'finance', 'kpis', 'activity']);
+  });
+
+  it('never shows a page whose screen is not built, to any role, in the menu, the bar, More or Ctrl K (QA3-002)', () => {
+    const unbuilt = ['overview', 'pipeline', 'projects', 'reports', 'appraisal'];
+    for (const [role, admin] of [
+      ['admin', true],
+      ['head', false],
+      ['manager', false],
+      ['member', false],
+      ['viewer', false],
+    ] as const) {
+      const m = me(role, everywhere('full'), admin);
+      const { bar, rest } = barFor(m);
+      for (const list of [navFor(m), menuFor(m), [...bar, ...rest], reachableFor(m)])
+        expect(
+          list.map((e) => e.page).filter((p) => unbuilt.includes(p)),
+          role,
+        ).toEqual([]);
+    }
   });
 
   it('puts Settings at the foot for an admin and nowhere else', () => {
@@ -76,9 +84,9 @@ describe('the menu (V238)', () => {
       'viewer',
       everywhere('view', { tasks: 'none', pipeline: 'none', appraisal: 'none', overview: 'none' }),
     );
-    expect(keys(viewer)).toEqual(['my_day', 'clients', 'projects', 'finance', 'kpis', 'reports', 'activity']);
+    expect(keys(viewer)).toEqual(['my_day', 'clients', 'finance', 'kpis', 'activity']);
     expect(barFor(viewer).more).toBe(true);
-    const small = me('viewer', everywhere('none', { my_day: 'view', clients: 'view', kpis: 'view', reports: 'view' }));
+    const small = me('viewer', everywhere('none', { my_day: 'view', clients: 'view', finance: 'view', kpis: 'view' }));
     expect(barFor(small)).toMatchObject({ rest: [], more: false });
   });
 

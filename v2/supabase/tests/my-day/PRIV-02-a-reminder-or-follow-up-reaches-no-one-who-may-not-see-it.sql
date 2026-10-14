@@ -1,10 +1,9 @@
 -- PRIV-02 — Stage 2 keeps V454 (V632): a private reminder is its person's alone, admins included — not in another's
 -- reminders_due, not movable by them, not readable through the bell's live read rule (each person reads only their own
--- notifications) — and a follow-up reveals no record: one on a record its maker cannot see is not found, one for an
--- assignee who cannot see it is refused, and a record's list of follow-ups is closed to whoever cannot see the record.
+-- notifications) — and a follow-up, a note about a record, reveals no record: one on a record its author cannot see is
+-- not found, and a note shared with the team shows its record only to those who may see it.
 -- Every value is made up; the day is the one after the database is built (see NOTE-06).
--- Sabotages: supabase/tests/sabotage/a-follow-up-reveals-an-invoice.sql, the-bell-reads-everyones-notifications.sql,
--- a-follow-up-is-titled-by-its-record.sql.
+-- Sabotages: supabase/tests/sabotage/the-bell-reads-everyones-notifications.sql, a-note-reveals-its-record.sql.
 select set_config('t.d1', (current_date + 1)::text, true);
 select set_config('v2.test_now', current_setting('t.d1') || ' 09:00:00+03', true);
 select set_config('t.am', test.person('Test Quiet Member', 'member')::text, true);
@@ -37,35 +36,32 @@ select test.as_person(current_setting('t.am')::uuid);
 select test.eq((select count(*)::int from notify.notification where entity_id = current_setting('t.r')::uuid), 1,
   'its person reads their own alert live');
 
--- a follow-up reveals no record: an invoice (Finance) a member cannot see
+-- a follow-up is a note about a record, and the record shows only to whoever may see it: an invoice (Finance) a
+-- member cannot see
 select test.as_owner();
 insert into finance.invoice (ref, kind, status_raw, status_id, created_on, total_sar, source, created_by)
 values ('MN-7001', 'standalone', 'Draft', (select id from finance.status_map where key = 'draft'), current_setting('t.d1')::date, 40,
         'manual', current_setting('t.admin')::uuid);
 select set_config('t.inv', (select id from finance.invoice where ref = 'MN-7001')::text, true);
-select test.as_person(current_setting('t.am')::uuid);
-select test.raises(format('select api.follow_up(%L, %L, %L)', 'invoice', current_setting('t.inv'), current_setting('t.d1')),
-  'P0002', 'a follow-up on an invoice its maker cannot see is not found', 'common.not_found');
-select test.raises(format('select api.follow_ups(%L, %L)', 'invoice', current_setting('t.inv')),
-  'P0002', 'nor is its list of follow-ups', 'common.not_found');
-select test.as_person(current_setting('t.admin')::uuid);
-select test.raises(format('select api.follow_up(%L, %L, %L, %L)', 'invoice', current_setting('t.inv'), current_setting('t.d1'),
-  current_setting('t.am')), 'P0001', 'an assignee who cannot see the invoice is refused', 'follow_up.assignee_cannot_see');
-select test.eq(jsonb_array_length(api.follow_ups('invoice', current_setting('t.inv')::uuid)), 0,
-  'and nothing was made');
-
--- QA-558: a colleague's follow-up on that invoice reaches me as a task of my department (V96), but nothing of the
--- invoice comes with it — its title is a neutral Follow-up and its record shows only to those who may see it
-select test.as_owner();
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_quiet', 'Test Quiet Desk', 'فريق الهدوء');
 update core.person set team_id = (select id from core.team where code = 'test_quiet')
 where id in (current_setting('t.am')::uuid, current_setting('t.am2')::uuid);
-select test.as_person(current_setting('t.am2')::uuid);
-select set_config('t.fu', api.follow_up('invoice', current_setting('t.inv')::uuid, current_setting('t.d1')::date) ->> 'id', true);
+
 select test.as_person(current_setting('t.am')::uuid);
-select set_config('t.seen', api.tasks()::text || api.task(current_setting('t.fu')::uuid)::text || api.my_day('team')::text, true);
-select test.ok(position(current_setting('t.fu') in api.tasks()::text) > 0,
-  'my department''s list shows the colleague''s follow-up');
-select test.ok(position('MN-7001' in current_setting('t.seen')) = 0,
-  'but a colleague who cannot see the invoice reads nothing of it — not in Tasks, not on the task, not on My team');
+select test.raises(format('select api.note_capture(%L, %L::jsonb)', 'reminder', jsonb_build_object('title', 'Made-up chase',
+  'remind_at', current_setting('t.d1') || 'T15:00:00+03:00', 'about', jsonb_build_object('entity', 'invoice', 'id', current_setting('t.inv')))),
+  'P0002', 'a follow-up on an invoice its author cannot see is not found', 'common.not_found');
+
+-- a colleague shares a note about the invoice with the team: I see the note, and nothing of the invoice
+select test.as_person(current_setting('t.am2')::uuid);
+select set_config('t.shared', api.note_capture('sticky', jsonb_build_object('title', 'Made-up chase the payment',
+  'visibility', 'team', 'about', jsonb_build_object('entity', 'invoice', 'id', current_setting('t.inv')))) ->> 'id', true);
+select test.eq(api.my_note(current_setting('t.shared')::uuid) -> 'about' ->> 'label', 'MN-7001',
+  'its author sees what it is about');
+select test.as_person(current_setting('t.am')::uuid);
+select set_config('t.seen', api.my_day('team')::text || api.my_note(current_setting('t.shared')::uuid)::text, true);
+select test.ok(position('Made-up chase the payment' in current_setting('t.seen')) > 0, 'a teammate sees the shared note');
+select test.ok(position('MN-7001' in current_setting('t.seen')) = 0
+               and api.my_note(current_setting('t.shared')::uuid) -> 'about' = 'null'::jsonb,
+  'but a teammate who cannot see the invoice reads nothing of it');

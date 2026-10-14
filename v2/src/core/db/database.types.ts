@@ -279,11 +279,6 @@ export type Database = {
       finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
-      follow_up: {
-        Args: { p_assignee?: string; p_due_on: string; p_entity: string; p_id: string; p_title?: string };
-        Returns: Json;
-      };
-      follow_ups: { Args: { p_entity: string; p_id: string }; Returns: Json };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
       hover_partner: { Args: { p_id: string }; Returns: Json };

@@ -109,7 +109,7 @@ test('phone 390: a page keeps the floating + clear of its last row, New client l
   await expect(page, 'the address no longer opens the form again').not.toHaveURL(/new=1/);
 });
 
-test('Finance and Settings are in the menu of the people whose access opens them: drawer on a desktop, More on a phone', async ({
+test('Finance and Settings are in the menu of the people whose access opens them: drawer on a desktop, the bar or More on a phone', async ({
   page,
 }) => {
   const links = async (sel: string) => page.locator(sel).evaluateAll((els) => els.map((e) => e.getAttribute('href')));
@@ -137,12 +137,16 @@ test('Finance and Settings are in the menu of the people whose access opens them
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/my-day');
     await hydrated(page);
+    // the bar is the menu's first four and More the rest: Finance may sit in either (QA3-002 left fewer entries)
+    const bar = await links('[data-bottom-bar] a');
     const more = page.locator('[data-bottom-more]');
     if (finance || settings) {
       await more.click();
-      const sheet = await links('[data-more-sheet] a');
-      expect(sheet.includes('/finance'), `More carries Finance for ${who.name}: ${finance}`).toBe(finance);
-      expect(sheet.includes('/settings'), `More carries Settings for ${who.name}: ${settings}`).toBe(settings);
+      const phone = [...bar, ...(await links('[data-more-sheet] a'))];
+      expect(phone.includes('/finance'), `the bar or More carries Finance for ${who.name}: ${finance}`).toBe(finance);
+      expect(phone.includes('/settings'), `the bar or More carries Settings for ${who.name}: ${settings}`).toBe(
+        settings,
+      );
     }
   }
 });
