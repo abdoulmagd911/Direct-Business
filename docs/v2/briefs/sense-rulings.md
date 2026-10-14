@@ -48,3 +48,10 @@ Builder A owns the wording and data items; builder B the screens; builder S the 
 | 38 | Menu and page naming in general | A page's title is the menu entry's word; a sub-page is a tab with its own word. The sweep (item 10) checks every menu entry against its page title | QA 1, design |
 
 Stage 2 boards, with the alert and time chips already redrawn: `v2/design-stage2` (docs/v2/briefs/my-day-stage2.md).
+
+## Revised the night of 14 Oct, after the Architect's rulings in BUILD-PLAN "Daily use" (#260)
+Not re-ruled, and I agree with each: the profile shown once (the avatar menu), one add control per width (Create on a wide screen, + on a phone, My day's Capture button goes), the menu word **Achievements**, one name **Weekly review**.
+Two consequences for my list: item 33 now reads "the menu entry and the page are both **Achievements**; the KPIs are a tab inside it" (the rule that one word names the menu entry and its page is unchanged); item 35 is now exactly the Architect's ruling.
+- **Top bar (item 1), the final form.** Search at the start, 440 px wide on a wide screen. At the far end, in this order: **Create, bell, the avatar menu**. The avatar menu is the one place the person's name and profile appear: avatar and first name from 1,024 px up, the avatar alone below that. At 375 px: Search icon, gap, bell, avatar (no Create; the + is Create). Arabic mirrors the whole bar with logical start and end. The gap between Search and the group is the fix for "search next to the badge".
+- **Drawer (item 2), the final form.** Pin is removed. The one control is **Collapse** (a chevron and the word when the drawer is open) and **Expand** (the chevron alone, with its tooltip, in the collapsed rail). It sits at the drawer's bottom, which now holds nothing else because the profile moved to the avatar menu. Pinned means open and its width is reserved; collapsed is the rail that opens on hover. The stored `drawer_pinned` preference is unchanged.
+- **The Direct theme values (V636)** are in `direct-theme.md` in the same folder.
