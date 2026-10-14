@@ -279,6 +279,11 @@ export type Database = {
       finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
+      follow_up: {
+        Args: { p_assignee?: string; p_due_on: string; p_entity: string; p_id: string; p_title?: string };
+        Returns: Json;
+      };
+      follow_ups: { Args: { p_entity: string; p_id: string }; Returns: Json };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };
       hover_partner: { Args: { p_id: string }; Returns: Json };
@@ -468,6 +473,8 @@ export type Database = {
         Returns: Json;
       };
       references_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      reminder_move: { Args: { p_at: string; p_id: string }; Returns: Json };
+      reminders_due: { Args: Record<PropertyKey, never>; Returns: Json };
       reminders_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       restore: { Args: { p_entity: string; p_id: string; p_reason?: string }; Returns: Json };
       restore_ticketed: {
@@ -570,6 +577,8 @@ export type Database = {
       };
       views: { Args: { p_page: string }; Returns: Json };
       views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      weekly_review: { Args: { p_day?: string }; Returns: Json };
+      wrap_up: { Args: { p_items: Json }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;

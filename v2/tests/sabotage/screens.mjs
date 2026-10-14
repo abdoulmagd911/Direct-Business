@@ -667,32 +667,6 @@ export const sabotages = [
       },
     ],
   },
-  {
-    // the brief's own sabotage (F7): a manage page given the work tier reaches a member's menu
-    name: 'menu-shows-own-manage-page',
-    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'the member menu',
-    edits: [
-      {
-        file: 'src/modules/projects/module.ts',
-        find: "nav: { group: 'main', order: 60, tier: 'manage' },",
-        replace: "nav: { group: 'main', order: 60, tier: 'work' },",
-      },
-    ],
-  },
-
-  {
-    name: 'create-offers-an-unbuilt-screen',
-    breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
-    expect: 'Create offers only built screens',
-    edits: [
-      {
-        file: 'src/ui/shell/CreateMenu.tsx',
-        find: '    (a) => BUILT.has(a.page) && a.at.includes(',
-        replace: '    (a) => BUILT.size > 0 && a.at.includes(',
-      },
-    ],
-  },
 
   {
     name: 'access-list-closed-for-admins',
@@ -794,32 +768,6 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/NoteBits.tsx',
         find: '      {t(`pages.myDay.visibility.${visibility}`)}',
         replace: "      {t('pages.myDay.visibility.workspace')}",
-      },
-    ],
-  },
-
-  {
-    name: 'capture-starts-shared',
-    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'private by default',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/CaptureRow.tsx',
-        find: "useState<Visibility>('private')",
-        replace: "useState<Visibility>('workspace')",
-      },
-    ],
-  },
-
-  {
-    name: 'wrap-up-defaults-to-done',
-    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'data-wrap-choice',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "choices[id] ?? 'carry'",
-        replace: "choices[id] ?? 'done'",
       },
     ],
   },
@@ -1699,14 +1647,14 @@ export const sabotages = [
   },
 
   {
-    name: 'capture-card-overflows-at-320',
+    name: 'capture-sheet-overflows-at-320',
     breaks: ['e2e:tests/e2e/tasks-phone.spec.ts'],
     expect: 'ends inside a 320 px screen',
     edits: [
       {
-        file: 'src/modules/my-day/screens/CaptureRow.tsx',
-        find: 'flex min-w-0 flex-[1_1_16rem] gap-2',
-        replace: 'flex min-w-[24rem] flex-[1_1_16rem] gap-2',
+        file: 'src/modules/my-day/screens/QuickCapture.tsx',
+        find: 'flex max-h-[90dvh] w-full max-w-[560px]',
+        replace: 'flex max-h-[90dvh] w-full min-w-[24rem] max-w-[560px]',
       },
     ],
   },

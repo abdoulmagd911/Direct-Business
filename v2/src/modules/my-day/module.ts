@@ -10,6 +10,8 @@ export default defineModule({
       label: 'nav.my_day',
       icon: 'sun',
       nav: { group: 'main', order: 10, tier: 'work' },
+      // The screen is built: Create, the phone + and Ctrl K may offer Capture (productivity stage 1)
+      built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],
@@ -23,6 +25,16 @@ export default defineModule({
       label: 'entity.my_note',
       owners: 'person_id',
       visible: 'my.note_visible',
+      ruleOnly: true,
+    },
+    {
+      // Every wrap-up move — where an item came from and went to (Stage 1): its person's alone.
+      key: 'my_carry',
+      table: 'my.carry',
+      page: null,
+      label: 'entity.my_carry',
+      owners: 'person_id',
+      visible: 'my.carry_visible',
       ruleOnly: true,
     },
     {
