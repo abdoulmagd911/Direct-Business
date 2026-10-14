@@ -75,6 +75,21 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await sql(`update core.person set role_id = (select id from core.role where key = 'manager') where id = $1`, [
     manager.id,
   ]);
+  // The member is in a role of this test's own, starting where Member starts: the chromium and Arabic copies of this
+  // test run side by side, and on the shared Member role one copy's change and Undo landed inside the other's checks.
+  const role = `t_org_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  await sql(
+    `with r as (insert into core.role (key, name_en, name_ar, sort, is_admin)
+                values ($1, $2, $3, 990, false) returning id)
+     insert into core.role_page_level (role_id, page_key, level, created_by)
+     select r.id, l.page_key, l.level, $4 from r, core.role_page_level l
+      where l.role_id = (select id from core.role where key = 'member') and l.deleted_at is null`,
+    [role, `Test role ${role}`, `دور تجريبي ${role}`, admin.id],
+  );
+  await sql(`update core.person set role_id = (select id from core.role where key = $2) where id = $1`, [
+    member.id,
+    role,
+  ]);
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, manager.email, `/people/${member.id}`);
   await hydrated(page);
@@ -90,18 +105,22 @@ test('a manager sees no access controls; a changed starting level reaches the me
   await expect(their.locator('[data-state="no-access"]')).toBeVisible();
   await expect(their.locator('[data-drawer]').getByRole('link', { name: 'Activity' })).toHaveCount(0);
 
-  // the admin gives the member role View on Activity, with a reason
+  // the admin gives the member's role View on Activity, with a reason
   const adminCtx = await browser.newContext();
   const adminPage = await adminCtx.newPage();
   await adminPage.setViewportSize({ width: 1500, height: 1000 });
   await signIn(adminPage, admin.email, '/settings/org?tab=access');
   await hydrated(adminPage);
-  const cell = adminPage.locator('[data-access-page="activity"] [data-access-role="member"]');
+  const cell = adminPage.locator(`[data-access-page="activity"][data-access-role="${role}"]`);
   await cell.getByRole('combobox').click();
   await adminPage.getByRole('option', { name: 'View' }).click();
   await adminPage.getByRole('dialog').getByLabel('Reason').fill('Made-up reason');
   await adminPage.getByRole('dialog').locator('[data-reason-save]').click();
-  await expect(toast(adminPage, 'Access changed')).toBeVisible();
+  // The toast that names this change. It lasts 5 s, and the member's reload below can outlast that on a busy
+  // runner (the toast then leaves before Undo). The pointer resting on it pauses its timer, so its Undo waits.
+  const changed = adminPage.locator('[data-sonner-toast][data-removed="false"]', { hasText: 'Access changed' });
+  await expect(changed).toBeVisible();
+  await changed.hover();
   await their.reload();
   await their.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   await expect(their.locator('[data-state="no-access"]')).toHaveCount(0);
@@ -110,16 +129,16 @@ test('a manager sees no access controls; a changed starting level reaches the me
     their.locator('[data-drawer]').getByRole('link', { name: 'Activity' }),
     'the access opens Activity, so the menu carries it',
   ).toHaveCount(1);
-  // and back (one Undo), so the seed stays as it was for the other specs. A toast already leaving
-  // (data-removed="true") can lie over the live one, so wait for it to go and click the live one.
-  await expect(adminPage.locator('[data-sonner-toast][data-removed="true"]')).toHaveCount(0);
-  await adminPage
-    .locator('[data-sonner-toast][data-removed="false"]', { hasText: 'Access changed' })
-    .getByRole('button', { name: 'Undo', exact: true })
-    .click();
+  // and back, with one Undo on the toast that names the change
+  await changed.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(adminPage, 'Undone')).toBeVisible();
   await theirs.close();
   await adminCtx.close();
+  // the test's role leaves the access matrix
+  await sql(`update core.person set role_id = (select id from core.role where key = 'member') where id = $1`, [
+    member.id,
+  ]);
+  await sql(`update core.role set active = false where key = $1`, [role]);
 });
 
 test('a team retires with its people moved, in one change with one Undo', async ({ page }) => {
