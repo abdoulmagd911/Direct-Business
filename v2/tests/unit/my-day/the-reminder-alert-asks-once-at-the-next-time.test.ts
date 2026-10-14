@@ -43,12 +43,12 @@ describe('Snooze', () => {
       ['next_week', '2026-10-18', '09:00'],
     ]);
   });
-  it('leaves Later today out late in the working day, and Tomorrow skips the weekend', () => {
+  it('leaves Later today out late in the working day, Tomorrow skips the weekend, and Next week is the Sunday after it (QA-566)', () => {
     // Thu 15 Oct 2026, 17:30 Riyadh
     const now = at('2026-10-15T14:30:00Z');
     expect(snoozeChoices(now).map((c) => [c.key, c.when.day])).toEqual([
       ['tomorrow', '2026-10-18'],
-      ['next_week', '2026-10-18'],
+      ['next_week', '2026-10-25'],
     ]);
   });
   it('sends the Riyadh day and time as an instant at UTC+3', () => {
