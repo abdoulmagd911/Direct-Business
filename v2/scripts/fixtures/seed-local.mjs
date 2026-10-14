@@ -73,12 +73,12 @@ const admin = createClient(URL_API, KEY_SECRET, opts).auth.admin;
  */
 /** @type {Spec[]} */
 const PEOPLE = [
-  { key: 'admin', en: 'Fixture Admin', ar: 'مسؤول تجريبي', role: 'admin', title: 'Commercial director' },
-  { key: 'head', en: 'Fixture Head', ar: 'رئيس تجريبي', role: 'head', title: 'Head of sales', manager: 'admin' },
+  { key: 'admin', en: 'Omar Al-Harbi', ar: 'عمر الحربي', role: 'admin', title: 'Commercial director' },
+  { key: 'head', en: 'Layla Haddad', ar: 'ليلى حداد', role: 'head', title: 'Head of sales', manager: 'admin' },
   {
     key: 'manager',
-    en: 'Fixture Manager',
-    ar: 'مدير تجريبي',
+    en: 'Yousef Al-Qahtani',
+    ar: 'يوسف القحطاني',
     role: 'manager',
     title: 'Sales manager',
     manager: 'head',
@@ -86,8 +86,8 @@ const PEOPLE = [
   },
   {
     key: 'member1',
-    en: 'Fixture Member One',
-    ar: 'عضو تجريبي أول',
+    en: 'Sara Al-Otaibi',
+    ar: 'سارة العتيبي',
     role: 'member',
     title: 'Account manager',
     manager: 'manager',
@@ -95,40 +95,40 @@ const PEOPLE = [
   },
   {
     key: 'member2',
-    en: 'Fixture Member Two',
-    ar: 'عضو تجريبي ثان',
+    en: 'Nasser Al-Zahrani',
+    ar: 'ناصر الزهراني',
     role: 'member',
     title: 'Account manager',
     manager: 'manager',
     team: true,
   },
-  { key: 'viewer', en: 'Fixture Viewer', ar: 'مشاهد تجريبي', role: 'viewer', title: 'Analyst' },
+  { key: 'viewer', en: 'Huda Barakat', ar: 'هدى بركات', role: 'viewer', title: 'Analyst' },
   {
     key: 'admin_account',
-    en: 'Fixture Admin Account',
-    ar: 'حساب إداري تجريبي',
+    en: 'Admin Account',
+    ar: 'حساب المسؤول',
     role: 'admin',
     account: 'admin_account',
   },
   {
     key: 'test_account',
-    en: 'Fixture Test Account',
-    ar: 'حساب اختبار تجريبي',
+    en: 'Test Account',
+    ar: 'حساب الاختبار',
     role: 'member',
     account: 'test_account',
   },
   {
     key: 'switched_off',
-    en: 'Fixture Switched Off',
-    ar: 'موظف موقوف تجريبي',
+    en: 'Faisal Al-Dosari',
+    ar: 'فيصل الدوسري',
     role: 'member',
     manager: 'manager',
     canSignIn: false,
   },
   {
     key: 'departed',
-    en: 'Fixture Departed',
-    ar: 'موظف غادر تجريبي',
+    en: 'Reem Al-Shehri',
+    ar: 'ريم الشهري',
     role: 'member',
     manager: 'manager',
     leftDaysAgo: 10,
@@ -139,7 +139,7 @@ await sql(`insert into core.department (code, name_en, name_ar) values ('commerc
            on conflict (code) do nothing`);
 const [dep] = await sql(`select id from core.department where code = 'commercial'`);
 const [{ id: teamId }] = await sql(
-  `insert into core.team (department_id, code, name_en, name_ar) values ($1, 'fixture_desk', 'Fixture desk', 'مكتب تجريبي')
+  `insert into core.team (department_id, code, name_en, name_ar) values ($1, 'fixture_desk', 'Sales desk', 'مكتب المبيعات')
    returning id`,
   [dep.id],
 );
@@ -209,63 +209,185 @@ async function api(/** @type {string} */ who, /** @type {string} */ fn, /** @typ
   return r.data;
 }
 
-/** @type {{ en: string, ar: string, sides: Record<string, unknown>[], by: string, contact: string, domain: string }[]} */
+// A small travel company's book: 21 organisations on both sides, two contacts each, every name and address different.
+// Names are invented (rule 7); addresses end in the made-up domain; phones keep the made-up shape (V101).
+/** @typedef {{ en: string, ar: string, domain: string, by: string, sides: { side: string, type: string }[] }} Org */
+const client = (/** @type {string} */ type) => [{ side: 'client', type }];
+const supplier = (/** @type {string} */ type) => [{ side: 'supplier_partner', type }];
+/** @type {Org[]} */
 const ORGS = [
   {
-    en: 'Fixture Travel Co',
-    ar: 'شركة السفر التجريبية',
+    en: 'Najd Logistics Group',
+    ar: 'مجموعة نجد اللوجستية',
+    domain: 'najd-logistics',
     by: 'member1',
-    contact: 'Made-up Booker',
-    domain: 'travel',
-    sides: [{ side: 'client', type: 'corporate' }],
+    sides: client('corporate'),
   },
   {
-    en: 'Fixture Holidays Group',
-    ar: 'مجموعة العطلات التجريبية',
+    en: 'Red Sand Engineering',
+    ar: 'الرمال الحمراء للهندسة',
+    domain: 'red-sand',
     by: 'member2',
-    contact: 'Made-up Planner',
-    domain: 'holidays',
-    sides: [{ side: 'client', type: 'agencies' }],
+    sides: client('corporate'),
   },
   {
-    en: 'Fixture Ministry Desk',
-    ar: 'مكتب الوزارة التجريبي',
+    en: 'Olive Tree Pharma',
+    ar: 'شجرة الزيتون للأدوية',
+    domain: 'olive-tree',
     by: 'manager',
-    contact: 'Made-up Officer',
-    domain: 'ministry',
-    sides: [{ side: 'client', type: 'government' }],
+    sides: client('corporate'),
   },
   {
-    en: 'Fixture Air Partner',
-    ar: 'شريك الطيران التجريبي',
+    en: 'Blue Gulf Contracting',
+    ar: 'الخليج الأزرق للمقاولات',
+    domain: 'blue-gulf',
+    by: 'member1',
+    sides: client('corporate'),
+  },
+  {
+    en: 'Desert Rose Hotels Group',
+    ar: 'مجموعة وردة الصحراء للفنادق',
+    domain: 'desert-rose',
+    by: 'member2',
+    sides: client('corporate'),
+  },
+  { en: 'Sahab Technology', ar: 'سحاب للتقنية', domain: 'sahab-tech', by: 'member1', sides: client('corporate') },
+  { en: 'Al Marsa Foods', ar: 'المرسى للأغذية', domain: 'al-marsa', by: 'member2', sides: client('corporate') },
+  { en: 'Tuwaiq Consulting', ar: 'طويق للاستشارات', domain: 'tuwaiq', by: 'manager', sides: client('corporate') },
+  { en: 'Safar Plus Agency', ar: 'سفر بلس للوكالات', domain: 'safar-plus', by: 'member1', sides: client('agencies') },
+  { en: 'Horizon Holidays', ar: 'آفاق للعطلات', domain: 'horizon-holidays', by: 'member2', sides: client('agencies') },
+  { en: 'Rihla Tours', ar: 'رحلة للسياحة', domain: 'rihla-tours', by: 'member1', sides: client('agencies') },
+  {
+    en: 'Golden Route Travel',
+    ar: 'الطريق الذهبي للسفر',
+    domain: 'golden-route',
     by: 'manager',
-    contact: 'Made-up Account Lead',
-    domain: 'air',
-    sides: [{ side: 'supplier_partner', type: 'supplier' }],
+    sides: client('agencies'),
   },
   {
-    en: 'Fixture Both Sides Ltd',
-    ar: 'شركة الجانبين التجريبية',
-    by: 'head',
-    contact: 'Made-up Partner Lead',
-    domain: 'both',
-    sides: [
-      { side: 'client', type: 'corporate' },
-      { side: 'supplier_partner', type: 'integration' },
-    ],
+    en: 'Regional Education Office',
+    ar: 'مكتب التعليم الإقليمي',
+    domain: 'education-office',
+    by: 'manager',
+    sides: client('government'),
   },
   {
-    en: 'Fixture Pay Solutions',
-    ar: 'حلول الدفع التجريبية',
+    en: 'Municipal Events Authority',
+    ar: 'هيئة الفعاليات البلدية',
+    domain: 'events-authority',
     by: 'head',
-    contact: 'Made-up Integrator',
-    domain: 'pay',
-    sides: [{ side: 'supplier_partner', type: 'payment_solution' }],
+    sides: client('government'),
   },
+  {
+    en: 'Public Health Training Centre',
+    ar: 'مركز التدريب الصحي العام',
+    domain: 'health-training',
+    by: 'manager',
+    sides: client('government'),
+  },
+  {
+    en: 'Skyline Air Services',
+    ar: 'سكاي لاين للخدمات الجوية',
+    domain: 'skyline-air',
+    by: 'head',
+    sides: supplier('supplier'),
+  },
+  { en: 'Harbour Stay Hotels', ar: 'فنادق المرفأ', domain: 'harbour-stay', by: 'manager', sides: supplier('supplier') },
+  {
+    en: 'Comfort Ride Transport',
+    ar: 'كمفورت رايد للنقل',
+    domain: 'comfort-ride',
+    by: 'head',
+    sides: supplier('supplier'),
+  },
+  {
+    en: 'Fare Bridge Systems',
+    ar: 'جسر الأسعار للأنظمة',
+    domain: 'fare-bridge',
+    by: 'head',
+    sides: supplier('integration'),
+  },
+  {
+    en: 'Easy Settle Payments',
+    ar: 'تسوية سهلة للمدفوعات',
+    domain: 'easy-settle',
+    by: 'head',
+    sides: supplier('payment_solution'),
+  },
+  {
+    en: 'Gulf Connect Travel',
+    ar: 'الخليج كونكت للسفر',
+    domain: 'gulf-connect',
+    by: 'head',
+    sides: [...client('corporate'), ...supplier('integration')],
+  },
+];
+// 12 first names and 12 last names, paired so no two contacts share both (the last name moves on each block of 12)
+const FIRST = [
+  ['Ahmad', 'أحمد'],
+  ['Mona', 'منى'],
+  ['Tariq', 'طارق'],
+  ['Dina', 'دينا'],
+  ['Hassan', 'حسن'],
+  ['Noura', 'نورة'],
+  ['Majed', 'ماجد'],
+  ['Rana', 'رنا'],
+  ['Bandar', 'بندر'],
+  ['Salma', 'سلمى'],
+  ['Walid', 'وليد'],
+  ['Amal', 'أمل'],
+];
+const LAST = [
+  ['Al-Ghamdi', 'الغامدي'],
+  ['Khoury', 'خوري'],
+  ['Al-Mutairi', 'المطيري'],
+  ['Nasser', 'ناصر'],
+  ['Al-Subaie', 'السبيعي'],
+  ['Hamdan', 'حمدان'],
+  ['Al-Anazi', 'العنزي'],
+  ['Saleh', 'صالح'],
+  ['Al-Rashid', 'الراشد'],
+  ['Mansour', 'منصور'],
+  ['Al-Juhani', 'الجهني'],
+  ['Farouk', 'فاروق'],
+];
+const JOBS = [
+  ['Travel coordinator', 'منسق سفر'],
+  ['Procurement manager', 'مدير المشتريات'],
+  ['Office manager', 'مدير المكتب'],
+  ['Operations lead', 'مسؤول العمليات'],
+  ['Finance officer', 'مسؤول مالي'],
+  ['Events manager', 'مدير الفعاليات'],
+];
+/** The k-th made-up contact: names in both languages, a job, an address on the made-up domain, a made-up phone. */
+const person = (/** @type {number} */ k, /** @type {string} */ domain) => {
+  const f = FIRST[k % 12] ?? FIRST[0] ?? ['', ''];
+  const l = LAST[(k + Math.floor(k / 12)) % 12] ?? LAST[0] ?? ['', ''];
+  const j = JOBS[k % JOBS.length] ?? JOBS[0] ?? ['', ''];
+  return {
+    name_en: `${f[0]} ${l[0]}`,
+    name_ar: `${f[1]} ${l[1]}`,
+    job_title: j[0],
+    email: `${f[0]}.${l[0]}`.toLowerCase().replace(/[^a-z.]/g, '') + `@${domain}.${FIXTURE_DOMAIN}`,
+    phone: `+966 50 000 ${String(1000 + k).padStart(4, '0')}`,
+  };
+};
+// When each agreement ends, in days from today: the first three fall on reminder days (7, 30 and 60) so the alerts job
+// below tells someone; one has already ended; the rest are spread over the next year and a half.
+const ENDS = [7, 30, 60, 90, 200, 400, -20, 15, 45, 120, 180, 250, 365, 500, 75, 10, 150, 300, 600, 25, 45];
+const REMARKS = [
+  'Asked for a quote for the autumn group trip.',
+  'Wants the renewal terms in Arabic and English.',
+  'Prefers a call before noon; sends bookings by e-mail.',
+  'Interested in the umrah season packages.',
+  'Needs two more traveller profiles added.',
+  'Waiting for their finance team to approve the budget.',
+  'Happy with the last trip; asked about group rates.',
 ];
 
 /** @type {string[]} */
 const partners = [];
+let nContact = 0;
 for (const [n, o] of ORGS.entries()) {
   const made = /** @type {{ id: string }} */ (
     await api('head', 'partner_create', {
@@ -283,11 +405,12 @@ for (const [n, o] of ORGS.entries()) {
       p_from: null,
       p_reason: 'Fixture: owner',
     });
-  await api('head', 'contact_save', {
-    p_partner: p,
-    p_id: null,
-    p_values: { name_en: o.contact, email: `desk@${o.domain}.${FIXTURE_DOMAIN}`, is_primary: true },
-  });
+  for (const primary of [true, false])
+    await api('head', 'contact_save', {
+      p_partner: p,
+      p_id: null,
+      p_values: { ...person(nContact++, o.domain), is_primary: primary },
+    });
   await api('head', 'identifier_add', {
     p_partner: p,
     p_kind: 'email',
@@ -301,45 +424,51 @@ for (const [n, o] of ORGS.entries()) {
       p_id: null,
       p_values: {
         side: s.side,
-        title: `Fixture agreement ${n + 1}`,
-        start_on: day(-300),
-        end_on: day([7, 30, 60, 90, 200, 400][n] ?? 400),
+        title: `${o.en} ${s.side === 'client' ? 'services' : 'supply'} agreement`,
+        start_on: day(-300 + (n % 5) * 20),
+        end_on: day(ENDS[n] ?? 400),
       },
     });
   }
-  await api(o.by === 'head' ? 'head' : o.by, 'activity_log', {
-    p_partner: p,
-    p_type: n % 2 ? 'meeting' : 'call',
-    p_outcome: n % 2 ? 'meeting_held' : 'answered',
-    p_happened_on: day(-n - 1),
-    p_body: 'Made-up line: talked about the next season.',
-    p_next_step: 'Send the made-up proposal',
-    p_next_step_on: day(n + 2),
-    p_mentions: null,
-  });
+  const doer = o.by === 'head' ? 'head' : o.by;
+  for (const k of [0, 1])
+    await api(doer, 'activity_log', {
+      p_partner: p,
+      p_type: (n + k) % 2 ? 'meeting' : 'call',
+      p_outcome: (n + k) % 2 ? 'meeting_held' : 'answered',
+      p_happened_on: day(-2 - ((n * 3 + k * 17) % 45)),
+      p_body: REMARKS[(n + k) % REMARKS.length] ?? null,
+      p_next_step: k ? null : 'Send the proposal',
+      p_next_step_on: k ? null : day(((n * 5) % 17) - 3),
+      p_mentions: null,
+    });
   await api('head', 'note_add', {
     p_entity: 'partner',
     p_id: p,
     p_kind: 'comment',
-    p_body: `Made-up remark for @${ORGS[(n + 1) % ORGS.length]?.contact}`,
+    p_body: `${REMARKS[(n + 3) % REMARKS.length] ?? ''} (for @${PEOPLE[4]?.en})`,
     p_happened_on: null,
     p_mentions: [id.member2],
   });
   await api('head', 'reference_save', {
     p_partner: p,
     p_id: null,
-    p_values: { system: 'portal', value: `fixture.user.${n + 1}`, url: `https://portal.${FIXTURE_DOMAIN}/login` },
+    p_values: {
+      system: 'portal',
+      value: `${o.domain}.user`,
+      url: `https://portal.${o.domain}.${FIXTURE_DOMAIN}/login`,
+    },
     p_version: null,
     p_reason: 'Fixture: portal login',
   });
-  await api('member2', 'follow', { p_entity: 'partner', p_id: p, p_on: true });
+  if (n < 8) await api('member2', 'follow', { p_entity: 'partner', p_id: p, p_on: true });
 }
 
 // a discount code on the first client, a credit limit, a campaign, saved views
 await api('head', 'identifier_add', {
   p_partner: partners[0],
   p_kind: 'discount_code',
-  p_value: 'FIXTURE10',
+  p_value: 'WELCOME10',
   p_reason: 'Fixture: made-up code',
 });
 await api('admin', 'credit_limit_set', {
@@ -350,8 +479,8 @@ await api('admin', 'credit_limit_set', {
   p_reason: 'Fixture: made-up limit',
 });
 await api('head', 'campaign_code_add', {
-  p_code: 'FIXSPRING',
-  p_name: 'Fixture spring offer',
+  p_code: 'SPRING26',
+  p_name: 'Spring offer',
   p_valid_from: day(0),
   p_valid_to: day(60),
   p_owner: id.manager,
@@ -360,17 +489,69 @@ await api('head', 'campaign_code_add', {
 await api('member1', 'view_save', {
   p_id: null,
   p_page: 'clients',
-  p_name: 'My fixture clients',
+  p_name: 'My clients',
   p_query: {},
   p_shared: false,
 });
 await api('head', 'view_save', {
   p_id: null,
   p_page: 'clients',
-  p_name: 'Team fixture view',
+  p_name: 'Team view',
   p_query: {},
   p_shared: true,
 });
+
+// the team's work: tasks (some late, some today, some next month), this year's achievements and a few private ideas
+const TASKS = [
+  ['member1', 'Send the renewal proposal', 0, -4],
+  ['member1', 'Confirm the group hotel block', 3, 2],
+  ['member1', 'Collect traveller passports for the autumn trip', 6, 9],
+  ['member1', 'Update the corporate rate sheet', null, 14],
+  ['member2', 'Call back about the umrah packages', 4, -1],
+  ['member2', 'Prepare the quote for the education office', 12, 5],
+  ['member2', 'Check the visa timeline with the supplier', 15, 0],
+  ['member2', 'Review the airline fare agreement', null, 21],
+  ['manager', 'Approve the spring campaign offer', null, 3],
+  ['manager', 'Meet the events authority about the festival', 13, 7],
+  ['manager', "Review the quarter's open contracts", null, 28],
+  ['manager', 'Follow up on the unsigned supplier agreement', 16, -7],
+];
+for (const [who, title, org, due] of TASKS)
+  await api(String(who), 'task_create', {
+    p_values: {
+      title,
+      due_on: day(Number(due)),
+      ...(typeof org === 'number' ? { partner_id: partners[org] } : {}),
+    },
+  });
+const year = new Date().getFullYear();
+await api('admin', 'plan_open', { p_department: dep.id, p_year: year });
+const thisYear = (/** @type {number} */ offset) => {
+  const jan1 = `${year}-01-01`;
+  const d = day(offset);
+  return d < jan1 ? jan1 : d;
+};
+const DEALS = [
+  ['member1', 'Signed the yearly travel agreement with the logistics group', -3],
+  ['member1', 'Booked the pharma conference delegation', -12],
+  ['member1', "Renewed the engineering firm's corporate rates", -30],
+  ['member2', "Won the hotel group's staff travel account", -8],
+  ['member2', 'Closed the umrah season group booking', -20],
+  ['member2', 'Added three agency partners to the portal', -45],
+  ['manager', 'Agreed the festival travel plan with the events authority', -5],
+  ['manager', 'Signed the transport supplier agreement', -26],
+];
+for (const [who, title, off] of DEALS)
+  await api(String(who), 'achievement_log', {
+    p_values: { category: 'contract', title, happened_on: thisYear(Number(off)) },
+  });
+for (const [who, title] of [
+  ['member1', 'Ask the hotel group about a loyalty rate'],
+  ['member1', 'Idea: a spring city-break bundle for agencies'],
+  ['member2', 'Idea: send renewal reminders in Arabic first'],
+  ['manager', 'Idea: a shared sheet of supplier cut-off dates'],
+])
+  await api(String(who), 'note_capture', { p_kind: 'idea', p_values: { title } });
 
 // the daily alerts job, once: the first three contracts end on a reminder day (7, 30 and 60 days out), so their
 // reminders are due today — a reminder day from before a contract existed is never caught up (V174)
@@ -389,5 +570,5 @@ for (const p of PEOPLE) {
   console.log(`  ${p.key.padEnd(14)} ${email(p.key).padEnd(40)} ${p.role}${p.account ? ` · ${p.account}` : ''}${note}`);
 }
 console.log(
-  `\n${ORGS.length} organisations, ${calls} api calls, ${told} notifications. Files are not seeded (Storage).`,
+  `\n${ORGS.length} organisations, ${TASKS.length} tasks, ${DEALS.length} achievements, ${calls} api calls, ${told} notifications. Files are not seeded (Storage).`,
 );
