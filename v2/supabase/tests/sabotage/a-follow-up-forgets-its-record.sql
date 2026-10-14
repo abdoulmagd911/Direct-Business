@@ -39,7 +39,7 @@ begin
     select t.partner_id, t.project_id into pid, prj from work.task t where t.id = p_id;
   end if;
   v := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-         'title', pg_catalog.left(coalesce(nullif(pg_catalog.btrim(p_title), ''), about ->> 'label'), 300),
+         'title', pg_catalog.left(coalesce(nullif(pg_catalog.btrim(p_title), ''), 'Follow-up'), 300),
          'type', 'follow_up', 'due_on', p_due_on, 'owner_id', who, 'partner_id', pid, 'project_id', prj,
          'work_type', case when pid is null and prj is null then 'internal' else 'client' end));
   perform audit.begin('ui', 'task.follow_up_set', pg_catalog.jsonb_build_object('entity', p_entity));

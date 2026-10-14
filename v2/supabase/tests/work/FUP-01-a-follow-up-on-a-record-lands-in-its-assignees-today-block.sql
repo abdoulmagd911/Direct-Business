@@ -1,7 +1,7 @@
 -- FUP-01 — a follow-up on a record (V632 Stage 2): api.follow_up makes a task of the type Follow-up, due on its day,
 -- for its assignee (me unless named), about a client, a task or an invoice; it shows in the assignee's Today block with
 -- what it is about, and on the record's own list (api.follow_ups); a task's follow-up carries the task's client; its
--- title is the record's label unless one is given; a day gone by, no day, or an unknown kind of record is refused; one
+-- title is a neutral Follow-up unless one is given (QA-558); a day gone by, no day, or an unknown kind of record is refused; one
 -- Undo takes it back (V128). Every value is made up; days come from the database's own clock.
 -- Sabotage: supabase/tests/sabotage/a-follow-up-forgets-its-record.sql.
 select set_config('t.today', core.riyadh_today()::text, true);
@@ -27,8 +27,8 @@ select test.eq((select jsonb_build_object('type', ty.key, 'owner', t.owner_id = 
                 from work.task t join work.task_type ty on ty.id = t.type_id
                 where t.id = (current_setting('t.f1')::jsonb ->> 'id')::uuid),
   jsonb_build_object('type', 'follow_up', 'owner', true, 'due', current_setting('t.today')::date + 1, 'partner', true,
-                     'about', 'partner.partner', 'title', 'Made Up Follow Co'),
-  'a Follow-up task, mine, due tomorrow, that client''s work, about the client, titled by its name');
+                     'about', 'partner.partner', 'title', 'Follow-up'),
+  'a Follow-up task, mine, due tomorrow, that client''s work, about the client, titled a neutral Follow-up, never the client''s name (QA-558)');
 select test.as_person(current_setting('t.am')::uuid);
 select test.eq((select jsonb_build_object('group', x ->> 'group', 'follow_up', x -> 'follow_up', 'about', x -> 'about')
                 from jsonb_array_elements(api.my_day('me') -> 'tasks') x

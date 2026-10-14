@@ -3,7 +3,8 @@
 -- notifications) — and a follow-up reveals no record: one on a record its maker cannot see is not found, one for an
 -- assignee who cannot see it is refused, and a record's list of follow-ups is closed to whoever cannot see the record.
 -- Every value is made up; the day is the one after the database is built (see NOTE-06).
--- Sabotages: supabase/tests/sabotage/a-follow-up-reveals-an-invoice.sql, the-bell-reads-everyones-notifications.sql.
+-- Sabotages: supabase/tests/sabotage/a-follow-up-reveals-an-invoice.sql, the-bell-reads-everyones-notifications.sql,
+-- a-follow-up-is-titled-by-its-record.sql.
 select set_config('t.d1', (current_date + 1)::text, true);
 select set_config('v2.test_now', current_setting('t.d1') || ' 09:00:00+03', true);
 select set_config('t.am', test.person('Test Quiet Member', 'member')::text, true);
@@ -52,3 +53,19 @@ select test.raises(format('select api.follow_up(%L, %L, %L, %L)', 'invoice', cur
   current_setting('t.am')), 'P0001', 'an assignee who cannot see the invoice is refused', 'follow_up.assignee_cannot_see');
 select test.eq(jsonb_array_length(api.follow_ups('invoice', current_setting('t.inv')::uuid)), 0,
   'and nothing was made');
+
+-- QA-558: a colleague's follow-up on that invoice reaches me as a task of my department (V96), but nothing of the
+-- invoice comes with it — its title is a neutral Follow-up and its record shows only to those who may see it
+select test.as_owner();
+insert into core.team (department_id, code, name_en, name_ar)
+values (test.department('commercial'), 'test_quiet', 'Test Quiet Desk', 'فريق الهدوء');
+update core.person set team_id = (select id from core.team where code = 'test_quiet')
+where id in (current_setting('t.am')::uuid, current_setting('t.am2')::uuid);
+select test.as_person(current_setting('t.am2')::uuid);
+select set_config('t.fu', api.follow_up('invoice', current_setting('t.inv')::uuid, current_setting('t.d1')::date) ->> 'id', true);
+select test.as_person(current_setting('t.am')::uuid);
+select set_config('t.seen', api.tasks()::text || api.task(current_setting('t.fu')::uuid)::text || api.my_day('team')::text, true);
+select test.ok(position(current_setting('t.fu') in api.tasks()::text) > 0,
+  'my department''s list shows the colleague''s follow-up');
+select test.ok(position('MN-7001' in current_setting('t.seen')) = 0,
+  'but a colleague who cannot see the invoice reads nothing of it — not in Tasks, not on the task, not on My team');

@@ -37,7 +37,9 @@ $$;
 -- ================================================================ make a follow-up on a record
 -- A task of type Follow-up, due on the day given, for the assignee (me unless named), about the record. A client's
 -- follow-up is that client's work; a task's follow-up carries the task's client or project; an invoice's is internal.
--- Its title is the record's label unless one is given. One request; Undo takes it back (V128).
+-- Its title is a neutral 'Follow-up' unless one is given — never the record's label, since the owner's department sees
+-- the task (V96) and some of them may not see the record (QA-558, V454); the record shows only through about, which is
+-- filtered per reader. One request; Undo takes it back (V128).
 create function work.follow_up(p_entity text, p_id uuid, p_due_on date, p_assignee uuid default null,
                                p_title text default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''
@@ -75,7 +77,7 @@ begin
     select t.partner_id, t.project_id into pid, prj from work.task t where t.id = p_id;
   end if;
   v := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
-         'title', pg_catalog.left(coalesce(nullif(pg_catalog.btrim(p_title), ''), about ->> 'label'), 300),
+         'title', pg_catalog.left(coalesce(nullif(pg_catalog.btrim(p_title), ''), 'Follow-up'), 300),
          'type', 'follow_up', 'due_on', p_due_on, 'owner_id', who, 'partner_id', pid, 'project_id', prj,
          'work_type', case when pid is null and prj is null then 'internal' else 'client' end));
   perform audit.begin('ui', 'task.follow_up_set', pg_catalog.jsonb_build_object('entity', p_entity));

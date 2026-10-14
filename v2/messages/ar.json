@@ -1487,5 +1487,8 @@
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها"
+  },
+  "follow_up": {
+    "default_title": "متابعة"
   }
 }

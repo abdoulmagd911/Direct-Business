@@ -2264,5 +2264,8 @@
       "lastSaved": "Last saved",
       "noFigures": "In no figures"
     }
+  },
+  "follow_up": {
+    "default_title": "Follow-up"
   }
 }
