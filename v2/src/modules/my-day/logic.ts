@@ -1,4 +1,4 @@
-import { TURN_KINDS, type TodayTask, type MyNote, type NoteKind, type NoteLink, type TurnKind } from './types';
+import { TURN_KINDS, type TodayTask, type MyNote, type NoteLink, type TurnKind } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
