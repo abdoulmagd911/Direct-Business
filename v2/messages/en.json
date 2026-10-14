@@ -381,6 +381,7 @@
         "day": "Day",
         "time": "Time",
         "followUp": "Follow up",
+        "followUpTitle": "Follow-up",
         "followUpFor": "Follow up on",
         "followUpPlaceholder": "What to follow up on",
         "followUpSaved": "Follow-up set",

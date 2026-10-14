@@ -66,7 +66,9 @@ export function QuickCapture() {
 
   // A Reminder is told at its time; a Follow up is the same Reminder, private and tied to its record (#238)
   const chosen = whenFor(whenKey, now, pick);
-  const words_ = about && !text.trim() ? `${t('pages.myDay.quick.followUp')}: ${about.label}` : text;
+  // A neutral title, never the record's name: the note can be shared and the record shows only through `about`, which is
+  // filtered per reader (QA-560).
+  const words_ = about && !text.trim() ? t('pages.myDay.quick.followUpTitle') : text;
   const args = quickCaptureArgs(kind, words_, {
     visibility: about ? 'private' : visibility,
     day: today(),
