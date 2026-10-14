@@ -11,6 +11,7 @@ import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import {
+  nextWeekDay,
   nextWorkingDay,
   wrapItems,
   wrapLabel,
@@ -73,7 +74,13 @@ export function WrapUpDialog({
   }, [open]);
   const stateOf = (id: string) => states[id] ?? WRAP_DEFAULT;
   const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
-  const tomorrow = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  // each move says the day it lands on, written the one way: Thu 15 Oct 2026 (W-daily 13)
+  const landsOn = (move: WrapMove) =>
+    move === 'tomorrow'
+      ? formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' })
+      : move === 'next_week'
+        ? formatDate(nextWeekDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' })
+        : null;
   const save = async () => {
     if (!items?.length) return;
     setBusy(true);
@@ -191,8 +198,10 @@ export function WrapUpDialog({
                           data-wrap-move={move}
                         >
                           {t(`pages.myDay.wrap.${word}`)}
-                          {move === 'tomorrow' ? (
-                            <span className="ms-1.5 font-data text-xs text-muted">{tomorrow}</span>
+                          {landsOn(move) ? (
+                            <span className="ms-1.5 font-data text-xs text-muted" data-wrap-lands-on={move}>
+                              {landsOn(move)}
+                            </span>
                           ) : null}
                         </button>
                       ))}

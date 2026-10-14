@@ -16,6 +16,7 @@ import {
   BLOCK_ROWS,
   blockOf,
   linkRoute,
+  nextWeekDay,
   nextWorkingDay,
   noteRoute,
   openCaptures,
@@ -150,6 +151,12 @@ describe('Wrap up today', () => {
     expect(nextWorkingDay('2026-10-01'), 'Sunday after a Thursday').toBe('2026-10-04');
     expect(nextWorkingDay('2026-09-29')).toBe('2026-09-30');
     expect(nextWorkingDay('2026-10-03'), 'Saturday to Sunday').toBe('2026-10-04');
+  });
+  it('shows the day Next week lands on: the first Sunday after the day', () => {
+    expect(nextWeekDay('2026-10-14'), 'a Wednesday').toBe('2026-10-18');
+    expect(nextWeekDay('2026-10-15'), 'a Thursday: the same Sunday as tomorrow').toBe('2026-10-18');
+    expect(nextWeekDay('2026-10-18'), 'a Sunday asks for the one after').toBe('2026-10-25');
+    expect(nextWeekDay('2026-12-31'), 'across a year').toBe('2027-01-03');
   });
 });
 

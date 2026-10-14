@@ -136,6 +136,19 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('[data-wrap-item]', { hasText: `Late task ${t}` })).toBeVisible();
   const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
+  // each move says the day it lands on, in the one date format (W-daily 13), the database's own days
+  const [lands] = await sql<{ tomorrow: string; next_week: string }>(
+    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon YYYY') as tomorrow,
+            to_char(my.next_week_day(core.riyadh_today()), 'FMDD Mon YYYY') as next_week`,
+  );
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="tomorrow"]'),
+    'Tomorrow shows its date',
+  ).toContainText(lands!.tomorrow);
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="next_week"]'),
+    'Next week shows its date in the same format as Tomorrow',
+  ).toContainText(lands!.next_week);
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
     'Tomorrow is already chosen',

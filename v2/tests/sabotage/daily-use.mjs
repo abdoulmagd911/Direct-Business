@@ -74,4 +74,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'wrap-next-week-lands-on-the-wrong-day',
+    breaks: ['unit:tests/unit/my-day/my-day-turns-a-note-into-what-has-landed-and-wraps-up-the-day.test.tsx'],
+    expect: '> shows the day Next week lands on: the first Sunday after the day',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'while (d.getUTCDay() !== 0);',
+        replace: 'while (d.getUTCDay() !== 1);',
+      },
+    ],
+  },
+  {
+    name: 'wrap-next-week-shows-no-date',
+    breaks: ['e2e:tests/e2e/capture-wrap.spec.ts'],
+    expect: 'Next week shows its date in the same format as Tomorrow',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "move === 'next_week'",
+        replace: "move === 'never'",
+      },
+    ],
+  },
 ];
