@@ -1,6 +1,6 @@
 # The Direct theme: dimmed black, modern, with Direct's orange (V636) — the token values for builder B (#254)
 
-Design lead, 14 Oct night. **Three themes, each person picks in My profile (owner, 14 Oct 23:05): Light is the default, Dark is optional, and Direct is this one.** Collapse of the earlier idea of retiring Direct: it stays, in this new form. Replaces the values of `[data-theme='direct']` in `v2/src/ui/tokens.css` (the only file that may hold a colour). The names do not change; only the values do.
+Design lead, 14 Oct night. **Three themes, each person picks in My profile (owner, 14 Oct 23:05): Light is the default, Dark is optional, and Direct is this one.** This replaces my earlier idea of retiring Direct: it stays, in this new form. Replaces the values of `[data-theme='direct']` in `v2/src/ui/tokens.css` (the only file that may hold a colour). The names do not change; only the values do.
 The door tokens (`--door-*`: sign-in and new password) stay as they are, one light set whatever the theme (V213).
 `tests/unit/tokens.test.ts` and the BUILD-PLAN "Design tokens" table must be updated in the same PR.
 
