@@ -2,20 +2,29 @@
 -- Stage 2, V282). A Reminder is captured as a note that carries a reminder (Stage 1, #238): until now My day listed
 -- that note among My notes as a plain Note ("Happened on …", no time) as well as under Reminders, so one Follow up
 -- looked like two. From here:
---   1. My day's notes leave out a note that carries a reminder; it shows once, as its reminder, with its time and what
---      it is about. The note itself is unchanged and still opens on its own page.
+--   1. My day's notes leave out a note captured as a Reminder; it shows once, as its reminder, with its time and what
+--      it is about. The note itself is unchanged and still opens on its own page. A meeting, sticky or checklist note
+--      later turned into a reminder (Turn into → Reminder) stays among My notes and shows its reminder too (QA-568).
 --   2. api.my_follow_ups(entity, id): the reader's own open follow-ups on one record — a reminder still to come, or
 --      told and not yet dismissed — for the record page to show (finding 4). Only the reader's own (V454): nobody else's
 --      follow-ups, admins included, and nothing on a record the reader cannot see.
 --   3. My day's task rows name their client only to a reader who may see it (finding 5: the row's client chip now opens
 --      the client, so it must never name or link one the reader cannot open; V454).
 
--- ================================================================ a note that carries a reminder
-create function my.has_reminder(p_note uuid) returns boolean
+-- ================================================================ a note captured as a Reminder
+-- Both ways leave a sticky note with a reminder; only Turn into links the reminder back to its note (my.note_link), so a
+-- live reminder with no such link is one captured as a Reminder.
+create function my.captured_as_reminder(p_note uuid) returns boolean
 language sql stable security definer set search_path = ''
-as $$ select exists (select 1 from core.reminder r where r.note_id = p_note and r.deleted_at is null) $$;
-comment on function my.has_reminder(uuid) is
-  'Whether a note carries a reminder: such a note is listed once, as its reminder, and not again among My notes.';
+as $$
+  select exists (select 1 from core.reminder r
+                 where r.note_id = p_note and r.deleted_at is null
+                   and not exists (select 1 from my.note_link l
+                                   where l.entity_table = 'core.reminder' and l.entity_id = r.id))
+$$;
+comment on function my.captured_as_reminder(uuid) is
+  'Whether a note was captured as a Reminder: it is listed once, as its reminder, and not again among My notes. A note '
+  'turned into a reminder later is not: it stays among My notes (QA-568).';
 
 -- ================================================================ My day: a reminder once
 create or replace function my.my_day(p_scope text default 'me', p_limit int default 7, p_offset int default 0,
@@ -36,12 +45,12 @@ begin
     'notes', coalesce((
       select pg_catalog.jsonb_agg(my.note_row(y.n, me) order by y.d desc, y.at desc, y.id)
       from (select n as n, coalesce(n.carried_to, n.happened_on) as d, n.logged_at as at, n.id
-            from my.note n where my.in_scope(n, scope, me) and not my.has_reminder(n.id)
+            from my.note n where my.in_scope(n, scope, me) and not my.captured_as_reminder(n.id)
             order by 2 desc, 3 desc, 4 limit lim offset off) y), '[]'::jsonb),
     'notes_total', (select pg_catalog.count(*)::int from my.note n
-                    where my.in_scope(n, scope, me) and not my.has_reminder(n.id)),
+                    where my.in_scope(n, scope, me) and not my.captured_as_reminder(n.id)),
     'more', exists (select 1 from my.note n
-                    where my.in_scope(n, scope, me) and not my.has_reminder(n.id) offset off + lim),
+                    where my.in_scope(n, scope, me) and not my.captured_as_reminder(n.id) offset off + lim),
     'since', case when p_since is null then '[]'::jsonb else coalesce((
       select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('kind', x.kind, 'count', x.k) order by x.kind)
       from (select case n.visibility when 'team' then 'team_notes' else 'workspace_notes' end as kind,

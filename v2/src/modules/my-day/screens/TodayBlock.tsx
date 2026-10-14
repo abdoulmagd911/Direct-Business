@@ -118,8 +118,8 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
       <span className="block break-words">{title}</span>
       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
-        <StatusChip tone="info" className="max-w-full">
-          <span className="truncate">
+        <StatusChip tone="info" className="h-auto min-h-6 max-w-full whitespace-normal py-1 leading-snug">
+          <span className="min-w-0 break-words">
             {r.about?.label
               ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
               : t('pages.myDay.today.reminder')}

@@ -101,8 +101,14 @@ export function MyDay({ data }: { data: MyDayData }) {
                   <span className="block truncate">{r.text}</span>
                   {/* a follow-up says what it is about, as a tag — never in its title (QA-560), only if the reader may see it */}
                   {r.about?.label ? (
-                    <StatusChip tone="info" className="mt-1 max-w-full">
-                      <span className="truncate">{t('pages.myDay.today.followUpAbout', { name: r.about.label })}</span>
+                    // the record's name wraps rather than being cut to "Follow up…" on a phone
+                    <StatusChip
+                      tone="info"
+                      className="mt-1 h-auto min-h-6 max-w-full whitespace-normal py-1 leading-snug"
+                    >
+                      <span className="min-w-0 break-words">
+                        {t('pages.myDay.today.followUpAbout', { name: r.about.label })}
+                      </span>
                     </StatusChip>
                   ) : null}
                 </span>

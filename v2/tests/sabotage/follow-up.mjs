@@ -64,4 +64,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // QA 2 (14 Oct): beside a follow-up chip, an empty Notes says "No other notes", not "No notes"
+    name: 'notes-say-no-notes-beside-a-follow-up',
+    breaks: [E2E],
+    expect: TASK,
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskRecord.tsx',
+        find: "{t(followUps ? 'pages.tasks.noOtherNotes' : 'pages.tasks.noNotes')}",
+        replace: "{t('pages.tasks.noNotes')}",
+      },
+    ],
+  },
 ];

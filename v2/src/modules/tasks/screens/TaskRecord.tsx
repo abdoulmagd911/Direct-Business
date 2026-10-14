@@ -49,6 +49,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const move = useStatusMove(task, lookups.statuses);
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
+  const [followUps, setFollowUps] = useState(0);
   const status = lookups.statuses.find((s) => s.key === task.status);
   const statusLabel =
     view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
@@ -84,7 +86,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       {task.executive_directive ? (
         <StatusChip tone="info">{names.locale === 'ar' ? task.priority_ar : task.priority_en}</StatusChip>
       ) : null}
-      <FollowUpChips entity="task" id={task.id} />
+      <FollowUpChips entity="task" id={task.id} onCount={setFollowUps} />
     </>
   );
   // Mark done stays the one main action (V630). Follow up is a visible action for anyone who sees the task — a private
@@ -197,7 +199,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
               {task.notes ? (
                 <p className="whitespace-pre-wrap break-words text-base">{task.notes}</p>
               ) : (
-                <p className="text-base text-muted">{t('pages.tasks.noNotes')}</p>
+                <p className="text-base text-muted" data-no-notes>
+                  {t(followUps ? 'pages.tasks.noOtherNotes' : 'pages.tasks.noNotes')}
+                </p>
               )}
             </section>
             <section className="flex flex-col gap-2" data-status-history>

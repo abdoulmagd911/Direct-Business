@@ -85,6 +85,11 @@ async function listedOnceOnMyDay(page: Page, noteId: string, label: string) {
   await expect(reminders, 'the reminder is listed').toBeVisible();
   await expect(reminders.locator('[data-reminder]'), 'once').toHaveCount(1);
   await expect(reminders, 'tagged with its record').toContainText(`Follow up: ${label}`);
+  const clipped = await reminders
+    .locator('[data-reminder] span.break-words')
+    .first()
+    .evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(clipped, 'the tag wraps; the record name is never cut off').toBe(false);
   await expect(page.locator(`[data-block="me"] a[href$="${noteId}"]`), 'and not again among My notes').toHaveCount(0);
   const above = await page.evaluate(() => {
     const r = document.querySelector('[data-reminders]');
@@ -115,6 +120,11 @@ for (const w of WIDTHS) {
     await page.locator('[data-partner-more]').click();
     await expect(page.getByRole('menuitem', { name: 'Follow up' }), 'no second Follow up in the menu').toHaveCount(0);
     await page.keyboard.press('Escape');
+    const [watch, more] = await Promise.all([
+      page.locator('[data-follow]').boundingBox(),
+      page.locator('[data-partner-more]').boundingBox(),
+    ]);
+    expect(Math.abs(watch!.y - more!.y), 'Watch and ⋯ sit on one line').toBeLessThan(4);
     const noteId = await followUpOnce(page, admin, 'partner.partner', id, name);
     await listedOnceOnMyDay(page, noteId, name);
     await ctx.close();
@@ -137,7 +147,11 @@ for (const w of WIDTHS) {
     await page.locator('[data-task-more]').click();
     await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Escalate').toHaveText(['Escalate']);
     await page.keyboard.press('Escape');
+    await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
     const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`);
+    await expect(page.locator('[data-no-notes]'), 'beside a follow-up, an empty Notes says No other notes').toHaveText(
+      'No other notes',
+    );
     await listedOnceOnMyDay(page, noteId, `${number} · ${title}`);
     await ctx.close();
   });

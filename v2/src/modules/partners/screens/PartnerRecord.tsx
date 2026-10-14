@@ -190,56 +190,59 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
       ) : null}
       {/* Follow up (V632 Stage 2, V282): a visible action, the one Capture sheet on this client, private to its author */}
       <FollowUpButton about={{ entity: 'partner', id: card.id, label: tradeName(card, locale) }} />
-      <FollowButton entity="partner" id={card.id} />
-      <Menu>
-        <MenuTrigger asChild>
-          <Button aria-label={t('common.more')} data-partner-more>
-            ⋯
-          </Button>
-        </MenuTrigger>
-        <MenuContent>
-          {SIDES.map((k) => {
-            const s = sideOf(k);
-            const label = t(`partners.side.${k}`);
-            if (!s)
-              return fullOn(k) ? (
-                <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
-                  {t('partners.sideDialog.switchOn', { side: label })}
-                </MenuItem>
-              ) : null;
-            return (
-              <div key={k}>
-                {fullOn(k) ? (
-                  <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
-                    {t('partners.sideDialog.change', { side: label })}
+      {/* Watch and ⋯ stay together on one line when the actions wrap on a phone */}
+      <span className="inline-flex shrink-0 items-center gap-2" data-partner-watch-more>
+        <FollowButton entity="partner" id={card.id} />
+        <Menu>
+          <MenuTrigger asChild>
+            <Button aria-label={t('common.more')} data-partner-more>
+              ⋯
+            </Button>
+          </MenuTrigger>
+          <MenuContent>
+            {SIDES.map((k) => {
+              const s = sideOf(k);
+              const label = t(`partners.side.${k}`);
+              if (!s)
+                return fullOn(k) ? (
+                  <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
+                    {t('partners.sideDialog.switchOn', { side: label })}
                   </MenuItem>
-                ) : null}
-                {isOwner(s) || canAssign(k) ? (
-                  <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
-                    {t('partners.statusDialog.action')} · {label}
-                  </MenuItem>
-                ) : null}
-                {canAssign(k) ? (
-                  <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
-                    {t('partners.ownerDialog.action')} · {label}
-                  </MenuItem>
-                ) : null}
-                {fullOn(k) && sidesOn.length > 1 ? (
-                  <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
-                    {t('partners.sideDialog.switchOffAction', { side: label })}
-                  </MenuItem>
-                ) : null}
-                <MenuSeparator />
-              </div>
-            );
-          })}
-          {mayWrite ? (
-            <MenuItem onSelect={() => setNoting(true)} data-note-add>
-              {t('partners.note.add')}
-            </MenuItem>
-          ) : null}
-        </MenuContent>
-      </Menu>
+                ) : null;
+              return (
+                <div key={k}>
+                  {fullOn(k) ? (
+                    <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
+                      {t('partners.sideDialog.change', { side: label })}
+                    </MenuItem>
+                  ) : null}
+                  {isOwner(s) || canAssign(k) ? (
+                    <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
+                      {t('partners.statusDialog.action')} · {label}
+                    </MenuItem>
+                  ) : null}
+                  {canAssign(k) ? (
+                    <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
+                      {t('partners.ownerDialog.action')} · {label}
+                    </MenuItem>
+                  ) : null}
+                  {fullOn(k) && sidesOn.length > 1 ? (
+                    <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
+                      {t('partners.sideDialog.switchOffAction', { side: label })}
+                    </MenuItem>
+                  ) : null}
+                  <MenuSeparator />
+                </div>
+              );
+            })}
+            {mayWrite ? (
+              <MenuItem onSelect={() => setNoting(true)} data-note-add>
+                {t('partners.note.add')}
+              </MenuItem>
+            ) : null}
+          </MenuContent>
+        </Menu>
+      </span>
     </>
   );
 

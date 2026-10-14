@@ -32,7 +32,16 @@ export function FollowUpButton({ about }: { about: CaptureAbout }) {
  * nobody else's, admins included. A chip opens its note. A failed read says so and offers Try again; it never reads as
  * "no follow-up".
  */
-export function FollowUpChips({ entity, id }: { entity: CaptureAbout['entity']; id: string }) {
+export function FollowUpChips({
+  entity,
+  id,
+  onCount,
+}: {
+  entity: CaptureAbout['entity'];
+  id: string;
+  /** Told how many follow-ups are shown, so the page can word what sits beside them. */
+  onCount?: (n: number) => void;
+}) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const [rows, setRows] = useState<MyFollowUp[] | null>(null);
@@ -48,13 +57,14 @@ export function FollowUpChips({ entity, id }: { entity: CaptureAbout['entity']; 
         if (!alive) return;
         setRows(r as MyFollowUp[]);
         setFailed(false);
+        onCount?.((r as MyFollowUp[]).length);
       },
       () => alive && setFailed(true),
     );
     return () => {
       alive = false;
     };
-  }, [entity, id, attempt]);
+  }, [entity, id, attempt, onCount]);
 
   if (failed)
     return (
