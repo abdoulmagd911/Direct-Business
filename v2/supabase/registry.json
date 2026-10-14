@@ -1038,6 +1038,18 @@
       "rule_only": false
     },
     {
+      "key": "doc_link",
+      "table": "core.doc_link",
+      "page": "settings.app",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "entity",
       "table": "core.entity",
       "page": "settings.org",

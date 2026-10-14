@@ -8,6 +8,7 @@ export const BANNED: readonly [RegExp, string][] = [
   [/\bdirect[\s\-_.]*corporate\b/i, j('Direct', ' Corporate')],
   [/\bb[\s\-_.]*2[\s\-_.]*b\b/i, j('B', '2B')],
   [/\bb[\s\-_.]*2[\s\-_.]*g\b/i, j('B', '2G')],
+  [/\bb[\s\-_.]*2[\s\-_.]*c\b/i, j('B', '2C')],
   [/\bmice\b/i, j('MI', 'CE')],
   [/\bgoogle\b/i, j('Goo', 'gle')],
   [/\bzoom\b/i, j('Zo', 'om')],

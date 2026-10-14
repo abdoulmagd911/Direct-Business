@@ -29,6 +29,7 @@ end $$;
 
 select test.eq(core.banned_word('Government (B2G)'), 'B2G', 'a banned word is named');
 select test.eq(core.banned_word('a b-2-b desk'), 'B2B', 'however it is spaced');
+select test.eq(core.banned_word('Individuals (b 2 c)'), 'B2C', 'B2C is banned too (V522)');
 select test.eq(core.banned_word('Direct KSA travel'), 'Direct KSA', 'or cased');
 select test.eq(core.banned_word('Government · Corporate · microphone · zooming'), null::text, 'ordinary words pass');
 select test.eq(core.banned_word('Zoom meeting · Google Drive folder · GMV per unit'), null::text,

@@ -94,7 +94,8 @@
     "language": "اللغة",
     "direction": "الاتجاه (للتطوير)",
     "signOut": "تسجيل الخروج",
-    "myProfile": "ملفي"
+    "myProfile": "ملفي",
+    "documents": "المستندات"
   },
   "theme": {
     "light": "فاتح",
@@ -850,7 +851,8 @@
     "import_map": "عمود الاستيراد",
     "item_service": "خدمة البند",
     "item_class": "تصنيف البند",
-    "my_carry": "نقل في ختام اليوم"
+    "my_carry": "نقل في ختام اليوم",
+    "doc_link": "رابط مستند"
   },
   "status": {
     "done": "منجزة",
@@ -1064,8 +1066,16 @@
         "status": {
           "at_risk": "مهددة",
           "lost": "مفقودة"
+        },
+        "kind": {
+          "sop": "إجراء عمل (SOP)",
+          "sla": "اتفاقية مستوى الخدمة (SLA)",
+          "other": "أخرى"
         }
-      }
+      },
+      "link": "الرابط",
+      "linkInvalid": "اكتب عنواناً كاملاً يبدأ بـ https://",
+      "kind": "النوع"
     },
     "people": {
       "noRole": "بلا دور",
