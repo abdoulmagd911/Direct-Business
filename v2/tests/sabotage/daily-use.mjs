@@ -33,6 +33,18 @@ export const sabotages = [
     ],
   },
   {
+    name: 'date-box-hides-the-field-while-typing',
+    breaks: [BOX],
+    expect: '> shows the real field, and hides the written date, while the field has keyboard focus',
+    edits: [{ file: 'src/ui/Input.tsx', find: ' focus-visible:opacity-100', replace: '' }],
+  },
+  {
+    name: 'date-box-hides-the-field-while-typing-in-the-browser',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'the real date field shows while it has keyboard focus',
+    edits: [{ file: 'src/ui/Input.tsx', find: ' focus-visible:opacity-100', replace: '' }],
+  },
+  {
     name: 'date-time-box-is-left-to-the-browser',
     breaks: [BOX],
     expect: '> shows a date with a time the same way',

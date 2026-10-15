@@ -21,7 +21,8 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
  * A date box (W-daily 13): the browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
  * so the box shows the date the way the whole app writes it — `14 Oct 2026` — and the real date input sits invisibly
  * on top of it, keeping the label, the keyboard, the value (always `YYYY-MM-DD`, or `YYYY-MM-DDThh:mm` with a time)
- * and the native picker.
+ * and the native picker. While the field has keyboard focus the real input is shown and the written date hidden, so
+ * a date typed by keyboard is seen as it goes in (QA-569).
  */
 const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
   { className, mono, placeholder, value, defaultValue, onChange, onClick, type, ...rest },
@@ -54,7 +55,11 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
         defaultValue={defaultValue}
         onChange={change}
         onClick={open}
-        className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
+        className={cn(
+          inputClass,
+          'peer absolute inset-0 z-10 size-full cursor-pointer opacity-0 focus-visible:opacity-100',
+          mono && 'font-data tabular',
+        )}
         {...rest}
       />
       <div
@@ -62,7 +67,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
         data-date-text
         className={cn(
           inputClass,
-          'flex min-h-[var(--control-h)] items-center peer-focus-visible:outline-2 peer-focus-visible:outline-focus peer-focus-visible:outline-offset-1 peer-aria-invalid:border-danger peer-disabled:bg-surface peer-disabled:text-muted',
+          'flex min-h-[var(--control-h)] items-center peer-focus-visible:invisible peer-aria-invalid:border-danger peer-disabled:bg-surface peer-disabled:text-muted',
           mono && 'font-data tabular',
           !shown && 'text-muted',
         )}
