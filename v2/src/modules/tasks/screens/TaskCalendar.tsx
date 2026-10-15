@@ -107,7 +107,7 @@ export function TaskCalendar({
                   !d.inMonth && 'opacity-60',
                 )}
               >
-                <span className="sm:hidden">{part(d.day, { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                <span className="sm:hidden">{part(d.day, { weekday: 'long', day: 'numeric', month: 'short' })}</span>
                 <span className="max-sm:hidden">{part(d.day, { day: 'numeric' })}</span>
               </span>
               {d.inMonth && due.length ? <ul className="flex flex-col">{due.map(line)}</ul> : null}

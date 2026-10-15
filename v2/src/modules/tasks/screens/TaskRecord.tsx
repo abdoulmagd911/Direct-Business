@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { avatarOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -16,6 +15,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
@@ -49,6 +49,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const move = useStatusMove(task, lookups.statuses);
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
+  const [followUps, setFollowUps] = useState(0);
   const status = lookups.statuses.find((s) => s.key === task.status);
   const statusLabel =
     view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
@@ -84,10 +86,12 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       {task.executive_directive ? (
         <StatusChip tone="info">{names.locale === 'ar' ? task.priority_ar : task.priority_en}</StatusChip>
       ) : null}
+      <FollowUpChips entity="task" id={task.id} onCount={setFollowUps} />
     </>
   );
-  // One ⋯ menu for the less frequent actions (V630: Mark done stays the one main action): Follow up for anyone who
-  // sees the task — a private Reminder about it (V632 Stage 2) — and Escalate for whoever may change it (V401).
+  // Mark done stays the one main action (V630). Follow up is a visible action for anyone who sees the task — a private
+  // Reminder about it (V632 Stage 2, V282; the oversight's walk of 14 Oct). Escalate (V401) sits in the ⋯ menu, for
+  // whoever may change an open task.
   const actions = (
     <>
       {task.can_edit && !closed && move.markDone ? (
@@ -106,28 +110,21 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('common.edit')}
         </Button>
       ) : null}
-      <Menu>
-        <MenuTrigger asChild>
-          <Button aria-label={t('common.more')} data-task-more>
-            ⋯
-          </Button>
-        </MenuTrigger>
-        <MenuContent>
-          <MenuItem
-            onSelect={() =>
-              openQuickCapture({ about: { entity: 'task', id: task.id, label: `${task.number} ${task.title}` } })
-            }
-            data-follow-up
-          >
-            {t('record.followUp')}
-          </MenuItem>
-          {task.can_edit && !closed ? (
+      <FollowUpButton about={{ entity: 'task', id: task.id, label: `${task.number} · ${task.title}` }} />
+      {task.can_edit && !closed ? (
+        <Menu>
+          <MenuTrigger asChild>
+            <Button aria-label={t('common.more')} data-task-more>
+              ⋯
+            </Button>
+          </MenuTrigger>
+          <MenuContent>
             <MenuItem onSelect={() => setEscalating(true)} data-escalate-open>
               {t('pages.tasks.escalate.open')}
             </MenuItem>
-          ) : null}
-        </MenuContent>
-      </Menu>
+          </MenuContent>
+        </Menu>
+      ) : null}
       {task.can_edit ? move.dialogs : null}
     </>
   );
@@ -202,7 +199,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
               {task.notes ? (
                 <p className="whitespace-pre-wrap break-words text-base">{task.notes}</p>
               ) : (
-                <p className="text-base text-muted">{t('pages.tasks.noNotes')}</p>
+                <p className="text-base text-muted" data-no-notes>
+                  {t(followUps ? 'pages.tasks.noOtherNotes' : 'pages.tasks.noNotes')}
+                </p>
               )}
             </section>
             <section className="flex flex-col gap-2" data-status-history>

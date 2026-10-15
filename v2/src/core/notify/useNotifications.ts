@@ -22,6 +22,11 @@ export type Notification = {
   label_args: Record<string, unknown> | null;
   created_at: string;
   read_at: string | null;
+  /** The record by name, only for a reader who may see it (QA-553); else null and the bell says the kind's word. */
+  title?: string | null;
+  title_ar?: string | null;
+  /** What a change notice's request changed on the record: field names only; empty for any other notice. */
+  fields?: string[];
 };
 
 /**

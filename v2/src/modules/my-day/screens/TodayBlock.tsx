@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { formatDate } from '@/core/i18n/format';
+import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
@@ -73,19 +73,17 @@ export function TodayBlock({
       ) : (
         groups
           .filter((x) => x.rows.length || x.reminders.length)
-          .map((x, i) => (
+          .map((x) => (
             <div key={x.key} data-today-group={x.key}>
-              {/* the card is already titled "Today": its first group does not say it again (QA-564); after Overdue it does, to tell them apart */}
-              {x.key === 'today' && i === 0 ? null : (
-                <h3 className="pt-3 text-sm font-medium text-muted">
-                  {t(`pages.myDay.today.${x.key}`)}
-                  {x.key === 'overdue' ? (
-                    <span className="ms-2 font-data text-danger" data-today-overdue-count>
-                      {x.rows.length + x.reminders.length}
-                    </span>
-                  ) : null}
-                </h3>
-              )}
+              {/* the card is titled "Today"; its groups are never titled just that: Overdue · Due today · Next 7 days (QA-564) */}
+              <h3 className="pt-3 text-sm font-medium text-muted">
+                {t(`pages.myDay.today.${x.key}`)}
+                {x.key === 'overdue' ? (
+                  <span className="ms-2 font-data text-danger" data-today-overdue-count>
+                    {x.rows.length + x.reminders.length}
+                  </span>
+                ) : null}
+              </h3>
               <ul className="divide-y divide-border">
                 {x.reminders.map((r) => (
                   <ReminderRow key={r.id} reminder={r} overdue={x.key === 'overdue'} />
@@ -107,19 +105,19 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const [busy, setBusy] = useState(false);
+  const title = r.text || t('pages.myDay.today.reminder');
   const done = async () => {
     setBusy(true);
-    await command(words(t('pages.myDay.today.reminderDone')), () => markReminderDone(r));
+    await command(words(t('pages.myDay.today.reminderDone', { title: clip(title) })), () => markReminderDone(r));
     setBusy(false);
   };
-  const title = r.text || t('pages.myDay.today.reminder');
   const body = (
     <>
       <span className="block break-words">{title}</span>
       <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
-        <StatusChip tone="info" className="max-w-full">
-          <span className="truncate">
+        <StatusChip tone="info" className="h-auto min-h-6 max-w-full whitespace-normal py-1 leading-snug">
+          <span className="min-w-0 break-words">
             {r.about?.label
               ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
               : t('pages.myDay.today.reminder')}
@@ -177,19 +175,26 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
   return (
     <li className="relative flex min-h-14 items-start gap-3 py-3" data-today-task={task.number}>
       <DoneTick task={tick} statuses={statuses} title={task.title} />
-      <Link
-        href={`/tasks/${task.number}`}
-        className="min-w-0 flex-1 after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
-        data-today-open
-      >
-        <span className="block break-words">{task.title}</span>
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/tasks/${task.number}`}
+          className="block break-words after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
+          data-today-open
+        >
+          {task.title}
+        </Link>
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {task.partner_name ? <StatusChip tone="neutral">{task.partner_name}</StatusChip> : null}
+          {/* the client opens the client, above the row's own link (the read names it only to a reader who may see it) */}
+          {task.partner_id && task.partner_name ? (
+            <Link href={`/clients/${task.partner_id}`} className="relative z-10" data-today-client>
+              <StatusChip tone="neutral">{task.partner_name}</StatusChip>
+            </Link>
+          ) : null}
           <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
             {formatDate(task.due_on, locale, { dateStyle: 'medium' })}
           </span>
         </span>
-      </Link>
+      </div>
     </li>
   );
 }

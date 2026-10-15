@@ -60,6 +60,14 @@ for (const width of [375, 1440]) {
       block.locator('[data-today-group="overdue"] [data-today-overdue-count]'),
       'Overdue shows its count',
     ).toHaveText('1');
+    // the card is titled Today and its groups never just that (QA-564): Overdue · Due today · Next 7 days
+    await expect(block.locator('h2')).toHaveText('Today');
+    await expect(block.locator('h3'), 'the groups, in order, with an overdue task present').toHaveText([
+      /^Overdue\s*1$/,
+      'Due today',
+      'Next 7 days',
+    ]);
+    expect(await block.getByText('Today', { exact: true }).count(), 'the word Today is the card title only').toBe(1);
     await expect(block.locator('[data-today-group="today"]')).toContainText(`Due task ${t}`);
     await expect(block.locator('[data-today-group="next"]')).toContainText(`Later task ${t}`);
     await expect(block.locator('[data-today-task]').first().locator('[data-done-tick]')).toBeVisible();

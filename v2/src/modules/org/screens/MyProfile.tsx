@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { run } from '@/core/commands/run';
 import type { Me } from '@/core/auth/me';
+import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { DENSITIES, DIRS, PREF_DEFS, readPrefs, setPref } from '@/core/prefs';
@@ -93,8 +94,9 @@ export function MyProfile({
   }
   useEffect(() => {
     const before = readPrefs();
-    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);
-    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);
+    // the cookies are a cache of the profile, never a choice of this browser (one source, the same in every tab)
+    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default, { cache: true });
+    setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });
     setPref('locale', me.profile?.locale ?? PREF_DEFS.locale.default);
     if (me.profile?.drawer_pinned !== null && me.profile?.drawer_pinned !== undefined)
       setPref('drawer', me.profile.drawer_pinned ? 'pinned' : 'collapsed');
@@ -113,15 +115,21 @@ export function MyProfile({
     failed: (k: string, d: string) => t(k, { detail: d }),
   };
 
-  const save = async (changes: Changes) => {
-    await run(
+  const save = async (changes: Changes) =>
+    run(
       words,
       async () => {
         const r = (await rpc('profile_update', {
           p_changes: changes as never,
           p_version: state.profile?.version ?? undefined,
           p_person_version: state.personVersion ?? undefined,
-        })) as { version?: number; person_version?: number; request_id?: string } | null;
+        })) as {
+          version?: number;
+          person_version?: number;
+          request_id?: string;
+          display_name_en?: string | null;
+          display_name_ar?: string | null;
+        } | null;
         setState((s) => {
           const { full_name_en, full_name_ar, nickname_en, nickname_ar, notify, ...profileChanges } = changes;
           const nextPerson = {
@@ -146,22 +154,33 @@ export function MyProfile({
             notify: null,
             version: 0,
           };
+          // the display names as the database kept them (one's own e-mail is kept empty — QA-567), not as typed
+          const kept = {
+            ...(r && 'display_name_en' in r ? { display_name_en: r.display_name_en ?? null } : {}),
+            ...(r && 'display_name_ar' in r ? { display_name_ar: r.display_name_ar ?? null } : {}),
+          };
           const nextProfile: Profile = {
             ...base,
             ...profileChanges,
+            ...kept,
             ...(notify ? { notify: { ...((base.notify as object | null) ?? {}), ...notify } } : {}),
             version: r?.version ?? base.version,
           };
           return { person: nextPerson, profile: nextProfile, personVersion: r?.person_version ?? s.personVersion };
         });
-        if (changes.theme) setPref('theme', changes.theme);
-        if (changes.density) setPref('density', changes.density);
+        if (changes.theme) setPref('theme', changes.theme, { cache: true });
+        if (changes.density) setPref('density', changes.density, { cache: true });
         if (changes.locale) setPref('locale', changes.locale);
         if (changes.drawer_pinned !== undefined) setPref('drawer', changes.drawer_pinned ? 'pinned' : 'collapsed');
         return r;
       },
       () => router.refresh(),
     );
+  // a display name's box shows what the database kept (one's own e-mail is kept empty — QA-567); undefined when the
+  // save did not go through, so the box keeps what was typed
+  const saveName = async (key: 'display_name_en' | 'display_name_ar', v: string) => {
+    const r = await save({ [key]: v || null });
+    return r && key in r ? (r[key] ?? '') : undefined;
   };
 
   const signOutDevice = async (d: Device) => {
@@ -228,13 +247,13 @@ export function MyProfile({
           <TextField
             label={t('profile.displayNameEn')}
             value={state.profile?.display_name_en ?? ''}
-            onSave={(v) => save({ display_name_en: v || null })}
+            onSave={(v) => saveName('display_name_en', v)}
           />
           {/* the Arabic display name is data, editable whatever app.arabic_enabled says (QA-179) */}
           <TextField
             label={t('profile.displayNameAr')}
             value={state.profile?.display_name_ar ?? ''}
-            onSave={(v) => save({ display_name_ar: v || null })}
+            onSave={(v) => saveName('display_name_ar', v)}
             dir="rtl"
           />
         </div>
@@ -351,6 +370,7 @@ export function MyProfile({
 /** Change password (owner, 29 Sep 13:50): the new password twice; the rule is one line — at least ten characters. */
 function PasswordSection() {
   const t = useTranslations();
+  const me = useMe();
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
@@ -372,6 +392,19 @@ function PasswordSection() {
   return (
     <Section title={t('profile.sections.password')} data-profile-card="password">
       <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
+      {/* The browser's password manager fills a saved sign-in into the text box before a password field; this one is
+          that box, read-only and out of sight, so it never lands in the display names above (they save on blur). */}
+      <input
+        type="email"
+        name="username"
+        autoComplete="username"
+        value={me.session.email}
+        readOnly
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
+        data-password-username
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label={t('sign_in.password.current')}
@@ -463,7 +496,8 @@ function TextField({
 }: {
   label: string;
   value: string;
-  onSave: (v: string) => void | Promise<void>;
+  /** May answer with the value as stored; the box then shows that rather than what was typed. */
+  onSave: (v: string) => unknown;
   required?: boolean;
   dir?: 'rtl' | 'ltr';
 }) {
@@ -481,7 +515,9 @@ function TextField({
       setDraft(value);
       return;
     }
-    void onSave(v);
+    void Promise.resolve(onSave(v)).then((kept) => {
+      if (typeof kept === 'string') setDraft(kept);
+    });
   };
   return (
     <Field label={label} error={required && !draft.trim() ? t('common.required') : undefined}>

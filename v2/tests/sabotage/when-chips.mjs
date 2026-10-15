@@ -131,4 +131,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'when-tomorrow-keeps-its-word-on-a-thursday',
+    breaks: [UNIT],
+    expect: 'calls Tomorrow by its day when the next working day is not literally tomorrow',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'if (tomorrowIsPlain(day)) return null;',
+        replace: 'if (day.length > 0) return null;',
+      },
+    ],
+  },
+  {
+    name: 'bell-snooze-until-tomorrow-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes the bell until 08:00 on the next working day: a Thursday lands on Sunday, not on the weekend',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: '`${nextWorkingDay(riyadhNow(now).day)}T08:00:00+03:00`',
+        replace: '`${new Date(Date.parse(riyadhNow(now).day) + 86_400_000).toISOString().slice(0, 10)}T08:00:00+03:00`',
+      },
+    ],
+  },
+  {
+    name: 'bell-snooze-for-a-week-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes "for a week" to the first working day on or after seven days from now, on every weekday',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'while (d.getUTCDay() === 5 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);\n  return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+        replace: 'return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+      },
+    ],
+  },
 ];

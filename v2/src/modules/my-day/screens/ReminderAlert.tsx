@@ -8,6 +8,7 @@ import { command } from '@/core/commands/command';
 import { onRefetch, refetchAll } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
 import { errorKey } from '@/core/db/words';
+import { clip } from '@/core/i18n/format';
 import { rpc } from '@/core/db/rpc';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
@@ -23,7 +24,7 @@ import {
   type DueAnswer,
   type DueReminder,
 } from '../reminder-alert';
-import type { When } from '../when';
+import { tomorrowDayName, type When } from '../when';
 import { whenLine } from './WhenPicker';
 
 /**
@@ -121,7 +122,7 @@ export function ReminderAlert() {
   const snooze = async (when: When) => {
     setBusy(true);
     await command(
-      words(t('pages.myDay.alert.snoozed', { when: whenLine(when, locale) })),
+      words(t('pages.myDay.alert.snoozed', { when: whenLine(when, locale), title: clip(first.text) })),
       () => rpc('reminder_move', { p_id: first.id, p_at: snoozeInstant(when) }) as Promise<{ request_id?: string }>,
     );
     setBusy(false);
@@ -168,7 +169,9 @@ export function ReminderAlert() {
           <MenuContent align="start">
             {choices.map(({ key, when }) => (
               <MenuItem key={key} className="h-11" onSelect={() => void snooze(when)} data-alert-snooze-to={key}>
-                {t(`pages.myDay.quick.whenChips.${key}`)} · {whenLine(when, locale)}
+                {(key === 'tomorrow' ? tomorrowDayName(new Date(), locale) : null) ??
+                  t(`pages.myDay.quick.whenChips.${key}`)}{' '}
+                · {whenLine(when, locale)}
               </MenuItem>
             ))}
           </MenuContent>

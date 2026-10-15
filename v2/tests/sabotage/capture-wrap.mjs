@@ -163,4 +163,46 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'wrap-up-next-week-shows-no-date',
+    breaks: [E2E],
+    expect: WRAP,
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '{landsOn[move] ? (',
+        replace: "{move === 'tomorrow' && landsOn[move] ? (",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-moves-wrap-onto-two-lines',
+    breaks: [E2E],
+    expect: WRAP,
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: 'grid grid-cols-3 gap-2',
+        replace: 'flex flex-wrap gap-2',
+      },
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "'min-w-0 flex-col justify-center gap-0.5 px-2 text-center'",
+        replace: "'gap-1.5 px-3'",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-draws-a-disabled-save-on-an-empty-day',
+    breaks: [E2E],
+    expect: 'QA-570',
+    edits: [
+      { file: 'src/modules/my-day/screens/WrapUpDialog.tsx', find: 'items?.length ? (', replace: 'true ? (' },
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '<Button variant="primary" loading={busy}',
+        replace: '<Button variant="primary" disabled={!items?.length} loading={busy}',
+      },
+    ],
+  },
 ];

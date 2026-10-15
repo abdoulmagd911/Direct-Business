@@ -127,19 +127,27 @@ test('a change by someone else reaches the bell; it is marked read and snoozed; 
   const panel = page.locator('[data-notifications-panel]');
   await expect(panel).toBeVisible();
   await expect(panel.locator('[data-notification][data-unread]')).toHaveCount(2);
-  await expect(panel).toContainText(`${admin.name} changed your Person`);
-  await expect(panel).toContainText(`${admin.name} changed Person you follow`);
+  // one plain pattern, "<who> changed <what> on <record>": the field's words and the record's name (14 Oct)
+  await expect(panel).toContainText(`${admin.name} changed Job title on ${member.name}`);
+  await expect(panel).toContainText(`${admin.name} changed Job title on ${other.name}`);
   await expect(page.locator('[data-bell]')).toHaveAttribute('data-unread', '2');
   await expect(panel.locator('[data-notifications-group="today"]')).toBeVisible();
   // snooze one until tomorrow: it leaves the list
   await panel.locator('[data-notification]').first().locator('[data-notification-snooze]').click();
-  await page.getByRole('menuitem', { name: 'Until tomorrow 08:00' }).click();
+  // "Until tomorrow 08:00", or "Until Sunday 08:00" on a Thursday and a Friday (the next working day, 15 Oct)
+  await page.getByRole('menuitem', { name: /^Until (tomorrow|Sunday) 08:00$/ }).click();
   await expect(panel.locator('[data-notification]')).toHaveCount(1);
   const [snoozed] = await sql<{ n: string }>(
     `select count(*)::text as n from notify.notification where person_id = $1 and snoozed_until > now()`,
     [member.id],
   );
   expect(snoozed!.n).toBe('1');
+  const [weekend] = await sql<{ n: string }>(
+    `select count(*)::text as n from notify.notification where person_id = $1 and snoozed_until > now()
+       and extract(dow from (snoozed_until at time zone 'Asia/Riyadh')) in (5, 6)`,
+    [member.id],
+  );
+  expect(weekend!.n, 'the snooze never lands on a Friday or a Saturday').toBe('0');
   // mark all read: the dot and the count go
   await panel.locator('[data-notifications-mark-all]').click();
   await expect(panel.locator('[data-notification][data-unread]')).toHaveCount(0);
