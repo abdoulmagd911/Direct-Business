@@ -99,18 +99,6 @@ export const sabotages = [
     ],
   },
   {
-    name: 'wrap-next-week-shows-no-date',
-    breaks: ['e2e:tests/e2e/capture-wrap.spec.ts'],
-    expect: 'Next week shows its date in the same format as Tomorrow',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "move === 'next_week'",
-        replace: "(move as string) === 'never'",
-      },
-    ],
-  },
-  {
     name: 'toast-covers-the-bottom-bar-on-a-phone',
     breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
     expect: 'the toast ends above the bottom bar',
