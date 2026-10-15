@@ -150,6 +150,19 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('[data-wrap-item]', { hasText: `Late task ${t}` })).toBeVisible();
   const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
+  // each move says the day it lands on, in the one date format (W-daily 13), the database's own days
+  const [lands] = await sql<{ tomorrow: string; next_week: string }>(
+    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon YYYY') as tomorrow,
+            to_char(my.next_week_day(core.riyadh_today()), 'FMDD Mon YYYY') as next_week`,
+  );
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="tomorrow"]'),
+    'Tomorrow shows its date',
+  ).toContainText(lands!.tomorrow);
+  await expect(
+    rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="next_week"]'),
+    'Next week shows its date in the same format as Tomorrow',
+  ).toContainText(lands!.next_week);
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
     'Tomorrow is already chosen',
@@ -160,19 +173,14 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
     .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
   expect(tops, 'three choices').toHaveLength(3);
   expect(new Set(tops).size, 'on one line').toBe(1);
-  const [lands] = await sql<{ tomorrow: string; next: string }>(
-    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon') as tomorrow,
-            to_char(my.next_week_day(core.riyadh_today()), 'FMDD Mon') as next`,
-  );
+  const clipped = await rowOf(`Due task ${t}`)
+    .locator('[data-wrap-move]')
+    .evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).length);
+  expect(clipped, 'no choice is cut off by the year in its date').toBe(0);
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
     'Tomorrow is called by its day when the next working day is not tomorrow',
   ).toContainText(named ?? 'Tomorrow');
-  await expect(rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]')).toContainText(lands!.tomorrow);
-  await expect(
-    rowOf(`Due task ${t}`).locator('[data-wrap-move="next_week"]'),
-    'Next week shows its date, as Tomorrow does',
-  ).toContainText(lands!.next);
   await expect(
     dialog.locator('[data-wrap-save]'),
     'Save says what it will do, rows left alone going to tomorrow',

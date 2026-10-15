@@ -128,7 +128,7 @@ export function WrapUpDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('pages.myDay.wrap.title')}
-      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'short' })}
       closeLabel={t('common.close')}
       footer={
         <>
@@ -209,7 +209,9 @@ export function WrapUpDialog({
                         >
                           <span>{(move === 'tomorrow' ? tomorrowName : null) ?? t(`pages.myDay.wrap.${word}`)}</span>
                           {landsOn[move] ? (
-                            <span className="font-data text-xs font-normal text-muted">{landsOn[move]}</span>
+                            <span className="font-data text-xs font-normal text-muted" data-wrap-lands-on={move}>
+                              {landsOn[move]}
+                            </span>
                           ) : null}
                         </button>
                       ))}

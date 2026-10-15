@@ -329,10 +329,6 @@
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
       },
-      "reminder": {
-        "removeTitle": "Remove the reminder “{name}”?",
-        "removed": "Reminder removed"
-      },
       "since": {
         "at": "Last visit {when}",
         "markSeen": "Mark seen",
@@ -344,8 +340,8 @@
       "today": {
         "title": "Today",
         "overdue": "Overdue",
-        "today": "Today",
-        "next": "Next",
+        "today": "Due today",
+        "next": "Next 7 days",
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",

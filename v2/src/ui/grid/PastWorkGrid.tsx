@@ -145,6 +145,7 @@ export interface PastWorkGridProps {
   today?: string;
 }
 
+// check-allow: one-date-format — builds Riyadh's YYYY-MM-DD from parts, never shown
 const riyadhDay = new Intl.DateTimeFormat('en-GB', {
   timeZone: TIME_ZONE,
   calendar: 'gregory',
@@ -529,6 +530,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
 
 /** A month's name in the reader's language — the Gregorian calendar, Latin digits (V40): "March 2025", «مارس 2025». */
 function monthName(lang: 'ar' | 'en', year: number, month: number): string {
+  // check-allow: one-date-format — a month's own name (a label), not a date
   return new Intl.DateTimeFormat(lang, {
     month: 'long',
     year: 'numeric',
