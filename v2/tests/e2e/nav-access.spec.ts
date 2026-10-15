@@ -140,7 +140,7 @@ for (const who of ['admin', 'Commercial member'] as const) {
 
     // the pages a plain member's access opens are the pages in their menu
     if (who === 'Commercial member')
-      for (const name of ['Finance', 'KPIs'])
+      for (const name of ['Finance', 'Achievements'])
         expect(wide, `${name} is in the menu where the access opens it`).toContain(name);
     await desktop.context().close();
     await phone.context().close();

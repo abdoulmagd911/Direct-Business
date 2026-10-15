@@ -1,10 +1,11 @@
 /**
- * Follow up on a record (V632 Stage 2, the Architect's ruling of 14 Oct; the design brief my-day-stage2 §E, tests 6–7;
- * V282): on a client and on a task the ⋯ menu's first entry is Follow up, and no new button is drawn on the header — on
- * the task page Escalate moved into the same menu, so the header lost a button. Follow up opens the one Capture sheet
- * (#242) on the record: it names the record, leaves the words empty, and saves a private note `about` that record whose
- * title is the neutral "Follow-up" — never the record's name (QA-560). At 390 px and 1,440 px; every value made up.
- * Sabotages: tests/sabotage/follow-up.mjs.
+ * Follow up on a record (V632 Stage 2, V282, V283; the oversight's production walk of 14 Oct, findings 1–5). On a client
+ * and on a task, Follow up is a visible action with the page's others; it opens the one Capture sheet (#242) on the
+ * record, which names it and starts with no words. Save makes ONE follow-up — one note carrying one reminder, about the
+ * record, titled "Follow-up" and never with the record's name (QA-560) — and My day lists it once, as a reminder above
+ * My notes, tagged with its record, never again as a plain note. The record page then shows its author the follow-up
+ * with its time. The client's watch action says Watch, not Follow. On My day a task row's client chip opens the client.
+ * At 390 px and 1,440 px; every value made up. Sabotages: tests/sabotage/follow-up.mjs.
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql, type TestPerson } from './support/stack';
@@ -46,36 +47,60 @@ async function signedIn(browser: Browser, person: TestPerson, width: number, hei
   return { ctx, page };
 }
 
-/** How many buttons on the page carry these words — 0 means the action is no button of its own. */
-const buttons = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
-
 /**
- * The sheet opened by Follow up names the record, starts with no words of its own, and saves a private note about
- * that record titled "Follow-up" — never with the record's name in the title.
+ * Follow up is a visible action; the sheet names the record and starts empty; Save makes exactly one note carrying
+ * exactly one reminder, about the record and titled "Follow-up" — and the record page then shows its chip.
  */
-async function followUpSaves(page: Page, person: TestPerson, table: string, id: string, label: string) {
+async function followUpOnce(page: Page, person: TestPerson, table: string, id: string, label: string) {
+  const button = page.getByRole('button', { name: 'Follow up', exact: true });
+  await expect(button, 'Follow up is a visible action on the record').toBeVisible();
+  await button.click();
   const sheet = page.locator('[data-quick-capture]');
   await expect(sheet, 'the one Capture sheet opens').toBeVisible();
-  await expect(sheet.getByRole('heading', { name: 'Follow up' })).toBeVisible();
   await expect(sheet.locator('[data-quick-about]'), 'the sheet names the record').toHaveText(`Follow up on ${label}`);
   await expect(sheet.locator('[data-quick-text]'), 'no words are put in for the person').toHaveValue('');
   await sheet.locator('[data-quick-save]').click();
   await expect(sheet).toHaveCount(0);
-  const [note] = await sql<{ title: string; visibility: string; about_table: string; about_id: string }>(
-    `select title, visibility, about_table, about_id from my.note
-     where person_id = $1 and deleted_at is null order by created_at desc limit 1`,
-    [person.id],
+
+  const notes = await sql<{ id: string; title: string; visibility: string; reminders: number }>(
+    `select n.id, n.title, n.visibility,
+            (select count(*)::int from core.reminder r where r.note_id = n.id and r.deleted_at is null) as reminders
+     from my.note n where n.person_id = $1 and n.about_table = $2 and n.about_id = $3 and n.deleted_at is null`,
+    [person.id, table, id],
   );
-  expect(note, 'a follow-up note was saved').toBeTruthy();
-  expect(note!.about_table).toBe(table);
-  expect(note!.about_id).toBe(id);
-  expect(note!.visibility, 'a follow-up is private (V454)').toBe('private');
-  expect(note!.title, 'the title is neutral').toBe('Follow-up');
-  expect(note!.title, "the record's name never goes into the title").not.toContain(label);
+  expect(notes.length, 'one follow-up, not two').toBe(1);
+  expect(notes[0]!.reminders, 'carrying exactly one reminder').toBe(1);
+  expect(notes[0]!.visibility, 'private (V454)').toBe('private');
+  expect(notes[0]!.title, "neutral, never the record's name").toBe('Follow-up');
+  await expect(page.locator('[data-follow-up-chip]'), 'the record shows its author the follow-up').toHaveCount(1);
+  await expect(page.locator('[data-follow-up-chip]')).toContainText('Follow up ·');
+  return notes[0]!.id;
+}
+
+/** My day lists the follow-up once — a reminder above My notes, tagged with its record — and never as a plain note. */
+async function listedOnceOnMyDay(page: Page, noteId: string, label: string) {
+  await page.goto('/my-day');
+  await hydrated(page);
+  const reminders = page.locator('[data-reminders]');
+  await expect(reminders, 'the reminder is listed').toBeVisible();
+  await expect(reminders.locator('[data-reminder]'), 'once').toHaveCount(1);
+  await expect(reminders, 'tagged with its record').toContainText(`Follow up: ${label}`);
+  const clipped = await reminders
+    .locator('[data-reminder] span.break-words')
+    .first()
+    .evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(clipped, 'the tag wraps; the record name is never cut off').toBe(false);
+  await expect(page.locator(`[data-block="me"] a[href$="${noteId}"]`), 'and not again among My notes').toHaveCount(0);
+  const above = await page.evaluate(() => {
+    const r = document.querySelector('[data-reminders]');
+    const n = document.querySelector('[data-block="me"]');
+    return !!r && !!n && !!(r.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(above, 'the reminders come before My notes').toBe(true);
 }
 
 for (const w of WIDTHS) {
-  test(`${w.name}: Follow up is the first entry of a client's ⋯ menu and saves a private note about the client`, async ({
+  test(`${w.name}: on a client Follow up is visible, saves one follow-up, and Watch is named Watch`, async ({
     browser,
   }) => {
     const admin = await adminWithTeam();
@@ -89,16 +114,23 @@ for (const w of WIDTHS) {
 
     await page.goto(`/clients/${id}`);
     await hydrated(page);
-    await expect(buttons(page, 'Follow up'), 'no Follow up button on the header').toHaveCount(0);
+    await expect(page.locator('[data-follow]'), 'watching a record is named Watch, not Follow').toHaveText(
+      /^Watch(ing)?$/,
+    );
     await page.locator('[data-partner-more]').click();
-    const first = page.getByRole('menuitem').first();
-    await expect(first, 'Follow up is the first entry').toHaveText('Follow up');
-    await first.click();
-    await followUpSaves(page, admin, 'partner.partner', id, name);
+    await expect(page.getByRole('menuitem', { name: 'Follow up' }), 'no second Follow up in the menu').toHaveCount(0);
+    await page.keyboard.press('Escape');
+    const [watch, more] = await Promise.all([
+      page.locator('[data-follow]').boundingBox(),
+      page.locator('[data-partner-more]').boundingBox(),
+    ]);
+    expect(Math.abs(watch!.y - more!.y), 'Watch and ⋯ sit on one line').toBeLessThan(4);
+    const noteId = await followUpOnce(page, admin, 'partner.partner', id, name);
+    await listedOnceOnMyDay(page, noteId, name);
     await ctx.close();
   });
 
-  test(`${w.name}: on a task Follow up and Escalate share one ⋯ menu, and the header loses a button`, async ({
+  test(`${w.name}: on a task Follow up is visible, saves one follow-up, and Escalate stays in the ⋯ menu`, async ({
     browser,
   }) => {
     const admin = await adminWithTeam();
@@ -110,14 +142,42 @@ for (const w of WIDTHS) {
 
     await page.goto(`/tasks/${number}`);
     await hydrated(page);
-    await expect(page.locator('[data-mark-done]'), 'Mark done stays the one main action').toBeVisible();
-    await expect(buttons(page, 'Escalate'), 'Escalate is no longer a header button').toHaveCount(0);
-    await expect(buttons(page, 'Follow up'), 'Follow up is no header button').toHaveCount(0);
+    await expect(page.locator('[data-mark-done]'), 'Mark done stays the main action').toBeVisible();
+    await expect(page.getByRole('button', { name: 'Escalate', exact: true })).toHaveCount(0);
     await page.locator('[data-task-more]').click();
-    const items = page.getByRole('menuitem');
-    await expect(items, 'Follow up first, then Escalate').toHaveText(['Follow up', 'Escalate']);
-    await items.first().click();
-    await followUpSaves(page, admin, 'work.task', id, `${number} ${title}`);
+    await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Escalate').toHaveText(['Escalate']);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
+    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`);
+    await expect(page.locator('[data-no-notes]'), 'beside a follow-up, an empty Notes says No other notes').toHaveText(
+      'No other notes',
+    );
+    await listedOnceOnMyDay(page, noteId, `${number} · ${title}`);
+    await ctx.close();
+  });
+
+  test(`${w.name}: on My day a task's client chip opens the client`, async ({ browser }) => {
+    const admin = await adminWithTeam();
+    const { ctx, page } = await signedIn(browser, admin, w.width, w.height);
+    const name = `Test Org Chip ${Math.random().toString(36).slice(2, 8)}`;
+    const org = await callAs(ctx, 'partner_create', {
+      p_partner: { trade_name_en: name, sides: [{ side: 'client', type: 'corporate' }] },
+    });
+    expect(org.status, JSON.stringify(org.body)).toBe(200);
+    const clientId = (org.body as { id: string }).id;
+    const task = await callAs(ctx, 'task_create', {
+      p_values: { title: `Made-up chip ${name}`, partner_id: clientId },
+    });
+    expect(task.status, JSON.stringify(task.body)).toBe(200);
+    const { number } = task.body as { number: string };
+    await sql(`update work.task set due_on = core.riyadh_today() where number = $1`, [number]);
+
+    await page.goto('/my-day');
+    await hydrated(page);
+    const chip = page.locator(`[data-today-task="${number}"] [data-today-client]`);
+    await expect(chip).toHaveText(name);
+    await chip.click();
+    await expect(page, 'the chip opens the client, not the task').toHaveURL(new RegExp(`/clients/${clientId}$`));
     await ctx.close();
   });
 }

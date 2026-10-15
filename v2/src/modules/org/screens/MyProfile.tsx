@@ -94,8 +94,9 @@ export function MyProfile({
   }
   useEffect(() => {
     const before = readPrefs();
-    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);
-    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);
+    // the cookies are a cache of the profile, never a choice of this browser (one source, the same in every tab)
+    setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default, { cache: true });
+    setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });
     setPref('locale', me.profile?.locale ?? PREF_DEFS.locale.default);
     if (me.profile?.drawer_pinned !== null && me.profile?.drawer_pinned !== undefined)
       setPref('drawer', me.profile.drawer_pinned ? 'pinned' : 'collapsed');
@@ -167,8 +168,8 @@ export function MyProfile({
           };
           return { person: nextPerson, profile: nextProfile, personVersion: r?.person_version ?? s.personVersion };
         });
-        if (changes.theme) setPref('theme', changes.theme);
-        if (changes.density) setPref('density', changes.density);
+        if (changes.theme) setPref('theme', changes.theme, { cache: true });
+        if (changes.density) setPref('density', changes.density, { cache: true });
         if (changes.locale) setPref('locale', changes.locale);
         if (changes.drawer_pinned !== undefined) setPref('drawer', changes.drawer_pinned ? 'pinned' : 'collapsed');
         return r;

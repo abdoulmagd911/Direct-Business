@@ -5,6 +5,14 @@ const SQL_RULES = 'the-sql-rules-refuse-vat-columns-unlisted-json-and-a-folding-
 
 export const sabotages = [
   {
+    name: 'blind-one-date-format',
+    breaks: [unit('the-date-check-refuses-another-way-of-writing-a-date')],
+    expect: '> refuses the browser and Intl ways of writing a date for the screen',
+    edits: [
+      { file: 'scripts/checks/one-date-format.mjs', find: 'if (LOCALE_METHODS.has(name) &&', replace: 'if (false &&' },
+    ],
+  },
+  {
     name: 'blind-one-client',
     breaks: [unit('the-one-client-check-refuses-a-client-made-outside-core-db')],
     expect: '> refuses createClient, createBrowserClient and createServerClient',

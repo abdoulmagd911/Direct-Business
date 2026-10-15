@@ -91,7 +91,7 @@
     "projects": "Projects",
     "tasks": "Tasks",
     "finance": "Finance",
-    "kpis": "KPIs",
+    "kpis": "Achievements",
     "reports": "Reports",
     "appraisal": "Appraisal",
     "activity": "Activity",
@@ -222,9 +222,6 @@
         "workspace": "Workspace"
       },
       "tabsLabel": "Whose notes",
-      "capture": {
-        "label": "Capture"
-      },
       "kinds": {
         "sticky": "Note",
         "meeting": "Meeting",
@@ -326,14 +323,11 @@
         "note": "Note",
         "saveWith": "Save · {parts}",
         "partTomorrow": "{count} to tomorrow",
+        "partToDay": "{count} to {day}",
         "partNextWeek": "{count} next week",
         "partDrop": "{count} dropped",
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
-      },
-      "reminder": {
-        "removeTitle": "Remove the reminder “{name}”?",
-        "removed": "Reminder removed"
       },
       "since": {
         "at": "Last visit {when}",
@@ -346,8 +340,8 @@
       "today": {
         "title": "Today",
         "overdue": "Overdue",
-        "today": "Today",
-        "next": "Next",
+        "today": "Due today",
+        "next": "Next 7 days",
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",
@@ -569,6 +563,7 @@
         "past": "No past work yet. Paste it from a report above."
       },
       "noNotes": "No notes",
+      "noOtherNotes": "No other notes",
       "statusHistory": "Status changes",
       "noStatusChanges": "No status changes yet",
       "views": {
@@ -825,7 +820,6 @@
       "note": "Note",
       "idea": "Idea",
       "private": "Only me",
-      "door": "This week",
       "reviewDay": "Review day"
     }
   },
@@ -1068,7 +1062,9 @@
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
     "lockedPartner": "An organisation's history is for the people who may open it",
-    "followUp": "Follow up"
+    "followUp": "Follow up",
+    "followUpOn": "Follow up · {when}",
+    "followUpsFailed": "Follow-ups · try again"
   },
   "activity": {
     "title": "Activity",
@@ -1544,7 +1540,7 @@
           "projects": "Projects",
           "tasks": "Tasks",
           "finance": "Finance",
-          "kpis": "KPIs",
+          "kpis": "Achievements",
           "reports": "Reports",
           "appraisal": "Appraisal",
           "activity": "Activity"
@@ -1870,10 +1866,10 @@
     "someDetails": "some details"
   },
   "follow": {
-    "follow": "Follow",
-    "following": "Following",
-    "unfollowed": "No longer following",
-    "failed": "Follow · try again"
+    "follow": "Watch",
+    "following": "Watching",
+    "unfollowed": "No longer watching",
+    "failed": "Watch · try again"
   },
   "conflict": {
     "title": "Someone changed this since you opened it",

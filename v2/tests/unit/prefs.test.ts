@@ -70,7 +70,15 @@ describe('core/prefs — the only browser storage (A13)', () => {
     };
     expect(serverPrefs(me, app, get).theme, 'the profile beats the cache').toBe('light');
     setPref('theme', 'colorful');
-    expect(ownChoice('theme', get), 'a choice made here is one').toBe(true);
-    expect(serverPrefs(me, app, get).theme, 'and it beats the profile until it is saved').toBe('colorful');
+    expect(ownChoice('theme', get), 'a value written as a choice is still only a cookie').toBe(true);
+    expect(
+      serverPrefs(me, app, get).theme,
+      'a signed-in person always gets the profile: one source, the same in every tab and browser',
+    ).toBe('light');
+    const noProfile = { profile: null } as never;
+    expect(serverPrefs(noProfile, app, get).theme, 'no profile: the admin default').toBe('dark');
+    expect(serverPrefs(null, app, get).theme, 'at the door nobody has a profile: this browser’s own value stands').toBe(
+      'colorful',
+    );
   });
 });

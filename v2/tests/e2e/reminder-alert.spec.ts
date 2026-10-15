@@ -90,7 +90,14 @@ test('Snooze > Tomorrow moves the reminder to the next working day at nine and p
   await page.reload();
   await hydrated(page);
   await alert(page).locator('[data-alert-snooze]').click();
-  await expect(page.locator('[data-alert-snooze-to="tomorrow"]')).toBeVisible();
+  const [word] = await sql<{ name: string }>(
+    `select case when core.next_working_day(core.riyadh_today()) = core.riyadh_today() + 1 then 'Tomorrow'
+                 else trim(to_char(core.next_working_day(core.riyadh_today()), 'FMDay')) end as name`,
+  );
+  await expect(
+    page.locator('[data-alert-snooze-to="tomorrow"]'),
+    'Tomorrow is called by its day when the next working day is not tomorrow',
+  ).toContainText(word!.name);
   await expect(page.locator('[data-alert-snooze-to="next_week"]')).toBeVisible();
   await page.locator('[data-alert-snooze-to="tomorrow"]').click();
   await expect(alert(page), 'the alert is put away').toHaveCount(0);

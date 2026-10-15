@@ -23,7 +23,7 @@ export interface MeProfile {
   display_name_ar: string | null;
   avatar_file_id: string | null;
   avatar_color: string | null;
-  badge_kind: 'none' | 'icon' | 'zodiac';
+  badge_kind: 'none' | 'icon';
   badge_value: string | null;
   theme: 'light' | 'dark' | 'colorful' | 'direct' | null;
   density: 'comfortable' | 'compact' | null;
