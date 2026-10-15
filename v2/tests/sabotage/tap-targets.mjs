@@ -62,7 +62,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/AppShell.tsx',
-        find: 'overflow-y-auto px-4 pb-40 pt-6',
+        find: 'overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6',
         replace: 'overflow-y-auto px-4 pb-16 pt-6',
       },
     ],

@@ -60,7 +60,13 @@ export const sabotages = [
     name: 'page-ends-under-the-plus',
     breaks: [E2E],
     expect: 'the page keeps the + clear',
-    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: 'px-4 pb-40 pt-6', replace: 'px-4 pb-24 pt-6' }],
+    edits: [
+      {
+        file: 'src/ui/shell/AppShell.tsx',
+        find: 'px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6',
+        replace: 'px-4 pb-24 pt-6',
+      },
+    ],
   },
   {
     name: 'key-partner-switch-has-no-label',
