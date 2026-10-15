@@ -56,7 +56,7 @@ export function createActionsFor(me: Me) {
 }
 
 const floatingClass =
-  'fixed bottom-[76px] end-4 z-30 inline-grid size-14 place-items-center rounded-pill bg-primary text-on-primary shadow-2 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:hidden [&_svg]:size-6';
+  'fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-30 inline-grid size-14 place-items-center rounded-pill bg-primary text-on-primary shadow-2 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:hidden [&_svg]:size-6';
 
 /**
  * The top bar's Create button, or on a phone the floating + above the bottom bar (V85). With one item left the button
