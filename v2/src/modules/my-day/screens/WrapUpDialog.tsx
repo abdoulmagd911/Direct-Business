@@ -131,12 +131,19 @@ export function WrapUpDialog({
       description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'short' })}
       closeLabel={t('common.close')}
       footer={
-        <>
-          <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
-          <Button variant="primary" disabled={!items?.length} loading={busy} onClick={() => void save()} data-wrap-save>
-            {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
+        // QA-570: the save button is drawn only when there is something to save; an empty day shows the message and Close
+        items?.length ? (
+          <>
+            <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+            <Button variant="primary" loading={busy} onClick={() => void save()} data-wrap-save>
+              {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
+            </Button>
+          </>
+        ) : (
+          <Button onClick={() => onOpenChange(false)} data-wrap-close>
+            {items === null ? t('common.cancel') : t('common.close')}
           </Button>
-        </>
+        )
       }
     >
       {gone.length ? (

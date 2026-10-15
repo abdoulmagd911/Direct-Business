@@ -395,13 +395,47 @@ export const sabotages = [
   },
 
   {
+    name: 'profile-name-box-shows-the-email-it-did-not-keep',
+    breaks: ['e2e:tests/e2e/a-name-box-shows-what-was-kept.spec.ts'],
+    expect: 'the box shows what was kept: nothing',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '            ...kept,\n',
+        replace: '            ...(void kept, {}),\n',
+      },
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "      if (typeof kept === 'string') setDraft(kept);\n",
+        replace: '      void kept;\n',
+      },
+    ],
+  },
+
+  {
     name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone density is gone from the page',
     edits: [
+      // the old regime for density: this browser's own value outranks the profile and nothing brings it back in line
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);",
+        replace: "const own = (key: 'theme' | 'density') => ownChoice(key, get);",
+      },
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default);\n",
+        find: "    setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });\n",
+        replace: '',
+      },
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "if (changes.density) setPref('density', changes.density, { cache: true });",
+        replace: "if (changes.density) setPref('density', changes.density);",
+      },
+      {
+        file: 'src/ui/shell/PrefsSync.tsx',
+        find: "if (now.density !== density) setPref('density', density, { cache: true });",
         replace: '',
       },
     ],
@@ -840,14 +874,20 @@ export const sabotages = [
   },
 
   {
-    name: 'prefsync-copies-the-default-as-a-choice',
+    name: 'theme-served-from-the-cookie-not-the-profile',
     breaks: ['e2e:tests/e2e/prefsync-keeps-a-cache-not-a-choice.spec.ts'],
-    expect: 'the profile still wins over what was copied',
+    expect: 'Expected: "dark"',
     edits: [
+      // the server renders the browser's cookie instead of the profile, and nothing brings the cookie in line
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "theme: own('theme') ? raw.theme : eff.theme,",
+        replace: 'theme: raw.theme,',
+      },
       {
         file: 'src/ui/shell/PrefsSync.tsx',
-        find: "setPref('theme', theme, { cache: true });",
-        replace: "setPref('theme', theme);",
+        find: "if (now.theme !== theme) setPref('theme', theme, { cache: true });",
+        replace: '',
       },
     ],
   },
@@ -1707,9 +1747,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n        {...scroll}\n      >",
+        find: "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
         replace:
-          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n        {...scroll}\n      >",
+          "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
       },
     ],
   },

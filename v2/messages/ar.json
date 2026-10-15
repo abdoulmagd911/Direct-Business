@@ -1271,6 +1271,11 @@
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
+    "snoozeTomorrow": "حتى الغد 08:00",
+    "snoozeDay": "حتى {day} 08:00",
+    "snoozeWeek": "لمدة أسبوع",
+    "snoozeDate": "حتى تاريخ…",
+    "snoozeUntil": "تأجيل حتى",
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
     "someDetails": "بعض التفاصيل"
   },
