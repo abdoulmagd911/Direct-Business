@@ -27,6 +27,7 @@ const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', '
 
 /** The Gregorian month names as an Arabic sheet shows them, from the browser's own calendar data (no word list here). */
 const AR_MONTHS = Array.from({ length: 12 }, (_, i) =>
+  // check-allow: one-date-format — a month's own name (a label), not a date
   new Intl.DateTimeFormat('ar', { month: 'long', calendar: 'gregory', timeZone: 'UTC' }).format(Date.UTC(2026, i, 15)),
 );
 
