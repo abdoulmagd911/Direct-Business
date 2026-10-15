@@ -401,6 +401,7 @@
         "note": "ملاحظة",
         "saveWith": "حفظ · {parts}",
         "partTomorrow": "{count} إلى الغد",
+        "partToDay": "{count} إلى {day}",
         "partNextWeek": "{count} إلى الأسبوع القادم",
         "partDrop": "{count} إسقاط",
         "partDone": "{count} منجز",

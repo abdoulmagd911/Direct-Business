@@ -37,12 +37,15 @@ async function days() {
     tomorrow: string;
     line_tomorrow: string;
     line_sunday: string;
+    name: string | null;
     sunday: string;
     mins: number;
   }>(
     `select core.riyadh_today()::text as today,
             core.next_working_day(core.riyadh_today())::text as tomorrow,
             to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as line_tomorrow,
+            case when core.next_working_day(core.riyadh_today()) = core.riyadh_today() + 1 then null
+                 else trim(to_char(core.next_working_day(core.riyadh_today()), 'FMDay')) end as name,
             (core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int))::text as sunday,
             to_char(core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int), 'Dy FMDD Mon') as line_sunday,
             (extract(hour from (now() at time zone 'Asia/Riyadh'))::int * 60 + extract(minute from (now() at time zone 'Asia/Riyadh'))::int) as mins`,
@@ -74,6 +77,10 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when-result]'), 'one line saying the result').toHaveText(
       `${d.line_tomorrow} · 09:00`,
     );
+    await expect(
+      page.locator('[data-when-chip="tomorrow"]'),
+      'Tomorrow is called by its day when the next working day is not tomorrow (a Thursday: Sunday)',
+    ).toHaveText(d.name ?? 'Tomorrow');
     await page.locator('[data-when-chip="next_week"]').click();
     await expect(page.locator('[data-when-result]'), 'Next week is the first Sunday after tomorrow').toHaveText(
       `${d.line_sunday} · 09:00`,

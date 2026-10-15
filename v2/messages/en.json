@@ -323,6 +323,7 @@
         "note": "Note",
         "saveWith": "Save · {parts}",
         "partTomorrow": "{count} to tomorrow",
+        "partToDay": "{count} to {day}",
         "partNextWeek": "{count} next week",
         "partDrop": "{count} dropped",
         "partDone": "{count} done",
