@@ -22,8 +22,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default, { cache: true });",
-        replace: "setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);",
+        find: "setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default, { cache: true });",
+        replace: "setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default);",
       },
       {
         file: 'src/core/prefs/effective.ts',
