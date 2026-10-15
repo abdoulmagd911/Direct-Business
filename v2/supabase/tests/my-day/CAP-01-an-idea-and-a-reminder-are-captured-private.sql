@@ -15,8 +15,8 @@ select test.eq((select jsonb_build_object('kind', x ->> 'kind', 'idea', (x ->> '
   '{"kind": "sticky", "idea": true, "visibility": "private"}'::jsonb, 'an idea is a private sticky marked as an idea');
 select test.eq((select x ->> 'note_id' from jsonb_array_elements(current_setting('t.day')::jsonb -> 'reminders') x),
   current_setting('t.r'), 'a reminder''s time is set at capture and My day lists it');
-select test.eq((select x ->> 'visibility' from jsonb_array_elements(current_setting('t.day')::jsonb -> 'notes') x
-                where x ->> 'id' = current_setting('t.r')), 'private', 'private too');
+-- a reminder is listed once, as its reminder, not among My notes (V283), so its privacy is read from the note itself
+select test.eq(api.my_note(current_setting('t.r')::uuid) ->> 'visibility', 'private', 'private too');
 
 select test.raises($$select api.note_capture('reminder', jsonb_build_object('title', 'Made-up no time'))$$, 'P0001',
   'a reminder needs a time', 'reminder.time_required');

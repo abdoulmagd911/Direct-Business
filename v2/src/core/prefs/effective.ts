@@ -26,13 +26,15 @@ export function effectiveLocale(cookieLocale: Prefs['locale'], app: AppSettings)
 }
 
 /**
- * The <html> attributes the server renders (theme, density, language, direction) — the same three sources in the same
- * order as PrefsSync: this browser's own choice (a cookie), the person's saved profile, the admin's default. Rendered
- * this way, a refresh that lands after PrefsSync has written the cookie never snaps the theme back (QA-126).
+ * The <html> attributes the server renders (theme, density, language, direction). For a signed-in person the theme and
+ * density have ONE source: their saved profile, then the admin's default — the same in every tab and every browser, and
+ * right before the first paint. The cookies are only that answer's cache (PrefsSync keeps them in line), never a rival
+ * choice: a browser that once held its own value would otherwise show it for ever, light here and dark there. The door
+ * (nobody signed in) has no profile, so a value this browser holds still stands there.
  */
 export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string) => string | undefined): Prefs {
   const raw = prefsFrom(get);
-  const own = (key: 'theme' | 'density') => ownChoice(key, get);
+  const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);
   const eff = effectivePrefs(me, app, raw);
   return {
     ...raw,

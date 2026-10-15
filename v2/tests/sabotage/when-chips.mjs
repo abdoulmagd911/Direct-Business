@@ -143,4 +143,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'bell-snooze-until-tomorrow-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes the bell until 08:00 on the next working day: a Thursday lands on Sunday, not on the weekend',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: '`${nextWorkingDay(riyadhNow(now).day)}T08:00:00+03:00`',
+        replace: '`${new Date(Date.parse(riyadhNow(now).day) + 86_400_000).toISOString().slice(0, 10)}T08:00:00+03:00`',
+      },
+    ],
+  },
 ];

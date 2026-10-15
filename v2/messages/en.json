@@ -563,6 +563,7 @@
         "past": "No past work yet. Paste it from a report above."
       },
       "noNotes": "No notes",
+      "noOtherNotes": "No other notes",
       "statusHistory": "Status changes",
       "noStatusChanges": "No status changes yet",
       "views": {
@@ -1061,7 +1062,9 @@
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
     "lockedPartner": "An organisation's history is for the people who may open it",
-    "followUp": "Follow up"
+    "followUp": "Follow up",
+    "followUpOn": "Follow up · {when}",
+    "followUpsFailed": "Follow-ups · try again"
   },
   "activity": {
     "title": "Activity",
@@ -1831,6 +1834,7 @@
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
+    "snoozeDay": "Until {day} 08:00",
     "snoozeWeek": "For a week",
     "snoozeDate": "Until a date…",
     "snoozeUntil": "Snooze until",
@@ -1863,10 +1867,10 @@
     "someDetails": "some details"
   },
   "follow": {
-    "follow": "Follow",
-    "following": "Following",
-    "unfollowed": "No longer following",
-    "failed": "Follow · try again"
+    "follow": "Watch",
+    "following": "Watching",
+    "unfollowed": "No longer watching",
+    "failed": "Watch · try again"
   },
   "conflict": {
     "title": "Someone changed this since you opened it",
