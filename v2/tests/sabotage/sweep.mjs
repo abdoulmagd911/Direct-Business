@@ -105,6 +105,7 @@ export const sabotages = [
     edits: [{ file: 'messages/ar.json', find: '"filter": "تصفية"', replace: '"filterRemoved": "تصفية"' }],
   },
 ];
-// task-form-wipes-the-router-state retired in #269 (V284): Next 16's own replaceState copies its router state into a null
-// one, and the race it caught (a save on ?new=1 refreshing the list as the address was cleared) is gone, since that save now
-// opens the new task. Its replacement, header-add-follows-the-spent-address, is in sweep-15-oct.mjs.
+// task-form-wipes-the-router-state retired in #269 (V284): the race it caught (a save on ?new=1 refreshing the list as the
+// address was cleared) is gone, since that save now opens the new task; and keeping the router's state turned out to be
+// the bug (a later refresh wrote ?new=1 back), so the list now passes null as Partners does. Its successors,
+// list-refresh-brings-the-form-address-back and header-add-follows-the-spent-address, are in sweep-15-oct.mjs.

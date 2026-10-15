@@ -250,8 +250,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
             closedOnAddress.current = url.searchParams.has('new');
             if (url.searchParams.has('new')) {
               url.searchParams.delete('new');
-              // the router's own history state is kept, or the next refresh of the list loses its place
-              window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
+              // null, as on Partners: Next copies its own state in and takes the new address as the router's, so the next
+              // refresh of the list does not write ?new=1 back (an entry passed its own state is not re-read)
+              window.history.replaceState(null, '', `${url.pathname}${url.search}`);
             }
           }
         }}
