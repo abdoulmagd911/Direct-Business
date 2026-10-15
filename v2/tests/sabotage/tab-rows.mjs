@@ -27,4 +27,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'tab-focus-ring-is-cut-by-the-row',
+    breaks: [SPEC],
+    expect: 'the focus ring is drawn inside the tab, not around it',
+    edits: [
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: 'focus-visible:-outline-offset-2',
+        replace: 'focus-visible:outline-offset-2',
+      },
+    ],
+  },
 ];

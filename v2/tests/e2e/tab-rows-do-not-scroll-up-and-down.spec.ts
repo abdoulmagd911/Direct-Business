@@ -7,6 +7,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn } from './support/stack';
 
+const tag = () => Math.random().toString(36).slice(2, 8);
+
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 const WIDTHS = [375, 1440] as const;
@@ -41,7 +43,7 @@ for (const width of WIDTHS) {
     await hydrated(page);
 
     const made = await callAs(page.context(), 'partner_create', {
-      p_partner: { trade_name_en: `Test Org Tab Rows ${width}`, sides: [{ side: 'client', type: 'corporate' }] },
+      p_partner: { trade_name_en: `Test Org Tab Rows ${tag()}`, sides: [{ side: 'client', type: 'corporate' }] },
     });
     expect(made.status, JSON.stringify(made.body)).toBe(200);
     const pages = [
@@ -76,6 +78,30 @@ for (const width of WIDTHS) {
       );
       expect(r.bar, `the "${r.name}" tab row in the bell panel shows no scrollbar`).toBeLessThanOrEqual(0);
     }
+    // the keyboard focus ring sits inside the row, so the row's clipping does not cut it
+    await page.goto('/my-day');
+    await hydrated(page);
+    const firstTab = page.locator('[data-tabs] a').first();
+    await firstTab.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(firstTab, 'the first tab has keyboard focus').toBeFocused();
+    const ring = await firstTab.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const row = el.closest('[data-tabs]')!;
+      const a = el.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+      return {
+        offset: parseFloat(cs.outlineOffset),
+        drawn: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0,
+        top: a.top - r.top,
+        bottom: r.bottom - a.bottom,
+      };
+    });
+    expect(ring.drawn, 'the focused tab shows a ring').toBe(true);
+    expect(ring.offset, 'the focus ring is drawn inside the tab, not around it').toBeLessThan(0);
+    expect(ring.top, 'the tab sits inside the row at the top').toBeGreaterThanOrEqual(0);
+    expect(ring.bottom, 'the tab sits inside the row at the bottom').toBeGreaterThanOrEqual(0);
     expect(rows, 'tab rows were found and measured').toBeGreaterThanOrEqual(3);
   });
 }
