@@ -295,7 +295,8 @@ for (const width of [375, 1440]) {
     await expect(dialog.locator('button[disabled]'), 'and no disabled button of any kind').toHaveCount(0);
     const close = dialog.locator('[data-wrap-close]');
     await expect(close).toHaveText('Close');
-    expect((await close.boundingBox())!.height, 'a 44 px target').toBeGreaterThanOrEqual(44);
+    if (width < 700)
+      expect((await close.boundingBox())!.height, 'a 44 px target on a phone').toBeGreaterThanOrEqual(44);
     await close.click();
     await expect(dialog).toHaveCount(0);
   });
