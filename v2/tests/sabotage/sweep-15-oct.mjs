@@ -25,8 +25,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: 'onAdded={openedByAddress ? (r) => router.replace(`/tasks/${r.number}`) : undefined}',
-        replace: 'onAdded={undefined}',
+        find: "closedOnAddress.current = url.searchParams.has('new');",
+        replace: 'closedOnAddress.current = false;',
       },
     ],
   },

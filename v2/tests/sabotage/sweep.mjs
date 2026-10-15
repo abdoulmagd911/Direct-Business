@@ -106,8 +106,9 @@ export const sabotages = [
   },
   {
     name: 'task-form-wipes-the-router-state',
-    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
-    expect: 'the new task is in My work',
+    // since V284 a save from /tasks/new leaves the list; closing that form and then adding from the header still refreshes it
+    breaks: ['e2e:tests/e2e/sweep-15-oct.spec.ts'],
+    expect: 'the list refreshes after the form opened by address was closed',
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',

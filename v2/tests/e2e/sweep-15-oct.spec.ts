@@ -14,6 +14,15 @@ const WIDTHS = [
   { name: 'desk', width: 1440, height: 900 },
 ] as const;
 
+/** Riyadh's calendar day, as the date field takes it. */
+const riyadhToday = () =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Riyadh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
@@ -90,3 +99,31 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 }
+
+test('desk: closing the form /tasks/new opened, then adding from the header, stays on the list and shows the new task', async ({
+  browser,
+}) => {
+  const member = await memberWithTeam();
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await signIn(page, member.email, '/tasks/new');
+  await hydrated(page);
+  const form = page.locator('form[data-quick-add]');
+  await expect(form).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(form).toHaveCount(0);
+  await expect(page, 'the spent ?new=1 is gone').toHaveURL(/\/tasks$/);
+
+  await page.locator('[data-add-task]').click();
+  const title = `Made-up header task ${randomUUID().slice(0, 6)}`;
+  await form.locator('input[name="title"]').fill(title);
+  await form.locator('input[name="due"]').fill(riyadhToday());
+  await form.locator('button[type="submit"]').click();
+  await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
+  await expect(page, 'from the header, the list stays').toHaveURL(/\/tasks$/);
+  await expect(
+    page.locator('li[data-task-row]', { hasText: title }),
+    'the list refreshes after the form opened by address was closed',
+  ).toBeVisible();
+  await ctx.close();
+});
