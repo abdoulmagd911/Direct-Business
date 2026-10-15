@@ -51,8 +51,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: 'onSave={(v) => save({ display_name_ar: v || null })}',
-        replace: 'onSave={(v) => save({ display_name_en: v || null })}',
+        find: "onSave={(v) => saveName('display_name_ar', v)}",
+        replace: "onSave={(v) => saveName('display_name_en', v)}",
       },
     ],
   },
