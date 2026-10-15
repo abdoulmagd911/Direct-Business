@@ -49,18 +49,43 @@ const html = (data: OverviewData) =>
   );
 
 describe('the Payments date', () => {
-  it('reads "as of —" only when the read worked and there is no file yet', () => {
+  it('reads "not imported yet" only when the read worked and there is no file yet', () => {
     const out = html(whole);
     expect(out).toContain('data-finance-stamp');
-    expect(out).toContain('Payments · as of —');
+    expect(out).toContain('Payments · not imported yet');
+    expect(out).not.toContain('as of —');
   });
 
-  it('is a failed read, with Try again, when the read failed — never the same dash (QA-542)', () => {
+  it('is a failed read, with Try again, when the read failed — never the not-imported words (QA-542)', () => {
     const out = html({ ...whole, asOf: null });
-    expect(out).not.toContain('Payments · as of —');
+    expect(out).not.toContain('Payments · not imported yet');
     expect(out).not.toContain('data-finance-stamp');
     expect(out).toContain('Payments date');
     expect(out).toContain('Try again');
+  });
+});
+
+describe('before any Payments import (V622)', () => {
+  const empty: OverviewData = {
+    ...whole,
+    period: { ...whole.period!, units: 0, revenue: 0, cost: 0, profit: 0 },
+    asOf: { as_of: null, files: {} },
+  };
+
+  it('shows only the note — never a dash and zeros, never months of dashes', () => {
+    const out = html(empty);
+    expect(out).toContain('data-finance-not-imported');
+    expect(out).toContain('Not imported yet. The figures appear here after the first Payments import.');
+    for (const block of ['data-finance-tiles', 'data-finance-months', 'data-finance-lines', 'data-finance-attention'])
+      expect(out, block).not.toContain(block);
+    expect(out).not.toContain('as of —');
+  });
+
+  it('keeps the figures once anything is in the period, or once a file is in', () => {
+    expect(html(whole)).not.toContain('data-finance-not-imported');
+    const imported = html({ ...empty, asOf: { as_of: '2026-10-10', files: {} } });
+    expect(imported).not.toContain('data-finance-not-imported');
+    expect(imported).toContain('data-finance-tiles');
   });
 });
 

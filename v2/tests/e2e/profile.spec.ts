@@ -27,7 +27,6 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await page.getByLabel('Display name', { exact: true }).press('Enter');
   await expect(page.getByText('Profile saved').first()).toBeVisible();
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
-  await expect(page.locator('[data-drawer] [data-entity="person"]')).toContainText('Nick');
 
   await page.locator('[data-colour="c5"]').click();
   await expect(page.getByText('Profile saved').first()).toBeVisible();

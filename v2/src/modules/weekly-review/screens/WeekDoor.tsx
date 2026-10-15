@@ -24,7 +24,7 @@ export function WeekDoor({ day }: { day: string }) {
       data-week-door-thursday={thursday ? 'true' : 'false'}
     >
       <CalendarCheck className="size-5 shrink-0 text-muted" aria-hidden="true" />
-      <span className="min-w-0 flex-1 font-medium">{t('pages.weeklyReview.door')}</span>
+      <span className="min-w-0 flex-1 font-medium">{t('pages.weeklyReview.title')}</span>
       {thursday ? <StatusChip tone="info">{t('pages.weeklyReview.reviewDay')}</StatusChip> : null}
       <ChevronRight className="size-4 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
     </Link>

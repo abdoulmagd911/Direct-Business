@@ -12,6 +12,8 @@ import {
   nextWeek,
   riyadhNow,
   tomorrow,
+  tomorrowDayName,
+  tomorrowIsPlain,
   whenFor,
 } from '../../../src/modules/my-day/when';
 
@@ -69,6 +71,21 @@ describe('the When chips', () => {
       expect(tomorrow(now).day, `${day}: Tomorrow`).toBe(tmrw);
       expect(nextWeek(now).day, `${day}: Next week`).toBe(next);
       expect(nextWeek(now).day > tomorrow(now).day, `${day}: Next week is later than Tomorrow`).toBe(true);
+    }
+  });
+  it('calls Tomorrow by its day when the next working day is not literally tomorrow, and keeps the word on other days', () => {
+    // Sun 11 – Sat 17 Oct 2026: from a Thursday and a Friday the next working day is Sunday, two days or three away;
+    // on a Saturday Sunday IS tomorrow, so the word stays
+    const plain = ['2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-17'];
+    const named = ['2026-10-15', '2026-10-16'];
+    for (const day of plain) {
+      expect(tomorrowIsPlain(day), `${day} is plain`).toBe(true);
+      expect(tomorrowDayName(at(`${day}T06:00:00Z`), 'en'), `${day}: the word stays Tomorrow`).toBeNull();
+    }
+    for (const day of named) {
+      expect(tomorrowIsPlain(day), `${day} is not plain`).toBe(false);
+      expect(tomorrowDayName(at(`${day}T06:00:00Z`), 'en'), `${day}: named`).toBe('Sunday');
+      expect(tomorrowDayName(at(`${day}T06:00:00Z`), 'ar'), `${day}: named in Arabic`).toBe('الأحد');
     }
   });
   it('sends the Riyadh day and time at UTC+3, and takes Pick a day as given', () => {

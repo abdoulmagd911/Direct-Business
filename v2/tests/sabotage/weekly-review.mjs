@@ -50,6 +50,18 @@ sabotages.push(
     edits: [{ file: 'src/modules/weekly-review/logic.ts', find: '.getUTCDay() === 4', replace: '.getUTCDay() === 5' }],
   },
   {
+    name: 'week-door-says-this-week',
+    breaks: ['e2e:tests/e2e/week-door.spec.ts'],
+    expect: 'the Weekly review row on My day opens the weekly review',
+    edits: [
+      {
+        file: 'src/modules/weekly-review/screens/WeekDoor.tsx',
+        find: "{t('pages.weeklyReview.title')}",
+        replace: "{'This week'}",
+      },
+    ],
+  },
+  {
     name: 'week-door-opens-my-day',
     breaks: ['e2e:tests/e2e/week-door.spec.ts'],
     expect: 'opens the weekly review',
@@ -65,14 +77,14 @@ sabotages.push(
 
 // The weekly review in Arabic, in the one file that switches Arabic (app-settings.alone.spec.ts, after main b8ad0c3).
 sabotages.push({
-  name: 'weekly-review-title-is-the-door-word',
+  name: 'weekly-review-title-is-the-review-day-word',
   breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
   expect: 'the weekly review reads right to left',
   edits: [
     {
       file: 'src/app/(app)/my-day/week/page.tsx',
       find: "title={t('pages.weeklyReview.title')}",
-      replace: "title={t('pages.weeklyReview.door')}",
+      replace: "title={t('pages.weeklyReview.reviewDay')}",
     },
   ],
 });

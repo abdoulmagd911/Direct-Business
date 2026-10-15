@@ -150,8 +150,15 @@ export const sabotages = [
   {
     name: 'failed-payments-date-reads-as-no-file',
     breaks: [FAILED],
-    expect: 'Payments · as of —',
+    expect: 'Payments · not imported yet',
     edits: [{ file: OVERVIEW, find: '        {data.asOf === null ? (', replace: '        {false ? (' }],
+  },
+  {
+    // V622: before any import the Overview is one empty state, never "as of —" over three zeros
+    name: 'finance-before-import-shows-zeros',
+    breaks: [FAILED],
+    expect: 'never a dash and zeros',
+    edits: [{ file: OVERVIEW, find: '  const notImported =\n', replace: '  const notImported = false &&\n' }],
   },
   {
     name: 'attention-strip-hides-when-closed-months-fail',

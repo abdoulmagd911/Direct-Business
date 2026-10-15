@@ -1,5 +1,6 @@
 /**
- * QA-557 — the door to the weekly review on My day's Me tab, at 375 px: one "This week" row that opens /my-day/week,
+ * QA-557 — the door to the weekly review on My day's Me tab, at 375 px: one "Weekly review" row (one name for it
+ * everywhere, daily use 9) that opens /my-day/week,
  * marked as review day exactly when Riyadh's date (the database's own) is a Thursday. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -7,13 +8,13 @@ import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
-test('the This week row on My day opens the weekly review — at 375 px', async ({ page }) => {
+test('the Weekly review row on My day opens the weekly review — at 375 px', async ({ page }) => {
   const me = await makePerson();
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
   const door = page.locator('[data-week-door]');
-  await expect(door).toHaveText(/This week/);
+  await expect(door).toHaveText(/Weekly review/);
   const [row] = await sql<{ thursday: boolean }>(`select extract(isodow from core.riyadh_today()) = 4 as thursday`);
   await expect(door, 'marked on Thursday in Riyadh, and only then').toHaveAttribute(
     'data-week-door-thursday',
