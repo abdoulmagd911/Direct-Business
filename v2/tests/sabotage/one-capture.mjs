@@ -1,29 +1,55 @@
-// Sabotages for one way to capture (V633, builder B): each breaks one promise of tests/e2e/one-capture.spec.ts.
+// Sabotages for one way to capture (V633, builder B; one add control per width, daily use 11): each breaks one promise
+// of tests/e2e/one-capture.spec.ts.
 const E2E = 'e2e:tests/e2e/one-capture.spec.ts';
 const DOOR = 'My day has one capture door';
+const PER_WIDTH = 'one add control per width';
 
 export const sabotages = [
   {
-    name: 'note-only-box-comes-back',
+    name: 'capture-button-comes-back-on-my-day',
     breaks: [E2E],
     expect: DOOR,
     edits: [
       {
-        file: 'src/modules/my-day/screens/CaptureButton.tsx',
-        find: '<section data-capture>',
-        replace: '<section data-capture>\n      <input data-capture-input aria-label="Capture a note" />',
+        file: 'src/modules/my-day/screens/CaptureShortcut.tsx',
+        find: '  return null;',
+        replace: '  return <button data-capture-open>Capture</button>;',
       },
     ],
   },
   {
-    name: 'capture-button-opens-nothing',
+    name: 'create-capture-opens-nothing',
     breaks: [E2E],
     expect: DOOR,
     edits: [
       {
-        file: 'src/modules/my-day/screens/CaptureButton.tsx',
-        find: 'onClick={() => openQuickCapture()}',
-        replace: 'onClick={() => undefined}',
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '<button type="button" onClick={() => openQuickCapture()} data-create-item={a.key}>',
+        replace: '<button type="button" onClick={() => undefined} data-create-item={a.key}>',
+      },
+    ],
+  },
+  {
+    name: 'create-shows-on-a-phone-too',
+    breaks: [E2E],
+    expect: PER_WIDTH,
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '<Button variant="primary" icon={<Plus />} data-create className="hidden sm:inline-flex">',
+        replace: '<Button variant="primary" icon={<Plus />} data-create>',
+      },
+    ],
+  },
+  {
+    name: 'phone-plus-offers-a-shorter-menu',
+    breaks: [E2E],
+    expect: PER_WIDTH,
+    edits: [
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: '        {actions.map((a) => {',
+        replace: '        {actions.slice(0, floating ? -1 : undefined).map((a) => {',
       },
     ],
   },
@@ -45,7 +71,7 @@ export const sabotages = [
     expect: '"/" on My day opens the same sheet from the keyboard',
     edits: [
       {
-        file: 'src/modules/my-day/screens/CaptureButton.tsx',
+        file: 'src/modules/my-day/screens/CaptureShortcut.tsx',
         find: '        e.preventDefault();\n        openQuickCapture();',
         replace: '        e.preventDefault();',
       },

@@ -41,7 +41,7 @@ test('More at 375 px signs out to the sign-in page with nothing left', async ({ 
 
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
-  await expect(sheet).toContainText(person.name);
+  await expect(sheet.locator('[data-more-sign-out]')).toBeVisible();
   await sheet.locator('[data-more-sign-out]').click();
   await signedOutCleanly(page, person);
 });

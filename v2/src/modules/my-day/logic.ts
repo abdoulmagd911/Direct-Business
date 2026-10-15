@@ -77,17 +77,6 @@ export function nextWorkingDay(day: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/**
- * The day "Next week" lands on in Riyadh: the first Sunday after the next working day (QA-566), so it is always later
- * than Tomorrow. Mirrors `my.next_week_day` (Sunday starts the week until an admin moves it). Wrap up shows it beside the chip.
- */
-export function nextWeekDay(day: string): string {
-  const d = new Date(`${nextWorkingDay(day)}T12:00:00Z`);
-  do d.setUTCDate(d.getUTCDate() + 1);
-  while (d.getUTCDay() !== 0);
-  return d.toISOString().slice(0, 10);
-}
-
 export type TodayGroups = { overdue: TodayTask[]; today: TodayTask[]; next: TodayTask[] };
 
 /**

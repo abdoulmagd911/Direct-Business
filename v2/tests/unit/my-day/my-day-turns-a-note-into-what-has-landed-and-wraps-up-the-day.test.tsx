@@ -16,7 +16,6 @@ import {
   BLOCK_ROWS,
   blockOf,
   linkRoute,
-  nextWeekDay,
   nextWorkingDay,
   noteRoute,
   openCaptures,
@@ -24,6 +23,7 @@ import {
   TURN_READY,
   liveKinds,
 } from '../../../src/modules/my-day/logic';
+import { nextWeekDay } from '../../../src/modules/my-day/when';
 import { FromNoteChip, LinkChip, VisibilityChip } from '../../../src/modules/my-day/screens/NoteBits';
 import type { MyNote, NoteLink } from '../../../src/modules/my-day/types';
 

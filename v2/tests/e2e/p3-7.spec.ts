@@ -127,8 +127,9 @@ test('a change by someone else reaches the bell; it is marked read and snoozed; 
   const panel = page.locator('[data-notifications-panel]');
   await expect(panel).toBeVisible();
   await expect(panel.locator('[data-notification][data-unread]')).toHaveCount(2);
-  await expect(panel).toContainText(`${admin.name} changed your Person`);
-  await expect(panel).toContainText(`${admin.name} changed Person you follow`);
+  // one plain pattern, "<who> changed <what> on <record>": the field's words and the record's name (14 Oct)
+  await expect(panel).toContainText(`${admin.name} changed Job title on ${member.name}`);
+  await expect(panel).toContainText(`${admin.name} changed Job title on ${other.name}`);
   await expect(page.locator('[data-bell]')).toHaveAttribute('data-unread', '2');
   await expect(panel.locator('[data-notifications-group="today"]')).toBeVisible();
   // snooze one until tomorrow: it leaves the list
