@@ -104,17 +104,7 @@ export const sabotages = [
     expect: 'the Arabic Filter label exists',
     edits: [{ file: 'messages/ar.json', find: '"filter": "تصفية"', replace: '"filterRemoved": "تصفية"' }],
   },
-  {
-    name: 'task-form-wipes-the-router-state',
-    // since V284 a save from /tasks/new leaves the list; closing that form and then adding from the header still refreshes it
-    breaks: ['e2e:tests/e2e/sweep-15-oct.spec.ts'],
-    expect: 'the list refreshes after the form opened by address was closed',
-    edits: [
-      {
-        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: 'window.history.replaceState(window.history.state,',
-        replace: 'window.history.replaceState(null,',
-      },
-    ],
-  },
 ];
+// task-form-wipes-the-router-state retired in #269 (V284): Next 16's own replaceState copies its router state into a null
+// one, and the race it caught (a save on ?new=1 refreshing the list as the address was cleared) is gone, since that save now
+// opens the new task. Its replacement, header-add-follows-the-spent-address, is in sweep-15-oct.mjs.

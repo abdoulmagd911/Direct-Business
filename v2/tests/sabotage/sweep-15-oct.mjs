@@ -31,6 +31,19 @@ export const sabotages = [
     ],
   },
   {
+    // 1: the form /tasks/new opened is closed, and a later Add task from the header still leaves the list
+    name: 'header-add-follows-the-spent-address',
+    breaks: [E2E],
+    expect: 'from the header, the list stays',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "closedOnAddress.current = url.searchParams.has('new');",
+        replace: "closedOnAddress.current = closedOnAddress.current || url.searchParams.has('new');",
+      },
+    ],
+  },
+  {
     // 2: the toast leads with the number, not the title
     name: 'done-toast-names-the-number-only',
     breaks: [E2E],
