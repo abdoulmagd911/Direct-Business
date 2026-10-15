@@ -6,15 +6,16 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
-import { Avatar } from '../Avatar';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
-import { personOf } from '../person';
 import { CreateMenu } from './CreateMenu';
 import { barFor, isActiveEntry, type NavEntry } from './nav';
 import { signOut } from './ProfileMenu';
 
-/** The phone's bar (< 640 px, V85) follows the menu: `barFor` in nav.ts says what it holds (V217). */
+/**
+ * The phone's bar (< 640 px, V85) follows the menu: `barFor` in nav.ts says what it holds (V217). More lists the rest
+ * and Sign out; My profile is in the avatar menu at the top, its one place (daily use 10).
+ */
 
 export function BottomBar() {
   const t = useTranslations();
@@ -23,7 +24,6 @@ export function BottomBar() {
   const view = useSearchParams().get('view');
   const [more, setMore] = useState(false);
   // The More button is the sheet's Radix trigger, so Escape returns focus to it (M93).
-  const person = personOf(me);
   const { bar: primary, rest, more: withMore } = barFor(me);
   const isActive = (p: NavEntry) => isActiveEntry(p, pathname, view);
   const restActive = rest.some(isActive);
@@ -110,20 +110,6 @@ export function BottomBar() {
                 </Link>
               );
             })}
-            <Link
-              href="/profile"
-              data-entity="person"
-              onClick={() => setMore(false)}
-              className="mt-2 flex h-12 items-center gap-3 rounded-md border-t border-nav-border px-3 pt-2 text-base"
-            >
-              <Avatar person={person} size="sm" ring="nav" />
-              <span className="min-w-0 leading-tight">
-                <b className="block truncate font-semibold">{person.displayName}</b>
-                {person.jobTitle ? (
-                  <small className="block truncate text-xs text-nav-muted">{person.jobTitle}</small>
-                ) : null}
-              </span>
-            </Link>
             <button
               type="button"
               onClick={signOut}

@@ -91,7 +91,7 @@
     "projects": "Projects",
     "tasks": "Tasks",
     "finance": "Finance",
-    "kpis": "KPIs",
+    "kpis": "Achievements",
     "reports": "Reports",
     "appraisal": "Appraisal",
     "activity": "Activity",
@@ -222,9 +222,6 @@
         "workspace": "Workspace"
       },
       "tabsLabel": "Whose notes",
-      "capture": {
-        "label": "Capture"
-      },
       "kinds": {
         "sticky": "Note",
         "meeting": "Meeting",
@@ -825,7 +822,6 @@
       "note": "Note",
       "idea": "Idea",
       "private": "Only me",
-      "door": "This week",
       "reviewDay": "Review day"
     }
   },
@@ -1544,7 +1540,7 @@
           "projects": "Projects",
           "tasks": "Tasks",
           "finance": "Finance",
-          "kpis": "KPIs",
+          "kpis": "Achievements",
           "reports": "Reports",
           "appraisal": "Appraisal",
           "activity": "Activity"
