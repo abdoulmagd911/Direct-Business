@@ -85,8 +85,11 @@ async function seed(call: Door, ym: string) {
 }
 
 const tile = (page: Page, kind: string) => page.locator(`[data-finance-tile="${kind}"]`);
+// the app's one date format: 14 Oct 2026, a three-letter month (Sep, never Sept)
 const today = () =>
-  new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', day: 'numeric', month: 'short' }).format(new Date());
+  new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', day: 'numeric', month: 'short', year: 'numeric' })
+    .format(new Date())
+    .replace('Sept', 'Sep');
 
 test('desk 1440: the tiles print the exact figure and the Provisional part, the months close once with no Undo, a late payment is listed after the close', async ({
   page,

@@ -8,7 +8,8 @@ import { personOf } from '../person';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../Menu';
 
 /**
- * The profile chip (avatar and name) opens two things only: My profile and Sign out (V217, cut 5). Density, language
+ * The profile chip (avatar and name) opens two things only: My profile and Sign out (V217, cut 5). It is the one way
+ * to My profile: the drawer and More do not repeat it (daily use 10). Density, language
  * and the development direction live in My profile's Preferences; Recently deleted is reached from Activity and Ctrl K.
  */
 // Sign-out is a POST to /auth/sign-out (P3-2), sent by the hidden form the menu renders beside its trigger.

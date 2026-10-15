@@ -6,19 +6,17 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { usePrefs } from '@/core/prefs/usePrefs';
-import { Avatar } from '../Avatar';
 import { BrandLogo } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
-import { personOf } from '../person';
 import { Tooltip } from '../Tooltip';
 import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 
 /**
  * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it
  * opens as an overlay on hover or focus and closes on Escape; below 640 px the bottom bar replaces it (V85)
- * (oversight, 29 Sep). The entries come from the module registry (nav.ts); Settings at the foot for admins, above
- * the profile.
+ * (oversight, 29 Sep). The entries come from the module registry (nav.ts); Settings at the foot for admins. My profile
+ * is not here: it is in the avatar menu at the top, its one place (daily use 10).
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
  * (Direct) and dark drawers, the slate variant on light ones.
  */
@@ -48,7 +46,6 @@ export function Drawer() {
     setPeek(false);
   }
 
-  const person = personOf(me);
   const main = navFor(me);
   const foot = isAdmin(me) ? [SETTINGS_ENTRY] : [];
 
@@ -128,29 +125,10 @@ export function Drawer() {
       {foot.map(item)}
       <div
         className={cn(
-          'mt-2 flex items-center gap-1.5 border-t border-nav-border pt-3',
+          'mt-2 flex items-center justify-end gap-1.5 border-t border-nav-border pt-3',
           expanded ? 'px-1' : 'flex-col px-0',
         )}
       >
-        <Link
-          href="/profile"
-          data-entity="person"
-          className={cn(
-            'flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-nav-text focus-visible:outline-2 focus-visible:outline-focus',
-            !expanded && 'flex-none',
-          )}
-          aria-label={person.fullName}
-        >
-          <Avatar person={person} size="sm" ring="nav" />
-          {expanded ? (
-            <span className="min-w-0 leading-tight">
-              <b className="block truncate text-[13.5px] font-semibold">{person.displayName}</b>
-              {person.jobTitle ? (
-                <small className="block truncate text-xs text-nav-muted">{person.jobTitle}</small>
-              ) : null}
-            </span>
-          ) : null}
-        </Link>
         <div className={cn('flex', expanded ? 'gap-0.5' : 'flex-col gap-0.5')}>
           <IconButton
             size="sm"

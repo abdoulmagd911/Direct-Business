@@ -151,10 +151,23 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
   };
   const headings = (html: string) =>
     (html.match(/<h[23][^>]*>.*?<\/h[23]>/g) ?? []).map((h) => h.replace(/<[^>]+>/g, ''));
-  it('says Today once when the first group is Today: the card title only', () => {
-    expect(headings(draw({ due: now }))).toEqual(['Today']);
+  it('titles the card Today and its groups never just Today: Overdue, Due today, Next 7 days', () => {
+    expect(headings(draw({ due: now }))).toEqual(['Today', 'Due today']);
+    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Overdue1', 'Due today']);
   });
-  it('keeps the Today group heading after an Overdue group, to tell the two apart', () => {
-    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Overdue1', 'Today']);
+  it('says Today once with an overdue task and a task due today and one next: the card title only', () => {
+    const task = (id: string, due_on: string) =>
+      ({ id, number: `T-${id}`, title: `Made-up task ${id}`, due_on, status_id: 's', helping: false }) as never;
+    const html = draw({
+      tasks: [task('a', '2026-10-12'), task('b', '2026-10-14'), task('c', '2026-10-16')],
+    });
+    expect(headings(html)).toEqual(['Today', 'Overdue1', 'Due today', 'Next 7 days']);
+    expect(headings(html).filter((h) => h === 'Today')).toHaveLength(1);
+  });
+  it('says the same in Arabic: the groups read متأخرة · مستحق اليوم · الأيام السبعة القادمة', () => {
+    const task = (id: string, due_on: string) =>
+      ({ id, number: `T-${id}`, title: `Made-up task ${id}`, due_on, status_id: 's', helping: false }) as never;
+    const html = draw({ tasks: [task('a', '2026-10-12'), task('b', '2026-10-14'), task('c', '2026-10-16')] }, 'ar');
+    expect(headings(html)).toEqual(['اليوم', 'متأخرة1', 'مستحق اليوم', 'الأيام السبعة القادمة']);
   });
 });

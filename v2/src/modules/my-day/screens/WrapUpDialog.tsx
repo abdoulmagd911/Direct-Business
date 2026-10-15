@@ -23,6 +23,7 @@ import {
   type WrapState,
 } from '../logic';
 import type { MyDayAnswer } from '../types';
+import { nextWeekDay, tomorrowDayNameOf } from '../when';
 
 const choiceClass = (on: boolean) =>
   cn(
@@ -73,7 +74,15 @@ export function WrapUpDialog({
   }, [open]);
   const stateOf = (id: string) => states[id] ?? WRAP_DEFAULT;
   const set = (id: string, s: Partial<WrapState>) => setStates({ ...states, [id]: { ...stateOf(id), ...s } });
-  const tomorrow = formatDate(nextWorkingDay(day), locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  // on a Thursday, a Friday and a Saturday the next working day is not tomorrow: the choice is called by its day
+  const tomorrowName = tomorrowDayNameOf(day, locale);
+  const shortDay = (d: string) =>
+    formatDate(d, locale, { weekday: 'short', day: 'numeric', month: 'short', year: undefined });
+  // the day each choice lands on, written under its word (Drop lands nowhere)
+  const landsOn: Partial<Record<WrapMove, string>> = {
+    tomorrow: shortDay(nextWorkingDay(day)),
+    next_week: shortDay(nextWeekDay(day)),
+  };
   const save = async () => {
     if (!items?.length) return;
     setBusy(true);
@@ -105,21 +114,21 @@ export function WrapUpDialog({
   const sum = wrapSummary(items ?? [], states);
   const parts = (
     [
-      ['tomorrow', 'partTomorrow'],
+      ['tomorrow', tomorrowName ? 'partToDay' : 'partTomorrow'],
       ['next_week', 'partNextWeek'],
       ['drop', 'partDrop'],
       ['done', 'partDone'],
     ] as const
   )
     .filter(([k]) => sum[k] > 0)
-    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k] }))
+    .map(([k, word]) => t(`pages.myDay.wrap.${word}`, { count: sum[k], day: tomorrowName ?? '' }))
     .join(', ');
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       title={t('pages.myDay.wrap.title')}
-      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'short' })}
       closeLabel={t('common.close')}
       footer={
         <>
@@ -179,20 +188,30 @@ export function WrapUpDialog({
                     </button>
                   </div>
                   {!s.done ? (
-                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.wrap.notDone')}>
+                    // three equal columns, so Tomorrow, Next week and Drop stay on one line at 375 px
+                    <div
+                      className="grid grid-cols-3 gap-2"
+                      role="radiogroup"
+                      aria-label={t('pages.myDay.wrap.notDone')}
+                    >
                       {MOVES.map(({ move, word }) => (
                         <button
                           key={move}
                           type="button"
                           role="radio"
                           aria-checked={s.move === move}
-                          className={choiceClass(s.move === move)}
+                          className={cn(
+                            choiceClass(s.move === move),
+                            'min-w-0 flex-col justify-center gap-0.5 px-2 text-center',
+                          )}
                           onClick={() => set(i.id, { move })}
                           data-wrap-move={move}
                         >
-                          {t(`pages.myDay.wrap.${word}`)}
-                          {move === 'tomorrow' ? (
-                            <span className="ms-1.5 font-data text-xs text-muted">{tomorrow}</span>
+                          <span>{(move === 'tomorrow' ? tomorrowName : null) ?? t(`pages.myDay.wrap.${word}`)}</span>
+                          {landsOn[move] ? (
+                            <span className="font-data text-xs font-normal text-muted" data-wrap-lands-on={move}>
+                              {landsOn[move]}
+                            </span>
                           ) : null}
                         </button>
                       ))}

@@ -73,19 +73,17 @@ export function TodayBlock({
       ) : (
         groups
           .filter((x) => x.rows.length || x.reminders.length)
-          .map((x, i) => (
+          .map((x) => (
             <div key={x.key} data-today-group={x.key}>
-              {/* the card is already titled "Today": its first group does not say it again (QA-564); after Overdue it does, to tell them apart */}
-              {x.key === 'today' && i === 0 ? null : (
-                <h3 className="pt-3 text-sm font-medium text-muted">
-                  {t(`pages.myDay.today.${x.key}`)}
-                  {x.key === 'overdue' ? (
-                    <span className="ms-2 font-data text-danger" data-today-overdue-count>
-                      {x.rows.length + x.reminders.length}
-                    </span>
-                  ) : null}
-                </h3>
-              )}
+              {/* the card is titled "Today"; its groups are never titled just that: Overdue · Due today · Next 7 days (QA-564) */}
+              <h3 className="pt-3 text-sm font-medium text-muted">
+                {t(`pages.myDay.today.${x.key}`)}
+                {x.key === 'overdue' ? (
+                  <span className="ms-2 font-data text-danger" data-today-overdue-count>
+                    {x.rows.length + x.reminders.length}
+                  </span>
+                ) : null}
+              </h3>
               <ul className="divide-y divide-border">
                 {x.reminders.map((r) => (
                   <ReminderRow key={r.id} reminder={r} overdue={x.key === 'overdue'} />

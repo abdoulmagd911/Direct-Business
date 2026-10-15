@@ -53,7 +53,7 @@
     "projects": "المشاريع",
     "tasks": "المهام",
     "finance": "المالية",
-    "kpis": "مؤشرات الأداء",
+    "kpis": "الإنجازات",
     "reports": "التقارير",
     "appraisal": "تقييم الأداء",
     "activity": "سجل النشاط",
@@ -304,9 +304,6 @@
         "workspace": "مساحة العمل"
       },
       "tabsLabel": "ملاحظات من",
-      "capture": {
-        "label": "تدوين"
-      },
       "kinds": {
         "sticky": "ملاحظة",
         "meeting": "اجتماع",
@@ -404,14 +401,11 @@
         "note": "ملاحظة",
         "saveWith": "حفظ · {parts}",
         "partTomorrow": "{count} إلى الغد",
+        "partToDay": "{count} إلى {day}",
         "partNextWeek": "{count} إلى الأسبوع القادم",
         "partDrop": "{count} إسقاط",
         "partDone": "{count} منجز",
         "gone": "{items} لم يعد في قائمتك (لم يعد لك أو أُغلق). تم استبعاده وبقيت خياراتك الأخرى."
-      },
-      "reminder": {
-        "removeTitle": "إزالة التذكير «{name}»؟",
-        "removed": "تمت إزالة التذكير"
       },
       "since": {
         "at": "آخر زيارة {when}",
@@ -424,8 +418,8 @@
       "today": {
         "title": "اليوم",
         "overdue": "متأخرة",
-        "today": "اليوم",
-        "next": "التالية",
+        "today": "مستحق اليوم",
+        "next": "الأيام السبعة القادمة",
         "empty": "لا شيء مستحق اليوم",
         "carried": "مرحّلة من أمس ({count})",
         "reminder": "تذكير",
@@ -745,7 +739,6 @@
       "note": "ملاحظة",
       "idea": "فكرة",
       "private": "لي وحدي",
-      "door": "هذا الأسبوع",
       "reviewDay": "يوم المراجعة"
     }
   },
