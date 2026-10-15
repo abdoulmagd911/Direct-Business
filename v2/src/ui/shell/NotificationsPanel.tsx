@@ -9,7 +9,7 @@ import { useMe } from '@/core/auth/me-context';
 import { errorKey } from '@/core/db/words';
 import { formatDate } from '@/core/i18n/format';
 import { NOTIFICATION_TABS, type Notification, type NotificationTab } from '@/core/notify/useNotifications';
-import { snoozeUntilTomorrow, tomorrowDayName } from '@/modules/my-day/when';
+import { snoozeForAWeek, snoozeUntilTomorrow, tomorrowDayName, weekOutDay } from '@/modules/my-day/when';
 import { Button } from '../Button';
 import { cn } from '../cn';
 import { DataState } from '../DataState';
@@ -33,8 +33,6 @@ const groupOf = (at: string, now: Date): Group => {
   const yesterday = riyadhDay(new Date(now.getTime() - DAY_MS));
   return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';
 };
-/** A week from today, 08:00 Riyadh, as an instant. */
-const inAWeek = (now: Date) => new Date(new Date(`${riyadhDay(now)}T08:00:00+03:00`).getTime() + 7 * DAY_MS);
 const plusDays = (now: Date, n: number) => riyadhDay(new Date(now.getTime() + n * DAY_MS));
 
 /**
@@ -235,8 +233,15 @@ export function NotificationsPanel({
                                       ? t('notifications.snoozeDay', { day: tomorrowName })
                                       : t('notifications.snoozeTomorrow')}
                                   </MenuItem>
-                                  <MenuItem onSelect={() => void act(() => snooze([n.id], inAWeek(now)))}>
-                                    {t('notifications.snoozeWeek')}
+                                  <MenuItem onSelect={() => void act(() => snooze([n.id], snoozeForAWeek(now)))}>
+                                    {t('notifications.snoozeWeek', {
+                                      when: formatDate(weekOutDay(riyadhDay(now)), locale, {
+                                        weekday: 'short',
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: undefined,
+                                      }),
+                                    })}
                                   </MenuItem>
                                   <MenuItem
                                     onSelect={() => {
