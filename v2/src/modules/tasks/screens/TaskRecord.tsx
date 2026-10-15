@@ -61,14 +61,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
     : task.partner_id
       ? names.partner(task.partner_id)
       : '';
-  const openItems = task.action_items.filter((i) => !i.done_on).length;
-
+  // Action items have their own tab (with its count), so no figure repeats them; Due is a figure, not a Details line
   const figures: KeyFigure[] = [
-    {
-      key: 'items',
-      label: t('pages.tasks.tabs.items'),
-      value: t('pages.tasks.items.figure', { open: openItems, total: task.action_items.length }),
-    },
     { key: 'due', label: t('pages.tasks.fields.due'), value: task.due_on ? date(task.due_on) : '—' },
     {
       key: 'last',
@@ -137,9 +131,6 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       <RailField label={t('pages.tasks.fields.owner')}>{names.person(task.owner_id)}</RailField>
       <RailField label={t('pages.tasks.fields.helpers')} empty={!task.helpers.length} add={<span>—</span>}>
         {task.helpers.map((h) => names.person(h)).join(', ')}
-      </RailField>
-      <RailField label={t('pages.tasks.fields.due')} empty={!task.due_on} add={<span>—</span>}>
-        {date(task.due_on)}
       </RailField>
       <RailField label={t('pages.tasks.fields.start')} empty={!task.start_on} add={<span>—</span>}>
         {date(task.start_on)}
