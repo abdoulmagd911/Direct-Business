@@ -279,3 +279,25 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   );
   expect(moved!.later, 'one more tap saved the rest').toBe(true);
 });
+
+for (const width of [375, 1440]) {
+  test(`QA-570: a day with nothing to wrap up shows the message and a Close button, never a button that does nothing — at ${width} px`, async ({
+    page,
+  }) => {
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+    await signIn(page, me.email, '/my-day');
+    await hydrated(page);
+    await page.locator('[data-wrap-open]').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Nothing left to wrap up today');
+    await expect(dialog.locator('[data-wrap-save]'), 'no Wrap up today button is drawn').toHaveCount(0);
+    await expect(dialog.locator('button[disabled]'), 'and no disabled button of any kind').toHaveCount(0);
+    const close = dialog.locator('[data-wrap-close]');
+    await expect(close).toHaveText('Close');
+    if (width < 700)
+      expect((await close.boundingBox())!.height, 'a 44 px target on a phone').toBeGreaterThanOrEqual(44);
+    await close.click();
+    await expect(dialog).toHaveCount(0);
+  });
+}

@@ -11,6 +11,7 @@ import {
   laterToday,
   nextWeek,
   riyadhNow,
+  snoozeUntilTomorrow,
   tomorrow,
   tomorrowDayName,
   tomorrowIsPlain,
@@ -86,6 +87,24 @@ describe('the When chips', () => {
       expect(tomorrowIsPlain(day), `${day} is not plain`).toBe(false);
       expect(tomorrowDayName(at(`${day}T06:00:00Z`), 'en'), `${day}: named`).toBe('Sunday');
       expect(tomorrowDayName(at(`${day}T06:00:00Z`), 'ar'), `${day}: named in Arabic`).toBe('الأحد');
+    }
+  });
+  it('snoozes the bell until 08:00 on the next working day: a Thursday lands on Sunday, not on the weekend', () => {
+    // Sun 11 – Sat 17 Oct 2026 (the instants are late evening there too, so the Riyadh day is the one that counts)
+    const lands: Record<string, string> = {
+      '2026-10-11': '2026-10-12',
+      '2026-10-12': '2026-10-13',
+      '2026-10-13': '2026-10-14',
+      '2026-10-14': '2026-10-15',
+      '2026-10-15': '2026-10-18',
+      '2026-10-16': '2026-10-18',
+      '2026-10-17': '2026-10-18',
+    };
+    for (const [day, to] of Object.entries(lands)) {
+      for (const time of ['06:00:00Z', '20:30:00Z']) {
+        const until = snoozeUntilTomorrow(at(`${day}T${time}`));
+        expect(until.toISOString(), `${day} ${time}`).toBe(`${to}T05:00:00.000Z`); // 08:00 at UTC+3
+      }
     }
   });
   it('sends the Riyadh day and time at UTC+3, and takes Pick a day as given', () => {
