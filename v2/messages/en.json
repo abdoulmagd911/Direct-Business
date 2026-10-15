@@ -347,7 +347,7 @@
         "reminder": "Reminder",
         "followUpAbout": "Follow up: {name}",
         "markDone": "Mark “{title}” done",
-        "reminderDone": "Reminder done",
+        "reminderDone": "Reminder done · {title}",
         "failed": "Reminders could not be read just now."
       },
       "quick": {
@@ -383,7 +383,7 @@
         "followUpTitle": "Follow-up",
         "followUpFor": "Follow up on",
         "followUpPlaceholder": "What to follow up on",
-        "followUpSaved": "Follow-up set",
+        "followUpSaved": "Follow-up set - {title}",
         "passed": "That time has passed"
       },
       "alert": {
@@ -391,7 +391,7 @@
         "now": "Now",
         "done": "Done",
         "snooze": "Snooze",
-        "snoozed": "Snoozed to {when}"
+        "snoozed": "Snoozed to {when} · {title}"
       }
     },
     "settings": {
@@ -653,8 +653,8 @@
       },
       "status": {
         "change": "Status: {status}. Change",
-        "movedLine": "{number}: {status}",
-        "blockedLine": "{number}: Blocked",
+        "movedLine": "{status} · {title} ({number})",
+        "blockedLine": "Blocked · {title} ({number})",
         "blockTitle": "Block {number}",
         "blockReason": "What is it waiting for?",
         "block": "Block",
@@ -665,7 +665,6 @@
       },
       "items": {
         "count": "{open} open of {total}",
-        "figure": "{open} open of {total}",
         "empty": "No action items",
         "new": "New action item",
         "added": "Added: {item}",
@@ -1825,7 +1824,8 @@
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
-    "snoozeWeek": "For a week",
+    "snoozeDay": "Until {day} 08:00",
+    "snoozeWeek": "For a week · {when}",
     "snoozeDate": "Until a date…",
     "snoozeUntil": "Snooze until",
     "kinds": {

@@ -9,6 +9,7 @@ import { useMe } from '@/core/auth/me-context';
 import { errorKey } from '@/core/db/words';
 import { formatDate } from '@/core/i18n/format';
 import { NOTIFICATION_TABS, type Notification, type NotificationTab } from '@/core/notify/useNotifications';
+import { snoozeForAWeek, snoozeUntilTomorrow, tomorrowDayName, weekOutDay } from '@/modules/my-day/when';
 import { Button } from '../Button';
 import { cn } from '../cn';
 import { DataState } from '../DataState';
@@ -32,8 +33,6 @@ const groupOf = (at: string, now: Date): Group => {
   const yesterday = riyadhDay(new Date(now.getTime() - DAY_MS));
   return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';
 };
-/** Tomorrow 08:00 Riyadh, as an instant. */
-const tomorrowMorning = (now: Date) => new Date(new Date(`${riyadhDay(now)}T08:00:00+03:00`).getTime() + DAY_MS);
 const plusDays = (now: Date, n: number) => riyadhDay(new Date(now.getTime() + n * DAY_MS));
 
 /**
@@ -105,6 +104,7 @@ export function NotificationsPanel({
   };
   // the server's clock, as the gate read it for this page load: the day groups and the snooze days come from it
   const now = new Date(useMe().session.last_seen_at);
+  const tomorrowName = tomorrowDayName(now, locale);
   const groups = (['today', 'yesterday', 'earlier'] as const).map((g) => ({
     key: g,
     rows: (items ?? []).filter((n) => groupOf(n.created_at, now) === g),
@@ -228,17 +228,20 @@ export function NotificationsPanel({
                                   />
                                 </MenuTrigger>
                                 <MenuContent>
-                                  <MenuItem onSelect={() => void act(() => snooze([n.id], tomorrowMorning(now)))}>
-                                    {t('notifications.snoozeTomorrow')}
+                                  <MenuItem onSelect={() => void act(() => snooze([n.id], snoozeUntilTomorrow(now)))}>
+                                    {tomorrowName
+                                      ? t('notifications.snoozeDay', { day: tomorrowName })
+                                      : t('notifications.snoozeTomorrow')}
                                   </MenuItem>
-                                  <MenuItem
-                                    onSelect={() => {
-                                      const d = tomorrowMorning(now);
-                                      d.setDate(d.getDate() + 6);
-                                      void act(() => snooze([n.id], d));
-                                    }}
-                                  >
-                                    {t('notifications.snoozeWeek')}
+                                  <MenuItem onSelect={() => void act(() => snooze([n.id], snoozeForAWeek(now)))}>
+                                    {t('notifications.snoozeWeek', {
+                                      when: formatDate(weekOutDay(riyadhDay(now)), locale, {
+                                        weekday: 'short',
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: undefined,
+                                      }),
+                                    })}
                                   </MenuItem>
                                   <MenuItem
                                     onSelect={() => {

@@ -202,7 +202,7 @@ for (const width of [375, 1440]) {
     await sheet.locator('[data-when-chip="tomorrow"]').click();
 
     await sheet.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Follow-up set')).toBeVisible();
+    await expect(toast(page, `Follow-up set - ${org}`), 'the toast names the record followed up').toBeVisible();
     await expect(sheet).toHaveCount(0);
     const [row] = await sql<{ about_table: string; visibility: string; at: string; title: string }>(
       `select n.title, n.about_table, n.visibility, to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at

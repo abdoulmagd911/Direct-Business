@@ -62,3 +62,12 @@ export function formatMoney(amount: number, locale: 'en' | 'ar' = 'en', fraction
 export function formatNumber(n: number, locale: 'en' | 'ar' = 'en', opts: Intl.NumberFormatOptions = {}): string {
   return new Intl.NumberFormat(intlLocale(locale), { numberingSystem: 'latn', ...opts }).format(n);
 }
+
+/**
+ * A title as a toast or a short line names it: whole when it fits, otherwise cut at `max` characters with an ellipsis
+ * (the supervisor's sweep of 15 Oct: a toast names the thing by its title, then its number).
+ */
+export function clip(text: string, max = 60): string {
+  const s = text.trim().replace(/\s+/g, ' ');
+  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+}

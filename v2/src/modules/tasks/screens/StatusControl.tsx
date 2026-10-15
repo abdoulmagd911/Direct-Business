@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { clip } from '@/core/i18n/format';
 import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
@@ -40,8 +41,9 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   };
   const doneLine = (move: Move) =>
     move.kind === 'block'
-      ? t('pages.tasks.status.blockedLine', { number: task.number })
+      ? t('pages.tasks.status.blockedLine', { title: clip(task.title), number: task.number })
       : t('pages.tasks.status.movedLine', {
+          title: clip(task.title),
           number: task.number,
           status: statusName(move.status, locale),
         });

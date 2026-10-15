@@ -192,4 +192,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'wrap-up-draws-a-disabled-save-on-an-empty-day',
+    breaks: [E2E],
+    expect: 'QA-570',
+    edits: [
+      { file: 'src/modules/my-day/screens/WrapUpDialog.tsx', find: 'items?.length ? (', replace: 'true ? (' },
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '<Button variant="primary" loading={busy}',
+        replace: '<Button variant="primary" disabled={!items?.length} loading={busy}',
+      },
+    ],
+  },
 ];

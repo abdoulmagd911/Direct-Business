@@ -60,7 +60,13 @@ export const sabotages = [
     name: 'page-ends-under-the-plus',
     breaks: [E2E],
     expect: 'the page keeps the + clear',
-    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: 'px-4 pb-40 pt-6', replace: 'px-4 pb-24 pt-6' }],
+    edits: [
+      {
+        file: 'src/ui/shell/AppShell.tsx',
+        find: 'px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6',
+        replace: 'px-4 pb-24 pt-6',
+      },
+    ],
   },
   {
     name: 'key-partner-switch-has-no-label',
@@ -106,13 +112,15 @@ export const sabotages = [
   },
   {
     name: 'task-form-wipes-the-router-state',
-    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
-    expect: 'the new task is in My work',
+    // updated in #269 (V284): the fault is now keeping the router's state when the form's ?new=1 is cleared, so the next
+    // refresh of the list writes ?new=1 back (Tasks passes null, as Partners does)
+    breaks: ['e2e:tests/e2e/sweep-15-oct.spec.ts'],
+    expect: 'from the header, the address stays the list’s',
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: 'window.history.replaceState(window.history.state,',
-        replace: 'window.history.replaceState(null,',
+        find: "window.history.replaceState(null, '', `${url.pathname}${url.search}`);",
+        replace: "window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);",
       },
     ],
   },

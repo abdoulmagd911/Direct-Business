@@ -85,6 +85,24 @@ export function tomorrowDayNameOf(day: string, locale: 'en' | 'ar'): string | nu
 export const tomorrowDayName = (now: Date, locale: 'en' | 'ar'): string | null =>
   tomorrowDayNameOf(riyadhNow(now).day, locale);
 
+/** The bell's snooze "until tomorrow": 08:00 Riyadh on the next working day (the Architect's ruling of 15 Oct), so a Thursday lands on Sunday, not on the weekend. */
+export const snoozeUntilTomorrow = (now: Date): Date =>
+  new Date(`${nextWorkingDay(riyadhNow(now).day)}T08:00:00+03:00`);
+
+/**
+ * The Riyadh day "For a week" lands on (the Architect's ruling of 15 Oct): seven days from `day`, or the first working day
+ * after it when that is a Friday or a Saturday, so a Friday or a Saturday snoozes to the Sunday after.
+ */
+export function weekOutDay(day: string): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 7);
+  while (d.getUTCDay() === 5 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The bell's snooze "for a week": 08:00 Riyadh on that day. */
+export const snoozeForAWeek = (now: Date): Date => new Date(`${weekOutDay(riyadhNow(now).day)}T08:00:00+03:00`);
+
 /** The When a chip names; Pick a day takes the person's own day and time. Later today is null when it is not offered. */
 export function whenFor(key: WhenKey, now: Date, pick?: When): When | null {
   if (key === 'later_today') return laterToday(now);

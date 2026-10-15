@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
+import { clip } from '@/core/i18n/format';
 import { useWords, today } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
@@ -81,7 +82,7 @@ export function QuickCapture() {
     await command(
       words(
         about
-          ? t('pages.myDay.quick.followUpSaved')
+          ? t('pages.myDay.quick.followUpSaved', { title: clip(about.label) })
           : t('pages.myDay.quick.saved', { kind: t(`pages.myDay.quick.kinds.${kind}`) }),
       ),
       () =>

@@ -390,6 +390,22 @@ The owner works daily from **Sunday 18 Oct**, on his employee sign-in (V637). Ev
 | 14 | A reminder row says Remove; its title is cut off on a phone | The row says **Done**, as the alert does; the title wraps to two lines | S | 16 Oct |
 | 15 | "Today" twice | Live in #241; QA 2 re-checks on production, and S fixes any second one left | QA 2, then S | 15 Oct |
 
+**Status, Thu 15 Oct (afternoon).** Previews for PR branches are off (owner, free plan), so deploys work again. **Live:** #259 (names never the e-mail; items 6), #255 (bell names who changed what; Finance before import; item 5), #264 (items 8–11), #265 (Wrap up says "Sunday" on a Thursday, Next week with its date, one row on a phone; QA-566), #263 (items 12–15: one date format, "Today" once, Done, no scroll arrows (NOT fully: see below), pop-ups clear of the bottom bar), with #260 (V636–V638) and #261 (the Undo test). **Still to merge:** #258 (items 1–4, builder D, levelling) and #254 (one theme everywhere; item 7 part one, builder B).
+
+**Found on live #263 by the supervisor (15 Oct, 17:20) and by QA 2, with owners:**
+
+| Finding | Ruling | Owner | PR |
+|---|---|---|---|
+| Tab rows still show a scrollbar with arrows (content 1 px taller than its box) | `overflow-y-hidden` on every tab row, test `scrollHeight <= clientHeight` at 375 and 1,440 px | S | small PR, a Sunday item |
+| The phone + sits on top of the Weekly review "Review day" chip | Bottom padding equal to the +; nothing tappable under it | B2 | the Wrap up follow-up PR |
+| Wrap up's empty sheet shows a disabled orange button (QA-570) | Message and Close only | B2 | same PR |
+| The bell's "Until tomorrow 08:00" lands on a Friday | Next working day, labelled "Until Sunday 08:00" on a Thursday | B2 | same PR |
+| Search finds no tasks or notes; bell row "Reminder: Reminder"; Compact shown as default | Search covers tasks and own notes; the alert shows the note's title; A checks the density setting read-only | A | new PR after #259 and #255 |
+| New task blank on a phone for seconds, `?new=1` kept; toasts show a number not the title | Loading sign at once, address becomes the task's; title first, then the number | D | new PR after #258 |
+| Drawer-foot icons unlabelled; My day's empty-notes line | Labels; reword | E | small PR after #264 |
+
+**After Sunday (V639, V640):** a date typed in the title, My day as a picked list (B2 and A, 21 and 28 Oct); the weekly "still just yours" nudge to link private items, with the dates rule (A and B2, week of 2 Nov). The master checklist in the Project is refreshed by QA 1 from the live crawl (V635 (6)).
+
 Before Sunday the oversight also sets the two sign-ins (V637) and the owner's team, and the owner walks My day, a task, a note, a follow-up and a reminder once, on a PC and a phone.
 
 ## Order at a glance

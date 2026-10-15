@@ -425,7 +425,7 @@
         "reminder": "تذكير",
         "followUpAbout": "متابعة: {name}",
         "markDone": "تعليم “{title}” كمنجز",
-        "reminderDone": "تم إنجاز التذكير",
+        "reminderDone": "تم إنجاز التذكير · {title}",
         "failed": "تعذّرت قراءة التذكيرات الآن."
       },
       "quick": {
@@ -461,7 +461,7 @@
         "followUpTitle": "متابعة",
         "followUpFor": "متابعة بشأن",
         "followUpPlaceholder": "ما الذي تتابعه",
-        "followUpSaved": "تم تحديد المتابعة",
+        "followUpSaved": "تم تحديد المتابعة - {title}",
         "passed": "هذا الوقت مضى"
       },
       "alert": {
@@ -469,7 +469,7 @@
         "now": "الآن",
         "done": "تم",
         "snooze": "تأجيل",
-        "snoozed": "تم التأجيل إلى {when}"
+        "snoozed": "تم التأجيل إلى {when} · {title}"
       }
     },
     "settings": {
@@ -566,8 +566,8 @@
       },
       "status": {
         "change": "الحالة: {status}. تغيير",
-        "movedLine": "{number}: {status}",
-        "blockedLine": "{number}: متوقفة",
+        "movedLine": "{status} · {title} ({number})",
+        "blockedLine": "متوقفة · {title} ({number})",
         "blockTitle": "إيقاف {number}",
         "blockReason": "ما الذي تنتظره؟",
         "block": "إيقاف",
@@ -578,7 +578,6 @@
       },
       "items": {
         "count": "{open} مفتوح من {total}",
-        "figure": "{open} مفتوح من {total}",
         "empty": "لا بنود عمل",
         "new": "بند عمل جديد",
         "added": "أُضيف: {item}",
@@ -1271,6 +1270,11 @@
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
+    "snoozeTomorrow": "حتى الغد 08:00",
+    "snoozeDay": "حتى {day} 08:00",
+    "snoozeWeek": "لمدة أسبوع · {when}",
+    "snoozeDate": "حتى تاريخ…",
+    "snoozeUntil": "تأجيل حتى",
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
     "someDetails": "بعض التفاصيل"
   },

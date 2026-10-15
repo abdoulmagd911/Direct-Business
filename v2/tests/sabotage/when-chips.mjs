@@ -143,4 +143,41 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'bell-snooze-until-tomorrow-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes the bell until 08:00 on the next working day: a Thursday lands on Sunday, not on the weekend',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: '`${nextWorkingDay(riyadhNow(now).day)}T08:00:00+03:00`',
+        replace: '`${new Date(Date.parse(riyadhNow(now).day) + 86_400_000).toISOString().slice(0, 10)}T08:00:00+03:00`',
+      },
+    ],
+  },
+  {
+    name: 'bell-snooze-for-a-week-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes "for a week" to the first working day on or after seven days from now, on every weekday',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'while (d.getUTCDay() === 5 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);\n  return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+        replace: 'return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+      },
+    ],
+  },
+  {
+    // the Architect's ruling of 15 Oct: the Follow-up set toast names the record it follows up
+    name: 'follow-up-toast-names-no-record',
+    breaks: [E2E],
+    expect: 'the toast names the record followed up',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"followUpSaved": "Follow-up set - {title}",',
+        replace: '"followUpSaved": "Follow-up set",',
+      },
+    ],
+  },
 ];

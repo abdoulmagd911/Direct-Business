@@ -395,6 +395,24 @@ export const sabotages = [
   },
 
   {
+    name: 'profile-name-box-shows-the-email-it-did-not-keep',
+    breaks: ['e2e:tests/e2e/a-name-box-shows-what-was-kept.spec.ts'],
+    expect: 'the box shows what was kept: nothing',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '            ...kept,\n',
+        replace: '            ...(void kept, {}),\n',
+      },
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "      if (typeof kept === 'string') setDraft(kept);\n",
+        replace: '      void kept;\n',
+      },
+    ],
+  },
+
+  {
     name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone density is gone from the page',
@@ -1729,9 +1747,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n        {...scroll}\n      >",
+        find: "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
         replace:
-          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n        {...scroll}\n      >",
+          "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
       },
     ],
   },
