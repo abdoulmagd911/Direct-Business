@@ -34,7 +34,7 @@ export const sabotages = [
     // 1: the form /tasks/new opened is closed, and a later Add task from the header still leaves the list
     name: 'header-add-follows-the-spent-address',
     breaks: [E2E],
-    expect: 'from the header, the list stays',
+    expect: 'from the header, the list stays and shows the new task',
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',

@@ -120,10 +120,11 @@ test('desk: closing the form /tasks/new opened, then adding from the header, sta
   await form.locator('input[name="due"]').fill(riyadhToday());
   await form.locator('button[type="submit"]').click();
   await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
-  await expect(page, 'from the header, the list stays').toHaveURL(/\/tasks$/);
+  // the row first: the address check alone would pass before a wrong jump to the task's page had happened
   await expect(
     page.locator('li[data-task-row]', { hasText: title }),
-    'the list refreshes after the form opened by address was closed',
+    'from the header, the list stays and shows the new task',
   ).toBeVisible();
+  await expect(page, 'from the header, the address stays the list’s').toHaveURL(/\/tasks$/);
   await ctx.close();
 });
