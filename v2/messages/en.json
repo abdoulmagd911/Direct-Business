@@ -1835,6 +1835,7 @@
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
+    "snoozeDay": "Until {day} 08:00",
     "snoozeWeek": "For a week",
     "snoozeDate": "Until a date…",
     "snoozeUntil": "Snooze until",
