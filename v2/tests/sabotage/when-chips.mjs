@@ -155,4 +155,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'bell-snooze-for-a-week-lands-on-the-weekend',
+    breaks: [UNIT],
+    expect: 'snoozes "for a week" to the first working day on or after seven days from now, on every weekday',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'while (d.getUTCDay() === 5 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);\n  return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+        replace: 'return d.toISOString().slice(0, 10);\n}\n\n/** The bell',
+      },
+    ],
+  },
 ];
