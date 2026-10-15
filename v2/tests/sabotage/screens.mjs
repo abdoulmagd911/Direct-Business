@@ -1729,9 +1729,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n        {...scroll}\n      >",
+        find: "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
         replace:
-          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n        {...scroll}\n      >",
+          "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
       },
     ],
   },
