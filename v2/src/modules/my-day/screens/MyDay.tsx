@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { formatDate } from '@/core/i18n/format';
+import { clip, formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
@@ -52,7 +52,10 @@ export function MyDay({ data }: { data: MyDayData }) {
   const [wrapping, setWrapping] = useState(false);
   // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
   const done = (r: PendingReminder) =>
-    command(words(t('pages.myDay.today.reminderDone')), () => markReminderDone({ id: r.id, notification_id: null }));
+    command(
+      words(t('pages.myDay.today.reminderDone', { title: clip(r.text || t('pages.myDay.today.reminder')) })),
+      () => markReminderDone({ id: r.id, notification_id: null }),
+    );
   // what falls today or is overdue is in the Today block; this block keeps only the reminders for later days
   const later = laterReminders(answer.reminders, answer.day);
   const people = new Map(data.people.map((p) => [p.id, p]));

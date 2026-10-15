@@ -347,7 +347,7 @@
         "reminder": "Reminder",
         "followUpAbout": "Follow up: {name}",
         "markDone": "Mark “{title}” done",
-        "reminderDone": "Reminder done",
+        "reminderDone": "Reminder done · {title}",
         "failed": "Reminders could not be read just now."
       },
       "quick": {
@@ -391,7 +391,7 @@
         "now": "Now",
         "done": "Done",
         "snooze": "Snooze",
-        "snoozed": "Snoozed to {when}"
+        "snoozed": "Snoozed to {when} · {title}"
       }
     },
     "settings": {
@@ -653,8 +653,8 @@
       },
       "status": {
         "change": "Status: {status}. Change",
-        "movedLine": "{number}: {status}",
-        "blockedLine": "{number}: Blocked",
+        "movedLine": "{status} · {title} ({number})",
+        "blockedLine": "Blocked · {title} ({number})",
         "blockTitle": "Block {number}",
         "blockReason": "What is it waiting for?",
         "block": "Block",
