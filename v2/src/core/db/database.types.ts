@@ -333,6 +333,7 @@ export type Database = {
           this_device: boolean;
         }[];
       };
+      my_follow_ups: { Args: { p_entity: string; p_id: string }; Returns: Json };
       my_note: { Args: { p_id: string }; Returns: Json };
       my_notes_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       note_add: {

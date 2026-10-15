@@ -43,7 +43,7 @@ const people: AvatarPerson[] = [
     displayName: 'Sample',
     fullName: 'Sample Helper',
     avatarColor: 'c4',
-    badge: { kind: 'zodiac', value: 'leo' },
+    badge: { kind: 'icon', value: 'star' },
   },
   {
     displayName: 'Demo',

@@ -1,9 +1,10 @@
 import { cn } from './cn';
-import { BADGE_ICONS, ZODIAC } from './badges';
+import { BADGE_ICONS } from './badges';
 
 /** One of the six chart colours (V7) — a person's own; the profile stores it as text (api.me profile.avatar_color). */
 export type AvatarColor = 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6';
-export type BadgeKind = 'none' | 'icon' | 'zodiac';
+/** No zodiac kind (V493): a stored one from before draws nothing. */
+export type BadgeKind = 'none' | 'icon';
 
 export type AvatarPerson = {
   displayName: string;
@@ -69,7 +70,6 @@ export function Avatar({
   const title = person.fullName ?? person.displayName;
   const badge = person.badge && person.badge.kind !== 'none' && person.badge.value ? person.badge : null;
   const Icon = badge?.kind === 'icon' ? BADGE_ICONS[badge.value!] : undefined;
-  const glyph = badge?.kind === 'zodiac' ? ZODIAC[badge.value!] : undefined;
   return (
     <span className={cn('relative inline-flex shrink-0', className)} data-avatar>
       {person.avatarUrl ? (
@@ -88,7 +88,7 @@ export function Avatar({
           {initialsOf(title)}
         </span>
       )}
-      {Icon || glyph ? (
+      {Icon ? (
         <span
           aria-hidden="true"
           className={cn(
@@ -100,7 +100,7 @@ export function Avatar({
                 : '-end-1 size-4 text-[10px] [&_svg]:size-2.5',
           )}
         >
-          {Icon ? <Icon strokeWidth={2.5} /> : glyph}
+          <Icon strokeWidth={2.5} />
         </span>
       ) : null}
     </span>
