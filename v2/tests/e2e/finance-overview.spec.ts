@@ -4,7 +4,7 @@
  * run newest first and a month that has ended carries Close month for a person with Full on Finance — the confirm
  * names the month and says it never changes, the chip then reads "Closed" with its day, and there is no Undo; a payment
  * that lands after the close is listed under After close while the month's own figures do not move; the commissions
- * sentence and one Payments · as of stamp are on the page; at 390 px nothing scrolls sideways and every target is 44 px.
+ * sentence and one Payments stamp are on the page; at 390 px nothing scrolls sideways and every target is 44 px.
  * Every value is made up; each test uses its own old month, so the figures are only its own.
  * Sabotage: tests/sabotage/finance.mjs "closed-month-row-takes-late-changes", "tile-profit-leaves-provisional-out",
  * "short-form-hides-its-exact-figure", "close-month-offers-an-undo", "member-can-close-a-month",
@@ -121,7 +121,9 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
     'Commissions paid outside Payments are not included.',
   );
   await expect(page.locator('[data-finance-stamp]'), 'one Payments stamp').toHaveCount(1);
-  await expect(page.locator('[data-finance-stamp]')).toContainText('Payments · as of');
+  // the stamp is a date or, before any Payments file, words — never a dash (V622); other specs may log a file
+  await expect(page.locator('[data-finance-stamp]')).toContainText('Payments · ');
+  await expect(page.locator('[data-finance-stamp]')).not.toContainText('as of —');
 
   // the month has ended and is not closed: Close month, with a confirm that names it and says it never changes
   const row = page.locator(`[data-finance-month="${ym}-01"]`);
