@@ -131,4 +131,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'when-tomorrow-keeps-its-word-on-a-thursday',
+    breaks: [UNIT],
+    expect: 'calls Tomorrow by its day when the next working day is not literally tomorrow',
+    edits: [
+      {
+        file: 'src/modules/my-day/when.ts',
+        find: 'if (tomorrowIsPlain(day)) return null;',
+        replace: 'if (day.length > 0) return null;',
+      },
+    ],
+  },
 ];

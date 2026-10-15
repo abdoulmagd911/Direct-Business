@@ -109,15 +109,16 @@ export const sabotages = [
     ],
   },
   {
+    // QA-564, widened: with an overdue task present the groups still never read just "Today" (the card is titled that)
     name: 'today-says-today-twice',
     breaks: [TODAY],
-    expect: 'says Today once when the first group is Today',
-    edits: [
-      {
-        file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: "x.key === 'today' && i === 0 ? null : (",
-        replace: 'false ? null : (',
-      },
-    ],
+    expect: 'says Today once with an overdue task and a task due today and one next',
+    edits: [{ file: 'messages/en.json', find: '"today": "Due today",', replace: '"today": "Today",' }],
+  },
+  {
+    name: 'today-says-today-twice-in-the-browser',
+    breaks: ['e2e:tests/e2e/today-block.spec.ts'],
+    expect: 'the groups, in order, with an overdue task present',
+    edits: [{ file: 'messages/en.json', find: '"today": "Due today",', replace: '"today": "Today",' }],
   },
 ];

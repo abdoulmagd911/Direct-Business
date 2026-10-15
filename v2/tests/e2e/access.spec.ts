@@ -2,13 +2,13 @@
  * The scenario-catalogue gaps in the screens lane (the oversight, 29 Sep 15:57):
  *  · PRF-002/123 — a person at level none on Overview, Finance, KPIs, Reports or Appraisal sees the no-access state,
  *    never an empty page; an admin sees the page.
- *  · ACC-127 — My profile is reached from the chip's menu, the drawer foot and the bottom bar's More sheet.
+ *  · ACC-127 — My profile is reached from the avatar menu at the top, its one place (daily use 10).
  *  · ACC-091 — the root goes to the person's start page (their choice, else the admin's default, else My day).
  *  · ACC-090 — a person without their own theme or density gets the admin's defaults.
  *  · ACC-129/139 — the language switch shows only while Arabic is on; a cookie saying Arabic is ignored while it is off.
  * The promises that change the admin's App settings reach everyone, so they run alone, after every other spec:
  * app-settings.alone.spec.ts. Sabotages: tests/sabotage/screens.mjs "none-gets-an-empty-page", "root-ignores-the-start-page",
- * "arabic-cookie-wins-while-off", "profile-link-lost-in-the-drawer".
+ * "arabic-cookie-wins-while-off", "profile-back-in-the-drawer".
  */
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
@@ -33,7 +33,7 @@ async function personAtNone() {
 const AREAS: [string, string][] = [
   ['/overview', 'Overview'],
   ['/finance', 'Finance'],
-  ['/kpis', 'KPIs'],
+  ['/kpis', 'Achievements'],
   ['/reports', 'Reports'],
   ['/appraisal', 'Appraisal'],
 ];
@@ -67,33 +67,29 @@ test('an admin sees every area page (empty until its step lands), not a refusal'
   }
 });
 
-test('My profile is reached from the chip, the drawer foot and the bottom bar (ACC-127)', async ({ page }) => {
+test('My profile is reached from the avatar menu at the top, its one place, at 1,500 and 400 px (ACC-127)', async ({
+  page,
+}) => {
   const member = await makePerson();
-  await page.setViewportSize({ width: 1500, height: 900 });
-  await signIn(page, member.email, '/my-day');
-  await hydrated(page);
-  // the drawer foot
-  const foot = page.locator('[data-drawer] a[data-entity="person"]');
-  await expect(foot).toHaveAttribute('href', '/profile');
-  await foot.click();
-  await expect(page, 'the drawer foot opens My profile').toHaveURL(/\/profile$/);
-  await hydrated(page);
-  await expect(page.getByRole('heading', { level: 1, name: 'My profile' })).toBeVisible();
-  // the chip's menu
-  await page.goto('/tasks');
-  await hydrated(page);
-  await page.locator('[data-topbar] [data-profile-chip]').click();
-  await page.getByRole('menuitem', { name: 'My profile' }).click();
-  await expect(page, 'the chip opens My profile').toHaveURL(/\/profile$/);
-  // the bottom bar's More sheet on a phone
-  await page.setViewportSize({ width: 400, height: 800 });
-  await page.goto('/tasks');
-  await hydrated(page);
-  await page.locator('[data-bottom-more]').click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet.locator('a[data-entity="person"]')).toHaveAttribute('href', '/profile');
-  await sheet.locator('a[data-entity="person"]').click();
-  await expect(page, 'the bottom bar opens My profile').toHaveURL(/\/profile$/);
+  await signIn(page, member.email, '/tasks');
+  for (const width of [1500, 400]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/tasks');
+    await hydrated(page);
+    // the drawer, or on a phone More, does not repeat it (daily use 10)
+    if (width > 700) await expect(page.locator('[data-drawer] a[href="/profile"]')).toHaveCount(0);
+    else {
+      await page.locator('[data-bottom-more]').click();
+      await expect(page.locator('[data-more-sheet]')).toBeVisible();
+      await expect(page.locator('[data-more-sheet] a[href="/profile"]'), 'More has no profile entry').toHaveCount(0);
+      await page.keyboard.press('Escape');
+    }
+    await page.locator('[data-topbar] [data-profile-chip]').click();
+    await page.getByRole('menuitem', { name: 'My profile' }).click();
+    await expect(page, `the avatar menu opens My profile at ${width} px`).toHaveURL(/\/profile$/);
+    await hydrated(page);
+    await expect(page.getByRole('heading', { level: 1, name: 'My profile' })).toBeVisible();
+  }
 });
 
 test('the root goes to the start page the person chose (ACC-091)', async ({ page }) => {

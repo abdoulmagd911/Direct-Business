@@ -23,7 +23,7 @@ import {
   type DueAnswer,
   type DueReminder,
 } from '../reminder-alert';
-import type { When } from '../when';
+import { tomorrowDayName, type When } from '../when';
 import { whenLine } from './WhenPicker';
 
 /**
@@ -168,7 +168,9 @@ export function ReminderAlert() {
           <MenuContent align="start">
             {choices.map(({ key, when }) => (
               <MenuItem key={key} className="h-11" onSelect={() => void snooze(when)} data-alert-snooze-to={key}>
-                {t(`pages.myDay.quick.whenChips.${key}`)} · {whenLine(when, locale)}
+                {(key === 'tomorrow' ? tomorrowDayName(new Date(), locale) : null) ??
+                  t(`pages.myDay.quick.whenChips.${key}`)}{' '}
+                · {whenLine(when, locale)}
               </MenuItem>
             ))}
           </MenuContent>

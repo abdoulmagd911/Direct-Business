@@ -1,31 +1,58 @@
 /**
- * One way to capture (V633): My day's in-page Capture is a single button that opens the same Quick capture sheet as
- * Create → Capture and the phone + — Note, Idea, Checklist, Reminder, Only me by default. The separate note-only box is
- * gone, and "/" still opens the sheet from the keyboard. At 375 and 1,440 px. Every value is made up.
+ * One add control per width (daily use 11, V633): on a PC it is Create in the top bar, on a phone the +, and both open
+ * the same menu. Create → Capture opens the Quick capture sheet — Note, Idea, Checklist, Reminder, Meeting, Only me by
+ * default — so My day has no Capture button of its own; "/" still opens the sheet from the keyboard. At 375 and
+ * 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openCapture } from './support/capture';
 import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 const toast = (page: Page, text: string) => page.locator('[data-sonner-toast][data-front="true"]', { hasText: text });
+const PC = { width: 1440, height: 1000 };
+const PHONE = { width: 375, height: 800 };
 
-for (const width of [375, 1440]) {
-  test(`My day has one capture door: a button that opens the same sheet with all five kinds — at ${width} px`, async ({
+/** The items the open Create menu (or the + menu) offers, in order. */
+async function menuItems(page: Page, trigger: string) {
+  await page.locator(trigger).click();
+  const items = await page
+    .locator('[data-create-item]')
+    .evaluateAll((els) => els.map((e) => e.getAttribute('data-create-item')));
+  await page.keyboard.press('Escape');
+  return items;
+}
+
+test('one add control per width: Create on a PC, the + on a phone, and both open the same menu', async ({ page }) => {
+  const me = await makePerson({ admin: true });
+  await page.setViewportSize(PC);
+  await signIn(page, me.email, '/my-day');
+  await hydrated(page);
+  await expect(page.locator('[data-create]'), 'Create on a PC').toBeVisible();
+  await expect(page.locator('[data-create-floating]'), 'no + on a PC').toBeHidden();
+  const wide = await menuItems(page, '[data-create]');
+  expect(wide[0], 'Capture comes first').toBe('capture');
+
+  await page.setViewportSize(PHONE);
+  await expect(page.locator('[data-create-floating]'), 'the + on a phone').toBeVisible();
+  await expect(page.locator('[data-create]'), 'no Create on a phone').toBeHidden();
+  expect(await menuItems(page, '[data-create-floating]'), 'the + opens the same menu as Create').toEqual(wide);
+});
+
+for (const size of [PHONE, PC]) {
+  test(`My day has one capture door: Create → Capture opens the sheet with all five kinds — at ${size.width} px`, async ({
     page,
   }) => {
     const me = await makePerson({ admin: true });
-    await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+    await page.setViewportSize(size);
     await signIn(page, me.email, '/my-day');
     await hydrated(page);
 
-    await expect(page.locator('[data-capture-input]'), 'the note-only box is gone').toHaveCount(0);
-    await expect(page.locator('[data-capture-open]'), 'one capture button').toHaveCount(1);
-    const button = (await page.locator('[data-capture-open]').boundingBox())!;
-    if (width < 700) expect(button.height, 'a finger-high button on a phone (V630)').toBeGreaterThanOrEqual(43.5);
+    await expect(page.locator('[data-capture-input]'), 'no note-only box').toHaveCount(0);
+    await expect(page.locator('[data-capture-open]'), 'no Capture button of its own on My day').toHaveCount(0);
 
-    await page.locator('[data-capture-open]').click();
-    await expect(page.locator('[data-quick-capture]')).toBeVisible();
-    await expect(page.locator('[data-quick-kind]'), 'the same five kinds as Create and the +').toHaveText([
+    await openCapture(page);
+    await expect(page.locator('[data-quick-kind]'), 'five kinds').toHaveText([
       'Note',
       'Idea',
       'Checklist',
@@ -37,7 +64,7 @@ for (const width of [375, 1440]) {
       'true',
     );
 
-    const words = `One door ${width}`;
+    const words = `One door ${size.width}`;
     await page.locator('[data-quick-text]').fill(words);
     await page.locator('[data-quick-save]').click();
     await expect(toast(page, 'Note captured')).toBeVisible();
@@ -62,7 +89,7 @@ test('a Meeting captured from the sheet is a meeting note, still on My day, read
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
-  await page.locator('[data-capture-open]').click();
+  await openCapture(page);
   await page.locator('[data-quick-kind="meeting"]').click();
   await page.locator('[data-quick-text]').fill('Kick-off with the made-up client');
   await page.locator('[data-quick-save]').click();

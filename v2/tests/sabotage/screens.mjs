@@ -529,14 +529,14 @@ export const sabotages = [
   },
 
   {
-    name: 'profile-link-lost-in-the-drawer',
+    name: 'profile-back-in-the-drawer',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
-    expect: 'the drawer foot opens My profile',
+    expect: 'its one place',
     edits: [
       {
         file: 'src/ui/shell/Drawer.tsx',
-        find: '          href="/profile"\n          data-entity="person"',
-        replace: '          href="/settings/profile"\n          data-entity="person"',
+        find: '      {foot.map(item)}',
+        replace: '      {foot.map(item)}\n      <a href="/profile">My profile</a>',
       },
     ],
   },
@@ -555,14 +555,15 @@ export const sabotages = [
   },
 
   {
-    name: 'profile-link-lost-in-the-bottom-bar',
+    name: 'profile-back-in-more',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
-    expect: 'the bottom bar opens My profile',
+    expect: 'More has no profile entry',
     edits: [
       {
         file: 'src/ui/shell/BottomBar.tsx',
-        find: '              href="/profile"\n              data-entity="person"',
-        replace: '              href="/settings/profile"\n              data-entity="person"',
+        find: '            <button\n              type="button"\n              onClick={signOut}',
+        replace:
+          '            <a href="/profile">My profile</a>\n            <button\n              type="button"\n              onClick={signOut}',
       },
     ],
   },
@@ -1728,9 +1729,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n      >",
+        find: "        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}\n        data-tabs\n        {...scroll}\n      >",
         replace:
-          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n      >",
+          "        className={cn('flex gap-6 overflow-x-auto border-b border-border', className)}\n        data-tabs\n        {...scroll}\n      >",
       },
     ],
   },

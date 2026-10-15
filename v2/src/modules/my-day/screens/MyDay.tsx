@@ -3,20 +3,19 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
-import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
+import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
-import { CaptureButton } from './CaptureButton';
+import { CaptureShortcut } from './CaptureShortcut';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
@@ -40,8 +39,8 @@ export type MyDayData = {
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
 
 /**
- * My day (V433): Capture, then Convert. Tabs Me · My team · Workspace; on Me the capture row, my notes and the reminders
- * waiting; on the other two what my team or everyone shares. Every block draws at most 7 rows and a "more" link. P5-7
+ * My day (V433): Capture (Create → Capture, the + or "/"), then Convert. Tabs Me · My team · Workspace; on Me my
+ * notes and the reminders waiting; on the other two what my team or everyone shares. Every block draws at most 7 rows and a "more" link. P5-7
  * adds the task, money and KPI blocks here as their data lands.
  */
 export function MyDay({ data }: { data: MyDayData }) {
@@ -50,7 +49,9 @@ export function MyDay({ data }: { data: MyDayData }) {
   const words = useWords();
   const { scope, answer, all } = data;
   const [wrapping, setWrapping] = useState(false);
-  const [removing, setRemoving] = useState<PendingReminder | null>(null);
+  // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
+  const done = (r: PendingReminder) =>
+    command(words(t('pages.myDay.today.reminderDone')), () => markReminderDone({ id: r.id, notification_id: null }));
   // what falls today or is overdue is in the Today block; this block keeps only the reminders for later days
   const later = laterReminders(answer.reminders, answer.day);
   const people = new Map(data.people.map((p) => [p.id, p]));
@@ -89,7 +90,7 @@ export function MyDay({ data }: { data: MyDayData }) {
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
-      {scope === 'me' ? <CaptureButton /> : null}
+      {scope === 'me' ? <CaptureShortcut /> : null}
       {scope === 'me' ? <SinceBlock /> : null}
       <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
@@ -127,12 +128,12 @@ export function MyDay({ data }: { data: MyDayData }) {
           <ul className="divide-y divide-border">
             {later.slice(0, BLOCK_ROWS).map((r) => (
               <li key={r.id} className="flex min-h-14 items-center gap-3 py-3" data-reminder={r.id}>
-                <span className="min-w-0 flex-1 truncate">{r.text}</span>
+                <span className="min-w-0 flex-1 break-words">{r.text}</span>
                 <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
                   {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                 </span>
-                <Button size="sm" variant="ghost" onClick={() => setRemoving(r)} data-reminder-remove>
-                  {t('common.remove')}
+                <Button size="sm" variant="ghost" onClick={() => void done(r)} data-reminder-done-later>
+                  {t('pages.myDay.alert.done')}
                 </Button>
               </li>
             ))}
@@ -140,22 +141,6 @@ export function MyDay({ data }: { data: MyDayData }) {
         </section>
       ) : null}
       {scope === 'me' ? <WrapUpDialog day={answer.day} open={wrapping} onOpenChange={setWrapping} /> : null}
-      <Confirm
-        open={!!removing}
-        onOpenChange={(o) => !o && setRemoving(null)}
-        title={t('pages.myDay.reminder.removeTitle', { name: removing?.text ?? '' })}
-        cancelLabel={t('common.cancel')}
-        confirmLabel={t('common.remove')}
-        onConfirm={async () => {
-          const r = removing;
-          setRemoving(null);
-          if (r)
-            await command(
-              words(t('pages.myDay.reminder.removed')),
-              () => rpc('reminders_remove', { p_ids: [r.id] }) as Promise<{ request_id?: string | null }>,
-            );
-        }}
-      />
     </>
   );
 }

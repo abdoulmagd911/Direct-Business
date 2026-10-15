@@ -1,0 +1,12 @@
+Sabotage: plant-another-date-format
+Breaks: check:one-date-format
+Expect: src/modules/demo/when.ts
+
+Plants a date written the browser's own way (W-daily 13: one date format everywhere, from formatDate).
+
+diff --git a/v2/src/modules/demo/when.ts b/v2/src/modules/demo/when.ts
+new file mode 100644
+--- /dev/null
++++ b/v2/src/modules/demo/when.ts
+@@ -0,0 +1,1 @@
++export const when = (d: Date) => d.toLocaleDateString('en-GB', { dateStyle: 'long' });

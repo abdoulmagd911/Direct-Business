@@ -7,6 +7,7 @@
  * and the sheet stays. At 375 and 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openCapture } from './support/capture';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -36,21 +37,24 @@ async function days() {
     tomorrow: string;
     line_tomorrow: string;
     line_sunday: string;
+    name: string | null;
     sunday: string;
     mins: number;
   }>(
     `select core.riyadh_today()::text as today,
             core.next_working_day(core.riyadh_today())::text as tomorrow,
-            to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon') as line_tomorrow,
+            to_char(core.next_working_day(core.riyadh_today()), 'Dy FMDD Mon YYYY') as line_tomorrow,
+            case when core.next_working_day(core.riyadh_today()) = core.riyadh_today() + 1 then null
+                 else trim(to_char(core.next_working_day(core.riyadh_today()), 'FMDay')) end as name,
             (core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int))::text as sunday,
-            to_char(core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int), 'Dy FMDD Mon') as line_sunday,
+            to_char(core.next_working_day(core.riyadh_today()) + (7 - extract(dow from core.next_working_day(core.riyadh_today()))::int), 'Dy FMDD Mon YYYY') as line_sunday,
             (extract(hour from (now() at time zone 'Asia/Riyadh'))::int * 60 + extract(minute from (now() at time zone 'Asia/Riyadh'))::int) as mins`,
   );
   return r!;
 }
 
 const openReminder = async (page: Page) => {
-  await page.locator('[data-capture-open]').click();
+  await openCapture(page);
   await page.locator('[data-quick-kind="reminder"]').click();
   await expect(page.locator('[data-when]')).toBeVisible();
 };
@@ -73,6 +77,10 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when-result]'), 'one line saying the result').toHaveText(
       `${d.line_tomorrow} · 09:00`,
     );
+    await expect(
+      page.locator('[data-when-chip="tomorrow"]'),
+      'Tomorrow is called by its day when the next working day is not tomorrow (a Thursday: Sunday)',
+    ).toHaveText(d.name ?? 'Tomorrow');
     await page.locator('[data-when-chip="next_week"]').click();
     await expect(page.locator('[data-when-result]'), 'Next week is the first Sunday after tomorrow').toHaveText(
       `${d.line_sunday} · 09:00`,
@@ -93,7 +101,7 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when-time-field]')).toBeVisible();
     await expect(page.locator('[data-when-time]')).toHaveText(['08:00', '09:00', '12:00', '15:00', '17:00']);
     const [pickDay] = await sql<{ later: string; line: string }>(
-      `select (core.riyadh_today() + 3)::text as later, to_char(core.riyadh_today() + 3, 'Dy FMDD Mon') as line`,
+      `select (core.riyadh_today() + 3)::text as later, to_char(core.riyadh_today() + 3, 'Dy FMDD Mon YYYY') as line`,
     );
     const { later, line } = pickDay!;
     await page.locator('[data-when-day]').fill(later);

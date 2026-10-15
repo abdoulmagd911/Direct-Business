@@ -3,7 +3,16 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import { cn } from '@/ui/cn';
 import { Input } from '@/ui/Input';
-import { hasPassed, laterToday, TIME_CHIPS, WHEN_KEYS, whenFor, type When, type WhenKey } from '../when';
+import {
+  hasPassed,
+  laterToday,
+  TIME_CHIPS,
+  tomorrowDayName,
+  WHEN_KEYS,
+  whenFor,
+  type When,
+  type WhenKey,
+} from '../when';
 
 const chip = (on: boolean) =>
   cn(
@@ -58,7 +67,7 @@ export function WhenPicker({
             onClick={() => onChange(k)}
             data-when-chip={k}
           >
-            {t(`pages.myDay.quick.whenChips.${k}`)}
+            {(k === 'tomorrow' ? tomorrowDayName(now, locale) : null) ?? t(`pages.myDay.quick.whenChips.${k}`)}
           </button>
         ))}
       </div>
