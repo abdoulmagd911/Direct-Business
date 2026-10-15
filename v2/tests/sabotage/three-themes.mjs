@@ -7,7 +7,7 @@ export const sabotages = [
   {
     name: 'colorful-is-offered-again',
     breaks: [UNIT, E2E],
-    expect: 'offers exactly Light, Dark and Direct',
+    expect: 'Light, Dark and Direct',
     edits: [
       {
         file: 'src/core/prefs/index.ts',
@@ -23,7 +23,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/prefs/index.ts',
-        find: "stored === 'colorful' ? 'light' : THEMES.find((t) => t === stored) ?? null;",
+        find: "stored === 'colorful' ? 'light' : (THEMES.find((t) => t === stored) ?? null);",
         replace: 'THEMES.find((t) => t === stored) ?? null;',
       },
     ],
