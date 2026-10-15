@@ -395,6 +395,24 @@ export const sabotages = [
   },
 
   {
+    name: 'profile-name-box-shows-the-email-it-did-not-keep',
+    breaks: ['e2e:tests/e2e/a-name-box-shows-what-was-kept.spec.ts'],
+    expect: 'the box shows what was kept: nothing',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '            ...kept,\n',
+        replace: '            ...(void kept, {}),\n',
+      },
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: "      if (typeof kept === 'string') setDraft(kept);\n",
+        replace: '      void kept;\n',
+      },
+    ],
+  },
+
+  {
     name: 'profile-keeps-the-undone-density',
     breaks: ['e2e:tests/e2e/profile.spec.ts'],
     expect: 'the undone density is gone from the page',

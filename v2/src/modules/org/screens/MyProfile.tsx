@@ -114,15 +114,21 @@ export function MyProfile({
     failed: (k: string, d: string) => t(k, { detail: d }),
   };
 
-  const save = async (changes: Changes) => {
-    await run(
+  const save = async (changes: Changes) =>
+    run(
       words,
       async () => {
         const r = (await rpc('profile_update', {
           p_changes: changes as never,
           p_version: state.profile?.version ?? undefined,
           p_person_version: state.personVersion ?? undefined,
-        })) as { version?: number; person_version?: number; request_id?: string } | null;
+        })) as {
+          version?: number;
+          person_version?: number;
+          request_id?: string;
+          display_name_en?: string | null;
+          display_name_ar?: string | null;
+        } | null;
         setState((s) => {
           const { full_name_en, full_name_ar, nickname_en, nickname_ar, notify, ...profileChanges } = changes;
           const nextPerson = {
@@ -147,9 +153,15 @@ export function MyProfile({
             notify: null,
             version: 0,
           };
+          // the display names as the database kept them (one's own e-mail is kept empty — QA-567), not as typed
+          const kept = {
+            ...(r && 'display_name_en' in r ? { display_name_en: r.display_name_en ?? null } : {}),
+            ...(r && 'display_name_ar' in r ? { display_name_ar: r.display_name_ar ?? null } : {}),
+          };
           const nextProfile: Profile = {
             ...base,
             ...profileChanges,
+            ...kept,
             ...(notify ? { notify: { ...((base.notify as object | null) ?? {}), ...notify } } : {}),
             version: r?.version ?? base.version,
           };
@@ -163,6 +175,11 @@ export function MyProfile({
       },
       () => router.refresh(),
     );
+  // a display name's box shows what the database kept (one's own e-mail is kept empty — QA-567); undefined when the
+  // save did not go through, so the box keeps what was typed
+  const saveName = async (key: 'display_name_en' | 'display_name_ar', v: string) => {
+    const r = await save({ [key]: v || null });
+    return r && key in r ? (r[key] ?? '') : undefined;
   };
 
   const signOutDevice = async (d: Device) => {
@@ -229,13 +246,13 @@ export function MyProfile({
           <TextField
             label={t('profile.displayNameEn')}
             value={state.profile?.display_name_en ?? ''}
-            onSave={(v) => save({ display_name_en: v || null })}
+            onSave={(v) => saveName('display_name_en', v)}
           />
           {/* the Arabic display name is data, editable whatever app.arabic_enabled says (QA-179) */}
           <TextField
             label={t('profile.displayNameAr')}
             value={state.profile?.display_name_ar ?? ''}
-            onSave={(v) => save({ display_name_ar: v || null })}
+            onSave={(v) => saveName('display_name_ar', v)}
             dir="rtl"
           />
         </div>
@@ -478,7 +495,8 @@ function TextField({
 }: {
   label: string;
   value: string;
-  onSave: (v: string) => void | Promise<void>;
+  /** May answer with the value as stored; the box then shows that rather than what was typed. */
+  onSave: (v: string) => unknown;
   required?: boolean;
   dir?: 'rtl' | 'ltr';
 }) {
@@ -496,7 +514,9 @@ function TextField({
       setDraft(value);
       return;
     }
-    void onSave(v);
+    void Promise.resolve(onSave(v)).then((kept) => {
+      if (typeof kept === 'string') setDraft(kept);
+    });
   };
   return (
     <Field label={label} error={required && !draft.trim() ? t('common.required') : undefined}>
