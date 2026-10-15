@@ -50,7 +50,10 @@ export function Tabs({
     return (
       <nav
         aria-label={label}
-        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}
+        className={cn(
+          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',
+          className,
+        )}
         data-tabs
         {...scroll}
       >
@@ -105,7 +108,7 @@ export function Tabs({
       role="tablist"
       aria-label={label}
       className={cn(
-        'flex gap-6 overflow-x-auto border-b border-border',
+        'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',
         fill ? 'gap-2' : 'max-sm:flex-wrap max-sm:gap-x-4',
         className,
       )}
