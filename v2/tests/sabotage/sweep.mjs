@@ -104,8 +104,18 @@ export const sabotages = [
     expect: 'the Arabic Filter label exists',
     edits: [{ file: 'messages/ar.json', find: '"filter": "تصفية"', replace: '"filterRemoved": "تصفية"' }],
   },
+  {
+    name: 'task-form-wipes-the-router-state',
+    // updated in #269 (V284): the fault is now keeping the router's state when the form's ?new=1 is cleared, so the next
+    // refresh of the list writes ?new=1 back (Tasks passes null, as Partners does)
+    breaks: ['e2e:tests/e2e/sweep-15-oct.spec.ts'],
+    expect: 'from the header, the address stays the list’s',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "window.history.replaceState(null, '', `${url.pathname}${url.search}`);",
+        replace: "window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);",
+      },
+    ],
+  },
 ];
-// task-form-wipes-the-router-state retired in #269 (V284): the race it caught (a save on ?new=1 refreshing the list as the
-// address was cleared) is gone, since that save now opens the new task; and keeping the router's state turned out to be
-// the bug (a later refresh wrote ?new=1 back), so the list now passes null as Partners does. Its successors,
-// list-refresh-brings-the-form-address-back and header-add-follows-the-spent-address, are in sweep-15-oct.mjs.

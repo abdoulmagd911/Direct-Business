@@ -44,19 +44,6 @@ export const sabotages = [
     ],
   },
   {
-    // 1: the form's address is cleared behind the router's back, so the next refresh of the list puts ?new=1 back
-    name: 'list-refresh-brings-the-form-address-back',
-    breaks: [E2E],
-    expect: 'from the header, the address stays the list’s',
-    edits: [
-      {
-        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: "window.history.replaceState(null, '', `${url.pathname}${url.search}`);",
-        replace: "window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);",
-      },
-    ],
-  },
-  {
     // 2: the toast leads with the number, not the title
     name: 'done-toast-names-the-number-only',
     breaks: [E2E],
