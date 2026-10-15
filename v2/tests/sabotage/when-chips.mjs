@@ -167,4 +167,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // the Architect's ruling of 15 Oct: the Follow-up set toast names the record it follows up
+    name: 'follow-up-toast-names-no-record',
+    breaks: [E2E],
+    expect: 'the toast names the record followed up',
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"followUpSaved": "Follow-up set - {title}",',
+        replace: '"followUpSaved": "Follow-up set",',
+      },
+    ],
+  },
 ];

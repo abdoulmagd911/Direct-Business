@@ -383,7 +383,7 @@
         "followUpTitle": "Follow-up",
         "followUpFor": "Follow up on",
         "followUpPlaceholder": "What to follow up on",
-        "followUpSaved": "Follow-up set",
+        "followUpSaved": "Follow-up set - {title}",
         "passed": "That time has passed"
       },
       "alert": {
@@ -665,7 +665,6 @@
       },
       "items": {
         "count": "{open} open of {total}",
-        "figure": "{open} open of {total}",
         "empty": "No action items",
         "new": "New action item",
         "added": "Added: {item}",

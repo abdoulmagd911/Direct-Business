@@ -78,6 +78,33 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
+  test(`${w.name}: the task page shows Due once, as a figure, and its action items only on their tab`, async ({
+    browser,
+  }) => {
+    const member = await memberWithTeam();
+    const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
+    const page = await ctx.newPage();
+    await signIn(page, member.email, '/my-day');
+    await hydrated(page);
+    const title = `Made-up details task ${randomUUID().slice(0, 6)}`;
+    const r = await callAs(ctx, 'task_create', { p_values: { title } });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    const { number } = r.body as { number: string };
+
+    await page.goto(`/tasks/${number}`);
+    await hydrated(page);
+    const figures = page.locator('[data-key-figures]');
+    await expect(figures, 'Due is a key figure').toContainText('Due');
+    await expect(figures, 'no figure repeats the action items').not.toContainText('Action items');
+    await expect(
+      page.locator('[data-record-rail] dt', { hasText: /^Due$/ }),
+      'Details does not repeat the due day',
+    ).toHaveCount(0);
+    await expect(page.locator('[data-record-rail]'), 'Details keeps its other fields').toContainText('Owner');
+    await expect(page.getByRole('link', { name: /Action items/ }), 'the Action items tab stays').toBeVisible();
+    await ctx.close();
+  });
+
   test(`${w.name}: the Done toast names the task by its title, then its number`, async ({ browser }) => {
     const member = await memberWithTeam();
     const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
