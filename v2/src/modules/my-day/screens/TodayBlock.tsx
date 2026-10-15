@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { formatDate } from '@/core/i18n/format';
+import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
@@ -107,12 +107,12 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const [busy, setBusy] = useState(false);
+  const title = r.text || t('pages.myDay.today.reminder');
   const done = async () => {
     setBusy(true);
-    await command(words(t('pages.myDay.today.reminderDone')), () => markReminderDone(r));
+    await command(words(t('pages.myDay.today.reminderDone', { title: clip(title) })), () => markReminderDone(r));
     setBusy(false);
   };
-  const title = r.text || t('pages.myDay.today.reminder');
   const body = (
     <>
       <span className="block break-words">{title}</span>

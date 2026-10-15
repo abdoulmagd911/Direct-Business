@@ -62,6 +62,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const { filters: f, list, lookups } = data;
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const [adding, setAdding] = useState(data.adding);
+  // opened from /tasks/new: once saved, the address becomes the new task's own, so Back and refresh never reopen the
+  // empty form (the supervisor's sweep of 15 Oct)
+  const [openedByAddress] = useState(data.adding);
   const [q, setQ] = useState(f.q ?? '');
   const today = riyadhDay(new Date());
   const rows = (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today));
@@ -255,6 +258,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         partners={lookups.partners}
         projects={lookups.projects}
         initial={{ partnerId: f.partner, projectId: f.project }}
+        onAdded={openedByAddress ? (r) => router.replace(`/tasks/${r.number}`) : undefined}
       />
     </div>
   );

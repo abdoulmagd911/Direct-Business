@@ -431,7 +431,7 @@
         "reminder": "تذكير",
         "followUpAbout": "متابعة: {name}",
         "markDone": "تعليم “{title}” كمنجز",
-        "reminderDone": "تم إنجاز التذكير",
+        "reminderDone": "تم إنجاز التذكير · {title}",
         "failed": "تعذّرت قراءة التذكيرات الآن."
       },
       "quick": {
@@ -475,7 +475,7 @@
         "now": "الآن",
         "done": "تم",
         "snooze": "تأجيل",
-        "snoozed": "تم التأجيل إلى {when}"
+        "snoozed": "تم التأجيل إلى {when} · {title}"
       }
     },
     "settings": {
@@ -571,8 +571,8 @@
       },
       "status": {
         "change": "الحالة: {status}. تغيير",
-        "movedLine": "{number}: {status}",
-        "blockedLine": "{number}: متوقفة",
+        "movedLine": "{status} · {title} ({number})",
+        "blockedLine": "متوقفة · {title} ({number})",
         "blockTitle": "إيقاف {number}",
         "blockReason": "ما الذي تنتظره؟",
         "block": "إيقاف",
