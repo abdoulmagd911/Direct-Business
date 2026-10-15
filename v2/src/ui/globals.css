@@ -167,3 +167,63 @@
 @utility scrollbar-thin {
   scrollbar-width: thin;
 }
+
+/*
+ * A row that scrolls sideways shows that there is more by fading its content out at the edge that still has some
+ * (W-daily 12): the fade is the content's own, so it suits any background, and ScrollFade sets the two data flags.
+ * The gradient runs the other way in Arabic. No colour is named (currentColor only masks).
+ */
+[data-scroll-more='end'] {
+  -webkit-mask-image: linear-gradient(to right, currentColor calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to right, currentColor calc(100% - 2.5rem), transparent);
+}
+[data-scroll-more='start'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, currentColor 2.5rem);
+  mask-image: linear-gradient(to right, transparent, currentColor 2.5rem);
+}
+[data-scroll-more='both'] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    currentColor 2.5rem,
+    currentColor calc(100% - 2.5rem),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    currentColor 2.5rem,
+    currentColor calc(100% - 2.5rem),
+    transparent
+  );
+}
+[dir='rtl'] [data-scroll-more='end'] {
+  -webkit-mask-image: linear-gradient(to left, currentColor calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to left, currentColor calc(100% - 2.5rem), transparent);
+}
+[dir='rtl'] [data-scroll-more='start'] {
+  -webkit-mask-image: linear-gradient(to left, transparent, currentColor 2.5rem);
+  mask-image: linear-gradient(to left, transparent, currentColor 2.5rem);
+}
+[dir='rtl'] [data-scroll-more='both'] {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    transparent,
+    currentColor 2.5rem,
+    currentColor calc(100% - 2.5rem),
+    transparent
+  );
+  mask-image: linear-gradient(to left, transparent, currentColor 2.5rem, currentColor calc(100% - 2.5rem), transparent);
+}
+
+/*
+ * On a phone a toast sits above the bottom bar and the + button, never over them (W-daily, QA 2): the bar is 60 px (and
+ * the screen's safe area) and the + stands 132 px up from the foot, so the toasts' foot is 140 px up. Sonner writes its
+ * offset on the element itself, hence !important; a screen from 640 px up keeps the toasts' own offset.
+ */
+@media (max-width: 639px) {
+  [data-sonner-toaster] {
+    --offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+    --mobile-offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+  }
+}

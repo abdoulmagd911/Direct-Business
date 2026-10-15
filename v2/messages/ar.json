@@ -407,10 +407,6 @@
         "partDone": "{count} منجز",
         "gone": "{items} لم يعد في قائمتك (لم يعد لك أو أُغلق). تم استبعاده وبقيت خياراتك الأخرى."
       },
-      "reminder": {
-        "removeTitle": "إزالة التذكير «{name}»؟",
-        "removed": "تمت إزالة التذكير"
-      },
       "since": {
         "at": "آخر زيارة {when}",
         "markSeen": "تعليم الكل كمقروء",
@@ -422,14 +418,14 @@
       "today": {
         "title": "اليوم",
         "overdue": "متأخرة",
-        "today": "اليوم",
-        "next": "التالية",
+        "today": "مستحق اليوم",
+        "next": "الأيام السبعة القادمة",
         "empty": "لا شيء مستحق اليوم",
         "carried": "مرحّلة من أمس ({count})",
         "reminder": "تذكير",
         "followUpAbout": "متابعة: {name}",
         "markDone": "تعليم “{title}” كمنجز",
-        "reminderDone": "تم إنجاز التذكير",
+        "reminderDone": "تم إنجاز التذكير · {title}",
         "failed": "تعذّرت قراءة التذكيرات الآن."
       },
       "quick": {
@@ -473,7 +469,7 @@
         "now": "الآن",
         "done": "تم",
         "snooze": "تأجيل",
-        "snoozed": "تم التأجيل إلى {when}"
+        "snoozed": "تم التأجيل إلى {when} · {title}"
       }
     },
     "settings": {
@@ -501,6 +497,7 @@
         "past": "لا عمل سابق بعد. الصقه من تقرير في الأعلى."
       },
       "noNotes": "لا ملاحظات",
+      "noOtherNotes": "لا ملاحظات أخرى",
       "statusHistory": "تغييرات الحالة",
       "noStatusChanges": "لا تغييرات في الحالة بعد",
       "views": {
@@ -569,8 +566,8 @@
       },
       "status": {
         "change": "الحالة: {status}. تغيير",
-        "movedLine": "{number}: {status}",
-        "blockedLine": "{number}: متوقفة",
+        "movedLine": "{status} · {title} ({number})",
+        "blockedLine": "متوقفة · {title} ({number})",
         "blockTitle": "إيقاف {number}",
         "blockReason": "ما الذي تنتظره؟",
         "block": "إيقاف",
@@ -1274,6 +1271,11 @@
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
+    "snoozeTomorrow": "حتى الغد 08:00",
+    "snoozeDay": "حتى {day} 08:00",
+    "snoozeWeek": "لمدة أسبوع · {when}",
+    "snoozeDate": "حتى تاريخ…",
+    "snoozeUntil": "تأجيل حتى",
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
     "someDetails": "بعض التفاصيل"
   },
@@ -1524,7 +1526,15 @@
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
-    "followUp": "متابعة"
+    "followUp": "متابعة",
+    "followUpOn": "متابعة · {when}",
+    "followUpsFailed": "المتابعات · حاول مرة أخرى"
+  },
+  "follow": {
+    "follow": "مراقبة",
+    "following": "قيد المراقبة",
+    "unfollowed": "لم تعد تراقب",
+    "failed": "مراقبة · حاول مرة أخرى"
   },
   "finance": {
     "stampNone": "المدفوعات · لم تُستورد بعد",

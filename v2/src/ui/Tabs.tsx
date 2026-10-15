@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { cn } from './cn';
 import { LinkPending } from './LinkPending';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from './Menu';
+import { useScrollMore } from './use-scroll-more';
 
 /** `more` puts a link tab under the row's one "More" control on a phone (V630); a wide screen shows every tab. */
 export type TabDef = { value: string; label: ReactNode; count?: number; href?: string; more?: boolean };
@@ -33,9 +34,10 @@ export function Tabs({
   fill?: boolean;
   className?: string;
 }) {
+  const scroll = useScrollMore();
   const tabClass = (active: boolean) =>
     cn(
-      '-mb-px inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
+      '-mb-px inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
       fill && 'min-w-0 flex-auto px-1',
       active ? 'border-accent font-semibold text-text' : 'border-transparent text-muted hover:text-text',
     );
@@ -48,8 +50,12 @@ export function Tabs({
     return (
       <nav
         aria-label={label}
-        className={cn('flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4', className)}
+        className={cn(
+          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',
+          className,
+        )}
         data-tabs
+        {...scroll}
       >
         {tabs.map((t) => (
           <Link
@@ -102,11 +108,12 @@ export function Tabs({
       role="tablist"
       aria-label={label}
       className={cn(
-        'flex gap-6 overflow-x-auto border-b border-border',
+        'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',
         fill ? 'gap-2' : 'max-sm:flex-wrap max-sm:gap-x-4',
         className,
       )}
       data-tabs
+      {...scroll}
     >
       {tabs.map((t, i) => {
         const active = t.value === value;

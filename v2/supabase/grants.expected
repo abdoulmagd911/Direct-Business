@@ -119,6 +119,7 @@ function api.match_queue() execute authenticated
 function api.me() execute authenticated
 function api.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
 function api.my_devices() execute authenticated
+function api.my_follow_ups(p_entity text, p_id uuid) execute authenticated
 function api.my_note(p_id uuid) execute authenticated
 function api.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
@@ -316,6 +317,7 @@ function core.person_password_set(p_person uuid, p_reason text, p_replace boolea
 function core.person_sign_out(p_person uuid, p_device uuid) execute authenticated
 function core.person_switch(p_id uuid, p_on boolean, p_reason text, p_reassign_to uuid) execute authenticated
 function core.person_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
+function core.profile_kept_names() execute authenticated
 function core.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
 function core.quarter_of(d date) execute authenticated
 function core.recently_deleted(p_limit integer) execute authenticated
@@ -385,6 +387,7 @@ function finance.tender_credit(p_from date, p_to date) execute authenticated
 function finance.tenders(p_partner uuid) execute authenticated
 function my.from_note_of(p_entity text, p_id uuid) execute authenticated
 function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
+function my.my_follow_ups(p_entity text, p_id uuid) execute authenticated
 function my.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
 function my.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
 function my.note_finish_meeting(p_note uuid, p_values jsonb) execute authenticated

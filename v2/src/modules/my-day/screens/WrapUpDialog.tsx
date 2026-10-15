@@ -128,15 +128,22 @@ export function WrapUpDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('pages.myDay.wrap.title')}
-      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+      description={formatDate(day, locale, { weekday: 'long', day: 'numeric', month: 'short' })}
       closeLabel={t('common.close')}
       footer={
-        <>
-          <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
-          <Button variant="primary" disabled={!items?.length} loading={busy} onClick={() => void save()} data-wrap-save>
-            {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
+        // QA-570: the save button is drawn only when there is something to save; an empty day shows the message and Close
+        items?.length ? (
+          <>
+            <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+            <Button variant="primary" loading={busy} onClick={() => void save()} data-wrap-save>
+              {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}
+            </Button>
+          </>
+        ) : (
+          <Button onClick={() => onOpenChange(false)} data-wrap-close>
+            {items === null ? t('common.cancel') : t('common.close')}
           </Button>
-        </>
+        )
       }
     >
       {gone.length ? (
@@ -209,7 +216,9 @@ export function WrapUpDialog({
                         >
                           <span>{(move === 'tomorrow' ? tomorrowName : null) ?? t(`pages.myDay.wrap.${word}`)}</span>
                           {landsOn[move] ? (
-                            <span className="font-data text-xs font-normal text-muted">{landsOn[move]}</span>
+                            <span className="font-data text-xs font-normal text-muted" data-wrap-lands-on={move}>
+                              {landsOn[move]}
+                            </span>
                           ) : null}
                         </button>
                       ))}

@@ -3,7 +3,7 @@ import { CalendarDays, Columns3, List, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
@@ -62,6 +62,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const { filters: f, list, lookups } = data;
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const [adding, setAdding] = useState(data.adding);
+  // opened from /tasks/new: once saved, the address becomes the new task's own, so Back and refresh never reopen the
+  // empty form (the supervisor's sweep of 15 Oct). Read when the form closes, so a later Add task stays on the list.
+  const closedOnAddress = useRef(false);
   const [q, setQ] = useState(f.q ?? '');
   const today = riyadhDay(new Date());
   const rows = (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today));
@@ -244,10 +247,12 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           // Create's address (?new=1) is spent once the form closes or saves, so a reload does not open it again
           if (!open) {
             const url = new URL(window.location.href);
+            closedOnAddress.current = url.searchParams.has('new');
             if (url.searchParams.has('new')) {
               url.searchParams.delete('new');
-              // the router's own history state is kept, or the next refresh of the list loses its place
-              window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
+              // null, as on Partners: Next copies its own state in and takes the new address as the router's, so the next
+              // refresh of the list does not write ?new=1 back (an entry passed its own state is not re-read)
+              window.history.replaceState(null, '', `${url.pathname}${url.search}`);
             }
           }
         }}
@@ -255,6 +260,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         partners={lookups.partners}
         projects={lookups.projects}
         initial={{ partnerId: f.partner, projectId: f.project }}
+        onAdded={(r) => {
+          if (closedOnAddress.current) router.replace(`/tasks/${r.number}`);
+        }}
       />
     </div>
   );

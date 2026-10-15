@@ -75,7 +75,7 @@ export function PageFrame({ children, className = '' }: { children: ReactNode; c
   // otherwise be squeezed to nothing on a long page — the Activity tabs vanished and swallowed the first click (W11).
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-40 pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
+      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
       data-page
     >
       {children}
