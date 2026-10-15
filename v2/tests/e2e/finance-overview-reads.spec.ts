@@ -10,7 +10,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { blocksSettled } from './support/finance-blocks';
-import { makePerson, signIn } from './support/stack';
+import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
@@ -19,6 +19,13 @@ const timeout = { code: '57014', message: 'canceling statement due to statement 
 
 async function admin(page: Page) {
   const person = await makePerson({ admin: true });
+  // these specs read every block: one made-up import is logged, so the page is past "Not imported yet" (V622)
+  await sql(
+    `insert into finance.import_batch (id, file, file_name, export_time, started_by)
+     values ('00000000-0000-4000-8000-0000000f1ce5', 'invoices', 'made-up-invoices.xlsx', now() - interval '1 day', $1)
+     on conflict (id) do nothing`,
+    [person.id],
+  );
   await signIn(page, person.email);
 }
 const settled = blocksSettled;

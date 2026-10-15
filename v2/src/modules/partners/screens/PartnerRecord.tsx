@@ -8,7 +8,6 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
-import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -22,6 +21,7 @@ import { PartnerLogo } from '@/ui/PartnerLogo';
 import { PersonChip } from '@/ui/PersonChip';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
@@ -188,66 +188,61 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           {t('common.edit')}
         </Button>
       ) : null}
-      <FollowButton entity="partner" id={card.id} />
-      <Menu>
-        <MenuTrigger asChild>
-          <Button aria-label={t('common.more')} data-partner-more>
-            ⋯
-          </Button>
-        </MenuTrigger>
-        <MenuContent>
-          {/* Follow up (V632 Stage 2): the one Capture sheet, on Reminder, about this client — private to its author */}
-          <MenuItem
-            onSelect={() =>
-              openQuickCapture({ about: { entity: 'partner', id: card.id, label: tradeName(card, locale) } })
-            }
-            data-follow-up
-          >
-            {t('record.followUp')}
-          </MenuItem>
-          <MenuSeparator />
-          {SIDES.map((k) => {
-            const s = sideOf(k);
-            const label = t(`partners.side.${k}`);
-            if (!s)
-              return fullOn(k) ? (
-                <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
-                  {t('partners.sideDialog.switchOn', { side: label })}
-                </MenuItem>
-              ) : null;
-            return (
-              <div key={k}>
-                {fullOn(k) ? (
-                  <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
-                    {t('partners.sideDialog.change', { side: label })}
+      {/* Follow up (V632 Stage 2, V282): a visible action, the one Capture sheet on this client, private to its author */}
+      <FollowUpButton about={{ entity: 'partner', id: card.id, label: tradeName(card, locale) }} />
+      {/* Watch and ⋯ stay together on one line when the actions wrap on a phone */}
+      <span className="inline-flex shrink-0 items-center gap-2" data-partner-watch-more>
+        <FollowButton entity="partner" id={card.id} />
+        <Menu>
+          <MenuTrigger asChild>
+            <Button aria-label={t('common.more')} data-partner-more>
+              ⋯
+            </Button>
+          </MenuTrigger>
+          <MenuContent>
+            {SIDES.map((k) => {
+              const s = sideOf(k);
+              const label = t(`partners.side.${k}`);
+              if (!s)
+                return fullOn(k) ? (
+                  <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
+                    {t('partners.sideDialog.switchOn', { side: label })}
                   </MenuItem>
-                ) : null}
-                {isOwner(s) || canAssign(k) ? (
-                  <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
-                    {t('partners.statusDialog.action')} · {label}
-                  </MenuItem>
-                ) : null}
-                {canAssign(k) ? (
-                  <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
-                    {t('partners.ownerDialog.action')} · {label}
-                  </MenuItem>
-                ) : null}
-                {fullOn(k) && sidesOn.length > 1 ? (
-                  <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
-                    {t('partners.sideDialog.switchOffAction', { side: label })}
-                  </MenuItem>
-                ) : null}
-                <MenuSeparator />
-              </div>
-            );
-          })}
-          {mayWrite ? (
-            <MenuItem onSelect={() => setNoting(true)} data-note-add>
-              {t('partners.note.add')}
-            </MenuItem>
-          ) : null}
-        </MenuContent>
-      </Menu>
+                ) : null;
+              return (
+                <div key={k}>
+                  {fullOn(k) ? (
+                    <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
+                      {t('partners.sideDialog.change', { side: label })}
+                    </MenuItem>
+                  ) : null}
+                  {isOwner(s) || canAssign(k) ? (
+                    <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
+                      {t('partners.statusDialog.action')} · {label}
+                    </MenuItem>
+                  ) : null}
+                  {canAssign(k) ? (
+                    <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
+                      {t('partners.ownerDialog.action')} · {label}
+                    </MenuItem>
+                  ) : null}
+                  {fullOn(k) && sidesOn.length > 1 ? (
+                    <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
+                      {t('partners.sideDialog.switchOffAction', { side: label })}
+                    </MenuItem>
+                  ) : null}
+                  <MenuSeparator />
+                </div>
+              );
+            })}
+            {mayWrite ? (
+              <MenuItem onSelect={() => setNoting(true)} data-note-add>
+                {t('partners.note.add')}
+              </MenuItem>
+            ) : null}
+          </MenuContent>
+        </Menu>
+      </span>
     </>
   );
 
@@ -651,6 +646,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               </StatusChip>
             ))}
             {card.archived_at ? <StatusChip tone="neutral">{t('partners.archived')}</StatusChip> : null}
+            <FollowUpChips entity="partner" id={card.id} />
           </>
         }
         figures={figures}

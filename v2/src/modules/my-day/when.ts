@@ -1,3 +1,4 @@
+import { formatDate } from '@/core/i18n/format';
 import { nextWorkingDay } from './logic';
 
 /**
@@ -46,12 +47,43 @@ export const tomorrow = (now: Date): When => ({ day: nextWorkingDay(riyadhNow(no
  * Sunday that starts a new week, and Next week is the Sunday after it. Mirrors my.next_week_day.
  */
 export function nextWeek(now: Date): When {
-  const { day } = riyadhNow(now);
+  return { day: nextWeekDay(riyadhNow(now).day), time: MORNING };
+}
+
+/** The same day for a Riyadh day given as "2026-10-15": Wrap up names it on its Next week choice. */
+export function nextWeekDay(day: string): string {
   const d = new Date(`${nextWorkingDay(day)}T12:00:00Z`);
   do d.setUTCDate(d.getUTCDate() + 1);
   while (d.getUTCDay() !== 0);
-  return { day: d.toISOString().slice(0, 10), time: MORNING };
+  return d.toISOString().slice(0, 10);
 }
+
+/** Whether the next working day is the next calendar day (it is not from a Thursday: Friday and Saturday are the weekend). */
+export function tomorrowIsPlain(day: string): boolean {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10) === nextWorkingDay(day);
+}
+
+/**
+ * What the Tomorrow choice is called when the next working day is not literally tomorrow (the Architect's ruling of
+ * 14 Oct): the day's own name, "Sunday" (Arabic "الأحد"), on a Thursday, a Friday and a Saturday. On the other days
+ * `null`, and the word stays "Tomorrow". The date sits beside it as before. Used by the Wrap up sheet and its Save line,
+ * the When chips and Snooze.
+ */
+export function tomorrowDayNameOf(day: string, locale: 'en' | 'ar'): string | null {
+  if (tomorrowIsPlain(day)) return null;
+  return formatDate(`${nextWorkingDay(day)}T12:00:00+03:00`, locale, {
+    weekday: 'long',
+    day: undefined,
+    month: undefined,
+    year: undefined,
+  });
+}
+
+/** The same, from an instant. */
+export const tomorrowDayName = (now: Date, locale: 'en' | 'ar'): string | null =>
+  tomorrowDayNameOf(riyadhNow(now).day, locale);
 
 /** The When a chip names; Pick a day takes the person's own day and time. Later today is null when it is not offered. */
 export function whenFor(key: WhenKey, now: Date, pick?: When): When | null {

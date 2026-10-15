@@ -91,7 +91,7 @@
     "projects": "Projects",
     "tasks": "Tasks",
     "finance": "Finance",
-    "kpis": "KPIs",
+    "kpis": "Achievements",
     "reports": "Reports",
     "appraisal": "Appraisal",
     "activity": "Activity",
@@ -222,9 +222,6 @@
         "workspace": "Workspace"
       },
       "tabsLabel": "Whose notes",
-      "capture": {
-        "label": "Capture"
-      },
       "kinds": {
         "sticky": "Note",
         "meeting": "Meeting",
@@ -326,14 +323,11 @@
         "note": "Note",
         "saveWith": "Save · {parts}",
         "partTomorrow": "{count} to tomorrow",
+        "partToDay": "{count} to {day}",
         "partNextWeek": "{count} next week",
         "partDrop": "{count} dropped",
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
-      },
-      "reminder": {
-        "removeTitle": "Remove the reminder “{name}”?",
-        "removed": "Reminder removed"
       },
       "since": {
         "at": "Last visit {when}",
@@ -346,8 +340,8 @@
       "today": {
         "title": "Today",
         "overdue": "Overdue",
-        "today": "Today",
-        "next": "Next",
+        "today": "Due today",
+        "next": "Next 7 days",
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",
@@ -569,6 +563,7 @@
         "past": "No past work yet. Paste it from a report above."
       },
       "noNotes": "No notes",
+      "noOtherNotes": "No other notes",
       "statusHistory": "Status changes",
       "noStatusChanges": "No status changes yet",
       "views": {
@@ -825,7 +820,6 @@
       "note": "Note",
       "idea": "Idea",
       "private": "Only me",
-      "door": "This week",
       "reviewDay": "Review day"
     }
   },
@@ -1068,7 +1062,9 @@
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
     "lockedPartner": "An organisation's history is for the people who may open it",
-    "followUp": "Follow up"
+    "followUp": "Follow up",
+    "followUpOn": "Follow up · {when}",
+    "followUpsFailed": "Follow-ups · try again"
   },
   "activity": {
     "title": "Activity",
@@ -1544,7 +1540,7 @@
           "projects": "Projects",
           "tasks": "Tasks",
           "finance": "Finance",
-          "kpis": "KPIs",
+          "kpis": "Achievements",
           "reports": "Reports",
           "appraisal": "Appraisal",
           "activity": "Activity"
@@ -1842,37 +1838,38 @@
     "snoozeDate": "Until a date…",
     "snoozeUntil": "Snooze until",
     "kinds": {
-      "assigned": "{actor} assigned you {what}",
-      "helper_added": "{actor} added you as a helper on {what}",
-      "mentioned": "{actor} mentioned you on {what}",
-      "changed_by_other": "{actor} changed your {what}",
-      "followed_change": "{actor} changed {what} you follow",
-      "decision_needed": "{what} needs your decision",
-      "report_issued": "{actor} issued {what}",
-      "report_for_review": "{actor} sent {what} for your review",
+      "assigned": "{actor} assigned you {record}",
+      "helper_added": "{actor} added you as a helper on {record}",
+      "mentioned": "{actor} mentioned you on {record}",
+      "changed_by_other": "{actor} changed {what} on {record}",
+      "followed_change": "{actor} changed {what} on {record}",
+      "decision_needed": "{record} needs your decision",
+      "report_issued": "{actor} issued {record}",
+      "report_for_review": "{actor} sent {record} for your review",
       "appraisal_step": "{actor} moved your appraisal on",
       "import_done": "Import finished",
-      "alert_contract_expiring": "A contract on {what} is expiring",
-      "alert_kpi_behind": "{what} is behind pace",
-      "alert_invoice_unpaid": "{what} is unpaid past its limit",
-      "alert_kpi_checkin": "KPI check-in day: {what}",
-      "escalated": "{actor} escalated {what} to you",
-      "alert_quiet_client": "{what} has gone quiet",
-      "alert_project_no_update": "{what} has no health update",
-      "alert_activity_stale": "{what} has had no activity",
-      "alert_file_review": "A file on {what} is due for review",
-      "reminder": "Reminder: {what}",
+      "alert_contract_expiring": "A contract on {record} is expiring",
+      "alert_kpi_behind": "{record} is behind pace",
+      "alert_invoice_unpaid": "{record} is unpaid past its limit",
+      "alert_kpi_checkin": "KPI check-in day: {record}",
+      "escalated": "{actor} escalated {record} to you",
+      "alert_quiet_client": "{record} has gone quiet",
+      "alert_project_no_update": "{record} has no health update",
+      "alert_activity_stale": "{record} has had no activity",
+      "alert_file_review": "A file on {record} is due for review",
+      "reminder": "Reminder: {record}",
       "note_mention": "{actor} mentioned you in a note",
-      "alert_due_tomorrow": "{what} is coming due",
-      "other": "{actor} · {what}"
+      "alert_due_tomorrow": "{record} is coming due",
+      "other": "{actor} · {record}"
     },
-    "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes."
+    "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",
+    "someDetails": "some details"
   },
   "follow": {
-    "follow": "Follow",
-    "following": "Following",
-    "unfollowed": "No longer following",
-    "failed": "Follow · try again"
+    "follow": "Watch",
+    "following": "Watching",
+    "unfollowed": "No longer watching",
+    "failed": "Watch · try again"
   },
   "conflict": {
     "title": "Someone changed this since you opened it",
@@ -2164,7 +2161,7 @@
       }
     },
     "stamp": "Payments · as of {date}",
-    "stampNone": "Payments · as of —",
+    "stampNone": "Payments · not imported yet",
     "tile": {
       "revenue": "Revenue",
       "cost": "Cost",
@@ -2283,6 +2280,7 @@
       "lists": "The word lists",
       "lastSaved": "Last saved",
       "noFigures": "In no figures"
-    }
+    },
+    "notImported": "Not imported yet. The figures appear here after the first Payments import."
   }
 }

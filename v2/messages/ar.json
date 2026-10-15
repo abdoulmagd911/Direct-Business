@@ -53,7 +53,7 @@
     "projects": "المشاريع",
     "tasks": "المهام",
     "finance": "المالية",
-    "kpis": "مؤشرات الأداء",
+    "kpis": "الإنجازات",
     "reports": "التقارير",
     "appraisal": "تقييم الأداء",
     "activity": "سجل النشاط",
@@ -304,9 +304,6 @@
         "workspace": "مساحة العمل"
       },
       "tabsLabel": "ملاحظات من",
-      "capture": {
-        "label": "تدوين"
-      },
       "kinds": {
         "sticky": "ملاحظة",
         "meeting": "اجتماع",
@@ -404,14 +401,11 @@
         "note": "ملاحظة",
         "saveWith": "حفظ · {parts}",
         "partTomorrow": "{count} إلى الغد",
+        "partToDay": "{count} إلى {day}",
         "partNextWeek": "{count} إلى الأسبوع القادم",
         "partDrop": "{count} إسقاط",
         "partDone": "{count} منجز",
         "gone": "{items} لم يعد في قائمتك (لم يعد لك أو أُغلق). تم استبعاده وبقيت خياراتك الأخرى."
-      },
-      "reminder": {
-        "removeTitle": "إزالة التذكير «{name}»؟",
-        "removed": "تمت إزالة التذكير"
       },
       "since": {
         "at": "آخر زيارة {when}",
@@ -424,8 +418,8 @@
       "today": {
         "title": "اليوم",
         "overdue": "متأخرة",
-        "today": "اليوم",
-        "next": "التالية",
+        "today": "مستحق اليوم",
+        "next": "الأيام السبعة القادمة",
         "empty": "لا شيء مستحق اليوم",
         "carried": "مرحّلة من أمس ({count})",
         "reminder": "تذكير",
@@ -503,6 +497,7 @@
         "past": "لا عمل سابق بعد. الصقه من تقرير في الأعلى."
       },
       "noNotes": "لا ملاحظات",
+      "noOtherNotes": "لا ملاحظات أخرى",
       "statusHistory": "تغييرات الحالة",
       "noStatusChanges": "لا تغييرات في الحالة بعد",
       "views": {
@@ -744,7 +739,6 @@
       "note": "ملاحظة",
       "idea": "فكرة",
       "private": "لي وحدي",
-      "door": "هذا الأسبوع",
       "reviewDay": "يوم المراجعة"
     }
   },
@@ -1253,11 +1247,32 @@
   },
   "notifications": {
     "kinds": {
-      "alert_due_tomorrow": "يقترب موعد استحقاق {what}",
-      "reminder": "تذكير: {what}",
-      "note_mention": "أشار {actor} إليك في ملاحظة"
+      "assigned": "أسند إليك {actor} {record}",
+      "helper_added": "أضافك {actor} مساعدًا في {record}",
+      "mentioned": "أشار إليك {actor} في {record}",
+      "changed_by_other": "غيّر {actor} {what} في {record}",
+      "followed_change": "غيّر {actor} {what} في {record}",
+      "decision_needed": "{record} بانتظار قرارك",
+      "report_issued": "أصدر {actor} {record}",
+      "report_for_review": "أرسل {actor} {record} لمراجعتك",
+      "appraisal_step": "نقل {actor} تقييمك إلى الخطوة التالية",
+      "import_done": "اكتمل الاستيراد",
+      "alert_contract_expiring": "عقد على {record} يقترب من الانتهاء",
+      "alert_kpi_behind": "{record} متأخر عن الوتيرة",
+      "alert_invoice_unpaid": "{record} غير مدفوعة بعد المهلة",
+      "alert_kpi_checkin": "يوم مراجعة المؤشر: {record}",
+      "escalated": "صعّد {actor} {record} إليك",
+      "alert_quiet_client": "توقف التواصل مع {record}",
+      "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
+      "alert_activity_stale": "لا نشاط على {record}",
+      "alert_file_review": "يحين موعد مراجعة ملف على {record}",
+      "reminder": "تذكير: {record}",
+      "note_mention": "أشار إليك {actor} في ملاحظة",
+      "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
+      "other": "{actor} · {record}"
     },
-    "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه."
+    "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
+    "someDetails": "بعض التفاصيل"
   },
   "partners": {
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
@@ -1506,6 +1521,18 @@
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
-    "followUp": "متابعة"
+    "followUp": "متابعة",
+    "followUpOn": "متابعة · {when}",
+    "followUpsFailed": "المتابعات · حاول مرة أخرى"
+  },
+  "follow": {
+    "follow": "مراقبة",
+    "following": "قيد المراقبة",
+    "unfollowed": "لم تعد تراقب",
+    "failed": "مراقبة · حاول مرة أخرى"
+  },
+  "finance": {
+    "stampNone": "المدفوعات · لم تُستورد بعد",
+    "notImported": "لم يُستورد شيء بعد. تظهر الأرقام هنا بعد أول استيراد من المدفوعات."
   }
 }
