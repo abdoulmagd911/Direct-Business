@@ -69,15 +69,35 @@ async function taskIn(department: string, owner: string, title: string): Promise
 }
 
 /** Adds a task the way the screen offers it: the header's Add task on a wide screen, the floating + on a phone (V630). */
-async function openAdd(page: Page) {
+async function openAdd(page: Page): Promise<'header' | 'plus'> {
   const header = page.locator('[data-add-task]');
-  if (await header.isVisible()) return header.click();
+  if (await header.isVisible()) {
+    await header.click();
+    return 'header';
+  }
   await page.locator('[data-create-floating]').click();
   const item = page.locator('[data-create-item="task"]');
   await item.waitFor({ state: 'visible', timeout: 2000 }).then(
     () => item.click(),
     () => undefined, // the + opens its only item directly
   );
+  return 'plus';
+}
+
+/**
+ * After a save from the + (which opens /tasks/new): the address is the new task's own (the supervisor's sweep of 15 Oct,
+ * V284), and Back returns to the list without reopening the form. From the header's Add task, the list stays.
+ */
+async function backToListAfterPlus(page: Page, via: 'header' | 'plus', title: string) {
+  if (via === 'header') return;
+  await expect(page, 'saved from /tasks/new: the address is the new task').toHaveURL(/\/tasks\/TSK-\d{4}-\d+$/);
+  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('form[data-quick-add]'), 'Back never reopens the empty form').toHaveCount(0);
+  // the list as it is now, not as the browser kept it from before the save
+  await page.reload();
+  await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
+  await expect(page.locator('form[data-quick-add]'), 'nor does a refresh').toHaveCount(0);
 }
 
 async function signedIn(browser: Browser, person: TestPerson, width: number, height: number, path = '/tasks') {
@@ -111,13 +131,14 @@ for (const w of WIDTHS) {
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
     const title = `Made-up task ${randomUUID().slice(0, 6)}`;
 
-    await openAdd(page);
+    const via = await openAdd(page);
     const form = page.locator('form[data-quick-add]');
     await form.locator('input[name="title"]').fill(title);
     await form.locator('input[name="due"]').fill(riyadhToday());
     await page.screenshot({ path: shot(`tasks-quick-add-${w.name}`) });
     await form.locator('button[type="submit"]').click();
     await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
+    await backToListAfterPlus(page, via, title);
 
     // the list: in My work, due today, nothing sideways
     const row = page.locator('li[data-task-row]', { hasText: title });
@@ -154,9 +175,10 @@ for (const w of WIDTHS) {
     const member = await memberWithTeam();
     const title = `Made-up blocked ${randomUUID().slice(0, 6)}`;
     const { ctx, page } = await signedIn(browser, member, w.width, w.height);
-    await openAdd(page);
+    const via = await openAdd(page);
     await page.locator('form[data-quick-add] input[name="title"]').fill(title);
     await page.locator('form[data-quick-add] button[type="submit"]').click();
+    await backToListAfterPlus(page, via, title);
     await page.locator('li[data-task-row]', { hasText: title }).getByRole('link', { name: title }).click();
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
 
@@ -214,10 +236,11 @@ test('phone: see what is due today and tick one off (V509)', async ({ browser })
   const member = await memberWithTeam();
   const title = `Made-up due today ${randomUUID().slice(0, 6)}`;
   const { ctx, page } = await signedIn(browser, member, 390, 844, '/tasks?due=today');
-  await openAdd(page);
+  const via = await openAdd(page);
   await page.locator('form[data-quick-add] input[name="title"]').fill(title);
   await page.locator('form[data-quick-add] input[name="due"]').fill(riyadhToday());
   await page.locator('form[data-quick-add] button[type="submit"]').click();
+  await backToListAfterPlus(page, via, title);
   const row = page.locator('li[data-task-row]', { hasText: title });
   await expect(row, 'due today shows under the Today chip').toBeVisible();
   await row.locator('[data-done-tick]').click();

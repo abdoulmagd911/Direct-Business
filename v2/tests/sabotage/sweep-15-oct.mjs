@@ -11,9 +11,9 @@ export const sabotages = [
     expect: NEW,
     edits: [
       {
-        file: 'src/app/(app)/tasks/loading.tsx',
-        find: '<div className="p-4" data-tasks-loading>',
-        replace: '<div className="p-4">',
+        file: 'src/app/(app)/tasks/page.tsx',
+        find: '<div data-tasks-loading>',
+        replace: '<div>',
       },
     ],
   },
