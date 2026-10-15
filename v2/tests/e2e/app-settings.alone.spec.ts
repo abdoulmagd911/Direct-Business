@@ -42,6 +42,12 @@ test("the admin's default start page applies to a person without their own (ACC-
 test("the admin's default theme and density apply to a person without their own (ACC-090)", async ({ page }) => {
   const admin = await makePerson({ admin: true });
   const member = await makePerson();
+  // the registry sync (V636) wrote the new Light default dated today; the admin's value below is dated today too, so the
+  // sync's row is put away first and the admin's value is the one in force, as it is when an admin changes it later
+  await sql(
+    `update core.setting set deleted_at = now(), delete_reason = 'made-up test'
+      where key = 'app.default_theme' and reason = 'default' and valid_from > date '2000-01-01' and deleted_at is null`,
+  );
   await sql(
     `insert into core.setting (key, value, valid_from, reason, created_by) values
        ('app.default_theme', '"dark"'::jsonb, current_date, 'Made-up reason', $1),
