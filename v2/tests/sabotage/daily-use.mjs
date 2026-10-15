@@ -92,7 +92,7 @@ export const sabotages = [
     expect: '> shows the day Next week lands on: the first Sunday after the next working day',
     edits: [
       {
-        file: 'src/modules/my-day/logic.ts',
+        file: 'src/modules/my-day/when.ts',
         find: 'while (d.getUTCDay() !== 0);',
         replace: 'while (d.getUTCDay() !== 1);',
       },
