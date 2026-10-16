@@ -49,7 +49,7 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
         find: '        {actions.map((a) => {',
-        replace: '        {actions.slice(0, floating ? -1 : undefined).map((a) => {',
+        replace: '        {actions.slice(0, bar ? -1 : undefined).map((a) => {',
       },
     ],
   },
@@ -110,6 +110,18 @@ export const sabotages = [
         file: 'src/ui/shell/CreateMenu.tsx',
         find: "at: ['view', 'own', 'full'], sheet: true",
         replace: "at: ['own', 'full'], sheet: true",
+      },
+    ],
+  },
+  {
+    name: 'my-day-empty-line-points-nowhere',
+    breaks: [E2E],
+    expect: DOOR,
+    edits: [
+      {
+        file: 'messages/en.json',
+        find: '"me": "No notes yet. Notes you capture with Create appear here.",',
+        replace: '"me": "No notes yet. What you capture here stays yours until you share it.",',
       },
     ],
   },

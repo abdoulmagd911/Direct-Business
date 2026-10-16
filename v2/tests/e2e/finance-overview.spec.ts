@@ -215,7 +215,7 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
     ).toBeLessThan(60);
     expect(part!.x + part!.width, `${kind}: nothing is clipped`).toBeLessThanOrEqual(390);
   }
-  // the floating + sits at the right edge (56 px wide, 16 px in): the Needs attention row and every month row stay clear of it
+  // the right edge keeps a 72 px gutter (where the floating + stood before option C): the rows stay clear of it
   const clear = await page.evaluate(() => {
     const rightmost = (root: Element) =>
       Math.max(

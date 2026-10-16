@@ -129,17 +129,17 @@ export function Drawer() {
           expanded ? 'px-1' : 'flex-col px-0',
         )}
       >
-        <div className={cn('flex', expanded ? 'gap-0.5' : 'flex-col gap-0.5')}>
-          <IconButton
-            size="sm"
+        <div className={cn('flex', expanded ? 'w-full flex-col gap-0.5' : 'flex-col gap-0.5')}>
+          <FootButton
+            expanded={expanded}
             label={pinned ? t('nav.unpin') : t('nav.pin')}
             pressed={pinned}
             icon={pinned ? <Pin /> : <PinOff />}
             onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
             data-drawer-pin
           />
-          <IconButton
-            size="sm"
+          <FootButton
+            expanded={expanded}
             label={pinned ? t('nav.collapse') : t('nav.expand')}
             icon={<CollapseIcon className="flip-rtl" />}
             onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
@@ -168,4 +168,36 @@ export function Drawer() {
 function DepartmentName() {
   const t = useTranslations('app');
   return <>{t('department')}</>;
+}
+
+/**
+ * A drawer-foot control: with the drawer open it says what it does in words beside its icon (QA 2, the architect's
+ * ruling of 14 Oct: no unlabelled icons at the foot); on the 56 px rail there is room for the icon alone, named by
+ * its tooltip and accessible name.
+ */
+function FootButton({
+  expanded,
+  label,
+  icon,
+  pressed,
+  ...rest
+}: {
+  expanded: boolean;
+  label: string;
+  icon: React.ReactNode;
+  pressed?: boolean;
+  onClick: () => void;
+} & Record<`data-${string}`, boolean>) {
+  if (!expanded) return <IconButton size="sm" label={label} pressed={pressed} icon={icon} {...rest} />;
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-start text-[13px] text-nav-text hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)] focus-visible:outline-2 focus-visible:outline-focus [&_svg]:size-4 [&_svg]:shrink-0"
+      {...rest}
+    >
+      {icon}
+      <span className="min-w-0 truncate">{label}</span>
+    </button>
+  );
 }
