@@ -25,9 +25,9 @@ import { useCommandWords } from './words';
 export function readDealValue(text: string): number | null {
   const plain = text
     .trim()
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-    .replace(/٫/g, '.')
-    .replace(/٬/g, ',');
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/\u066b/g, '.')
+    .replace(/\u066c/g, ',');
   if (!/^[\d,]*\.?\d*$/.test(plain) || !/\d/.test(plain)) return null;
   return Number(plain.replace(/,/g, ''));
 }

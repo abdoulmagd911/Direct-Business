@@ -17,7 +17,6 @@ const WIDTHS = [
   ['phone 375', 375, 800],
   ['desk 1440', 1440, 900],
 ] as const;
-const OFFER = 'Log it as an achievement?';
 
 /** Commercial's plan for this Riyadh year with its starting categories (Contract signed carries a deal value). */
 async function plan() {
@@ -125,7 +124,7 @@ for (const [label, width, height] of WIDTHS) {
     ).toContainText('All categories');
   });
 
-  test(`${label}: Done offers Log as achievement, pre-filled and dismissible; Cancelled offers nothing`, async ({
+  test(`${label}: Done offers Log as achievement beside Undo, pre-filled and dismissible; Cancelled offers nothing`, async ({
     page,
   }) => {
     const title = `Made-up signed the supplier ${randomUUID().slice(0, 8)}`;
@@ -139,14 +138,17 @@ for (const [label, width, height] of WIDTHS) {
       await page.locator('[data-task-status]').first().click();
       await page.locator(`[data-move="${meaning}"]`).click();
     };
-    const offer = page.locator('[data-sonner-toast]', { hasText: OFFER });
+    const toast = page.locator('[data-sonner-toast][data-front="true"]');
+    const offer = toast.getByRole('button', { name: 'Log as achievement' });
 
-    // Done: the offer comes, can be waved off, and — if taken — opens Log achievement with the task's words
+    // Done: one toast with Undo and the offer, and a way to wave it off
     await move('done');
+    await expect(toast).toBeVisible();
+    await expect(toast.getByRole('button', { name: 'Undo' }), 'Undo is still on the toast').toBeVisible();
     await expect(offer, 'Done offers the achievement').toBeVisible();
-    await offer.hover();
-    await offer.getByRole('button', { name: 'Not now' }).click();
-    await expect(offer, 'the offer can be waved off, well before it lapses').toHaveCount(0, { timeout: 1500 });
+    await toast.hover();
+    await toast.locator('[data-close-button]').click();
+    await expect(toast, 'the offer can be waved off, well before it lapses').toHaveCount(0, { timeout: 1500 });
 
     // a second Done on a fresh task: taking the offer pre-fills the title
     const second = await memberWithTask(title);
@@ -158,20 +160,19 @@ for (const [label, width, height] of WIDTHS) {
     await hydrated(page);
     await move('done');
     await expect(offer).toBeVisible();
-    await offer.hover();
-    await offer.getByRole('button', { name: 'Log as achievement' }).click();
+    await toast.hover();
+    await offer.click();
     await expect(page).toHaveURL(/\/kpis\/achievements\/new\?title=/);
     await hydrated(page);
     await expect(page.getByLabel('What'), 'the task’s words start the title').toHaveValue(title);
 
-    // Cancelled: no offer at all
+    // Cancelled: the toast comes, with Undo, and no offer
     await page.context().clearCookies();
     await signIn(page, other.me.email, `/tasks/${other.number}`);
     await hydrated(page);
     await move('cancelled');
-    await expect(page.locator('[data-sonner-toast]').first(), 'the move was made').toBeVisible();
-    await page.waitForTimeout(1200);
-    // counted at once: the offer would lapse by itself after 8 s, so waiting for it to go would prove nothing
+    await expect(toast.getByRole('button', { name: 'Undo' }), 'the move was made').toBeVisible();
+    // counted at once: waiting for something to go proves nothing about something that was never there
     expect(await offer.count(), 'Cancelled offers nothing').toBe(0);
   });
 }

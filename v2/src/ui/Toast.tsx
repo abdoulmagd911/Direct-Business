@@ -18,13 +18,13 @@ export function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            'flex w-[360px] max-w-[calc(100vw-32px)] items-start gap-2.5 rounded-md border border-border bg-raised p-3 text-text shadow-2 font-ui text-sm',
+            'flex w-[360px] max-w-[calc(100vw-32px)] items-start gap-2.5 rounded-md border border-border bg-raised p-3 text-text shadow-2 font-ui text-sm has-[[data-cancel]]:flex-wrap has-[[data-cancel]]:[&_[data-content]]:basis-[calc(100%-2rem)]',
           title: 'font-semibold',
           description: 'text-muted',
           actionButton:
             'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
           cancelButton:
-            'shrink-0 self-center h-8 max-sm:h-11 rounded-md px-3 text-sm font-medium text-muted hover:bg-surface',
+            'shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface ms-8',
           icon: 'mt-0.5 shrink-0',
         },
       }}
@@ -37,21 +37,16 @@ export function Toaster() {
 }
 
 export type ToastUndo = { label: string; onUndo: () => void | Promise<void> };
+export type ToastExtra = { label: string; onClick: () => void };
 
 export const toast = {
   /** A command succeeded. Pass `undo` when the command is undoable; the button is "Undo". */
-  done(title: string, opts: { description?: string; undo?: ToastUndo } = {}) {
+  done(title: string, opts: { description?: string; undo?: ToastUndo; extra?: ToastExtra } = {}) {
     return sonnerToast.success(title, {
       description: opts.description,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
-    });
-  },
-  /** An offer after a command: one button to take it, one to wave it off; it lapses on its own after 8 s. */
-  offer(title: string, opts: { action: { label: string; onClick: () => void }; dismiss: string }) {
-    return sonnerToast(title, {
-      duration: 8000,
-      action: { label: opts.action.label, onClick: opts.action.onClick },
-      cancel: { label: opts.dismiss, onClick: () => {} },
+      // a second thing to do with what just happened (Done → Log as achievement): a button beside Undo, and a way out
+      ...(opts.extra ? { cancel: { label: opts.extra.label, onClick: opts.extra.onClick }, closeButton: true } : {}),
     });
   },
   /** A command was refused or failed: the reason in words, never a code. */

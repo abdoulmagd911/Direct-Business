@@ -42,8 +42,8 @@ export const sabotages = [
     edits: [
       {
         file: STATUS,
-        find: 'if (finished && result && canLog)',
-        replace: 'if (false && finished && result && canLog)',
+        find: '      finished && canLog\n',
+        replace: '      false && finished && canLog\n',
       },
     ],
   },

@@ -542,9 +542,7 @@
         "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       },
       "valueNotNumber": "Enter a number",
-      "offer": "Log it as an achievement?",
-      "offerAction": "Log as achievement",
-      "offerDismiss": "Not now"
+      "offerAction": "Log as achievement"
     },
     "beingBuilt": "Being built.",
     "tasks": {

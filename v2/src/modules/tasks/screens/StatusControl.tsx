@@ -3,7 +3,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { useMe } from '@/core/auth/me-context';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { clip } from '@/core/i18n/format';
@@ -11,7 +11,6 @@ import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ReasonDialog } from '@/ui/ReasonDialog';
-import { toast } from '@/ui/Toast';
 import { cn } from '@/ui/cn';
 import { STATUS_TONE, planMove, statusMoves, statusView, type Move } from '../rules';
 import type { TaskRow, TaskStatus } from '../types';
@@ -28,7 +27,7 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const locale = useLocale();
   const words = useCommandWords();
   const router = useRouter();
-  const canLog = ['own', 'full'].includes(useMe().levels.kpis ?? 'none');
+  const canLog = ['own', 'full'].includes(useMaybeMe()?.levels.kpis ?? 'none');
   const [blocking, setBlocking] = useState(false);
   const [closing, setClosing] = useState<{ move: Move; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,24 +38,24 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
     finished = false,
   ) => {
     setBusy(true);
-    const result = await command(
+    await command(
       words(done),
       () =>
         rpc('task_status_set', { p_id: task.id, ...args }) as Promise<{
           request_id?: string | null;
         }>,
+      // Done (never Cancelled) offers the achievement beside Undo, pre-filled with the task's title; a refused move has
+      // no toast to carry it (the Architect's ask of 16 Oct, V384)
+      finished && canLog
+        ? {
+            extra: {
+              label: t('pages.achievements.offerAction'),
+              onClick: () => router.push(`/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}`),
+            },
+          }
+        : {},
     );
     setBusy(false);
-    // Done (never Cancelled, never a refused move) offers the achievement, pre-filled with the task's title; the offer
-    // lapses on its own and can be waved off (the Architect's ask of 16 Oct, V383)
-    if (finished && result && canLog)
-      toast.offer(t('pages.achievements.offer'), {
-        action: {
-          label: t('pages.achievements.offerAction'),
-          onClick: () => router.push(`/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}`),
-        },
-        dismiss: t('pages.achievements.offerDismiss'),
-      });
   };
   const doneLine = (move: Move) =>
     move.kind === 'block'
