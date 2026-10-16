@@ -78,7 +78,7 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when]'), 'a plain note does not ask when').toHaveCount(0);
     await page.locator('[data-quick-text]').fill(`Plain note ${t}`);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Note captured')).toBeVisible();
+    await expect(toast(page, 'Note saved')).toBeVisible();
     await expect(page.locator('[data-quick-capture]')).toHaveCount(0);
     expect(page.url(), 'one tap saves and the person is still where they were').toBe(where);
     const [note] = await sql<{ visibility: string; idea: boolean }>(
@@ -92,7 +92,7 @@ for (const width of [375, 1440]) {
     await page.locator('[data-quick-kind="idea"]').click();
     await page.locator('[data-quick-text]').fill(`Idea ${t}`);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Idea captured')).toBeVisible();
+    await expect(toast(page, 'Idea saved')).toBeVisible();
     const [idea] = await sql<{ idea: boolean }>(`select idea from my.note where person_id = $1 and title = $2`, [
       me.id,
       `Idea ${t}`,
@@ -103,7 +103,7 @@ for (const width of [375, 1440]) {
     await page.locator('[data-quick-kind="checklist"]').click();
     await page.locator('[data-quick-text]').fill(`Packing ${t}\nPassports\nChargers`);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Checklist captured')).toBeVisible();
+    await expect(toast(page, 'Checklist saved')).toBeVisible();
     const [list] = await sql<{ n: number }>(
       `select jsonb_array_length(items)::int as n from my.note where person_id = $1 and title = $2`,
       [me.id, `Packing ${t}`],
@@ -115,7 +115,7 @@ for (const width of [375, 1440]) {
     await expect(page.locator('[data-when]'), 'a reminder asks when').toBeVisible();
     await page.locator('[data-quick-text]').fill(`Call back ${t}`);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Reminder captured')).toBeVisible();
+    await expect(toast(page, 'Reminder saved')).toBeVisible();
     const [rem] = await sql<{ n: number }>(
       `select count(*)::int as n from core.reminder r join my.note n on n.id = r.note_id where n.person_id = $1 and n.title = $2`,
       [me.id, `Call back ${t}`],

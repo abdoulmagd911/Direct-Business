@@ -14,8 +14,14 @@ export const generateMetadata = pageTitle('pages.achievements.title');
 type ListEntry = { key: string; name_en: string; name_ar: string };
 
 /** Log achievement (GC-4): from the + and from the list, for everyone with Own on KPIs (a Member logs their own). */
-export default async function NewAchievementPage() {
-  const [me, t, locale] = await Promise.all([requireMe(), getTranslations(), getLocale()]);
+export default async function NewAchievementPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [me, t, locale, q] = await Promise.all([requireMe(), getTranslations(), getLocale(), searchParams]);
+  // a task marked Done offers its title as the starting words (the Architect's ask of 16 Oct)
+  const fromTask = (typeof q.title === 'string' ? q.title : '').trim().slice(0, 300);
   const lang = locale as 'en' | 'ar';
   const level = me.levels.kpis ?? 'none';
   const title = t('pages.achievements.log');
@@ -47,6 +53,7 @@ export default async function NewAchievementPage() {
         people={people}
         systems={(systems as ListEntry[]).map((s) => ({ key: s.key, name: lang === 'ar' ? s.name_ar : s.name_en }))}
         meId={me.person.id}
+        initialTitle={fromTask}
         full={level === 'full'}
         department={{
           id: me.person.department_id,

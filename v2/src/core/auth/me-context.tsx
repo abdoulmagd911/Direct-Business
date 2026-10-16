@@ -16,3 +16,8 @@ export function useMe(): Me {
   if (!me) throw new Error('useMe() is only available inside the (app) gate');
   return me;
 }
+
+/** The signed-in person where there may be none (a piece of screen drawn on its own in a test): null, never a throw. */
+export function useMaybeMe(): Me | null {
+  return use(MeContext);
+}
