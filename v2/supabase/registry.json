@@ -228,9 +228,9 @@
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "string",
-        "enum": ["light", "dark", "colorful", "direct"]
+        "enum": ["light", "dark", "direct"]
       },
-      "default": "direct",
+      "default": "light",
       "effective_dated": false
     },
     {

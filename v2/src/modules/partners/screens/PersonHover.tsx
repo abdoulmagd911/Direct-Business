@@ -2,7 +2,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { rpc } from '@/core/db/rpc';
-import { Avatar, type AvatarColor, type BadgeKind } from '@/ui/Avatar';
+import { Avatar, type BadgeKind } from '@/ui/Avatar';
 import { HoverCard } from '@/ui/HoverCard';
 
 type HoverPerson = {
@@ -17,7 +17,6 @@ type HoverPerson = {
   department_ar: string | null;
   team_en: string | null;
   team_ar: string | null;
-  avatar_color: AvatarColor | null;
   badge_kind: BadgeKind | null;
   badge_value: string | null;
   active: boolean;
@@ -42,7 +41,6 @@ export function PersonHover({ id, children }: { id: string; children: ReactNode 
               person={{
                 displayName: pick(p.display_name_en, p.display_name_ar),
                 fullName: pick(p.full_name_en, p.full_name_ar),
-                avatarColor: p.avatar_color ?? 'c1',
                 badge: p.badge_kind ? { kind: p.badge_kind, value: p.badge_value } : undefined,
               }}
               size="lg"

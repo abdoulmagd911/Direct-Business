@@ -8,7 +8,6 @@ import { Avatar } from '../../../src/ui/Avatar';
 
 const person = (badge: { kind: string; value: string | null }) => ({
   displayName: 'Test',
-  avatarColor: 'c3' as const,
   badge: badge as never,
 });
 
