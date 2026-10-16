@@ -1989,7 +1989,14 @@
       },
       "timeline": "Notes and activities",
       "none": "Nothing logged yet",
-      "by": "by {name}"
+      "by": "by {name}",
+      "need": {
+        "line": "Choose {list}",
+        "type": "a type",
+        "outcome": "an outcome",
+        "on": "the day it happened",
+        "nextOn": "a next-step date"
+      }
     },
     "note": {
       "add": "Add note",
