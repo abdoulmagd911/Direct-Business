@@ -45,7 +45,7 @@ describe('a date box shows the date the way the app writes it', () => {
   it('writes the date beside the real field the app writes it, shown only while the field has keyboard focus', () => {
     const html = draw(<Input type="date" value="2026-10-21" onChange={() => undefined} />);
     expect(html).toMatch(/data-date-echo[^>]*>21 Oct 2026</);
-    expect(html).toMatch(/data-date-echo[^>]*class="[^"]*hidden [^"]*peer-focus-visible:flex"/);
+    expect(html).toMatch(/data-date-echo[^>]*class="[^"]*hidden [^"]*peer-focus-visible:block"/);
     expect(draw(<Input type="date" value="" onChange={() => undefined} />)).toMatch(/data-date-echo[^>]*>—</);
   });
   it('leaves every other input as it was', () => {

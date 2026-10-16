@@ -61,6 +61,52 @@ for (const width of WIDTHS) {
     await expect(echo, 'and steps away when the field is left').toBeHidden();
   });
 
+  for (const rtl of [false, true]) {
+    test(`the day written for a focused date box never meets the browser's own text — at ${width} px${rtl ? ', right to left' : ''}`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      const me = await makePerson({ admin: true });
+      if (rtl) await context.addCookies([{ name: 'v2.dir', value: 'rtl', url: baseURL! }]);
+      await page.setViewportSize({ width, height: 900 });
+      await signIn(page, me.email, '/finance/new');
+      await hydrated(page);
+      if (rtl) expect(await page.evaluate(() => document.documentElement.dir)).toBe('rtl');
+
+      // the box with a date, and (below) the long one with a date and a time: for each, focused by keyboard with a value
+      const check = async (field: ReturnType<Page['getByLabel']>, what: string) => {
+        await field.focus();
+        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Tab');
+        const echo = field.locator('xpath=..').locator('[data-date-echo]');
+        await expect(echo, `${what}: the written day shows while the field has focus`).toBeVisible();
+        const [e, f] = [await echo.boundingBox(), await field.boundingBox()];
+        expect(e!.y + e!.height, `${what}: the written day is above the field, not on its text`).toBeLessThanOrEqual(
+          f!.y + 0.5,
+        );
+        expect(e!.x, `${what}: and inside the screen on the left`).toBeGreaterThanOrEqual(0);
+        expect(e!.x + e!.width, `${what}: and on the right`).toBeLessThanOrEqual(width);
+      };
+      await page.getByLabel('Created').fill('2026-10-09');
+      await check(page.getByLabel('Created'), 'a date');
+
+      // a note's Turn into → Reminder has the date-and-time box
+      const made = await callAs(page.context(), 'note_capture', {
+        p_kind: 'sticky',
+        p_values: { title: `Made-up reminder box ${tag()}`, visibility: 'private' },
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(200);
+      await page.goto(`/my-day/notes/${(made.body as { id: string }).id}`);
+      await hydrated(page);
+      await page.locator('[data-turn-into]').click();
+      await page.locator('[data-turn-kind="reminder"]').click();
+      const when = page.locator('[data-reminder-form] input[type="datetime-local"]');
+      await when.fill('2026-10-09T15:00');
+      await check(when, 'a date and a time');
+    });
+  }
+
   test(`a reminder for a later day says Done and wraps its title — at ${width} px`, async ({ page }) => {
     const me = await makePerson({ admin: true });
     const t = tag();

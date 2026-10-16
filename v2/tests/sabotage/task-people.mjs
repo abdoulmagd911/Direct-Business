@@ -49,8 +49,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskPeople.tsx',
-        find: '[...task.helpers, v],',
-        replace: '[v],',
+        find: '(c) => (c.includes(v) ? c : [...c, v]),',
+        replace: '() => [v],',
       },
     ],
   },
@@ -62,8 +62,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskPeople.tsx',
-        find: 'task.helpers.filter((x) => x !== h),',
-        replace: 'task.helpers.filter(() => true),',
+        find: '(c) => c.filter((x) => x !== h),',
+        replace: '(c) => c.filter(() => true),',
       },
     ],
   },
@@ -75,8 +75,26 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskPeople.tsx',
-        find: "rpc('task_helpers_set', { p_id: task.id, p_people: next }) as Promise<Written>",
-        replace: "rpc('task_helpers_set', { p_id: task.id, p_people: next }).then(() => ({})) as Promise<Written>",
+        find: "return (await rpc('task_helpers_set', {",
+        replace: "return ((await rpc('task_helpers_set', {",
+      },
+      {
+        file: 'src/modules/tasks/screens/TaskPeople.tsx',
+        find: '})) as Written;',
+        replace: '})) as Written) && ({} as Written);',
+      },
+    ],
+  },
+  {
+    // a tab that read the task earlier writes its own old list over a helper added since
+    name: 'task-helper-add-uses-the-stale-list',
+    breaks: [E2E],
+    expect: 'both helpers are on the task',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskPeople.tsx',
+        find: 'change(now?.helpers ?? task.helpers)',
+        replace: 'change(task.helpers)',
       },
     ],
   },

@@ -80,12 +80,14 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
       >
         {!shown ? (placeholder ?? '—') : written}
       </div>
-      {/* while the real field is up (keyboard focus) the date it holds is written beside its calendar button the app's way,
-          as it changes; over the box, so nothing moves (a control just below it would shift away from a click) */}
+      {/* while the real field is up (keyboard focus) the date it holds is written in a chip just above its end, the app's
+          way, as it changes: out of the browser's own text (a box can be narrow, a time long, the page right to left) and
+          out of the flow, so nothing moves (a control just below would shift away from a click) */}
       <p
         aria-hidden="true"
+        dir="auto"
         data-date-echo
-        className="pointer-events-none absolute inset-y-0 end-10 z-20 hidden items-center text-sm text-muted peer-focus-visible:flex"
+        className="pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm text-muted shadow-2 peer-focus-visible:block"
       >
         {written}
       </p>

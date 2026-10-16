@@ -87,10 +87,18 @@ export function HelpersField({
     .filter((p) => p.id !== task.owner_id && !task.helpers.includes(p.id))
     .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  const set = async (next: string[], done: string) => {
+  // The door sets the whole list, so the change is made on the list as it is now, not as this tab read it: a helper
+  // another tab or person added since is kept (QA 2's lost-update finding on #279).
+  const set = async (change: (current: string[]) => string[], done: string) => {
     if (busy) return;
     setBusy(true);
-    await command(words(done), () => rpc('task_helpers_set', { p_id: task.id, p_people: next }) as Promise<Written>);
+    await command(words(done), async () => {
+      const now = (await rpc('task', { p_id: task.id })) as { helpers?: string[] } | null;
+      return (await rpc('task_helpers_set', {
+        p_id: task.id,
+        p_people: change(now?.helpers ?? task.helpers),
+      })) as Written;
+    });
     setBusy(false);
   };
   return (
@@ -107,7 +115,7 @@ export function HelpersField({
                 disabled={busy}
                 onClick={() =>
                   void set(
-                    task.helpers.filter((x) => x !== h),
+                    (c) => c.filter((x) => x !== h),
                     t('pages.tasks.people.helperRemoved', { number: task.number, name: name(h) }),
                   )
                 }
@@ -126,7 +134,7 @@ export function HelpersField({
             disabled={busy}
             onValueChange={(v) =>
               void set(
-                [...task.helpers, v],
+                (c) => (c.includes(v) ? c : [...c, v]),
                 t('pages.tasks.people.helperAdded', {
                   number: task.number,
                   name: options.find((o) => o.value === v)?.label ?? '',

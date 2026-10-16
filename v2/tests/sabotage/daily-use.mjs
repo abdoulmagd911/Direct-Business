@@ -54,7 +54,7 @@ export const sabotages = [
     name: 'date-box-never-shows-the-date-beside-the-field',
     breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
     expect: 'the date typed is written beside the field the app way',
-    edits: [{ file: 'src/ui/Input.tsx', find: ' text-muted peer-focus-visible:flex', replace: ' text-muted' }],
+    edits: [{ file: 'src/ui/Input.tsx', find: ' shadow-2 peer-focus-visible:block', replace: ' shadow-2' }],
   },
   {
     name: 'date-box-writes-the-date-below-and-moves-the-page',
@@ -63,13 +63,20 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Input.tsx',
-        find: 'pointer-events-none absolute inset-y-0 end-10 z-20 hidden items-center text-sm',
+        find: 'pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm',
         replace: 'hidden pt-1 text-sm',
       },
+    ],
+  },
+  {
+    name: 'date-box-writes-the-date-over-the-browsers-own-text',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'the written day is above the field, not on its text',
+    edits: [
       {
         file: 'src/ui/Input.tsx',
-        find: ' text-muted peer-focus-visible:flex',
-        replace: ' text-muted peer-focus-visible:block',
+        find: 'absolute bottom-full end-0 z-30 mb-0.5 hidden',
+        replace: 'absolute inset-y-0 end-10 z-30 hidden items-center',
       },
     ],
   },

@@ -160,4 +160,33 @@ for (const w of WIDTHS) {
     await ownerCtx.close();
     await helperCtx.close();
   });
+
+  test(`${w.name}: a tab that read the task earlier adds a helper without dropping one added since`, async ({
+    browser,
+  }) => {
+    const tag = randomUUID().slice(0, 6);
+    const owner = await memberWithTeam(`Ab Stale Owner ${tag}`);
+    const first = await memberWithTeam(`Ab First Added ${tag}`);
+    const second = await memberWithTeam(`Ab Second Added ${tag}`);
+    const number = await taskFor(owner, `Made-up stale tab ${tag}`);
+    const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
+    const fresh = await ctx.newPage();
+    await signIn(fresh, owner.email, `/tasks/${number}`);
+    await hydrated(fresh);
+    const stale = await ctx.newPage();
+    await stale.goto(`/tasks/${number}`);
+    await hydrated(stale);
+
+    // the first tab adds one; the second still shows none, and adds another
+    await fresh.locator('[data-helper-add]').getByRole('combobox', { name: 'Add a helper' }).click();
+    await fresh.getByRole('option', { name: first.name, exact: true }).click();
+    await expect(toast(fresh, `${first.name} now helps on ${number}`)).toBeVisible();
+    await stale.locator('[data-helper-add]').getByRole('combobox', { name: 'Add a helper' }).click();
+    await stale.getByRole('option', { name: second.name, exact: true }).click();
+    await expect(toast(stale, `${second.name} now helps on ${number}`)).toBeVisible();
+    await expect
+      .poll(async () => (await helpersOf(number)).sort(), 'both helpers are on the task')
+      .toEqual([first.id, second.id].sort());
+    await ctx.close();
+  });
 }
