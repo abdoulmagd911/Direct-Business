@@ -23,6 +23,8 @@ export function Toaster() {
           description: 'text-muted',
           actionButton:
             'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
+          cancelButton:
+            'shrink-0 self-center h-8 max-sm:h-11 rounded-md px-3 text-sm font-medium text-muted hover:bg-surface',
           icon: 'mt-0.5 shrink-0',
         },
       }}
@@ -42,6 +44,14 @@ export const toast = {
     return sonnerToast.success(title, {
       description: opts.description,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
+    });
+  },
+  /** An offer after a command: one button to take it, one to wave it off; it lapses on its own after 8 s. */
+  offer(title: string, opts: { action: { label: string; onClick: () => void }; dismiss: string }) {
+    return sonnerToast(title, {
+      duration: 8000,
+      action: { label: opts.action.label, onClick: opts.action.onClick },
+      cancel: { label: opts.dismiss, onClick: () => {} },
     });
   },
   /** A command was refused or failed: the reason in words, never a code. */

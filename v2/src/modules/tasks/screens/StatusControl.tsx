@@ -1,7 +1,9 @@
 'use client';
 import { Check, ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { clip } from '@/core/i18n/format';
@@ -9,6 +11,7 @@ import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ReasonDialog } from '@/ui/ReasonDialog';
+import { toast } from '@/ui/Toast';
 import { cn } from '@/ui/cn';
 import { STATUS_TONE, planMove, statusMoves, statusView, type Move } from '../rules';
 import type { TaskRow, TaskStatus } from '../types';
@@ -24,13 +27,19 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const t = useTranslations();
   const locale = useLocale();
   const words = useCommandWords();
+  const router = useRouter();
+  const canLog = ['own', 'full'].includes(useMe().levels.kpis ?? 'none');
   const [blocking, setBlocking] = useState(false);
   const [closing, setClosing] = useState<{ move: Move; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const send = async (args: { p_status: string; p_reason?: string; p_close_items?: boolean }, done: string) => {
+  const send = async (
+    args: { p_status: string; p_reason?: string; p_close_items?: boolean },
+    done: string,
+    finished = false,
+  ) => {
     setBusy(true);
-    await command(
+    const result = await command(
       words(done),
       () =>
         rpc('task_status_set', { p_id: task.id, ...args }) as Promise<{
@@ -38,6 +47,16 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
         }>,
     );
     setBusy(false);
+    // Done (never Cancelled, never a refused move) offers the achievement, pre-filled with the task's title; the offer
+    // lapses on its own and can be waved off (the Architect's ask of 16 Oct, V383)
+    if (finished && result && canLog)
+      toast.offer(t('pages.achievements.offer'), {
+        action: {
+          label: t('pages.achievements.offerAction'),
+          onClick: () => router.push(`/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}`),
+        },
+        dismiss: t('pages.achievements.offerDismiss'),
+      });
   };
   const doneLine = (move: Move) =>
     move.kind === 'block'
@@ -56,7 +75,7 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
       return;
     }
     if ('refuse' in plan) return;
-    await send(plan.go, doneLine(move));
+    await send(plan.go, doneLine(move), move.kind === 'status' && move.status.meaning === 'done');
   };
   const doneStatus = statuses.find((s) => s.meaning === 'done' && s.active);
 

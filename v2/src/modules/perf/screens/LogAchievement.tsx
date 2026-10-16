@@ -17,6 +17,21 @@ import type { PartnerRef } from '@/modules/my-day/types';
 import type { Category, RepeatMatch } from '../types';
 import { useCommandWords } from './words';
 
+/**
+ * The deal value as typed: digits, one decimal point and commas, nothing else (the Architect's ruling of 16 Oct).
+ * Arabic-Indic digits and their separators read as the digits they are. Returns the number, or null when the text is
+ * not one — the form then says "Enter a number" and does not save.
+ */
+export function readDealValue(text: string): number | null {
+  const plain = text
+    .trim()
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/٫/g, '.')
+    .replace(/٬/g, ',');
+  if (!/^[\d,]*\.?\d*$/.test(plain) || !/\d/.test(plain)) return null;
+  return Number(plain.replace(/,/g, ''));
+}
+
 /** Today in Riyadh as `YYYY-MM-DD` (D20): the date an achievement takes unless its evidence says another. */
 export function riyadhToday(now = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(now);
@@ -37,6 +52,7 @@ export function LogAchievement({
   full,
   department,
   canOpenPlan,
+  initialTitle = '',
 }: {
   categories: Category[];
   year: number;
@@ -48,6 +64,8 @@ export function LogAchievement({
   department: { id: string; name: string };
   /** An admin (Full on Settings → Targets) may open the year's plan from here (V380). */
   canOpenPlan: boolean;
+  /** Words to start the title with (a task marked Done offers its own). */
+  initialTitle?: string;
 }) {
   const t = useTranslations('pages.achievements');
   const locale = useLocale() as 'en' | 'ar';
@@ -56,7 +74,7 @@ export function LogAchievement({
   const [categories, setCategories] = useState(first);
   const [loadedYear, setLoadedYear] = useState(year);
   const [code, setCode] = useState('');
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialTitle);
   const [day, setDay] = useState(riyadhToday());
   const [partner, setPartner] = useState<PartnerRef | null>(null);
   const [value, setValue] = useState('');
@@ -142,7 +160,7 @@ export function LogAchievement({
             title: title.trim(),
             happened_on: day || null,
             partner_id: partner?.id ?? null,
-            ...(cat?.has_deal_value && value.trim() ? { deal_value: Number(value.replace(/,/g, '')) } : {}),
+            ...(cat?.has_deal_value && value.trim() ? { deal_value: readDealValue(value)! } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
             ...(needsSide && side ? { side } : {}),
@@ -156,7 +174,8 @@ export function LogAchievement({
   };
 
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
-  const ready = !!code && !!title.trim() && (!needsRef || !!ref.trim()) && (!needsSide || !!side);
+  const valueBad = !!cat?.has_deal_value && !!value.trim() && readDealValue(value) === null;
+  const ready = !!code && !!title.trim() && (!needsRef || !!ref.trim()) && (!needsSide || !!side) && !valueBad;
   return (
     <form
       className="flex max-w-xl flex-col gap-4"
@@ -226,7 +245,7 @@ export function LogAchievement({
         </Field>
       ) : null}
       {cat?.has_deal_value ? (
-        <Field label={`${t('fields.value')} · ${t('notRevenue')}`}>
+        <Field label={`${t('fields.value')} · ${t('notRevenue')}`} error={valueBad ? t('valueNotNumber') : undefined}>
           {(p) => <Input {...p} inputMode="decimal" mono value={value} onChange={(e) => setValue(e.target.value)} />}
         </Field>
       ) : null}
