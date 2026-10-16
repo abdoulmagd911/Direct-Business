@@ -363,8 +363,10 @@ test("12 · a member's My profile: five cards, seven notification switches, none
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-profile-card')));
   expect(cards).toEqual(['profile', 'preferences', 'notifications', 'password', 'devices']);
   await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(7);
-  for (const gone of ['Nickname', 'Badge', 'Start page', 'Drawer', 'Theme', 'Full name'])
+  for (const gone of ['Nickname', 'Badge', 'Start page', 'Drawer', 'Full name', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
+  // the owner's ruling of 14 Oct (V636): a member picks a theme of their own, so the Theme box is there
+  await expect(page.getByLabel('Theme', { exact: true }), 'Theme is on My profile').toHaveCount(1);
 
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();

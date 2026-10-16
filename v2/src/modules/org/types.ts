@@ -1,4 +1,4 @@
-import type { AvatarColor, BadgeKind } from '@/ui/Avatar';
+import type { BadgeKind } from '@/ui/Avatar';
 
 export type OrgDepartment = {
   id: string;
@@ -138,7 +138,6 @@ export function avatarOf(p: OrgPerson, locale: 'en' | 'ar') {
     displayName: nameOf(p, locale),
     fullName: p.full_name_en,
     avatarUrl: null,
-    avatarColor: (p.avatar_color && /^c[1-6]$/.test(p.avatar_color) ? p.avatar_color : 'c3') as AvatarColor,
     badge: { kind: p.badge_kind ?? 'none', value: p.badge_value },
   };
 }

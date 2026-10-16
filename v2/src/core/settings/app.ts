@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { serviceDb } from '@/core/db/service';
+import { readTheme, type Theme } from '@/core/prefs';
 
 /**
  * The app-wide settings every page needs before it knows who is asking (ACC-090/091, ACC-129/139): the admin's default
@@ -14,19 +15,18 @@ import { serviceDb } from '@/core/db/service';
  */
 export type AppSettings = {
   arabic_enabled: boolean;
-  default_theme: 'light' | 'dark' | 'colorful' | 'direct';
+  default_theme: Theme;
   default_density: 'comfortable' | 'compact';
   default_start_page: string | null;
 };
 
 export const APP_DEFAULTS: AppSettings = {
   arabic_enabled: false,
-  default_theme: 'direct',
+  default_theme: 'light',
   default_density: 'comfortable',
   default_start_page: null,
 };
 
-const THEMES = new Set(['light', 'dark', 'colorful', 'direct']);
 const DENSITIES = new Set(['comfortable', 'compact']);
 
 export const getAppSettings = cache(async (): Promise<AppSettings> => {
@@ -39,8 +39,7 @@ export const getAppSettings = cache(async (): Promise<AppSettings> => {
     const start = v['app.default_start_page'];
     return {
       arabic_enabled: v['app.arabic_enabled'] === true,
-      default_theme:
-        typeof theme === 'string' && THEMES.has(theme) ? (theme as AppSettings['default_theme']) : 'direct',
+      default_theme: readTheme(typeof theme === 'string' ? theme : null) ?? 'light',
       default_density:
         typeof density === 'string' && DENSITIES.has(density)
           ? (density as AppSettings['default_density'])

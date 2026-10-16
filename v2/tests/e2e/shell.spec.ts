@@ -47,7 +47,7 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   page,
   context,
 }) => {
-  await setPrefs(context, { theme: 'colorful' });
+  await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
   // Capture, Tasks, Clients, Suppliers, Finance (Invoice, QA-556) and the KPIs page (Achievement) are built; a page not

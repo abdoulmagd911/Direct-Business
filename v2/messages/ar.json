@@ -461,7 +461,7 @@
         "followUpTitle": "متابعة",
         "followUpFor": "متابعة بشأن",
         "followUpPlaceholder": "ما الذي تتابعه",
-        "followUpSaved": "تم تحديد المتابعة",
+        "followUpSaved": "تم تحديد المتابعة - {title}",
         "passed": "هذا الوقت مضى"
       },
       "alert": {
@@ -578,7 +578,6 @@
       },
       "items": {
         "count": "{open} مفتوح من {total}",
-        "figure": "{open} مفتوح من {total}",
         "empty": "لا بنود عمل",
         "new": "بند عمل جديد",
         "added": "أُضيف: {item}",

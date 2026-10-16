@@ -383,7 +383,7 @@
         "followUpTitle": "Follow-up",
         "followUpFor": "Follow up on",
         "followUpPlaceholder": "What to follow up on",
-        "followUpSaved": "Follow-up set",
+        "followUpSaved": "Follow-up set - {title}",
         "passed": "That time has passed"
       },
       "alert": {
@@ -665,7 +665,6 @@
       },
       "items": {
         "count": "{open} open of {total}",
-        "figure": "{open} open of {total}",
         "empty": "No action items",
         "new": "New action item",
         "added": "Added: {item}",
@@ -1224,7 +1223,6 @@
     "nicknameAr": "Nickname (Arabic)",
     "displayNameEn": "Display name",
     "displayNameAr": "Display name (Arabic)",
-    "colour": "Colour",
     "badge": "Badge",
     "badgeKind": {
       "none": "No badge",
@@ -1275,14 +1273,6 @@
       "unknown": "A browser"
     },
     "saved": "Profile saved",
-    "colours": {
-      "c1": "Orange",
-      "c2": "Gold",
-      "c3": "Slate",
-      "c4": "Blue",
-      "c5": "Green",
-      "c6": "Grey"
-    },
     "password": {
       "change": "Change password",
       "changed": "Password changed"

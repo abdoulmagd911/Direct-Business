@@ -28,11 +28,16 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await expect(page.getByText('Profile saved').first()).toBeVisible();
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
 
-  await page.locator('[data-colour="c5"]').click();
-  await expect(page.getByText('Profile saved').first()).toBeVisible();
-  // no badge, no theme, no start page, no drawer on the screen (V217, cut 6)
-  for (const gone of ['Badge', 'Theme', 'Start page', 'Drawer', 'Nickname'])
+  // no colour to pick and no badge, start page or drawer on the screen (V217, cut 6; V636: no profile colour)
+  await expect(page.locator('[data-colour]'), 'no colour swatches on My profile').toHaveCount(0);
+  for (const gone of ['Badge', 'Start page', 'Drawer', 'Nickname', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
+
+  // Theme: Light, Dark and Direct, and nothing else (V636)
+  await page.getByLabel('Theme', { exact: true }).click();
+  await expect(page.getByRole('option')).toHaveText(['Light', 'Dark', 'Direct']);
+  await page.getByRole('option', { name: 'Dark' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
   await page.getByLabel('Density').click();
   await page.getByRole('option', { name: 'Compact' }).click();
@@ -43,6 +48,7 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
   await expect(page.getByLabel('Display name', { exact: true })).toHaveValue('Nick');
   await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   const [row] = await sql<{ display: string | null; density: string | null }>(
     `select pr.density, pr.display_name_en as display
        from core.person p left join core.person_profile pr on pr.person_id = p.id where p.id = $1`,

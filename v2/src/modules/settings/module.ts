@@ -142,8 +142,8 @@ export default defineModule({
       key: 'app.default_theme',
       group: 'settings.app',
       label: 'setting.app.default_theme',
-      schema: z.enum(['light', 'dark', 'colorful', 'direct']),
-      default: 'direct',
+      schema: z.enum(['light', 'dark', 'direct']),
+      default: 'light',
     },
     {
       key: 'app.default_density',

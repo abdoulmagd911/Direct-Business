@@ -1,7 +1,7 @@
 import { expect, type BrowserContext, type Cookie, type Page } from '@playwright/test';
 import { makePerson, signIn, sql } from './support/stack';
 
-export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;
+export const THEMES = ['light', 'dark', 'direct'] as const;
 export type Theme = (typeof THEMES)[number];
 export const BASE = 'http://127.0.0.1:9300';
 
