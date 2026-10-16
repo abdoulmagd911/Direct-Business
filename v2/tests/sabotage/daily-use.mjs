@@ -27,8 +27,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Input.tsx',
-        find: ': formatDate(`${shown}T12:00:00+03:00`, locale)}',
-        replace: ': shown}',
+        find: ': formatDate(`${shown}T12:00:00+03:00`, locale);',
+        replace: ': shown;',
       },
     ],
   },
