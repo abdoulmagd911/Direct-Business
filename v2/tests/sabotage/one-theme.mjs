@@ -56,4 +56,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'name-boxes-have-no-grey-words',
+    breaks: [NAMES],
+    expect: "an empty name box shows the header's name in grey",
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '          placeholder={placeholder}\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'name-grey-words-are-saved-as-a-name',
+    breaks: [NAMES],
+    expect: "an empty name box shows the header's name in grey and saves nothing",
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '    const v = draft.trim();\n    if (v === value) return;',
+        replace: "    const v = draft.trim() || placeholder || '';\n    if (v === value) return;",
+      },
+    ],
+  },
 ];
