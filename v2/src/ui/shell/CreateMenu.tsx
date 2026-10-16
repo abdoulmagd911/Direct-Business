@@ -111,7 +111,7 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
   if (a) {
     const label = t(`createNew.${a.key}`);
     return bar ? (
-      <Link href={a.route} aria-label={label} data-create-bar data-create-direct={a.key} className={barClass}>
+      <Link href={a.route} data-create-bar data-create-direct={a.key} className={barClass}>
         <BarFace label={t('top.create')} />
       </Link>
     ) : (

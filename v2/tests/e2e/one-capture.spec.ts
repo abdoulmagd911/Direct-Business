@@ -53,7 +53,7 @@ for (const size of [PHONE, PC]) {
     await expect(
       page.locator('[data-state="empty"]', { hasText: 'No notes yet' }),
       'the empty line points to the one add control',
-    ).toHaveText('No notes yet. Notes you capture with Create (or + on a phone) appear here.');
+    ).toHaveText('No notes yet. Notes you capture with Create appear here.');
 
     await openCapture(page);
     await expect(page.locator('[data-quick-kind]'), 'five kinds').toHaveText([
