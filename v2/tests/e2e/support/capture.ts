@@ -6,7 +6,7 @@ import { expect, type Page } from '@playwright/test';
  */
 export async function openCapture(page: Page) {
   const phone = (page.viewportSize()?.width ?? 1440) < 640;
-  const trigger = page.locator(phone ? '[data-create-floating]' : '[data-create]');
+  const trigger = page.locator(phone ? '[data-create-bar]' : '[data-create]');
   await trigger.click();
   if ((await trigger.getAttribute('data-create-direct')) !== 'capture')
     await page.locator('[data-create-item="capture"]').click();

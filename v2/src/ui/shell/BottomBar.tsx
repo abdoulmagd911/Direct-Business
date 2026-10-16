@@ -14,7 +14,8 @@ import { signOut } from './ProfileMenu';
 
 /**
  * The phone's bar (< 640 px, V85) follows the menu: `barFor` in nav.ts says what it holds (V217). More lists the rest
- * and Sign out; My profile is in the avatar menu at the top, its one place (daily use 10).
+ * and Sign out; My profile is in the avatar menu at the top, its one place (daily use 10). Create is the last slot
+ * (the architect's ruling of 15 Oct, option C), so at most six slots share the width: about 62 px each at 375 px.
  */
 
 export function BottomBar() {
@@ -30,7 +31,6 @@ export function BottomBar() {
 
   return (
     <RD.Root open={more} onOpenChange={setMore}>
-      <CreateMenu floating />
       <nav
         aria-label={t('nav.main')}
         data-bottom-bar
@@ -75,6 +75,8 @@ export function BottomBar() {
             </button>
           </RD.Trigger>
         ) : null}
+        {/* Create is the bar's last slot: it floats over nothing, so nothing can sit under it (ruling of 15 Oct) */}
+        <CreateMenu bar />
       </nav>
 
       <RD.Portal>

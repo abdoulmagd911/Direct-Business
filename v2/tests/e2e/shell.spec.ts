@@ -12,6 +12,11 @@ test('the drawer is 232 px pinned, 56 px collapsed, and the choice survives a re
   await open(page, '/my-day');
   const drawer = page.locator('[data-drawer]');
   expect((await drawer.boundingBox())!.width).toBeCloseTo(232, 0);
+  // the foot's two controls say what they do in words while the drawer is open (no unlabelled icons)
+  await expect(page.locator('[data-drawer-pin]'), 'the pin control has a visible label').toHaveText('Unpin drawer');
+  await expect(page.locator('[data-drawer-collapse]'), 'the collapse control has a visible label').toHaveText(
+    'Collapse drawer',
+  );
   await page.locator('[data-drawer-collapse]').click();
   await expect(drawer).toHaveAttribute('data-expanded', 'false');
   expect((await drawer.boundingBox())!.width).toBeCloseTo(56, 0);
@@ -72,7 +77,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await expect(page.locator('[data-drawer]')).toBeHidden();
   const bar = page.locator('[data-bottom-bar]');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
   await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
@@ -81,8 +86,8 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
-  // the floating + stands in for Create on a phone (V217)
-  await expect(page.locator('[data-create-floating]')).toBeVisible();
+  // Create is the bar's last slot on a phone (V217)
+  await expect(page.locator('[data-create-bar]')).toBeVisible();
   await expect(page.locator('[data-create]')).toBeHidden();
 });
 
@@ -92,7 +97,7 @@ test('a tablet keeps the drawer and has no bottom bar (V85)', async ({ page, con
   await open(page, '/my-day');
   await expect(page.locator('[data-drawer]')).toBeVisible();
   await expect(page.locator('[data-bottom-bar]')).toBeHidden();
-  await expect(page.locator('[data-create-floating]')).toBeHidden();
+  await expect(page.locator('[data-create-bar]')).toBeHidden();
 });
 
 test('every drawer entry is a link and the active one is marked', async ({ page, context }) => {

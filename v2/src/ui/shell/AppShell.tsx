@@ -67,7 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 /**
  * The scrolling page area beside an optional detail panel (a sibling of this). Margins 16 / 24 / 32 / 40 px at
- * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85); on a phone the bottom bar and the floating + (132 px up from the screen's foot) are kept clear, so no row ends under it.
+ * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85). On a phone the page's foot keeps 10 rem of room
+ * above the bottom bar, whose last slot is Create since option C (V383): the room was sized for the floating + it once
+ * cleared, sweep-12-oct asserts it ("page-ends-under-the-plus"), and trimming it is its own call.
  * Screens use `Page` (shell/Page.tsx), which draws this only after the gate has answered.
  */
 export function PageFrame({ children, className = '' }: { children: ReactNode; className?: string }) {

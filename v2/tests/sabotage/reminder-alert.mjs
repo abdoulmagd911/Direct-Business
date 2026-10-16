@@ -87,6 +87,6 @@ export const sabotages = [
     name: 'alert-sits-over-the-plus',
     breaks: [E2E],
     expect: SHOWS,
-    edits: [{ file: COMPONENT, find: 'top-[calc(var(--topbar-h)+8px)]', replace: 'bottom-[80px]' }],
+    edits: [{ file: COMPONENT, find: 'top-[calc(var(--topbar-h)+8px)]', replace: 'bottom-[8px]' }],
   },
 ];

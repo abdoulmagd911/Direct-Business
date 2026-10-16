@@ -128,7 +128,7 @@ export function PartnersList({
   const [more, setMore] = useState(false);
   const [creating, setCreating] = useState(startCreating && full);
   const [assigning, setAssigning] = useState(false);
-  // The floating + on a phone goes to ?new=1 while this list is already on screen: that address opens the dialog too
+  // Create on a phone goes to ?new=1 while this list is already on screen: that address opens the dialog too
   const wantsNew = useSearchParams().get('new') === '1';
   const [sawNew, setSawNew] = useState(wantsNew);
   if (wantsNew !== sawNew) {

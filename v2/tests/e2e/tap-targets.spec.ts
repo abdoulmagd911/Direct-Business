@@ -88,14 +88,14 @@ test('the + clears the last row on every page and the list searches are 44 px â€
     await hydrated(page);
     const gap = await page.evaluate(() => {
       const main = document.querySelector('#main [class*="overflow-y-auto"]') as HTMLElement | null;
-      const plus = document.querySelector('[data-create-floating]') as HTMLElement | null;
+      const plus = document.querySelector('[data-create-bar]') as HTMLElement | null;
       if (!main || !plus) return null;
       main.scrollTop = main.scrollHeight;
       const last = main.lastElementChild as HTMLElement;
       return Math.round(plus.getBoundingClientRect().top - last.getBoundingClientRect().bottom);
     });
     expect(gap, `${path}: the + and the scrolling page area are there`).not.toBeNull();
-    expect(gap, `${path}: the last row ends above the floating +`).toBeGreaterThanOrEqual(8);
+    expect(gap, `${path}: the last row ends above Create`).toBeGreaterThanOrEqual(8);
   }
   // the list searches live behind the Filter button on a phone: 44 px each
   for (const path of ['/clients', '/suppliers', '/tasks']) {
