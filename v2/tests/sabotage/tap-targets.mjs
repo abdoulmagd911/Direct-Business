@@ -32,9 +32,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11 sm:h-[var(--control-h)]"\n',
+        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="sm:h-[var(--control-h)]"\n',
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8"\n',
       },
     ],
   },
@@ -45,7 +45,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11 sm:h-[var(--control-h)]"\n',
+        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
           '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11"\n',
       },
