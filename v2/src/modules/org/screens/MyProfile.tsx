@@ -222,12 +222,14 @@ export function MyProfile({
           <TextField
             label={t('profile.displayNameEn')}
             value={state.profile?.display_name_en ?? ''}
+            placeholder={person.displayName}
             onSave={(v) => saveName('display_name_en', v)}
           />
           {/* the Arabic display name is data, editable whatever app.arabic_enabled says (QA-179) */}
           <TextField
             label={t('profile.displayNameAr')}
             value={state.profile?.display_name_ar ?? ''}
+            placeholder={person.displayName}
             onSave={(v) => saveName('display_name_ar', v)}
             dir="rtl"
           />
@@ -476,11 +478,14 @@ function TextField({
   label,
   value,
   onSave,
+  placeholder,
   required = false,
   dir,
 }: {
   label: string;
   value: string;
+  /** Grey words in an empty box: the name the header shows. Never saved as a value. */
+  placeholder?: string;
   /** May answer with the value as stored; the box then shows that rather than what was typed. */
   onSave: (v: string) => unknown;
   required?: boolean;
@@ -512,6 +517,7 @@ function TextField({
           autoComplete="off"
           dir={dir}
           value={draft}
+          placeholder={placeholder}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => {
