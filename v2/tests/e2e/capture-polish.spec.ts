@@ -29,7 +29,7 @@ for (const width of [375, 1440]) {
     await hydrated(page);
 
     // the save message names the kind
-    await page.locator(wide ? '[data-create]' : '[data-create-floating]').click();
+    await page.locator(wide ? '[data-create]' : '[data-create-bar]').click();
     await page.locator('[data-create-item="capture"]').click();
     await page.locator('[data-quick-kind="checklist"]').click();
     await page.locator('[data-quick-text]').fill(`Launch list ${t}\nFirst step ${t}\nSecond step ${t}`);
