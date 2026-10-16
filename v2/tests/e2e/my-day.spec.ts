@@ -60,7 +60,7 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   );
   await input.fill(`Call Test Person about the offsite ${t}`);
   await page.locator('[data-quick-save]').click();
-  await expect(toast(page, 'Note captured')).toBeVisible();
+  await expect(toast(page, 'Note saved')).toBeVisible();
   const row = page.locator('[data-my-note]', { hasText: `offsite ${t}` });
   await expect(row).toBeVisible();
 

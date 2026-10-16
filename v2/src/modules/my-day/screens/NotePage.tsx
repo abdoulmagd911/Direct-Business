@@ -320,18 +320,16 @@ export function NotePage({
               </Field>
             </>
           ) : null}
-          <div className="flex flex-col gap-2" data-note-links>
-            <h3 className="text-sm font-medium">{t('pages.myDay.note.turnedInto')}</h3>
-            {note.links.length ? (
+          {note.links.length ? (
+            <div className="flex flex-col gap-2" data-note-links>
+              <h3 className="text-sm font-medium">{t('pages.myDay.note.turnedInto')}</h3>
               <span className="flex flex-wrap gap-1.5">
                 {note.links.map((l) => (
                   <LinkChip key={`${l.entity}-${l.id}`} link={l} />
                 ))}
               </span>
-            ) : (
-              <span className="text-sm text-muted">—</span>
-            )}
-          </div>
+            </div>
+          ) : null}
         </aside>
       </div>
       {mine ? (

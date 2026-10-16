@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import { cn } from '@/ui/cn';
-import { checklistCount, linkRoute, noteRoute, noteTitle } from '../logic';
+import { cardCount, linkRoute, noteRoute, noteTitle } from '../logic';
 import { tradeName } from '@/modules/partners/types';
 import type { FromNote, MyNote, NoteKind, NoteLink, Visibility } from '../types';
 
@@ -91,7 +91,7 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
   const locale = useLocale() as 'en' | 'ar';
   const Icon = KIND_ICON[note.kind];
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
-  const count = note.kind === 'checklist' ? checklistCount(note) : null;
+  const count = note.kind === 'checklist' ? cardCount(note) : null;
   const org = note.meeting_partner;
   return (
     <li className="flex min-h-14 items-start gap-3 py-3" data-my-note={note.id} data-note-kind={note.kind}>

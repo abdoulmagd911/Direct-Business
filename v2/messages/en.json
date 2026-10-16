@@ -369,7 +369,7 @@
         },
         "when": "When",
         "save": "Capture",
-        "saved": "{kind} captured",
+        "saved": "{kind} saved",
         "whenChips": {
           "later_today": "Later today",
           "tomorrow": "Tomorrow",
