@@ -74,6 +74,8 @@ export type MyNote = {
   done_at: string | null;
   mentions: string[];
   links: NoteLink[];
+  /** How many of the action items made from this checklist are done, out of how many (read live from the task); absent when none were made. */
+  task_items?: { done: number; total: number } | null;
 };
 
 export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number };
