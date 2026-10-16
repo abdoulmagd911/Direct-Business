@@ -243,6 +243,7 @@ export function MyProfile({
                 value={theme}
                 onValueChange={(v) => void save({ theme: v as Profile['theme'] })}
                 options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}
+                className="h-11 sm:h-[var(--control-h)]"
               />
             )}
           </Field>
@@ -253,6 +254,7 @@ export function MyProfile({
                 value={density}
                 onValueChange={(v) => void save({ density: v as Profile['density'] })}
                 options={DENSITIES.map((d) => ({ value: d, label: t(`density.${d}`) }))}
+                className="h-11 sm:h-[var(--control-h)]"
               />
             )}
           </Field>

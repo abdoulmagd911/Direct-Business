@@ -23,6 +23,46 @@ export const sabotages = [
       { file: 'src/ui/Tabs.tsx', find: "fill && 'min-w-0 flex-auto px-1',", replace: "fill && 'min-w-0 px-1'," },
     ],
   },
+  // The three names below were the colour swatches' (V636 removed them); they now guard the replacement control, the
+  // Theme box on My profile: its size on a phone, its size on a wide screen, and one box to a row on a phone.
+  {
+    name: 'colour-swatches-are-32-on-a-phone',
+    breaks: [E2E],
+    expect: 'the Theme box on My profile',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11 sm:h-[var(--control-h)]"\n',
+        replace:
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="sm:h-[var(--control-h)]"\n',
+      },
+    ],
+  },
+  {
+    name: 'colour-swatches-grow-on-a-wide-screen',
+    breaks: [E2E],
+    expect: 'the Theme box on My profile',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11 sm:h-[var(--control-h)]"\n',
+        replace:
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11"\n',
+      },
+    ],
+  },
+  {
+    name: 'colour-swatches-do-not-wrap',
+    breaks: [E2E],
+    expect: 'the Theme box on My profile',
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '<div className="grid gap-4 sm:grid-cols-2">\n          <Field label={t(\'profile.theme\')}>',
+        replace: '<div className="grid grid-cols-2 gap-4">\n          <Field label={t(\'profile.theme\')}>',
+      },
+    ],
+  },
   {
     name: 'the-plus-covers-the-last-row',
     breaks: [E2E],
