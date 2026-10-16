@@ -42,16 +42,23 @@ for (const width of WIDTHS) {
     const created = page.getByLabel('Created');
     const shown = created.locator('xpath=..').locator('[data-date-text]');
     await expect(created, 'the real field stays out of sight until it is reached').toHaveCSS('opacity', '0');
+    const box = created.locator('xpath=..');
+    const height = (await box.boundingBox())!.height;
     await created.focus();
     await page.keyboard.press('Shift+Tab');
     await page.keyboard.press('Tab');
     await expect(created, 'the real date field shows while it has keyboard focus').toHaveCSS('opacity', '1');
     await expect(shown, 'the written date steps aside while it has keyboard focus').toHaveCSS('visibility', 'hidden');
+    const echo = created.locator('xpath=..').locator('[data-date-echo]');
     await page.keyboard.type('03092026');
     await expect(created).toHaveValue('2026-03-09');
+    await expect(echo, 'the date typed is written beside the field the app way').toHaveText('9 Mar 2026');
+    await expect(echo).toBeVisible();
+    expect((await box.boundingBox())!.height, 'writing the day beside the field moves nothing below it').toBe(height);
     await page.keyboard.press('Tab');
     await expect(created).toHaveCSS('opacity', '0');
     await expect(shown).toHaveText('9 Mar 2026');
+    await expect(echo, 'and steps away when the field is left').toBeHidden();
   });
 
   test(`a reminder for a later day says Done and wraps its title — at ${width} px`, async ({ page }) => {

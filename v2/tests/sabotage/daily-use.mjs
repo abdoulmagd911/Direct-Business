@@ -45,6 +45,35 @@ export const sabotages = [
     edits: [{ file: 'src/ui/Input.tsx', find: ' focus-visible:opacity-100', replace: '' }],
   },
   {
+    name: 'date-box-writes-no-date-beside-the-field',
+    breaks: [BOX],
+    expect: '> writes the date beside the real field the app writes it, shown only while the field has keyboard focus',
+    edits: [{ file: 'src/ui/Input.tsx', find: '        {written}\n      </p>', replace: '      </p>' }],
+  },
+  {
+    name: 'date-box-never-shows-the-date-beside-the-field',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'the date typed is written beside the field the app way',
+    edits: [{ file: 'src/ui/Input.tsx', find: ' text-muted peer-focus-visible:flex', replace: ' text-muted' }],
+  },
+  {
+    name: 'date-box-writes-the-date-below-and-moves-the-page',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'writing the day beside the field moves nothing below it',
+    edits: [
+      {
+        file: 'src/ui/Input.tsx',
+        find: 'pointer-events-none absolute inset-y-0 end-10 z-20 hidden items-center text-sm',
+        replace: 'hidden pt-1 text-sm',
+      },
+      {
+        file: 'src/ui/Input.tsx',
+        find: ' text-muted peer-focus-visible:flex',
+        replace: ' text-muted peer-focus-visible:block',
+      },
+    ],
+  },
+  {
     name: 'date-time-box-is-left-to-the-browser',
     breaks: [BOX],
     expect: '> shows a date with a time the same way',

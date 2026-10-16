@@ -568,6 +568,14 @@
         "title": "تعديل {number}",
         "saved": "تم حفظ {number}"
       },
+      "people": {
+        "changeOwner": "تغيير المالك",
+        "ownerSaved": "أصبحت {number} مع {name}",
+        "helperAdd": "إضافة مساعد",
+        "helperAdded": "أصبح {name} يساعد في {number}",
+        "helperRemove": "إزالة {name}",
+        "helperRemoved": "لم يعد {name} يساعد في {number}"
+      },
       "status": {
         "change": "الحالة: {status}. تغيير",
         "movedLine": "{status} · {title} ({number})",
