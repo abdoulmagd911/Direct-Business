@@ -102,11 +102,11 @@ test('phone 390: a page keeps the floating + clear of its last row, New client l
   // the task form: Create's ?new=1 is spent when it closes
   await page.goto('/tasks/new');
   await hydrated(page);
-  await expect(page).toHaveURL(/\/tasks\?new=1/);
+  await expect(page, 'no redirect: the Tasks page draws itself with the form open (V286)').toHaveURL(/\/tasks\/new$/);
   await expect(page.locator('[data-quick-add]')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-quick-add]')).toHaveCount(0);
-  await expect(page, 'the address no longer opens the form again').not.toHaveURL(/new=1/);
+  await expect(page, 'the address no longer opens the form again').toHaveURL(/\/tasks$/);
 });
 
 test('Finance and Settings are in the menu of the people whose access opens them: drawer on a desktop, the bar or More on a phone', async ({

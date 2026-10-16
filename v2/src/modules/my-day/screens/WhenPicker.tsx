@@ -14,7 +14,8 @@ import {
   type WhenKey,
 } from '../when';
 
-const chip = (on: boolean) =>
+/** The When chips' look, shared with the task form's Due chips (V286). */
+export const whenChip = (on: boolean) =>
   cn(
     'inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
     on ? 'border-accent bg-accent-soft text-text' : 'border-border bg-raised text-muted hover:text-text',
@@ -63,7 +64,7 @@ export function WhenPicker({
             type="button"
             role="radio"
             aria-checked={value === k}
-            className={chip(value === k)}
+            className={whenChip(value === k)}
             onClick={() => onChange(k)}
             data-when-chip={k}
           >
@@ -100,7 +101,7 @@ export function WhenPicker({
                 type="button"
                 role="radio"
                 aria-checked={pick.time === c}
-                className={chip(pick.time === c)}
+                className={whenChip(pick.time === c)}
                 onClick={() => onPick({ ...pick, time: c })}
                 data-when-time={c}
               >

@@ -87,7 +87,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: "if (url.searchParams.has('new')) {",
+        find: 'if (byAddress) {',
         replace: 'if (false) {',
       },
     ],

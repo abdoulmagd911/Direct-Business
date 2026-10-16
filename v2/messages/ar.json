@@ -558,6 +558,10 @@
         "title_required": "العنوان مطلوب",
         "title_too_long": "الحد الأقصى للأحرف: {max}",
         "due_invalid": "اختر تاريخًا",
+        "dueToday": "اليوم",
+        "dueClear": "مسح",
+        "duePlaceholder": "yyyy-mm-dd",
+        "dueCalendar": "اختر من التقويم",
         "owner_required": "اختر مالكًا"
       },
       "edit": {

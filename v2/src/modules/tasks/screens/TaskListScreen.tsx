@@ -244,12 +244,15 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         open={adding}
         onOpenChange={(open) => {
           setAdding(open);
-          // Create's address (?new=1) is spent once the form closes or saves, so a reload does not open it again
+          // Create's address (/tasks/new, or ?new=1) is spent once the form closes or saves, so a reload does not open
+          // it again; /tasks/new draws this list with the form open itself, with no redirect (V286)
           if (!open) {
             const url = new URL(window.location.href);
-            closedOnAddress.current = url.searchParams.has('new');
-            if (url.searchParams.has('new')) {
+            const byAddress = url.searchParams.has('new') || url.pathname === '/tasks/new';
+            closedOnAddress.current = byAddress;
+            if (byAddress) {
               url.searchParams.delete('new');
+              if (url.pathname === '/tasks/new') url.pathname = '/tasks';
               // null, as on Partners: Next copies its own state in and takes the new address as the router's, so the next
               // refresh of the list does not write ?new=1 back (an entry passed its own state is not re-read)
               window.history.replaceState(null, '', `${url.pathname}${url.search}`);

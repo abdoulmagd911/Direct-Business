@@ -297,8 +297,7 @@
         "text": "Remind me to",
         "logged": "{type} logged on {name}",
         "reminded": "Reminder set for {when}",
-        "taskTitle": "Make a task from this note",
-        "withItems": "Also turn the checklist into action items"
+        "taskTitle": "Make a task from this note"
       },
       "finish": {
         "label": "Finish meeting",
@@ -624,6 +623,10 @@
         "title_required": "A title is required",
         "title_too_long": "At most {max} characters",
         "due_invalid": "Pick a date",
+        "dueToday": "Today",
+        "dueClear": "Clear",
+        "duePlaceholder": "yyyy-mm-dd",
+        "dueCalendar": "Pick on a calendar",
         "owner_required": "Pick an owner"
       },
       "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
