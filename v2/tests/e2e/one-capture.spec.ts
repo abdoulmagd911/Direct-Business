@@ -71,7 +71,7 @@ for (const size of [PHONE, PC]) {
     const words = `One door ${size.width}`;
     await page.locator('[data-quick-text]').fill(words);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Note captured')).toBeVisible();
+    await expect(toast(page, 'Note saved')).toBeVisible();
     await expect(page, 'and the person is still on My day').toHaveURL(/\/my-day$/);
     await expect(page.locator('[data-my-note]', { hasText: words }), 'the note is in the list').toBeVisible();
   });
@@ -97,7 +97,7 @@ test('a Meeting captured from the sheet is a meeting note, still on My day, read
   await page.locator('[data-quick-kind="meeting"]').click();
   await page.locator('[data-quick-text]').fill('Kick-off with the made-up client');
   await page.locator('[data-quick-save]').click();
-  await expect(toast(page, 'Meeting captured')).toBeVisible();
+  await expect(toast(page, 'Meeting saved')).toBeVisible();
   const [row] = await sql<{ kind: string; visibility: string }>(
     `select kind, visibility from my.note where person_id = $1 and title = $2`,
     [me.id, 'Kick-off with the made-up client'],
