@@ -5,7 +5,7 @@
  * others (playwright.config.ts, the `alone` project). Every value is made up.
  *
  * QA-556 lives here too: New invoice is offered at the three doors (the desktop Create menu, Ctrl K and the phone's
- * floating +) to a person with Full on Finance, who lands on /finance/new, and to nobody with Finance at View — each in
+ * phone's Create) to a person with Full on Finance, who lands on /finance/new, and to nobody with Finance at View — each in
  * English and in Arabic. It needs Arabic on, so it belongs with the other tests that switch it, in the one file: two
  * files of the `alone` project may run at the same moment, and two of them switching Arabic would meet.
  * Sabotage: tests/sabotage/qa556.mjs "finance-page-not-built".
@@ -159,7 +159,7 @@ for (const code of ['en', 'ar'] as const) {
       await option.click();
       await expect(page).toHaveURL(/\/finance\/new$/);
 
-      // 3 · the phone's floating +
+      // 3 · the phone's Create
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto('/my-day');
       await hydrated(page);

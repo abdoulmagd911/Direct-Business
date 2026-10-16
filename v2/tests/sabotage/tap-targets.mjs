@@ -65,6 +65,13 @@ export const sabotages = [
         find: 'overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6',
         replace: 'overflow-y-auto px-4 pb-16 pt-6',
       },
+      // Create is the bar's last slot (option C, 15 Oct): it is floated again, as the + was, so the short foot shows
+      {
+        file: 'src/ui/shell/CreateMenu.tsx',
+        find: "'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px]",
+        replace:
+          "'fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 flex-col items-center justify-center gap-1 text-[11px]",
+      },
     ],
   },
   {

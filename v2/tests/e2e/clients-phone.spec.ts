@@ -1,5 +1,5 @@
 /**
- * V630 on the Clients list, on a phone: one add action (the floating +), one Filter button that holds the search and
+ * V630 on the Clients list, on a phone: one add action (Create in the bar), one Filter button that holds the search and
  * the chips and shows how many are on, nothing wider than the screen — at 375 and at 320 px. A wide screen keeps the
  * header button and every control in its row. Every value is made up.
  * Sabotage: tests/sabotage/screens.mjs "clients-header-add-stays-on-a-phone", "clients-filters-stay-in-the-row-on-a-phone",
@@ -24,7 +24,7 @@ for (const width of [375, 320]) {
     await hydrated(page);
 
     expect(await drawn(page, '[data-partner-new]'), 'the header New client button is not drawn on a phone').toBeNull();
-    expect(await drawn(page, '[data-create-bar]'), 'the floating + is the one add action').not.toBeNull();
+    expect(await drawn(page, '[data-create-bar]'), 'Create in the bar is the one add action').not.toBeNull();
 
     const filter = await drawn(page, '[data-filter-toggle]');
     expect(filter, 'a Filter button is drawn').not.toBeNull();

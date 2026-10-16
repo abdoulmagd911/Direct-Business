@@ -2,7 +2,7 @@
  * Productivity stage 2, PR 2 — the reminder alert. At a reminder's time a card shows under the top bar on any page, with
  * the reminder's words, Done and Snooze (Later today · Tomorrow · Next week). It is the bell's item and the same one: Done
  * in either place clears both. One timer shows it at its time with no reload; it never takes focus from a field being
- * typed in and never covers the phone's floating +. At 375 and 1,440 px. Every value is made up.
+ * typed in and never covers Create in the phone's bar. At 375 and 1,440 px. Every value is made up.
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -55,7 +55,7 @@ for (const width of [375, 1440]) {
     }
     if (width < 700) {
       const plus = (await page.locator('[data-create-bar]').boundingBox())!;
-      expect(box.y + box.height, 'the alert stays above the floating +').toBeLessThan(plus.y);
+      expect(box.y + box.height, 'the alert stays above Create in the bar').toBeLessThan(plus.y);
       expect(box.x + box.width, 'no sideways scroll').toBeLessThanOrEqual(width);
     }
 

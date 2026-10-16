@@ -49,7 +49,7 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
         find: '        {actions.map((a) => {',
-        replace: '        {actions.slice(0, floating ? -1 : undefined).map((a) => {',
+        replace: '        {actions.slice(0, bar ? -1 : undefined).map((a) => {',
       },
     ],
   },

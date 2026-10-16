@@ -86,7 +86,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
-  // the floating + stands in for Create on a phone (V217)
+  // Create is the bar's last slot on a phone (V217)
   await expect(page.locator('[data-create-bar]')).toBeVisible();
   await expect(page.locator('[data-create]')).toBeHidden();
 });

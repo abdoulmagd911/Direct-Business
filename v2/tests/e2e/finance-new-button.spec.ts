@@ -1,6 +1,6 @@
 /**
  * 13 Oct sweep, PR 1 (V235): Finance has a New invoice button for a person with Full on Finance (desktop only — on a phone
- * the floating + already offers it, V630); Every value is
+ * Create in the bar already offers it, V630); Every value is
  * made up.
  * Sabotage: tests/sabotage/new-button.mjs "finance-new-button-always-hidden", "finance-new-button-for-everyone".
  */
@@ -26,7 +26,7 @@ test('Finance: New invoice is on the page for Full, opens the form, is off on a 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/finance');
   await hydrated(page);
-  await expect(page.locator('[data-new-invoice-link]'), 'on a phone the floating + is the one action').toBeHidden();
+  await expect(page.locator('[data-new-invoice-link]'), 'on a phone Create in the bar is the one action').toBeHidden();
 });
 
 test('Finance: a member does not get the New invoice button', async ({ page }) => {

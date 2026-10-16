@@ -1,5 +1,5 @@
 /**
- * V630 on the Tasks screen, on a phone: one add action (the floating +), two tabs and one More, one Filter button that
+ * V630 on the Tasks screen, on a phone: one add action (Create in the bar), two tabs and one More, one Filter button that
  * holds the search and the chips and shows how many are on, the layout switch as three icons, nothing wider than the
  * screen — at 375 and at 320 px. A wide screen keeps every control in its row. The My day capture card is checked at
  * 320 too. Every value is made up.
@@ -76,7 +76,7 @@ for (const width of [375, 320]) {
     await signIn(page, member.email, '/tasks');
     await hydrated(page);
 
-    // one way to add: the floating +
+    // one way to add: Create in the bar
     expect(await box(page, '[data-add-task]'), 'the header has no Add task on a phone').toBeNull();
     expect(await box(page, '[data-create-bar]'), 'the + is the one add action').not.toBeNull();
 
