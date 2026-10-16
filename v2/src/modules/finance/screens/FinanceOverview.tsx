@@ -84,7 +84,7 @@ export function FinanceOverview({
       <PageHeader
         title={t('nav.finance')}
         actions={
-          // Full on Finance types an invoice here; on a phone the floating + already offers it, one main action (V630)
+          // Full on Finance types an invoice here; on a phone the bar's Create already offers it, one main action (V630)
           full ? (
             <Link
               href="/finance/new"

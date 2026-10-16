@@ -54,7 +54,7 @@ async function openSheet(page: Page, wide: boolean) {
   // the last toast sits over the phone's + for its 5 seconds (a toast under the pointer waits; a finger leaves)
   await page.mouse.move(0, 0);
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 9000 });
-  await page.locator(wide ? '[data-create]' : '[data-create-floating]').click();
+  await page.locator(wide ? '[data-create]' : '[data-create-bar]').click();
   await page.locator('[data-create-item="capture"]').click();
   await expect(page.locator('[data-quick-capture]')).toBeVisible();
 }

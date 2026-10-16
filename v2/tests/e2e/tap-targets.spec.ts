@@ -86,7 +86,7 @@ test('the + clears the last row on every page and the list searches are 44 px â€
     await hydrated(page);
     const gap = await page.evaluate(() => {
       const main = document.querySelector('#main [class*="overflow-y-auto"]') as HTMLElement | null;
-      const plus = document.querySelector('[data-create-floating]') as HTMLElement | null;
+      const plus = document.querySelector('[data-create-bar]') as HTMLElement | null;
       if (!main || !plus) return null;
       main.scrollTop = main.scrollHeight;
       const last = main.lastElementChild as HTMLElement;

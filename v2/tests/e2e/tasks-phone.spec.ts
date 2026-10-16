@@ -78,7 +78,7 @@ for (const width of [375, 320]) {
 
     // one way to add: the floating +
     expect(await box(page, '[data-add-task]'), 'the header has no Add task on a phone').toBeNull();
-    expect(await box(page, '[data-create-floating]'), 'the + is the one add action').not.toBeNull();
+    expect(await box(page, '[data-create-bar]'), 'the + is the one add action').not.toBeNull();
 
     // two tabs and the one More
     const tabs = await tabsAndMore(page);
@@ -166,7 +166,7 @@ test('phone 320: the + and the capture sheet sit inside the screen, every contro
   await page.setViewportSize({ width: 320, height: 640 });
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
-  const plus = (await page.locator('[data-create-floating]').boundingBox())!;
+  const plus = (await page.locator('[data-create-bar]').boundingBox())!;
   expect(plus.x + plus.width, 'the + ends inside a 320 px screen').toBeLessThanOrEqual(320);
   expect(plus.height, 'the + is 44 px tall').toBeGreaterThanOrEqual(43.5);
   await openCapture(page);

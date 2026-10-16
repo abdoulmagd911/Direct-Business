@@ -55,30 +55,45 @@ export function createActionsFor(me: Me) {
   );
 }
 
-const floatingClass =
-  'fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-30 inline-grid size-14 place-items-center rounded-pill bg-primary text-on-primary shadow-2 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 sm:hidden [&_svg]:size-6';
+/** The bottom bar's last slot on a phone (the architect's ruling of 15 Oct, option C): shaped like the bar's other slots. */
+const barClass =
+  'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium text-nav-text focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus';
+
+/** The slot's face: the + in the primary colour, so it reads as the add control, and the word under it. */
+function BarFace({ label }: { label: string }) {
+  return (
+    <>
+      <span className="inline-grid h-7 w-12 place-items-center rounded-pill bg-primary text-on-primary">
+        <Plus className="size-5" aria-hidden="true" />
+      </span>
+      <span className="max-w-full truncate px-0.5" data-create-bar-label>
+        {label}
+      </span>
+    </>
+  );
+}
 
 /**
- * The top bar's Create button, or on a phone the floating + above the bottom bar (V85). With one item left the button
- * opens it directly, no menu; with none, neither shows (V217). The + hides on a page that says no access.
+ * The top bar's Create button, or on a phone the last slot of the bottom bar (V85; the architect's ruling of 15 Oct:
+ * nothing floats, so nothing can sit under it). With one item left it opens that item directly, no menu; with none,
+ * neither shows (V217).
  */
-export function CreateMenu({ floating = false }: { floating?: boolean }) {
+export function CreateMenu({ bar = false }: { bar?: boolean }) {
   const t = useTranslations();
   const me = useMe();
   const actions = createActionsFor(me);
   if (!actions.length) return null;
   const a = actions.length === 1 ? actions[0] : undefined;
   if (a?.sheet) {
-    return floating ? (
+    return bar ? (
       <button
         type="button"
         onClick={() => openQuickCapture()}
-        aria-label={t('top.create')}
-        data-create-floating
+        data-create-bar
         data-create-direct={a.key}
-        className={floatingClass}
+        className={barClass}
       >
-        <Plus aria-hidden="true" />
+        <BarFace label={t('top.create')} />
       </button>
     ) : (
       <Button
@@ -95,9 +110,9 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
   }
   if (a) {
     const label = t(`createNew.${a.key}`);
-    return floating ? (
-      <Link href={a.route} aria-label={label} data-create-floating data-create-direct={a.key} className={floatingClass}>
-        <Plus aria-hidden="true" />
+    return bar ? (
+      <Link href={a.route} aria-label={label} data-create-bar data-create-direct={a.key} className={barClass}>
+        <BarFace label={t('top.create')} />
       </Link>
     ) : (
       <Link
@@ -114,9 +129,9 @@ export function CreateMenu({ floating = false }: { floating?: boolean }) {
   return (
     <Menu>
       <MenuTrigger asChild>
-        {floating ? (
-          <button type="button" aria-label={t('top.create')} data-create-floating className={floatingClass}>
-            <Plus aria-hidden="true" />
+        {bar ? (
+          <button type="button" data-create-bar className={barClass}>
+            <BarFace label={t('top.create')} />
           </button>
         ) : (
           <Button variant="primary" icon={<Plus />} data-create className="hidden sm:inline-flex">

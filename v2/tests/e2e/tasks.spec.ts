@@ -75,7 +75,7 @@ async function openAdd(page: Page): Promise<'header' | 'plus'> {
     await header.click();
     return 'header';
   }
-  await page.locator('[data-create-floating]').click();
+  await page.locator('[data-create-bar]').click();
   const item = page.locator('[data-create-item="task"]');
   await item.waitFor({ state: 'visible', timeout: 2000 }).then(
     () => item.click(),

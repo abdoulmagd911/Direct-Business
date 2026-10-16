@@ -101,7 +101,7 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
     'Achievements',
   ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Achievements']);
 });
 
@@ -111,7 +111,7 @@ test('2 · a Business Development member (Pipeline Own by a person change) gets 
   await openAs(page, 'bd_member');
   expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'Achievements']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
   expect(await morePages(page)).toEqual(['Achievements']);
 });
 
@@ -121,7 +121,7 @@ test('3 · a manager: every built page their access opens, in order (Activity at
   await openAs(page, 'manager');
   expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Activity']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
   expect(await morePages(page)).toEqual(['Achievements', 'Activity']);
 });
 
@@ -154,9 +154,9 @@ test('5 · a viewer: the built pages their access opens fill the bar, with no Mo
   // Capture is for anyone who can open My day, view-only included; Create's other items stay hidden
   await expect(page.locator('[data-create]')).toHaveAttribute('data-create-direct', 'capture');
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements']);
+  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'Create']);
   await expect(page.locator('[data-bottom-more]'), 'four fill the bar: no More').toHaveCount(0);
-  await expect(page.locator('[data-create-floating]')).toHaveAttribute('data-create-direct', 'capture');
+  await expect(page.locator('[data-create-bar]')).toHaveAttribute('data-create-direct', 'capture');
 });
 
 test('6 · a member opens KPIs and Finance from the menu; Reports answers by address but is in no menu and not in Ctrl K', async ({
@@ -325,7 +325,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.setViewportSize(PHONE);
   await one.goto('/my-day');
   await hydrated(one);
-  await one.locator('[data-create-floating]').click();
+  await one.locator('[data-create-bar]').click();
   await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
   await ctx.close();
 });
@@ -463,7 +463,7 @@ test('15 · at 390 px every page of the member menu fits: no sideways scroll, 44
     expect(fit.padding, `${route}: room under the last row for the +`).toBeGreaterThanOrEqual(88);
     const small = await page
       .locator(
-        '[data-bottom-bar] a, [data-bottom-bar] button, [data-topbar] button, [data-topbar] a, [data-create-floating], [data-side-tabs] a, [data-contact-phone]',
+        '[data-bottom-bar] a, [data-bottom-bar] button, [data-topbar] button, [data-topbar] a, [data-create-bar], [data-side-tabs] a, [data-contact-phone]',
       )
       .evaluateAll((els) =>
         els

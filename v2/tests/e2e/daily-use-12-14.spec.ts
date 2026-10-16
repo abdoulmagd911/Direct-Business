@@ -93,7 +93,7 @@ for (const width of WIDTHS) {
       await page.waitForTimeout(600); // the toast has finished sliding in
       const t = (await toast.boundingBox())!;
       const bar = (await page.locator('[data-bottom-bar]').boundingBox())!;
-      const plus = (await page.locator('[data-create-floating]').boundingBox())!;
+      const plus = (await page.locator('[data-create-bar]').boundingBox())!;
       expect(t.y + t.height, 'the toast ends above the bottom bar').toBeLessThanOrEqual(bar.y);
       expect(t.y + t.height, 'and above the + button').toBeLessThanOrEqual(plus.y);
     }

@@ -29,14 +29,14 @@ test('one add control per width: Create on a PC, the + on a phone, and both open
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
   await expect(page.locator('[data-create]'), 'Create on a PC').toBeVisible();
-  await expect(page.locator('[data-create-floating]'), 'no + on a PC').toBeHidden();
+  await expect(page.locator('[data-create-bar]'), 'no + on a PC').toBeHidden();
   const wide = await menuItems(page, '[data-create]');
   expect(wide[0], 'Capture comes first').toBe('capture');
 
   await page.setViewportSize(PHONE);
-  await expect(page.locator('[data-create-floating]'), 'the + on a phone').toBeVisible();
+  await expect(page.locator('[data-create-bar]'), 'the + on a phone').toBeVisible();
   await expect(page.locator('[data-create]'), 'no Create on a phone').toBeHidden();
-  expect(await menuItems(page, '[data-create-floating]'), 'the + opens the same menu as Create').toEqual(wide);
+  expect(await menuItems(page, '[data-create-bar]'), 'the + opens the same menu as Create').toEqual(wide);
 });
 
 for (const size of [PHONE, PC]) {

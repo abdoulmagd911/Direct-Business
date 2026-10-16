@@ -163,7 +163,7 @@ for (const code of ['en', 'ar'] as const) {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto('/my-day');
       await hydrated(page);
-      await page.locator('[data-create-floating]').click();
+      await page.locator('[data-create-bar]').click();
       const phoneItem = page.locator('[data-create-item="invoice"]');
       await expect(phoneItem, 'the + offers Invoice').toBeVisible();
       await phoneItem.click();
@@ -205,9 +205,49 @@ for (const code of ['en', 'ar'] as const) {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto('/my-day');
       await hydrated(page);
-      await page.locator('[data-create-floating]').click();
+      await page.locator('[data-create-bar]').click();
       await expect(page.locator('[data-create-item="client"]'), 'the + still offers other items').toBeVisible();
       await expect(page.locator('[data-create-item="invoice"]'), 'no Invoice in the +').toHaveCount(0);
+    });
+  });
+
+  // Create is the bar's last slot on a phone (the architect's ruling of 15 Oct, option C): with six slots at 375 px,
+  // each is still a 44 px target and every word fits whole, in each language
+  test(`in ${code} at 375 px: an admin's bar holds six slots, Create last, each at least 44 px wide with its label whole`, async ({
+    page,
+    context,
+  }) => {
+    await withArabic(async () => {
+      const admin = await makePerson({ admin: true });
+      await page.setViewportSize({ width: 375, height: 800 });
+      await signIn(page, admin.email, '/my-day');
+      await hydrated(page);
+      await setPrefs(context, { locale: code });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await expect(page.locator('html')).toHaveAttribute('lang', code);
+      const slots = await page.locator('[data-bottom-bar] > a, [data-bottom-bar] > button').evaluateAll((els) =>
+        els.map((el) => {
+          const label = [...el.querySelectorAll('span')].at(-1)!;
+          return {
+            text: label.textContent,
+            width: el.getBoundingClientRect().width,
+            cut: label.scrollWidth > label.clientWidth,
+            create: el.hasAttribute('data-create-bar'),
+          };
+        }),
+      );
+      expect(slots.length, 'six slots on a phone').toBe(6);
+      expect(slots.at(-1)!.create, 'Create is the last slot').toBe(true);
+      expect(slots.at(-1)!.text).toBe(create);
+      for (const s of slots) {
+        expect(s.width, `${s.text} is at least 44 px wide`).toBeGreaterThanOrEqual(44);
+        expect(s.cut, `${s.text} is not cut`).toBe(false);
+      }
+      // the desktop keeps Create in the top bar
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await expect(page.locator('[data-create]')).toBeVisible();
+      await expect(page.locator('[data-bottom-bar]')).toBeHidden();
     });
   });
 }

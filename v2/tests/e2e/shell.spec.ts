@@ -77,7 +77,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await expect(page.locator('[data-drawer]')).toBeHidden();
   const bar = page.locator('[data-bottom-bar]');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More']);
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
   await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
@@ -87,7 +87,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await expect(sheet).toBeHidden();
   await expect(page.locator('[data-bottom-more]')).toBeFocused();
   // the floating + stands in for Create on a phone (V217)
-  await expect(page.locator('[data-create-floating]')).toBeVisible();
+  await expect(page.locator('[data-create-bar]')).toBeVisible();
   await expect(page.locator('[data-create]')).toBeHidden();
 });
 
@@ -97,7 +97,7 @@ test('a tablet keeps the drawer and has no bottom bar (V85)', async ({ page, con
   await open(page, '/my-day');
   await expect(page.locator('[data-drawer]')).toBeVisible();
   await expect(page.locator('[data-bottom-bar]')).toBeHidden();
-  await expect(page.locator('[data-create-floating]')).toBeHidden();
+  await expect(page.locator('[data-create-bar]')).toBeHidden();
 });
 
 test('every drawer entry is a link and the active one is marked', async ({ page, context }) => {

@@ -54,7 +54,7 @@ for (const width of [375, 1440]) {
       }
     }
     if (width < 700) {
-      const plus = (await page.locator('[data-create-floating]').boundingBox())!;
+      const plus = (await page.locator('[data-create-bar]').boundingBox())!;
       expect(box.y + box.height, 'the alert stays above the floating +').toBeLessThan(plus.y);
       expect(box.x + box.width, 'no sideways scroll').toBeLessThanOrEqual(width);
     }

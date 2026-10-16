@@ -24,7 +24,7 @@ for (const width of [375, 320]) {
     await hydrated(page);
 
     expect(await drawn(page, '[data-partner-new]'), 'the header New client button is not drawn on a phone').toBeNull();
-    expect(await drawn(page, '[data-create-floating]'), 'the floating + is the one add action').not.toBeNull();
+    expect(await drawn(page, '[data-create-bar]'), 'the floating + is the one add action').not.toBeNull();
 
     const filter = await drawn(page, '[data-filter-toggle]');
     expect(filter, 'a Filter button is drawn').not.toBeNull();
