@@ -2,9 +2,12 @@
 -- request makes the task and turns each checklist row into one of its action items, in order — each with its text,
 -- owner and due day, a ticked row as a done item, each showing the note it came from; one Undo takes it all back. The
 -- task door's rules hold: a member gives no row to someone else without the assign capability, and then nothing is
--- made. Unasked, the task comes alone (V602); a task from one row brings no others. Every value is made up.
+-- made. Brought as action items, the rows are not written again into the task's notes, which keep only the note's own
+-- words (16 Oct, V286). Unasked, the task comes alone (V602) and its notes hold the whole note; a task from one row
+-- brings no others. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-task-from-a-note-leaves-its-checklist.sql, a-checklist-row-loses-its-owner.sql,
--- a-ticked-row-becomes-an-open-item.sql, a-checklist-comes-unasked.sql, a-checklist-item-names-no-note.sql.
+-- a-ticked-row-becomes-an-open-item.sql, a-checklist-comes-unasked.sql, a-checklist-item-names-no-note.sql,
+-- a-task-from-a-checklist-repeats-its-items.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار');
 select set_config('t.mgr', test.person('Test Manager', 'manager')::text, true);
@@ -60,6 +63,19 @@ select test.eq(current_setting('t.u')::jsonb -> 'action_item_ids', '[]'::jsonb, 
 select test.eq(coalesce(jsonb_array_length(api.task((current_setting('t.u')::jsonb ->> 'id')::uuid) -> 'action_items'),
                         0), 0, 'the task comes alone');
 select test.eq(jsonb_array_length(api.my_note(current_setting('t.n')::uuid) -> 'links'), 1, 'one link, to the task');
+select test.ok(position('- Made-up: book the venue' in api.task((current_setting('t.u')::jsonb ->> 'id')::uuid) ->> 'notes') > 0,
+  'unasked, the notes hold the whole note, so nothing is lost');
+
+-- a checklist with words of its own: brought along, the notes keep those words and no item line
+select set_config('t.w', api.note_capture('checklist', jsonb_build_object('title', 'Made-up offsite list',
+  'body', 'Made-up: budget agreed with the client',
+  'items', jsonb_build_array(jsonb_build_object('text', 'Made-up: book the hall')))) ->> 'id', true);
+select set_config('t.wt', api.note_turn_into(current_setting('t.w')::uuid, 'task',
+  jsonb_build_object('action_items', true)) ->> 'id', true);
+select test.eq(api.task(current_setting('t.wt')::uuid) ->> 'notes', 'Made-up: budget agreed with the client',
+  'the notes keep the note''s own words, with no item lines');
+select test.eq(api.task(current_setting('t.wt')::uuid) -> 'action_items' -> 0 ->> 'text', 'Made-up: book the hall',
+  'the item lives once, as an action item');
 select test.raises(format('select api.note_turn_into(%L, %L, %L::jsonb)', current_setting('t.n'), 'task',
   '{"item": 0, "action_items": true}'), 'P0001', 'one row as the task brings no others', 'common.invalid');
 select test.raises(format('select api.note_turn_into(%L, %L, %L::jsonb)', current_setting('t.n'), 'task',

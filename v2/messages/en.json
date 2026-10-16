@@ -297,8 +297,7 @@
         "text": "Remind me to",
         "logged": "{type} logged on {name}",
         "reminded": "Reminder set for {when}",
-        "taskTitle": "Make a task from this note",
-        "withItems": "Also turn the checklist into action items"
+        "taskTitle": "Make a task from this note"
       },
       "finish": {
         "label": "Finish meeting",
