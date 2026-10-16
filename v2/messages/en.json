@@ -417,7 +417,8 @@
         "backfilled": "Backfilled",
         "past": "Past work",
         "needsOwner": "Needs owner",
-        "clear": "Clear"
+        "clear": "Clear",
+        "allCategories": "All categories"
       },
       "cols": {
         "achievement": "Achievement",
@@ -539,7 +540,9 @@
       "fromNote": {
         "title": "Achievement from note",
         "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
-      }
+      },
+      "valueNotNumber": "Enter a number",
+      "offerAction": "Log as achievement"
     },
     "beingBuilt": "Being built.",
     "tasks": {

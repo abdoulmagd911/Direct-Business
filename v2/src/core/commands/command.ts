@@ -42,6 +42,8 @@ export type ConflictPlan = {
 export type CommandOptions<T extends Written> = {
   /** Runs on success (a close, a local state change); the global refetch has already been asked for. */
   after?: (result: T) => void | Promise<void>;
+  /** A second button on the success toast, beside Undo (Done → Log as achievement). */
+  extra?: { label: string; onClick: () => void };
   conflict?: ConflictPlan;
   /** The other person's name, for the conflict dialog; api.hover_person when absent. */
   nameOf?: (personId: string) => string | undefined;
@@ -112,7 +114,7 @@ export async function command<T extends Written>(
 ): Promise<T | undefined> {
   try {
     const result = await write();
-    await done(words, result, opts.after);
+    await done(words, result, opts.after, opts.extra);
     return result;
   } catch (e) {
     if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
@@ -127,7 +129,7 @@ export async function command<T extends Written>(
       if (again === 'cancelled') return undefined;
       try {
         const result = (await again()) as T;
-        await done(words, result, opts.after);
+        await done(words, result, opts.after, opts.extra);
         return result;
       } catch (e2) {
         refuse(words, e2);
@@ -148,9 +150,15 @@ export function run<T extends Written>(
   return command(words, write, { after });
 }
 
-async function done<T extends Written>(words: CommandWords, result: T, after?: (r: T) => void | Promise<void>) {
+async function done<T extends Written>(
+  words: CommandWords,
+  result: T,
+  after?: (r: T) => void | Promise<void>,
+  extra?: { label: string; onClick: () => void },
+) {
   const requestId = (result as { request_id?: string | null } | null)?.request_id ?? null;
   toast.done(words.done, {
+    extra,
     undo: requestId
       ? {
           label: words.undo,
