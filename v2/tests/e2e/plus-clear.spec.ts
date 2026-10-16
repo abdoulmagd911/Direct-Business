@@ -5,11 +5,13 @@
  * overlaps Create's rectangle. My day is read with the Weekly review row (the Me tab) and without it (the Team tab);
  * Tasks and Clients end in a list and a button too. At first view (not scrolled), My day is read at the phone height
  * that puts Create level with the Weekly review row — the supervisor's case of 15 Oct — and no tappable element may sit
- * under it there either. Every value is made up.
- * Sabotage: tests/sabotage/plus-clear.mjs "page-foot-has-no-room-for-the-plus", "create-floats-over-the-page-again".
+ * under it there either. A toast stands above the bar too: nothing, the bar included, covers the Undo of "Profile saved"
+ * (the architect on #274). Every value is made up.
+ * Sabotage: tests/sabotage/plus-clear.mjs "page-foot-has-no-room-for-the-plus", "create-floats-over-the-page-again",
+ * "toast-sits-on-the-bottom-bar".
  */
 import { expect, test, type Page } from '@playwright/test';
-import { makePerson, signIn } from './support/stack';
+import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -100,4 +102,42 @@ test('Create covers nothing at the top of My day, even level with the Weekly rev
   await page.waitForTimeout(300);
   await expect(page.locator('[data-create-bar]')).toBeVisible();
   expect(await underThePlus(page), `nothing tappable is under Create at first view (${height} px tall)`).toEqual([]);
+});
+
+test('the "Profile saved" toast stands above the bottom bar and nothing covers its Undo — at 375 px', async ({
+  page,
+}) => {
+  const me = await makePerson();
+  // the first save of a profile creates its row, which offers no Undo: start from a profile that exists
+  await sql(`insert into core.person_profile (person_id, created_by) values ($1, $1)`, [me.id]);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, me.email, '/profile');
+  await hydrated(page);
+  await page.getByLabel('Display name', { exact: true }).fill('Bar Clear Nick');
+  await page.getByLabel('Display name', { exact: true }).press('Enter');
+  const toast = page.locator('[data-sonner-toast][data-front="true"]', { hasText: 'Profile saved' });
+  const undo = toast.getByRole('button', { name: 'Undo', exact: true });
+  await expect(undo).toBeVisible();
+  await toast.hover(); // hovering holds the toast while it is measured
+  await expect(toast).toHaveAttribute('data-mounted', 'true');
+  await page.waitForTimeout(400); // the toast's rise has ended
+  const found = await undo.evaluate((button) => {
+    const r = button.getBoundingClientRect();
+    const bar = document.querySelector('[data-bottom-bar]')!.getBoundingClientRect();
+    const toast = button.closest('[data-sonner-toast]')!.getBoundingClientRect();
+    // what is on top at the Undo's centre and at its four inner corners
+    const points: [number, number][] = [
+      [r.left + r.width / 2, r.top + r.height / 2],
+      [r.left + 2, r.top + 2],
+      [r.right - 2, r.top + 2],
+      [r.left + 2, r.bottom - 2],
+      [r.right - 2, r.bottom - 2],
+    ];
+    const covered = points.filter(([x, y]) => !button.contains(document.elementFromPoint(x, y))).length;
+    return { toastBottom: toast.bottom, barTop: bar.top, covered };
+  });
+  expect(found.toastBottom, 'the toast ends above the bottom bar').toBeLessThanOrEqual(found.barTop);
+  expect(found.covered, 'nothing covers the Undo').toBe(0);
+  await undo.click();
+  await expect(page.locator('[data-sonner-toast]', { hasText: 'Undone' })).toBeVisible();
 });

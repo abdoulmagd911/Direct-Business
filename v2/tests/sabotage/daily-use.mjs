@@ -105,12 +105,12 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/globals.css',
-        find: '--offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;',
+        find: '--offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;',
         replace: '--offset-bottom: 20px !important;',
       },
       {
         file: 'src/ui/globals.css',
-        find: '--mobile-offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;',
+        find: '--mobile-offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;',
         replace: '--mobile-offset-bottom: 20px !important;',
       },
     ],

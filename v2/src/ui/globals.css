@@ -217,13 +217,14 @@
 }
 
 /*
- * On a phone a toast sits above the bottom bar and the + button, never over them (W-daily, QA 2): the bar is 60 px (and
- * the screen's safe area) and the + stands 132 px up from the foot, so the toasts' foot is 140 px up. Sonner writes its
- * offset on the element itself, hence !important; a screen from 640 px up keeps the toasts' own offset.
+ * On a phone a toast sits above the bottom bar, never over it (W-daily, QA 2; the architect on #274): the bar is 60 px
+ * (and the screen's safe area), and Create is its last slot since option C (V383), so the toasts' foot is 68 px up and
+ * nothing covers their Undo. Sonner writes its offset on the element itself, hence !important; a screen from 640 px up
+ * keeps the toasts' own offset.
  */
 @media (max-width: 639px) {
   [data-sonner-toaster] {
-    --offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
-    --mobile-offset-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+    --offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+    --mobile-offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
   }
 }

@@ -86,7 +86,7 @@ for (const width of WIDTHS) {
     expect((await done.boundingBox())!.height).toBeGreaterThanOrEqual(32);
     await done.click();
     if (width === 375) {
-      // a toast on a phone sits above the bottom bar and the + button, never over them
+      // a toast on a phone sits above the bottom bar and its Create slot, never over them
       const toast = page.locator('[data-sonner-toast][data-front="true"]');
       await expect(toast).toBeVisible();
       await expect(toast).toContainText('Reminder done');

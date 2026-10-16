@@ -26,4 +26,16 @@ export const sabotages = [
     expect: 'Create covers nothing at the top of My day',
     edits: [{ file: 'src/ui/shell/CreateMenu.tsx', find: BAR_SLOT, replace: FLOATING }],
   },
+  {
+    name: 'toast-sits-on-the-bottom-bar',
+    breaks: [E2E],
+    expect: 'the "Profile saved" toast stands above the bottom bar',
+    edits: [
+      {
+        file: 'src/ui/globals.css',
+        find: '--mobile-offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;',
+        replace: '--mobile-offset-bottom: 16px !important;',
+      },
+    ],
+  },
 ];
