@@ -254,6 +254,28 @@ export function quickAddRefusalKey(key: string): string {
 }
 
 /**
+ * A due day as typed (V286): "20261020", "2026-10-20", "2026/10/20" or day first "20/10/2026", in Latin or Arabic-Indic
+ * digits; a real Gregorian day between 2000 and 2099 comes back as "2026-10-20", anything else as null. A text box, not
+ * the browser's date box: the date box orders its parts by the computer's own settings, so typed digits landed in the
+ * wrong parts and left junk ("1020-02-02").
+ */
+export function parseDueDay(typed: string): string | null {
+  const s = typed.trim().replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660));
+  const ymd = /^(\d{4})(\d{2})(\d{2})$/.exec(s) ?? /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s);
+  const dmy = ymd ? null : /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s);
+  const parts = ymd ? [ymd[1], ymd[2], ymd[3]] : dmy ? [dmy[3], dmy[2], dmy[1]] : null;
+  if (!parts) return null;
+  const [y, mo, d] = parts;
+  const year = Number(y);
+  const month = Number(mo);
+  const day = Number(d);
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1) return null;
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (day > last) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/**
  * The values quick add sends api.task_create: the title, a due day, a partner or a project. The owner is sent only
  * when it is someone else — left out, the database names it (V464: the project's owner, else the client's account
  * manager, else me). A project wins over a partner: the task takes the project's organisation (V194). With

@@ -21,6 +21,7 @@ import {
   type QuickAddInput,
 } from '../rules';
 import type { NamePick } from '../types';
+import { DueDayPicker } from './DueDayPicker';
 import { useCommandWords } from './words';
 
 const NONE = '__none';
@@ -99,6 +100,7 @@ export function QuickAddForm({
   const words = useCommandWords();
   const [f, setF] = useState<QuickAddInput>({ title: '', ...initial });
   const [error, setError] = useState<string | undefined>();
+  const [dueError, setDueError] = useState<string | undefined>();
   const [ownerError, setOwnerError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [withItems, setWithItems] = useState(false);
@@ -120,7 +122,9 @@ export function QuickAddForm({
     const r = quickAddValues(f, me.person.id, { ownerRequired });
     if ('error' in r) {
       const said = t(`pages.tasks.add.${r.error}`, { max: TITLE_MAX });
+      // each error is said under its own field: a Due error never under Title (V286)
       if (r.error === 'owner_required') setOwnerError(said);
+      else if (r.error === 'due_invalid') setDueError(said);
       else setError(said);
       return;
     }
@@ -210,14 +214,17 @@ export function QuickAddForm({
           }
         </Field>
       ) : null}
-      <Field label={t('pages.tasks.fields.due')}>
+      <Field label={t('pages.tasks.fields.due')} error={dueError}>
         {(p) => (
-          <Input
-            {...p}
-            type="date"
-            value={f.due ?? ''}
-            onChange={(e) => setF({ ...f, due: e.target.value || undefined })}
-            name="due"
+          <DueDayPicker
+            id={p.id}
+            describedBy={p['aria-describedby']}
+            invalid={p['aria-invalid']}
+            value={f.due}
+            onChange={(due) => {
+              setDueError(undefined);
+              setF({ ...f, due });
+            }}
           />
         )}
       </Field>

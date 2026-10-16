@@ -25,6 +25,7 @@ import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView } from '../rule
 import type { TaskDetail } from '../types';
 import { Checklist } from './Checklist';
 import { Escalate } from './Escalate';
+import { DATE_MAX } from './DueDayPicker';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
 import { useCommandWords, useNames } from './words';
 
@@ -333,6 +334,7 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
           <Input
             {...p}
             type="date"
+            max={DATE_MAX}
             value={f.due_on}
             onChange={(e) => setF({ ...f, due_on: e.target.value })}
             name="due"

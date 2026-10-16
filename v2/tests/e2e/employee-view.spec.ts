@@ -319,7 +319,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.locator('[data-create]').click();
   await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
   await one.locator('[data-create-item="task"]').click();
-  await expect(one).toHaveURL(/\/tasks\?new=1$/);
+  await expect(one, 'the Tasks page draws itself with quick add, no redirect (V286)').toHaveURL(/\/tasks\/new$/);
   await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
   await one.keyboard.press('Escape');
   await one.setViewportSize(PHONE);

@@ -58,7 +58,10 @@ for (const w of WIDTHS) {
     await hydrated(page);
 
     // the page's first bytes already carry the loading state, before the list is read
-    const html = await (await page.request.get('/tasks/new')).text();
+    // the first answer is the page itself, never a redirect that costs a second trip before anything shows (V286)
+    const first = await page.request.get('/tasks/new', { maxRedirects: 0 });
+    expect(first.status(), 'the first answer is the page itself, not a redirect').toBe(200);
+    const html = await first.text();
     expect(html, 'the loading state is in the first answer, not a blank page').toContain('data-tasks-loading');
 
     await page.goto('/tasks/new');
