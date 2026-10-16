@@ -140,17 +140,19 @@ export function NewPartnerDialog({
             />
           )}
         </Field>
-        <Field label={t('partners.tier')}>
-          {(p) => (
-            <Select
-              {...p}
-              value={f.tier}
-              onValueChange={(v) => setF({ ...f, tier: v })}
-              placeholder={t('common.none')}
-              options={tiers.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
-            />
-          )}
-        </Field>
+        {tiers.length ? (
+          <Field label={t('partners.tier')}>
+            {(p) => (
+              <Select
+                {...p}
+                value={f.tier}
+                onValueChange={(v) => setF({ ...f, tier: v })}
+                placeholder={t('common.none')}
+                options={tiers.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
+              />
+            )}
+          </Field>
+        ) : null}
         {canAssign ? (
           <Field
             label={side === 'client' ? t('partners.accountManager') : t('partners.relationshipOwner')}

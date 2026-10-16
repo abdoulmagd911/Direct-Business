@@ -42,6 +42,18 @@ export function LogActivityDialog({
   const demoSet = outcome?.meaning === 'demo_set';
   const ok =
     !!f.type && (own.length === 0 || !!f.outcome) && !!f.on && (!f.next || !!f.nextOn) && (!demoSet || !!f.nextOn);
+  // What is still missing, in the words of the boxes themselves — one line under the form while Save is off
+  const missing = [
+    !f.type && t('partners.activity.need.type'),
+    !!f.type && own.length > 0 && !f.outcome && t('partners.activity.need.outcome'),
+    !f.on && t('partners.activity.need.on'),
+    ((!!f.next && !f.nextOn) || (demoSet && !f.nextOn)) && t('partners.activity.need.nextOn'),
+  ].filter((x): x is string => !!x);
+  const why = missing.length
+    ? t('partners.activity.need.line', {
+        list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
+      })
+    : '';
   const save = async () => {
     setBusy(true);
     await command(
@@ -135,6 +147,11 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.nextStep')}>
           {(p) => <Input {...p} value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />}
         </Field>
+        {!ok && why ? (
+          <p className="text-sm text-muted sm:col-span-2" role="status" data-activity-why>
+            {why}
+          </p>
+        ) : null}
       </div>
     </Dialog>
   );
