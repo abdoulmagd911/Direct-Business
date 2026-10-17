@@ -1828,4 +1828,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // V641 (3): the owner's saved idea could not be found anywhere — the search box dropped the notes it was sent
+    name: 'search-box-shows-no-notes',
+    breaks: ['e2e:tests/e2e/search-finds-every-kind-of-note.spec.ts'],
+    expect: 'all five are found',
+    edits: [
+      {
+        file: 'src/ui/shell/CommandPalette.tsx',
+        find: '            notes: ((a as { notes?: NoteHit[] } | null)?.notes ?? []).slice(0, 8),\n',
+        replace: '            notes: [],\n',
+      },
+    ],
+  },
 ];
