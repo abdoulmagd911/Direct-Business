@@ -44,6 +44,10 @@ describe('the bell in words', () => {
     expect(line).toContain('Theme');
     expect(line).not.toContain('Id');
   });
+  it('still reads a plain field as "changed Status on <record>"', () => {
+    const line = bellLine(note({ fields: ['status'], entity: 'task', title: 'TSK-1 · Visa call' }), say('en'), 'en');
+    expect(line).toBe('Ahmed changed Status on TSK-1 · Visa call');
+  });
   it('reads in Arabic too', () => {
     expect(bellLine(note({}), say('ar'), 'ar')).toContain('أحمد');
   });
