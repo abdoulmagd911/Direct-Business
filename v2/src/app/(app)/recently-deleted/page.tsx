@@ -3,6 +3,7 @@ import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail } from '@/modules/org/read-or-fail';
 import { avatarOf, type OrgAnswer } from '@/modules/org/types';
+import { withRestorable } from '@/modules/settings/restorable';
 import { RecentlyDeleted, type DeletedRow } from '@/modules/settings/screens/RecentlyDeleted';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
@@ -34,7 +35,7 @@ export default async function RecentlyDeletedPage() {
           message={t('state.failed', { what: t('recentlyDeleted.title') })}
         />
       ) : (
-        <RecentlyDeleted rows={rows ?? []} people={people} />
+        <RecentlyDeleted rows={await withRestorable(rows ?? [])} people={people} />
       )}
     </Page>
   );

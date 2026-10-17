@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/command';
 import { clip, formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
@@ -11,6 +12,7 @@ import { cn } from '@/ui/cn';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
+import { isAdmin } from '@/ui/shell/nav';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
 import { CAPTURE_KINDS, type CaptureKind } from '../quick-capture';
@@ -54,6 +56,9 @@ export function MyDay({ data }: { data: MyDayData }) {
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
   const { scope, answer, all, kind } = data;
+  const me = useMaybeMe();
+  // V642: an admin sees every shared note, so for them empty means nobody has shared one
+  const seesAll = !!me && isAdmin(me);
   const [wrapping, setWrapping] = useState(false);
   // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
   const done = (r: PendingReminder) =>
@@ -175,7 +180,14 @@ export function MyDay({ data }: { data: MyDayData }) {
             ))}
           </ul>
         ) : (
-          <DataState kind="empty" message={kind ? t('pages.myDay.empty.kind') : t(`pages.myDay.empty.${scope}`)} />
+          <DataState
+            kind="empty"
+            message={
+              kind
+                ? t('pages.myDay.empty.kind')
+                : t(`pages.myDay.empty.${seesAll && scope !== 'me' ? `${scope}All` : scope}`)
+            }
+          />
         )}
         {more ? (
           <div className="border-t border-border py-2.5">

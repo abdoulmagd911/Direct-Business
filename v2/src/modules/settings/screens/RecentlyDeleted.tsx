@@ -18,6 +18,8 @@ export type DeletedRow = {
   deleted_at: string;
   deleted_by: string | null;
   reason: string | null;
+  /** QA-576: false when this person may not restore it; absent when it was not asked (the button stays). */
+  can_restore?: boolean;
 };
 
 /**
@@ -77,9 +79,11 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
                       .join(' · ')}
                   </span>
                 </span>
-                <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
-                  {t('activity.deleted.restore')}
-                </Button>
+                {d.can_restore === false ? null : (
+                  <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
+                    {t('activity.deleted.restore')}
+                  </Button>
+                )}
               </li>
             );
           })}
