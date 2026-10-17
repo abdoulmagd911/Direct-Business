@@ -1290,7 +1290,8 @@
     "password": {
       "change": "Change password",
       "changed": "Password changed"
-    }
+    },
+    "densityHint": "Comfortable gives more room; Compact fits more rows on the screen."
   },
   "settings": {
     "title": "Settings",
