@@ -182,6 +182,7 @@ export type Database = {
         Returns: Json;
       };
       finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_credit_split_set: { Args: { p_invoice: string; p_note: string; p_shares: Json }; Returns: Json };
       finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       finance_difference_counts: {
         Args: Record<PropertyKey, never>;
@@ -312,7 +313,7 @@ export type Database = {
       };
       list_usage: { Args: { p_id: string; p_list: string }; Returns: Json };
       match_decide: {
-        Args: { p_decision: string; p_key: string; p_partner?: string; p_reason?: string };
+        Args: { p_decision: string; p_key: string; p_options?: Json; p_partner?: string; p_reason?: string };
         Returns: Json;
       };
       match_pin_clear: { Args: { p_id: string; p_reason?: string }; Returns: Json };

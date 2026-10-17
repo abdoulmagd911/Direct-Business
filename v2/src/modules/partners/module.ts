@@ -114,6 +114,18 @@ export default defineModule({
       default: { prefix: 'DK-P', width: 4 },
     },
     {
+      // §3.5: the order the money match tries an invoice's clues in; the first level that finds anyone decides. A
+      // client ID nobody holds stops the match whatever the order (V420); a typed alias acts only without one (V412).
+      key: 'partner.match_order',
+      group: 'settings.partners',
+      label: 'setting.partner.match_order',
+      schema: z
+        .array(z.enum(['client_id', 'tax_no', 'code', 'email', 'phone', 'alias']))
+        .length(6)
+        .refine((a) => new Set(a).size === 6, 'each level once'),
+      default: ['client_id', 'tax_no', 'code', 'email', 'phone', 'alias'],
+    },
+    {
       key: 'partner.name_stop_words',
       group: 'settings.partners',
       label: 'setting.partner.name_stop_words',
