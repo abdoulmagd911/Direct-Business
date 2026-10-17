@@ -75,8 +75,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '    const v = draft.trim();\n    if (v === value) return;',
-        replace: "    const v = draft.trim() || placeholder || '';\n    if (v === value) return;",
+        find: '    const v = draft.trim();\n    if (v === value || busy) return;',
+        replace: "    const v = draft.trim() || placeholder || '';\n    if (v === value || busy) return;",
       },
     ],
   },

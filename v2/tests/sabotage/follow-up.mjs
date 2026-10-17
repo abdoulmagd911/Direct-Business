@@ -26,7 +26,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskRecord.tsx',
-        find: "      <FollowUpButton about={{ entity: 'task', id: task.id, label: `${task.number} · ${task.title}` }} />\n",
+        find: '      <FollowUpButton about={follow} className="max-sm:hidden" />\n',
         replace: '',
       },
     ],

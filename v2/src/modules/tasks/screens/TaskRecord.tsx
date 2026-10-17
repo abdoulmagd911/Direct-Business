@@ -1,5 +1,5 @@
 'use client';
-import { Check, Pencil } from 'lucide-react';
+import { AlarmClockPlus, Check, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
@@ -93,6 +94,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // Mark done stays the one main action (V630). Follow up is a visible action for anyone who sees the task — a private
   // Reminder about it (V632 Stage 2, V282; the oversight's walk of 14 Oct). Escalate (V401) sits in the ⋯ menu, for
   // whoever may change an open task.
+  const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
+  const escalatable = task.can_edit && !closed;
   const actions = (
     <>
       {task.can_edit && !closed && move.markDone ? (
@@ -106,26 +109,41 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('pages.tasks.markDoneShort')}
         </Button>
       ) : null}
+      {/* On a phone the row holds Done and the ⋯ only: Edit and Follow up go behind the dots (V641, V633), since four
+          buttons do not fit one row at 375 px and the dots would sit alone on a second one. */}
       {task.can_edit ? (
-        <Button icon={<Pencil />} onClick={() => setEditing(true)}>
+        <Button icon={<Pencil />} className="max-sm:hidden" onClick={() => setEditing(true)} data-edit-task-open>
           {t('common.edit')}
         </Button>
       ) : null}
-      <FollowUpButton about={{ entity: 'task', id: task.id, label: `${task.number} · ${task.title}` }} />
-      {task.can_edit && !closed ? (
-        <Menu>
-          <MenuTrigger asChild>
-            <Button aria-label={t('common.more')} data-task-more>
-              ⋯
-            </Button>
-          </MenuTrigger>
-          <MenuContent>
+      <FollowUpButton about={follow} className="max-sm:hidden" />
+      <Menu>
+        <MenuTrigger asChild>
+          <Button aria-label={t('common.more')} className={escalatable ? undefined : 'sm:hidden'} data-task-more>
+            ⋯
+          </Button>
+        </MenuTrigger>
+        <MenuContent>
+          {task.can_edit ? (
+            <MenuItem icon={<Pencil />} className="sm:hidden" onSelect={() => setEditing(true)} data-menu-edit>
+              {t('common.edit')}
+            </MenuItem>
+          ) : null}
+          <MenuItem
+            icon={<AlarmClockPlus />}
+            className="sm:hidden"
+            onSelect={() => openQuickCapture({ about: follow })}
+            data-menu-follow-up
+          >
+            {t('record.followUp')}
+          </MenuItem>
+          {escalatable ? (
             <MenuItem onSelect={() => setEscalating(true)} data-escalate-open>
               {t('pages.tasks.escalate.open')}
             </MenuItem>
-          </MenuContent>
-        </Menu>
-      ) : null}
+          ) : null}
+        </MenuContent>
+      </Menu>
       {task.can_edit ? move.dialogs : null}
     </>
   );

@@ -87,7 +87,11 @@ export function RecordPage({
               {chips ? <div className="flex flex-wrap items-center gap-1.5 pt-1">{chips}</div> : null}
             </div>
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          {actions ? (
+            <div className="flex flex-wrap items-center gap-2" data-record-actions>
+              {actions}
+            </div>
+          ) : null}
         </div>
         {figures?.length ? (
           <KeyFigures

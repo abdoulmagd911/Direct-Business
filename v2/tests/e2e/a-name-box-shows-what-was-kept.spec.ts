@@ -34,9 +34,9 @@ for (const size of [
     await ar.press('Enter');
     await expect(page.getByText('Profile saved').first()).toBeVisible();
     await expect(ar, 'the box shows what was kept: nothing').toHaveValue('');
-    // once more, leaving the box with Tab as a person does: the stored name is already empty, so nothing changes
+    // once more, saved with Enter: the stored name is already empty, so the box goes back to empty
     await ar.fill(me.email);
-    await ar.press('Tab');
+    await ar.press('Enter');
     await expect(page.getByText('Profile saved').first()).toBeVisible();
     await expect(ar, 'a second try is not kept either').toHaveValue('');
 
