@@ -18,6 +18,19 @@ export const sabotages = [
     ],
   },
   {
+    // 1 (V286): /tasks/new redirects again, so nothing shows until a second trip to the server has come back
+    name: 'new-task-page-redirects-first',
+    breaks: [E2E],
+    expect: 'the first answer is the page itself, not a redirect',
+    edits: [
+      {
+        file: 'src/app/(app)/tasks/new/page.tsx',
+        find: "  return TasksPage({ searchParams: Promise.resolve({ ...params, new: '1' }) });",
+        replace: "  void params;\n  return (await import('next/navigation')).redirect('/tasks?new=1');",
+      },
+    ],
+  },
+  {
     // 1: after saving, the address keeps the empty form's, so Back and refresh reopen it
     name: 'new-task-keeps-the-form-address',
     breaks: [E2E],
@@ -25,7 +38,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: "closedOnAddress.current = url.searchParams.has('new');",
+        find: 'closedOnAddress.current = byAddress;',
         replace: 'closedOnAddress.current = false;',
       },
     ],
@@ -38,8 +51,36 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: "closedOnAddress.current = url.searchParams.has('new');",
-        replace: "closedOnAddress.current = closedOnAddress.current || url.searchParams.has('new');",
+        find: 'closedOnAddress.current = byAddress;',
+        replace: 'closedOnAddress.current = closedOnAddress.current || byAddress;',
+      },
+    ],
+  },
+  {
+    // the Architect's ruling of 15 Oct: Action items has its tab, so no key figure repeats it
+    name: 'task-figures-repeat-the-action-items',
+    breaks: [E2E],
+    expect: 'no figure repeats the action items',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskRecord.tsx',
+        find: "  const figures: KeyFigure[] = [\n    { key: 'due',",
+        replace:
+          "  const figures: KeyFigure[] = [\n    { key: 'items', label: t('pages.tasks.tabs.items'), value: String(task.action_items.length) },\n    { key: 'due',",
+      },
+    ],
+  },
+  {
+    // the Architect's ruling of 15 Oct: Due is a key figure, so Details does not repeat it
+    name: 'task-details-repeat-the-due-day',
+    breaks: [E2E],
+    expect: 'Details does not repeat the due day',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskRecord.tsx',
+        find: "      <RailField label={t('pages.tasks.fields.start')}",
+        replace:
+          "      <RailField label={t('pages.tasks.fields.due')}>{date(task.due_on)}</RailField>\n      <RailField label={t('pages.tasks.fields.start')}",
       },
     ],
   },

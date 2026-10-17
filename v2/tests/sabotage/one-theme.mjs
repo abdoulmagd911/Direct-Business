@@ -22,8 +22,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default, { cache: true });",
-        replace: "setPref('theme', me.profile?.theme ?? PREF_DEFS.theme.default);",
+        find: "setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default, { cache: true });",
+        replace: "setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default);",
       },
       {
         file: 'src/core/prefs/effective.ts',
@@ -53,6 +53,30 @@ export const sabotages = [
         file: 'src/modules/org/screens/MyProfile.tsx',
         find: "onSave={(v) => saveName('display_name_ar', v)}",
         replace: "onSave={(v) => saveName('display_name_en', v)}",
+      },
+    ],
+  },
+  {
+    name: 'name-boxes-have-no-grey-words',
+    breaks: [NAMES],
+    expect: "an empty name box shows the header's name in grey",
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '          placeholder={placeholder}\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'name-grey-words-are-saved-as-a-name',
+    breaks: [NAMES],
+    expect: "an empty name box shows the header's name in grey and saves nothing",
+    edits: [
+      {
+        file: 'src/modules/org/screens/MyProfile.tsx',
+        find: '    const v = draft.trim();\n    if (v === value) return;',
+        replace: "    const v = draft.trim() || placeholder || '';\n    if (v === value) return;",
       },
     ],
   },

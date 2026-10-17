@@ -8,7 +8,9 @@ import {
   ownChoice,
   prefsFrom,
   readPrefs,
+  readTheme,
   setPref,
+  THEMES,
 } from '@/core/prefs';
 import { serverPrefs } from '@/core/prefs/effective';
 import type { AppSettings } from '@/core/settings/app';
@@ -19,9 +21,9 @@ describe('core/prefs — the only browser storage (A13)', () => {
     document.cookie = `${SYNCED_COOKIE}=; max-age=0; path=/`;
   });
 
-  it('defaults: Direct theme, comfortable, pinned, English, automatic direction', () => {
+  it('defaults: Light theme, comfortable, pinned, English, automatic direction', () => {
     expect(prefsFrom(() => undefined)).toEqual({
-      theme: 'direct',
+      theme: 'light',
       density: 'comfortable',
       drawer: 'pinned',
       locale: 'en',
@@ -30,7 +32,7 @@ describe('core/prefs — the only browser storage (A13)', () => {
   });
 
   it('an unknown value falls back to the default instead of leaking into the page', () => {
-    expect(prefsFrom((n) => (n === 'v2.theme' ? 'neon' : undefined)).theme).toBe('direct');
+    expect(prefsFrom((n) => (n === 'v2.theme' ? 'neon' : undefined)).theme).toBe('light');
   });
 
   it('setPref refuses a value outside the allow-list', () => {
@@ -69,7 +71,7 @@ describe('core/prefs — the only browser storage (A13)', () => {
       default_start_page: null,
     };
     expect(serverPrefs(me, app, get).theme, 'the profile beats the cache').toBe('light');
-    setPref('theme', 'colorful');
+    setPref('theme', 'direct');
     expect(ownChoice('theme', get), 'a value written as a choice is still only a cookie').toBe(true);
     expect(
       serverPrefs(me, app, get).theme,
@@ -78,7 +80,41 @@ describe('core/prefs — the only browser storage (A13)', () => {
     const noProfile = { profile: null } as never;
     expect(serverPrefs(noProfile, app, get).theme, 'no profile: the admin default').toBe('dark');
     expect(serverPrefs(null, app, get).theme, 'at the door nobody has a profile: this browser’s own value stands').toBe(
-      'colorful',
+      'direct',
     );
+  });
+});
+
+describe('three themes: Light, Dark and Direct (V636, owner 14 Oct)', () => {
+  const app = (theme: 'light' | 'dark' | 'direct') =>
+    ({
+      arabic_enabled: false,
+      default_theme: theme,
+      default_density: 'comfortable',
+      default_start_page: null,
+    }) as never;
+
+  it('offers exactly Light, Dark and Direct, and the registry default is Light', () => {
+    expect([...THEMES]).toEqual(['light', 'dark', 'direct']);
+    expect(PREF_DEFS.theme.default).toBe('light');
+  });
+
+  it('a theme saved while Colorful was offered reads as Light, and nothing else changes', () => {
+    expect(readTheme('colorful')).toBe('light');
+    expect(readTheme('dark')).toBe('dark');
+    expect(readTheme('direct')).toBe('direct');
+    expect(readTheme('neon')).toBeNull();
+    expect(readTheme(null)).toBeNull();
+  });
+
+  it('a signed-in person whose saved theme is colorful is served Light, whatever the admin default is', () => {
+    const get = () => undefined;
+    const me = { profile: { theme: 'colorful', density: null, locale: null } } as never;
+    expect(serverPrefs(me, app('dark'), get).theme).toBe('light');
+  });
+
+  it('a browser cookie holding colorful is no theme at the door either: it reads as the default', () => {
+    const get = (n: string) => (n === 'v2.theme' ? 'colorful' : undefined);
+    expect(prefsFrom(get).theme).toBe('light');
   });
 });

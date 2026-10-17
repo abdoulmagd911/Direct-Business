@@ -44,7 +44,7 @@ export function AchievementList({
   const filtered = Object.values(filter).some(Boolean);
   const top = categories.filter((c) => !c.parent_id);
   const options = [
-    { value: ALL, label: t('filters.all') },
+    { value: ALL, label: t('filters.allCategories') },
     ...categories.map((c) => ({
       value: c.code,
       label: (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en),
@@ -53,7 +53,6 @@ export function AchievementList({
   return (
     <>
       <PageHeader
-        crumbs={[{ label: tc('nav.kpis'), href: '/kpis' }]}
         title={t('title')}
         meta={page ? String(page.total) : undefined}
         actions={

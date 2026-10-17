@@ -32,7 +32,7 @@ import { whenLine } from './WhenPicker';
  * top bar with the reminder's words (a tap opens the item), Done and Snooze (Later today · Tomorrow · Next week, the
  * same answers as the When chips). It is the bell's item and the same one: Done marks it read, Snooze moves the
  * reminder and puts the old alert away, so either place clears both. One timer, set from the next reminder's time (no
- * polling); live through Realtime where the deployment has it. It sits at the top, so it never covers the floating +,
+ * polling); live through Realtime where the deployment has it. It sits at the top, so it never covers the bottom bar's Create,
  * and it never takes focus. A browser notification is shown too when the person has allowed them and the tab is in the
  * background — once per reminder, only while the app is open in a tab (no server push).
  */

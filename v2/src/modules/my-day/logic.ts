@@ -49,6 +49,14 @@ export function checklistCount(n: Pick<MyNote, 'items'>): { done: number; total:
   return { done: n.items.filter((i) => i.done).length, total: n.items.length };
 }
 
+/**
+ * The count on a checklist's card: the action items of the task it became when it made some (they are what gets ticked
+ * once it is a task), else its own rows.
+ */
+export function cardCount(n: Pick<MyNote, 'items' | 'task_items'>): { done: number; total: number } {
+  return n.task_items?.total ? n.task_items : checklistCount(n);
+}
+
 /** Where a "turned into" chip leads: a logged call or meeting opens its organisation's record; a reminder has no page. */
 export function linkRoute(link: NoteLink): string | null {
   // the call a note became is a line of the organisation's Activity: the chip opens it there

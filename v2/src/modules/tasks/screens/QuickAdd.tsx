@@ -5,7 +5,6 @@ import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
-import { Checkbox } from '@/ui/Checkbox';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -21,6 +20,7 @@ import {
   type QuickAddInput,
 } from '../rules';
 import type { NamePick } from '../types';
+import { DueDayPicker } from './DueDayPicker';
 import { useCommandWords } from './words';
 
 const NONE = '__none';
@@ -99,9 +99,9 @@ export function QuickAddForm({
   const words = useCommandWords();
   const [f, setF] = useState<QuickAddInput>({ title: '', ...initial });
   const [error, setError] = useState<string | undefined>();
+  const [dueError, setDueError] = useState<string | undefined>();
   const [ownerError, setOwnerError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  const [withItems, setWithItems] = useState(false);
   const canAssign = me.capabilities.includes('tasks.assign');
   const locale = useLocale() as 'en' | 'ar';
   const pick = (x: NamePick) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
@@ -120,7 +120,9 @@ export function QuickAddForm({
     const r = quickAddValues(f, me.person.id, { ownerRequired });
     if ('error' in r) {
       const said = t(`pages.tasks.add.${r.error}`, { max: TITLE_MAX });
+      // each error is said under its own field: a Due error never under Title (V286)
       if (r.error === 'owner_required') setOwnerError(said);
+      else if (r.error === 'due_invalid') setDueError(said);
       else setError(said);
       return;
     }
@@ -132,7 +134,8 @@ export function QuickAddForm({
           ? rpc('note_turn_into', {
               p_note: fromNote.id,
               p_kind: 'task',
-              p_values: { ...r.values, ...(withItems ? { action_items: true } : {}) } as never,
+              // a checklist's items always become the task's action items, never lines in its notes (V287)
+              p_values: { ...r.values, ...(fromNote.hasItems ? { action_items: true } : {}) } as never,
             })
           : rpc('task_create', { p_values: r.values as never })) as Promise<{
           id: string;
@@ -210,14 +213,17 @@ export function QuickAddForm({
           }
         </Field>
       ) : null}
-      <Field label={t('pages.tasks.fields.due')}>
+      <Field label={t('pages.tasks.fields.due')} error={dueError}>
         {(p) => (
-          <Input
-            {...p}
-            type="date"
-            value={f.due ?? ''}
-            onChange={(e) => setF({ ...f, due: e.target.value || undefined })}
-            name="due"
+          <DueDayPicker
+            id={p.id}
+            describedBy={p['aria-describedby']}
+            invalid={p['aria-invalid']}
+            value={f.due}
+            onChange={(due) => {
+              setDueError(undefined);
+              setF({ ...f, due });
+            }}
           />
         )}
       </Field>
@@ -250,12 +256,6 @@ export function QuickAddForm({
             />
           )}
         </Field>
-      ) : null}
-      {fromNote?.hasItems ? (
-        <label className="flex items-center gap-2 text-base" data-with-items>
-          <Checkbox checked={withItems} onCheckedChange={setWithItems} label={t('pages.myDay.turn.withItems')} />
-          {t('pages.myDay.turn.withItems')}
-        </label>
       ) : null}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>

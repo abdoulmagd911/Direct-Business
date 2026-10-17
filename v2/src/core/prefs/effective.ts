@@ -1,6 +1,6 @@
 import type { Me } from '@/core/auth/me';
 import type { AppSettings } from '@/core/settings/app';
-import { ownChoice, prefsFrom, type Prefs } from './index';
+import { ownChoice, prefsFrom, readTheme, type Prefs } from './index';
 
 /**
  * What the screen should show for a signed-in person (ACC-090/091/139): their own profile choice first, then the
@@ -13,7 +13,7 @@ export function effectivePrefs(
   cookies: Prefs,
 ): Pick<Prefs, 'theme' | 'density' | 'locale'> {
   const profile = me?.profile ?? null;
-  const theme = profile?.theme ?? app.default_theme;
+  const theme = readTheme(profile?.theme) ?? app.default_theme;
   const density = profile?.density ?? app.default_density;
   const wanted = profile?.locale ?? cookies.locale;
   const locale = app.arabic_enabled ? wanted : 'en';

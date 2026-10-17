@@ -68,14 +68,14 @@ async function taskIn(department: string, owner: string, title: string): Promise
   return number;
 }
 
-/** Adds a task the way the screen offers it: the header's Add task on a wide screen, the floating + on a phone (V630). */
+/** Adds a task the way the screen offers it: the header's Add task on a wide screen, Create in the bar on a phone (V630, V383). */
 async function openAdd(page: Page): Promise<'header' | 'plus'> {
   const header = page.locator('[data-add-task]');
   if (await header.isVisible()) {
     await header.click();
     return 'header';
   }
-  await page.locator('[data-create-floating]').click();
+  await page.locator('[data-create-bar]').click();
   const item = page.locator('[data-create-item="task"]');
   await item.waitFor({ state: 'visible', timeout: 2000 }).then(
     () => item.click(),

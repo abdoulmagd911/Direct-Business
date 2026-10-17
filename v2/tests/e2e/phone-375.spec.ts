@@ -196,8 +196,8 @@ test('phone 375: New client says what it needs before Save can be pressed', asyn
   await page.setViewportSize(PHONE);
   await signIn(page, admin.email, '/clients');
   await hydrated(page);
-  // On a phone the one add action is the floating + (V630); the header button is not drawn.
-  await page.locator('[data-create-floating]').click();
+  // On a phone the one add action is Create in the bar (V630, V383); the header button is not drawn.
+  await page.locator('[data-create-bar]').click();
   await page.locator('[data-create-item="client"]').click();
   const form = page.locator('[data-partner-form]');
   await expect(page.locator('[data-partner-save]'), 'Save is off until the form is whole').toBeDisabled();

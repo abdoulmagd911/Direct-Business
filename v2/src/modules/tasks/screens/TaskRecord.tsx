@@ -3,6 +3,7 @@ import { Check, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
@@ -25,7 +26,9 @@ import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView } from '../rule
 import type { TaskDetail } from '../types';
 import { Checklist } from './Checklist';
 import { Escalate } from './Escalate';
+import { DATE_MAX } from './DueDayPicker';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
+import { HelpersField, OwnerPicker } from './TaskPeople';
 import { useCommandWords, useNames } from './words';
 
 export type TaskRecordData = { task: TaskDetail; tab: string; history: HistoryRow[] | null; lookups: TaskLookups };
@@ -39,6 +42,7 @@ const TABS = ['overview', 'activity', 'related', 'items'] as const;
 export function TaskRecord({ data }: { data: TaskRecordData }) {
   const t = useTranslations();
   const router = useRouter();
+  const me = useMe();
   const { task, history, lookups } = data;
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
@@ -47,6 +51,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const due = dueState(task, today);
   const closed = task.meaning === 'done' || task.meaning === 'cancelled';
   const move = useStatusMove(task, lookups.statuses);
+  // Details' pickers (V287): helpers by whoever may edit the task, the owner by whoever gives work (`tasks.assign`)
+  const mayHelp = task.can_edit && !closed;
+  const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
   // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
@@ -61,14 +68,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
     : task.partner_id
       ? names.partner(task.partner_id)
       : '';
-  const openItems = task.action_items.filter((i) => !i.done_on).length;
-
+  // Action items have their own tab (with its count), so no figure repeats them; Due is a figure, not a Details line
   const figures: KeyFigure[] = [
-    {
-      key: 'items',
-      label: t('pages.tasks.tabs.items'),
-      value: t('pages.tasks.items.figure', { open: openItems, total: task.action_items.length }),
-    },
     { key: 'due', label: t('pages.tasks.fields.due'), value: task.due_on ? date(task.due_on) : '—' },
     {
       key: 'last',
@@ -134,12 +135,19 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       <RailField label={t('pages.tasks.fields.status')}>
         <StatusChip tone={STATUS_TONE[view]}>{statusLabel}</StatusChip>
       </RailField>
-      <RailField label={t('pages.tasks.fields.owner')}>{names.person(task.owner_id)}</RailField>
-      <RailField label={t('pages.tasks.fields.helpers')} empty={!task.helpers.length} add={<span>—</span>}>
-        {task.helpers.map((h) => names.person(h)).join(', ')}
+      <RailField label={t('pages.tasks.fields.owner')}>
+        {mayAssign ? (
+          <OwnerPicker task={task} people={lookups.org?.people ?? []} locale={names.locale} />
+        ) : (
+          names.person(task.owner_id)
+        )}
       </RailField>
-      <RailField label={t('pages.tasks.fields.due')} empty={!task.due_on} add={<span>—</span>}>
-        {date(task.due_on)}
+      <RailField label={t('pages.tasks.fields.helpers')} empty={!mayHelp && !task.helpers.length} add={<span>—</span>}>
+        {mayHelp ? (
+          <HelpersField task={task} people={lookups.org?.people ?? []} locale={names.locale} />
+        ) : (
+          task.helpers.map((h) => names.person(h)).join(', ')
+        )}
       </RailField>
       <RailField label={t('pages.tasks.fields.start')} empty={!task.start_on} add={<span>—</span>}>
         {date(task.start_on)}
@@ -342,6 +350,7 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
           <Input
             {...p}
             type="date"
+            max={DATE_MAX}
             value={f.due_on}
             onChange={(e) => setF({ ...f, due_on: e.target.value })}
             name="due"

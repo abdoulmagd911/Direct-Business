@@ -58,7 +58,10 @@ for (const w of WIDTHS) {
     await hydrated(page);
 
     // the page's first bytes already carry the loading state, before the list is read
-    const html = await (await page.request.get('/tasks/new')).text();
+    // the first answer is the page itself, never a redirect that costs a second trip before anything shows (V286)
+    const first = await page.request.get('/tasks/new', { maxRedirects: 0 });
+    expect(first.status(), 'the first answer is the page itself, not a redirect').toBe(200);
+    const html = await first.text();
     expect(html, 'the loading state is in the first answer, not a blank page').toContain('data-tasks-loading');
 
     await page.goto('/tasks/new');
@@ -75,6 +78,33 @@ for (const w of WIDTHS) {
     await hydrated(page);
     await expect(page.locator('form[data-quick-add]'), 'a refresh never reopens the empty form').toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await ctx.close();
+  });
+
+  test(`${w.name}: the task page shows Due once, as a figure, and its action items only on their tab`, async ({
+    browser,
+  }) => {
+    const member = await memberWithTeam();
+    const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
+    const page = await ctx.newPage();
+    await signIn(page, member.email, '/my-day');
+    await hydrated(page);
+    const title = `Made-up details task ${randomUUID().slice(0, 6)}`;
+    const r = await callAs(ctx, 'task_create', { p_values: { title } });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    const { number } = r.body as { number: string };
+
+    await page.goto(`/tasks/${number}`);
+    await hydrated(page);
+    const figures = page.locator('[data-key-figures]');
+    await expect(figures, 'Due is a key figure').toContainText('Due');
+    await expect(figures, 'no figure repeats the action items').not.toContainText('Action items');
+    await expect(
+      page.locator('[data-record-rail] dt', { hasText: /^Due$/ }),
+      'Details does not repeat the due day',
+    ).toHaveCount(0);
+    await expect(page.locator('[data-record-rail]'), 'Details keeps its other fields').toContainText('Owner');
+    await expect(page.getByRole('link', { name: /Action items/ }), 'the Action items tab stays').toBeVisible();
     await ctx.close();
   });
 

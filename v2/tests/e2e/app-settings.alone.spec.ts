@@ -5,7 +5,7 @@
  * others (playwright.config.ts, the `alone` project). Every value is made up.
  *
  * QA-556 lives here too: New invoice is offered at the three doors (the desktop Create menu, Ctrl K and the phone's
- * floating +) to a person with Full on Finance, who lands on /finance/new, and to nobody with Finance at View — each in
+ * phone's Create) to a person with Full on Finance, who lands on /finance/new, and to nobody with Finance at View — each in
  * English and in Arabic. It needs Arabic on, so it belongs with the other tests that switch it, in the one file: two
  * files of the `alone` project may run at the same moment, and two of them switching Arabic would meet.
  * Sabotage: tests/sabotage/qa556.mjs "finance-page-not-built".
@@ -42,6 +42,12 @@ test("the admin's default start page applies to a person without their own (ACC-
 test("the admin's default theme and density apply to a person without their own (ACC-090)", async ({ page }) => {
   const admin = await makePerson({ admin: true });
   const member = await makePerson();
+  // the registry sync (V636) wrote the new Light default dated today; the admin's value below is dated today too, so the
+  // sync's row is put away first and the admin's value is the one in force, as it is when an admin changes it later
+  await sql(
+    `update core.setting set deleted_at = now(), delete_reason = 'made-up test'
+      where key = 'app.default_theme' and reason = 'default' and valid_from > date '2000-01-01' and deleted_at is null`,
+  );
   await sql(
     `insert into core.setting (key, value, valid_from, reason, created_by) values
        ('app.default_theme', '"dark"'::jsonb, current_date, 'Made-up reason', $1),
@@ -159,11 +165,11 @@ for (const code of ['en', 'ar'] as const) {
       await option.click();
       await expect(page).toHaveURL(/\/finance\/new$/);
 
-      // 3 · the phone's floating +
+      // 3 · the phone's Create
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto('/my-day');
       await hydrated(page);
-      await page.locator('[data-create-floating]').click();
+      await page.locator('[data-create-bar]').click();
       const phoneItem = page.locator('[data-create-item="invoice"]');
       await expect(phoneItem, 'the + offers Invoice').toBeVisible();
       await phoneItem.click();
@@ -205,9 +211,49 @@ for (const code of ['en', 'ar'] as const) {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto('/my-day');
       await hydrated(page);
-      await page.locator('[data-create-floating]').click();
+      await page.locator('[data-create-bar]').click();
       await expect(page.locator('[data-create-item="client"]'), 'the + still offers other items').toBeVisible();
       await expect(page.locator('[data-create-item="invoice"]'), 'no Invoice in the +').toHaveCount(0);
+    });
+  });
+
+  // Create is the bar's last slot on a phone (the architect's ruling of 15 Oct, option C): with six slots at 375 px,
+  // each is still a 44 px target and every word fits whole, in each language
+  test(`in ${code} at 375 px: an admin's bar holds six slots, Create last, each at least 44 px wide with its label whole`, async ({
+    page,
+    context,
+  }) => {
+    await withArabic(async () => {
+      const admin = await makePerson({ admin: true });
+      await page.setViewportSize({ width: 375, height: 800 });
+      await signIn(page, admin.email, '/my-day');
+      await hydrated(page);
+      await setPrefs(context, { locale: code });
+      await page.goto('/my-day');
+      await hydrated(page);
+      await expect(page.locator('html')).toHaveAttribute('lang', code);
+      const slots = await page.locator('[data-bottom-bar] > a, [data-bottom-bar] > button').evaluateAll((els) =>
+        els.map((el) => {
+          const label = [...el.querySelectorAll('span')].at(-1)!;
+          return {
+            text: label.textContent,
+            width: el.getBoundingClientRect().width,
+            cut: label.scrollWidth > label.clientWidth,
+            create: el.hasAttribute('data-create-bar'),
+          };
+        }),
+      );
+      expect(slots.length, 'six slots on a phone').toBe(6);
+      expect(slots.at(-1)!.create, 'Create is the last slot').toBe(true);
+      expect(slots.at(-1)!.text).toBe(create);
+      for (const s of slots) {
+        expect(s.width, `${s.text} is at least 44 px wide`).toBeGreaterThanOrEqual(44);
+        expect(s.cut, `${s.text} is not cut`).toBe(false);
+      }
+      // the desktop keeps Create in the top bar
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await expect(page.locator('[data-create]')).toBeVisible();
+      await expect(page.locator('[data-bottom-bar]')).toBeHidden();
     });
   });
 }

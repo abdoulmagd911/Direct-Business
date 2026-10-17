@@ -29,14 +29,14 @@ test('one add control per width: Create on a PC, the + on a phone, and both open
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
   await expect(page.locator('[data-create]'), 'Create on a PC').toBeVisible();
-  await expect(page.locator('[data-create-floating]'), 'no + on a PC').toBeHidden();
+  await expect(page.locator('[data-create-bar]'), 'no + on a PC').toBeHidden();
   const wide = await menuItems(page, '[data-create]');
   expect(wide[0], 'Capture comes first').toBe('capture');
 
   await page.setViewportSize(PHONE);
-  await expect(page.locator('[data-create-floating]'), 'the + on a phone').toBeVisible();
+  await expect(page.locator('[data-create-bar]'), 'the + on a phone').toBeVisible();
   await expect(page.locator('[data-create]'), 'no Create on a phone').toBeHidden();
-  expect(await menuItems(page, '[data-create-floating]'), 'the + opens the same menu as Create').toEqual(wide);
+  expect(await menuItems(page, '[data-create-bar]'), 'the + opens the same menu as Create').toEqual(wide);
 });
 
 for (const size of [PHONE, PC]) {
@@ -50,6 +50,10 @@ for (const size of [PHONE, PC]) {
 
     await expect(page.locator('[data-capture-input]'), 'no note-only box').toHaveCount(0);
     await expect(page.locator('[data-capture-open]'), 'no Capture button of its own on My day').toHaveCount(0);
+    await expect(
+      page.locator('[data-state="empty"]', { hasText: 'No notes yet' }),
+      'the empty line points to the one add control',
+    ).toHaveText('No notes yet. Notes you capture with Create appear here.');
 
     await openCapture(page);
     await expect(page.locator('[data-quick-kind]'), 'five kinds').toHaveText([
@@ -67,7 +71,7 @@ for (const size of [PHONE, PC]) {
     const words = `One door ${size.width}`;
     await page.locator('[data-quick-text]').fill(words);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Note captured')).toBeVisible();
+    await expect(toast(page, 'Note saved')).toBeVisible();
     await expect(page, 'and the person is still on My day').toHaveURL(/\/my-day$/);
     await expect(page.locator('[data-my-note]', { hasText: words }), 'the note is in the list').toBeVisible();
   });
@@ -93,7 +97,7 @@ test('a Meeting captured from the sheet is a meeting note, still on My day, read
   await page.locator('[data-quick-kind="meeting"]').click();
   await page.locator('[data-quick-text]').fill('Kick-off with the made-up client');
   await page.locator('[data-quick-save]').click();
-  await expect(toast(page, 'Meeting captured')).toBeVisible();
+  await expect(toast(page, 'Meeting saved')).toBeVisible();
   const [row] = await sql<{ kind: string; visibility: string }>(
     `select kind, visibility from my.note where person_id = $1 and title = $2`,
     [me.id, 'Kick-off with the made-up client'],

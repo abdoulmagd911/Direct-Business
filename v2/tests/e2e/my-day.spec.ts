@@ -60,7 +60,7 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   );
   await input.fill(`Call Test Person about the offsite ${t}`);
   await page.locator('[data-quick-save]').click();
-  await expect(toast(page, 'Note captured')).toBeVisible();
+  await expect(toast(page, 'Note saved')).toBeVisible();
   const row = page.locator('[data-my-note]', { hasText: `offsite ${t}` });
   await expect(row).toBeVisible();
 
@@ -102,21 +102,22 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(page.locator('[data-note-links] [data-turned-into]')).toHaveCount(0);
 });
 
-test('a note becomes a task through the note door, with the checklist as action items only when asked; the chip opens the task', async ({
+test('a note becomes a task through the note door, its checklist always as action items and never as lines in the notes; the chip opens the task', async ({
   page,
 }) => {
   const member = await makePerson();
   await sameTeam([member]);
   const t = tag();
-  await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
 
-  const make = async (title: string, ask: boolean) => {
+  const make = async (title: string, body: string | undefined, width: number) => {
+    await page.setViewportSize({ width, height: 1000 });
     const r = await callAs(page.context(), 'note_capture', {
       p_kind: 'checklist',
       p_values: {
         title,
+        ...(body ? { body } : {}),
         visibility: 'private',
         items: [
           { text: `First step ${title}`, done: false },
@@ -131,20 +132,23 @@ test('a note becomes a task through the note door, with the checklist as action 
     await page.locator('[data-turn-kind="task"]').click();
     const form = page.locator('[data-quick-add]');
     await expect(form.getByLabel('Title'), "the note's title starts the task").toHaveValue(title);
-    if (ask) await form.locator('[data-with-items]').click();
+    await expect(form.locator('[data-with-items]'), 'nothing to ask: the items always come along').toHaveCount(0);
     await form.locator('[data-quick-add-save]').click();
     await expect(toast(page, 'added')).toBeVisible();
     const chip = page.locator('[data-note-links] [data-turned-into="task"]');
     await expect(chip, 'the note says it became a task').toContainText(title);
-    const [row] = await sql<{ id: string }>(`select id from work.task where title = $1`, [title]);
+    const [row] = await sql<{ id: string; notes: string | null }>(`select id, notes from work.task where title = $1`, [
+      title,
+    ]);
     const [n] = await sql<{ n: string }>(`select count(*)::text as n from work.action_item where task_id = $1`, [
       row!.id,
     ]);
-    return { chip, items: Number(n!.n) };
+    return { chip, items: Number(n!.n), notes: row!.notes };
   };
 
-  const asked = await make(`Plan the offsite ${t}`, true);
-  expect(asked.items, 'the checklist came along when asked').toBe(2);
+  const asked = await make(`Plan the offsite ${t}`, undefined, 1440);
+  expect(asked.items, 'the checklist came along as action items').toBe(2);
+  expect(asked.notes, 'the items are not written again into the notes').toBeNull();
   const itemChips = page.locator('[data-note-links] [data-turned-into="action_item"]');
   await expect(itemChips, 'each brought-along item has a chip').toHaveCount(2);
   await expect(itemChips.first(), 'it names the item, not a logged meeting').toContainText(/Action item on .* step/);
@@ -152,8 +156,9 @@ test('a note becomes a task through the note door, with the checklist as action 
   await asked.chip.click();
   await expect(page, 'the chip opens the task').toHaveURL(/\/tasks\/[^/]+$/);
 
-  const unasked = await make(`Book the venue ${t}`, false);
-  expect(unasked.items, 'unasked, the checklist stays on the note').toBe(0);
+  const worded = await make(`Book the venue ${t}`, `Made-up: budget agreed ${t}`, 375);
+  expect(worded.items, 'at 375 px too, the checklist came along as action items').toBe(2);
+  expect(worded.notes, "the notes keep the note's own words, with no item lines").toBe(`Made-up: budget agreed ${t}`);
 });
 
 test('no colleague reads a private note — not on any tab, not at its address, not an admin; a team note is under My team', async ({

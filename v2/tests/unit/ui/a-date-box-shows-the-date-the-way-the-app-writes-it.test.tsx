@@ -42,6 +42,17 @@ describe('a date box shows the date the way the app writes it', () => {
     expect(html).toContain('focus-visible:opacity-100');
     expect(html).toContain('peer-focus-visible:invisible');
   });
+  it('writes the date beside the real field the app writes it, shown only while the field has keyboard focus', () => {
+    const html = draw(<Input type="date" value="2026-10-21" onChange={() => undefined} />);
+    expect(html).toMatch(/data-date-echo[^>]*><span dir="auto">21 Oct 2026</);
+    expect(html, 'the chip itself keeps the box direction: only its words order themselves').not.toMatch(
+      /<p[^>]*dir="auto"[^>]*data-date-echo/,
+    );
+    expect(html).toMatch(/data-date-echo[^>]*class="[^"]*hidden [^"]*peer-focus-visible:block"/);
+    expect(draw(<Input type="date" value="" onChange={() => undefined} />)).toMatch(
+      /data-date-echo[^>]*><span dir="auto">—</,
+    );
+  });
   it('leaves every other input as it was', () => {
     const html = draw(<Input type="text" value="x" onChange={() => undefined} />);
     expect(html).not.toContain('data-date-box');

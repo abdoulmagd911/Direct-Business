@@ -22,7 +22,8 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
  * so the box shows the date the way the whole app writes it — `14 Oct 2026` — and the real date input sits invisibly
  * on top of it, keeping the label, the keyboard, the value (always `YYYY-MM-DD`, or `YYYY-MM-DDThh:mm` with a time)
  * and the native picker. While the field has keyboard focus the real input is shown and the written date hidden, so
- * a date typed by keyboard is seen as it goes in (QA-569).
+ * a date typed by keyboard is seen as it goes in (QA-569), and the date it holds is written beside it the app's way
+ * (`14 Oct 2026`), so a typed day can be checked against the way the app reads it.
  */
 const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
   { className, mono, placeholder, value, defaultValue, onChange, onClick, type, ...rest },
@@ -38,6 +39,11 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
     },
     [onChange],
   );
+  const written = !shown
+    ? '—'
+    : type === 'datetime-local'
+      ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
+      : formatDate(`${shown}T12:00:00+03:00`, locale);
   const open = (e: MouseEvent<HTMLInputElement>) => {
     onClick?.(e);
     try {
@@ -72,12 +78,19 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
           !shown && 'text-muted',
         )}
       >
-        {!shown
-          ? (placeholder ?? '—')
-          : type === 'datetime-local'
-            ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
-            : formatDate(`${shown}T12:00:00+03:00`, locale)}
+        {!shown ? (placeholder ?? '—') : written}
       </div>
+      {/* while the real field is up (keyboard focus) the date it holds is written in a chip just above its end, the app's
+          way, as it changes: out of the browser's own text (a box can be narrow, a time long, the page right to left) and
+          out of the flow, so nothing moves (a control just below would shift away from a click) */}
+      <p
+        aria-hidden="true"
+        data-date-echo
+        className="pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm text-muted shadow-2 peer-focus-visible:block"
+      >
+        {/* the chip keeps the box's own direction, so its end is the side away from the label; only its words order themselves */}
+        <span dir="auto">{written}</span>
+      </p>
     </div>
   );
 });

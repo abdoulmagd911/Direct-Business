@@ -171,7 +171,8 @@
         "backfilled": "بأثر رجعي",
         "past": "العمل السابق",
         "needsOwner": "بلا مالك",
-        "clear": "مسح"
+        "clear": "مسح",
+        "allCategories": "كل الفئات"
       },
       "cols": {
         "achievement": "الإنجاز",
@@ -293,7 +294,9 @@
       "fromNote": {
         "title": "إنجاز من ملاحظة",
         "noCategories": "لا توجد فئات لعام {year} بعد. يشرح «تسجيل إنجاز» كيف تفتح الخطة."
-      }
+      },
+      "valueNotNumber": "أدخل رقمًا",
+      "offerAction": "سجّل كإنجاز"
     },
     "myDay": {
       "adminAccount": "هذا حساب مسؤول النظام، وهو مخصّص للإعدادات. أما عملك أنت فعلى حسابك كموظف.",
@@ -325,7 +328,7 @@
       "more": "عرض الكل",
       "fewer": "عرض أقل",
       "empty": {
-        "me": "لا ملاحظات بعد. ما تدوّنه هنا يبقى لك حتى تشاركه.",
+        "me": "لا ملاحظات بعد. الملاحظات التي تدوّنها من «إنشاء» تظهر هنا.",
         "team": "لا شيء مشترك مع فريقك بعد.",
         "workspace": "لا شيء مشترك مع الجميع بعد."
       },
@@ -448,7 +451,7 @@
         },
         "when": "متى",
         "save": "تدوين",
-        "saved": "تم تدوين: {kind}",
+        "saved": "تم حفظ {kind}",
         "whenChips": {
           "later_today": "لاحقًا اليوم",
           "tomorrow": "غدًا",
@@ -461,7 +464,7 @@
         "followUpTitle": "متابعة",
         "followUpFor": "متابعة بشأن",
         "followUpPlaceholder": "ما الذي تتابعه",
-        "followUpSaved": "تم تحديد المتابعة",
+        "followUpSaved": "تم تحديد المتابعة - {title}",
         "passed": "هذا الوقت مضى"
       },
       "alert": {
@@ -558,11 +561,23 @@
         "title_required": "العنوان مطلوب",
         "title_too_long": "الحد الأقصى للأحرف: {max}",
         "due_invalid": "اختر تاريخًا",
+        "dueToday": "اليوم",
+        "dueClear": "مسح",
+        "duePlaceholder": "yyyy-mm-dd",
+        "dueCalendar": "اختر من التقويم",
         "owner_required": "اختر مالكًا"
       },
       "edit": {
         "title": "تعديل {number}",
         "saved": "تم حفظ {number}"
+      },
+      "people": {
+        "changeOwner": "تغيير المالك",
+        "ownerSaved": "أصبحت {number} مع {name}",
+        "helperAdd": "إضافة مساعد",
+        "helperAdded": "أصبح {name} يساعد في {number}",
+        "helperRemove": "إزالة {name}",
+        "helperRemoved": "لم يعد {name} يساعد في {number}"
       },
       "status": {
         "change": "الحالة: {status}. تغيير",
@@ -578,7 +593,6 @@
       },
       "items": {
         "count": "{open} مفتوح من {total}",
-        "figure": "{open} مفتوح من {total}",
         "empty": "لا بنود عمل",
         "new": "بند عمل جديد",
         "added": "أُضيف: {item}",
@@ -1379,7 +1393,14 @@
       },
       "timeline": "الملاحظات والأنشطة",
       "none": "لم يُسجَّل شيء بعد",
-      "by": "بواسطة {name}"
+      "by": "بواسطة {name}",
+      "need": {
+        "line": "اختر {list}",
+        "type": "النوع",
+        "outcome": "النتيجة",
+        "on": "تاريخ الحدوث",
+        "nextOn": "موعد الخطوة التالية"
+      }
     },
     "note": {
       "add": "إضافة ملاحظة",

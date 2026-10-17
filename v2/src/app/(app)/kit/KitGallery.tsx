@@ -36,28 +36,24 @@ const people: AvatarPerson[] = [
   {
     displayName: 'Test',
     fullName: 'Test Person',
-    avatarColor: 'c3',
     badge: { kind: 'icon', value: 'compass' },
   },
   {
     displayName: 'Sample',
     fullName: 'Sample Helper',
-    avatarColor: 'c4',
     badge: { kind: 'icon', value: 'star' },
   },
   {
     displayName: 'Demo',
     fullName: 'Demo Colleague',
-    avatarColor: 'c5',
     badge: { kind: 'none', value: null },
   },
   {
     displayName: 'Fourth',
     fullName: 'Fourth Person',
-    avatarColor: 'c2',
     badge: { kind: 'none', value: null },
   },
-  { displayName: 'Fifth', fullName: 'Fifth Person', avatarColor: 'c6', badge: { kind: 'none', value: null } },
+  { displayName: 'Fifth', fullName: 'Fifth Person', badge: { kind: 'none', value: null } },
 ];
 
 type Row = {

@@ -110,7 +110,7 @@ for (const width of [375, 1440]) {
 
     await page.locator('[data-quick-text]').fill(`Call back ${t}`);
     await page.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Reminder captured')).toBeVisible();
+    await expect(toast(page, 'Reminder saved')).toBeVisible();
     const [row] = await sql<{ at: string }>(
       `select to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at
          from core.reminder r join my.note n on n.id = r.note_id where n.person_id = $1 and n.title = $2`,
@@ -131,7 +131,7 @@ test('the default Tomorrow saves with no further tap, at nine Riyadh time on the
   await openReminder(page);
   await page.locator('[data-quick-text]').fill(`Plain ${t}`);
   await page.locator('[data-quick-save]').click();
-  await expect(toast(page, 'Reminder captured')).toBeVisible();
+  await expect(toast(page, 'Reminder saved')).toBeVisible();
   const [row] = await sql<{ at: string }>(
     `select to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at
        from core.reminder r join my.note n on n.id = r.note_id where n.person_id = $1 and n.title = $2`,
@@ -202,7 +202,7 @@ for (const width of [375, 1440]) {
     await sheet.locator('[data-when-chip="tomorrow"]').click();
 
     await sheet.locator('[data-quick-save]').click();
-    await expect(toast(page, 'Follow-up set')).toBeVisible();
+    await expect(toast(page, `Follow-up set - ${org}`), 'the toast names the record followed up').toBeVisible();
     await expect(sheet).toHaveCount(0);
     const [row] = await sql<{ about_table: string; visibility: string; at: string; title: string }>(
       `select n.title, n.about_table, n.visibility, to_char(r.remind_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD HH24:MI') as at

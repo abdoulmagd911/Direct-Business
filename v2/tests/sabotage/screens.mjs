@@ -1409,11 +1409,11 @@ export const sabotages = [
   {
     name: 'turn-into-task-forgets-the-checklist-ask',
     breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'the checklist came along when asked',
+    expect: 'the checklist came along as action items',
     edits: [
       {
         file: 'src/modules/tasks/screens/QuickAdd.tsx',
-        find: '...(withItems ? { action_items: true } : {})',
+        find: '...(fromNote.hasItems ? { action_items: true } : {})',
         replace: '',
       },
     ],
@@ -1813,6 +1813,18 @@ export const sabotages = [
         file: 'src/modules/partners/screens/PartnersList.tsx',
         find: 'if (wantsNew && full) setCreating(true);',
         replace: 'if (wantsNew && full && !wantsNew) setCreating(true);',
+      },
+    ],
+  },
+  {
+    name: 'drawer-foot-icons-lose-their-words',
+    breaks: ['e2e:tests/e2e/shell.spec.ts'],
+    expect: 'the pin control has a visible label',
+    edits: [
+      {
+        file: 'src/ui/shell/Drawer.tsx',
+        find: '  if (!expanded) return <IconButton',
+        replace: '  if (expanded || !expanded) return <IconButton',
       },
     ],
   },

@@ -1,7 +1,9 @@
 'use client';
 import { Check, ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { clip } from '@/core/i18n/format';
@@ -24,11 +26,17 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const t = useTranslations();
   const locale = useLocale();
   const words = useCommandWords();
+  const router = useRouter();
+  const canLog = ['own', 'full'].includes(useMaybeMe()?.levels.kpis ?? 'none');
   const [blocking, setBlocking] = useState(false);
   const [closing, setClosing] = useState<{ move: Move; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const send = async (args: { p_status: string; p_reason?: string; p_close_items?: boolean }, done: string) => {
+  const send = async (
+    args: { p_status: string; p_reason?: string; p_close_items?: boolean },
+    done: string,
+    finished = false,
+  ) => {
     setBusy(true);
     await command(
       words(done),
@@ -36,6 +44,16 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
         rpc('task_status_set', { p_id: task.id, ...args }) as Promise<{
           request_id?: string | null;
         }>,
+      // Done (never Cancelled) offers the achievement beside Undo, pre-filled with the task's title; a refused move has
+      // no toast to carry it (the Architect's ask of 16 Oct, V384)
+      finished && canLog
+        ? {
+            extra: {
+              label: t('pages.achievements.offerAction'),
+              onClick: () => router.push(`/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}`),
+            },
+          }
+        : {},
     );
     setBusy(false);
   };
@@ -56,7 +74,7 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
       return;
     }
     if ('refuse' in plan) return;
-    await send(plan.go, doneLine(move));
+    await send(plan.go, doneLine(move), move.kind === 'status' && move.status.meaning === 'done');
   };
   const doneStatus = statuses.find((s) => s.meaning === 'done' && s.active);
 
