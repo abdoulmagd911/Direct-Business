@@ -1,5 +1,15 @@
 'use client';
-import { CheckSquare, Lock, StickyNote, Users, Globe, CalendarClock, type LucideIcon } from 'lucide-react';
+import {
+  Bell,
+  CheckSquare,
+  Lock,
+  StickyNote,
+  Users,
+  Globe,
+  CalendarClock,
+  Lightbulb,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
@@ -12,6 +22,14 @@ export const KIND_ICON: Record<NoteKind, LucideIcon> = {
   sticky: StickyNote,
   meeting: CalendarClock,
   checklist: CheckSquare,
+};
+/** The icon of what a note was captured as (V641). */
+export const CAPTURE_ICON: Record<NonNullable<MyNote['capture_kind']>, LucideIcon> = {
+  note: StickyNote,
+  idea: Lightbulb,
+  checklist: CheckSquare,
+  reminder: Bell,
+  meeting: CalendarClock,
 };
 const VISIBILITY_ICON: Record<Visibility, LucideIcon> = { private: Lock, team: Users, workspace: Globe };
 
@@ -89,7 +107,8 @@ export function FromNoteChip({ note }: { note: Pick<FromNote, 'id' | 'title'> })
 export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
-  const Icon = KIND_ICON[note.kind];
+  const captured = note.capture_kind ?? (note.kind === 'sticky' ? 'note' : note.kind);
+  const Icon = CAPTURE_ICON[captured];
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
   const count = note.kind === 'checklist' ? cardCount(note) : null;
   const org = note.meeting_partner;
@@ -109,6 +128,9 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
           {author ? <span className="text-xs text-muted">{t('pages.myDay.note.by', { name: author })}</span> : null}
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
+          <span className={chipClass} data-note-captured-as={captured}>
+            {t(`pages.myDay.quick.kinds.${captured}`)}
+          </span>
           <VisibilityChip visibility={note.visibility} />
           {org ? <span className={chipClass}>{tradeName(org, locale)}</span> : null}
           {note.kind === 'meeting' ? (

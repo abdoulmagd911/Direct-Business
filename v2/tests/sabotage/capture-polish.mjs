@@ -34,4 +34,28 @@ export const sabotages = [
     expect: 'the save message names the kind',
     edits: [{ file: 'messages/en.json', find: '"saved": "{kind} saved",', replace: '"saved": "{kind} captured",' }],
   },
+  {
+    name: 'my-notes-row-names-no-kind',
+    breaks: ['unit:tests/unit/my-day/a-captured-item-names-its-kind-on-my-notes.test.tsx'],
+    expect: 'names the kind it was captured as',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: 'data-note-captured-as={captured}',
+        replace: 'data-note-kind-hidden={captured}',
+      },
+    ],
+  },
+  {
+    name: 'my-notes-ignores-the-kind-asked-for',
+    breaks: ['e2e:tests/e2e/my-notes-find.spec.ts'],
+    expect: 'one of each kind is found on My day',
+    edits: [
+      {
+        file: 'src/app/(app)/my-day/page.tsx',
+        find: 'const kind = CAPTURE_KINDS.find((k) => k === sp.kind);',
+        replace: 'const kind = CAPTURE_KINDS.find((k) => k === sp.kind && false);',
+      },
+    ],
+  },
 ];
