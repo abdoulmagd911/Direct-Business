@@ -25,7 +25,7 @@ for (const width of [375, 1440]) {
     await expect(ar, 'the Arabic box holds the Arabic name').toHaveValue('اسم تجريبي');
 
     await ar.fill('اسم آخر');
-    await ar.blur();
+    await ar.locator('xpath=..').getByRole('button', { name: 'Save' }).click();
     await expect
       .poll(async () => {
         const [row] = await sql<{ en: string | null; ar: string | null }>(
@@ -37,7 +37,7 @@ for (const width of [375, 1440]) {
       .toBe('Test Display|اسم آخر');
 
     await en.fill('Other Display');
-    await en.blur();
+    await en.locator('xpath=..').getByRole('button', { name: 'Save' }).click();
     await expect
       .poll(async () => {
         const [row] = await sql<{ en: string | null; ar: string | null }>(
@@ -78,6 +78,7 @@ for (const width of [375, 1440]) {
 
     for (const box of [en, ar]) {
       await box.focus();
+      await box.press('Enter');
       await box.blur();
     }
     await page.waitForTimeout(800);
