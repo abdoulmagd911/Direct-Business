@@ -236,18 +236,24 @@ jobs:
   # It reaches the database with the database password alone, through the region's pooler: no access token.
   every-control:
     name: every control on main (report)
-    # QA 1's crawl (tests/qa/sweep/18-every-control.spec.ts): as the admin, a Commercial member and someone signed out,
-    # at 1440 and 375 px, in English and Arabic, every page reached through the menus and links and every button, tab,
+    # QA 1's crawl (tests/qa/sweep/18-every-control.spec.ts): as the admin, a manager, a Commercial member, a viewer and
+    # someone signed out (the manager and the viewer in English only), at 1440 and 375 px, in English and Arabic, every
+    # page reached through the menus and links and every button, tab,
     # filter, toggle and menu on it pressed once (never sign out, Undo, delete, archive, switch off, merge or close
     # month). A report, never a gate: it runs after a merge, it is in no job's needs, and its findings never fail it.
     # Findings come out as warning annotations (readable through the check-run annotations API; GitHub keeps 10 per
     # step and 50 per job, so one step carries V633's size warnings and four more the 40 most severe) and all of them
     # as a table in the step summary, with V633's counts of menu entries and visible actions per role and width.
+    # V641 (the owner: was every button truly USED, not just clicked?): the inventory of every control, as a table in the
+    # summary and as the CSV artifact control-inventory, each with the test that follows it to its result (the register
+    # tests/qa/sweep/followed-by.csv, QA 2's) or 'not yet followed'; a control counts as verified only with such a test.
     # a push to v2/main or a run by hand there (this workflow's only other trigger is pull_request)
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/v2/main'
     runs-on: ubuntu-latest
     # QA 1's local run of 13 Oct on 4d63b0f: 59 minutes for the crawl (2,758 cells, three people side by side) plus about
-    # 5 for the stack, the build and the seed; 150 leaves room for a slower runner
+    # 5 for the stack, the build and the seed. Since V641 five people run; the admin's four runs (about 60 minutes) are
+    # still the longest and the manager and the viewer add English only, so the time is about the same; 150 leaves room
+    # for a slower runner
     timeout-minutes: 150
     env:
       QA_RUN_DIR: /tmp/qa-sweep
@@ -328,6 +334,18 @@ jobs:
               ...all.map((f) => `| ${f.sev} | \`${f.page}\` | ${clean(f.problem).replace(/\|/g, "/")} | ${f.who.join(", ")} |`), ...countTable];
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, sum.join("\n") + "\n");
           '
+      - name: the inventory of every control, with the test that follows each to its result (V641)
+        if: always()
+        run: |
+          node tests/qa/sweep/inventory.mjs "$QA_MATRIX" "$QA_RUN_DIR/inventory" tests/qa/sweep/followed-by.csv "${GITHUB_SHA:0:7}"
+          cat "$QA_RUN_DIR/inventory/inventory.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: the inventory as a CSV (artifact control-inventory)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-inventory
+          path: /tmp/qa-sweep/inventory/inventory.csv
+          if-no-files-found: warn
       - name: V633 size warnings (a phone page over 12 actions, a menu over 9 entries)
         if: always()
         run: sed -n '1,10p' "$QA_RUN_DIR/v633.txt" || true
