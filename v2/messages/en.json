@@ -637,6 +637,14 @@
         "title": "Edit {number}",
         "saved": "{number} saved"
       },
+      "people": {
+        "changeOwner": "Change owner",
+        "ownerSaved": "{number} is now with {name}",
+        "helperAdd": "Add a helper",
+        "helperAdded": "{name} now helps on {number}",
+        "helperRemove": "Remove {name}",
+        "helperRemoved": "{name} no longer helps on {number}"
+      },
       "load": {
         "title": "Team load",
         "empty": "Nobody in your departments has live work yet",
