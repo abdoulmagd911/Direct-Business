@@ -176,10 +176,15 @@ export function StatusMenu({
 export const statusName = (s: Pick<TaskStatus, 'name_en' | 'name_ar'>, locale: string) =>
   locale === 'ar' && s.name_ar ? s.name_ar : s.name_en;
 
-/** The round tick on a list row: Done in one tap (V509's "tick one off"), asking first when items are open. */
+/**
+ * The round tick on a list row (My day's Today block and the Tasks list): a short "Mark done?" box with Done and Cancel,
+ * Done focused so Enter confirms (the owner's pop-up, OQ-60, V641); then the move, asking about open items if there are
+ * any, and the Undo toast. A checklist item's own tick stays one tap.
+ */
 export function DoneTick({ task, statuses, title }: { task: Task; statuses: TaskStatus[]; title: string }) {
   const t = useTranslations();
   const move = useStatusMove(task, statuses);
+  const [asking, setAsking] = useState(false);
   const closed = task.meaning === 'done' || task.meaning === 'cancelled';
   if (!move.markDone || closed) {
     return (
@@ -198,7 +203,7 @@ export function DoneTick({ task, statuses, title }: { task: Task; statuses: Task
     <>
       <button
         type="button"
-        onClick={() => void move.markDone?.()}
+        onClick={() => setAsking(true)}
         disabled={move.busy}
         aria-label={t('pages.tasks.markDone', { title })}
         data-done-tick
@@ -211,6 +216,18 @@ export function DoneTick({ task, statuses, title }: { task: Task; statuses: Task
           <Check className="size-3.5" />
         </span>
       </button>
+      <Confirm
+        open={asking}
+        onOpenChange={setAsking}
+        title={t('pages.tasks.doneAsk.title')}
+        body={title}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('pages.tasks.doneAsk.done')}
+        destructive={false}
+        focus="confirm"
+        busy={move.busy}
+        onConfirm={() => move.markDone?.()}
+      />
       {move.dialogs}
     </>
   );
