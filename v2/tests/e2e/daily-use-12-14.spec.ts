@@ -87,6 +87,19 @@ for (const width of WIDTHS) {
         );
         expect(e!.x, `${what}: and inside the screen on the left`).toBeGreaterThanOrEqual(0);
         expect(e!.x + e!.width, `${what}: and on the right`).toBeLessThanOrEqual(width);
+        // and clear of the field's label row ("Created", "Required"): on the side away from the label in both directions
+        const row = await field.evaluate((el) => {
+          const label = document.querySelector(`label[for="${el.id}"]`);
+          return Array.from(label?.parentElement?.children ?? []).map((c) => {
+            const r = c.getBoundingClientRect();
+            return { x: r.x, y: r.y, w: r.width, h: r.height };
+          });
+        });
+        expect(row.length, `${what}: the label row was found`).toBeGreaterThan(0);
+        for (const l of row) {
+          const meets = e!.x < l.x + l.w && l.x < e!.x + e!.width && e!.y < l.y + l.h && l.y < e!.y + e!.height;
+          expect(meets, `${what}: the written day is clear of the label row`).toBe(false);
+        }
       };
       await page.getByLabel('Created').fill('2026-10-09');
       await check(page.getByLabel('Created'), 'a date');

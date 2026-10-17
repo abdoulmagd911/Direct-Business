@@ -85,11 +85,11 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
           out of the flow, so nothing moves (a control just below would shift away from a click) */}
       <p
         aria-hidden="true"
-        dir="auto"
         data-date-echo
         className="pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm text-muted shadow-2 peer-focus-visible:block"
       >
-        {written}
+        {/* the chip keeps the box's own direction, so its end is the side away from the label; only its words order themselves */}
+        <span dir="auto">{written}</span>
       </p>
     </div>
   );

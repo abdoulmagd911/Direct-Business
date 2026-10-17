@@ -48,7 +48,7 @@ export const sabotages = [
     name: 'date-box-writes-no-date-beside-the-field',
     breaks: [BOX],
     expect: '> writes the date beside the real field the app writes it, shown only while the field has keyboard focus',
-    edits: [{ file: 'src/ui/Input.tsx', find: '        {written}\n      </p>', replace: '      </p>' }],
+    edits: [{ file: 'src/ui/Input.tsx', find: '<span dir="auto">{written}</span>', replace: '' }],
   },
   {
     name: 'date-box-never-shows-the-date-beside-the-field',
@@ -77,6 +77,19 @@ export const sabotages = [
         file: 'src/ui/Input.tsx',
         find: 'absolute bottom-full end-0 z-30 mb-0.5 hidden',
         replace: 'absolute inset-y-0 end-10 z-30 hidden items-center',
+      },
+    ],
+  },
+  {
+    // the chip takes its own text's direction, so on a right-to-left page it lands on the label's side (QA-572)
+    name: 'date-box-chip-lands-on-the-label-right-to-left',
+    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
+    expect: 'the written day is clear of the label row',
+    edits: [
+      {
+        file: 'src/ui/Input.tsx',
+        find: '        aria-hidden="true"\n        data-date-echo',
+        replace: '        aria-hidden="true"\n        dir="ltr"\n        data-date-echo',
       },
     ],
   },
