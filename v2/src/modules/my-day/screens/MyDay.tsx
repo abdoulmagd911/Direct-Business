@@ -7,11 +7,13 @@ import { clip, formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
+import { cn } from '@/ui/cn';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
+import { CAPTURE_KINDS, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
@@ -30,6 +32,8 @@ export type MyDayData = {
   answer: MyDayAnswer;
   /** Every note read (`?more=1`) rather than the first block. */
   all: boolean;
+  /** The one kind My notes is narrowed to (`?kind=`), if any. */
+  kind?: CaptureKind;
   people: OrgPerson[];
   /** The task statuses, so the Today block's tick can say Done. */
   statuses: TaskStatus[];
@@ -38,6 +42,7 @@ export type MyDayData = {
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
+const kindHref = (k?: CaptureKind) => (k ? `/my-day?kind=${k}` : '/my-day');
 
 /**
  * My day (V433): Capture (Create → Capture, the + or "/"), then Convert. Tabs Me · My team · Workspace; on Me my
@@ -48,7 +53,7 @@ export function MyDay({ data }: { data: MyDayData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  const { scope, answer, all } = data;
+  const { scope, answer, all, kind } = data;
   const [wrapping, setWrapping] = useState(false);
   // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
   const done = (r: PendingReminder) =>
@@ -132,11 +137,37 @@ export function MyDay({ data }: { data: MyDayData }) {
         <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
           <h2 className="text-base font-semibold">{t(`pages.myDay.blocks.${scope}`)}</h2>
           {all ? (
-            <Link href={tabHref(scope)} className="text-sm text-link hover:underline" data-block-fewer>
+            <Link
+              href={kind ? kindHref(kind) : tabHref(scope)}
+              className="text-sm text-link hover:underline"
+              data-block-fewer
+            >
               {t('pages.myDay.fewer')}
             </Link>
           ) : null}
         </div>
+        {scope === 'me' ? (
+          <nav
+            aria-label={t('pages.myDay.kindFilter.label')}
+            className="flex flex-wrap gap-1.5 border-b border-border py-2.5"
+            data-kind-filter
+          >
+            {[undefined, ...CAPTURE_KINDS].map((k) => (
+              <Link
+                key={k ?? 'all'}
+                href={kindHref(k)}
+                aria-current={kind === k ? 'true' : undefined}
+                className={cn(
+                  'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+                  kind === k ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',
+                )}
+                data-kind-option={k ?? 'all'}
+              >
+                {k ? t(`pages.myDay.quick.kinds.${k}`) : t('pages.myDay.kindFilter.all')}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
         {rows.length ? (
           <ul className="divide-y divide-border" data-block-rows>
             {rows.map((n) => (
@@ -144,12 +175,12 @@ export function MyDay({ data }: { data: MyDayData }) {
             ))}
           </ul>
         ) : (
-          <DataState kind="empty" message={t(`pages.myDay.empty.${scope}`)} />
+          <DataState kind="empty" message={kind ? t('pages.myDay.empty.kind') : t(`pages.myDay.empty.${scope}`)} />
         )}
         {more ? (
           <div className="border-t border-border py-2.5">
             <Link
-              href={`${tabHref(scope)}${scope === 'me' ? '?' : '&'}more=1`}
+              href={`${kind ? kindHref(kind) : tabHref(scope)}${scope === 'me' && !kind ? '?' : '&'}more=1`}
               className="text-sm text-link hover:underline"
               data-block-more
             >
