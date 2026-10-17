@@ -18,10 +18,10 @@ type MyFollowUp = { id: string; note_id: string; remind_at: string; text: string
  * record's others. It opens the one Capture sheet on this record (#242); the record shows through `about`, never in the
  * note's title (QA-560).
  */
-export function FollowUpButton({ about }: { about: CaptureAbout }) {
+export function FollowUpButton({ about, className }: { about: CaptureAbout; className?: string }) {
   const t = useTranslations();
   return (
-    <Button icon={<AlarmClockPlus />} onClick={() => openQuickCapture({ about })} data-follow-up>
+    <Button icon={<AlarmClockPlus />} className={className} onClick={() => openQuickCapture({ about })} data-follow-up>
       {t('record.followUp')}
     </Button>
   );

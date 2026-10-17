@@ -80,6 +80,7 @@ for (const width of [375, 1440]) {
 
     // the check marks it done, with Undo
     await block.locator(`[data-today-task="${late}"] [data-done-tick]`).click();
+    await page.locator('[data-confirm-action]').click(); // the Mark done? box (V641)
     const toast = page.locator('[data-sonner-toast][data-front="true"]');
     await expect(toast).toBeVisible();
     await expect(block.locator(`[data-today-task="${late}"]`), 'done leaves the list').toHaveCount(0);
