@@ -30,8 +30,8 @@ for (const width of [375, 1440]) {
     await hydrated(page);
     const en = page.getByLabel('Display name', { exact: true });
     const ar = page.getByLabel('Display name (Arabic)', { exact: true });
-    const saveEn = page.getByRole('button', { name: 'Save: Display name', exact: true });
-    const saveAr = page.getByRole('button', { name: 'Save: Display name (Arabic)' });
+    const saveEn = en.locator('xpath=..').getByRole('button', { name: 'Save' });
+    const saveAr = ar.locator('xpath=..').getByRole('button', { name: 'Save' });
 
     // nothing to save yet: both buttons are off, and each is a full-size target on a phone
     await expect(saveEn, 'Save is off until the text changes').toBeDisabled();

@@ -546,7 +546,7 @@ function TextField({
             disabled={!changed}
             loading={busy}
             onClick={commit}
-            aria-label={`${t('common.save')}: ${label}`}
+            aria-describedby={p.id}
             data-name-save
           >
             {t('common.save')}
