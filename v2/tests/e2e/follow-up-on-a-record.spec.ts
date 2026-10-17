@@ -51,10 +51,24 @@ async function signedIn(browser: Browser, person: TestPerson, width: number, hei
  * Follow up is a visible action; the sheet names the record and starts empty; Save makes exactly one note carrying
  * exactly one reminder, about the record and titled "Follow-up" — and the record page then shows its chip.
  */
-async function followUpOnce(page: Page, person: TestPerson, table: string, id: string, label: string) {
+async function followUpOnce(
+  page: Page,
+  person: TestPerson,
+  table: string,
+  id: string,
+  label: string,
+  behindTheDots = false,
+) {
   const button = page.getByRole('button', { name: 'Follow up', exact: true });
-  await expect(button, 'Follow up is a visible action on the record').toBeVisible();
-  await button.click();
+  if (behindTheDots) {
+    // a phone's task page keeps Done and the dots on one row: Follow up is the dots' second entry (V641)
+    await expect(button, 'on a phone Follow up is not on the row').toBeHidden();
+    await page.locator('[data-task-more]').click();
+    await page.getByRole('menuitem', { name: 'Follow up', exact: true }).click();
+  } else {
+    await expect(button, 'Follow up is a visible action on the record').toBeVisible();
+    await button.click();
+  }
   const sheet = page.locator('[data-quick-capture]');
   await expect(sheet, 'the one Capture sheet opens').toBeVisible();
   await expect(sheet.locator('[data-quick-about]'), 'the sheet names the record').toHaveText(`Follow up on ${label}`);
@@ -144,11 +158,15 @@ for (const w of WIDTHS) {
     await hydrated(page);
     await expect(page.locator('[data-mark-done]'), 'Mark done stays the main action').toBeVisible();
     await expect(page.getByRole('button', { name: 'Escalate', exact: true })).toHaveCount(0);
+    const phone = w.width < 640;
     await page.locator('[data-task-more]').click();
-    await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Escalate').toHaveText(['Escalate']);
+    await expect(
+      page.getByRole('menuitem'),
+      phone ? 'the ⋯ menu holds Edit, Follow up and Escalate' : 'the ⋯ menu holds Escalate',
+    ).toHaveText(phone ? ['Edit', 'Follow up', 'Escalate'] : ['Escalate']);
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
-    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`);
+    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`, phone);
     await expect(page.locator('[data-no-notes]'), 'beside a follow-up, an empty Notes says No other notes').toHaveText(
       'No other notes',
     );

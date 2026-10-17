@@ -5,7 +5,8 @@ import { Button } from './Button';
 
 /**
  * The app's own confirm box (D19): every remove asks first, names the item, and Cancel has focus
- * so Enter never destroys anything. Escape cancels and focus returns to the opener (Radix).
+ * so Enter never destroys anything. Escape cancels and focus returns to the opener (Radix). A question that destroys
+ * nothing (Mark done?) may put focus on the confirming button instead (`focus="confirm"`), so Enter confirms.
  */
 export function Confirm({
   open,
@@ -17,6 +18,7 @@ export function Confirm({
   onConfirm,
   destructive = true,
   busy = false,
+  focus = 'cancel',
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,8 +30,10 @@ export function Confirm({
   onConfirm: () => void | Promise<void>;
   destructive?: boolean;
   busy?: boolean;
+  focus?: 'cancel' | 'confirm';
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const opener = useRef<Element | null>(null);
   useEffect(() => {
     if (open) opener.current = document.activeElement;
@@ -41,7 +45,7 @@ export function Confirm({
         <RA.Content
           onOpenAutoFocus={(e) => {
             e.preventDefault();
-            cancelRef.current?.focus();
+            (focus === 'confirm' ? confirmRef : cancelRef).current?.focus();
           }}
           onCloseAutoFocus={(e) => {
             e.preventDefault();
@@ -63,6 +67,7 @@ export function Confirm({
             </RA.Cancel>
             <RA.Action asChild>
               <Button
+                ref={confirmRef}
                 variant={destructive ? 'danger' : 'primary'}
                 loading={busy}
                 data-confirm-action

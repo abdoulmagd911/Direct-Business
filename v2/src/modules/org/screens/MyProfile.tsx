@@ -250,12 +250,19 @@ export function MyProfile({
           </Field>
           <Field label={t('profile.density')}>
             {(p) => (
-              <Select
-                {...p}
-                value={density}
-                onValueChange={(v) => void save({ density: v as Profile['density'] })}
-                options={DENSITIES.map((d) => ({ value: d, label: t(`density.${d}`) }))}
-              />
+              <>
+                <Select
+                  {...p}
+                  aria-describedby="profile-density-hint"
+                  value={density}
+                  onValueChange={(v) => void save({ density: v as Profile['density'] })}
+                  options={DENSITIES.map((d) => ({ value: d, label: t(`density.${d}`) }))}
+                />
+                {/* nothing unexplained (V641): what each choice does, in one line */}
+                <p id="profile-density-hint" className="text-sm text-muted" data-density-hint>
+                  {t('profile.densityHint')}
+                </p>
+              </>
             )}
           </Field>
           {arabicEnabled ? (
@@ -473,7 +480,11 @@ function Section({
   );
 }
 
-/** A text field that saves on blur or Enter when its value changed (the profile saves at once — spec §6). */
+/**
+ * A text field with its own Save button (V641): the button is off until the text differs from what is stored, and the
+ * value is written only when it is pressed (or Enter is). Leaving the box half-typed saves nothing. The "Saved" line
+ * with Undo is the command's own toast.
+ */
 function TextField({
   label,
   value,
@@ -494,36 +505,53 @@ function TextField({
   const t = useTranslations();
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
+  const [busy, setBusy] = useState(false);
   if (value !== seen) {
     setSeen(value);
     setDraft(value);
   }
+  const changed = draft.trim() !== value && !(required && !draft.trim());
   const commit = () => {
     const v = draft.trim();
-    if (v === value) return;
+    if (v === value || busy) return;
     if (required && !v) {
       setDraft(value);
       return;
     }
-    void Promise.resolve(onSave(v)).then((kept) => {
-      if (typeof kept === 'string') setDraft(kept);
-    });
+    setBusy(true);
+    void Promise.resolve(onSave(v))
+      .then((kept) => {
+        if (typeof kept === 'string') setDraft(kept);
+      })
+      .finally(() => setBusy(false));
   };
   return (
     <Field label={label} error={required && !draft.trim() ? t('common.required') : undefined}>
       {(p) => (
-        <Input
-          {...p}
-          autoComplete="off"
-          dir={dir}
-          value={draft}
-          placeholder={placeholder}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-        />
+        <div className="flex items-start gap-2" data-text-field>
+          <Input
+            {...p}
+            className="min-w-0 flex-1"
+            autoComplete="off"
+            dir={dir}
+            value={draft}
+            placeholder={placeholder}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit();
+            }}
+          />
+          <Button
+            variant="primary"
+            disabled={!changed}
+            loading={busy}
+            onClick={commit}
+            aria-describedby={p.id}
+            data-name-save
+          >
+            {t('common.save')}
+          </Button>
+        </div>
       )}
     </Field>
   );

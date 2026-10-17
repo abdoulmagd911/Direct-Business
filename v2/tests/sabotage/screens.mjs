@@ -140,7 +140,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Confirm.tsx',
-        find: 'cancelRef.current?.focus();',
+        find: "(focus === 'confirm' ? confirmRef : cancelRef).current?.focus();",
         replace: "(document.querySelector('[data-confirm-action]') as HTMLElement | null)?.focus();",
       },
     ],
@@ -1825,6 +1825,19 @@ export const sabotages = [
         file: 'src/ui/shell/Drawer.tsx',
         find: '  if (!expanded) return <IconButton',
         replace: '  if (expanded || !expanded) return <IconButton',
+      },
+    ],
+  },
+  {
+    // V641 (3): the owner's saved idea could not be found anywhere — the search box dropped the notes it was sent
+    name: 'search-box-shows-no-notes',
+    breaks: ['e2e:tests/e2e/search-finds-every-kind-of-note.spec.ts'],
+    expect: 'all five are found',
+    edits: [
+      {
+        file: 'src/ui/shell/CommandPalette.tsx',
+        find: '            notes: ((a as { notes?: NoteHit[] } | null)?.notes ?? []).slice(0, 8),\n',
+        replace: '            notes: [],\n',
       },
     ],
   },

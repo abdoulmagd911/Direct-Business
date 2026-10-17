@@ -74,6 +74,8 @@ export type MyNote = {
   done_at: string | null;
   mentions: string[];
   links: NoteLink[];
+  /** What it was captured as (V641): shown as the row's kind word; absent on a read that predates it. */
+  capture_kind?: 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
   /** How many of the action items made from this checklist are done, out of how many (read live from the task); absent when none were made. */
   task_items?: { done: number; total: number } | null;
 };

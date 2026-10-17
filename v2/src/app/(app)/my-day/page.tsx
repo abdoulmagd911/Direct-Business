@@ -5,6 +5,7 @@ import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { MyDay } from '@/modules/my-day/screens/MyDay';
+import { CAPTURE_KINDS } from '@/modules/my-day/quick-capture';
 import { myDay, remindersDue } from '@/modules/my-day/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
@@ -24,7 +25,7 @@ const BLOCK = 7;
 export default async function MyDayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; more?: string | string[]; kind?: string | string[] }>;
 }) {
   const [t, me, sp, locale] = await Promise.all([getTranslations(), requireMe(), searchParams, getLocale()]);
   const title = formatDate(new Date(), locale === 'ar' ? 'ar' : 'en', { weekday: 'long' });
@@ -32,8 +33,10 @@ export default async function MyDayPage({
   // mark comes from it (V444) — so the owner's admin account, whose page is a note, simply ignores the rest.
   const scope: Scope = SCOPES.includes(sp.tab as Scope) ? (sp.tab as Scope) : 'me';
   const all = sp.more === '1';
+  // narrowed to one kind of capture (V641); an unknown word shows them all
+  const kind = CAPTURE_KINDS.find((k) => k === sp.kind);
   const [answerRead, orgRead, statusesRead, dueRead] = await Promise.allSettled([
-    myDay(scope, all ? ALL : BLOCK + 1),
+    myDay(scope, all ? ALL : BLOCK + 1, kind),
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     scope === 'me'
       ? (serverRpc('list', { p_list: 'task_status' }) as unknown as Promise<TaskStatus[]>).catch(
@@ -74,7 +77,7 @@ export default async function MyDayPage({
   const due = dueRead.status === 'fulfilled' ? dueRead.value : null;
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, all, people, statuses, due }} />
+      <MyDay data={{ title, scope, answer, all, kind, people, statuses, due }} />
     </Page>
   );
 }
