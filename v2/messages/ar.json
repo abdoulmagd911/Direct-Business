@@ -487,6 +487,10 @@
       "internalWork": "داخلي",
       "markDone": "تعليم “{title}” كمنجزة",
       "markDoneShort": "منجزة",
+      "doneAsk": {
+        "title": "وضع علامة منجز؟",
+        "done": "تم"
+      },
       "dueToday": "مستحقة اليوم",
       "dueOn": "مستحقة في {date}",
       "lookups": "أسماء الأشخاص والعملاء والمشاريع",

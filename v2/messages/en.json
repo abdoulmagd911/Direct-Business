@@ -552,6 +552,10 @@
       "internalWork": "Internal",
       "markDone": "Mark “{title}” done",
       "markDoneShort": "Done",
+      "doneAsk": {
+        "title": "Mark done?",
+        "done": "Done"
+      },
       "dueToday": "Due today",
       "dueOn": "Due {date}",
       "lookups": "Names of people, clients and projects",

@@ -244,6 +244,7 @@ test('phone: see what is due today and tick one off (V509)', async ({ browser })
   const row = page.locator('li[data-task-row]', { hasText: title });
   await expect(row, 'due today shows under the Today chip').toBeVisible();
   await row.locator('[data-done-tick]').click();
+  await page.locator('[data-confirm-action]').click(); // the Mark done? box (V641)
   await expect(row.getByText('Done', { exact: true })).toBeVisible();
   await noSidewaysScroll(page, 'phone, ticked');
   await ctx.close();
