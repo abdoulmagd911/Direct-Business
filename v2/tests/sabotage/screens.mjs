@@ -140,7 +140,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Confirm.tsx',
-        find: 'cancelRef.current?.focus();',
+        find: "(focus === 'confirm' ? confirmRef : cancelRef).current?.focus();",
         replace: "(document.querySelector('[data-confirm-action]') as HTMLElement | null)?.focus();",
       },
     ],

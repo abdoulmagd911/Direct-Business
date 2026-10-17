@@ -82,6 +82,7 @@ for (const [name, width, height] of [
     await page.goto('/tasks');
     await hydrated(page);
     await page.locator('li[data-task-row]', { hasText: title }).locator('[data-done-tick]').click();
+    await page.locator('[data-confirm-action]').click(); // the Mark done? box (V641)
     await expect.poll(() => meaning(number), { message: 'the check marks it done' }).toBe('done');
     await expect(page, 'the check does not open the task').toHaveURL(/\/tasks$/);
     const undo = page.getByRole('button', { name: 'Undo' });
