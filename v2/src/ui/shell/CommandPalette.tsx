@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, History, Search, UserRound } from 'lucide-react';
+import { Building2, History, Search, StickyNote, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
 import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
@@ -27,6 +27,12 @@ registerActions([
 
 type Hit = { id: string; full_name_en: string; full_name_ar: string | null; job_title_en: string | null };
 type OrgHit = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null; matched_by: string };
+// a captured item the reader may see (V641): its name and what it was captured as
+type NoteHit = {
+  id: string;
+  label: string | null;
+  capture_kind: 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
+};
 
 const itemClass =
   'flex h-11 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft sm:h-10';
@@ -34,9 +40,9 @@ const groupClass =
   '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted';
 
 /**
- * Ctrl K (V401): Go to a page; people by name through api.search (organisations join when their record page lands,
- * P3-9); the Create actions; and the actions each step registers (New task · Log activity · New invoice) — only the
- * ones whose page the person may see. Opens from the top-bar search or the shortcut; Escape closes and focus returns.
+ * Ctrl K (V401): Go to a page; organisations, people and the notes the reader may see — every kind captured, each
+ * naming its kind (V641) — through api.search; the Create actions; and the actions each step registers (New task ·
+ * Log activity · New invoice) — only the ones whose page the person may see. Opens from the top-bar search or the shortcut; Escape closes and focus returns.
  */
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
@@ -44,10 +50,11 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const me = useMe();
   const router = useRouter();
   const [q, setQ] = useState('');
-  const [found, setFound] = useState<{ term: string; people: Hit[]; partners: OrgHit[] }>({
+  const [found, setFound] = useState<{ term: string; people: Hit[]; partners: OrgHit[]; notes: NoteHit[] }>({
     term: '',
     people: [],
     partners: [],
+    notes: [],
   });
   // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
   const term = q.trim();
@@ -62,15 +69,17 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             term,
             people: ((a as { people?: Hit[] } | null)?.people ?? []).slice(0, 8),
             partners: ((a as { partners?: OrgHit[] } | null)?.partners ?? []).slice(0, 8),
+            notes: ((a as { notes?: NoteHit[] } | null)?.notes ?? []).slice(0, 8),
           }),
       )
-      .catch(() => live && setFound({ term, people: [], partners: [] }));
+      .catch(() => live && setFound({ term, people: [], partners: [], notes: [] }));
     return () => {
       live = false;
     };
   }, [term, open]);
   const people = open && term.length >= 2 && found.term === term ? found.people : [];
   const partners = open && term.length >= 2 && found.term === term ? found.partners : [];
+  const notes = open && term.length >= 2 && found.term === term ? found.notes : [];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -166,6 +175,28 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       {p.job_title_en ? <span className="truncate text-sm text-muted">{p.job_title_en}</span> : null}
                     </Command.Item>
                   ))}
+                </Command.Group>
+              ) : null}
+              {notes.length ? (
+                <Command.Group heading={t('palette.notes')} className={groupClass}>
+                  {notes.map((n) => {
+                    const kind = t(`pages.myDay.quick.kinds.${n.capture_kind}`);
+                    return (
+                      <Command.Item
+                        key={n.id}
+                        value={`${n.label ?? ''} ${n.id}`}
+                        onSelect={() => go(`/my-day/notes/${n.id}`)}
+                        className={itemClass}
+                        data-palette-note={n.id}
+                      >
+                        <StickyNote className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                        <span className="truncate">{n.label ?? kind}</span>
+                        <span className="ms-auto shrink-0 text-sm text-muted" data-palette-note-kind>
+                          {kind}
+                        </span>
+                      </Command.Item>
+                    );
+                  })}
                 </Command.Group>
               ) : null}
               {createActions.length || actions.length ? (
