@@ -1841,4 +1841,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'bell-prints-column-names',
+    breaks: ['unit:tests/unit/shell/the-bell-never-prints-a-column-name.test.ts'],
+    expect: 'says a note was edited when its changed fields have no words',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-line.ts',
+        find: 'if (changed && !named.length) {',
+        replace: 'if (false) {',
+      },
+    ],
+  },
+  {
+    name: 'restore-offered-to-everyone',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'leaves the button off a row the person may not restore',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: '{d.can_restore === false ? null : (',
+        replace: '{false ? null : (',
+      },
+    ],
+  },
 ];

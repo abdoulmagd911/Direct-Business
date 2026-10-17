@@ -1,3 +1,4 @@
+import { withRestorable } from '@/modules/settings/restorable';
 import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
@@ -40,7 +41,11 @@ export default async function ActivityPage({
   const tabRead = async (): Promise<{ rows?: HistoryRow[]; signIns?: SignInRow[]; deleted?: DeletedRow[] }> => {
     if (tab === 'deleted') {
       // Recently deleted (V401): what the viewer may see, inside audit.recently_deleted_days.
-      return { deleted: ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [] };
+      return {
+        deleted: await withRestorable(
+          ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [],
+        ),
+      };
     }
     if (tab === 'signIns') {
       return {

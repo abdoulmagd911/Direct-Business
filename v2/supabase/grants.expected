@@ -193,6 +193,7 @@ function api.references_remove(p_ids uuid[], p_reason text) execute authenticate
 function api.reminder_move(p_id uuid, p_at timestamp with time zone) execute authenticated
 function api.reminders_due() execute authenticated
 function api.reminders_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.restorable(p_items jsonb) execute authenticated
 function api.restore(p_entity text, p_id uuid, p_reason text) execute authenticated
 function api.restore_ticketed(p_entity text, p_id uuid, p_ticket uuid, p_reason text) execute authenticated
 function api.role_save(p_id uuid, p_key text, p_name_en text, p_name_ar text, p_sort integer, p_version integer, p_reason text) execute authenticated
@@ -269,6 +270,7 @@ function core.app_settings() execute authenticated
 function core.app_settings() execute service_role
 function core.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
 function core.auth_user_of(p_email text) execute service_role
+function core.can_restore(p_entity text, p_id uuid) execute authenticated
 function core.clock() execute authenticated
 function core.department_save(p_id uuid, p_code text, p_name_en text, p_name_ar text, p_head uuid, p_version integer, p_reason text) execute authenticated
 function core.device_sign_out(p_device uuid) execute authenticated

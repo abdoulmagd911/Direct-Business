@@ -251,6 +251,8 @@
         "me": "No notes yet. Notes you capture with Create appear here.",
         "team": "Nothing shared with you by your team yet.",
         "workspace": "Nothing shared with you by others yet.",
+        "teamAll": "No team has shared a note yet.",
+        "workspaceAll": "Nobody has shared a note with everyone yet.",
         "kind": "Nothing of this kind yet."
       },
       "note": {
@@ -1879,7 +1881,9 @@
       "other": "{actor} · {record}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",
-    "someDetails": "some details"
+    "someDetails": "some details",
+    "editedRecord": "{actor} edited {record}",
+    "editedKind": "{actor} edited a {kind}"
   },
   "follow": {
     "follow": "Watch",

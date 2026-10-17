@@ -20,6 +20,7 @@ import { IconButton } from '../IconButton';
 import { Input } from '../Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 import { Tabs } from '../Tabs';
+import { bellLine } from './bell-line';
 import { toast } from '../Toast';
 
 type Group = 'today' | 'yesterday' | 'earlier';
@@ -80,19 +81,7 @@ export function NotificationsPanel({
   };
   // One plain pattern: "<who> changed <what> on <record>". The record is its name for a reader who may see it (the
   // server sends none otherwise, QA-553), else the kind's word; what changed is the fields' words, never their values.
-  const fieldWord = (f: string) => {
-    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);
-    const plain = f.replace(/_id$/, '').replace(/_/g, ' ');
-    return plain.charAt(0).toUpperCase() + plain.slice(1);
-  };
-  const wordsOf = (n: Notification) => {
-    const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
-    const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
-    const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? kindWord;
-    const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
-    const key = `notifications.kinds.${n.kind}`;
-    return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
-  };
+  const wordsOf = (n: Notification) => bellLine(n, t, locale);
   const detailOf = (n: Notification) =>
     n.label_key && t.has(`activity.labels.${n.label_key}`)
       ? t(`activity.labels.${n.label_key}`, (n.label_args ?? {}) as Record<string, string | number>)
