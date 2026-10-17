@@ -1841,4 +1841,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // the top search finds more than organisations: it drops the tasks api.search sends
+    name: 'search-box-shows-no-tasks',
+    breaks: ['e2e:tests/e2e/search-finds-a-task.spec.ts'],
+    expect: 'the task is found by its title',
+    edits: [
+      {
+        file: 'src/ui/shell/CommandPalette.tsx',
+        find: '            tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),\n',
+        replace: '            tasks: [],\n',
+      },
+    ],
+  },
 ];
