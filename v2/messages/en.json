@@ -249,7 +249,7 @@
       "empty": {
         "me": "No notes yet. Notes you capture with Create appear here.",
         "team": "Nothing shared with you by your team yet.",
-        "workspace": "Nothing shared with everyone yet.",
+        "workspace": "Nothing shared with you by others yet.",
         "kind": "Nothing of this kind yet."
       },
       "note": {
