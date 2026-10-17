@@ -75,7 +75,7 @@ for (const width of [375, 1440]) {
     // the shared views say so when nothing is shared
     await page.goto('/my-day?tab=team');
     await hydrated(page);
-    await expect(page.locator('[data-block="team"]')).toContainText('Nothing shared with your team yet.');
+    await expect(page.locator('[data-block="team"]')).toContainText('Nothing shared with you by your team yet.');
     await page.goto('/my-day?tab=workspace');
     await hydrated(page);
     await expect(page.locator('[data-block="workspace"]')).toContainText('Nothing shared with everyone yet.');
