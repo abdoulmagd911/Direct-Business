@@ -228,3 +228,33 @@
     --mobile-offset-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/*
+ * On a phone every tappable thing is at least 44 px high (the Architect's ruling of 18 Oct, V630): links, buttons, tabs,
+ * menu rows, options and summaries. One rule here covers every page, so a new control cannot be forgotten; spacing around
+ * stays compact. It sits in the base layer at no weight, so a class that says its own size (`h-11`, `min-h-11`) wins —
+ * which is why no control may say a smaller one on a phone. A link with no display of its own becomes an inline box that
+ * can be 44 px high; the switch and the checkbox draw their small shape inside a 44 px button (Switch.tsx, Checkbox.tsx).
+ */
+@layer base {
+  @media (max-width: 639px) {
+    :where(
+      a[href],
+      button,
+      summary,
+      [role='button'],
+      [role='tab'],
+      [role='link'],
+      [role='menuitem'],
+      [role='menuitemradio'],
+      [role='menuitemcheckbox'],
+      [role='option']
+    ):not([role='switch'], [role='checkbox']) {
+      min-height: var(--hit);
+    }
+    :where(a[href]:not([role])) {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+}

@@ -46,7 +46,7 @@ export function SinceBlock() {
         {since.counts.map((s) => (
           <li
             key={s.kind}
-            className="inline-flex min-h-9 items-center rounded-pill border border-border px-3 text-sm"
+            className="inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border border-border px-3 text-sm"
             data-since-kind={s.kind}
           >
             {t(`pages.myDay.since.kinds.${s.kind}`, { count: s.count })}
