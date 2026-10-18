@@ -87,6 +87,49 @@ export const sabotages = [
     name: 'alert-sits-over-the-plus',
     breaks: [E2E],
     expect: SHOWS,
-    edits: [{ file: COMPONENT, find: 'top-[calc(var(--topbar-h)+8px)]', replace: 'bottom-[8px]' }],
+    edits: [
+      {
+        file: COMPONENT,
+        find: 'className="shrink-0 border-b border-border bg-raised',
+        replace: 'className="fixed inset-x-3 bottom-[8px] z-40 border border-border bg-raised',
+      },
+    ],
+  },
+  {
+    name: 'alert-floats-over-the-page',
+    breaks: [E2E],
+    expect: 'Hide for now puts the bar away',
+    edits: [
+      {
+        file: COMPONENT,
+        find: 'className="shrink-0 border-b border-border bg-raised',
+        replace: 'className="fixed inset-x-3 top-[calc(var(--topbar-h)+8px)] z-40 border border-border bg-raised',
+      },
+    ],
+  },
+  {
+    name: 'alert-hide-also-finishes-it',
+    breaks: [E2E],
+    expect: 'Hide for now puts the bar away',
+    edits: [
+      {
+        file: COMPONENT,
+        find: '    setHidden(next);\n',
+        replace:
+          "    setHidden(next);\n    void rpc('notifications_mark_read', { p_ids: due.map((r) => r.notification_id) });\n",
+      },
+    ],
+  },
+  {
+    name: 'alert-hidden-comes-back-on-reload',
+    breaks: [E2E],
+    expect: 'Hide for now puts the bar away',
+    edits: [
+      {
+        file: COMPONENT,
+        find: '    writeHidden(hiddenKey(me.person.id), next);\n',
+        replace: '',
+      },
+    ],
   },
 ];
