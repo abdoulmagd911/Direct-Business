@@ -1450,7 +1450,12 @@ export const sabotages = [
     name: 'phone-controls-shrink-again',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
     expect: 'a layout link is 44 px tall',
-    edits: [{ file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' }],
+    edits: [
+      { file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
+    ],
   },
 
   {
@@ -1489,6 +1494,9 @@ export const sabotages = [
         find: 'inline-grid size-8 max-sm:size-11 place-items-center',
         replace: 'inline-grid size-8 place-items-center',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
@@ -1529,6 +1537,9 @@ export const sabotages = [
         find: 'before:absolute before:inset-x-0 before:-inset-y-2.5',
         replace: 'before:hidden',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
