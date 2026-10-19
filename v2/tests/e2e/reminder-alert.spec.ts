@@ -174,9 +174,9 @@ for (const width of [375, 1440]) {
         }),
       );
       expect(new Set(ys).size, 'Done, Snooze and Hide are one row').toBe(1);
-      await expect(hide, 'a short word on a phone').toHaveText('Hide');
+      await expect(hide.locator('span:visible'), 'a short word on a phone').toHaveText('Hide');
     } else {
-      await expect(hide).toHaveText('Hide for now');
+      await expect(hide.locator('span:visible')).toHaveText('Hide for now');
     }
     if (width < 700)
       expect((await hide.boundingBox())!.height, 'Hide for now is a 44 px target').toBeGreaterThanOrEqual(43.5);
