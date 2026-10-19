@@ -1468,6 +1468,9 @@ export const sabotages = [
         find: 'inline-grid size-11 shrink-0 place-items-center rounded-full focus-visible',
         replace: 'inline-grid size-6 shrink-0 place-items-center rounded-full focus-visible',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
@@ -1524,6 +1527,9 @@ export const sabotages = [
         replace:
           'href={filtersHref(filters, { month: shiftMonth(month, -1) })}\n          className="inline-flex size-9 items-center',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 

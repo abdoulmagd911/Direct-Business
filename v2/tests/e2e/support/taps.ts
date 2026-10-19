@@ -28,7 +28,8 @@ export async function seed(page: Page) {
     [me.id],
   );
   await sql(
-    `update core.person set team_id = (select t.id from core.team t where t.code = 'test_tasks') where id = $1`,
+    `update core.person set team_id = (select t.id from core.team t join core.department d on d.id = t.department_id
+                                       where d.code = 'commercial' and t.code = 'test_tasks') where id = $1`,
     [me.id],
   );
   await signIn(page, me.email, '/my-day');
