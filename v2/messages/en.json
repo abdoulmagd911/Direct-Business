@@ -392,6 +392,11 @@
         "followUpSaved": "Follow-up set - {title}",
         "passed": "That time has passed"
       },
+      "titleDate": {
+        "reminder": "Reminder read as {when} (from “{found}”)",
+        "due": "Due read as {when} (from “{found}”)",
+        "remove": "Do not use this date"
+      },
       "alert": {
         "title": "Reminder",
         "now": "Now",
