@@ -192,3 +192,34 @@ for (const width of [375, 1440]) {
     await expect(alert(page).locator('[data-alert-more]'), 'the hidden one is not counted in the bar').toHaveCount(0);
   });
 }
+
+for (const width of [375, 1440]) {
+  test(`the bell draws its unread number, and a hidden reminder that is snoozed and due again brings the bar back — at ${width} px`, async ({
+    page,
+  }) => {
+    // QA-578: the number on the bell is drawn. QA-579 (ruling of 19 Oct): Hide for now, then snooze, then due again at
+    // its new time counts as NEW.
+    const me = await makePerson({ admin: true });
+    const text = `Again ${tag()}`;
+    await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+    await signIn(page, me.email, '/my-day');
+    await hydrated(page);
+    await reminder(page.context(), me.id, text, -60);
+    await page.reload();
+    await hydrated(page);
+    await expect(page.locator('[data-bell]'), 'the unread number is drawn on the bell').toContainText('1');
+    await alert(page).locator('[data-alert-hide]').click();
+    await expect(alert(page)).toHaveCount(0);
+
+    // snoozed and due again: the same reminder, a new time that has come
+    await sql(
+      `update core.reminder r set remind_at = r.remind_at - interval '30 seconds'
+         from my.note n where n.id = r.note_id and n.person_id = $1 and n.title = $2`,
+      [me.id, text],
+    );
+    await page.reload();
+    await hydrated(page);
+    await expect(alert(page), 'a snoozed reminder that is due again is new').toBeVisible();
+    await expect(alert(page).locator('[data-alert-text]')).toHaveText(text);
+  });
+}

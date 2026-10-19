@@ -132,4 +132,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'alert-snoozed-reminder-stays-hidden',
+    breaks: [E2E],
+    expect: 'a snoozed reminder that is due again',
+    edits: [
+      {
+        file: 'src/core/prefs/hidden-reminders.ts',
+        find: 'hidden[id] === remindAt',
+        replace: 'id in hidden',
+      },
+    ],
+  },
 ];

@@ -1854,4 +1854,10 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'icon-button-drops-its-content',
+    breaks: ['unit:tests/unit/ui/an-icon-button-draws-what-is-put-inside-it.test.tsx'],
+    expect: 'draws a badge put inside it, after the icon',
+    edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
+  },
 ];
