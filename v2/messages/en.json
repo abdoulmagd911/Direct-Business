@@ -396,6 +396,7 @@
         "now": "Now",
         "done": "Done",
         "snooze": "Snooze",
+        "hide": "Hide for now",
         "snoozed": "Snoozed to {when} · {title}"
       }
     },

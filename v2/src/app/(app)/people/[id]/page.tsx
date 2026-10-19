@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireMe } from '@/core/auth/require-me';
+import { canSee } from '@/ui/person';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { Device } from '@/modules/org/screens/MyProfile';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
@@ -23,9 +24,12 @@ export default async function PersonPage({
   const person = org.people.find((p) => p.id === id);
   if (!person) notFound();
   const admin = me.person.role?.is_admin === true;
+  // the people list and another person's sign-ins are read with Org settings at View: not asked of anyone else, so a
+  // member opening a colleague's page makes no request the database must refuse (QA-577, the 403s in the console)
+  const orgView = canSee(me, 'settings.org');
   const failed: string[] = [];
   const [people, access, history, devices, ownDevices, signIns] = await Promise.all([
-    maybe<PeopleAnswer>('people', failed, () => serverRpc('people', {} as never)),
+    orgView ? maybe<PeopleAnswer>('people', failed, () => serverRpc('people', {} as never)) : Promise.resolve(null),
     admin
       ? maybe<PersonAccess>('access', failed, () => serverRpc('access_of_person', { p_person: id } as never))
       : Promise.resolve(null),
@@ -38,7 +42,9 @@ export default async function PersonPage({
     !admin && me.person.id === id
       ? maybe<Device[]>('ownDevices', failed, () => serverRpc('my_devices', {} as never))
       : Promise.resolve(null),
-    maybe<PersonRecordData['signIns']>('signIns', failed, () => serverRpc('sign_in_log', { p_person: id } as never)),
+    orgView || me.person.id === id
+      ? maybe<PersonRecordData['signIns']>('signIns', failed, () => serverRpc('sign_in_log', { p_person: id } as never))
+      : Promise.resolve(null),
   ]);
   const data: PersonRecordData = {
     me,

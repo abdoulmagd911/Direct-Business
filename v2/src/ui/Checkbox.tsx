@@ -27,11 +27,12 @@ export function Checkbox({
       disabled={disabled}
       aria-label={label}
       className={cn(
-        'inline-grid size-5 shrink-0 place-items-center rounded-[5px] border-[1.5px] border-border-strong bg-raised transition-colors duration-[var(--dur)] data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent disabled:opacity-50',
+        // a 44 px button on a phone with the 20 px box drawn inside it (V630); the box is the ::before
+        'relative inline-grid size-11 shrink-0 place-items-center disabled:opacity-50 sm:size-5 before:absolute before:inset-x-0 before:mx-auto before:top-1/2 before:size-5 before:-translate-y-1/2 before:rounded-[5px] before:border-[1.5px] before:border-border-strong before:bg-raised before:transition-colors before:duration-[var(--dur)] before:content-[""] data-[state=checked]:before:border-accent data-[state=checked]:before:bg-accent data-[state=indeterminate]:before:border-accent data-[state=indeterminate]:before:bg-accent',
         className,
       )}
     >
-      <RC.Indicator className="text-on-accent">
+      <RC.Indicator className="relative text-on-accent">
         {checked === 'indeterminate' ? (
           <Minus className="size-3.5" strokeWidth={3} aria-hidden="true" />
         ) : (

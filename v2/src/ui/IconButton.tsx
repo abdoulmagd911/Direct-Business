@@ -11,7 +11,7 @@ export const IconButton = forwardRef<
     size?: 'md' | 'sm';
     pressed?: boolean;
   }
->(function IconButton({ label, icon, size = 'md', pressed, className, type = 'button', ...rest }, ref) {
+>(function IconButton({ label, icon, size = 'md', pressed, className, type = 'button', children, ...rest }, ref) {
   return (
     <button
       ref={ref}
@@ -27,6 +27,7 @@ export const IconButton = forwardRef<
       {...rest}
     >
       {icon}
+      {children}
     </button>
   );
 });

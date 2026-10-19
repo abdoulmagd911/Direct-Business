@@ -35,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             bellOpen={bell}
             unread={notifications.unread ?? 0}
           />
+          <ReminderAlert />
           <main id="main" className="flex min-h-0 flex-1 overflow-hidden">
             {children}
           </main>
@@ -54,7 +55,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         snooze={notifications.snooze}
       />
       <QuickCapture />
-      <ReminderAlert />
       <ConflictDialog />
       <RefetchBridge />
       <Suspense fallback={null}>

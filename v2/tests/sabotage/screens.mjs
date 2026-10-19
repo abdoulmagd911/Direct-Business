@@ -1841,4 +1841,23 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // the top search finds more than organisations: it drops the tasks api.search sends
+    name: 'search-box-shows-no-tasks',
+    breaks: ['e2e:tests/e2e/search-finds-a-task.spec.ts'],
+    expect: 'the task is found by its title',
+    edits: [
+      {
+        file: 'src/ui/shell/CommandPalette.tsx',
+        find: '            tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),\n',
+        replace: '            tasks: [],\n',
+      },
+    ],
+  },
+  {
+    name: 'icon-button-drops-its-content',
+    breaks: ['unit:tests/unit/ui/an-icon-button-draws-what-is-put-inside-it.test.tsx'],
+    expect: 'draws a badge put inside it, after the icon',
+    edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
+  },
 ];
