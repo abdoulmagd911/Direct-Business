@@ -144,4 +144,22 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'alert-bar-stacks-its-buttons-on-a-phone',
+    breaks: [E2E],
+    expect: 'Hide for now puts the bar away',
+    edits: [{ file: COMPONENT, find: 'grid grid-cols-3 gap-2 sm:flex', replace: 'flex flex-col gap-2 sm:flex' }],
+  },
+  {
+    name: 'snooze-has-no-one-hour',
+    breaks: [UNIT],
+    expect: 'offers In 1 hour, Later today, Tomorrow and Next week',
+    edits: [
+      {
+        file: 'src/modules/my-day/reminder-alert.ts',
+        find: "['one_hour', 'later_today', 'tomorrow', 'next_week']",
+        replace: "['later_today', 'tomorrow', 'next_week']",
+      },
+    ],
+  },
 ];

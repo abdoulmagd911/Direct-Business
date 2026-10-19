@@ -18,7 +18,7 @@ export const inputClass =
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
 
 /**
- * A date box (W-daily 13): the browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
+ * A date or time box (W-daily 13, V643 (4)): a time is shown 24-hour (`09:00`) whatever the device says. The browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
  * so the box shows the date the way the whole app writes it — `14 Oct 2026` — and the real date input sits invisibly
  * on top of it, keeping the label, the keyboard, the value (always `YYYY-MM-DD`, or `YYYY-MM-DDThh:mm` with a time)
  * and the native picker. While the field has keyboard focus the real input is shown and the written date hidden, so
@@ -41,9 +41,11 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
   );
   const written = !shown
     ? '—'
-    : type === 'datetime-local'
-      ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
-      : formatDate(`${shown}T12:00:00+03:00`, locale);
+    : type === 'time'
+      ? shown.slice(0, 5)
+      : type === 'datetime-local'
+        ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
+        : formatDate(`${shown}T12:00:00+03:00`, locale);
   const open = (e: MouseEvent<HTMLInputElement>) => {
     onClick?.(e);
     try {
@@ -96,7 +98,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
 });
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, mono, ...rest }, ref) {
-  if (rest.type === 'date' || rest.type === 'datetime-local')
+  if (rest.type === 'date' || rest.type === 'datetime-local' || rest.type === 'time')
     return <DateInput ref={ref} className={className} mono={mono} {...rest} />;
   return (
     <input

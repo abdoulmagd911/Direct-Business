@@ -48,7 +48,7 @@ for (const width of [375, 1440]) {
     const bar = (await page.locator('[data-topbar]').boundingBox())!;
     expect(box.y, 'under the top bar').toBeGreaterThanOrEqual(bar.y + bar.height - 0.5);
     if (width < 700) {
-      for (const part of ['[data-alert-done]', '[data-alert-snooze]', '[data-alert-text]']) {
+      for (const part of ['[data-alert-done]', '[data-alert-snooze]', '[data-alert-hide]', '[data-alert-text-link]']) {
         const b = (await alert(page).locator(part).boundingBox())!;
         expect(b.height, `${part} is a 44 px target`).toBeGreaterThanOrEqual(43.5);
       }
@@ -163,6 +163,21 @@ for (const width of [375, 1440]) {
     );
     expect(await alert(page).evaluate((el) => getComputedStyle(el).position), 'it does not float').not.toBe('fixed');
     const hide = alert(page).locator('[data-alert-hide]');
+    if (width < 700) {
+      // V643 (1): at most about 110 px on a phone, and the three buttons are one row
+      expect(box.height, 'the bar is at most 110 px high on a phone').toBeLessThanOrEqual(110);
+      const ys = await Promise.all(
+        ['[data-alert-done]', '[data-alert-snooze]', '[data-alert-hide]'].map(async (q) => {
+          const b = (await alert(page).locator(q).boundingBox())!;
+          expect(b.width, `${q} is 44 px wide`).toBeGreaterThanOrEqual(43.5);
+          return Math.round(b.y);
+        }),
+      );
+      expect(new Set(ys).size, 'Done, Snooze and Hide are one row').toBe(1);
+      await expect(hide, 'a short word on a phone').toHaveText('Hide');
+    } else {
+      await expect(hide).toHaveText('Hide for now');
+    }
     if (width < 700)
       expect((await hide.boundingBox())!.height, 'Hide for now is a 44 px target').toBeGreaterThanOrEqual(43.5);
 
@@ -223,3 +238,27 @@ for (const width of [375, 1440]) {
     await expect(alert(page).locator('[data-alert-text]')).toHaveText(text);
   });
 }
+
+test('Snooze offers In 1 hour first, and it moves the reminder an hour on (V643 (2))', async ({ page }) => {
+  const me = await makePerson({ admin: true });
+  const text = `Hour ${tag()}`;
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, me.email, '/my-day');
+  await hydrated(page);
+  await reminder(page.context(), me.id, text, -60);
+  await page.reload();
+  await hydrated(page);
+  await alert(page).locator('[data-alert-snooze]').click();
+  const first = page.locator('[data-alert-snooze-to]').first();
+  await expect(first, 'In 1 hour is the first choice').toHaveAttribute('data-alert-snooze-to', 'one_hour');
+  await expect(first).toContainText('In 1 hour');
+  await first.click();
+  await expect(alert(page), 'the alert is put away').toHaveCount(0);
+  const [row] = await sql<{ minutes: number }>(
+    `select round(extract(epoch from (r.remind_at - now())) / 60)::int as minutes
+       from core.reminder r join my.note n on n.id = r.note_id where n.person_id = $1 and n.title = $2`,
+    [me.id, text],
+  );
+  expect(row?.minutes, 'an hour on').toBeGreaterThanOrEqual(59);
+  expect(row?.minutes).toBeLessThanOrEqual(61);
+});

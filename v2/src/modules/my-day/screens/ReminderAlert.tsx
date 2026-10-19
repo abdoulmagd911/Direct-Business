@@ -1,5 +1,5 @@
 'use client';
-import { Check, ChevronDown, Clock, EyeOff } from 'lucide-react';
+import { Check, ChevronDown, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -149,30 +149,35 @@ export function ReminderAlert() {
     <div
       role="status"
       aria-live="polite"
+      aria-label={t('pages.myDay.alert.title')}
       className="shrink-0 border-b border-border bg-raised px-4 py-2 text-text sm:px-6 lg:px-8"
       data-reminder-alert
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="flex items-center gap-2">
-          <span className="grid size-6 place-items-center rounded-pill bg-accent-soft text-muted" aria-hidden="true">
+      {/* V643 (1): on a phone the bar is at most about 110 px — the words on one or two lines, then ONE row of buttons;
+          on a wider screen it is one row */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+        <Link
+          href={noteRoute(first.note_id)}
+          className="flex min-h-11 min-w-0 items-center gap-2 text-sm leading-snug hover:underline focus-visible:outline-2 focus-visible:outline-focus sm:flex-1 sm:text-base"
+          data-alert-text-link
+        >
+          <span
+            className="grid size-6 shrink-0 place-items-center rounded-pill bg-accent-soft text-muted"
+            aria-hidden="true"
+          >
             <Clock className="size-4" />
           </span>
-          <span className="text-sm font-semibold">{t('pages.myDay.alert.title')}</span>
+          <span className="hidden shrink-0 font-semibold sm:inline">{t('pages.myDay.alert.title')}</span>
+          <span className="line-clamp-2 min-w-0 break-words sm:line-clamp-1" data-alert-text>
+            {first.text}
+          </span>
           {shown.length > 1 ? (
-            <span className="text-sm text-muted" data-alert-more>
+            <span className="shrink-0 text-muted" data-alert-more>
               +{shown.length - 1}
             </span>
           ) : null}
-          <span className="text-sm text-muted">{t('pages.myDay.alert.now')}</span>
-        </span>
-        <Link
-          href={noteRoute(first.note_id)}
-          className="flex min-h-11 min-w-0 basis-full items-center break-words text-base leading-snug hover:underline focus-visible:outline-2 focus-visible:outline-focus sm:basis-0 sm:flex-1 sm:truncate"
-          data-alert-text
-        >
-          {first.text}
         </Link>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex">
           <Button variant="primary" icon={<Check />} onClick={() => void done()} disabled={busy} data-alert-done>
             {t('pages.myDay.alert.done')}
           </Button>
@@ -193,8 +198,9 @@ export function ReminderAlert() {
               ))}
             </MenuContent>
           </Menu>
-          <Button icon={<EyeOff />} onClick={hide} disabled={busy} data-alert-hide>
-            {t('pages.myDay.alert.hide')}
+          <Button onClick={hide} disabled={busy} aria-label={t('pages.myDay.alert.hide')} data-alert-hide>
+            <span className="sm:hidden">{t('pages.myDay.alert.hideShort')}</span>
+            <span className="hidden sm:inline">{t('pages.myDay.alert.hide')}</span>
           </Button>
         </div>
       </div>

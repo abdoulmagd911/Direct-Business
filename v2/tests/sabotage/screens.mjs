@@ -1877,4 +1877,34 @@ export const sabotages = [
     expect: 'draws a badge put inside it, after the icon',
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
+  {
+    name: 'restore-offered-to-everyone',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'leaves the button off a row the person may not restore',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: '{d.can_restore === false ? null : (',
+        replace: '{false ? null : (',
+      },
+    ],
+  },
+  {
+    name: 'arabic-times-print-12-hour',
+    breaks: ['unit:tests/unit/ui/a-time-is-written-24-hour-everywhere.test.tsx'],
+    expect: 'writes an Arabic time 24-hour',
+    edits: [{ file: 'src/core/i18n/format.ts', find: "if (given.hour) given.hourCycle = 'h23';", replace: '' }],
+  },
+  {
+    name: 'time-box-follows-the-device',
+    breaks: ['unit:tests/unit/ui/a-time-is-written-24-hour-everywhere.test.tsx'],
+    expect: 'a time box writes the time 24-hour',
+    edits: [
+      {
+        file: 'src/ui/Input.tsx',
+        find: "rest.type === 'datetime-local' || rest.type === 'time')",
+        replace: "rest.type === 'datetime-local')",
+      },
+    ],
+  },
 ];
