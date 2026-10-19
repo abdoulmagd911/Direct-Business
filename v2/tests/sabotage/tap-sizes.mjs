@@ -1,10 +1,11 @@
-// Sabotages for the Architect's ruling of 18 Oct (V630): every tappable thing is 44 px high on a phone, by one shared rule.
+// Sabotages for the Architect's ruling of 18 Oct (V630): every tappable thing is 44 px wide and high on a phone, by one shared rule.
 const E2E = 'e2e:tests/e2e/tap-sizes-everywhere.spec.ts';
+const ARABIC = 'e2e:tests/e2e/tap-sizes-arabic.alone.spec.ts';
 export const sabotages = [
   {
     name: 'the-shared-tap-rule-is-gone',
-    breaks: [E2E],
-    expect: 'every tappable thing is 44 px high on a phone',
+    breaks: [E2E, ARABIC],
+    expect: 'every tappable thing is 44 px wide and high on a phone',
     edits: [{ file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' }],
   },
   {
@@ -22,12 +23,30 @@ export const sabotages = [
   {
     name: 'the-switch-is-24-px-on-a-phone',
     breaks: [E2E],
-    expect: 'every tappable thing is 44 px high on a phone — /profile',
+    expect: '/profile — ',
     edits: [
       {
         file: 'src/ui/Switch.tsx',
-        find: 'relative inline-flex h-11 w-10 shrink-0 items-center',
-        replace: 'relative inline-flex h-6 w-10 shrink-0 items-center',
+        find: 'relative inline-flex h-11 w-11 shrink-0 items-center',
+        replace: 'relative inline-flex h-6 w-11 shrink-0 items-center',
+      },
+    ],
+  },
+  {
+    name: 'the-tap-rule-forgets-the-width',
+    breaks: [E2E, ARABIC],
+    expect: 'every tappable thing is 44 px wide and high on a phone',
+    edits: [{ file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' }],
+  },
+  {
+    name: 'the-switch-is-40-px-wide-on-a-phone',
+    breaks: [E2E],
+    expect: 'every tappable thing is 44 px wide and high on a phone',
+    edits: [
+      {
+        file: 'src/ui/Switch.tsx',
+        find: 'relative inline-flex h-11 w-11 shrink-0 items-center sm:w-10',
+        replace: 'relative inline-flex h-11 w-10 shrink-0 items-center sm:w-10',
       },
     ],
   },
