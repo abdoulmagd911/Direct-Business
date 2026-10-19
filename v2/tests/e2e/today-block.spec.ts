@@ -20,7 +20,7 @@ async function personWithTasks() {
   );
   await sql(`update core.person set team_id = $2 where id = $1`, [me.id, team!.id]);
   const make = async (title: string, offset: number) => {
-    const number = `TSK-1999-${String(Math.floor(Math.random() * 90000) + 10000)}`;
+    const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
     await sql(
       `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by, due_on)
        values ($1, $2, $3, $4, (select department_id from core.team where id = $4),

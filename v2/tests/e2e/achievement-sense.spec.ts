@@ -54,7 +54,7 @@ async function memberWithTask(title: string): Promise<{ me: TestPerson; number: 
     `select id from core.team where code = 'test_sense' and department_id = (select id from core.department where code = 'commercial')`,
   );
   await sql(`update core.person set team_id = $1 where id = $2`, [team!.id, me.id]);
-  const number = `TSK-1999-${String(Math.floor(Math.random() * 90000) + 10000)}`;
+  const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
   await sql(
     `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
      values ($1, $2, $3, $4, (select department_id from core.team where id = $4),
