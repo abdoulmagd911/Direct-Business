@@ -1257,7 +1257,8 @@ export const sabotages = [
       {
         file: 'src/ui/shell/TopBar.tsx',
         find: "'flex h-11 min-w-0",
-        replace: "'flex h-[38px] min-w-0",
+        // the phone's shared 44 px minimum (globals.css) holds a 38 px box open, so the sabotage lifts it too
+        replace: "'flex h-[38px] min-h-0 min-w-0",
       },
     ],
   },
