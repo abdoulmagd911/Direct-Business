@@ -158,7 +158,7 @@ export function MyDay({ data }: { data: MyDayData }) {
                 href={kindHref(k)}
                 aria-current={kind === k ? 'true' : undefined}
                 className={cn(
-                  'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+                  'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
                   kind === k ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',
                 )}
                 data-kind-option={k ?? 'all'}
