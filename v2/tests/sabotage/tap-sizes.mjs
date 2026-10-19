@@ -1,6 +1,6 @@
 // Sabotages for the Architect's ruling of 18 Oct (V630): every tappable thing is 44 px wide and high on a phone, by one shared rule.
 const E2E = 'e2e:tests/e2e/tap-sizes-everywhere.spec.ts';
-const ARABIC = 'e2e:tests/e2e/tap-sizes-arabic.alone.spec.ts';
+const ARABIC = 'e2e:tests/e2e/app-settings.alone.spec.ts';
 export const sabotages = [
   {
     name: 'the-shared-tap-rule-is-gone',
