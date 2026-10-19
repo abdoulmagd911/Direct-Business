@@ -13,6 +13,9 @@
  * The weekly review in Arabic (V632 Stage 3) lives here for the same reason: it switches Arabic on, and a second `alone`
  * file doing so at the same moment collided on the one setting per date (main b8ad0c3).
  * Sabotage: tests/sabotage/weekly-review.mjs "weekly-review-title-is-the-door-word".
+ *
+ * The 44 px wide-and-high walk in Arabic (V643) lives here for the same reason.
+ * Sabotages: tests/sabotage/tap-sizes.mjs "the-shared-tap-rule-is-gone", "the-tap-rule-forgets-the-width".
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,6 +23,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
 import { callAs, makePerson, signIn, sql } from './support/stack';
+import { seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -283,5 +287,24 @@ test('in Arabic at 375 px: the weekly review reads right to left in the catalog�
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       'no sideways scroll',
     ).toBe(true);
+  });
+});
+
+// ---- The Architect's ruling V643: the 44 px rule holds in Arabic too — wide AND high, at 375 px, right to left
+
+test('every tappable thing is at least 44 px wide and high on a phone, on every page and in the dialogs and menus — Arabic', async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  await withArabic(async () => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    const { me, clientId, number } = await seed(page);
+    await sql(`insert into core.person_profile (person_id, created_by, locale) values ($1, $1, 'ar')`, [me.id]);
+    await page.context().addCookies([{ name: 'v2.locale', value: 'ar', url: new URL(page.url()).origin }]);
+    await page.goto('/my-day');
+    await expect(page.locator('html'), 'the Arabic walk is in Arabic, right to left').toHaveAttribute('dir', 'rtl');
+    expect(await walk(page, me, clientId, number), 'every tappable thing is 44 px wide and high on a phone').toEqual(
+      [],
+    );
   });
 });
