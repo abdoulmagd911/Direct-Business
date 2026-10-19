@@ -9,7 +9,7 @@ import { onRefetch, refetchAll } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
 import { errorKey } from '@/core/db/words';
 import { clip } from '@/core/i18n/format';
-import { hiddenKey, readHidden, writeHidden } from '@/core/prefs/hidden-reminders';
+import { hiddenKey, isHidden, readHidden, writeHidden, type Hidden } from '@/core/prefs/hidden-reminders';
 import { rpc } from '@/core/db/rpc';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
@@ -49,7 +49,7 @@ export function ReminderAlert() {
   const [nextAt, setNextAt] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const seen = useRef(new Set<string>());
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Hidden>({});
 
   const load = useCallback(async () => {
     try {
@@ -112,11 +112,11 @@ export function ReminderAlert() {
   }, [due, locale, t]);
 
   // what Hide for now put away stays out of the bar until a reminder that was not hidden comes due
-  const shown = due.filter((r) => !hidden.has(r.id));
+  const shown = due.filter((r) => !isHidden(hidden, r.id, r.remind_at));
   const first = shown[0];
   if (!first) return null;
   const hide = () => {
-    const next = new Set(due.map((r) => r.id));
+    const next: Hidden = Object.fromEntries(due.map((r) => [r.id, r.remind_at]));
     setHidden(next);
     writeHidden(hiddenKey(me.person.id), next);
   };
