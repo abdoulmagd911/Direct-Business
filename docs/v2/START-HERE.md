@@ -87,7 +87,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 |---|---|---|---|
 | Oversight (Cowork) | Relays the owner, signs gate cards (V532), keeps the Drive | — | V400–V599 |
 | Architect | Decisions, spec, plan; runs the merge train | `v2/architecture` | V600–V699 (V650–V699 from 20 Oct) |
-| Builder A | Database, server, CI | `v2/a-…` | V100–V199, V650–V699 |
+| Builder A | Database, server, CI | `v2/a-…` | V100–V199, V700–V749 |
 | Builder B | Screens, the shell, the organisation pages | `v2/b-…` | V200–V269 |
 | Builder C | Arabic, exports, the Past work grid | `v2/c-…` | V300–V369 |
 | Builder D | The Tasks screens | `v2/d-…` | V270–V299 |
