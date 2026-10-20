@@ -31,6 +31,13 @@ export function riyadhNow(now: Date): { day: string; minutes: number } {
   return { day: d.toISOString().slice(0, 10), minutes: d.getUTCHours() * 60 + d.getUTCMinutes() };
 }
 
+/** One hour on, to the minute (V643 (2)): Snooze always offers it, because Later today is not offered late in the day. */
+export function inOneHour(now: Date): When {
+  const t = new Date(Math.ceil(now.getTime() / 60_000) * 60_000 + 3_600_000);
+  const { day, minutes } = riyadhNow(t);
+  return { day, time: toHhmm(minutes) };
+}
+
 /** Three hours on, or the end of the working day if that comes first; not offered when too little of the day is left. */
 export function laterToday(now: Date): When | null {
   const { day, minutes } = riyadhNow(now);

@@ -377,6 +377,7 @@
         "save": "Capture",
         "saved": "{kind} saved",
         "whenChips": {
+          "one_hour": "In 1 hour",
           "later_today": "Later today",
           "tomorrow": "Tomorrow",
           "next_week": "Next week",
@@ -397,6 +398,7 @@
         "done": "Done",
         "snooze": "Snooze",
         "hide": "Hide for now",
+        "hideShort": "Hide",
         "snoozed": "Snoozed to {when} · {title}"
       }
     },

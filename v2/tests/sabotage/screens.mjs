@@ -1155,6 +1155,9 @@ export const sabotages = [
         find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
@@ -1168,6 +1171,9 @@ export const sabotages = [
         find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
@@ -1179,7 +1185,8 @@ export const sabotages = [
       {
         file: 'src/ui/Tabs.tsx',
         find: 'inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap',
-        replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
+        // the phone's shared 44 px minimum (globals.css) would still hold the tab open, so the sabotage lifts it too
+        replace: 'inline-flex min-h-11 min-w-0 items-center whitespace-nowrap',
       },
     ],
   },
@@ -1257,7 +1264,8 @@ export const sabotages = [
       {
         file: 'src/ui/shell/TopBar.tsx',
         find: "'flex h-11 min-w-0",
-        replace: "'flex h-[38px] min-w-0",
+        // the phone's shared 44 px minimum (globals.css) holds a 38 px box open, so the sabotage lifts it too
+        replace: "'flex h-[38px] min-h-0 min-w-0",
       },
     ],
   },
@@ -1876,5 +1884,35 @@ export const sabotages = [
     breaks: ['unit:tests/unit/ui/an-icon-button-draws-what-is-put-inside-it.test.tsx'],
     expect: 'draws a badge put inside it, after the icon',
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
+  },
+  {
+    name: 'restore-offered-to-everyone',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'leaves the button off a row the person may not restore',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: '{d.can_restore === false ? null : (',
+        replace: '{false ? null : (',
+      },
+    ],
+  },
+  {
+    name: 'arabic-times-print-12-hour',
+    breaks: ['unit:tests/unit/ui/a-time-is-written-24-hour-everywhere.test.tsx'],
+    expect: 'writes an Arabic time 24-hour',
+    edits: [{ file: 'src/core/i18n/format.ts', find: "if (given.hour) given.hourCycle = 'h23';", replace: '' }],
+  },
+  {
+    name: 'time-box-follows-the-device',
+    breaks: ['unit:tests/unit/ui/a-time-is-written-24-hour-everywhere.test.tsx'],
+    expect: 'a time box writes the time 24-hour',
+    edits: [
+      {
+        file: 'src/ui/Input.tsx',
+        find: "rest.type === 'datetime-local' || rest.type === 'time')",
+        replace: "rest.type === 'datetime-local')",
+      },
+    ],
   },
 ];

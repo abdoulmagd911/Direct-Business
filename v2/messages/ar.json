@@ -459,6 +459,7 @@
         "save": "تدوين",
         "saved": "تم حفظ {kind}",
         "whenChips": {
+          "one_hour": "بعد ساعة",
           "later_today": "لاحقًا اليوم",
           "tomorrow": "غدًا",
           "next_week": "الأسبوع القادم",
@@ -479,6 +480,7 @@
         "done": "تم",
         "snooze": "تأجيل",
         "hide": "إخفاء مؤقتًا",
+        "hideShort": "إخفاء",
         "snoozed": "تم التأجيل إلى {when} · {title}"
       }
     },

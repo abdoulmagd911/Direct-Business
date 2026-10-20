@@ -34,10 +34,11 @@ describe('the one timer', () => {
 });
 
 describe('Snooze', () => {
-  it('offers Later today, Tomorrow and Next week in Riyadh time', () => {
+  it('offers In 1 hour, Later today, Tomorrow and Next week in Riyadh time', () => {
     // Wed 14 Oct 2026, 10:00 Riyadh
     const now = at('2026-10-14T07:00:00Z');
     expect(snoozeChoices(now).map((c) => [c.key, c.when.day, c.when.time])).toEqual([
+      ['one_hour', '2026-10-14', '11:00'],
       ['later_today', '2026-10-14', '13:00'],
       ['tomorrow', '2026-10-15', '09:00'],
       ['next_week', '2026-10-18', '09:00'],
@@ -46,10 +47,17 @@ describe('Snooze', () => {
   it('leaves Later today out late in the working day, Tomorrow skips the weekend, and Next week is the Sunday after it (QA-566)', () => {
     // Thu 15 Oct 2026, 17:30 Riyadh
     const now = at('2026-10-15T14:30:00Z');
-    expect(snoozeChoices(now).map((c) => [c.key, c.when.day])).toEqual([
-      ['tomorrow', '2026-10-18'],
-      ['next_week', '2026-10-25'],
+    expect(snoozeChoices(now).map((c) => [c.key, c.when.day, c.when.time])).toEqual([
+      ['one_hour', '2026-10-15', '18:30'],
+      ['tomorrow', '2026-10-18', '09:00'],
+      ['next_week', '2026-10-25', '09:00'],
     ]);
+  });
+  it('In 1 hour crosses midnight into the next Riyadh day (V643 (2))', () => {
+    // Thu 15 Oct 2026, 23:40 Riyadh
+    const now = at('2026-10-15T20:40:30Z');
+    const one = snoozeChoices(now)[0]!;
+    expect([one.key, one.when.day, one.when.time]).toEqual(['one_hour', '2026-10-16', '00:41']);
   });
   it('sends the Riyadh day and time as an instant at UTC+3', () => {
     expect(snoozeInstant({ day: '2026-10-15', time: '09:00' })).toBe('2026-10-15T09:00:00+03:00');
