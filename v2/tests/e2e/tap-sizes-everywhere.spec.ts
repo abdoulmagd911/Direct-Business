@@ -6,7 +6,7 @@
  * Sabotages: tests/sabotage/tap-sizes.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { reminderStartGap, seed, walk } from './support/taps';
+import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -52,4 +52,16 @@ test('a short reminder title on My day starts right after the tick, not centred 
   const { gap, width } = await reminderStartGap(page, me.id, 'Call Ali');
   expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
   expect(width, 'and the link is still a finger wide').toBeGreaterThanOrEqual(43.5);
+});
+
+test('a short note title in the My day notes list is a finger wide on a phone — English and Arabic (QA-584)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await seed(page);
+  const widths = await noteLinkWidths(page, ['Hi', 'علي', 'Check']);
+  for (const [title, { width, height }] of Object.entries(widths)) {
+    expect(height, `the note link "${title}" is 44 px high on a phone`).toBeGreaterThanOrEqual(43.5);
+    expect(width, `the note link "${title}" is 44 px wide on a phone`).toBeGreaterThanOrEqual(43.5);
+  }
 });

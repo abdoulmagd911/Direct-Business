@@ -117,7 +117,11 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
       <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-          <Link href={noteRoute(note.id)} className="min-w-0 truncate font-medium hover:underline" data-note-open>
+          <Link
+            href={noteRoute(note.id)}
+            className="min-w-11 truncate font-medium hover:underline sm:min-w-0"
+            data-note-open
+          >
             {title}
           </Link>
           {count && count.total ? (
