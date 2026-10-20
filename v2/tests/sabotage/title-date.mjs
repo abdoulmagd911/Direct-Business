@@ -59,8 +59,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/title-date.ts',
-        find: 'needsTime: !fullName && !m[1] }',
-        replace: 'needsTime: false }',
+        find: 'if (!fullName && !m[1] && !(t && Math.min(Math.abs(t.at - end), Math.abs(at - t.end)) <= 6)) continue;',
+        replace: '',
       },
     ],
   },
@@ -83,8 +83,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/title-date.ts',
-        find: '!/^M/.test(monthText) && !m[3] && !nearWeekday(text, at, end)',
-        replace: 'false',
+        find: "if (monthText === 'may' && !m[3]) continue;",
+        replace: '',
       },
     ],
   },

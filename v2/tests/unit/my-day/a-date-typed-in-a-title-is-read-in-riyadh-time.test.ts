@@ -60,6 +60,17 @@ describe('a date typed in a title', () => {
     expect(read('Renew may 2 2027')).toEqual(['2027-05-02', null, 'may 2 2027']);
     expect(read('Meet at 18:30')).toEqual(['2026-10-21', '18:30', 'at 18:30']);
   });
+  it('V651 (QA-582): lowercase may is a month only with a year; a weekday beats a month; a time alone is not a date', () => {
+    expect(read('Rooms may 2 guests Friday 6pm')).toEqual(['2026-10-23', '18:00', 'Friday 6pm']);
+    expect(read('Rooms may 2 guests Fri 6pm')).toEqual(['2026-10-23', '18:00', 'Fri 6pm']);
+    expect(read('Rooms may 2 guests Fri')).toBeNull();
+    expect(read('Pay Friday 28 Oct')).toEqual(['2026-10-23', null, 'Friday']);
+    expect(read('Renew 2 may')).toBeNull();
+    expect(read('Renew may 2 guests')).toBeNull();
+    expect(read('Renew 2 may 2027')).toEqual(['2027-05-02', null, '2 may 2027']);
+    expect(read('Flight EK 18:30 Hotel')).toBeNull();
+    expect(read('Flight EK 18:30 tomorrow')).toEqual(['2026-10-22', '18:30', '18:30 tomorrow']);
+  });
   it('counts the day in Riyadh time, not the computer’s', () => {
     // 23:30 UTC on the 20th is 02:30 on the 21st in Riyadh
     expect(read('Report tomorrow', at('2026-10-20T23:30:00Z'))).toEqual(['2026-10-22', null, 'tomorrow']);

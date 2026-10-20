@@ -5,9 +5,12 @@ import { MORNING, riyadhNow } from './when';
  * first (the Arabic words follow, reviewed by builder C). It is only read, never written into the title: the person
  * sees the day it was read as in a chip they can remove before saving.
  *
- *  - a day: today · tomorrow · a weekday (Sunday … Saturday, or Sun … Sat, optionally "next"), the next one after today ·
- *    "21 Oct" or "Oct 21", with an optional year (a day already gone this year means next year)
- *  - a time: "6pm", "6:30 pm", "18:00"; a bare "at 6" is not read, it could be anything
+ *  - a day: today · tomorrow · a weekday (Sunday … Saturday, the next one after today) · "21 Oct" or "Oct 21", with an
+ *    optional year (a day already gone this year means next year). Ordinary words are not days (V651, QA-581/582):
+ *    a short weekday (Sun … Sat) counts only after "on" or "next", or beside a time; a lowercase "may" is a month only
+ *    with a year beside it; when a weekday and a month are both typed the weekday wins.
+ *  - a time: "6pm", "6:30 pm", "at 18:30"; a bare "at 6" is not read, and a bare 18:30 among other words ("Flight EK
+ *    18:30") is never a date
  *  - a day with no time takes 09:00, the morning a Tomorrow reminder fires; a time with no day is today if it is still
  *    to come, else tomorrow.
  *  - anything that would be in the past is not read.
@@ -27,7 +30,9 @@ const MONTH_RE =
   '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
 const WEEKDAY_RE =
   '(sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?)';
+// A weekday comes first: when a weekday and a month are both typed, the weekday wins (V651)
 const DAY_RES: { re: RegExp; kind: 'word' | 'weekday' | 'dm' | 'md' }[] = [
+  { re: new RegExp(`\\b((?:on|next)\\s+)?${WEEKDAY_RE}\\b`, 'i'), kind: 'weekday' },
   {
     re: new RegExp(`\\b(?:on\\s+)?(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH_RE}\\.?(?:\\s+(\\d{4}))?\\b`, 'i'),
     kind: 'dm',
@@ -37,7 +42,6 @@ const DAY_RES: { re: RegExp; kind: 'word' | 'weekday' | 'dm' | 'md' }[] = [
     kind: 'md',
   },
   { re: /\b(today|tomorrow)\b/i, kind: 'word' },
-  { re: new RegExp(`\\b((?:on|next)\\s+)?${WEEKDAY_RE}\\b`, 'i'), kind: 'weekday' },
 ];
 const TIME_RE = /\b(?:at\s+)?(?:(\d{1,2})(?::(\d{2}))?\s*(am|pm)|([01]?\d|2[0-3]):([0-5]\d))\b/i;
 
@@ -74,55 +78,46 @@ function readTime(text: string): { time: string; at: number; end: number; explic
   return { time, at: m.index, end: m.index + m[0].length, explicit };
 }
 
-type DayRead = { day: string; at: number; end: number; needsTime: boolean };
+type DayRead = { day: string; at: number; end: number };
 
-/** A weekday word within a few characters before or after [at, end). */
-function nearWeekday(text: string, at: number, end: number): boolean {
-  const before = text.slice(Math.max(0, at - 14), at);
-  const after = text.slice(end, end + 14);
-  const re = new RegExp(`\\b${WEEKDAY_RE}\\b`, 'i');
-  return re.test(before) || re.test(after);
-}
-
-function readDay(text: string, today: string): DayRead | null {
+function readDay(text: string, today: string, t: { at: number; end: number } | null): DayRead | null {
   for (const { re, kind } of DAY_RES) {
     const m = re.exec(text);
     if (!m) continue;
     const at = m.index;
     const end = m.index + m[0].length;
-    if (kind === 'word')
-      return { day: m[1]!.toLowerCase() === 'today' ? today : addDays(today, 1), at, end, needsTime: false };
+    if (kind === 'word') return { day: m[1]!.toLowerCase() === 'today' ? today : addDays(today, 1), at, end };
     if (kind === 'weekday') {
       const word = m[2]!;
       const want = WEEKDAYS.indexOf(word.slice(0, 3).toLowerCase() as (typeof WEEKDAYS)[number]);
       const ahead = (want - dowOf(today) + 7) % 7 || 7;
       // a short weekday ("Sun Hotel", "sat phone") is a day only after "on" or "next", or beside a time (QA-581); the full name always is
       const fullName = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(word);
-      return { day: addDays(today, ahead), at, end, needsTime: !fullName && !m[1] };
+      // a short weekday is a day only after "on" or "next", or beside a time (V651); anything else is another word
+      if (!fullName && !m[1] && !(t && Math.min(Math.abs(t.at - end), Math.abs(at - t.end)) <= 6)) continue;
+      return { day: addDays(today, ahead), at, end };
     }
     const dayNum = Number(kind === 'dm' ? m[1] : m[2]);
     const monthText = (kind === 'dm' ? m[2] : m[1])!;
     const monthWord = monthText.slice(0, 3).toLowerCase();
-    // "may" is also a word: read as a month only when capitalised, or with a year or a weekday beside it (QA-581)
-    if (monthText.toLowerCase() === 'may' && !/^M/.test(monthText) && !m[3] && !nearWeekday(text, at, end)) return null;
+    // "may" is also a word: a lowercase "may" is a month only with a year beside it (V651)
+    if (monthText === 'may' && !m[3]) continue;
     const month = MONTHS.indexOf(monthWord as (typeof MONTHS)[number]) + 1;
     const typedYear = m[3] ? Number(m[3]) : null;
     const thisYear = Number(today.slice(0, 4));
     let day = realDay(typedYear ?? thisYear, month, dayNum);
     if (day && !typedYear && day < today) day = realDay(thisYear + 1, month, dayNum);
     if (!day) return null;
-    return { day, at, end, needsTime: false };
+    return { day, at, end };
   }
   return null;
 }
 
 export function readDateInTitle(text: string, now: Date): TitleDate | null {
   const { day: today, minutes } = riyadhNow(now);
-  let d = readDay(text, today);
   const t = readTime(text);
-  // a short weekday counts only beside a time
-  if (d?.needsTime && !(t && Math.min(Math.abs(t.at - d.end), Math.abs(d.at - t.end)) <= 6)) d = null;
-  // a time alone counts only when it is meant as one: "4pm", "at 18:30" — not "Flight EK 18:30"
+  const d = readDay(text, today, t);
+  // a time alone counts only when it is meant as one: "4pm", "at 18:30" — never makes a flight number a date ("Flight EK 18:30")
   if (!d && t && !t.explicit) return null;
   if (!d && !t) return null;
   // the words read, as typed: a day and a time side by side are one stretch ("Friday at 6pm"), else the two pieces
