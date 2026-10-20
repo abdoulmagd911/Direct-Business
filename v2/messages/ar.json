@@ -474,6 +474,11 @@
         "followUpSaved": "تم تحديد المتابعة - {title}",
         "passed": "هذا الوقت مضى"
       },
+      "titleDate": {
+        "reminder": "التذكير: {when} (من «{found}»)",
+        "due": "الاستحقاق: {when} (من «{found}»)",
+        "remove": "لا تستخدم هذا التاريخ"
+      },
       "alert": {
         "title": "تذكير",
         "now": "الآن",

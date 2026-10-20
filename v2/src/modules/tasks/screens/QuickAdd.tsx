@@ -20,6 +20,8 @@ import {
   type QuickAddInput,
 } from '../rules';
 import type { NamePick } from '../types';
+import { readDateInTitle } from '@/modules/my-day/title-date';
+import { TitleDateChip } from '@/modules/my-day/screens/TitleDateChip';
 import { DueDayPicker } from './DueDayPicker';
 import { useCommandWords } from './words';
 
@@ -102,6 +104,10 @@ export function QuickAddForm({
   const [dueError, setDueError] = useState<string | undefined>();
   const [ownerError, setOwnerError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  // a date typed in the title sets the due day, unless one is already chosen or the person took it away (V639 (1))
+  const [dismissed, setDismissed] = useState('');
+  const typed = f.due ? null : readDateInTitle(f.title, new Date());
+  const read = typed && typed.found !== dismissed ? typed : null;
   const canAssign = me.capabilities.includes('tasks.assign');
   const locale = useLocale() as 'en' | 'ar';
   const pick = (x: NamePick) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
@@ -117,7 +123,7 @@ export function QuickAddForm({
   });
 
   const save = async () => {
-    const r = quickAddValues(f, me.person.id, { ownerRequired });
+    const r = quickAddValues(read ? { ...f, due: read.day } : f, me.person.id, { ownerRequired });
     if ('error' in r) {
       const said = t(`pages.tasks.add.${r.error}`, { max: TITLE_MAX });
       // each error is said under its own field: a Due error never under Title (V286)
@@ -213,6 +219,7 @@ export function QuickAddForm({
           }
         </Field>
       ) : null}
+      {read ? <TitleDateChip read={read} what="due" onRemove={() => setDismissed(read.found)} /> : null}
       <Field label={t('pages.tasks.fields.due')} error={dueError}>
         {(p) => (
           <DueDayPicker
