@@ -43,6 +43,23 @@ describe('a date typed in a title', () => {
     expect(read('Call the hotel')).toBeNull();
     expect(read('Invoice 2026-10-30')).toBeNull();
   });
+  it('does not read ordinary words as dates (QA-581)', () => {
+    expect(read('Sun Hotel')).toBeNull();
+    expect(read('sat phone')).toBeNull();
+    expect(read('may 2 guests')).toBeNull();
+    expect(read('Flight EK 18:30')).toBeNull();
+  });
+  it('still reads a short weekday after on or next, or beside a time, and May when it is a month', () => {
+    expect(read('Visit on fri')).toEqual(['2026-10-23', null, 'on fri']);
+    expect(read('Visit next sat')).toEqual(['2026-10-24', null, 'next sat']);
+    expect(read('Call sat 6pm')).toEqual(['2026-10-24', '18:00', 'sat 6pm']);
+    expect(read('Call fri 18:30')).toEqual(['2026-10-23', '18:30', 'fri 18:30']);
+    expect(read('Sunday hotel')).toEqual(['2026-10-25', null, 'Sunday']);
+    expect(read('Renew 2 May')).toEqual(['2027-05-02', null, '2 May']);
+    expect(read('Renew May 2')).toEqual(['2027-05-02', null, 'May 2']);
+    expect(read('Renew may 2 2027')).toEqual(['2027-05-02', null, 'may 2 2027']);
+    expect(read('Meet at 18:30')).toEqual(['2026-10-21', '18:30', 'at 18:30']);
+  });
   it('counts the day in Riyadh time, not the computer’s', () => {
     // 23:30 UTC on the 20th is 02:30 on the 21st in Riyadh
     expect(read('Report tomorrow', at('2026-10-20T23:30:00Z'))).toEqual(['2026-10-22', null, 'tomorrow']);

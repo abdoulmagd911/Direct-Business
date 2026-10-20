@@ -52,4 +52,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'title-date-reads-a-short-weekday-anywhere',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: 'needsTime: !fullName && !m[1] }',
+        replace: 'needsTime: false }',
+      },
+    ],
+  },
+  {
+    name: 'title-date-reads-a-bare-time-in-a-flight-number',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: 'if (!d && t && !t.explicit) return null;',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'title-date-reads-lowercase-may-as-a-month',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: '!/^M/.test(monthText) && !m[3] && !nearWeekday(text, at, end)',
+        replace: 'false',
+      },
+    ],
+  },
 ];
