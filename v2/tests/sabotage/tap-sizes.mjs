@@ -62,4 +62,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'a-short-note-title-is-narrower-than-a-finger',
+    breaks: [E2E],
+    expect: 'is 44 px wide on a phone',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NoteBits.tsx',
+        find: 'min-w-11 truncate font-medium hover:underline sm:min-w-0',
+        replace: 'min-w-0 truncate font-medium hover:underline',
+      },
+    ],
+  },
 ];

@@ -127,3 +127,20 @@ export async function reminderStartGap(page: Page, personId: string, title: stri
     return { gap: Math.round((rtl ? box.right - word.right : word.left - box.left) * 10) / 10, width: box.width };
   });
 }
+
+/** QA-584: the widths in px of the note-title links on My day's notes list for notes with these (short) titles. */
+export async function noteLinkWidths(page: Page, titles: string[]) {
+  for (const title of titles) {
+    const made = await callAs(page.context(), 'note_capture', { p_kind: 'sticky', p_values: { title, visibility: 'private' } });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+  }
+  await page.goto('/my-day');
+  await hydrated(page);
+  const out: Record<string, number> = {};
+  for (const title of titles) {
+    const link = page.locator('[data-my-note]', { hasText: title }).locator('a[data-note-open]').first();
+    await expect(link).toBeVisible();
+    out[title] = await link.evaluate((a) => a.getBoundingClientRect().width);
+  }
+  return out;
+}
