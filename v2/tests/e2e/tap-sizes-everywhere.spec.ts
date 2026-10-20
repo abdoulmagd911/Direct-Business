@@ -60,7 +60,8 @@ test('a short note title in the My day notes list is a finger wide on a phone �
   await page.setViewportSize({ width: 375, height: 800 });
   await seed(page);
   const widths = await noteLinkWidths(page, ['Hi', 'علي', 'Check']);
-  for (const [title, width] of Object.entries(widths)) {
+  for (const [title, { width, height }] of Object.entries(widths)) {
+    expect(height, `the note link "${title}" is 44 px high on a phone`).toBeGreaterThanOrEqual(43.5);
     expect(width, `the note link "${title}" is 44 px wide on a phone`).toBeGreaterThanOrEqual(43.5);
   }
 });

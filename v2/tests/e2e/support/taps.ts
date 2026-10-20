@@ -139,11 +139,15 @@ export async function noteLinkWidths(page: Page, titles: string[]) {
   }
   await page.goto('/my-day');
   await hydrated(page);
-  const out: Record<string, number> = {};
+  const out: Record<string, { width: number; height: number }> = {};
   for (const title of titles) {
     const link = page.locator('[data-my-note]', { hasText: title }).locator('a[data-note-open]').first();
     await expect(link).toBeVisible();
-    out[title] = await link.evaluate((a) => a.getBoundingClientRect().width);
+    const box = await link.evaluate((a) => {
+      const r = a.getBoundingClientRect();
+      return { width: r.width, height: r.height };
+    });
+    out[title] = box;
   }
   return out;
 }
