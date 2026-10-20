@@ -131,7 +131,10 @@ export async function reminderStartGap(page: Page, personId: string, title: stri
 /** QA-584: the widths in px of the note-title links on My day's notes list for notes with these (short) titles. */
 export async function noteLinkWidths(page: Page, titles: string[]) {
   for (const title of titles) {
-    const made = await callAs(page.context(), 'note_capture', { p_kind: 'sticky', p_values: { title, visibility: 'private' } });
+    const made = await callAs(page.context(), 'note_capture', {
+      p_kind: 'sticky',
+      p_values: { title, visibility: 'private' },
+    });
     expect(made.status, JSON.stringify(made.body)).toBe(200);
   }
   await page.goto('/my-day');
