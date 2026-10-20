@@ -1155,6 +1155,9 @@ export const sabotages = [
         find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
@@ -1168,6 +1171,9 @@ export const sabotages = [
         find: 'className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11"',
         replace: 'className="hover:underline"',
       },
+      // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix
+      { file: 'src/ui/globals.css', find: '      min-height: var(--hit);', replace: '      min-height: 0;' },
+      { file: 'src/ui/globals.css', find: '      min-width: var(--hit);', replace: '      min-width: 0;' },
     ],
   },
 
