@@ -1179,7 +1179,8 @@ export const sabotages = [
       {
         file: 'src/ui/Tabs.tsx',
         find: 'inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap',
-        replace: 'inline-flex min-h-11 items-center whitespace-nowrap',
+        // the phone's shared 44 px minimum (globals.css) would still hold the tab open, so the sabotage lifts it too
+        replace: 'inline-flex min-h-11 min-w-0 items-center whitespace-nowrap',
       },
     ],
   },
