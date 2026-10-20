@@ -6,7 +6,7 @@
  * Sabotages: tests/sabotage/tap-sizes.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { seed, walk } from './support/taps';
+import { reminderStartGap, seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -42,4 +42,14 @@ test('the client link and the Note chip on My day are 44 px on a phone and stay 
   await hydrated(page);
   expect(await high(client), 'on a wide screen the client link stays compact').toBeLessThanOrEqual(30);
   expect(await high(chip), 'on a wide screen the chips stay compact').toBeLessThanOrEqual(38);
+});
+
+test('a short reminder title on My day starts right after the tick, not centred in its link — at 375 px (QA-580)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  const { me } = await seed(page);
+  const { gap, width } = await reminderStartGap(page, me.id, 'Call Ali');
+  expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
+  expect(width, 'and the link is still a finger wide').toBeGreaterThanOrEqual(43.5);
 });

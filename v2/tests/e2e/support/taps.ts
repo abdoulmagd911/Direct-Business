@@ -94,3 +94,36 @@ export async function walk(page: Page, me: { id: string }, clientId: string, num
   await measure('the bell');
   return bad;
 }
+
+/**
+ * QA-580: a short reminder title on My day's Today list starts right after the tick — the words sit at the start edge of
+ * their link (left in English, right in Arabic), not centred in it. Returns the gap in px between the link's start edge
+ * and its first letter, and the link's width.
+ */
+export async function reminderStartGap(page: Page, personId: string, title: string) {
+  const ctx = page.context();
+  const made = await callAs(ctx, 'note_capture', {
+    p_kind: 'reminder',
+    p_values: { title, remind_at: new Date(Date.now() + 86_400_000).toISOString() },
+  });
+  expect(made.status, JSON.stringify(made.body)).toBe(200);
+  await sql(
+    `update core.reminder r set remind_at = core.clock() + interval '2 minutes'
+       from my.note n where n.id = r.note_id and n.person_id = $1 and n.title = $2`,
+    [personId, title],
+  );
+  await page.goto('/my-day');
+  await hydrated(page);
+  const link = page.locator('[data-today-reminder]', { hasText: title }).locator('a[data-today-open]');
+  await expect(link).toBeVisible();
+  return link.evaluate((a) => {
+    const box = a.getBoundingClientRect();
+    const walker = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+    const text = walker.nextNode() as Text;
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const word = range.getBoundingClientRect();
+    const rtl = getComputedStyle(a).direction === 'rtl';
+    return { gap: Math.round((rtl ? box.right - word.right : word.left - box.left) * 10) / 10, width: box.width };
+  });
+}

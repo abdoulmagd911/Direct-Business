@@ -235,7 +235,7 @@
  * new control cannot be forgotten; spacing around stays compact. The one exemption is a plain link inside a sentence
  * (an anchor within a paragraph, or one marked data-inline-link). The rule sits in the base layer at no weight, so a class
  * that says its own size (`h-11`, `min-h-11`, `min-w-11`) wins — which is why no control may say a smaller one on a
- * phone. A link with no display of its own becomes an inline box that can be that big, its words centred; the switch
+ * phone. A link with no display of its own becomes an inline box that can be that big, its words starting where the box starts (a row's link is wide, and its words belong right after the tick; QA-580); the switch
  * and the checkbox draw their small shape inside a 44 px button (Switch.tsx, Checkbox.tsx).
  */
 @layer base {
@@ -258,7 +258,6 @@
     :where(a[href]:not([role])):not(p a, [data-inline-link], [data-inline-link] a) {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
     }
   }
 }
