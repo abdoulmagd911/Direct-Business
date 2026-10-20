@@ -71,6 +71,13 @@ describe('a date typed in a title', () => {
     expect(read('Flight EK 18:30 Hotel')).toBeNull();
     expect(read('Flight EK 18:30 tomorrow')).toEqual(['2026-10-22', '18:30', '18:30 tomorrow']);
   });
+  it('QA-583: a rejected match never hides a later valid one', () => {
+    expect(read('Check sat phone Friday 6pm')).toEqual(['2026-10-23', '18:00', 'Friday 6pm']);
+    expect(read('Sun Hotel next mon 10am')).toEqual(['2026-10-26', '10:00', 'next mon 10am']);
+    expect(read('Sun Hotel contract on fri')).toEqual(['2026-10-23', null, 'on fri']);
+    expect(read('Rooms may 2 guests then 28 Oct')).toEqual(['2026-10-28', null, '28 Oct']);
+    expect(read('Flight EK 18:30 call 4pm')).toEqual(['2026-10-21', '16:00', '4pm']);
+  });
   it('counts the day in Riyadh time, not the computer’s', () => {
     // 23:30 UTC on the 20th is 02:30 on the 21st in Riyadh
     expect(read('Report tomorrow', at('2026-10-20T23:30:00Z'))).toEqual(['2026-10-22', null, 'tomorrow']);

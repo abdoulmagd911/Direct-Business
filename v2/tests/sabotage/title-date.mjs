@@ -88,4 +88,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'title-date-first-rejected-match-hides-the-rest',
+    breaks: [UNIT],
+    expect: 'a rejected match never hides a later valid one',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: "for (const m of text.matchAll(new RegExp(re.source, 'gi'))) {",
+        replace: 'for (const m of [re.exec(text)].filter((x): x is RegExpExecArray => !!x)) {',
+      },
+    ],
+  },
 ];

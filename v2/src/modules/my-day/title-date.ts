@@ -60,55 +60,66 @@ const realDay = (y: number, m: number, d: number) => {
     : null;
 };
 
-function readTime(text: string): { time: string; at: number; end: number; explicit: boolean } | null {
-  const m = TIME_RE.exec(text);
-  if (!m) return null;
-  let time: string;
-  if (m[3]) {
-    const h = Number(m[1]);
-    if (h < 1 || h > 12) return null;
-    const pm = m[3].toLowerCase() === 'pm';
-    time = hhmm((h % 12) + (pm ? 12 : 0), Number(m[2] ?? 0));
-    if (m[2] !== undefined && Number(m[2]) > 59) return null;
-  } else {
-    time = hhmm(Number(m[4]), Number(m[5]));
+type TimeRead = { time: string; at: number; end: number; explicit: boolean };
+
+/** Every time in the text, in order; an impossible one (13pm, 9:75pm) is skipped, never the end of the search. */
+function timesIn(text: string): TimeRead[] {
+  const out: TimeRead[] = [];
+  for (const m of text.matchAll(new RegExp(TIME_RE.source, 'gi'))) {
+    let time: string;
+    if (m[3]) {
+      const h = Number(m[1]);
+      if (h < 1 || h > 12) continue;
+      if (m[2] !== undefined && Number(m[2]) > 59) continue;
+      const pm = m[3].toLowerCase() === 'pm';
+      time = hhmm((h % 12) + (pm ? 12 : 0), Number(m[2] ?? 0));
+    } else {
+      time = hhmm(Number(m[4]), Number(m[5]));
+    }
+    // a time with am/pm or an "at" before it is meant as a time; a bare 18:30 beside other words ("Flight EK 18:30") is not
+    out.push({ time, at: m.index, end: m.index + m[0].length, explicit: !!m[3] || /^at\s/i.test(m[0]) });
   }
-  // a time with am/pm or an "at" before it is meant as a time; a bare 18:30 beside other words ("Flight EK 18:30") is not
-  const explicit = !!m[3] || /^at\s/i.test(m[0]);
-  return { time, at: m.index, end: m.index + m[0].length, explicit };
+  return out;
+}
+
+/** The first time meant as one; failing that the first bare one (it still counts beside a day: "tomorrow 14:00"). */
+function readTime(text: string): TimeRead | null {
+  const all = timesIn(text);
+  return all.find((x) => x.explicit) ?? all[0] ?? null;
 }
 
 type DayRead = { day: string; at: number; end: number };
 
 function readDay(text: string, today: string, t: { at: number; end: number } | null): DayRead | null {
   for (const { re, kind } of DAY_RES) {
-    const m = re.exec(text);
-    if (!m) continue;
-    const at = m.index;
-    const end = m.index + m[0].length;
-    if (kind === 'word') return { day: m[1]!.toLowerCase() === 'today' ? today : addDays(today, 1), at, end };
-    if (kind === 'weekday') {
-      const word = m[2]!;
-      const want = WEEKDAYS.indexOf(word.slice(0, 3).toLowerCase() as (typeof WEEKDAYS)[number]);
-      const ahead = (want - dowOf(today) + 7) % 7 || 7;
-      // a short weekday ("Sun Hotel", "sat phone") is a day only after "on" or "next", or beside a time (QA-581); the full name always is
-      const fullName = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(word);
-      // a short weekday is a day only after "on" or "next", or beside a time (V651); anything else is another word
-      if (!fullName && !m[1] && !(t && Math.min(Math.abs(t.at - end), Math.abs(at - t.end)) <= 6)) continue;
-      return { day: addDays(today, ahead), at, end };
+    // every match is looked at, in order, and the first valid one kept: a rejected match never hides a later valid
+    // one (QA-583: "Check sat phone Friday 6pm" is Friday)
+    for (const m of text.matchAll(new RegExp(re.source, 'gi'))) {
+      const at = m.index;
+      const end = m.index + m[0].length;
+      if (kind === 'word') return { day: m[1]!.toLowerCase() === 'today' ? today : addDays(today, 1), at, end };
+      if (kind === 'weekday') {
+        const word = m[2]!;
+        const want = WEEKDAYS.indexOf(word.slice(0, 3).toLowerCase() as (typeof WEEKDAYS)[number]);
+        const ahead = (want - dowOf(today) + 7) % 7 || 7;
+        const fullName = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i.test(word);
+        // a short weekday is a day only after "on" or "next", or beside a time (V651); anything else is another word
+        if (!fullName && !m[1] && !(t && Math.min(Math.abs(t.at - end), Math.abs(at - t.end)) <= 6)) continue;
+        return { day: addDays(today, ahead), at, end };
+      }
+      const dayNum = Number(kind === 'dm' ? m[1] : m[2]);
+      const monthText = (kind === 'dm' ? m[2] : m[1])!;
+      const monthWord = monthText.slice(0, 3).toLowerCase();
+      // "may" is also a word: a lowercase "may" is a month only with a year beside it (V651)
+      if (monthText === 'may' && !m[3]) continue;
+      const month = MONTHS.indexOf(monthWord as (typeof MONTHS)[number]) + 1;
+      const typedYear = m[3] ? Number(m[3]) : null;
+      const thisYear = Number(today.slice(0, 4));
+      let day = realDay(typedYear ?? thisYear, month, dayNum);
+      if (day && !typedYear && day < today) day = realDay(thisYear + 1, month, dayNum);
+      if (!day) continue;
+      return { day, at, end };
     }
-    const dayNum = Number(kind === 'dm' ? m[1] : m[2]);
-    const monthText = (kind === 'dm' ? m[2] : m[1])!;
-    const monthWord = monthText.slice(0, 3).toLowerCase();
-    // "may" is also a word: a lowercase "may" is a month only with a year beside it (V651)
-    if (monthText === 'may' && !m[3]) continue;
-    const month = MONTHS.indexOf(monthWord as (typeof MONTHS)[number]) + 1;
-    const typedYear = m[3] ? Number(m[3]) : null;
-    const thisYear = Number(today.slice(0, 4));
-    let day = realDay(typedYear ?? thisYear, month, dayNum);
-    if (day && !typedYear && day < today) day = realDay(thisYear + 1, month, dayNum);
-    if (!day) return null;
-    return { day, at, end };
   }
   return null;
 }
