@@ -130,7 +130,10 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
     </>
   );
   return (
-    <li className="relative flex min-h-14 items-start gap-3 py-3" data-today-reminder={r.id}>
+    <li
+      className="relative flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+      data-today-reminder={r.id}
+    >
       <button
         type="button"
         onClick={() => void done()}
@@ -173,7 +176,10 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
     open_action_items: 0,
   } as unknown as Parameters<typeof DoneTick>[0]['task'];
   return (
-    <li className="relative flex min-h-14 items-start gap-3 py-3" data-today-task={task.number}>
+    <li
+      className="relative flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+      data-today-task={task.number}
+    >
       <DoneTick task={tick} statuses={statuses} title={task.title} />
       <div className="min-w-0 flex-1">
         <Link

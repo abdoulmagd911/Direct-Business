@@ -113,7 +113,11 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
   const count = note.kind === 'checklist' ? cardCount(note) : null;
   const org = note.meeting_partner;
   return (
-    <li className="flex min-h-14 items-start gap-3 py-3" data-my-note={note.id} data-note-kind={note.kind}>
+    <li
+      className="flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+      data-my-note={note.id}
+      data-note-kind={note.kind}
+    >
       <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">

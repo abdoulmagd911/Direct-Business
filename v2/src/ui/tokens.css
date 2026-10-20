@@ -51,6 +51,8 @@
   --row-font: 14px;
   --hit: 40px;
   --section-gap: 28px;
+  --list-row-min: 56px;
+  --list-row-py: 12px;
   --drawer-w: 232px;
   --drawer-w-collapsed: 56px;
   --topbar-h: 60px;
@@ -82,6 +84,17 @@
   --row-h: 32px;
   --row-h-head: 36px;
   --row-font: 13px;
+  --section-gap: 20px;
+  --list-row-py: 6px;
+  --list-row-min: 44px;
+}
+
+/* Compact also tightens the list screens' rows (V644) — My day, Tasks; from 640 px up the row itself shrinks, on a phone only
+   its spacing does (the 44 px targets of V643 stand) */
+@media (min-width: 640px) {
+  [data-density='compact'] {
+    --list-row-min: 36px;
+  }
 }
 
 /* On a phone every control is a 44 px target, whatever the density (the owner's phone round on production, 8 Oct, V228) */
