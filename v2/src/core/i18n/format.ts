@@ -31,6 +31,8 @@ export function formatDate(
       ? rest
       : { day: 'numeric', month: 'short', year: 'numeric', ...rest };
   if (timeStyle) Object.assign(given, { hour: '2-digit', minute: '2-digit' });
+  // a time is always 24-hour (09:00, 21:30), in Arabic too: ar-SA would default to 12-hour with ص/م (V643 (4))
+  if (given.hour) given.hourCycle = 'h23';
   // a date has its day, a short month and its year; a month or a weekday alone is a label and stays as asked
   const dated = !!given.day && !!given.month;
   if (dated) {

@@ -77,7 +77,7 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
      values ($1, $2, $3, (select team_id from core.person where id = $3),
              (select department_id from core.person where id = $3),
              (select id from work.task_status where is_default and deleted_at is null), 'internal', $3)`,
-    [`TSK-1999-${Math.floor(Math.random() * 90000) + 10000}`, title, member.id],
+    [`TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`, title, member.id],
   );
   await page.setViewportSize(PHONE);
   await signIn(page, member.email, '/tasks');

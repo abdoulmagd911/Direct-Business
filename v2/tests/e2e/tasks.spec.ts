@@ -58,7 +58,7 @@ async function crowdTheOwnerList(wanted = 40): Promise<void> {
 /** A task put straight into the database (a fixture), owned by `owner` in `department`'s test team. */
 async function taskIn(department: string, owner: string, title: string): Promise<string> {
   const team = await testTeam(department, owner);
-  const number = `TSK-1999-${String(Math.floor(Math.random() * 90000) + 10000)}`;
+  const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
   await sql(
     `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
      values ($1, $2, $3, $4, (select department_id from core.team where id = $4),

@@ -1,4 +1,4 @@
-import { instantOf, whenFor, type When, type WhenKey } from './when';
+import { inOneHour, instantOf, whenFor, type When, type WhenKey } from './when';
 
 /** One row of api.reminders_due: a reminder whose time has come and whose alert is still open. */
 export type DueReminder = {
@@ -10,13 +10,16 @@ export type DueReminder = {
 };
 export type DueAnswer = { due: DueReminder[]; next_at: string | null };
 
-/** The three answers Snooze offers: the same as the When chips (the Later today chip when enough of the day is left). */
-export const SNOOZE_KEYS = ['later_today', 'tomorrow', 'next_week'] as const satisfies readonly WhenKey[];
+/**
+ * The answers Snooze offers (V643 (2)): In 1 hour always, then the When chips — Later today (when enough of the day is
+ * left), Tomorrow 09:00 and Next week.
+ */
+export const SNOOZE_KEYS = ['one_hour', 'later_today', 'tomorrow', 'next_week'] as const;
 export type SnoozeKey = (typeof SNOOZE_KEYS)[number];
 
 export function snoozeChoices(now: Date): { key: SnoozeKey; when: When }[] {
   return SNOOZE_KEYS.flatMap((key) => {
-    const when = whenFor(key, now);
+    const when = key === 'one_hour' ? inOneHour(now) : whenFor(key satisfies WhenKey, now);
     return when ? [{ key, when }] : [];
   });
 }

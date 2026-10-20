@@ -459,6 +459,7 @@
         "save": "تدوين",
         "saved": "تم حفظ {kind}",
         "whenChips": {
+          "one_hour": "بعد ساعة",
           "later_today": "لاحقًا اليوم",
           "tomorrow": "غدًا",
           "next_week": "الأسبوع القادم",
@@ -473,12 +474,18 @@
         "followUpSaved": "تم تحديد المتابعة - {title}",
         "passed": "هذا الوقت مضى"
       },
+      "titleDate": {
+        "reminder": "التذكير: {when} (من «{found}»)",
+        "due": "الاستحقاق: {when} (من «{found}»)",
+        "remove": "لا تستخدم هذا التاريخ"
+      },
       "alert": {
         "title": "تذكير",
         "now": "الآن",
         "done": "تم",
         "snooze": "تأجيل",
         "hide": "إخفاء مؤقتًا",
+        "hideShort": "إخفاء",
         "snoozed": "تم التأجيل إلى {when} · {title}"
       }
     },
