@@ -50,4 +50,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'a-row-link-centres-its-words',
+    breaks: [E2E, ARABIC],
+    expect: 'the words start at the start edge of their link, not centred in it',
+    edits: [
+      {
+        file: 'src/ui/globals.css',
+        find: '      display: inline-flex;\n      align-items: center;\n',
+        replace: '      display: inline-flex;\n      align-items: center;\n      justify-content: center;\n',
+      },
+    ],
+  },
 ];

@@ -23,7 +23,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
 import { callAs, makePerson, signIn, sql } from './support/stack';
-import { seed, walk } from './support/taps';
+import { reminderStartGap, seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -306,5 +306,8 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
     expect(await walk(page, me, clientId, number), 'every tappable thing is 44 px wide and high on a phone').toEqual(
       [],
     );
+    // QA-580: a short reminder title starts at the right edge of its link in Arabic, not centred
+    const { gap } = await reminderStartGap(page, me.id, 'اتصل بعلي');
+    expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
   });
 });
