@@ -75,6 +75,8 @@ go-live. The stopgap is a daily "New lead tickets" task, with the ticket number 
 assign. *Recommended:* keep the stopgap through the pilot and decide after the first month, from how many lead tickets
 come in. *Effect:* either nothing, or a Leads inbox brief and its step.
 
+**Q59 — May the app read an uploaded file's text to suggest its name?** **[Answered 20 Oct — V650: yes, in the background, with privacy limits, a cost approval and a monthly cap]** (owner ideas of 20 Oct, MD-39) V648 names a file from its record (number, kind, organisation, date) and the person confirms. Reading what is inside the file would need an outside AI service: it costs per file, can be wrong, and sends client documents out of Direct's own storage. *Recommended:* no for now; keep the confirmed suggestion and decide after a month of use. *Effect:* if yes, a later brief with a cost cap and a list of file kinds that may never be read (contracts, IDs, bank letters).
+
 ## Answered
 
 **Earlier rounds, all answered.** The owner answered the 1 Oct round on 1 Oct 2026, night (relayed by the oversight): Q37
