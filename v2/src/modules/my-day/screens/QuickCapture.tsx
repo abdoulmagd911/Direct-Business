@@ -21,7 +21,9 @@ import {
 } from '../quick-capture';
 import { askToNotify } from '../notify-permission';
 import { VISIBILITIES, type Visibility } from '../types';
-import { instantOf, tomorrow, whenFor, type When, type WhenKey } from '../when';
+import { instantOf, MORNING, tomorrow, whenFor, type When, type WhenKey } from '../when';
+import { readDateInTitle } from '../title-date';
+import { TitleDateChip } from './TitleDateChip';
 import { WhenPicker } from './WhenPicker';
 
 const pill = (on: boolean) =>
@@ -47,6 +49,8 @@ export function QuickCapture() {
   const [about, setAbout] = useState<CaptureAbout | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [busy, setBusy] = useState(false);
+  // the words of a date read from the text that the person took away with the chip's x (V639 (1))
+  const [dismissed, setDismissed] = useState('');
 
   useEffect(() => {
     const show = (e: Event) => {
@@ -56,6 +60,7 @@ export function QuickCapture() {
       setAbout(opts.about ?? null);
       setKind(opts.about ? 'reminder' : (opts.kind ?? 'note'));
       setText(opts.text ?? '');
+      setDismissed('');
       setVisibility('private');
       setWhenKey('tomorrow');
       setPick(tomorrow(at));
@@ -66,7 +71,10 @@ export function QuickCapture() {
   }, []);
 
   // A Reminder is told at its time; a Follow up is the same Reminder, private and tied to its record (#238)
-  const chosen = whenFor(whenKey, now, pick);
+  // a date typed in the text of a Reminder sets its time (V639 (1)), unless the person took it away
+  const typed = kind === 'reminder' ? readDateInTitle(text, new Date()) : null;
+  const read = typed && typed.found !== dismissed ? typed : null;
+  const chosen = read ? { day: read.day, time: read.time ?? MORNING } : whenFor(whenKey, now, pick);
   // A neutral title, never the record's name: the note can be shared and the record shows only through `about`, which is
   // filtered per reader (QA-560).
   const words_ = about && !text.trim() ? t('pages.myDay.quick.followUpTitle') : text;
@@ -152,7 +160,8 @@ export function QuickCapture() {
             autoFocus
             data-quick-text
           />
-          {kind === 'reminder' ? (
+          {read ? <TitleDateChip read={read} what="reminder" onRemove={() => setDismissed(read.found)} /> : null}
+          {kind === 'reminder' && !read ? (
             <WhenPicker value={whenKey} onChange={setWhenKey} pick={pick} onPick={setPick} now={now} />
           ) : null}
           {about ? null : (
