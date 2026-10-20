@@ -64,7 +64,7 @@ export const sabotages = [
   },
   {
     name: 'a-short-note-title-is-narrower-than-a-finger',
-    breaks: [E2E],
+    breaks: [E2E, ARABIC],
     expect: 'is 44 px wide on a phone',
     edits: [
       {

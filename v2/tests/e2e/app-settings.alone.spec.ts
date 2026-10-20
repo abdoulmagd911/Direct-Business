@@ -23,7 +23,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
 import { callAs, makePerson, signIn, sql } from './support/stack';
-import { reminderStartGap, seed, walk } from './support/taps';
+import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -309,5 +309,12 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
     // QA-580: a short reminder title starts at the right edge of its link in Arabic, not centred
     const { gap } = await reminderStartGap(page, me.id, 'اتصل بعلي');
     expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
+    // QA-584: short note titles in the notes list are a finger wide and high in Arabic too
+    const notes = await noteLinkWidths(page, ['Hi', 'علي', 'Check']);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    for (const [title, { width, height }] of Object.entries(notes)) {
+      expect(height, `the note link "${title}" is 44 px high on a phone`).toBeGreaterThanOrEqual(43.5);
+      expect(width, `the note link "${title}" is 44 px wide on a phone`).toBeGreaterThanOrEqual(43.5);
+    }
   });
 });

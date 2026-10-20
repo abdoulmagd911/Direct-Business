@@ -54,7 +54,7 @@ test('a short reminder title on My day starts right after the tick, not centred 
   expect(width, 'and the link is still a finger wide').toBeGreaterThanOrEqual(43.5);
 });
 
-test('a short note title in the My day notes list is a finger wide on a phone — English and Arabic (QA-584)', async ({
+test('a short note title in the My day notes list is a finger wide and high on a phone — English page, Latin and Arabic letters (QA-584; the Arabic page is in app-settings.alone)', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 800 });
