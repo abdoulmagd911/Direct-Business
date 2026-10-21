@@ -10,7 +10,7 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CommandPalette.tsx',
         find: "'flex h-11 cursor-default select-none",
-        replace: "'flex h-10 cursor-default select-none",
+        replace: "'flex h-10 min-h-0 cursor-default select-none",
       },
     ],
   },
