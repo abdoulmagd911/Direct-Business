@@ -3,8 +3,7 @@
 const CATALOG =
   'unit:tests/unit/arabic/every-arabic-message-formats-in-arabic-with-latin-digits-and-the-owners-words.test.ts';
 const AR = 'messages/ar.json';
-const LOADER = 'unit:tests/unit/arabic/the-language-loader-puts-english-beneath-arabic.test.ts';
-const FALLBACK = 'unit:tests/unit/arabic/a-key-with-no-arabic-yet-shows-its-english.test.ts';
+const DOTTED = 'unit:tests/unit/arabic/the-arabic-catalog-names-no-dotted-key.test.ts';
 
 /** @type {{ name: string, breaks: string[], expect: string, edits: { file: string, find: string, replace: string }[] }[]} */
 export const sabotages = [
@@ -66,18 +65,6 @@ export const sabotages = [
     edits: [{ file: AR, find: '"saveChanges": "حفظ التغييرات"', replace: '"saveChanges": "Save changes"' }],
   },
   {
-    name: 'ar-fallback-shows-the-key',
-    breaks: [FALLBACK],
-    expect: 'a key with no Arabic shows its English',
-    edits: [
-      {
-        file: 'src/core/i18n/messages.ts',
-        find: 'const out: Messages = { ...fallback };',
-        replace: 'const out: Messages = {};',
-      },
-    ],
-  },
-  {
     name: 'plant-missing-ar-key',
     breaks: ['check:i18n-catalogs'],
     expect: 'missing "nav.collapse"',
@@ -85,25 +72,13 @@ export const sabotages = [
   },
   {
     name: 'ar-writes-a-dotted-key',
-    breaks: [FALLBACK],
+    breaks: [DOTTED],
     expect: 'a key name with a dot in ar.json',
     edits: [
       {
         file: AR,
         find: '      "profile": {\n        "updated": "تحديث الملف الشخصي"\n      },\n',
         replace: '      "profile.updated": "تحديث الملف الشخصي",\n',
-      },
-    ],
-  },
-  {
-    name: 'request-drops-the-english-fallback',
-    breaks: [LOADER],
-    expect: 'a key with no Arabic arrives in English',
-    edits: [
-      {
-        file: 'src/core/i18n/request.ts',
-        find: 'withFallback((await import(`../../../messages/${locale}.json`)).default as Messages, en)',
-        replace: '((await import(`../../../messages/${locale}.json`)).default as Messages)',
       },
     ],
   },

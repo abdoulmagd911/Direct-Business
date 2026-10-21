@@ -77,7 +77,7 @@ export default defineCheck({
           });
       // en.json is the source: builder B adds keys there; builder C writes their Arabic (V410). Both ways are findings
       // (restored by the oversight on 29 Sep, once ar.json was complete): a key with no Arabic, and a key in ar.json
-      // alone (a typo, a removed key). The app still shows English for a key with no Arabic (core/i18n/messages.ts).
+      // alone (a typo, a removed key). The app still shows English for a key with no Arabic (core/i18n/fallback.ts, V360).
       for (const k of en)
         if (!ar.includes(k)) out.push({ check, file: 'messages/ar.json', line: 0, message: `missing "${k}"` });
       for (const k of ar)
