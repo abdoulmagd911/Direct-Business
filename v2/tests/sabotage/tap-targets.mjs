@@ -32,6 +32,8 @@ export const sabotages = [
   // The three names below were the colour swatches' (V636 removed them); they now guard the replacement control, the
   // Theme box on My profile: its size on a phone, its size on a wide screen, and one box to a row on a phone.
   {
+    // since #292 the shared phone rule holds a control at min-height 44 px, so a short height alone changes nothing: the
+    // sabotage also sets its own min-height (a class that says its own size wins over the rule)
     name: 'colour-swatches-are-32-on-a-phone',
     breaks: [E2E],
     expect: 'the Theme box on My profile',
@@ -40,7 +42,7 @@ export const sabotages = [
         file: 'src/modules/org/screens/MyProfile.tsx',
         find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8"\n',
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-8"\n',
       },
     ],
   },
