@@ -105,7 +105,11 @@ export function MyDay({ data }: { data: MyDayData }) {
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
           <ul className="divide-y divide-border">
             {later.slice(0, BLOCK_ROWS).map((r) => (
-              <li key={r.id} className="flex min-h-14 items-center gap-3 py-3" data-reminder={r.id}>
+              <li
+                key={r.id}
+                className="flex items-center gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                data-reminder={r.id}
+              >
                 <span className="min-w-0 flex-1">
                   <span className="block break-words">{r.text}</span>
                   {/* a follow-up says what it is about, as a tag — never in its title (QA-560), only if the reader may see it */}

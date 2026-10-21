@@ -99,7 +99,7 @@ for (const width of [375, 1440]) {
     // the density line: what each choice does, under the box
     const hint = page.locator('[data-density-hint]');
     await expect(hint, 'the density line').toHaveText(
-      'Comfortable gives more room; Compact fits more rows on the screen.',
+      'Comfortable gives more room; Compact fits more rows on the screen. On a phone it only tightens the spacing.',
     );
     const hintBox = await hint.boundingBox();
     const selectBox = await page.getByLabel('Density').boundingBox();
