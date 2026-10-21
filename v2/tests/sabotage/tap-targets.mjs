@@ -34,7 +34,7 @@ export const sabotages = [
         file: 'src/modules/org/screens/MyProfile.tsx',
         find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8"\n',
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-0"\n',
       },
     ],
   },
