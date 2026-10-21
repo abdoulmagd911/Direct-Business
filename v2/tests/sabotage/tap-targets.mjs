@@ -10,7 +10,7 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CommandPalette.tsx',
         find: "'flex h-11 cursor-default select-none",
-        replace: "'flex h-10 cursor-default select-none",
+        replace: "'flex h-10 min-h-0 cursor-default select-none",
       },
     ],
   },
@@ -23,6 +23,8 @@ export const sabotages = [
       { file: 'src/ui/Tabs.tsx', find: "fill && 'min-w-0 flex-auto px-1',", replace: "fill && 'min-w-0 px-1'," },
     ],
   },
+  // Since the shared phone tap rule (#292: min-height 44 on every button and option) a bare h-8 / h-10 no longer shrinks a
+  // control on a phone, so these two also clear min-height; they bit again only with it.
   // The three names below were the colour swatches' (V636 removed them); they now guard the replacement control, the
   // Theme box on My profile: its size on a phone, its size on a wide screen, and one box to a row on a phone.
   {
@@ -34,7 +36,7 @@ export const sabotages = [
         file: 'src/modules/org/screens/MyProfile.tsx',
         find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8"\n',
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-0"\n',
       },
     ],
   },
