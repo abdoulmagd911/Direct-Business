@@ -1309,7 +1309,7 @@
       "change": "Change password",
       "changed": "Password changed"
     },
-    "densityHint": "Comfortable gives more room; Compact fits more rows on the screen."
+    "densityHint": "Comfortable gives more room; Compact fits more rows on the screen. On a phone it only tightens the spacing."
   },
   "settings": {
     "title": "Settings",

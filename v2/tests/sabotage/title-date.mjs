@@ -52,4 +52,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'title-date-reads-a-short-weekday-anywhere',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: 'if (!fullName && !m[1] && !(t && Math.min(Math.abs(t.at - end), Math.abs(at - t.end)) <= 6)) continue;',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'title-date-reads-a-bare-time-in-a-flight-number',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: 'if (!d && t && !t.explicit) return null;',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'title-date-reads-lowercase-may-as-a-month',
+    breaks: [UNIT],
+    expect: 'does not read ordinary words as dates',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: "if (monthText === 'may' && !m[3]) continue;",
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'title-date-first-rejected-match-hides-the-rest',
+    breaks: [UNIT],
+    expect: 'a rejected match never hides a later valid one',
+    edits: [
+      {
+        file: 'src/modules/my-day/title-date.ts',
+        find: "for (const m of text.matchAll(new RegExp(re.source, 'gi'))) {",
+        replace: 'for (const m of [re.exec(text)].filter((x): x is RegExpExecArray => !!x)) {',
+      },
+    ],
+  },
 ];

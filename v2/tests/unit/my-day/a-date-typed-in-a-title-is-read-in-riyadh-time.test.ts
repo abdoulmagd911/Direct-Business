@@ -43,6 +43,41 @@ describe('a date typed in a title', () => {
     expect(read('Call the hotel')).toBeNull();
     expect(read('Invoice 2026-10-30')).toBeNull();
   });
+  it('does not read ordinary words as dates (QA-581)', () => {
+    expect(read('Sun Hotel')).toBeNull();
+    expect(read('sat phone')).toBeNull();
+    expect(read('may 2 guests')).toBeNull();
+    expect(read('Flight EK 18:30')).toBeNull();
+  });
+  it('still reads a short weekday after on or next, or beside a time, and May when it is a month', () => {
+    expect(read('Visit on fri')).toEqual(['2026-10-23', null, 'on fri']);
+    expect(read('Visit next sat')).toEqual(['2026-10-24', null, 'next sat']);
+    expect(read('Call sat 6pm')).toEqual(['2026-10-24', '18:00', 'sat 6pm']);
+    expect(read('Call fri 18:30')).toEqual(['2026-10-23', '18:30', 'fri 18:30']);
+    expect(read('Sunday hotel')).toEqual(['2026-10-25', null, 'Sunday']);
+    expect(read('Renew 2 May')).toEqual(['2027-05-02', null, '2 May']);
+    expect(read('Renew May 2')).toEqual(['2027-05-02', null, 'May 2']);
+    expect(read('Renew may 2 2027')).toEqual(['2027-05-02', null, 'may 2 2027']);
+    expect(read('Meet at 18:30')).toEqual(['2026-10-21', '18:30', 'at 18:30']);
+  });
+  it('V651 (QA-582): lowercase may is a month only with a year; a weekday beats a month; a time alone is not a date', () => {
+    expect(read('Rooms may 2 guests Friday 6pm')).toEqual(['2026-10-23', '18:00', 'Friday 6pm']);
+    expect(read('Rooms may 2 guests Fri 6pm')).toEqual(['2026-10-23', '18:00', 'Fri 6pm']);
+    expect(read('Rooms may 2 guests Fri')).toBeNull();
+    expect(read('Pay Friday 28 Oct')).toEqual(['2026-10-23', null, 'Friday']);
+    expect(read('Renew 2 may')).toBeNull();
+    expect(read('Renew may 2 guests')).toBeNull();
+    expect(read('Renew 2 may 2027')).toEqual(['2027-05-02', null, '2 may 2027']);
+    expect(read('Flight EK 18:30 Hotel')).toBeNull();
+    expect(read('Flight EK 18:30 tomorrow')).toEqual(['2026-10-22', '18:30', '18:30 tomorrow']);
+  });
+  it('QA-583: a rejected match never hides a later valid one', () => {
+    expect(read('Check sat phone Friday 6pm')).toEqual(['2026-10-23', '18:00', 'Friday 6pm']);
+    expect(read('Sun Hotel next mon 10am')).toEqual(['2026-10-26', '10:00', 'next mon 10am']);
+    expect(read('Sun Hotel contract on fri')).toEqual(['2026-10-23', null, 'on fri']);
+    expect(read('Rooms may 2 guests then 28 Oct')).toEqual(['2026-10-28', null, '28 Oct']);
+    expect(read('Flight EK 18:30 call 4pm')).toEqual(['2026-10-21', '16:00', '4pm']);
+  });
   it('counts the day in Riyadh time, not the computer’s', () => {
     // 23:30 UTC on the 20th is 02:30 on the 21st in Riyadh
     expect(read('Report tomorrow', at('2026-10-20T23:30:00Z'))).toEqual(['2026-10-22', null, 'tomorrow']);
