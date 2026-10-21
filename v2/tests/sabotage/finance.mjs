@@ -101,7 +101,7 @@ export const sabotages = [
       {
         file: OVERVIEW,
         find: "'inline-flex h-[var(--control-h)] items-center px-3.5 text-base",
-        replace: "'inline-flex h-6 items-center px-3.5 text-base",
+        replace: "'inline-flex h-6 min-h-0 items-center px-3.5 text-base",
       },
     ],
   },
