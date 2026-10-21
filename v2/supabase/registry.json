@@ -1182,6 +1182,18 @@
       "rule_only": false
     },
     {
+      "key": "internal_party",
+      "table": "partner.internal_party",
+      "page": "settings.partners",
+      "owners": null,
+      "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "invoice",
       "table": "finance.invoice",
       "page": "finance",

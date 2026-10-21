@@ -89,6 +89,7 @@ export default defineModule({
         ['contact_role', 'partner.contact_role'],
         ['activity_type', 'partner.activity_type'],
         ['activity_outcome', 'partner.activity_outcome'],
+        ['internal_party', 'partner.internal_party'],
         ['contract_term', 'partner.term'],
       ] as const
     ).map(([key, table]) => ({ key, table, page: 'settings.partners', label: `entity.${key}`, list: true })),

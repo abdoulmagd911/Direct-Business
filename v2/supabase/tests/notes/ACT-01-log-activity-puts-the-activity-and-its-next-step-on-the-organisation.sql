@@ -28,7 +28,10 @@ select test.eq((api.notes('partner', current_setting('t.p')::uuid) -> 0) - array
   'mentions', 'mine', 'edited_at', 'next_step_task_id', 'type_ar', 'outcome_ar', 'type_en', 'outcome_en'],
   jsonb_build_object('kind', 'activity', 'body', null, 'happened_on', core.riyadh_today(), 'logged_late', false,
                      'type', 'call', 'outcome', 'no_answer', 'meaning', null, 'next_step', null, 'next_step_on', null,
-                     'from_note', 'null'::jsonb, 'event', 'null'::jsonb),
+                     'from_note', 'null'::jsonb, 'event', 'null'::jsonb,
+                     -- V645: an organisation's activity is with no one inside Direct, has no ticket and no team share
+                     'internal_party', null, 'internal_party_en', null, 'internal_party_ar', null, 'ticket_ref', null,
+                     'shared_with_team', false),
   'it lands on the organisation''s timeline, today, not late');
 select test.raises(format('select api.activity_log(%L, %L, %L)', current_setting('t.p'), 'call', 'demo_held'), 'P0002',
   'an outcome of another type is refused — "demo held" is a demo''s', 'partner.unknown_outcome');
