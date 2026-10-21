@@ -212,6 +212,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       } as never) as Promise<{ request_id?: string | null } | null>;
     // FLOW-08: the fields this form writes, what it read when Edit opened, and how each reads in words — for the
     // conflict dialog (QA-69: the form starts from the record as it was when Edit opened, and that version is checked).
+    const day = (v: unknown) => (typeof v === 'string' && v ? formatDate(`${v}T12:00:00+03:00`, locale) : '—');
     const nameOfPerson = (id: unknown) => (typeof id === 'string' ? (byId(id)?.full_name_en ?? '—') : '—');
     const every: ConflictField[] = [
       { key: 'full_name_en', label: t('profile.fullNameEn'), mine: changes.full_name_en, read: row.full_name_en },
@@ -256,8 +257,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         read: row.manager_id,
         show: (v) => (v ? nameOfPerson(v) : t('settings.people.noManager')),
       },
-      { key: 'joined_on', label: t('settings.people.joinedOn'), mine: changes.joined_on, read: row.joined_on },
-      { key: 'left_on', label: t('settings.people.leftOn'), mine: changes.left_on, read: row.left_on },
+      {
+        key: 'joined_on',
+        label: t('settings.people.joinedOn'),
+        mine: changes.joined_on,
+        read: row.joined_on,
+        show: day,
+      },
+      { key: 'left_on', label: t('settings.people.leftOn'), mine: changes.left_on, read: row.left_on, show: day },
     ];
     const fields = every.filter((x) => x.key in changes);
     await command(

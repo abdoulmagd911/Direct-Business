@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { clip, formatDate, formatMoney, formatNumber } from '@/core/i18n/format';
+import {
+  clip,
+  formatClock,
+  formatDate,
+  formatMoney,
+  formatNumber,
+  formatStoredDate,
+  monthNumber,
+  parseClock,
+} from '@/core/i18n/format';
 
 describe('formats: Riyadh time, Gregorian, Latin digits in both languages (V40)', () => {
   const d = new Date('2026-09-28T22:30:00Z'); // 01:30 on 29 Sep in Riyadh
@@ -64,5 +73,62 @@ describe('clip: a title in a toast is whole when it fits, else cut with an ellip
     expect(cut.length).toBeLessThanOrEqual(30);
     expect(cut.endsWith('…')).toBe(true);
     expect(long.startsWith(cut.slice(0, -1))).toBe(true);
+  });
+});
+
+// W-daily 13: a time of day is 24-hour everywhere, and a day typed the way the app writes it is read back
+describe('a time of day is 24-hour, and typed times and months are read', () => {
+  it('writes a time as 24-hour HH:MM, in both languages', () => {
+    expect(formatClock('09:30', 'en')).toBe('09:30');
+    expect(formatClock('21:05', 'en')).toBe('21:05');
+    expect(formatClock('21:05', 'ar')).toBe('21:05');
+    expect(formatClock('00:00', 'en')).toBe('00:00');
+  });
+
+  it('reads a typed time any common way, and a pm as 24-hour', () => {
+    for (const [typed, want] of [
+      ['9', '09:00'],
+      ['9:30', '09:30'],
+      ['930', '09:30'],
+      ['0930', '09:30'],
+      ['21.05', '21:05'],
+      ['٢١:٠٥', '21:05'],
+      ['9:30 pm', '21:30'],
+      ['12 am', '00:00'],
+      ['12:15pm', '12:15'],
+    ] as const)
+      expect(parseClock(typed), typed).toBe(want);
+  });
+
+  it('a half-typed or impossible time is no time', () => {
+    for (const bad of ['', '24:00', '9:60', '13 pm', '0 am', 'noon', '9:3', '123456'])
+      expect(parseClock(bad), bad).toBeNull();
+  });
+
+  it('reads a month word, English short or long and Arabic, as its number', () => {
+    expect(monthNumber('Oct')).toBe(10);
+    expect(monthNumber('october')).toBe(10);
+    expect(monthNumber('Sep')).toBe(9);
+    expect(monthNumber('Sept')).toBe(9);
+    expect(monthNumber('أكتوبر')).toBe(10);
+    expect(monthNumber('Smarch')).toBeNull();
+  });
+});
+
+describe('a stored value that is a date is written the one way (W-daily 13)', () => {
+  it('writes a stored day and a stored moment the way every date is written, in Riyadh time', () => {
+    expect(formatStoredDate('2026-10-19', 'en')).toBe('19 Oct 2026');
+    expect(formatStoredDate('2026-09-03', 'en')).toBe('3 Sep 2026');
+    expect(formatStoredDate('2026-10-19T06:30:00+00:00', 'en')).toBe('19 Oct 2026, 09:30');
+    expect(
+      formatStoredDate('2026-10-19T21:30:00Z', 'en'),
+      'a moment late in the evening UTC is the next Riyadh day',
+    ).toBe('20 Oct 2026, 00:30');
+    expect(formatStoredDate('2026-10-19 09:30', 'en'), 'no zone means Riyadh').toBe('19 Oct 2026, 09:30');
+  });
+
+  it('leaves anything that is not a date as it was', () => {
+    for (const v of ['hello', '2026', '2026-13', 'TSK-2026-1', 42, null, undefined, true])
+      expect(formatStoredDate(v, 'en'), String(v)).toBeNull();
   });
 });

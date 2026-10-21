@@ -50,8 +50,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/rules.ts',
-        find: 'dmy ? [dmy[3], dmy[2], dmy[1]]',
-        replace: 'dmy ? [dmy[1], dmy[2], dmy[3]]',
+        find: '? [dmy[3], dmy[2], dmy[1]]',
+        replace: '? [dmy[1], dmy[2], dmy[3]]',
       },
     ],
   },

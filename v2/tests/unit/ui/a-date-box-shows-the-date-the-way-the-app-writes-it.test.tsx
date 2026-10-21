@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import en from '../../../messages/en.json';
 import ar from '../../../messages/ar.json';
-import { Input } from '../../../src/ui/Input';
+import { Input, TimeInput } from '../../../src/ui/Input';
 import { scrollMoreOf } from '../../../src/ui/use-scroll-more';
 
 const draw = (node: React.ReactNode, locale: 'en' | 'ar' = 'en') =>
@@ -56,6 +56,20 @@ describe('a date box shows the date the way the app writes it', () => {
   it('leaves every other input as it was', () => {
     const html = draw(<Input type="text" value="x" onChange={() => undefined} />);
     expect(html).not.toContain('data-date-box');
+  });
+});
+
+describe('a time box shows the time on the 24-hour clock', () => {
+  it('is a text box holding 09:30 — never the browser clock (9:30 AM)', () => {
+    const html = draw(<TimeInput value="09:30" onChange={() => undefined} name="at" />);
+    expect(html).toContain('value="09:30"');
+    expect(html).toContain('type="text"');
+    expect(html).not.toContain('type="time"');
+    expect(html).not.toMatch(/\b(AM|PM)\b/i);
+  });
+  it('writes a time that is not padded as 24-hour, in Arabic too', () => {
+    expect(draw(<TimeInput value="9:05" onChange={() => undefined} />)).toContain('value="09:05"');
+    expect(draw(<TimeInput value="21:30" onChange={() => undefined} />, 'ar')).toContain('value="21:30"');
   });
 });
 

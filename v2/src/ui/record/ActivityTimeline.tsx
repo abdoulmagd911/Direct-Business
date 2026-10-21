@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, formatStoredDate } from '@/core/i18n/format';
 import { Button } from '../Button';
 import { StatusChip } from '../Chip';
 import { PersonChip } from '../PersonChip';
@@ -57,7 +57,7 @@ export function ActivityTimeline({
     if (said) return said;
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'boolean') return t(v ? 'common.yes' : 'common.no');
-    if (typeof v === 'string' || typeof v === 'number') return String(v);
+    if (typeof v === 'string' || typeof v === 'number') return formatStoredDate(v, locale) ?? String(v);
     return JSON.stringify(v);
   };
   const record = (v: unknown): Record<string, unknown> | null =>
