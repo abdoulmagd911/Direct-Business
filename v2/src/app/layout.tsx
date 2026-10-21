@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { dirOf } from '@/core/prefs';
@@ -8,6 +7,7 @@ import { serverPrefs } from '@/core/prefs/effective';
 import { getMe } from '@/core/auth/get-me';
 import { getAppSettings } from '@/core/settings/app';
 import { Hydrated } from '@/core/auth/Hydrated';
+import { IntlProvider } from '@/core/i18n/provider';
 import { fontClassNames } from '@/ui/fonts';
 import '@/ui/globals.css';
 
@@ -43,10 +43,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Riyadh">
+        <IntlProvider locale={locale} messages={messages}>
           {children}
           <Hydrated />
-        </NextIntlClientProvider>
+        </IntlProvider>
       </body>
     </html>
   );
