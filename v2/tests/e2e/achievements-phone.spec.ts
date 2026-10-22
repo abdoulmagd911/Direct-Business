@@ -1,11 +1,11 @@
 /**
  * The Achievements list on a phone (the owner's screenshots, the Architect's order of 22 Oct), at 375 and 320 px, and
- * at 1,440 px for the same page: a long title is cut with an ellipsis inside its card, never past either edge, and the
+ * at 1,440 px for the same page: a long title wraps inside its card over at most three lines (V653), never past either edge, and the
  * page never scrolls sideways; the month box says what it is ("Month") and what it holds when empty ("Any month"),
  * never only dashes; Backfilled, Past work and Needs owner are switches with a one-line meaning, on or off, that reach
  * the address. Every value is made up.
  * Sabotage: tests/sabotage/achievements.mjs "list-row-centres-its-title", "month-box-is-only-dashes",
- * "list-switches-explain-nothing".
+ * "list-switches-explain-nothing", "list-title-is-cut-to-one-line".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -49,7 +49,7 @@ for (const [label, width, height] of [
   ['phone 320', 320, 700],
   ['desk 1440', 1440, 900],
 ] as const) {
-  test(`${label}: a long title is cut inside its card, the month box and the three switches say what they are`, async ({
+  test(`${label}: a long title wraps inside its card, the month box and the three switches say what they are`, async ({
     page,
   }) => {
     const me = await makePerson({ admin: true });
@@ -76,25 +76,30 @@ for (const [label, width, height] of [
     await page.goto('/kpis/achievements?mine=1');
     await hydrated(page);
 
-    // (1) every card keeps its title inside both edges, start-aligned, with an ellipsis where it is cut
+    // (1) every card keeps its title inside both edges, start-aligned, wrapped over at most three lines (V653)
     for (const title of titles) {
       const row = page.locator('[data-achievement-row]', { hasText: title });
       await expect(row).toHaveCount(1);
       const found = await row.evaluate((li) => {
         const card = li.getBoundingClientRect();
-        const t = li.querySelector('span.truncate') as HTMLElement;
+        const t = li.querySelector('[data-achievement-title]') as HTMLElement;
         const r = t.getBoundingClientRect();
+        const line = parseFloat(getComputedStyle(t).lineHeight);
         return {
           left: r.left - card.left,
           right: card.right - r.right,
-          cut: t.scrollWidth > t.clientWidth,
-          ellipsis: getComputedStyle(t).textOverflow,
+          lines: Math.round(r.height / line),
+          wide: t.scrollWidth - t.clientWidth,
         };
       });
       expect(found.left, `${title}: starts inside the card's left edge`).toBeGreaterThanOrEqual(0);
       expect(found.left, `${title}: starts at the card's padding, not centred`).toBeLessThanOrEqual(20);
       expect(found.right, `${title}: ends inside the card's right edge`).toBeGreaterThanOrEqual(0);
-      if (found.cut) expect(found.ellipsis, `${title}: a cut title ends in an ellipsis`).toBe('ellipsis');
+      expect(found.lines, `${title}: at most three lines`).toBeLessThanOrEqual(3);
+      expect(found.wide, `${title}: no line runs past the card sideways`).toBeLessThanOrEqual(0);
+      // a long title wraps on a phone, it is not cut to one line
+      if (width < 700 && title.includes('keeps going well past'))
+        expect(found.lines, `${title}: wraps over more than one line`).toBeGreaterThan(1);
     }
     const sideways = await page.evaluate(() => ({
       page: document.documentElement.scrollWidth - window.innerWidth,

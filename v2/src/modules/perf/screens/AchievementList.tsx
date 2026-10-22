@@ -163,7 +163,9 @@ function Row({ row, owner, top }: { row: AchievementRow; owner: string | null; t
         className="flex min-w-0 flex-col items-stretch gap-1 px-4 py-3 hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus sm:flex-row sm:items-center sm:gap-4"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-text">{locale === 'ar' ? row.line_ar : row.line_en}</span>
+          <span className="line-clamp-3 break-words font-medium text-text" data-achievement-title>
+            {locale === 'ar' ? row.line_ar : row.line_en}
+          </span>
           <span className="block truncate text-sm text-muted">
             {parent ? `${locale === 'ar' ? parent.name_ar : parent.name_en} · ` : ''}
             {category}

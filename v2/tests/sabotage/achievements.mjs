@@ -157,4 +157,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'list-title-is-cut-to-one-line',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'wraps over more than one line',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'className="line-clamp-3 break-words font-medium text-text"',
+        replace: 'className="block truncate font-medium text-text"',
+      },
+    ],
+  },
 ];
