@@ -206,6 +206,16 @@ async function main() {
   const admin = await apiAs(u('admin'));
   const why = `QA sweep fixture ${tag}`;
 
+  // The 2026 achievement plan (its categories come with it), so a member can log achievements in a local pass.
+  // Made-up name; a second run on the same database finds the plan already open.
+  const [{ id: commercial }] = await sql(`select id from core.department where code = 'commercial'`);
+  if (
+    !(
+      await sql(`select 1 from perf.plan where department_id = $1 and year = 2026 and deleted_at is null`, [commercial])
+    ).length
+  )
+    await admin('plan_open', { p_department: commercial, p_year: 2026, p_name: `Test plan 2026 ${tag}` });
+
   // The Head and Manager passes (V644): the head leads a team of their own and the manager leads another, each with a
   // member in it, so "my team" means something for both and a member of the other team is the one they must not reach.
   // Made-up teams, set straight into the database as the people were; a second run on the same database finds them.
