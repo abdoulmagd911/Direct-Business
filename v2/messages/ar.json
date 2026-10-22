@@ -998,6 +998,17 @@
     }
   },
   "activity": {
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "blocked": {
+        "has_owner": "له مالك بالفعل",
+        "needs_capability": "يستعيده من يملك صلاحية إدارته فقط",
+        "not_allowed": "لا تملك صلاحية استعادته",
+        "other": "لا يمكن استعادته"
+      },
+      "none": "لا شيء محذوف مؤخرًا"
+    },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
