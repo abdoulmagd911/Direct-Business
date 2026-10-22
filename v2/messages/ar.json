@@ -118,6 +118,7 @@
   },
   "create": {
     "task": "مهمة",
+    "activity": "تسجيل نشاط",
     "client": "عميل",
     "supplier": "مورد",
     "invoice": "فاتورة",
@@ -997,6 +998,17 @@
     }
   },
   "activity": {
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "blocked": {
+        "has_owner": "له مالك بالفعل",
+        "needs_capability": "يستعيده من يملك صلاحية إدارته فقط",
+        "not_allowed": "لا تملك صلاحية استعادته",
+        "other": "لا يمكن استعادته"
+      },
+      "none": "لا شيء محذوف مؤخرًا"
+    },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
@@ -1396,6 +1408,9 @@
       "related": "ذات صلة"
     },
     "activity": {
+      "who": "مع من كان ذلك؟",
+      "whoOrg": "عميل أو عميل محتمل أو مورد",
+      "whoNext": "التالي",
       "log": "تسجيل نشاط",
       "logged": "تم تسجيل {type}",
       "type": "النوع",
@@ -1557,6 +1572,7 @@
   },
   "createNew": {
     "task": "مهمة جديدة",
+    "activity": "تسجيل نشاط",
     "client": "عميل جديد",
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",

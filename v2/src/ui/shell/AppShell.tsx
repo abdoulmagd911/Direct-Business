@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useState, type ReactNode } from 'react';
 import { QuickCapture } from '@/modules/my-day/screens/QuickCapture';
+import { LogActivityEntry } from '@/modules/partners/screens/LogActivityEntry';
 import { ReminderAlert } from '@/modules/my-day/screens/ReminderAlert';
 import { useNotifications, type NotificationTab } from '@/core/notify/useNotifications';
 import { ConflictDialog } from '../ConflictDialog';
@@ -55,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         snooze={notifications.snooze}
       />
       <QuickCapture />
+      <LogActivityEntry />
       <ConflictDialog />
       <RefetchBridge />
       <Suspense fallback={null}>

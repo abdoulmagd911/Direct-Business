@@ -1,11 +1,22 @@
 'use client';
-import { Building2, CheckSquare, Handshake, Plus, Receipt, StickyNote, Trophy, type LucideIcon } from 'lucide-react';
+import {
+  Building2,
+  CheckSquare,
+  ClipboardList,
+  Handshake,
+  Plus,
+  Receipt,
+  StickyNote,
+  Trophy,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { modules } from '@/core/registry';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
+import { openLogActivity } from '@/modules/partners/log-activity-entry';
 import { noTeamToWorkIn } from '@/modules/tasks/rules';
 import type { Level } from '@/core/registry/define-module';
 import { Button, buttonVariants } from '../Button';
@@ -24,6 +35,10 @@ export const CREATE_ACTIONS: {
   at: Level[];
   /** Opens the Quick capture sheet where the person stands instead of going to a page (productivity stage 1). */
   sheet?: boolean;
+  /** Opens a dialog in the shell where the person stands instead of going to a page (Log activity, V646). */
+  dialog?: () => void;
+  /** More than one page can let a person in: any of them at the level is enough (Log activity: clients or suppliers). */
+  pages?: string[];
   /** Leaves the item out for someone the level alone would let in (the item is never greyed, W4/W28). */
   except?: (me: Me) => boolean;
 }[] = [
@@ -36,6 +51,16 @@ export const CREATE_ACTIONS: {
     at: ['own', 'full'],
     // Someone in no team without `tasks.assign` may not add a task (QA-521); Add task says so, the + never offers it (QA-245)
     except: (me) => noTeamToWorkIn(me.person.team_id, me.capabilities.includes('tasks.assign')),
+  },
+  // V646: between Task and the achievement, to anyone who may log activities (Own or Full on a client or supplier page)
+  {
+    key: 'activity',
+    page: 'clients',
+    pages: ['clients', 'suppliers_partners'],
+    route: '',
+    icon: ClipboardList,
+    at: ['own', 'full'],
+    dialog: openLogActivity,
   },
   { key: 'client', page: 'clients', route: '/clients?new=1', icon: Building2, at: ['full'] },
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
@@ -51,7 +76,7 @@ export const BUILT: ReadonlySet<string> = new Set(
 /** The Create items this person gets, in order. */
 export function createActionsFor(me: Me) {
   return CREATE_ACTIONS.filter(
-    (a) => BUILT.has(a.page) && a.at.includes(me.levels[a.page] ?? 'none') && !a.except?.(me),
+    (a) => (a.pages ?? [a.page]).some((p) => BUILT.has(p) && a.at.includes(me.levels[p] ?? 'none')) && !a.except?.(me),
   );
 }
 
@@ -144,8 +169,12 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
           const Icon = a.icon;
           return (
             <MenuItem key={a.key} asChild>
-              {a.sheet ? (
-                <button type="button" onClick={() => openQuickCapture()} data-create-item={a.key}>
+              {a.sheet || a.dialog ? (
+                <button
+                  type="button"
+                  onClick={() => (a.dialog ? a.dialog() : openQuickCapture())}
+                  data-create-item={a.key}
+                >
                   <Icon />
                   {t(`create.${a.key}`)}
                 </button>
