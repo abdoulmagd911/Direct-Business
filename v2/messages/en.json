@@ -159,6 +159,7 @@
   },
   "create": {
     "task": "Task",
+    "activity": "Log activity",
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
@@ -1182,6 +1183,12 @@
     "deleted": {
       "restore": "Restore",
       "restored": "{what} restored",
+      "blocked": {
+        "has_owner": "Already has an owner",
+        "needs_capability": "Only someone who manages this can restore it",
+        "not_allowed": "You can't restore this",
+        "other": "Can't be restored"
+      },
       "none": "Nothing removed recently"
     },
     "fields": {
@@ -2004,6 +2011,9 @@
       "related": "Related"
     },
     "activity": {
+      "who": "Who was it with?",
+      "whoOrg": "A client, lead or supplier",
+      "whoNext": "Next",
       "log": "Log activity",
       "logged": "{type} logged",
       "type": "Type",
@@ -2168,6 +2178,7 @@
   },
   "createNew": {
     "task": "New task",
+    "activity": "Log activity",
     "client": "New client",
     "supplier": "New supplier",
     "invoice": "New invoice",
