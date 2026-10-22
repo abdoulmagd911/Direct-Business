@@ -88,6 +88,7 @@ export default defineModule({
         ['side_status_reason', 'partner.side_status_reason'],
         ['contact_role', 'partner.contact_role'],
         ['activity_type', 'partner.activity_type'],
+        ['internal_counterpart', 'partner.internal_counterpart'],
         ['activity_outcome', 'partner.activity_outcome'],
         ['contract_term', 'partner.term'],
       ] as const
