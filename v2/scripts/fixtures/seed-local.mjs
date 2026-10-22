@@ -233,6 +233,9 @@ async function api(/** @type {string} */ who, /** @type {string} */ fn, /** @typ
   return r.data;
 }
 
+// The 2026 achievement plan (its categories come with it), so a member can log achievements in a local pass.
+await api('admin', 'plan_open', { p_department: dep.id, p_year: 2026, p_name: 'Fixture plan 2026' });
+
 /** @type {{ en: string, ar: string, sides: Record<string, unknown>[], by: string, contact: string, domain: string }[]} */
 const ORGS = [
   {
