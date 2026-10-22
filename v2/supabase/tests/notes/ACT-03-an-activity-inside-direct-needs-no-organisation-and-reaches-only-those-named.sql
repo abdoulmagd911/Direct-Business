@@ -25,19 +25,19 @@ update core.person set manager_id = current_setting('t.mgr')::uuid where id = cu
 select test.as_person(current_setting('t.author')::uuid);
 select test.raises('select api.activity_log(null, ''call'')', 'P0001', 'with nobody: refused', 'activity.with_whom_required');
 select test.raises('select api.activity_log(null, ''call'', p_internal => ''nobody_here'')', 'P0002',
-  'with a team not on the list: refused', 'activity.unknown_internal_party');
+  'with a team not on the list: refused', 'activity.unknown_internal_counterpart');
 
 -- a WhatsApp with the developers, a ticket, a named colleague and a next step — no organisation
 select set_config('t.a', api.activity_log(null, 'whatsapp', null, null, 'Made-up the booking page shows the wrong fare',
   'Made-up check the fix is live', current_date + 2, array[current_setting('t.named')::uuid],
-  'https://tickets.example/T-0001', 'developers')::text, true);
+  'https://tickets.example/T-0001', 'website_app_developers')::text, true);
 select set_config('t.n', current_setting('t.a')::jsonb ->> 'id', true);
 select test.as_owner();
 select test.eq((select jsonb_build_object('on', n.entity_table, 'org', n.entity_table = 'partner.partner',
                                           'ticket', n.ticket_ref, 'party', p.key)
-                from core.note n join partner.internal_party p on p.id = n.internal_party_id
+                from core.note n join partner.internal_counterpart p on p.id = n.internal_counterpart_id
                 where n.id = current_setting('t.n')::uuid),
-  jsonb_build_object('on', 'core.person', 'org', false, 'ticket', 'https://tickets.example/T-0001', 'party', 'developers'),
+  jsonb_build_object('on', 'core.person', 'org', false, 'ticket', 'https://tickets.example/T-0001', 'party', 'website_app_developers'),
   'it is logged with the developers and its ticket, on no organisation');
 select test.eq((select jsonb_build_object('work_type', t.work_type, 'partner', t.partner_id, 'owner', t.owner_id)
                 from core.note n join work.task t on t.id = n.next_step_task_id where n.id = current_setting('t.n')::uuid),
@@ -46,8 +46,8 @@ select test.eq((select jsonb_build_object('work_type', t.work_type, 'partner', t
 
 -- who sees it
 select test.as_person(current_setting('t.author')::uuid);
-select test.eq((select x ->> 'internal_party' from jsonb_array_elements(api.activities_inside()) x
-                where x ->> 'id' = current_setting('t.n')), 'developers', 'its author sees it, with whom it was');
+select test.eq((select x ->> 'internal_counterpart' from jsonb_array_elements(api.activities_inside()) x
+                where x ->> 'id' = current_setting('t.n')), 'website_app_developers', 'its author sees it, with whom it was');
 select test.as_person(current_setting('t.named')::uuid);
 select test.eq((select count(*)::int from jsonb_array_elements(api.activities_inside()) x
                 where x ->> 'id' = current_setting('t.n')), 1, 'the person it names sees it');

@@ -1,11 +1,12 @@
 -- V645 (owner ideas of 20 Oct, MD-39, gaps 1 and 2): Log activity needs no organisation when the other side is inside
 -- Direct. Builder A's part — the counterpart kind, the ticket reference and the read rule — in one forward migration:
---  1. Who it was with: an organisation (as today) or someone inside Direct, a team or a system chosen from a new
---     Settings list, partner.internal_party, seeded with Operations, Product, Website and app developers, and Support.
+--  1. Who it was with: an organisation (as today) or someone inside Direct, a team or a system chosen from the
+--     Settings list partner.internal_counterpart (20261021090000, V385: Operations, Product, Website and app
+--     developers, Support).
 --     An activity inside Direct has no organisation: it sits on its author's own record (core.person), so nothing that
 --     counts an organisation's activities (stale after 21 days, last activity, the call measures) ever sees it.
 --  2. An optional ticket reference (free text; the screen links it when it is a web address); no ticket system is
---     called. 3. WhatsApp, Email and Ticket join the activity types — rows of the existing list, no code.
+--     called. (3. WhatsApp, Email and Ticket are already activity types: 20261021090000.)
 --  4. The read rule: an activity inside Direct is seen by its author, the people it names, admins (as shared, never as
 --     private — it is never private) and, when its author shares it with their team, that team (home, helping or
 --     leading, my.team_sees). Never by everyone who may open its author's page: core.note_visible, its owners and its
@@ -13,49 +14,22 @@
 --  5. Its next step becomes a task on My day exactly as today: work.next_step_task makes an internal task (no client).
 -- partner.activity_log and api.activity_log gain three trailing defaults (p_ticket_ref, p_internal, p_share_team), so
 -- every existing call keeps working; the functions replaced whole are as their newest migration left them, but for the
--- lines named. The list is registered in the partners module (pnpm registry:sync writes its own migration).
+-- lines named.
 -- Forward-only (V103).
-
--- ================================================================ 1. who it was with inside Direct
-create table partner.internal_party (
-  id uuid primary key default gen_random_uuid(),
-  key text not null unique check (key ~ '^[a-z][a-z0-9_]*$'),
-  name_en text not null check (pg_catalog.btrim(name_en) <> ''), name_ar text not null check (pg_catalog.btrim(name_ar) <> ''),
-  sort int not null default 0, active boolean not null default true,
-  created_at timestamptz not null default now(), created_by uuid not null references core.person (id),
-  updated_at timestamptz, updated_by uuid references core.person (id), version int not null default 1,
-  deleted_at timestamptz, deleted_by uuid references core.person (id), delete_reason text
-);
-comment on table partner.internal_party is
-  'Who an activity inside Direct was with (V645): a team or a system — Operations, Product, developers, Support; admins add more.';
-alter table partner.internal_party enable row level security;
-select audit.track('partner.internal_party'::regclass);
-select core.index_foreign_keys('partner');
-
-select audit.begin('system', 'partner.internal_parties_seeded');
-insert into partner.internal_party (key, name_en, name_ar, sort) values
-  ('operations', 'Operations', 'العمليات', 10), ('product', 'Product', 'المنتج', 20),
-  ('developers', 'Website and app developers', 'مطورو الموقع والتطبيق', 30), ('support', 'Support', 'الدعم', 40)
-on conflict (key) do nothing;
--- 3. three more activity types, as list rows (an admin's own rows are never touched)
-insert into partner.activity_type (key, name_en, name_ar, sort) values
-  ('whatsapp', 'WhatsApp', 'واتساب', 60), ('email', 'Email', 'بريد إلكتروني', 70), ('ticket', 'Ticket', 'تذكرة', 80)
-on conflict (key) do nothing;
-select audit.end();
 
 -- ================================================================ 1, 2. the activity's new fields
 alter table core.note
-  add column internal_party_id uuid references partner.internal_party (id),
+  add column internal_counterpart_id uuid references partner.internal_counterpart (id),
   add column ticket_ref text check (ticket_ref is null or (pg_catalog.btrim(ticket_ref) <> ''
                                                            and pg_catalog.length(ticket_ref) <= 500)),
   add column shared_with_team boolean not null default false,
   -- inside Direct: an activity on its author's own record, never on an organisation
-  add constraint note_internal_on_author check (internal_party_id is null
+  add constraint note_internal_on_author check (internal_counterpart_id is null
     or (kind = 'activity' and entity_table = 'core.person' and entity_id = created_by)),
   add constraint note_ticket_on_activity check (ticket_ref is null or kind = 'activity'),
-  add constraint note_team_share_internal check (not shared_with_team or internal_party_id is not null);
-create index note_internal_party on core.note (internal_party_id);
-comment on column core.note.internal_party_id is 'V645: an activity with a team or a system inside Direct (no organisation).';
+  add constraint note_team_share_internal check (not shared_with_team or internal_counterpart_id is not null);
+create index note_internal_counterpart on core.note (internal_counterpart_id);
+comment on column core.note.internal_counterpart_id is 'V645: an activity with a team or a system inside Direct (no organisation).';
 comment on column core.note.ticket_ref is 'V645: an optional ticket reference, free text (a link when a web address).';
 
 -- ================================================================ 4. the read rule
@@ -66,7 +40,7 @@ language sql stable security definer set search_path = ''
 as $$
   select coalesce((
     select case
-      when n.internal_party_id is null then authz.can_see_as(p_person, n.entity_table, n.entity_id)
+      when n.internal_counterpart_id is null then authz.can_see_as(p_person, n.entity_table, n.entity_id)
       else n.created_by = p_person
         or (n.deleted_at is null
             and exists (select 1 from core.person p where p.id = p_person and p.kind = 'staff' and p.active
@@ -86,7 +60,7 @@ as $$
   select n.created_by from core.note n where n.id = p_id
   union
   select o from core.note n cross join lateral pg_catalog.unnest(core.owners_of(n.entity_table, n.entity_id)) o
-  where n.id = p_id and n.internal_party_id is null
+  where n.id = p_id and n.internal_counterpart_id is null
 $$;
 -- Its level is its own: Full for its author, View for whoever may see it, None for everyone else — never the level
 -- the reader holds on its author's page.
@@ -94,7 +68,7 @@ create or replace function core.note_level(p_table text, p_id uuid, p_person uui
 language sql stable security definer set search_path = ''
 as $$
   select coalesce((select case
-                            when n.internal_party_id is null then authz.record_level(p_person, n.entity_table, n.entity_id)
+                            when n.internal_counterpart_id is null then authz.record_level(p_person, n.entity_table, n.entity_id)
                             when n.created_by = p_person then 'full'::core.level
                             when core.note_visible(n.id, p_person) then 'view'::core.level
                             else 'none'::core.level end
@@ -122,7 +96,7 @@ begin
                             from core.mention m where m.note_id = n.id and m.deleted_at is null), '[]'::jsonb),
       'from_note', my.from_note('core.note', n.id, me),
       -- V645: who it was with inside Direct (none for an organisation's activity), the ticket and the team share
-      'internal_party', ip.key, 'internal_party_en', ip.name_en, 'internal_party_ar', ip.name_ar,
+      'internal_counterpart', ip.key, 'internal_counterpart_en', ip.name_en, 'internal_counterpart_ar', ip.name_ar,
       'ticket_ref', n.ticket_ref, 'shared_with_team', n.shared_with_team,
       -- an event the system wrote (D5): its type and values, worded by the screen in Arabic and English
       'event', case when n.event_type is null then null
@@ -138,12 +112,12 @@ begin
                  or work.row_level('work.task', x.event_task_id, me) >= 'view')
             -- V645: an activity inside Direct reaches only its author, the people it names, its team when shared
             -- and admins — never everyone who may open its author's page
-            and (x.internal_party_id is null or core.note_visible(x.id, me))
+            and (x.internal_counterpart_id is null or core.note_visible(x.id, me))
           order by x.happened_on desc, x.logged_at desc, x.id
           limit greatest(1, least(coalesce(p_limit, 50), 200)) offset greatest(coalesce(p_offset, 0), 0)) n
     left join partner.activity_type t on t.id = n.activity_type_id
     left join partner.activity_outcome o on o.id = n.outcome_id
-    left join partner.internal_party ip on ip.id = n.internal_party_id), '[]'::jsonb);
+    left join partner.internal_counterpart ip on ip.id = n.internal_counterpart_id), '[]'::jsonb);
 end
 $$;
 
@@ -169,14 +143,14 @@ begin
       'author_id', n.created_by, 'edited_at', n.edited_at, 'version', n.version, 'mine', n.created_by = me,
       'mentions', coalesce((select pg_catalog.jsonb_agg(m.person_id order by m.created_at, m.person_id)
                             from core.mention m where m.note_id = n.id and m.deleted_at is null), '[]'::jsonb),
-      'internal_party', ip.key, 'internal_party_en', ip.name_en, 'internal_party_ar', ip.name_ar,
+      'internal_counterpart', ip.key, 'internal_counterpart_en', ip.name_en, 'internal_counterpart_ar', ip.name_ar,
       'ticket_ref', n.ticket_ref, 'shared_with_team', n.shared_with_team)
       order by n.happened_on desc, n.logged_at desc, n.id)
     from (select * from core.note x
-          where x.internal_party_id is not null and x.deleted_at is null and core.note_visible(x.id, me)
+          where x.internal_counterpart_id is not null and x.deleted_at is null and core.note_visible(x.id, me)
           order by x.happened_on desc, x.logged_at desc, x.id
           limit greatest(1, least(coalesce(p_limit, 50), 200)) offset greatest(coalesce(p_offset, 0), 0)) n
-    join partner.internal_party ip on ip.id = n.internal_party_id
+    join partner.internal_counterpart ip on ip.id = n.internal_counterpart_id
     left join partner.activity_type t on t.id = n.activity_type_id
     left join partner.activity_outcome o on o.id = n.outcome_id), '[]'::jsonb);
 end
@@ -207,13 +181,13 @@ begin
       raise exception using errcode = 'P0001', message = 'person.unavailable', detail = who::text;
     end if;
     -- an activity inside Direct is seen by whoever it names (V645 (4)): its author's page is not theirs to open
-    if n.internal_party_id is null and not authz.can_see_as(who, n.entity_table, n.entity_id) then
+    if n.internal_counterpart_id is null and not authz.can_see_as(who, n.entity_table, n.entity_id) then
       raise exception using errcode = 'P0001', message = 'note.mention_cannot_see', detail = who::text;
     end if;
     insert into core.mention (note_id, person_id) values (p_note, who)
     on conflict (note_id, person_id) do update set deleted_at = null, deleted_by = null, delete_reason = null;
-    perform notify.push(who, 'mentioned', case when n.internal_party_id is null then n.entity_table else 'core.note' end,
-                        case when n.internal_party_id is null then n.entity_id else n.id end, 'notify.mentioned',
+    perform notify.push(who, 'mentioned', case when n.internal_counterpart_id is null then n.entity_table else 'core.note' end,
+                        case when n.internal_counterpart_id is null then n.entity_id else n.id end, 'notify.mentioned',
                         pg_catalog.jsonb_build_object('note_id', p_note, 'kind', n.kind));
     k := k + 1;
   end loop;
@@ -234,7 +208,7 @@ as $$
 declare
   me uuid := authz.me();
   e core.entity;
-  ip partner.internal_party;
+  ip partner.internal_counterpart;
   t partner.activity_type;
   o partner.activity_outcome;
   nid uuid;
@@ -249,10 +223,10 @@ begin
     raise exception using errcode = 'P0001', message = 'activity.with_whom_required';
   end if;
   if p_internal is not null then
-    select * into ip from partner.internal_party x
+    select * into ip from partner.internal_counterpart x
     where (x.key = p_internal or x.id::text = p_internal) and x.active and x.deleted_at is null;
     if ip.id is null then
-      raise exception using errcode = 'P0002', message = 'activity.unknown_internal_party', detail = p_internal;
+      raise exception using errcode = 'P0002', message = 'activity.unknown_internal_counterpart', detail = p_internal;
     end if;
   else
     if coalesce(p_share_team, false) then
@@ -281,7 +255,7 @@ begin
   begin
     -- an activity inside Direct sits on its author's own record: it has no organisation (V645 (1))
     insert into core.note (entity_table, entity_id, kind, body, happened_on, activity_type_id, outcome_id, next_step,
-                           next_step_on, internal_party_id, ticket_ref, shared_with_team)
+                           next_step_on, internal_counterpart_id, ticket_ref, shared_with_team)
     values (case when ip.id is null then 'partner.partner' else 'core.person' end, coalesce(p_partner, me), 'activity',
             nullif(pg_catalog.btrim(p_body), ''),
             coalesce(p_happened_on, core.riyadh_today()), t.id, o.id, nullif(pg_catalog.btrim(p_next_step), ''),
@@ -323,7 +297,7 @@ declare
   team uuid;
   mgr uuid;
 begin
-  if new.kind <> 'activity' or not (new.entity_table = 'partner.partner' or new.internal_party_id is not null)
+  if new.kind <> 'activity' or not (new.entity_table = 'partner.partner' or new.internal_counterpart_id is not null)
      or new.deleted_at is not null
      or new.next_step_on is null or (new.next_step is null and not demo)
      or (select r.kind from audit.request r
@@ -348,8 +322,8 @@ begin
                              core.next_number('task', pg_catalog.date_part('year', new.happened_on)::int)),
           heading, new.created_by, team, (select t.department_id from core.team t where t.id = team),
           (select s.id from work.task_status s where s.is_default and s.deleted_at is null),
-          case when new.internal_party_id is null then 'client' else 'internal' end,
-          case when new.internal_party_id is null then new.entity_id end, new.next_step_on, 'next_step', new.happened_on)
+          case when new.internal_counterpart_id is null then 'client' else 'internal' end,
+          case when new.internal_counterpart_id is null then new.entity_id end, new.next_step_on, 'next_step', new.happened_on)
   returning id into new.next_step_task_id;
   if demo and mgr is not null and work.person_ok(mgr) then
     insert into work.task_helper (task_id, person_id) values (new.next_step_task_id, mgr);

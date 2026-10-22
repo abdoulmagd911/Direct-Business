@@ -69,12 +69,20 @@ const admin = createClient(URL_API, KEY_SECRET, opts).auth.admin;
 // ---------------------------------------------------------------- who: every role and every kind of account
 /**
  * @typedef {{ key: string, en: string, ar: string, role: string, title?: string, manager?: string, team?: boolean,
- *             account?: string, canSignIn?: boolean, leftDaysAgo?: number }} Spec
+ *             headTeam?: boolean, account?: string, canSignIn?: boolean, leftDaysAgo?: number }} Spec
  */
 /** @type {Spec[]} */
 const PEOPLE = [
   { key: 'admin', en: 'Fixture Admin', ar: 'مسؤول تجريبي', role: 'admin', title: 'Commercial director' },
-  { key: 'head', en: 'Fixture Head', ar: 'رئيس تجريبي', role: 'head', title: 'Head of sales', manager: 'admin' },
+  {
+    key: 'head',
+    en: 'Fixture Head',
+    ar: 'رئيس تجريبي',
+    role: 'head',
+    title: 'Head of sales',
+    manager: 'admin',
+    headTeam: true,
+  },
   {
     key: 'manager',
     en: 'Fixture Manager',
@@ -101,6 +109,15 @@ const PEOPLE = [
     title: 'Account manager',
     manager: 'manager',
     team: true,
+  },
+  {
+    key: 'member3',
+    en: 'Fixture Member Three',
+    ar: 'عضو تجريبي ثالث',
+    role: 'member',
+    title: 'Account manager',
+    manager: 'head',
+    headTeam: true,
   },
   { key: 'viewer', en: 'Fixture Viewer', ar: 'مشاهد تجريبي', role: 'viewer', title: 'Analyst' },
   {
@@ -143,6 +160,12 @@ const [{ id: teamId }] = await sql(
    returning id`,
   [dep.id],
 );
+// the head leads a team of their own (with Member Three in it), beside the manager's (V644's Head and Manager passes)
+const [{ id: headTeamId }] = await sql(
+  `insert into core.team (department_id, code, name_en, name_ar) values ($1, 'fixture_head_desk', 'Fixture head desk', 'مكتب رئيس تجريبي')
+   returning id`,
+  [dep.id],
+);
 const hasAccount =
   (
     await sql(`select 1 from information_schema.columns where table_schema = 'core'
@@ -161,7 +184,7 @@ for (const p of PEOPLE) {
       p.ar,
       p.title ?? null,
       dep.id,
-      p.team ? teamId : null,
+      p.team ? teamId : p.headTeam ? headTeamId : null,
       p.manager ? id[p.manager] : null,
       p.role,
       p.canSignIn !== false,
@@ -182,6 +205,7 @@ for (const p of PEOPLE) {
   );
 }
 await sql(`update core.team set lead_person_id = $2 where id = $1`, [teamId, id.manager]);
+await sql(`update core.team set lead_person_id = $2 where id = $1`, [headTeamId, id.head]);
 await sql(`update core.department set head_person_id = $2 where id = $1`, [dep.id, id.head]);
 
 // ---------------------------------------------------------------- what: through the app's own doors, as each person

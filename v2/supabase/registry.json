@@ -1182,8 +1182,8 @@
       "rule_only": false
     },
     {
-      "key": "internal_party",
-      "table": "partner.internal_party",
+      "key": "internal_counterpart",
+      "table": "partner.internal_counterpart",
       "page": "settings.partners",
       "owners": null,
       "list": true,
