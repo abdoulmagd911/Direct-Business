@@ -10,7 +10,7 @@ import { RecentlyDeleted, type DeletedRow } from '../../../src/modules/settings/
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }) }));
 
-const row = (id: string, can_restore?: boolean): DeletedRow => ({
+const row = (id: string, can_restore?: boolean, restore_blocked?: string): DeletedRow => ({
   entity: 'contact',
   id,
   label: `Made up ${id}`,
@@ -18,6 +18,7 @@ const row = (id: string, can_restore?: boolean): DeletedRow => ({
   deleted_by: null,
   reason: null,
   can_restore,
+  restore_blocked,
 });
 
 describe('Recently deleted offers Restore only where it works', () => {
@@ -29,5 +30,26 @@ describe('Recently deleted offers Restore only where it works', () => {
     );
     expect(out).toContain('Made up theirs');
     expect(out.match(/data-deleted-restore/g)?.length, 'one button, on the row that may be restored').toBe(1);
+  });
+
+  it('says why in one line where it is refused, and draws no button (QA-585)', () => {
+    const out = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <RecentlyDeleted
+          rows={[
+            row('owned', false, 'restore.blocked_by_duplicate'),
+            row('cap', false, 'access.needs_capability'),
+            row('no', false, 'restore.not_allowed'),
+            row('other', false),
+          ]}
+          people={{}}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(out).not.toContain('data-deleted-restore');
+    expect(out).toContain('Already has an owner');
+    expect(out).toContain('Only someone who manages this can restore it');
+    expect(out).toContain('You can&#x27;t restore this');
+    expect(out).toContain('Can&#x27;t be restored');
   });
 });
