@@ -127,4 +127,34 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'list-row-centres-its-title',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: "starts at the card's padding, not centred",
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'flex min-w-0 flex-col items-stretch gap-1 px-4 py-3',
+        replace: 'flex min-w-0 flex-col gap-1 px-4 py-3',
+      },
+    ],
+  },
+  {
+    name: 'month-box-is-only-dashes',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'an empty month box says Any month, not only dashes',
+    edits: [{ file: 'src/modules/perf/screens/AchievementList.tsx', find: "{t('filters.anyMonth')}", replace: "{''}" }],
+  },
+  {
+    name: 'list-switches-explain-nothing',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'says what it means',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{t(`filters.meaning.${k}`)}',
+        replace: "{''}",
+      },
+    ],
+  },
 ];

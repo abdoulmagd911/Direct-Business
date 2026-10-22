@@ -290,6 +290,53 @@ test('in Arabic at 375 px: the weekly review reads right to left in the catalog�
   });
 });
 
+// ---- The Achievements list on a phone, in Arabic (the Architect's order of 22 Oct): the three switches and the month
+// box say what they mean in the catalog's words, and nothing scrolls sideways
+
+type FilterWords = {
+  pages: {
+    achievements: {
+      filters: {
+        backfilled: string;
+        past: string;
+        needsOwner: string;
+        anyMonth: string;
+        month: string;
+        meaning: Record<'backfilled' | 'past' | 'needsOwner', string>;
+      };
+    };
+  };
+};
+
+test('in Arabic at 375 px: the Achievements list’s switches and month box say what they mean, in the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const f = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as FilterWords).pages
+      .achievements.filters;
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/kpis/achievements');
+    await hydrated(page);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto('/kpis/achievements');
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('[data-month-filter]')).toContainText(f.month);
+    await expect(page.locator('[data-month-filter]')).toContainText(f.anyMonth);
+    for (const k of ['backfilled', 'past', 'needsOwner'] as const) {
+      const row = page.locator(`[data-achievement-switch="${k}"]`);
+      await expect(row).toContainText(f[k]);
+      await expect(row).toContainText(f.meaning[k]);
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+  });
+});
+
 // ---- The Architect's ruling V643: the 44 px rule holds in Arabic too — wide AND high, at 375 px, right to left
 
 test('every tappable thing is at least 44 px wide and high on a phone, on every page and in the dialogs and menus — Arabic', async ({

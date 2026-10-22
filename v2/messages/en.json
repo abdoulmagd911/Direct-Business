@@ -432,7 +432,13 @@
         "past": "Past work",
         "needsOwner": "Needs owner",
         "clear": "Clear",
-        "allCategories": "All categories"
+        "allCategories": "All categories",
+        "anyMonth": "Any month",
+        "meaning": {
+          "backfilled": "Added later from earlier records, not logged at the time.",
+          "past": "From before the app went live: every backfilled entry and anything dated earlier.",
+          "needsOwner": "No owner is named yet."
+        }
       },
       "cols": {
         "achievement": "Achievement",
