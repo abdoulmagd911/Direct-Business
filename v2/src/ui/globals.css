@@ -258,8 +258,9 @@
     :where(a[href]:not([role])):not(p a, [data-inline-link], [data-inline-link] a) {
       display: inline-flex;
       align-items: center;
-      /* the words of a flex link are an unnamed flex item, whose smallest size is its longest word: let that break */
-      overflow-wrap: anywhere;
+      /* the words of a flex link are an unnamed flex item, whose smallest size is its longest word: let that break (important,
+         because a link's own break-words would otherwise win and break a word only after the box has grown) */
+      overflow-wrap: anywhere !important;
     }
     /* what a link holds may shrink and wrap or end in an ellipsis — a long title in a card never runs off the screen */
     :where(a[href]:not([role])):not(p a, [data-inline-link], [data-inline-link] a) > :not(svg, img) {

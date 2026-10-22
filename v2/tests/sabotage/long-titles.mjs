@@ -5,7 +5,7 @@ export const sabotages = [
     breaks: ['e2e:tests/e2e/long-titles-fit-the-phone.spec.ts'],
     expect: 'no long title is cut off or pushes the page sideways',
     edits: [
-      { file: 'src/ui/globals.css', find: '      overflow-wrap: anywhere;\n', replace: '' },
+      { file: 'src/ui/globals.css', find: '      overflow-wrap: anywhere !important;\n', replace: '' },
       {
         file: 'src/ui/globals.css',
         find: '[data-inline-link] a) > :not(svg, img) {\n      min-width: 0;\n    }\n',
@@ -20,7 +20,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/globals.css',
-        find: '      overflow-wrap: anywhere;\n',
+        find: '      overflow-wrap: anywhere !important;\n',
         replace: '',
       },
     ],
