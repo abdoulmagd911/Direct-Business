@@ -1182,6 +1182,10 @@
     "deleted": {
       "restore": "Restore",
       "restored": "{what} restored",
+      "blocked": {
+        "has_owner": "Already has an owner",
+        "other": "Can't be restored"
+      },
       "none": "Nothing removed recently"
     },
     "fields": {

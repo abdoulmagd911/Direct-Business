@@ -1892,8 +1892,20 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: '{d.can_restore === false ? null : (',
-        replace: '{false ? null : (',
+        find: '{d.can_restore === false ? (',
+        replace: '{false ? (',
+      },
+    ],
+  },
+  {
+    name: 'restore-refusal-says-nothing',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'says why in one line where it is refused',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: "      : t('activity.deleted.blocked.other')}",
+        replace: "      : ''}",
       },
     ],
   },

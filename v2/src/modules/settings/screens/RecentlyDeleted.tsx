@@ -20,6 +20,8 @@ export type DeletedRow = {
   reason: string | null;
   /** QA-576: false when this person may not restore it (core.may_restore); the button is then not drawn. */
   can_restore?: boolean;
+  /** QA-585: why it cannot be restored, a short code (e.g. has_owner); the row says it in one line instead of a button. */
+  restore_blocked?: string | null;
 };
 
 /**
@@ -79,7 +81,13 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
                       .join(' · ')}
                   </span>
                 </span>
-                {d.can_restore === false ? null : (
+                {d.can_restore === false ? (
+                  <span className="text-xs text-muted" data-deleted-blocked>
+                    {d.restore_blocked && t.has(`activity.deleted.blocked.${d.restore_blocked}`)
+                      ? t(`activity.deleted.blocked.${d.restore_blocked}`)
+                      : t('activity.deleted.blocked.other')}
+                  </span>
+                ) : (
                   <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
                     {t('activity.deleted.restore')}
                   </Button>

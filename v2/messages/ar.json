@@ -997,6 +997,15 @@
     }
   },
   "activity": {
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "blocked": {
+        "has_owner": "له مالك بالفعل",
+        "other": "لا يمكن استعادته"
+      },
+      "none": "لا شيء محذوف مؤخرًا"
+    },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
