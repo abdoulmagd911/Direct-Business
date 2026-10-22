@@ -35,11 +35,21 @@ describe('Recently deleted offers Restore only where it works', () => {
   it('says why in one line where it is refused, and draws no button (QA-585)', () => {
     const out = renderToStaticMarkup(
       <NextIntlClientProvider locale="en" messages={en}>
-        <RecentlyDeleted rows={[row('owned', false, 'has_owner'), row('other', false)]} people={{}} />
+        <RecentlyDeleted
+          rows={[
+            row('owned', false, 'restore.blocked_by_duplicate'),
+            row('cap', false, 'access.needs_capability'),
+            row('no', false, 'restore.not_allowed'),
+            row('other', false),
+          ]}
+          people={{}}
+        />
       </NextIntlClientProvider>,
     );
     expect(out).not.toContain('data-deleted-restore');
     expect(out).toContain('Already has an owner');
+    expect(out).toContain('Only someone who manages this can restore it');
+    expect(out).toContain('You can&#x27;t restore this');
     expect(out).toContain('Can&#x27;t be restored');
   });
 });

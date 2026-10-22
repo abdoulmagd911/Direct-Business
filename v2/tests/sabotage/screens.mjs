@@ -1904,8 +1904,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: "      : t('activity.deleted.blocked.other')}",
-        replace: "      : ''}",
+        find: "'restore.blocked_by_duplicate': 'has_owner',",
+        replace: '',
       },
     ],
   },
