@@ -206,6 +206,41 @@ async function main() {
   const admin = await apiAs(u('admin'));
   const why = `QA sweep fixture ${tag}`;
 
+  // The 2026 achievement plan (its categories come with it), so a member can log achievements in a local pass.
+  // Made-up name; a second run on the same database finds the plan already open.
+  const [{ id: commercial }] = await sql(`select id from core.department where code = 'commercial'`);
+  if (
+    !(
+      await sql(`select 1 from perf.plan where department_id = $1 and year = 2026 and deleted_at is null`, [commercial])
+    ).length
+  )
+    await admin('plan_open', { p_department: commercial, p_year: 2026, p_name: `Test plan 2026 ${tag}` });
+
+  // The Head and Manager passes (V644): the head leads a team of their own and the manager leads another, each with a
+  // member in it, so "my team" means something for both and a member of the other team is the one they must not reach.
+  // Made-up teams, set straight into the database as the people were; a second run on the same database finds them.
+  const teamOf = async (
+    /** @type {string} */ code,
+    /** @type {string} */ en,
+    /** @type {string} */ ar,
+    /** @type {string} */ lead,
+  ) => {
+    const [t] = await sql(
+      `insert into core.team (department_id, code, name_en, name_ar, lead_person_id, created_by)
+       values ((select id from core.department where code = 'commercial'), $1, $2, $3, $4, $5)
+       on conflict (department_id, code) do update set lead_person_id = excluded.lead_person_id returning id`,
+      [code, en, ar, u(lead).id, u('admin').id],
+    );
+    return t.id;
+  };
+  const headTeam = await teamOf('qa_head_desk', `Test Head Desk ${tag}`, 'مكتب رئيس الاختبار', 'head');
+  const managerTeam = await teamOf('qa_manager_desk', `Test Manager Desk ${tag}`, 'مكتب مدير الاختبار', 'manager');
+  for (const [team, keys] of /** @type {[string, string[]][]} */ ([
+    [headTeam, ['head', 'member2']],
+    [managerTeam, ['manager', 'member']],
+  ]))
+    await sql('update core.person set team_id = $1 where id = any($2::uuid[])', [team, keys.map((k) => u(k).id)]);
+
   // The gallery only (QA_SEED_SWITCH_OFF=1): "Test Switched Off" is switched off through the admin's own door, so the
   // People list shows the state (gallery item 2). The sweep leaves it on — 01-sign-in switches it off itself.
   if (process.env.QA_SEED_SWITCH_OFF === '1')
@@ -429,6 +464,7 @@ async function main() {
     notes: { alpha: alphaNote.id, beta: betaNote.id },
     views: { member: memberView.id ?? memberView },
     settingReason,
+    teams: { head: headTeam, manager: managerTeam },
     extra,
     catalogue,
   };

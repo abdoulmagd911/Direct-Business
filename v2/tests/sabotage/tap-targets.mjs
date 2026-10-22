@@ -10,7 +10,8 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CommandPalette.tsx',
         find: "'flex h-11 cursor-default select-none",
-        replace: "'flex h-10 min-h-0 cursor-default select-none",
+        // since #292 the phone's one shared rule sets min-height, which only a class that says its own size beats
+        replace: "'flex h-10 min-h-10 cursor-default select-none",
       },
     ],
   },
@@ -34,7 +35,7 @@ export const sabotages = [
         file: 'src/modules/org/screens/MyProfile.tsx',
         find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-0"\n',
+          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-8"\n',
       },
     ],
   },
