@@ -259,5 +259,9 @@
       display: inline-flex;
       align-items: center;
     }
+    /* what a link holds may shrink and wrap or end in an ellipsis — a long title in a card never runs off the screen */
+    :where(a[href]:not([role])):not(p a, [data-inline-link], [data-inline-link] a) > :not(svg, img) {
+      min-width: 0;
+    }
   }
 }
