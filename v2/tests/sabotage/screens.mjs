@@ -1886,6 +1886,18 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'mentions-tab-shows-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-tabs-are-cut-from-one-read.test.ts'],
+    expect: 'show every kind under All, only mentions under Mentions',
+    edits: [
+      {
+        file: 'src/core/notify/useNotifications.ts',
+        find: "(tab === 'mentions' ? kind === 'mentioned' :",
+        replace: "(tab === 'mentions' ? true :",
+      },
+    ],
+  },
+  {
     name: 'restore-offered-to-everyone',
     breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
     expect: 'leaves the button off a row the person may not restore',
