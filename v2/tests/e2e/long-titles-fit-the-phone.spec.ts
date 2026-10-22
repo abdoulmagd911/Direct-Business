@@ -27,7 +27,12 @@ const problems = (page: Page, mark: string) =>
       const el = n.parentElement;
       if (!el || seen.has(el) || !(n.textContent ?? '').includes(m)) continue;
       seen.add(el);
-      const r = el.getBoundingClientRect();
+      // the words themselves, not their box: a link can fit the screen while its text runs out of it
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      // a box that ends its line in an ellipsis shows only its own width of the words
+      const clipped = getComputedStyle(el).textOverflow === 'ellipsis' && getComputedStyle(el).overflowX !== 'visible';
+      const r = clipped ? el.getBoundingClientRect() : range.getBoundingClientRect();
       if (r.width === 0) continue;
       const words = (n.textContent ?? '').slice(0, 24);
       if (r.left < -0.5 || r.right > vw + 0.5)
