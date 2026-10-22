@@ -10,7 +10,8 @@ export const sabotages = [
       {
         file: 'src/ui/shell/CommandPalette.tsx',
         find: "'flex h-11 cursor-default select-none",
-        replace: "'flex h-10 cursor-default select-none",
+        // since #292 the phone's one shared rule sets min-height, which only a class that says its own size beats
+        replace: "'flex h-10 min-h-10 cursor-default select-none",
       },
       {
         // since #292 the shared phone rule (globals.css) also holds an option at 44 px, so the sabotage takes both away
