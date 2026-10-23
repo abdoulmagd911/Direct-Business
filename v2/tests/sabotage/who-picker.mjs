@@ -39,4 +39,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'the-who-picker-cuts-a-long-name-with-an-ellipsis',
+    breaks: [E2E],
+    expect: 'the name is not cut with an ellipsis',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/PartnerPicker.tsx',
+        find: 'className="min-w-0 [overflow-wrap:anywhere]"',
+        replace: 'className="min-w-0 truncate"',
+      },
+    ],
+  },
+  {
+    name: 'the-who-picker-puts-the-code-beside-the-name',
+    breaks: [E2E],
+    expect: 'the code is on its own line under the name',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/PartnerPicker.tsx',
+        find: '<span className="flex min-w-0 flex-1 flex-col py-1">',
+        replace: '<span className="flex min-w-0 flex-1 flex-row py-1">',
+      },
+    ],
+  },
 ];
