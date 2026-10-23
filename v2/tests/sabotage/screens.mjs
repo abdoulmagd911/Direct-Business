@@ -1886,6 +1886,12 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'bell-stays-open-on-a-new-page',
+    breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
+    expect: 'closed by the page change',
+    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: '    if (bell) setBell(false);\n', replace: '' }],
+  },
+  {
     name: 'restore-offered-to-everyone',
     breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
     expect: 'leaves the button off a row the person may not restore',
