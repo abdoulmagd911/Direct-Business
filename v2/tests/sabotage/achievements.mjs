@@ -169,4 +169,65 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'record-trail-repeats-the-list',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'two parts: the list and this record',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: '{ label: `${a.number} · ${a.title}` }]}',
+        replace: "{ label: t('title'), href: '/kpis/achievements' }]}",
+      },
+    ],
+  },
+  {
+    name: 'record-title-cut-on-a-phone',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'a phone shows the whole title: no clamp, no ellipsis',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: 'titleClamp="sm:line-clamp-3"',
+        replace: 'titleClamp="line-clamp-2"',
+      },
+    ],
+  },
+  {
+    name: 'record-shows-evidence-twice',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'no separate Evidence figure',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "    { key: 'date', label: t('figures.date'),",
+        replace:
+          "    { key: 'refs', label: t('tabs.evidence'), value: formatNumber(a.refs.length, locale) },\n    { key: 'date', label: t('figures.date'),",
+      },
+    ],
+  },
+  {
+    name: 'month-x-clears-every-filter',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'the x clears the month and keeps Mine',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'onClick={() => go({ ...filter, month: undefined })}\n                className="absolute',
+        replace: 'onClick={() => go({})}\n                className="absolute',
+      },
+    ],
+  },
+  {
+    name: 'empty-list-offers-no-way-out',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'clear',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '            filtered ? (\n              <Button size="sm" variant="secondary"',
+        replace: '            false ? (\n              <Button size="sm" variant="secondary"',
+      },
+    ],
+  },
 ];

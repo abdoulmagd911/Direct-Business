@@ -143,7 +143,6 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
       : []),
     { key: 'count', label: t('figures.count'), value: formatNumber(a.count, locale) },
     { key: 'date', label: t('figures.date'), value: a.happened_on ? formatDate(a.happened_on, locale) : null },
-    { key: 'refs', label: t('figures.refs'), value: formatNumber(a.refs.length, locale) },
   ];
 
   const source =
@@ -162,10 +161,10 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   return (
     <>
       <RecordPage
-        crumbs={[
-          { label: tc('nav.kpis'), href: '/kpis' },
-          { label: t('title'), href: '/kpis/achievements' },
-        ]}
+        crumbs={[{ label: t('title'), href: '/kpis/achievements' }, { label: `${a.number} · ${a.title}` }]}
+        // a phone has the back arrow and the title, no trail; the title wraps whole there, three lines at most from 640 px
+        crumbsClass="max-lg:hidden"
+        titleClamp="sm:line-clamp-3"
         back={{ href: '/kpis/achievements', label: t('back') }}
         title={locale === 'ar' ? a.line_ar : a.line_en}
         subtitle={[
@@ -209,7 +208,10 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             </div>
           ) : null
         }
-        tabs={TABS.map((k) => ({ key: k, label: t(`tabs.${k}`), count: k === 'evidence' ? a.refs.length : undefined }))}
+        tabs={TABS.map((k) => ({
+          key: k,
+          label: k === 'evidence' ? `${t('tabs.evidence')} (${formatNumber(a.refs.length, locale)})` : t(`tabs.${k}`),
+        }))}
         tab={tab}
         tabHref={(k) => `/kpis/achievements/${a.id}?tab=${k}`}
         words={{ tabs: tc('record.tabs'), notMeasured: tc('common.notMeasured') }}
@@ -500,7 +502,6 @@ function Evidence({ data }: { data: AchievementRecordData }) {
   };
   return (
     <section className="flex flex-col gap-4" data-tab="evidence">
-      {a.refs.length === 0 && a.no_evidence ? <DataState kind="empty" message={t('evidenceNone')} /> : null}
       {a.refs.length ? (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border" data-refs>
           {a.refs.map((r) => (

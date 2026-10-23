@@ -337,6 +337,72 @@ test('in Arabic at 375 px: the Achievements list’s switches and month box say 
   });
 });
 
+// ---- V654, the Achievements record page and list in Arabic at 375 px: the words of the catalog, no trail on a phone
+
+type RecordWords = {
+  pages: {
+    achievements: {
+      noMatch: string;
+      tabs: { evidence: string };
+      actions: { addRef: string };
+      marks: { noEvidence: string };
+      filters: { clear: string; clearMonth: string };
+    };
+  };
+};
+
+test('in Arabic at 375 px: the Achievements record and list say Clear filters, Add evidence and No evidence in the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const w = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as RecordWords).pages
+      .achievements;
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/kpis/achievements');
+    await hydrated(page);
+    const [cat] = await sql<{ code: string }>(
+      `select c.code from perf.achievement_category c
+       where c.active and c.deleted_at is null and c.required_ref_system_id is null and not c.has_deal_value
+         and not c.sets_prospect order by c.code limit 1`,
+    );
+    const made = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'إنجاز تجريبي بعنوان طويل يمتد على عدة أسطر في الهاتف',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    await expect(page.getByText(w.marks.noEvidence, { exact: true }), 'No evidence once').toHaveCount(1);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.evidence);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText('(');
+    await page.getByRole('link', { name: new RegExp(w.tabs.evidence) }).click();
+    await hydrated(page);
+    await expect(page.getByRole('button', { name: w.actions.addRef })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+
+    await page.goto('/kpis/achievements?mine=1&month=2000-01');
+    await hydrated(page);
+    await expect(
+      page.locator('[data-achievement-filters]').getByRole('button', { name: w.filters.clear }),
+    ).toBeVisible();
+    await expect(page.locator('[data-clear-month]')).toHaveAttribute('aria-label', w.filters.clearMonth);
+    await expect(page.getByText(w.noMatch)).toBeVisible();
+    await page.locator('[data-clear-filters]').click();
+    await expect(page).toHaveURL(/\/kpis\/achievements$/);
+  });
+});
+
 // ---- The Architect's ruling V643: the 44 px rule holds in Arabic too — wide AND high, at 375 px, right to left
 
 test('every tappable thing is at least 44 px wide and high on a phone, on every page and in the dialogs and menus — Arabic', async ({
