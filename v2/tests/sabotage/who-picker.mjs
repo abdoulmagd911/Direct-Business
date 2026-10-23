@@ -34,9 +34,9 @@ export const sabotages = [
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
         find: 'min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-start hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus sm:min-h-10',
-        // no minimum height and tight lines: a row of a name and a code is then about 36 px
+        // a zero minimum height (a utility beats the phone rule's 44 px) and tight lines: a row of a name and a code is then about 36 px
         replace:
-          'w-full items-center gap-2.5 rounded-md px-2.5 text-start leading-none hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus',
+          'min-h-0 w-full items-center gap-2.5 rounded-md px-2.5 text-start leading-none hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus',
       },
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
