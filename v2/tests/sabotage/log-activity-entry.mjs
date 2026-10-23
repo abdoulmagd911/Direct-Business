@@ -1,5 +1,6 @@
 // Sabotages for Log activity in the + (V646).
 const UNIT = 'unit:tests/unit/shell/the-plus-offers-log-activity-between-task-and-achievement.test.ts';
+const PHONE = 'e2e:tests/e2e/log-activity-title-and-reason.spec.ts';
 const E2E = 'e2e:tests/e2e/log-activity-from-the-plus.spec.ts';
 
 export const sabotages = [
@@ -84,6 +85,31 @@ export const sabotages = [
         file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
         find: "own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')",
         replace: "t('partners.activity.outcome')",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-title-has-no-cap',
+    breaks: [PHONE],
+    expect: 'keeps to three lines',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "open ? 'break-words' : 'line-clamp-3 break-words'",
+        replace: "'break-words'",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-reason-is-left-in-the-form',
+    breaks: [PHONE],
+    expect: 'sits next to Save',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: '<p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-why>',
+        replace:
+          '<p className="w-full text-sm text-muted sm:w-auto sm:flex-1 absolute -bottom-96" role="status" data-activity-why>',
       },
     ],
   },

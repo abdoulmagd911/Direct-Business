@@ -1,6 +1,6 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
@@ -12,6 +12,45 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { nameOf, type ListEntry } from '../../types';
 import { today, useWords } from './words';
+
+/**
+ * The dialog's title line: the name wraps over at most three lines with a "More" tap (V653, ruling of 23 Oct — a dialog
+ * title is not a picker row), and "Change" stays at the end of the line, on a phone as on a PC.
+ */
+function TitleLine({ text, onChange }: { text: string; onChange?: () => void }) {
+  const t = useTranslations();
+  const box = useRef<HTMLSpanElement>(null);
+  const [more, setMore] = useState(false);
+  const [open, setOpen] = useState(false);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && !open) setMore(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+  return (
+    <span className="flex items-baseline gap-3">
+      <span className="min-w-0 flex-1">
+        <span ref={box} className={open ? 'break-words' : 'line-clamp-3 break-words'} data-activity-title>
+          {text}
+        </span>
+        {more || open ? (
+          <Button
+            variant="link"
+            className="ms-2 text-sm font-normal"
+            onClick={() => setOpen(!open)}
+            data-activity-title-more
+          >
+            {open ? t('partners.activity.titleLess') : t('partners.activity.titleMore')}
+          </Button>
+        ) : null}
+      </span>
+      {onChange ? (
+        <Button variant="link" className="shrink-0 text-sm font-normal" onClick={onChange} data-activity-change>
+          {t('partners.activity.change')}
+        </Button>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * Log activity (V150, V401, V406): call · meeting · demo · visit · note, the outcome from that type's own list (required
@@ -115,26 +154,25 @@ export function LogActivityDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="min-w-0 break-words">
-            {partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
-          </span>
-          {onChangeWho ? (
-            <Button variant="link" size="xs" className="text-sm font-normal" onClick={onChangeWho} data-activity-change>
-              {t('partners.activity.change')}
-            </Button>
-          ) : null}
-        </span>
+        <TitleLine
+          text={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+          onChange={onChangeWho}
+        />
       }
       closeLabel={t('common.close')}
       dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {!ok && why ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-why>
+              {why}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!ok} loading={busy} onClick={() => void save()} data-activity-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
@@ -190,11 +228,6 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.nextStep')}>
           {(p) => <Input {...p} value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />}
         </Field>
-        {!ok && why ? (
-          <p className="text-sm text-muted sm:col-span-2" role="status" data-activity-why>
-            {why}
-          </p>
-        ) : null}
       </div>
     </Dialog>
   );
@@ -247,17 +280,17 @@ export function AddNoteDialog({
       closeLabel={t('common.close')}
       dirty={!!f.body}
       footer={
-        <>
-          <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
           {!f.body.trim() ? (
-            <span className="me-auto text-sm text-muted" role="status" data-note-why>
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-note-why>
               {t('partners.note.need')}
-            </span>
+            </p>
           ) : null}
+          <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!f.body.trim()} loading={busy} onClick={() => void save()} data-note-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">

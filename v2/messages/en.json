@@ -2024,6 +2024,8 @@
       "logged": "{type} logged",
       "logFor": "Log activity for {name}",
       "change": "Change",
+      "titleMore": "More",
+      "titleLess": "Less",
       "loggedFor": "{type} logged for {name}",
       "type": "Type",
       "outcome": "Outcome",

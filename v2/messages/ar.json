@@ -1421,6 +1421,8 @@
       "logged": "تم تسجيل {type}",
       "logFor": "تسجيل نشاط لـ {name}",
       "change": "تغيير",
+      "titleMore": "المزيد",
+      "titleLess": "أقل",
       "loggedFor": "تم تسجيل {type} لـ {name}",
       "type": "النوع",
       "outcome": "النتيجة",
