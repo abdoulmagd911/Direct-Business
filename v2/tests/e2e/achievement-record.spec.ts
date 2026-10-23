@@ -67,25 +67,30 @@ for (const [label, width, height] of [
     await page.goto(`/kpis/achievements/${id}`);
     await hydrated(page);
 
-    // (1) the title: three lines at most on a PC, whole on a phone, nothing clipped, nothing sideways
-    const h1 = await page.locator('[data-record-title]').evaluate((el) => {
-      const line = parseFloat(getComputedStyle(el).lineHeight);
-      return {
-        lines: Math.round(el.getBoundingClientRect().height / line),
-        clamp: getComputedStyle(el).webkitLineClamp,
-        clipped: el.scrollHeight > el.clientHeight + 1,
-        wide: el.scrollWidth - el.clientWidth,
-        right: document.documentElement.clientWidth - el.getBoundingClientRect().right,
-      };
-    });
+    // (1) the title: three lines at most, then a "more" tap that opens the rest; nothing sideways
+    const measure = () =>
+      page.locator('[data-record-title]').evaluate((el) => {
+        const line = parseFloat(getComputedStyle(el).lineHeight);
+        return {
+          lines: Math.round(el.getBoundingClientRect().height / line),
+          clamp: getComputedStyle(el).webkitLineClamp,
+          wide: el.scrollWidth - el.clientWidth,
+          right: document.documentElement.clientWidth - el.getBoundingClientRect().right,
+        };
+      });
+    const h1 = await measure();
     expect(h1.wide, 'no line runs past the page sideways').toBeLessThanOrEqual(0);
     expect(h1.right, 'the title ends inside the screen').toBeGreaterThanOrEqual(0);
+    expect(h1.lines, 'three lines at most before the tap').toBeLessThanOrEqual(3);
+    const more = page.locator('[data-record-title-more]');
     if (phone) {
-      expect(h1.clamp, 'a phone shows the whole title: no clamp, no ellipsis').toBe('none');
-      expect(h1.clipped, 'no line is clipped').toBe(false);
-      expect(h1.lines, 'a long title wraps over more than one line').toBeGreaterThan(1);
-    } else {
-      expect(h1.lines, 'a PC shows three lines at most').toBeLessThanOrEqual(3);
+      expect(h1.clamp, 'the title is cut at three lines').toBe('3');
+      await expect(more, 'a cut title offers More').toHaveText('More');
+      await more.click();
+      expect((await measure()).lines, 'More opens the rest').toBeGreaterThan(3);
+      await expect(more).toHaveText('Show less');
+      await more.click();
+      expect((await measure()).lines, 'Show less closes it again').toBeLessThanOrEqual(3);
     }
 
     // (2) the trail: a PC says "Achievements / <number and title>" once, a phone has the arrow and no trail

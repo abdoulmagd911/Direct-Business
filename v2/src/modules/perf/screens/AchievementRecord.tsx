@@ -162,9 +162,9 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
     <>
       <RecordPage
         crumbs={[{ label: t('title'), href: '/kpis/achievements' }, { label: `${a.number} · ${a.title}` }]}
-        // a phone has the back arrow and the title, no trail; the title wraps whole there, three lines at most from 640 px
+        // a phone has the back arrow and the title, no trail; the title takes three lines, then a "more" tap
         crumbsClass="max-lg:hidden"
-        titleClamp="sm:line-clamp-3"
+        titleMore={{ more: t('titleMore'), less: t('titleLess') }}
         back={{ href: '/kpis/achievements', label: t('back') }}
         title={locale === 'ar' ? a.line_ar : a.line_en}
         subtitle={[

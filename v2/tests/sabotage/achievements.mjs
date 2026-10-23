@@ -184,12 +184,24 @@ export const sabotages = [
   {
     name: 'record-title-cut-on-a-phone',
     breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
-    expect: 'a phone shows the whole title: no clamp, no ellipsis',
+    expect: 'three lines at most before the tap',
     edits: [
       {
         file: 'src/modules/perf/screens/AchievementRecord.tsx',
-        find: 'titleClamp="sm:line-clamp-3"',
-        replace: 'titleClamp="line-clamp-2"',
+        find: "titleMore={{ more: t('titleMore'), less: t('titleLess') }}",
+        replace: 'titleClamp="line-clamp-none"',
+      },
+    ],
+  },
+  {
+    name: 'record-crumb-hides-its-number-in-arabic',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'the last crumb keeps its ACH number in view',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: '<span aria-current="page" dir="auto" className=',
+        replace: '<span aria-current="page" className=',
       },
     ],
   },

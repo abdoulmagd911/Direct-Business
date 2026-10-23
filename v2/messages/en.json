@@ -424,6 +424,8 @@
       "refRemoved": "Reference removed",
       "empty": "No achievements yet",
       "noMatch": "No achievements match these filters",
+      "titleMore": "More",
+      "titleLess": "Show less",
       "filters": {
         "category": "Category",
         "all": "All",

@@ -391,6 +391,31 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
       'no sideways scroll',
     ).toBe(true);
 
+    // a PC: the last crumb keeps its ACH number in view when the title is long and in Latin letters (QA-590)
+    const long = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'TEST A very long made-up achievement title that runs on and on and on for the trail',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(long.status, JSON.stringify(long.body)).toBe(200);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/kpis/achievements/${(long.body as { id: string }).id}`);
+    await hydrated(page);
+    const seen = await page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]').evaluate((span) => {
+      const node = span.firstChild as Text;
+      const r = document.createRange();
+      r.setStart(node, 0);
+      r.setEnd(node, 3);
+      const n = r.getBoundingClientRect();
+      const box = span.getBoundingClientRect();
+      return { text: node.data.slice(0, 3), inside: n.left >= box.left - 1 && n.right <= box.right + 1 };
+    });
+    expect(seen.text, 'the crumb starts with the ACH number').toBe('ACH');
+    expect(seen.inside, 'the last crumb keeps its ACH number in view').toBe(true);
+
+    await page.setViewportSize({ width: 375, height: 800 });
     await page.goto('/kpis/achievements?mine=1&month=2000-01');
     await hydrated(page);
     await expect(
