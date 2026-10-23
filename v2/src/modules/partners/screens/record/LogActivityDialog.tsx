@@ -2,7 +2,9 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
+import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
+import { lastActivityTypeKey, readLastActivityType, writeLastActivityType } from '@/core/prefs/last-activity-type';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
@@ -15,6 +17,8 @@ import { today, useWords } from './words';
  * Log activity (V150, V401, V406): call · meeting · demo · visit · note, the outcome from that type's own list (required
  * where the type has one), the day it happened (V400: today by default, any past day), the line, and an optional next
  * step with its day — "demo set" needs the demo's day. One request; the next step becomes a task in P5-1.
+ * The type opens on the one this person used last, Call the first time (22 Oct), so Save never waits on an empty type.
+ * From the + the title names the organisation and "Change" goes back to the question (partnerName, onChangeWho).
  */
 export function LogActivityDialog({
   open,
@@ -23,6 +27,8 @@ export function LogActivityDialog({
   types,
   outcomes,
   onDone,
+  partnerName,
+  onChangeWho,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -30,11 +36,21 @@ export function LogActivityDialog({
   types: ListEntry[];
   outcomes: ListEntry[];
   onDone: () => void;
+  /** The organisation by name: the title and the toast say where the activity lands. */
+  partnerName?: string;
+  /** Shows "Change" under the title; it takes the person back to "Who was it with?". */
+  onChangeWho?: () => void;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  const [f, setF] = useState({ type: '', outcome: '', on: today(), body: '', next: '', nextOn: '' });
+  const storeKey = lastActivityTypeKey(useMe().person.id);
+  const fresh = () => {
+    const last = readLastActivityType(storeKey);
+    const type = [last, 'call'].find((k) => k && types.some((x) => x.key === k)) ?? types[0]?.key ?? '';
+    return { type, outcome: '', on: today(), body: '', next: '', nextOn: '' };
+  };
+  const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
   const type = types.find((x) => x.key === f.type);
   const own = outcomes.filter((o) => o.activity_type_id === type?.id);
@@ -57,7 +73,11 @@ export function LogActivityDialog({
   const save = async () => {
     setBusy(true);
     await command(
-      words(t('partners.activity.logged', { type: nameOf(type, locale) })),
+      words(
+        partnerName
+          ? t('partners.activity.loggedFor', { type: nameOf(type, locale), name: partnerName })
+          : t('partners.activity.logged', { type: nameOf(type, locale) }),
+      ),
       () =>
         rpc('activity_log', {
           p_partner: partnerId,
@@ -70,8 +90,9 @@ export function LogActivityDialog({
         }) as Promise<{ request_id?: string | null } | null>,
       {
         after: () => {
+          writeLastActivityType(storeKey, f.type);
           onOpenChange(false);
-          setF({ type: '', outcome: '', on: today(), body: '', next: '', nextOn: '' });
+          setF({ ...fresh(), type: f.type });
           onDone();
         },
       },
@@ -82,9 +103,9 @@ export function LogActivityDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('partners.activity.log')}
+      title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
       closeLabel={t('common.close')}
-      dirty={!!f.type || !!f.body}
+      dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
@@ -95,6 +116,13 @@ export function LogActivityDialog({
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
+        {onChangeWho ? (
+          <div className="sm:col-span-2">
+            <Button variant="link" onClick={onChangeWho} data-activity-change>
+              {t('partners.activity.change')}
+            </Button>
+          </div>
+        ) : null}
         <Field label={t('partners.activity.type')}>
           {(p) => (
             <Select

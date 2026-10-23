@@ -16,7 +16,7 @@ for (const width of [375, 1440]) {
     context,
   }) => {
     const admin = await makePerson({ admin: true });
-    const name = `Whoorg ${tag()}`;
+    const name = `TEST Whoorg ${tag()}`;
     await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
     await signIn(page, admin.email, '/my-day');
     await hydrated(page);
@@ -49,12 +49,20 @@ for (const width of [375, 1440]) {
     // the form a record page has
     const form = page.locator('[data-activity-form]');
     await expect(form).toBeVisible();
-    await form.getByLabel('Type').click();
-    await page.getByRole('option', { name: 'Call' }).click();
+    // the title says where it lands; Change goes back to the question and keeps the choice
+    await expect(page.getByRole('dialog')).toContainText(`Log activity for ${name}`);
+    await page.locator('[data-activity-change]').click();
+    await expect(page.getByRole('dialog').first()).toContainText('Who was it with?');
+    await expect(next).toBeEnabled();
+    await next.click();
+    await expect(form).toBeVisible();
+    // the type opens on Call the first time, so it is never empty and only the outcome is still asked
+    await expect(form.getByLabel('Type')).toContainText('Call');
     await form.getByLabel('Outcome').click();
     await page.getByRole('option', { name: 'Answered' }).click();
     await page.locator('[data-activity-save]').click();
     await expect(form).toHaveCount(0);
+    await expect(page.getByText(`Call logged for ${name}`)).toBeVisible();
     const [row] = await sql<{ n: number }>(
       `select count(*)::int as n from core.note
         where entity_table = 'partner.partner' and entity_id = $1 and activity_type_id is not null`,
