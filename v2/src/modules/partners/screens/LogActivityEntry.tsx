@@ -1,5 +1,5 @@
 'use client';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { refetchAll } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
@@ -9,7 +9,7 @@ import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { LOG_ACTIVITY_EVENT } from '../log-activity-entry';
-import type { ListEntry } from '../types';
+import { tradeName, type ListEntry } from '../types';
 import { LogActivityDialog } from './record/LogActivityDialog';
 
 /**
@@ -19,6 +19,7 @@ import { LogActivityDialog } from './record/LogActivityDialog';
  */
 export function LogActivityEntry() {
   const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
   const [asking, setAsking] = useState(false);
   const [who, setWho] = useState<PartnerRef | null>(null);
   const [lists, setLists] = useState<{ types: ListEntry[]; outcomes: ListEntry[] } | null>(null);
@@ -83,6 +84,11 @@ export function LogActivityEntry() {
           types={lists.types}
           outcomes={lists.outcomes}
           onDone={() => refetchAll()}
+          partnerName={tradeName(who, locale)}
+          onChangeWho={() => {
+            setForming(false);
+            setAsking(true);
+          }}
         />
       ) : null}
     </>
