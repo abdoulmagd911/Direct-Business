@@ -75,3 +75,24 @@ describe('Log activity', () => {
     expect(typeBox()).toBe('WhatsApp');
   });
 });
+
+describe('Log activity (23 Oct)', () => {
+  it('keeps Save off and says what to write while What happened is empty', () => {
+    draw({});
+    expect(document.querySelector('[data-activity-save]')).toHaveProperty('disabled', true);
+    expect(document.querySelector('[data-activity-why]')?.textContent).toContain('Write what happened to save');
+  });
+
+  it('reads Outcome (optional) where the type has no outcomes, with None as the placeholder', () => {
+    draw({});
+    expect(document.body.textContent).toContain('Outcome (optional)');
+    expect(document.body.textContent).toContain('None');
+  });
+
+  it('puts Change on the title line, in the title itself', () => {
+    draw({ partnerName: 'TEST Agency Client 16Oct', onChangeWho: () => {} });
+    const title = document.querySelector('[role="dialog"] h2');
+    expect(title?.textContent).toContain('Log activity for TEST Agency Client 16Oct');
+    expect(title?.querySelector('[data-activity-change]'), 'Change sits inside the title row').not.toBeNull();
+  });
+});

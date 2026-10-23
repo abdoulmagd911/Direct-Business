@@ -57,7 +57,12 @@ export function LogActivityDialog({
   const outcome = own.find((o) => o.key === f.outcome);
   const demoSet = outcome?.meaning === 'demo_set';
   const ok =
-    !!f.type && (own.length === 0 || !!f.outcome) && !!f.on && (!f.next || !!f.nextOn) && (!demoSet || !!f.nextOn);
+    !!f.type &&
+    (own.length === 0 || !!f.outcome) &&
+    !!f.on &&
+    !!f.body.trim() &&
+    (!f.next || !!f.nextOn) &&
+    (!demoSet || !!f.nextOn);
   // What is still missing, in the words of the boxes themselves — one line under the form while Save is off
   const missing = [
     !f.type && t('partners.activity.need.type'),
@@ -65,11 +70,17 @@ export function LogActivityDialog({
     !f.on && t('partners.activity.need.on'),
     ((!!f.next && !f.nextOn) || (demoSet && !f.nextOn)) && t('partners.activity.need.nextOn'),
   ].filter((x): x is string => !!x);
-  const why = missing.length
-    ? t('partners.activity.need.line', {
-        list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
-      })
-    : '';
+  // Save says in one line what is still missing: the boxes to choose, then the line to write (22–23 Oct)
+  const why = [
+    missing.length
+      ? t('partners.activity.need.line', {
+          list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
+        })
+      : '',
+    f.body.trim() ? '' : t('partners.activity.need.body'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const save = async () => {
     setBusy(true);
     await command(
@@ -103,7 +114,18 @@ export function LogActivityDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+      title={
+        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="min-w-0 break-words">
+            {partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+          </span>
+          {onChangeWho ? (
+            <Button variant="link" size="xs" className="text-sm font-normal" onClick={onChangeWho} data-activity-change>
+              {t('partners.activity.change')}
+            </Button>
+          ) : null}
+        </span>
+      }
       closeLabel={t('common.close')}
       dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
       footer={
@@ -116,13 +138,6 @@ export function LogActivityDialog({
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
-        {onChangeWho ? (
-          <div className="sm:col-span-2">
-            <Button variant="link" onClick={onChangeWho} data-activity-change>
-              {t('partners.activity.change')}
-            </Button>
-          </div>
-        ) : null}
         <Field label={t('partners.activity.type')}>
           {(p) => (
             <Select
@@ -133,7 +148,7 @@ export function LogActivityDialog({
             />
           )}
         </Field>
-        <Field label={t('partners.activity.outcome')}>
+        <Field label={own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')}>
           {(p) => (
             <Select
               {...p}
@@ -234,6 +249,11 @@ export function AddNoteDialog({
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+          {!f.body.trim() ? (
+            <span className="me-auto text-sm text-muted" role="status" data-note-why>
+              {t('partners.note.need')}
+            </span>
+          ) : null}
           <Button variant="primary" disabled={!f.body.trim()} loading={busy} onClick={() => void save()} data-note-save>
             {t('common.save')}
           </Button>

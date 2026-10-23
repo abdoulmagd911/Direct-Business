@@ -2021,6 +2021,7 @@
       "loggedFor": "{type} logged for {name}",
       "type": "Type",
       "outcome": "Outcome",
+      "outcomeOptional": "Outcome (optional)",
       "happenedOn": "Happened on",
       "line": "What happened",
       "nextStep": "Next step",
@@ -2035,6 +2036,7 @@
       "none": "Nothing logged yet",
       "by": "by {name}",
       "need": {
+        "body": "Write what happened to save",
         "line": "Choose {list}",
         "type": "a type",
         "outcome": "an outcome",
@@ -2045,6 +2047,7 @@
     "note": {
       "add": "Add note",
       "added": "Note added",
+      "need": "Write the note to save",
       "kind": "Kind",
       "body": "Note",
       "kinds": {

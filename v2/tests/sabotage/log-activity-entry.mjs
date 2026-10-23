@@ -58,8 +58,32 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
-        find: "title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}",
-        replace: "title={t('partners.activity.log')}",
+        find: "{partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}",
+        replace: "{t('partners.activity.log')}",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-saves-without-a-line',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'keeps Save off and says what to write',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: '    !!f.body.trim() &&\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'log-activity-outcome-never-says-optional',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'reads Outcome (optional)',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')",
+        replace: "t('partners.activity.outcome')",
       },
     ],
   },
