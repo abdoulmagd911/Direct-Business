@@ -39,4 +39,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-activity-type-opens-empty',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'opens on Call the first time',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "return { type, outcome: '', on: today()",
+        replace: "return { type: '', outcome: '', on: today()",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-title-names-nobody',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'names the organisation in the title',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}",
+        replace: "title={t('partners.activity.log')}",
+      },
+    ],
+  },
 ];
