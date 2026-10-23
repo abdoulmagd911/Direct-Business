@@ -9,7 +9,7 @@ const j = (...parts: string[]) => parts.join('');
 describe('the ids check refuses a duplicate decision, an ID out of range, or a port outside the blocks', () => {
   it('refuses them', async () => {
     const root = fixture({
-      'docs/v2/DECISIONS.md': '**V1 — a** x\n\n**V100 — b** x\n\n**V100 — c** x\n\n**V0 — d** x\n\n**V700 — e** x\n',
+      'docs/v2/DECISIONS.md': '**V1 — a** x\n\n**V100 — b** x\n\n**V100 — c** x\n\n**V0 — d** x\n\n**V750 — e** x\n',
       'playwright.config.ts': j("const url = 'http://127.0.0.1:", "9700';\n"),
       'package.json': j('{ "scripts": { "dev": "next dev --port ', '8080" } }\n'),
     });
@@ -26,7 +26,7 @@ describe('the ids check refuses a duplicate decision, an ID out of range, or a p
   it("allows unique IDs in range (builder C, the owner, the oversight's rulings and the architect too) and ports in the blocks or the Supabase stack", async () => {
     const root = fixture({
       'docs/v2/DECISIONS.md':
-        '**V1 — a** x\n\n**V100 — b** x\n\n**V200 — c** x\n\n**V300 — d** x\n\n**V400 — e** x\n\n**V599 — f** x\n\n**V699 — g** x\n',
+        '**V1 — a** x\n\n**V100 — b** x\n\n**V200 — c** x\n\n**V300 — d** x\n\n**V400 — e** x\n\n**V599 — f** x\n\n**V699 — g** x\n\n**V749 — h** x\n',
       'playwright.config.ts':
         "const a = 'http://127.0.0.1:9300'; const b = 'http://localhost:54321'; const c = 'http://localhost:9650';\n",
       'package.json': '{ "scripts": { "dev": "next dev --port 9400" } }\n',

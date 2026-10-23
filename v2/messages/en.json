@@ -159,6 +159,7 @@
   },
   "create": {
     "task": "Task",
+    "activity": "Log activity",
     "client": "Client",
     "supplier": "Supplier",
     "invoice": "Invoice",
@@ -2016,8 +2017,14 @@
       "related": "Related"
     },
     "activity": {
+      "who": "Who was it with?",
+      "whoOrg": "A client, lead or supplier",
+      "whoNext": "Next",
       "log": "Log activity",
       "logged": "{type} logged",
+      "logFor": "Log activity for {name}",
+      "change": "Change",
+      "loggedFor": "{type} logged for {name}",
       "type": "Type",
       "outcome": "Outcome",
       "happenedOn": "Happened on",
@@ -2180,6 +2187,7 @@
   },
   "createNew": {
     "task": "New task",
+    "activity": "Log activity",
     "client": "New client",
     "supplier": "New supplier",
     "invoice": "New invoice",

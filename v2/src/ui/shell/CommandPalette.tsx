@@ -236,7 +236,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       <Command.Item
                         key={a.key}
                         value={`${t('top.create')} ${t(`create.${a.key}`)}`}
-                        onSelect={() => (a.sheet ? (close(false), openQuickCapture()) : go(a.route))}
+                        onSelect={() =>
+                          a.dialog
+                            ? (close(false), a.dialog())
+                            : a.sheet
+                              ? (close(false), openQuickCapture())
+                              : go(a.route)
+                        }
                         className={itemClass}
                       >
                         <Icon className="size-4 text-muted" aria-hidden="true" />
