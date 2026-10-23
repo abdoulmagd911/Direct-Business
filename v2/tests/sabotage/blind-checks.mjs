@@ -109,11 +109,11 @@ export const sabotages = [
     edits: [{ file: 'scripts/checks/v2-ids.mjs', find: 'if (seen.has(id))', replace: 'if (false)' }],
   },
   {
-    // #130: V500–V599 and V600–V699 are in range; a check still stopping at V499 refuses them.
+    // #130: V500–V599 and V600–V749 are in range; a check still stopping at V499 refuses them.
     name: 'v2-ids-range-to-499',
     breaks: [unit('the-ids-check-refuses-a-duplicate-decision-or-a-foreign-port')],
     expect: '> allows unique IDs in range',
-    edits: [{ file: 'scripts/checks/v2-ids.mjs', find: 'id <= 699', replace: 'id <= 499' }],
+    edits: [{ file: 'scripts/checks/v2-ids.mjs', find: 'id <= 749', replace: 'id <= 499' }],
   },
   {
     name: 'blind-allow-comment',

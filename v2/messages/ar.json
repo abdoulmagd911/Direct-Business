@@ -118,6 +118,7 @@
   },
   "create": {
     "task": "مهمة",
+    "activity": "تسجيل نشاط",
     "client": "عميل",
     "supplier": "مورد",
     "invoice": "فاتورة",
@@ -173,7 +174,13 @@
         "past": "العمل السابق",
         "needsOwner": "بلا مالك",
         "clear": "مسح",
-        "allCategories": "كل الفئات"
+        "allCategories": "كل الفئات",
+        "anyMonth": "أي شهر",
+        "meaning": {
+          "backfilled": "أُضيف لاحقًا من سجلات سابقة ولم يُسجَّل وقت حدوثه.",
+          "past": "من قبل تشغيل التطبيق: كل ما أُضيف لاحقًا وكل ما يسبق ذلك التاريخ.",
+          "needsOwner": "لم يُسمَّ له صاحب بعد."
+        }
       },
       "cols": {
         "achievement": "الإنجاز",
@@ -997,6 +1004,17 @@
     }
   },
   "activity": {
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "blocked": {
+        "has_owner": "له مالك بالفعل",
+        "needs_capability": "يستعيده من يملك صلاحية إدارته فقط",
+        "not_allowed": "لا تملك صلاحية استعادته",
+        "other": "لا يمكن استعادته"
+      },
+      "none": "لا شيء محذوف مؤخرًا"
+    },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
@@ -1396,8 +1414,14 @@
       "related": "ذات صلة"
     },
     "activity": {
+      "who": "مع من كان ذلك؟",
+      "whoOrg": "عميل أو عميل محتمل أو مورد",
+      "whoNext": "التالي",
       "log": "تسجيل نشاط",
       "logged": "تم تسجيل {type}",
+      "logFor": "تسجيل نشاط لـ {name}",
+      "change": "تغيير",
+      "loggedFor": "تم تسجيل {type} لـ {name}",
       "type": "النوع",
       "outcome": "النتيجة",
       "happenedOn": "تاريخ الحدوث",
@@ -1557,6 +1581,7 @@
   },
   "createNew": {
     "task": "مهمة جديدة",
+    "activity": "تسجيل نشاط",
     "client": "عميل جديد",
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",

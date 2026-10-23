@@ -281,6 +281,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await expect(page.getByRole('menuitem')).toHaveText([
     'Capture',
     'Task',
+    'Log activity',
     'Client',
     'Supplier',
     'Invoice',

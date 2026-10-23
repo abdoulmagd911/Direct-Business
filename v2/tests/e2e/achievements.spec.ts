@@ -180,7 +180,7 @@ test('logging the same award again for an organisation offers the one-tap repeat
     await page.locator('[data-partner-search]').fill(`Made Up Repeat ${tag}`);
     await page
       .locator('[data-partner-hits]')
-      .getByRole('button', { name: `Made Up Repeat ${tag}` })
+      .getByRole('option', { name: `Made Up Repeat ${tag}` })
       .click();
     await page.getByRole('button', { name: 'Save' }).click();
   };

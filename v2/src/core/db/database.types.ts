@@ -69,6 +69,7 @@ export type Database = {
       action_item_done: { Args: { p_done: boolean; p_id: string; p_on?: string }; Returns: Json };
       action_item_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       action_items_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      activities_inside: { Args: { p_limit?: number; p_offset?: number }; Returns: Json };
       activity: {
         Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
         Returns: Json;
@@ -77,11 +78,14 @@ export type Database = {
         Args: {
           p_body?: string;
           p_happened_on?: string;
+          p_internal?: string;
           p_mentions?: string[];
           p_next_step?: string;
           p_next_step_on?: string;
           p_outcome?: string;
           p_partner: string;
+          p_share_team?: boolean;
+          p_ticket_ref?: string;
           p_type: string;
         };
         Returns: Json;
