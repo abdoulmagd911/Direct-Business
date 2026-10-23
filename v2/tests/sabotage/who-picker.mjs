@@ -34,9 +34,14 @@ export const sabotages = [
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
         find: 'min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-start hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus sm:min-h-10',
-        // no minimum height and tight lines: a row of a name and a code is then about 38 px
+        // no minimum height and tight lines: a row of a name and a code is then about 36 px
         replace:
           'w-full items-center gap-2.5 rounded-md px-2.5 text-start leading-none hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus',
+      },
+      {
+        file: 'src/modules/my-day/screens/PartnerPicker.tsx',
+        find: '<span className="flex min-w-0 flex-1 flex-col py-1">',
+        replace: '<span className="flex min-w-0 flex-1 flex-col py-0">',
       },
     ],
   },
