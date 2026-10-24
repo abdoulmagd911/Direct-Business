@@ -71,8 +71,8 @@ test('a note captured in one keystroke becomes a logged call; both chips lead to
   await expect(page.locator('[data-turn-kind="task"]'), 'a task is offered now that its door is live').toHaveCount(1);
   await expect(
     page.locator('[data-turn-kind="action_item"]'),
-    'an action item waits for its own dialog, left out, not greyed',
-  ).toHaveCount(0);
+    'an item on a task’s checklist is offered now that its dialog is in (V647)',
+  ).toHaveCount(1);
   await page.locator('[data-turn-kind="activity"]').click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('[data-partner-search]').fill(org);

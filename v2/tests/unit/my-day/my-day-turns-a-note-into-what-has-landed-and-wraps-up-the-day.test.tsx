@@ -101,11 +101,11 @@ describe('Turn into', () => {
     expect(turnLive('action_item', new Set(['tasks.turn_into_task']))).toBe(false);
     expect(turnLive('achievement', new Set(['kpis.turn_into']))).toBe(true);
   });
-  it('the achievement and task Turn into are switched on: their dialogs and doors are in (V381, QA-517, V226)', () => {
+  it('the achievement and task Turn into are switched on: their dialogs and doors are in (V381, QA-517, V226) and so is the item on a task’s checklist (V647)', () => {
     expect(TURN_READY.has('kpis.turn_into'), 'the achievement Turn into is switched on').toBe(true);
     expect(TURN_READY.has('tasks.turn_into_task'), 'the task Turn into is switched on').toBe(true);
-    expect(TURN_READY.has('tasks.turn_into'), 'the action item waits for its dialog').toBe(false);
-    expect(liveKinds(new Set(TURN_READY))).toEqual(['activity', 'reminder', 'task', 'achievement']);
+    expect(TURN_READY.has('tasks.turn_into'), 'the checklist item Turn into is switched on').toBe(true);
+    expect(liveKinds(new Set(TURN_READY))).toEqual(['activity', 'reminder', 'task', 'action_item', 'achievement']);
   });
   it('a note turned into a task leads to the task by its number', () => {
     const link = { entity: 'task', id: 'i', made_at: '', made_by: '', number: 'T-12', title: 'Call back' } as never;

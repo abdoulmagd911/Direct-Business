@@ -1,0 +1,29 @@
+// V647: Turn into offers an item on a task's checklist. Each sabotage plants a way it can break; the spec must go red.
+const E2E = 'e2e:tests/e2e/checklist-item-from-a-note.spec.ts';
+export const sabotages = [
+  {
+    name: 'turn-into-forgets-the-checklist-item',
+    breaks: [E2E],
+    expect: 'the checklist item dialog opens',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "new Set(['kpis.turn_into', 'tasks.turn_into_task', 'tasks.turn_into'])",
+        replace: "new Set(['kpis.turn_into', 'tasks.turn_into_task'])",
+      },
+    ],
+  },
+  {
+    name: 'the-task-picker-offers-tasks-out-of-reach',
+    breaks: [E2E],
+    expect: 'a task out of reach is not offered',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TaskPicker.tsx',
+        find: 'hits: (a as { tasks?: TaskRef[] } | null)?.tasks ?? [] }',
+        replace:
+          "hits: [...((a as { tasks?: TaskRef[] } | null)?.tasks ?? []), { id: '00000000-0000-0000-0000-000000000000', number: term, title: term, closed: false }] }",
+      },
+    ],
+  },
+];
