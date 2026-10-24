@@ -120,7 +120,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
-        find: 'className="text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+        find: 'className="justify-start px-0 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
         replace: 'className="ms-2 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
       },
     ],

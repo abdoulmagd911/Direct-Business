@@ -33,10 +33,10 @@ function TitleLine({ text, onChange }: { text: string; onChange?: () => void }) 
           {text}
         </span>
         {more || open ? (
-          <span className="block">
+          <span className="flex justify-start">
             <Button
               variant="link"
-              className="text-sm font-normal"
+              className="justify-start px-0 text-sm font-normal"
               onClick={() => setOpen(!open)}
               data-activity-title-more
             >

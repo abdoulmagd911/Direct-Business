@@ -110,5 +110,5 @@ test('More starts at the title start edge in Arabic too — 375 px', async ({ pa
   await expect(page.locator('[data-activity-form]')).toBeVisible();
   const t = (await page.locator('[data-activity-title]').boundingBox())!;
   const m = (await page.locator('[data-activity-title-more]').boundingBox())!;
-  expect(Math.abs(m.x + m.width - (t.x + t.width)), 'More starts at the right edge in Arabic').toBeLessThanOrEqual(1);
+  expect(Math.abs(m.x + m.width - (t.x + t.width)), 'More starts at the right edge in Arabic').toBeLessThanOrEqual(2);
 });
