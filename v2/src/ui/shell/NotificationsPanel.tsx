@@ -47,6 +47,7 @@ export function NotificationsPanel({
   tab,
   onTabChange,
   items,
+  tabUnread,
   failed,
   reload,
   markRead,
@@ -57,6 +58,8 @@ export function NotificationsPanel({
   tab: NotificationTab;
   onTabChange: (t: NotificationTab) => void;
   items: Notification[] | null;
+  /** Unread per tab, from the rows the list shows (null until read): each tab says its own number. */
+  tabUnread: (k: NotificationTab) => number | null;
   failed: boolean;
   reload: () => Promise<void>;
   markRead: (ids?: string[]) => Promise<void>;
@@ -149,7 +152,11 @@ export function NotificationsPanel({
                 label={t('notifications.title')}
                 value={tab}
                 onValueChange={(v) => onTabChange(v as NotificationTab)}
-                tabs={NOTIFICATION_TABS.map((k) => ({ value: k, label: t(`notifications.tabs.${k}`) }))}
+                tabs={NOTIFICATION_TABS.map((k) => ({
+                  value: k,
+                  label: t(`notifications.tabs.${k}`),
+                  count: tabUnread(k) || undefined,
+                }))}
               />
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">

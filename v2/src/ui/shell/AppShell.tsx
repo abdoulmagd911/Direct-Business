@@ -59,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         tab={tab}
         onTabChange={setTab}
         items={notifications.items}
+        tabUnread={notifications.tabUnread}
         failed={notifications.failed}
         reload={notifications.reload}
         markRead={notifications.markRead}
