@@ -127,4 +127,119 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'list-row-centres-its-title',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: "starts at the card's padding, not centred",
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'flex min-w-0 flex-col items-stretch gap-1 px-4 py-3',
+        replace: 'flex min-w-0 flex-col gap-1 px-4 py-3',
+      },
+    ],
+  },
+  {
+    name: 'month-box-is-only-dashes',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'an empty month box says Any month, not only dashes',
+    edits: [{ file: 'src/modules/perf/screens/AchievementList.tsx', find: "{t('filters.anyMonth')}", replace: "{''}" }],
+  },
+  {
+    name: 'list-switches-explain-nothing',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'says what it means',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{t(`filters.meaning.${k}`)}',
+        replace: "{''}",
+      },
+    ],
+  },
+  {
+    name: 'list-title-is-cut-to-one-line',
+    breaks: ['e2e:tests/e2e/achievements-phone.spec.ts'],
+    expect: 'wraps over more than one line',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'className="line-clamp-3 break-words font-medium text-text"',
+        replace: 'className="block truncate font-medium text-text"',
+      },
+    ],
+  },
+  {
+    name: 'record-trail-repeats-the-list',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'two parts: the list and this record',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: '{ label: `${a.number} · ${a.title}` }]}',
+        replace: "{ label: t('title'), href: '/kpis/achievements' }]}",
+      },
+    ],
+  },
+  {
+    name: 'record-title-cut-on-a-phone',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'three lines at most before the tap',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "titleMore={{ more: t('titleMore'), less: t('titleLess') }}",
+        replace: 'titleClamp="line-clamp-none"',
+      },
+    ],
+  },
+  {
+    name: 'record-crumb-hides-its-number-in-arabic',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'the last crumb keeps its ACH number in view',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: '<span aria-current="page" dir="auto" className=',
+        replace: '<span aria-current="page" className=',
+      },
+    ],
+  },
+  {
+    name: 'record-shows-evidence-twice',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'no separate Evidence figure',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "    { key: 'date', label: t('figures.date'),",
+        replace:
+          "    { key: 'refs', label: t('tabs.evidence'), value: formatNumber(a.refs.length, locale) },\n    { key: 'date', label: t('figures.date'),",
+      },
+    ],
+  },
+  {
+    name: 'month-x-clears-every-filter',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'the x clears the month and keeps Mine',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'onClick={() => go({ ...filter, month: undefined })}\n                className="absolute',
+        replace: 'onClick={() => go({})}\n                className="absolute',
+      },
+    ],
+  },
+  {
+    name: 'empty-list-offers-no-way-out',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'clear',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '            filtered ? (\n              <Button size="sm" variant="secondary"',
+        replace: '            false ? (\n              <Button size="sm" variant="secondary"',
+      },
+    ],
+  },
 ];

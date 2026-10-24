@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '../cn';
+import { ClampedTitle } from './ClampedTitle';
 import { Tabs, type TabDef } from '../Tabs';
 import { PageFrame } from '../shell/AppShell';
 import { KeyFigures, type KeyFigure } from './KeyFigures';
@@ -18,6 +19,9 @@ export type RecordTab = { key: string; label: ReactNode; count?: number };
  */
 export function RecordPage({
   crumbs,
+  crumbsClass,
+  titleClamp = 'line-clamp-2',
+  titleMore,
   back,
   avatar,
   title,
@@ -32,7 +36,14 @@ export function RecordPage({
   children,
   words,
 }: {
-  crumbs?: { label: ReactNode; href: string }[];
+  /** The trail; the last entry may have no `href`: the record itself, said once and not a link. */
+  crumbs?: { label: ReactNode; href?: string }[];
+  /** Extra classes for the trail (a phone shows the back arrow and no trail: `max-lg:hidden`). */
+  crumbsClass?: string;
+  /** How many lines the name may take before it is cut. */
+  titleClamp?: string;
+  /** Three lines and a "more" tap that opens the rest, on every width (V653); replaces `titleClamp`. */
+  titleMore?: { more: string; less: string };
   /** The phone's back arrow: where the record was opened from. */
   back: { href: string; label: string };
   avatar?: ReactNode;
@@ -64,13 +75,19 @@ export function RecordPage({
             <ArrowLeft className="size-4 flip-rtl" aria-hidden="true" />
           </Link>
           {crumbs?.length ? (
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2">
+            <nav aria-label="Breadcrumb" className={cn('flex min-w-0 items-center gap-2', crumbsClass)}>
               {crumbs.map((c, i) => (
-                <span key={i} className="flex items-center gap-2">
+                <span key={i} className="flex min-w-0 items-center gap-2">
                   {i > 0 ? <span aria-hidden="true">/</span> : null}
-                  <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11">
-                    {c.label}
-                  </Link>
+                  {c.href ? (
+                    <Link href={c.href} className="inline-flex min-h-6 items-center hover:underline max-sm:min-h-11">
+                      {c.label}
+                    </Link>
+                  ) : (
+                    <span aria-current="page" dir="auto" className="max-w-[40ch] truncate">
+                      {c.label}
+                    </span>
+                  )}
                 </span>
               ))}
             </nav>
@@ -80,9 +97,15 @@ export function RecordPage({
           <div className="flex min-w-0 items-center gap-4">
             {avatar ? <div className="shrink-0">{avatar}</div> : null}
             <div className="flex min-w-0 flex-col gap-1">
-              <h1 className="line-clamp-2 break-words text-3xl md:text-[27px]" data-record-title>
-                {title}
-              </h1>
+              {titleMore ? (
+                <ClampedTitle words={titleMore} className="break-words text-3xl md:text-[27px]">
+                  {title}
+                </ClampedTitle>
+              ) : (
+                <h1 className={cn(titleClamp, 'break-words text-3xl md:text-[27px]')} data-record-title>
+                  {title}
+                </h1>
+              )}
               {subtitle ? <p className="text-base text-muted">{subtitle}</p> : null}
               {chips ? <div className="flex flex-wrap items-center gap-1.5 pt-1">{chips}</div> : null}
             </div>

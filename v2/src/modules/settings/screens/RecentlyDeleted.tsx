@@ -20,6 +20,15 @@ export type DeletedRow = {
   reason: string | null;
   /** QA-576: false when this person may not restore it (core.may_restore); the button is then not drawn. */
   can_restore?: boolean;
+  /** QA-585: why it cannot be restored, the refusal's full key (restore.blocked_by_duplicate …); the row says it in one line. */
+  restore_blocked?: string | null;
+};
+
+/** The refusal keys api.recently_deleted sends, as the catalog's short names under activity.deleted.blocked. */
+const BLOCKED: Record<string, string> = {
+  'restore.blocked_by_duplicate': 'has_owner',
+  'access.needs_capability': 'needs_capability',
+  'restore.not_allowed': 'not_allowed',
 };
 
 /**
@@ -79,7 +88,11 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
                       .join(' · ')}
                   </span>
                 </span>
-                {d.can_restore === false ? null : (
+                {d.can_restore === false ? (
+                  <span className="text-xs text-muted" data-deleted-blocked>
+                    {t(`activity.deleted.blocked.${(d.restore_blocked && BLOCKED[d.restore_blocked]) || 'other'}`)}
+                  </span>
+                ) : (
                   <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
                     {t('activity.deleted.restore')}
                   </Button>

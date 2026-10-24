@@ -1139,8 +1139,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="line-clamp-2 break-words text-3xl',
-        replace: 'className="truncate text-3xl',
+        find: "className={cn(titleClamp, 'break-words text-3xl",
+        replace: "className={cn('truncate', 'break-words text-3xl",
       },
     ],
   },
@@ -1898,14 +1898,32 @@ export const sabotages = [
     ],
   },
   {
+    name: 'bell-stays-open-on-a-new-page',
+    breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
+    expect: 'closed by the page change',
+    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: '    if (bell) setBell(false);\n', replace: '' }],
+  },
+  {
     name: 'restore-offered-to-everyone',
     breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
     expect: 'leaves the button off a row the person may not restore',
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: '{d.can_restore === false ? null : (',
-        replace: '{false ? null : (',
+        find: '{d.can_restore === false ? (',
+        replace: '{false ? (',
+      },
+    ],
+  },
+  {
+    name: 'restore-refusal-says-nothing',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'says why in one line where it is refused',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: "'restore.blocked_by_duplicate': 'has_owner',",
+        replace: '',
       },
     ],
   },

@@ -24,8 +24,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: '<button type="button" onClick={() => openQuickCapture()} data-create-item={a.key}>',
-        replace: '<button type="button" onClick={() => undefined} data-create-item={a.key}>',
+        find: 'onClick={() => (a.dialog ? a.dialog() : openQuickCapture())}',
+        replace: 'onClick={() => (a.dialog ? a.dialog() : undefined)}',
       },
     ],
   },
