@@ -9,7 +9,8 @@ import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { LOG_ACTIVITY_EVENT } from '../log-activity-entry';
-import { tradeName, type ListEntry } from '../types';
+import { Select } from '@/ui/Select';
+import { nameOf, tradeName, type ListEntry } from '../types';
 import { LogActivityDialog } from './record/LogActivityDialog';
 
 /**
@@ -24,10 +25,16 @@ export function LogActivityEntry() {
   const [who, setWho] = useState<PartnerRef | null>(null);
   const [lists, setLists] = useState<{ types: ListEntry[]; outcomes: ListEntry[] } | null>(null);
   const [forming, setForming] = useState(false);
+  // V645: with an organisation, or with someone inside Direct (a team or a system from the Settings list)
+  const [mode, setMode] = useState<'org' | 'inside'>('org');
+  const [inside, setInside] = useState('');
+  const [insideList, setInsideList] = useState<ListEntry[] | null>(null);
 
   useEffect(() => {
     const show = () => {
       setWho(null);
+      setMode('org');
+      setInside('');
       setForming(false);
       setAsking(true);
     };
@@ -35,9 +42,20 @@ export function LogActivityEntry() {
     return () => window.removeEventListener(LOG_ACTIVITY_EVENT, show);
   }, []);
 
+  const ready = mode === 'org' ? !!who : !!inside;
+
+  // the Settings list of teams and systems inside Direct, read the first time that answer is chosen
+  const chooseMode = (m: 'org' | 'inside') => {
+    setMode(m);
+    if (m === 'inside' && !insideList)
+      void rpc('list', { p_list: 'internal_counterpart' })
+        .then((rows) => setInsideList(rows as unknown as ListEntry[]))
+        .catch(() => setInsideList([]));
+  };
+
   // the form's two lists, read once the first time it is asked for
   const next = async () => {
-    if (!who) return;
+    if (mode === 'org' ? !who : !inside) return;
     if (!lists) {
       try {
         const [types, outcomes] = await Promise.all([
@@ -62,29 +80,70 @@ export function LogActivityEntry() {
         closeLabel={t('common.close')}
         size="sm"
         footer={
-          <>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            {ready ? null : (
+              <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-who-why>
+                {mode === 'org' ? t('partners.activity.needWho') : t('partners.activity.needInside')}
+              </p>
+            )}
             <Button onClick={() => setAsking(false)}>{t('common.cancel')}</Button>
-            <Button variant="primary" disabled={!who} onClick={() => void next()} data-activity-who-next>
+            <Button variant="primary" disabled={!ready} onClick={() => void next()} data-activity-who-next>
               {t('partners.activity.whoNext')}
             </Button>
-          </>
+          </div>
         }
       >
-        <div data-activity-who>
-          <Field label={t('partners.activity.whoOrg')}>
-            {(p) => <PartnerPicker id={p.id} value={who} onChange={setWho} />}
+        <div className="flex flex-col gap-4" data-activity-who>
+          <Field label={t('partners.activity.whoKind')}>
+            {(p) => (
+              <Select
+                {...p}
+                value={mode}
+                onValueChange={(v) => chooseMode(v as 'org' | 'inside')}
+                options={[
+                  { value: 'org', label: t('partners.activity.whoOrg') },
+                  { value: 'inside', label: t('partners.activity.whoInside') },
+                ]}
+              />
+            )}
           </Field>
+          {mode === 'org' ? (
+            <Field label={t('partners.activity.whoOrg')}>
+              {(p) => <PartnerPicker id={p.id} value={who} onChange={setWho} />}
+            </Field>
+          ) : (
+            <Field label={t('partners.activity.insideField')}>
+              {(p) => (
+                <Select
+                  {...p}
+                  value={inside}
+                  onValueChange={setInside}
+                  placeholder={t('partners.activity.insideNone')}
+                  options={(insideList ?? []).map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
+                  data-activity-inside
+                />
+              )}
+            </Field>
+          )}
         </div>
       </Dialog>
-      {who && lists ? (
+      {lists && (mode === 'org' ? who : inside) ? (
         <LogActivityDialog
           open={forming}
           onOpenChange={setForming}
-          partnerId={who.id}
+          partnerId={mode === 'org' ? (who?.id ?? null) : null}
+          internalKey={mode === 'inside' ? inside : undefined}
           types={lists.types}
           outcomes={lists.outcomes}
           onDone={() => refetchAll()}
-          partnerName={tradeName(who, locale)}
+          partnerName={
+            mode === 'org' && who
+              ? tradeName(who, locale)
+              : nameOf(
+                  (insideList ?? []).find((x) => x.key === inside),
+                  locale,
+                )
+          }
           onChangeWho={() => {
             setForming(false);
             setAsking(true);
