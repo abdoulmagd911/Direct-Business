@@ -1139,8 +1139,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="line-clamp-2 break-words text-3xl',
-        replace: 'className="truncate text-3xl',
+        find: "className={cn(titleClamp, 'break-words text-3xl",
+        replace: "className={cn('truncate', 'break-words text-3xl",
       },
     ],
   },
