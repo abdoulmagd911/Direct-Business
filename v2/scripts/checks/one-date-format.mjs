@@ -12,7 +12,7 @@ const CHECK = 'one-date-format';
 const HOME = 'src/core/i18n/format.ts';
 const INPUT_HOME = 'src/ui/Input.tsx';
 const LOCALE_METHODS = new Set(['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString']);
-const DATE_INPUTS = new Set(['date', 'datetime-local']);
+const DATE_INPUTS = new Set(['date', 'datetime-local', 'time']);
 
 /** @param {ts.Expression | undefined} e */
 const isEnCa = (e) => !!e && ts.isStringLiteralLike(e) && e.text === 'en-CA';
@@ -72,7 +72,12 @@ export default defineCheck({
               ts.isStringLiteral(a.initializer) &&
               DATE_INPUTS.has(a.initializer.text)
             )
-              add(a, 'a raw date input shows the browser format — use <Input type="date"> (src/ui/Input.tsx)');
+              add(
+                a,
+                a.initializer.text === 'time'
+                  ? 'a raw time input shows the browser clock (9:30 AM) — use <TimeInput> (src/ui/Input.tsx)'
+                  : 'a raw date input shows the browser format — use <Input type="date"> (src/ui/Input.tsx)',
+              );
           }
         }
       });

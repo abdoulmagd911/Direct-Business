@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command, type ConflictField } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
+import { formatStoredDate } from '@/core/i18n/format';
 import { bannedIn } from '@/core/words/banned';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
@@ -112,7 +113,7 @@ export function EditPartnerDialog({
             ) || '—'
           : v === null || v === undefined || v === ''
             ? '—'
-            : String(v);
+            : (formatStoredDate(v, locale) ?? String(v));
     const fields: ConflictField[] = (Object.keys(changes) as Key[]).map((k) => ({
       key: k,
       label: labels[k],

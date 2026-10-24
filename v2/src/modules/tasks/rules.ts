@@ -1,6 +1,7 @@
 // The rules the Tasks screens apply (P5-2, first PR; builder D, V270–V275). Pure functions, so each is unit-tested
 // and sabotaged (tests/unit/tasks, tests/sabotage/tasks.mjs). The database decides access and every write rule
 // (#140, V189–V196); these only shape what is asked and how it reads on screen.
+import { monthNumber } from '@/core/i18n/format';
 import { assignablePeople } from '@/modules/org/pickers';
 import type { Meaning, TaskRow, TaskStatus } from './types';
 
@@ -263,7 +264,16 @@ export function parseDueDay(typed: string): string | null {
   const s = typed.trim().replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660));
   const ymd = /^(\d{4})(\d{2})(\d{2})$/.exec(s) ?? /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(s);
   const dmy = ymd ? null : /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(s);
-  const parts = ymd ? [ymd[1], ymd[2], ymd[3]] : dmy ? [dmy[3], dmy[2], dmy[1]] : null;
+  // the day as the app writes it back ("20 Oct 2026", Arabic's own month word too)
+  const word = ymd || dmy ? null : /^(\d{1,2})\s+(\S+?)\.?,?\s+(\d{4})$/.exec(s);
+  const wordMonth = word ? monthNumber(word[2]!) : null;
+  const parts = ymd
+    ? [ymd[1], ymd[2], ymd[3]]
+    : dmy
+      ? [dmy[3], dmy[2], dmy[1]]
+      : word && wordMonth
+        ? [word[3], String(wordMonth), word[1]]
+        : null;
   if (!parts) return null;
   const [y, mo, d] = parts;
   const year = Number(y);

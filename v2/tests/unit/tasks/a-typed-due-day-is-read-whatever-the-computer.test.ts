@@ -16,6 +16,15 @@ describe('a due day typed into the task form is read the same on every computer 
     expect(parseDueDay('٢٠٢٦١٠٢٠')).toBe('2026-10-20');
   });
 
+  it('reads the day as the app writes it back, English or Arabic, so a day picked and shown reads the same typed', () => {
+    expect(parseDueDay('20 Oct 2026')).toBe('2026-10-20');
+    expect(parseDueDay('5 October 2026')).toBe('2026-10-05');
+    expect(parseDueDay('3 Sep 2026')).toBe('2026-09-03');
+    expect(parseDueDay('20 أكتوبر 2026')).toBe('2026-10-20');
+    expect(parseDueDay('30 Feb 2026')).toBeNull();
+    expect(parseDueDay('20 Smarch 2026')).toBeNull();
+  });
+
   it('a half-typed or impossible day is no day', () => {
     for (const bad of ['2026', '202610', '2026102', '20261320', '20260230', '20250229', '1020-02-02', 'tomorrow', ''])
       expect(parseDueDay(bad), bad).toBeNull();

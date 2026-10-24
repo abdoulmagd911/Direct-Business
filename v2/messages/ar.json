@@ -589,7 +589,7 @@
         "due_invalid": "اختر تاريخًا",
         "dueToday": "اليوم",
         "dueClear": "مسح",
-        "duePlaceholder": "yyyy-mm-dd",
+        "duePlaceholder": "20 أكتوبر 2026",
         "dueCalendar": "اختر من التقويم",
         "owner_required": "اختر مالكًا"
       },

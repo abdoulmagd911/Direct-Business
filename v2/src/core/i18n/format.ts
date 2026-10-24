@@ -52,6 +52,68 @@ export function formatDate(
     .join('');
 }
 
+/**
+ * A stored value that is a date (`2026-10-19`) or a moment (`2026-10-19T06:30:00+00:00`) written the one way — `19 Oct 2026`,
+ * `19 Oct 2026, 09:30` — for a screen that prints whatever a column held (a history line, a conflict, a custom field).
+ * Anything else is not a date: null, so the caller prints it as it was.
+ */
+export function formatStoredDate(v: unknown, locale: 'en' | 'ar' = 'en'): string | null {
+  if (typeof v !== 'string') return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(`${v}T12:00:00+03:00`, locale);
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v)) {
+    const moment = /(Z|[+-]\d{2}(:?\d{2})?)$/.test(v) ? v.replace(' ', 'T') : `${v.replace(' ', 'T')}+03:00`;
+    const out = formatDate(moment, locale, { dateStyle: 'medium', timeStyle: 'short' });
+    return out === '—' ? null : out;
+  }
+  return null;
+}
+
+/** A time of day, always 24-hour (`09:30`, `21:05`), written by the same formatter as a date; `HH:MM` in, text out. */
+export function formatClock(hhmm: string, locale: 'en' | 'ar' = 'en'): string {
+  return formatDate(`2026-01-15T${hhmm}:00+03:00`, locale, { timeStyle: 'short' });
+}
+
+/**
+ * Reads a typed time of day as `HH:MM`, 24-hour: "9", "9:30", "0930", "21.05", "٢١:٠٥", and "9:30 pm" for a person who
+ * types it that way. Anything else is no time (null).
+ */
+export function parseClock(typed: string): string | null {
+  const s = typed
+    .trim()
+    .toLowerCase()
+    .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660));
+  const m = /^(\d{1,2})(?:[:.]?(\d{2}))?\s*(am|pm)?$/.exec(s);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = Number(m[2] ?? 0);
+  if (m[3]) {
+    if (hour < 1 || hour > 12) return null;
+    hour = (hour % 12) + (m[3] === 'pm' ? 12 : 0);
+  }
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+let monthWords: Map<string, number> | undefined;
+/** The month (1–12) a typed word names — `Oct` or `October`, or Arabic's own word — read from the formatter's own names. */
+export function monthNumber(word: string): number | null {
+  if (!monthWords) {
+    monthWords = new Map();
+    for (const loc of ['en', 'ar'] as const)
+      for (let m = 1; m <= 12; m++) {
+        const name = formatDate(`2026-${String(m).padStart(2, '0')}-15T12:00:00+03:00`, loc, {
+          month: 'short',
+          day: undefined,
+          year: undefined,
+        });
+        const key = name.toLowerCase().replace(/\.$/, '');
+        monthWords.set(/^[a-z]/.test(key) ? key.slice(0, 3) : key, m);
+      }
+  }
+  const w = word.trim().toLowerCase().replace(/\.$/, '');
+  return monthWords.get(/^[a-z]/.test(w) ? w.slice(0, 3) : w) ?? null;
+}
+
 /** Money is a figure in mono with the currency muted beside it; VAT never appears (M1). */
 export function formatMoney(amount: number, locale: 'en' | 'ar' = 'en', fraction = 0): string {
   return new Intl.NumberFormat(intlLocale(locale), {
