@@ -40,8 +40,8 @@ export const sabotages = [
       },
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
-        find: '<span className="flex min-w-0 flex-1 flex-col py-1">',
-        replace: '<span className="flex min-w-0 flex-1 flex-col py-0">',
+        find: '                  <span className="flex min-w-0 flex-1 flex-col py-1">',
+        replace: '                  <span className="flex min-w-0 flex-1 flex-col py-0">',
       },
     ],
   },
@@ -52,8 +52,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
-        find: 'className="min-w-0 [overflow-wrap:anywhere]"',
-        replace: 'className="min-w-0 truncate"',
+        find: 'className="min-w-0 [overflow-wrap:anywhere]" data-partner-hit-name',
+        replace: 'className="min-w-0 truncate" data-partner-hit-name',
       },
     ],
   },
@@ -64,8 +64,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/PartnerPicker.tsx',
-        find: '<span className="flex min-w-0 flex-1 flex-col py-1">',
-        replace: '<span className="flex min-w-0 flex-1 flex-row py-1">',
+        find: '                  <span className="flex min-w-0 flex-1 flex-col py-1">',
+        replace: '                  <span className="flex min-w-0 flex-1 flex-row py-1">',
       },
     ],
   },
