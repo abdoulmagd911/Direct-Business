@@ -119,7 +119,7 @@ export function AchievementList({
             )}
           </span>
         </label>
-        {filtered ? (
+        {filtered && page?.rows.length !== 0 ? (
           <Button size="sm" variant="ghost" onClick={() => go({})} data-clear-filters-row>
             {t('filters.clear')}
           </Button>
