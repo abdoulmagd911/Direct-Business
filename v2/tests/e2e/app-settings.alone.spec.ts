@@ -343,6 +343,7 @@ type RecordWords = {
   pages: {
     achievements: {
       noMatch: string;
+      backTo: string;
       tabs: { evidence: string };
       actions: { addRef: string };
       marks: { noEvidence: string };
@@ -380,6 +381,10 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    await expect(
+      page.getByRole('link', { name: w.backTo, exact: true }),
+      'the back arrow has its own name',
+    ).toBeVisible();
     await expect(page.getByText(w.marks.noEvidence, { exact: true }), 'No evidence once').toHaveCount(1);
     await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.evidence);
     await expect(page.locator('[data-record-header] [data-tabs]')).toContainText('(');
@@ -419,8 +424,10 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await page.goto('/kpis/achievements?mine=1&month=2000-01');
     await hydrated(page);
     await expect(
-      page.locator('[data-achievement-filters]').getByRole('button', { name: w.filters.clear }),
-    ).toBeVisible();
+      page.getByRole('button', { name: w.filters.clear }),
+      'nothing matches: Clear filters shows once, in the empty box',
+    ).toHaveCount(1);
+    await expect(page.locator('[data-clear-filters]')).toBeVisible();
     await expect(page.locator('[data-clear-month]')).toHaveAttribute('aria-label', w.filters.clearMonth);
     await expect(page.getByText(w.noMatch)).toBeVisible();
     await page.locator('[data-clear-filters]').click();
