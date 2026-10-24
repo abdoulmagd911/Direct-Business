@@ -51,6 +51,8 @@ for (const width of [375, 1440]) {
     await expect(form).toBeVisible();
     // the title says where it lands; Change goes back to the question and keeps the choice
     await expect(page.getByRole('dialog')).toContainText(`Log activity for ${name}`);
+    const titleRow = page.getByRole('dialog').locator('h2');
+    await expect(titleRow.locator('[data-activity-change]'), 'Change sits on the title line').toBeVisible();
     await page.locator('[data-activity-change]').click();
     await expect(page.getByRole('dialog').first()).toContainText('Who was it with?');
     await expect(next).toBeEnabled();
@@ -60,6 +62,9 @@ for (const width of [375, 1440]) {
     await expect(form.getByLabel('Type')).toContainText('Call');
     await form.getByLabel('Outcome').click();
     await page.getByRole('option', { name: 'Answered' }).click();
+    await expect(page.locator('[data-activity-save]'), 'Save waits for What happened').toBeDisabled();
+    await expect(page.locator('[data-activity-why]')).toHaveText('Write what happened to save');
+    await form.getByLabel('What happened').fill('TEST: asked about the offer');
     await page.locator('[data-activity-save]').click();
     await expect(form).toHaveCount(0);
     await expect(page.getByText(`Call logged for ${name}`)).toBeVisible();
