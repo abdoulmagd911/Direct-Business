@@ -69,4 +69,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'the-chosen-chip-cuts-the-name',
+    breaks: [E2E],
+    expect: 'the name is not cut with an ellipsis',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/PartnerPicker.tsx',
+        find: '<span className="min-w-0 [overflow-wrap:anywhere]" data-partner-picked-name>',
+        replace: '<span className="min-w-0 truncate" data-partner-picked-name>',
+      },
+    ],
+  },
 ];
