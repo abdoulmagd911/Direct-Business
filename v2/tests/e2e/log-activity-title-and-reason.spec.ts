@@ -108,7 +108,22 @@ test('More starts at the title start edge in Arabic too — 375 px', async ({ pa
   await page.locator(`[data-partner-hit="${id}"]`).click();
   await page.locator('[data-activity-who-next]').click();
   await expect(page.locator('[data-activity-form]')).toBeVisible();
-  const t = (await page.locator('[data-activity-title]').boundingBox())!;
-  const m = (await page.locator('[data-activity-title-more]').boundingBox())!;
-  expect(Math.abs(m.x + m.width - (t.x + t.width)), 'More starts at the right edge in Arabic').toBeLessThanOrEqual(2);
+  await expect(page.locator('[data-activity-title-more]')).toBeVisible();
+  // both boxes in one frame, so the dialog's opening animation cannot move one between the two reads
+  const r = await page.evaluate(() => {
+    const box = (sel: string) => {
+      const b = document.querySelector(sel)!.getBoundingClientRect();
+      return { x: b.x, right: b.right };
+    };
+    return {
+      dir: getComputedStyle(document.documentElement).direction,
+      title: box('[data-activity-title]'),
+      more: box('[data-activity-title-more]'),
+    };
+  });
+  expect(r.dir, 'the page reads right to left').toBe('rtl');
+  expect(
+    Math.abs(r.more.right - r.title.right),
+    `More starts at the right edge in Arabic ${JSON.stringify(r)}`,
+  ).toBeLessThanOrEqual(2);
 });
