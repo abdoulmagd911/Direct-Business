@@ -33,14 +33,16 @@ function TitleLine({ text, onChange }: { text: string; onChange?: () => void }) 
           {text}
         </span>
         {more || open ? (
-          <Button
-            variant="link"
-            className="ms-2 text-sm font-normal"
-            onClick={() => setOpen(!open)}
-            data-activity-title-more
-          >
-            {open ? t('partners.activity.titleLess') : t('partners.activity.titleMore')}
-          </Button>
+          <span className="block">
+            <Button
+              variant="link"
+              className="text-sm font-normal"
+              onClick={() => setOpen(!open)}
+              data-activity-title-more
+            >
+              {open ? t('partners.activity.titleLess') : t('partners.activity.titleMore')}
+            </Button>
+          </span>
         ) : null}
       </span>
       {onChange ? (

@@ -5,6 +5,7 @@
  * Sabotages: tests/sabotage/log-activity-entry.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { setPrefs } from './helpers';
 import { callAs, makePerson, signIn } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -78,6 +79,8 @@ for (const width of [320, 375, 1440]) {
     const more = page.locator('[data-activity-title-more]');
     if (width < 700) {
       await expect(more).toBeVisible();
+      const m = (await more.boundingBox())!;
+      expect(Math.abs(m.x - folded.x), 'More starts at the title start edge').toBeLessThanOrEqual(1);
       await more.click();
       expect((await title.boundingBox())!.height, 'More shows the whole name').toBeGreaterThan(folded.height);
       await more.click();
@@ -86,3 +89,26 @@ for (const width of [320, 375, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 }
+
+test('More starts at the title start edge in Arabic too — 375 px', async ({ page, context }) => {
+  const admin = await makePerson({ admin: true });
+  const long = `${LONG} ${tag()}`;
+  await setPrefs(context, { locale: 'ar' });
+  await page.setViewportSize({ width: 375, height: 700 });
+  await signIn(page, admin.email, '/my-day');
+  await hydrated(page);
+  const made = await callAs(context, 'partner_create', {
+    p_partner: { trade_name_en: long, sides: [{ side: 'client', type: 'corporate' }] },
+  });
+  expect(made.status, JSON.stringify(made.body)).toBe(200);
+  const id = (made.body as { id: string }).id;
+  await page.locator('[data-create-bar]').click();
+  await page.locator('[data-create-item="activity"]').click();
+  await page.locator('[data-partner-search]').fill(long.slice(0, 30));
+  await page.locator(`[data-partner-hit="${id}"]`).click();
+  await page.locator('[data-activity-who-next]').click();
+  await expect(page.locator('[data-activity-form]')).toBeVisible();
+  const t = (await page.locator('[data-activity-title]').boundingBox())!;
+  const m = (await page.locator('[data-activity-title-more]').boundingBox())!;
+  expect(Math.abs(m.x + m.width - (t.x + t.width)), 'More starts at the right edge in Arabic').toBeLessThanOrEqual(1);
+});

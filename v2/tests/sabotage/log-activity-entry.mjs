@@ -113,4 +113,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'log-activity-more-is-indented',
+    breaks: [PHONE],
+    expect: 'starts at the title start edge',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: 'className="text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+        replace: 'className="ms-2 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+      },
+    ],
+  },
 ];
