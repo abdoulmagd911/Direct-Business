@@ -11,33 +11,12 @@
  * "empty-list-offers-no-way-out".
  */
 import { expect, test, type Page } from '@playwright/test';
+import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
-async function plan() {
-  await sql(
-    `insert into core.department (code, name_en, name_ar) values ('commercial', 'Commercial', 'التجاري') on conflict (code) do nothing`,
-  );
-  await sql(
-    `do $$
-     declare
-       d uuid := (select id from core.department where code = 'commercial');
-       y int := extract(year from now() at time zone 'Asia/Riyadh')::int;
-       p uuid;
-     begin
-       if perf.plan_of(d, y) is null then
-         begin
-           insert into perf.plan (department_id, year, name) values (d, y, 'Made-up plan ' || y) returning id into p;
-           perform perf.categories_seed(p);
-         exception when unique_violation then null;
-         end;
-       end if;
-     end $$`,
-  );
-}
-
-test.beforeAll(plan);
+test.beforeAll(ensureAchievementPlan);
 
 const LONG =
   'TEST A very long made-up achievement title that keeps going well past what a phone card can hold on a line, and on, and on, until it needs five lines on a phone';
@@ -99,7 +78,7 @@ for (const [label, width, height] of [
     if (phone) {
       await expect(crumbs, 'a phone has no trail').toBeHidden();
       await expect(
-        page.locator('[data-record-header] a[aria-label="Achievements"]'),
+        page.getByRole('link', { name: 'Back to Achievements', exact: true }),
         'but the back arrow',
       ).toBeVisible();
     } else {
@@ -134,20 +113,46 @@ for (const [label, width, height] of [
     const clearRow = row.getByRole('button', { name: 'Clear filters' });
     const clearMonth = page.locator('[data-clear-month]');
 
+    const [cat] = await sql<{ code: string }>(
+      `select c.code from perf.achievement_category c
+       where c.active and c.deleted_at is null and c.required_ref_system_id is null and not c.has_deal_value
+         and not c.sets_prospect order by c.code limit 1`,
+    );
+    const made = await callAs(page.context(), 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'TEST one made-up achievement',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    const anyClear = page.getByRole('button', { name: 'Clear filters' });
+
+    await page.goto('/kpis/achievements');
+    await hydrated(page);
     await expect(clearRow, 'no filter, no Clear filters').toHaveCount(0);
     await expect(clearMonth, 'no month, no x').toHaveCount(0);
 
-    // a month and Mine: Clear filters appears, last in the row; the month's x clears only the month
-    await page.goto('/kpis/achievements?mine=1&month=2000-01');
+    // results showing with a filter on: the row button stays, last in the row, and it is the only one
+    await page.goto('/kpis/achievements?mine=1');
     await hydrated(page);
+    await expect(page.locator('[data-achievement-list]')).toBeVisible();
     await expect(clearRow).toBeVisible();
     const last = await row.evaluate((el) => (el.lastElementChild as HTMLElement).textContent);
     expect(last, 'Clear filters is the last thing in the filter row').toBe('Clear filters');
+    await expect(anyClear, 'with results, Clear filters shows once').toHaveCount(1);
+
+    // nothing matches: only the button inside the empty box shows; the row one hides
+    await page.goto('/kpis/achievements?mine=1&month=2000-01');
+    await hydrated(page);
     await expect(
       page.getByText('No achievements match these filters'),
       'an empty filtered list says why',
     ).toBeVisible();
     await expect(page.locator('[data-achievement-list]')).toHaveCount(0);
+    await expect(clearRow, 'the row button hides while the empty box is up').toHaveCount(0);
+    await expect(anyClear, 'with nothing matching, Clear filters shows once').toHaveCount(1);
+    await expect(page.locator('[data-clear-filters]')).toBeVisible();
     await expect(clearMonth).toBeVisible();
     await clearMonth.click();
     await expect(page, 'the x clears the month and keeps Mine').toHaveURL(/mine=1/);
@@ -159,6 +164,6 @@ for (const [label, width, height] of [
     await hydrated(page);
     await page.locator('[data-clear-filters]').click();
     await expect(page).toHaveURL(/\/kpis\/achievements$/);
-    await expect(clearRow).toHaveCount(0);
+    await expect(anyClear).toHaveCount(0);
   });
 }
