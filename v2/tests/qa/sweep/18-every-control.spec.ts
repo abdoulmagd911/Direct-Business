@@ -9,6 +9,10 @@
  *    decision number), and English left on an Arabic page;
  *  - the layout: sideways scroll, text cut off, and a control covered by something else (the + button, the bar);
  *  - the page's heading, recorded so a heading that names the wrong thing (Suppliers headed Clients) is seen.
+ * The inventory (V641, the owner's 'was every button truly USED, not just clicked'): every control the crawl sees is a row of
+ * the matrix, pressed or not (a control it does not press says why), as the admin, a manager, a member, a viewer and
+ * someone signed out, at both widths; tests/qa/sweep/inventory.mjs turns the English rows into the table and the CSV
+ * and joins them with followed-by.csv, the register of the tests that follow a control to its result.
  * Destructive presses (sign out, delete, remove, archive, switch off, merge, close month) are never made. Writes are
  * counted. Runs only when asked (QA_ROUND=1, --grep "every control"): in CI after every merge to v2/main, as a report
  * that never fails the run (.github/workflows/v2.yml, "every control on main (report)"). Made-up people only.
@@ -214,6 +218,45 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
       shot: '',
     });
     if (entries > 9) add('the menu', `${entries} menu entries for this role (V633: at most 9)`, 'Medium');
+    // V641: the frame's own controls (top bar, drawer, phone bar) are in the inventory too; the drawer's page links are
+    // already there as menu entries, so only the other controls are listed here
+    const menuHrefs = new Set(menu.map((m) => m.href.split('#')[0]));
+    const frame = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('button, a[href], [role=tab], [role=switch], [role=menuitem]'))
+        .filter((e) => {
+          const r = e.getBoundingClientRect();
+          const st = getComputedStyle(e);
+          return (
+            !e.closest('main, [role=dialog], [role=menu], [data-sonner-toast]') &&
+            r.width > 0 &&
+            r.height > 0 &&
+            st.visibility !== 'hidden' &&
+            st.display !== 'none'
+          );
+        })
+        .map((e) => ({
+          name: (e.getAttribute('aria-label') || (e as HTMLElement).innerText || '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .slice(0, 40),
+          href: e.getAttribute('href') || '',
+          tag: e.tagName,
+        })),
+    );
+    for (const f of frame) {
+      if (f.href && menuHrefs.has(f.href.split('#')[0])) continue;
+      cell({
+        role: who,
+        lang,
+        width,
+        route: 'the frame (top bar, drawer, phone bar)',
+        kind: f.tag === 'A' ? 'link' : 'button',
+        control: f.name || '(no name)',
+        result: 'listed, not pressed by the crawl',
+        ok: true,
+        shot: '',
+      });
+    }
   }
   // pages to visit: the menu's, then each page's own links, one address per pattern, at most 60
   const queue = [...new Set(menu.map((m) => m.href.split('#')[0]!))];
@@ -307,8 +350,73 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
     if (!press) continue;
     // every button, tab and toggle in the page's main area, pressed once, the page reloaded after each
     const sel = 'main button, main [role=tab], main [role=switch], main [role=button], main summary';
-    const count = await page.locator(sel).count();
-    for (let j = 0; j < count && j < 40; j++) {
+    // V641: every control of the page is listed in the matrix, pressed or not (a control the crawl does not press is
+    // still in the inventory, with the reason, and counts as not verified)
+    const all = await page.locator(sel).evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        const st = getComputedStyle(e);
+        const role = e.getAttribute('role');
+        return {
+          visible: r.width > 0 && r.height > 0 && st.visibility !== 'hidden' && st.display !== 'none',
+          disabled: (e as HTMLButtonElement).disabled === true || e.getAttribute('aria-disabled') === 'true',
+          name: (e.getAttribute('aria-label') || (e as HTMLElement).innerText || '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .slice(0, 40),
+          on:
+            e.getAttribute('aria-pressed') === 'true' ||
+            e.getAttribute('aria-selected') === 'true' ||
+            e.getAttribute('aria-current') !== null ||
+            e.getAttribute('data-state') === 'on' ||
+            e.getAttribute('data-state') === 'active',
+          kind:
+            role === 'tab'
+              ? 'tab'
+              : role === 'switch' || role === 'checkbox'
+                ? 'toggle'
+                : e.tagName === 'SUMMARY'
+                  ? 'section'
+                  : e.getAttribute('aria-haspopup')
+                    ? 'menu'
+                    : e.closest('[data-filters], [data-filter-bar]') || /^\+/.test((e.textContent || '').trim())
+                      ? 'filter'
+                      : 'button',
+        };
+      }),
+    );
+    const count = all.length;
+    for (let j = 0; j < count && j < 600; j++) {
+      const meta = all[j]!;
+      if (!meta.visible) continue;
+      const listed = (result: string) =>
+        cell({
+          role: who,
+          lang,
+          width,
+          route: pg,
+          kind: meta.kind,
+          control: meta.name || '(no name)',
+          result,
+          ok: true,
+          shot: pageShot,
+        });
+      if (meta.disabled) {
+        listed('disabled when the page opens; not pressed');
+        continue;
+      }
+      if (NEVER.test(meta.name)) {
+        listed('not pressed: destructive by design');
+        continue;
+      }
+      if (meta.on) {
+        listed('already on or selected when the page opens; not pressed');
+        continue;
+      }
+      if (j >= 40) {
+        listed('listed, not pressed: the crawl presses the first 40 controls of a page');
+        continue;
+      }
       const el = page.locator(sel).nth(j);
       if (!(await el.isVisible().catch(() => false))) continue;
       if (await el.isDisabled().catch(() => false)) continue;
@@ -316,25 +424,7 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
         .trim()
         .replace(/\s+/g, ' ')
         .slice(0, 40);
-      if (NEVER.test(name)) continue;
-      const on = await el.evaluate(
-        (e) =>
-          e.getAttribute('aria-pressed') === 'true' ||
-          e.getAttribute('aria-selected') === 'true' ||
-          e.getAttribute('aria-current') !== null ||
-          e.getAttribute('data-state') === 'on' ||
-          e.getAttribute('data-state') === 'active',
-      );
-      if (on) continue;
-      const kind = await el.evaluate((e) => {
-        const role = e.getAttribute('role');
-        if (role === 'tab') return 'tab';
-        if (role === 'switch' || role === 'checkbox') return 'toggle';
-        if (e.tagName === 'SUMMARY') return 'section';
-        if (e.getAttribute('aria-haspopup')) return 'menu';
-        if (e.closest('[data-filters], [data-filter-bar]') || /^\+/.test((e.textContent || '').trim())) return 'filter';
-        return 'button';
-      });
+      const kind = meta.kind;
       const before = await page.evaluate(() => ({
         url: location.href,
         text: document.body.innerText,
@@ -488,8 +578,12 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
   return findings;
 }
 
-/** The owner's matrix (13 Oct): the admin, a Commercial member in a team, and someone signed out; QA_CONTROL_ROLES widens it. */
-const PEOPLE = (process.env.QA_CONTROL_ROLES ?? 'admin,member,signed_out').split(',');
+/** The owner's matrix (13 Oct) and the inventory's (V641): the admin, a manager, a Commercial member in a team, a viewer
+ * and someone signed out; QA_CONTROL_ROLES narrows or widens it. */
+const PEOPLE = (process.env.QA_CONTROL_ROLES ?? 'admin,manager,member,viewer,signed_out').split(',');
+/** The manager and the viewer run in English only (their menus and controls are what the inventory needs from them; the
+ * Arabic wording is the same for every role). QA_CONTROL_EN_ONLY names others. */
+const ENGLISH_ONLY = new Set((process.env.QA_CONTROL_EN_ONLY ?? 'manager,viewer').split(','));
 const WIDTHS = [1440, 375];
 // one person's runs one after another (their language lives on their profile); the people side by side
 for (const who of PEOPLE)
@@ -497,64 +591,65 @@ for (const who of PEOPLE)
     test.describe.configure({ mode: 'serial' });
     for (const lang of ['en', 'ar'] as const)
       for (const width of WIDTHS)
-        test(`every control: ${who} · ${lang} · ${width}`, async ({ browser }) => {
-          test.setTimeout(3_600_000);
-          if (lang === 'ar')
-            await sql(
-              `insert into core.setting (key, value, valid_from, reason, created_by)
+        if (lang === 'en' || !ENGLISH_ONLY.has(who))
+          test(`every control: ${who} · ${lang} · ${width}`, async ({ browser }) => {
+            test.setTimeout(3_600_000);
+            if (lang === 'ar')
+              await sql(
+                `insert into core.setting (key, value, valid_from, reason, created_by)
                select 'app.arabic_enabled', 'true'::jsonb, core.riyadh_today(), $2, $1
                where not exists (select 1 from core.setting where key = 'app.arabic_enabled' and department_id is null
                                    and valid_from = core.riyadh_today() and deleted_at is null)`,
-              [user('admin').id, ARABIC],
-            );
-          const signedOut = who === 'signed_out';
-          if (!signedOut) {
-            // the profile is the source of truth for the language (V216)
-            await sql(
-              `insert into core.person_profile (person_id, locale, created_by) values ($1, $2, $1)
-               on conflict (person_id) do update set locale = excluded.locale`,
-              [user(who).id, lang],
-            );
-            // the Commercial member works in a team of their department (the pilot's member, as the desktop round)
-            if (who === 'member')
+                [user('admin').id, ARABIC],
+              );
+            const signedOut = who === 'signed_out';
+            if (!signedOut) {
+              // the profile is the source of truth for the language (V216)
               await sql(
-                `with t as (
+                `insert into core.person_profile (person_id, locale, created_by) values ($1, $2, $1)
+               on conflict (person_id) do update set locale = excluded.locale`,
+                [user(who).id, lang],
+              );
+              // the Commercial member works in a team of their department (the pilot's member, as the desktop round)
+              if (who === 'member')
+                await sql(
+                  `with t as (
                    insert into core.team (department_id, code, name_en, name_ar)
                    select department_id, 'qa_ctl', 'Test Commercial Team', 'فريق تجاري للاختبار' from core.person where id = $1
                    on conflict do nothing returning id)
                  update core.person set team_id = coalesce((select id from t), (select id from core.team where code = 'qa_ctl'))
                   where id = $1 and team_id is null`,
-                [user('member').id],
+                  [user('member').id],
+                );
+            }
+            const ctx = await browser.newContext({
+              baseURL: test.info().project.use.baseURL,
+              viewport: { width, height: width > 600 ? 900 : 812 },
+              isMobile: width < 600,
+              hasTouch: width < 600,
+            });
+            const page = await ctx.newPage();
+            page.setDefaultTimeout(15_000);
+            try {
+              if (signedOut) {
+                // signed out, the language is the cookie's (there is no profile yet)
+                await ctx.addCookies([
+                  { name: 'v2.locale', value: lang, url: test.info().project.use.baseURL as string },
+                ]);
+              } else await signIn(page, who, '/my-day');
+              const found = await sweep(page, who, lang, width, true, signedOut ? '/sign-in' : '/my-day');
+              verdict(
+                {
+                  area: AREA,
+                  user: `${who} · ${lang} · ${width}`,
+                  check: 'the sweep ran (its findings are listed as INFO, its cells in QA_MATRIX)',
+                  detail: `${found.length} finding(s); run ${fx().tag}`,
+                },
+                true,
               );
-          }
-          const ctx = await browser.newContext({
-            baseURL: test.info().project.use.baseURL,
-            viewport: { width, height: width > 600 ? 900 : 812 },
-            isMobile: width < 600,
-            hasTouch: width < 600,
+            } finally {
+              await ctx.close();
+            }
+            expect(true).toBe(true);
           });
-          const page = await ctx.newPage();
-          page.setDefaultTimeout(15_000);
-          try {
-            if (signedOut) {
-              // signed out, the language is the cookie's (there is no profile yet)
-              await ctx.addCookies([
-                { name: 'v2.locale', value: lang, url: test.info().project.use.baseURL as string },
-              ]);
-            } else await signIn(page, who, '/my-day');
-            const found = await sweep(page, who, lang, width, true, signedOut ? '/sign-in' : '/my-day');
-            verdict(
-              {
-                area: AREA,
-                user: `${who} · ${lang} · ${width}`,
-                check: 'the sweep ran (its findings are listed as INFO, its cells in QA_MATRIX)',
-                detail: `${found.length} finding(s); run ${fx().tag}`,
-              },
-              true,
-            );
-          } finally {
-            await ctx.close();
-          }
-          expect(true).toBe(true);
-        });
   });
