@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
+import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
@@ -359,6 +360,7 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
   await withArabic(async () => {
     const w = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as RecordWords).pages
       .achievements;
+    await ensureAchievementPlan();
     const me = await makePerson({ admin: true });
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, me.email, '/kpis/achievements');

@@ -11,33 +11,12 @@
  * "empty-list-offers-no-way-out".
  */
 import { expect, test, type Page } from '@playwright/test';
+import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
-async function plan() {
-  await sql(
-    `insert into core.department (code, name_en, name_ar) values ('commercial', 'Commercial', 'التجاري') on conflict (code) do nothing`,
-  );
-  await sql(
-    `do $$
-     declare
-       d uuid := (select id from core.department where code = 'commercial');
-       y int := extract(year from now() at time zone 'Asia/Riyadh')::int;
-       p uuid;
-     begin
-       if perf.plan_of(d, y) is null then
-         begin
-           insert into perf.plan (department_id, year, name) values (d, y, 'Made-up plan ' || y) returning id into p;
-           perform perf.categories_seed(p);
-         exception when unique_violation then null;
-         end;
-       end if;
-     end $$`,
-  );
-}
-
-test.beforeAll(plan);
+test.beforeAll(ensureAchievementPlan);
 
 const LONG =
   'TEST A very long made-up achievement title that keeps going well past what a phone card can hold on a line, and on, and on, until it needs five lines on a phone';
