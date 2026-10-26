@@ -183,7 +183,7 @@ export function NotePage({
           ) : null
         }
       />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5">
           <Field label={t('pages.myDay.note.title')}>
             {(p) => (
