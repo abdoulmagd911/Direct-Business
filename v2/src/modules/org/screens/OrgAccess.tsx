@@ -189,18 +189,18 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
         </Button>
       </div>
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.name')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.role')}</th>
+              <th className="w-[24%] px-4 py-2.5 text-start font-medium">{t('settings.people.name')}</th>
+              <th className="w-[14%] px-4 py-2.5 text-start font-medium">{t('settings.people.role')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.department')}</th>
               <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.team')}</th>
               <th className="hidden px-4 py-2.5 text-start font-medium min-[1600px]:table-cell">
                 {t('settings.people.emails')}
               </th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.lastSignIn')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.status')}</th>
+              <th className="w-[15%] px-4 py-2.5 text-start font-medium">{t('settings.people.lastSignIn')}</th>
+              <th className="w-[16%] px-4 py-2.5 text-start font-medium">{t('settings.people.status')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -208,7 +208,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
               const avatar = names.avatar(p.id);
               return (
                 <tr key={p.id} className="hover:bg-surface" data-person-row={p.id}>
-                  <td className="px-4 py-2.5">
+                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
                     <Link
                       href={`/people/${p.id}`}
                       className="flex items-center gap-2.5 hover:underline"
@@ -221,11 +221,15 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5" data-person-role>
+                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]" data-person-role>
                     <PersonRole row={p} roleName={names.role(p.role?.id)} />
                   </td>
-                  <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.dept(p.department_id) || '—'}</td>
-                  <td className="px-4 py-2.5">{isAccount(p) ? '—' : names.team(p.team_id) || '—'}</td>
+                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                    {isAccount(p) ? '—' : names.dept(p.department_id) || '—'}
+                  </td>
+                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                    {isAccount(p) ? '—' : names.team(p.team_id) || '—'}
+                  </td>
                   {/* Emails from 1600 px, truncated with the full list in the title, so Status keeps its room at 1440
                       (QA-183a); the record and the phone cards carry every email */}
                   <td
@@ -234,12 +238,15 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                   >
                     {p.emails.map((e) => e.email).join(', ')}
                   </td>
-                  <td className="px-4 py-2.5 font-data text-xs whitespace-nowrap text-muted">
+                  <td
+                    className="px-4 py-2.5 font-data text-xs text-muted [overflow-wrap:anywhere]"
+                    data-person-last-sign-in
+                  >
                     {p.last_sign_in_at
                       ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
                       : t('settings.people.never')}
                   </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap" data-person-status>
+                  <td className="px-4 py-2.5" data-person-status>
                     <PersonStatus row={p} />
                   </td>
                 </tr>
