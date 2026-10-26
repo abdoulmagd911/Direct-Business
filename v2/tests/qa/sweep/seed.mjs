@@ -206,15 +206,20 @@ async function main() {
   const admin = await apiAs(u('admin'));
   const why = `QA sweep fixture ${tag}`;
 
-  // The 2026 achievement plan (its categories come with it), so a member can log achievements in a local pass.
-  // Made-up name; a second run on the same database finds the plan already open.
+  // The achievement plan of this year (its categories come with it), so a member can log achievements in a local pass.
+  // The year is today's, in Riyadh time, so nothing is stuck on one year. Made-up name; a second run on the same
+  // database finds the plan already open.
+  const planYear = Number(today.slice(0, 4));
   const [{ id: commercial }] = await sql(`select id from core.department where code = 'commercial'`);
   if (
     !(
-      await sql(`select 1 from perf.plan where department_id = $1 and year = 2026 and deleted_at is null`, [commercial])
+      await sql(`select 1 from perf.plan where department_id = $1 and year = $2 and deleted_at is null`, [
+        commercial,
+        planYear,
+      ])
     ).length
   )
-    await admin('plan_open', { p_department: commercial, p_year: 2026, p_name: `Test plan 2026 ${tag}` });
+    await admin('plan_open', { p_department: commercial, p_year: planYear, p_name: `Test plan ${planYear} ${tag}` });
 
   // The Head and Manager passes (V644): the head leads a team of their own and the manager leads another, each with a
   // member in it, so "my team" means something for both and a member of the other team is the one they must not reach.
