@@ -1139,8 +1139,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="line-clamp-2 break-words text-3xl',
-        replace: 'className="truncate text-3xl',
+        find: "className={cn(titleClamp, 'break-words text-3xl",
+        replace: "className={cn('truncate', 'break-words text-3xl",
       },
     ],
   },
@@ -1884,6 +1884,12 @@ export const sabotages = [
     breaks: ['unit:tests/unit/ui/an-icon-button-draws-what-is-put-inside-it.test.tsx'],
     expect: 'draws a badge put inside it, after the icon',
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
+  },
+  {
+    name: 'bell-stays-open-on-a-new-page',
+    breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
+    expect: 'closed by the page change',
+    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: '    if (bell) setBell(false);\n', replace: '' }],
   },
   {
     name: 'restore-offered-to-everyone',
