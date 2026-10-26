@@ -1,5 +1,5 @@
 'use client';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -106,11 +106,21 @@ export function AchievementList({
               >
                 {t('filters.anyMonth')}
               </span>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                aria-label={t('filters.clearMonth')}
+                data-clear-month
+                onClick={() => go({ ...filter, month: undefined })}
+                className="absolute inset-y-0 end-9 inline-grid size-8 place-items-center text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            )}
           </span>
         </label>
-        {filtered ? (
-          <Button size="sm" variant="ghost" onClick={() => go({})}>
+        {filtered && page?.rows.length !== 0 ? (
+          <Button size="sm" variant="ghost" onClick={() => go({})} data-clear-filters-row>
             {t('filters.clear')}
           </Button>
         ) : null}
@@ -135,7 +145,17 @@ export function AchievementList({
           retryLabel={tc('common.tryAgain')}
         />
       ) : page.rows.length === 0 ? (
-        <DataState kind="empty" message={filtered ? t('noMatch') : t('empty')} />
+        <DataState
+          kind="empty"
+          message={filtered ? t('noMatch') : t('empty')}
+          action={
+            filtered ? (
+              <Button size="sm" variant="secondary" onClick={() => go({})} data-clear-filters>
+                {t('filters.clear')}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <ul
           className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"

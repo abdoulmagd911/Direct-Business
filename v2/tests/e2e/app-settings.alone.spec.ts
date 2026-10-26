@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
+import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
@@ -334,6 +335,105 @@ test('in Arabic at 375 px: the Achievements list’s switches and month box say 
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       'no sideways scroll',
     ).toBe(true);
+  });
+});
+
+// ---- V654, the Achievements record page and list in Arabic at 375 px: the words of the catalog, no trail on a phone
+
+type RecordWords = {
+  pages: {
+    achievements: {
+      noMatch: string;
+      backTo: string;
+      tabs: { evidence: string };
+      actions: { addRef: string };
+      marks: { noEvidence: string };
+      filters: { clear: string; clearMonth: string };
+    };
+  };
+};
+
+test('in Arabic at 375 px: the Achievements record and list say Clear filters, Add evidence and No evidence in the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const w = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as RecordWords).pages
+      .achievements;
+    await ensureAchievementPlan();
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/kpis/achievements');
+    await hydrated(page);
+    const [cat] = await sql<{ code: string }>(
+      `select c.code from perf.achievement_category c
+       where c.active and c.deleted_at is null and c.required_ref_system_id is null and not c.has_deal_value
+         and not c.sets_prospect order by c.code limit 1`,
+    );
+    const made = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'إنجاز تجريبي بعنوان طويل يمتد على عدة أسطر في الهاتف',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    await expect(
+      page.getByRole('link', { name: w.backTo, exact: true }),
+      'the back arrow has its own name',
+    ).toBeVisible();
+    await expect(page.getByText(w.marks.noEvidence, { exact: true }), 'No evidence once').toHaveCount(1);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.evidence);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText('(');
+    await page.getByRole('link', { name: new RegExp(w.tabs.evidence) }).click();
+    await hydrated(page);
+    await expect(page.getByRole('button', { name: w.actions.addRef })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+
+    // a PC: the last crumb keeps its ACH number in view when the title is long and in Latin letters (QA-590)
+    const long = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'TEST A very long made-up achievement title that runs on and on and on for the trail',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(long.status, JSON.stringify(long.body)).toBe(200);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/kpis/achievements/${(long.body as { id: string }).id}`);
+    await hydrated(page);
+    const seen = await page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]').evaluate((span) => {
+      const node = span.firstChild as Text;
+      const r = document.createRange();
+      r.setStart(node, 0);
+      r.setEnd(node, 3);
+      const n = r.getBoundingClientRect();
+      const box = span.getBoundingClientRect();
+      return { text: node.data.slice(0, 3), inside: n.left >= box.left - 1 && n.right <= box.right + 1 };
+    });
+    expect(seen.text, 'the crumb starts with the ACH number').toBe('ACH');
+    expect(seen.inside, 'the last crumb keeps its ACH number in view').toBe(true);
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto('/kpis/achievements?mine=1&month=2000-01');
+    await hydrated(page);
+    await expect(
+      page.getByRole('button', { name: w.filters.clear }),
+      'nothing matches: Clear filters shows once, in the empty box',
+    ).toHaveCount(1);
+    await expect(page.locator('[data-clear-filters]')).toBeVisible();
+    await expect(page.locator('[data-clear-month]')).toHaveAttribute('aria-label', w.filters.clearMonth);
+    await expect(page.getByText(w.noMatch)).toBeVisible();
+    await page.locator('[data-clear-filters]').click();
+    await expect(page).toHaveURL(/\/kpis\/achievements$/);
   });
 });
 

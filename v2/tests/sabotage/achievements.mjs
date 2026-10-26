@@ -169,4 +169,101 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'record-trail-repeats-the-list',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'two parts: the list and this record',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: '{ label: `${a.number} · ${a.title}` }]}',
+        replace: "{ label: t('title'), href: '/kpis/achievements' }]}",
+      },
+    ],
+  },
+  {
+    name: 'record-title-cut-on-a-phone',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'three lines at most before the tap',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "titleMore={{ more: t('titleMore'), less: t('titleLess') }}",
+        replace: 'titleClamp="line-clamp-none"',
+      },
+    ],
+  },
+  {
+    name: 'record-crumb-hides-its-number-in-arabic',
+    breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
+    expect: 'the last crumb keeps its ACH number in view',
+    edits: [
+      {
+        file: 'src/ui/record/RecordPage.tsx',
+        find: '<span aria-current="page" dir="auto" className=',
+        replace: '<span aria-current="page" className=',
+      },
+    ],
+  },
+  {
+    name: 'record-shows-evidence-twice',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'no separate Evidence figure',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "    { key: 'date', label: t('figures.date'),",
+        replace:
+          "    { key: 'refs', label: t('tabs.evidence'), value: formatNumber(a.refs.length, locale) },\n    { key: 'date', label: t('figures.date'),",
+      },
+    ],
+  },
+  {
+    name: 'month-x-clears-every-filter',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'the x clears the month and keeps Mine',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: 'onClick={() => go({ ...filter, month: undefined })}\n                className="absolute',
+        replace: 'onClick={() => go({})}\n                className="absolute',
+      },
+    ],
+  },
+  {
+    name: 'empty-list-offers-no-way-out',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'clear',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '            filtered ? (\n              <Button size="sm" variant="secondary"',
+        replace: '            false ? (\n              <Button size="sm" variant="secondary"',
+      },
+    ],
+  },
+  {
+    name: 'clear-filters-shows-twice-when-nothing-matches',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'the row button hides while the empty box is up',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{filtered && page?.rows.length !== 0 ? (',
+        replace: '{filtered ? (',
+      },
+    ],
+  },
+  {
+    name: 'record-back-arrow-has-no-own-name',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'Back to Achievements',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "label: t('backTo') }}",
+        replace: "label: t('back') }}",
+      },
+    ],
+  },
 ];
