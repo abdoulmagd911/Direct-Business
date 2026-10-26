@@ -1,5 +1,5 @@
 'use client';
-import { AlarmClockPlus, Check, Pencil } from 'lucide-react';
+import { AlarmClockPlus, Check, Megaphone, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -92,8 +92,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
     </>
   );
   // Mark done stays the one main action (V630). Follow up is a visible action for anyone who sees the task — a private
-  // Reminder about it (V632 Stage 2, V282; the oversight's walk of 14 Oct). Escalate (V401) sits in the ⋯ menu, for
-  // whoever may change an open task.
+  // Reminder about it (V632 Stage 2, V282; the oversight's walk of 14 Oct). Escalate (V401) is a labelled button for
+  // whoever may change an open task, its one line of what it does as its title (E, 26 Oct): no longer in the ⋯ menu.
   const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
   const escalatable = task.can_edit && !closed;
   const actions = (
@@ -117,9 +117,19 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         </Button>
       ) : null}
       <FollowUpButton about={follow} className="max-sm:hidden" />
+      {escalatable ? (
+        <Button
+          icon={<Megaphone />}
+          title={t('pages.tasks.escalate.what')}
+          onClick={() => setEscalating(true)}
+          data-escalate-open
+        >
+          {t('pages.tasks.escalate.open')}
+        </Button>
+      ) : null}
       <Menu>
         <MenuTrigger asChild>
-          <Button aria-label={t('common.more')} className={escalatable ? undefined : 'sm:hidden'} data-task-more>
+          <Button aria-label={t('common.more')} className="sm:hidden" data-task-more>
             ⋯
           </Button>
         </MenuTrigger>
@@ -137,11 +147,6 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           >
             {t('record.followUp')}
           </MenuItem>
-          {escalatable ? (
-            <MenuItem onSelect={() => setEscalating(true)} data-escalate-open>
-              {t('pages.tasks.escalate.open')}
-            </MenuItem>
-          ) : null}
         </MenuContent>
       </Menu>
       {task.can_edit ? move.dialogs : null}
