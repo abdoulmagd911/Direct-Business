@@ -1252,6 +1252,11 @@
       "terms_list_expected": "يجب أن تكون الشروط قائمة",
       "side_required": "يحتاج العقد إلى جانبه"
     },
+    "activity": {
+      "with_whom_required": "حدّد مع من كان ذلك: جهة أو شخص داخل دايركت",
+      "unknown_internal_counterpart": "هذا الفريق أو النظام غير موجود في القائمة: {detail}",
+      "share_team_internal_only": "لا يمكن مشاركة مع فريق إلا نشاط داخل دايركت"
+    },
     "reference": {
       "mailbox_invalid": "يجب أن تكون وجهة الرموز عنوان بريد إلكتروني",
       "unknown_department": "لا يوجد قسم نشط: {detail}",
@@ -1421,6 +1426,14 @@
       "who": "مع من كان ذلك؟",
       "whoOrg": "عميل أو عميل محتمل أو مورد",
       "whoNext": "التالي",
+      "whoKind": "كان ذلك مع",
+      "whoInside": "شخص داخل دايركت",
+      "insideField": "فريق أو نظام",
+      "insideNone": "اختر فريقًا أو نظامًا",
+      "needWho": "اختر عميلًا أو عميلًا محتملًا أو مورّدًا",
+      "needInside": "اختر فريقًا أو نظامًا",
+      "ticketRef": "مرجع التذكرة (اختياري)",
+      "shareTeam": "مشاركة مع فريقي",
       "log": "تسجيل نشاط",
       "logged": "تم تسجيل {type}",
       "logFor": "تسجيل نشاط لـ {name}",
