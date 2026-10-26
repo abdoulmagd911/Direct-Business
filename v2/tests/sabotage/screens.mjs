@@ -1934,6 +1934,27 @@ export const sabotages = [
     edits: [{ file: 'src/ui/shell/NotificationsPanel.tsx', find: '{g.unread ? (', replace: '{false ? (' }],
   },
   {
+    name: 'bell-mark-read-button-is-gone',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Mark as read button on each unread row',
+    edits: [
+      { file: 'src/ui/shell/NotificationsPanel.tsx', find: '{n.read_at ? null : (', replace: '{true ? null : (' },
+    ],
+  },
+  {
+    name: 'bell-mark-read-marks-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Mark as read button on each unread row',
+    edits: [
+      {
+        file: 'src/ui/shell/NotificationsPanel.tsx',
+        find: 'onClick={() => void act(() => markRead([n.id]))}\n                                  data-notification-mark-read',
+        replace:
+          'onClick={() => void act(() => markRead())}\n                                  data-notification-mark-read',
+      },
+    ],
+  },
+  {
     name: 'bell-stays-open-on-a-new-page',
     breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
     expect: 'closed by the page change',
