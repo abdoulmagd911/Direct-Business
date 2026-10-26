@@ -132,7 +132,7 @@ for (const [width, height] of [
   });
 }
 
-test('phone 375: the task page keeps Done and the dots on one row; Edit and Follow up are behind the dots', async ({
+test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edit and Follow up are behind the dots', async ({
   browser,
 }) => {
   const member = await memberWithTeam();
@@ -145,6 +145,11 @@ test('phone 375: the task page keeps Done and the dots on one row; Edit and Foll
   const row = page.locator('[data-record-actions]');
   await expect(row.locator('[data-mark-done]')).toBeVisible();
   await expect(row.locator('[data-task-more]')).toBeVisible();
+  await expect(row.locator('[data-escalate-open]'), 'Escalate is a labelled button on the row').toHaveText('Escalate');
+  await expect(row.locator('[data-escalate-open]'), 'with its one line of what it does').toHaveAttribute(
+    'title',
+    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
+  );
   await expect(row.locator('[data-edit-task-open]'), 'Edit is not on the row').toBeHidden();
   await expect(row.locator('[data-follow-up]'), 'Follow up is not on the row').toBeHidden();
 
@@ -154,18 +159,25 @@ test('phone 375: the task page keeps Done and the dots on one row; Edit and Foll
       .filter((c) => (c as HTMLElement).offsetParent !== null)
       .map((c) => Math.round(c.getBoundingClientRect().top)),
   );
-  expect(tops.length, 'Done and the dots show').toBeGreaterThanOrEqual(2);
+  expect(tops.length, 'Done, Escalate and the dots show').toBeGreaterThanOrEqual(3);
   expect(new Set(tops).size, 'the actions all sit on one row').toBe(1);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
     'no sideways scroll',
   ).toBe(true);
 
-  // behind the dots: Edit, Follow up and Escalate, each working
+  // behind the dots: Edit and Follow up, each working; Escalate is no longer there
   await row.locator('[data-task-more]').click();
   await expect(page.locator('[data-menu-edit]')).toBeVisible();
   await expect(page.locator('[data-menu-follow-up]')).toBeVisible();
-  await expect(page.locator('[data-escalate-open]')).toBeVisible();
+  await expect(page.getByRole('menuitem'), 'the dots hold Edit and Follow up only').toHaveCount(2);
+  await page.keyboard.press('Escape');
+  await row.locator('[data-escalate-open]').click();
+  await expect(page.getByRole('dialog'), 'Escalate opens, its line read out with it').toHaveAccessibleDescription(
+    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
+  );
+  await page.keyboard.press('Escape');
+  await row.locator('[data-task-more]').click();
   await page.locator('[data-menu-edit]').click();
   await expect(page.locator('form[data-edit-task]'), 'Edit from the dots opens the edit form').toBeVisible();
   await page.keyboard.press('Escape');
@@ -199,7 +211,7 @@ test('phone 375: a closed task still keeps its dots on the row with Follow up be
   await ctx.close();
 });
 
-test('desk 1440: Done, Edit, Follow up and the dots all sit on one row, as before', async ({ browser }) => {
+test('desk 1440: Done, Edit, Follow up and Escalate all sit on one row, with no ⋯', async ({ browser }) => {
   const member = await memberWithTeam();
   const number = await taskFor(member, `Made-up desk actions ${randomUUID().slice(0, 6)}`);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -207,8 +219,10 @@ test('desk 1440: Done, Edit, Follow up and the dots all sit on one row, as befor
   await signIn(page, member.email, `/tasks/${number}`);
   await hydrated(page);
   const row = page.locator('[data-record-actions]');
-  for (const sel of ['[data-mark-done]', '[data-edit-task-open]', '[data-follow-up]', '[data-task-more]'])
+  for (const sel of ['[data-mark-done]', '[data-edit-task-open]', '[data-follow-up]', '[data-escalate-open]'])
     await expect(row.locator(sel), `${sel} shows on a desk`).toBeVisible();
+  await expect(row.locator('[data-escalate-open]'), 'Escalate says what it is').toHaveText('Escalate');
+  await expect(row.locator('[data-task-more]'), 'a ⋯ that held only Escalate is gone').toBeHidden();
   const tops = await row.evaluate((el) =>
     Array.from(el.children)
       .filter((c) => (c as HTMLElement).offsetParent !== null)
