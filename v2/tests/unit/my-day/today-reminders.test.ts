@@ -4,7 +4,11 @@
  * name and time is made up. Sabotage: tests/sabotage/stage2-capture-today.mjs.
  */
 import { describe, expect, it } from 'vitest';
-import { laterReminders, todayReminders } from '../../../src/modules/my-day/today-reminders';
+import {
+  laterReminders,
+  notesWithoutListedReminders,
+  todayReminders,
+} from '../../../src/modules/my-day/today-reminders';
 import type { DueReminder } from '../../../src/modules/my-day/reminder-alert';
 import type { PendingReminder } from '../../../src/modules/my-day/types';
 
@@ -69,5 +73,23 @@ describe('no reminder is listed twice on My day', () => {
       pending('tomorrow', '2026-10-15T09:00:00+03:00'),
     ];
     expect(laterReminders(rows, '2026-10-14').map((r) => r.id)).toEqual(['late-night-utc', 'tomorrow']);
+  });
+});
+
+describe('a Reminder shows once on My day', () => {
+  const notes = [{ id: 'plain' }, { id: 'waiting' }, { id: 'due-now' }, { id: 'done-long-ago' }];
+  it('leaves out the notes whose reminder is listed above, pending or due, and keeps every other note', () => {
+    const kept = notesWithoutListedReminders(
+      notes,
+      [{ ...pending('r1', '2026-10-20T09:00:00+03:00'), note_id: 'waiting' }],
+      [{ ...due('r2', '2026-10-14T08:00:00+03:00'), note_id: 'due-now' }],
+    );
+    expect(
+      kept.map((n) => n.id),
+      'a reminder is not also a note',
+    ).toEqual(['plain', 'done-long-ago']);
+  });
+  it('keeps a note whose reminder is done or gone: it is an ordinary note again', () => {
+    expect(notesWithoutListedReminders(notes, [], []).map((n) => n.id)).toEqual(notes.map((n) => n.id));
   });
 });

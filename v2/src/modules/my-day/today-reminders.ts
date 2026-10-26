@@ -42,6 +42,20 @@ const row = (r: PendingReminder | DueWithAbout, notification_id: string | null):
 export const laterReminders = (pending: PendingReminder[], day: string): PendingReminder[] =>
   pending.filter((r) => riyadhParts(r.remind_at).day > day);
 
+/**
+ * My notes without the notes whose reminder is already listed above them (the Today block or the Reminders block), so a
+ * Reminder shows once on My day. A note whose reminder is done or gone is an ordinary note again and stays.
+ */
+export function notesWithoutListedReminders<N extends { id: string }>(
+  notes: N[],
+  pending: PendingReminder[],
+  due: DueWithAbout[],
+): N[] {
+  const listed = new Set<string>();
+  for (const r of [...pending, ...due]) if (r.note_id) listed.add(r.note_id);
+  return notes.filter((n) => !listed.has(n.id));
+}
+
 export function todayReminders(
   pending: PendingReminder[],
   due: DueWithAbout[],
