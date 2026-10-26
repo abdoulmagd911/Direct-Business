@@ -2,8 +2,8 @@
  * Productivity stage 1, PR 2 — Quick capture from anywhere and Wrap up v2.
  * Quick capture: the Create menu (wide), the phone + and Ctrl K open one sheet on whatever page the person is on; Note,
  * Idea, Checklist and Reminder (a Reminder asks "when"); Only me is chosen; one tap files it and the person is still on
- * the same page. Wrap up: today's tasks and captures, each Done or Not done (Tomorrow already chosen, Next week, Drop);
- * one Save moves the lot as one request, one Undo puts it all back. The morning after, the Today block says what was
+ * the same page. Wrap up: today's tasks and captures, grouped by kind, each Done, Tomorrow or Drop (nothing chosen
+ * until the person chooses); one Save moves the chosen rows as one request, one Undo puts it all back. The morning after, the Today block says what was
  * carried over. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -135,13 +135,14 @@ test('Ctrl K offers Capture and opens the same sheet', async ({ page }) => {
   await expect(page.locator('[data-quick-capture]')).toBeVisible();
 });
 
-test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week, Drop — and one Undo puts it all back', async ({
+test('Wrap up moves the day in one request: Done, Tomorrow, Drop — nothing chosen by itself — and one Undo puts it all back', async ({
   page,
 }) => {
   const { me, t, make } = await personWithTeam();
   const late = await make(`Late task ${t}`, -1);
   const due = await make(`Due task ${t}`, 0);
   const third = await make(`Third task ${t}`, 0);
+  const left = await make(`Left task ${t}`, 0);
   const named = await tomorrowWord(); // null on a weekday: the word stays "Tomorrow"
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
@@ -150,75 +151,66 @@ test('Wrap up moves the day in one request: Done, Tomorrow by default, Next week
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('[data-wrap-item]', { hasText: `Late task ${t}` })).toBeVisible();
   const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
-  // each move says the day it lands on, in the one date format (W-daily 13), the database's own days
-  const [lands] = await sql<{ tomorrow: string; next_week: string }>(
-    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon YYYY') as tomorrow,
-            to_char(my.next_week_day(core.riyadh_today()), 'FMDD Mon YYYY') as next_week`,
+  // Tomorrow says the day it lands on, in the one date format (W-daily 13), the database's own day
+  const [lands] = await sql<{ tomorrow: string }>(
+    `select to_char(core.next_working_day(core.riyadh_today()), 'FMDD Mon YYYY') as tomorrow`,
   );
   await expect(
     rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="tomorrow"]'),
     'Tomorrow shows its date',
   ).toContainText(lands!.tomorrow);
   await expect(
-    rowOf(`Due task ${t}`).locator('[data-wrap-lands-on="next_week"]'),
-    'Next week shows its date in the same format as Tomorrow',
-  ).toContainText(lands!.next_week);
+    rowOf(`Due task ${t}`).locator('[data-wrap-choice="tomorrow"]'),
+    'Tomorrow is called by its day when the next working day is not tomorrow',
+  ).toContainText(named ?? 'Tomorrow');
   await expect(
-    rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
-    'Tomorrow is already chosen',
-  ).toHaveAttribute('aria-checked', 'true');
-  // at 375 px Tomorrow, Next week and Drop stay on one line, and each of the first two names the day it lands on
+    dialog.locator('[data-wrap-choice][aria-checked="true"]'),
+    'nothing is chosen until the person chooses',
+  ).toHaveCount(0);
+  await expect(dialog.locator('[data-wrap-save]'), 'with nothing chosen Save says nothing about moves').toHaveText(
+    'Save',
+  );
+  await expect(dialog.locator('[data-wrap-save]'), 'and cannot be pressed').toBeDisabled();
+  // at 375 px Done, Tomorrow and Drop stay on one line, none of them cut off by the date
   const tops = await rowOf(`Due task ${t}`)
-    .locator('[data-wrap-move]')
+    .locator('[data-wrap-choice]')
     .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
   expect(tops, 'three choices').toHaveLength(3);
   expect(new Set(tops).size, 'on one line').toBe(1);
   const clipped = await rowOf(`Due task ${t}`)
-    .locator('[data-wrap-move]')
+    .locator('[data-wrap-choice]')
     .evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).length);
   expect(clipped, 'no choice is cut off by the year in its date').toBe(0);
-  await expect(
-    rowOf(`Due task ${t}`).locator('[data-wrap-move="tomorrow"]'),
-    'Tomorrow is called by its day when the next working day is not tomorrow',
-  ).toContainText(named ?? 'Tomorrow');
+  await rowOf(`Late task ${t}`).locator('[data-wrap-choice="done"]').click();
+  await rowOf(`Due task ${t}`).locator('[data-wrap-choice="tomorrow"]').click();
+  await rowOf(`Third task ${t}`).locator('[data-wrap-choice="drop"]').click();
   await expect(
     dialog.locator('[data-wrap-save]'),
-    'Save says what it will do, rows left alone going to tomorrow',
-  ).toHaveText(`Save · 3 to ${named ?? 'tomorrow'}`);
-  await rowOf(`Late task ${t}`).locator('[data-wrap-state="done"]').click();
-  await rowOf(`Third task ${t}`).locator('[data-wrap-move="next_week"]').click();
-  await expect(dialog.locator('[data-wrap-save]')).toHaveText(
-    `Save · 1 to ${named ?? 'tomorrow'}, 1 next week, 1 done`,
-  );
+    'Save counts only the rows chosen, never the one left alone',
+  ).toHaveText(`Save · 1 to ${named ?? 'tomorrow'}, 1 dropped, 1 done`);
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
   const state = async () =>
     sql<{ number: string; due_on: string; closed: boolean }>(
       `select number, due_on::text, (closed_at is not null) as closed from work.task where number = any($1) order by number`,
-      [[late, due, third]],
+      [[late, due, third, left]],
     );
   const after = await state();
   const by = (n: string) => after.find((r) => r.number === n)!;
-  expect(by(late).closed, 'Done closes it').toBe(true);
   const [days] = await sql<{ tomorrow: string; today: string }>(
     `select core.next_working_day(core.riyadh_today())::text as tomorrow, core.riyadh_today()::text as today`,
   );
+  expect(by(late).closed, 'Done closes it').toBe(true);
   expect(by(due).due_on, 'Tomorrow is the next working day').toBe(days!.tomorrow);
-  expect(by(third).due_on > days!.tomorrow, 'Next week is later still').toBe(true);
+  expect(by(third).closed, 'Drop closes it').toBe(true);
+  expect(by(left).closed, 'a row left alone is not closed').toBe(false);
+  expect(by(left).due_on, 'a row left alone keeps its day').toBe(days!.today);
 
   await toast(page, 'Day wrapped up').getByRole('button', { name: 'Undo' }).click();
   await expect
-    .poll(
-      async () =>
-        (await state())
-          .map((r) => `${r.closed}:${r.due_on === days!.today}`)
-          .sort()
-          .join('|'),
-      { message: 'one Undo puts all three back' },
-    )
-    .toContain('false:true');
+    .poll(async () => (await state()).filter((r) => r.closed).length, { message: 'one Undo puts all three back' })
+    .toBe(0);
   const back = await state();
-  expect(back.find((r) => r.number === late)!.closed, 'the Done is undone').toBe(false);
   expect(back.find((r) => r.number === due)!.due_on, 'the move is undone').toBe(days!.today);
 });
 
@@ -251,7 +243,8 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   const dialog = page.getByRole('dialog');
   const rowOf = (title: string) => dialog.locator('[data-wrap-item]', { hasText: title });
   await expect(rowOf(`Lost task ${t}`)).toBeVisible();
-  await rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]').click();
+  await rowOf(`Kept task ${t}`).locator('[data-wrap-choice="drop"]').click();
+  await rowOf(`Lost task ${t}`).locator('[data-wrap-choice="done"]').click();
 
   // while the dialog is open, the task changes hands
   await sql(`update work.task set owner_id = $2 where number = $1`, [lost, other.id]);
@@ -261,10 +254,10 @@ test('a Save refused because a task changed hands names it, keeps the other choi
   await expect(dialog.locator('[data-wrap-gone]'), 'the row that left is named').toContainText(lost);
   await expect(rowOf(`Lost task ${t}`), 'and is out of the list').toHaveCount(0);
   await expect(
-    rowOf(`Kept task ${t}`).locator('[data-wrap-move="next_week"]'),
+    rowOf(`Kept task ${t}`).locator('[data-wrap-choice="drop"]'),
     'the other choice is kept',
   ).toHaveAttribute('aria-checked', 'true');
-  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 next week');
+  await expect(dialog.locator('[data-wrap-save]')).toHaveText('Save · 1 dropped');
   const [still] = await sql<{ due_on: string; today: string }>(
     `select due_on::text, core.riyadh_today()::text as today from work.task where number = $1`,
     [kept],
@@ -273,11 +266,11 @@ test('a Save refused because a task changed hands names it, keeps the other choi
 
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
-  const [moved] = await sql<{ later: boolean }>(
-    `select due_on > core.riyadh_today() as later from work.task where number = $1`,
+  const [moved] = await sql<{ closed: boolean }>(
+    `select (closed_at is not null) as closed from work.task where number = $1`,
     [kept],
   );
-  expect(moved!.later, 'one more tap saved the rest').toBe(true);
+  expect(moved!.closed, 'one more tap saved the rest').toBe(true);
 });
 
 for (const width of [375, 1440]) {

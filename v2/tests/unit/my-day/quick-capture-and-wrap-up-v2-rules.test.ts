@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  WRAP_DEFAULT,
+  wrapGroups,
   wrapItems,
   wrapLabel,
   wrapPayload,
@@ -87,25 +87,39 @@ describe('Wrap up v2 walks the day and sends one request', () => {
     );
     expect(items.map((i) => i.id)).toEqual(['a', 'b', 'n1']);
   });
-  it('chooses Tomorrow unless told otherwise, and Done wins over any move', () => {
+  it('sends only the rows the person chose — a row left alone is not sent, and nothing is chosen by default', () => {
     const items = wrapItems([task('a', 'today'), task('b', 'today'), task('c', 'today')], []);
-    const sent = wrapPayload(items, {
-      b: { done: false, move: 'next_week' },
-      c: { done: true, move: 'drop' },
-    });
-    expect(WRAP_DEFAULT).toEqual({ done: false, move: 'tomorrow' });
-    expect(sent.map((s) => s.choice)).toEqual(['tomorrow', 'next_week', 'done']);
-    expect(sent[0]).toEqual({ kind: 'task', id: 'a', choice: 'tomorrow' });
+    expect(wrapPayload(items, {}), 'nothing chosen, nothing sent').toEqual([]);
+    const sent = wrapPayload(items, { b: 'drop', c: 'done' });
+    expect(sent.map((s) => s.choice)).toEqual(['drop', 'done']);
+    expect(sent[0]).toEqual({ kind: 'task', id: 'b', choice: 'drop' });
   });
-  it('counts what one Save will do, rows left alone going to tomorrow', () => {
+  it('counts what one Save will do from the choices made, and counts nothing for the rows left alone', () => {
     const items = wrapItems([task('a', 'today'), task('b', 'today'), task('c', 'today'), task('d', 'overdue')], []);
-    expect(
-      wrapSummary(items, {
-        b: { done: false, move: 'next_week' },
-        c: { done: true, move: 'drop' },
-        d: { done: false, move: 'drop' },
-      }),
-    ).toEqual({ done: 1, tomorrow: 1, next_week: 1, drop: 1 });
+    expect(wrapSummary(items, { b: 'tomorrow', c: 'done', d: 'drop' })).toEqual({ done: 1, tomorrow: 1, drop: 1 });
+    expect(wrapSummary(items, {}), 'no choice, no count').toEqual({ done: 0, tomorrow: 0, drop: 0 });
+  });
+  it('names each capture by its real kind — Idea, Checklist, Reminder — and a task as a task, never all as Note', () => {
+    const items = wrapItems(
+      [task('a', 'today')],
+      [
+        note('n1'),
+        note('n2', { capture_kind: 'idea' }),
+        note('n3', { capture_kind: 'checklist', kind: 'checklist' }),
+        note('n4', { capture_kind: 'reminder' }),
+        note('n5', { kind: 'checklist' }),
+      ],
+    );
+    expect(items.map((i) => i.word)).toEqual(['task', 'note', 'idea', 'checklist', 'reminder', 'checklist']);
+  });
+  it('groups the rows by kind in a fixed order, and draws no group for a kind with no rows', () => {
+    const items = wrapItems(
+      [task('a', 'today')],
+      [note('r', { capture_kind: 'reminder' }), note('i', { capture_kind: 'idea' }), note('n')],
+    );
+    const groups = wrapGroups(items);
+    expect(groups.map((g) => g.word)).toEqual(['task', 'note', 'idea', 'reminder']);
+    expect(groups.find((g) => g.word === 'idea')?.items.map((i) => i.id)).toEqual(['i']);
   });
   it('after a refused Save names the rows that left and keeps the rest', () => {
     const before = wrapItems([task('a', 'today'), task('b', 'today')], []);
