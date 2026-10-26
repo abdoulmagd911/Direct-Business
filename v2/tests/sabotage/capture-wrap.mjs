@@ -162,8 +162,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}",
-        replace: "{t('pages.myDay.wrap.title')}",
+        find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('common.save')}",
+        replace: "{t('common.save')}",
       },
     ],
   },
