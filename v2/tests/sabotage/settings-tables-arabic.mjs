@@ -1,5 +1,5 @@
 // QA-592: the People and Teams tables of Settings fit their box in Arabic at 1,280 and 1,440 px.
-const E2E = 'e2e:tests/e2e/settings-tables-fit-in-arabic.alone.spec.ts';
+const E2E = 'e2e:tests/e2e/app-settings.alone.spec.ts';
 export const sabotages = [
   {
     name: 'the-people-table-keeps-its-words-on-one-line',
