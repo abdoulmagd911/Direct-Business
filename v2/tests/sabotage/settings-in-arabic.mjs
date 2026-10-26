@@ -47,8 +47,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/words.ts',
-        find: '${keyWord(t, k)}: ${valueText(t, `${settingKey}.${k}`, v)}',
-        replace: '${keyWord(t, k)}: ${valueText(t, settingKey, v)}',
+        find: '${valueText(t, `${settingKey}.${k}`, v, names)}',
+        replace: '${valueText(t, settingKey, v, names)}',
       },
     ],
   },
