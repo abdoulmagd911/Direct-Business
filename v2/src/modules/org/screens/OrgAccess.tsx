@@ -654,15 +654,15 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           </Button>
         </div>
         <div className="overflow-x-auto rounded-lg border border-border bg-raised">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
             <thead className="text-xs text-muted">
               <tr>
                 <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.name')}</th>
                 <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.code')}</th>
                 <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.department')}</th>
                 <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.lead')}</th>
-                <th className="px-4 py-2.5 text-end font-medium">{t('settings.teams.members')}</th>
-                <th className="px-4 py-2.5" />
+                <th className="w-[12%] px-4 py-2.5 text-end font-medium">{t('settings.teams.members')}</th>
+                <th className="w-[22%] px-4 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -670,19 +670,21 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                 .sort((a, b) => Number(!a.active) - Number(!b.active) || a.name_en.localeCompare(b.name_en))
                 .map((x) => (
                   <tr key={x.id} data-team-row={x.code}>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
                       <span className="flex items-center gap-2 font-medium">
                         {names.pick(x)}
                         {!x.active ? <StatusChip tone="neutral">{t('settings.teams.retiredChip')}</StatusChip> : null}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 font-data text-muted">{x.code}</td>
-                    <td className="px-4 py-2.5">{names.dept(x.department_id)}</td>
-                    <td className="px-4 py-2.5">{names.person(x.lead_person_id) || t('settings.teams.noLead')}</td>
+                    <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:anywhere]">{x.code}</td>
+                    <td className="px-4 py-2.5 [overflow-wrap:anywhere]">{names.dept(x.department_id)}</td>
+                    <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                      {names.person(x.lead_person_id) || t('settings.teams.noLead')}
+                    </td>
                     <td className="px-4 py-2.5 text-end font-data">{members(x.id)}</td>
                     <td className="px-4 py-2.5 text-end">
                       {x.active ? (
-                        <span className="inline-flex gap-1">
+                        <span className="inline-flex flex-wrap justify-end gap-1">
                           <Button size="xs" variant="ghost" onClick={() => openTeam(x)}>
                             {t('common.edit')}
                           </Button>
@@ -714,7 +716,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           </Button>
         </div>
         <div className="overflow-x-auto rounded-lg border border-border bg-raised">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
             <thead className="text-xs text-muted">
               <tr>
                 <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.name')}</th>
@@ -723,15 +725,17 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                 <th className="px-4 py-2.5 text-end font-medium">
                   {t('settings.people.people', { count: 0 }).replace(/^0\s*/, '')}
                 </th>
-                <th className="px-4 py-2.5" />
+                <th className="w-[22%] px-4 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {org.departments.map((x) => (
                 <tr key={x.id}>
-                  <td className="px-4 py-2.5 font-medium">{names.pick(x)}</td>
-                  <td className="px-4 py-2.5 font-data text-muted">{x.code}</td>
-                  <td className="px-4 py-2.5">{names.person(x.head_person_id) || t('settings.departments.noHead')}</td>
+                  <td className="px-4 py-2.5 font-medium [overflow-wrap:anywhere]">{names.pick(x)}</td>
+                  <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:anywhere]">{x.code}</td>
+                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                    {names.person(x.head_person_id) || t('settings.departments.noHead')}
+                  </td>
                   <td className="px-4 py-2.5 text-end font-data">
                     {org.people.filter((p) => p.department_id === x.id).length}
                   </td>
