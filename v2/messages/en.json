@@ -1523,7 +1523,8 @@
       "admin": "Admin role",
       "saved": "Role saved",
       "edit": "Edit {name}",
-      "people": "People"
+      "people": "People",
+      "role": "Role"
     },
     "access": {
       "matrix": "Roles × pages",
@@ -1587,6 +1588,14 @@
           "appraisal": "Appraisal",
           "activity": "Activity"
         }
+      },
+      "finance": {
+        "revenue_definition": {
+          "basis": {
+            "revenue": "Revenue",
+            "profit": "Profit"
+          }
+        }
       }
     },
     "emptyGroup": "Nothing to set up here yet.",
@@ -1597,7 +1606,17 @@
       "account_manager": "Account manager",
       "commercial_manager": "Commercial manager",
       "in_app": "In app",
-      "email": "Email"
+      "email": "Email",
+      "basis": "Basis",
+      "services": "Services",
+      "client_types": "Client types",
+      "commissions": "Commissions count",
+      "prepaid": "Prepaid",
+      "postpaid": "Postpaid",
+      "tender": "Tender"
+    },
+    "fileTypes": {
+      "text": "Text"
     }
   },
   "errors": {
