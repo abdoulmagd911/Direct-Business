@@ -851,7 +851,8 @@
         "removeTitle": "Delete the comment by {name}?",
         "bodyRequired": "Write something first",
         "tooLong": "At most {max} characters",
-        "delete": "Delete"
+        "delete": "Delete",
+        "editAction": "Edit"
       }
     },
     "weeklyReview": {

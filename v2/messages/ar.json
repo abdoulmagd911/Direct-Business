@@ -771,7 +771,8 @@
         "removeTitle": "حذف تعليق {name}؟",
         "bodyRequired": "اكتب شيئًا أولًا",
         "tooLong": "الحد الأقصى {max} حرف",
-        "delete": "حذف"
+        "delete": "حذف",
+        "editAction": "تعديل"
       }
     },
     "weeklyReview": {
