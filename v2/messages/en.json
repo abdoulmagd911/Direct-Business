@@ -1870,6 +1870,7 @@
     },
     "unread": "Unread",
     "markAllRead": "Mark all read",
+    "groupUnread": "{count} unread",
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
@@ -1900,6 +1901,8 @@
       "reminder": "Reminder: {record}",
       "note_mention": "{actor} mentioned you in a note",
       "alert_due_tomorrow": "{record} is coming due",
+      "due_overdue": "{record} is overdue",
+      "due_today": "{record} is due today",
       "other": "{actor} · {record}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",

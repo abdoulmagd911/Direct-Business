@@ -1898,6 +1898,42 @@ export const sabotages = [
     ],
   },
   {
+    name: 'bell-says-the-type-not-the-name',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'says the name the server gave',
+    edits: [{ file: 'src/ui/shell/bell-words.ts', find: 'return named ?? kindWord;', replace: 'return kindWord;' }],
+  },
+  {
+    name: 'bell-says-coming-due-when-late',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'puts a due-date notice at overdue',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return due < today ? 'overdue' : due === today ? 'today' : 'coming';",
+        replace: "return due < today ? 'coming' : due === today ? 'today' : 'coming';",
+      },
+    ],
+  },
+  {
+    name: 'bell-today-is-not-a-group',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'groups a notice made today under Today',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';",
+        replace: "return day === today ? 'yesterday' : day === yesterday ? 'yesterday' : 'earlier';",
+      },
+    ],
+  },
+  {
+    name: 'bell-group-header-has-no-unread',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Today group, with its unread count on the header',
+    edits: [{ file: 'src/ui/shell/NotificationsPanel.tsx', find: '{g.unread ? (', replace: '{false ? (' }],
+  },
+  {
     name: 'bell-stays-open-on-a-new-page',
     breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
     expect: 'closed by the page change',

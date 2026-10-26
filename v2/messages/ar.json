@@ -1322,8 +1322,11 @@
       "reminder": "تذكير: {record}",
       "note_mention": "أشار إليك {actor} في ملاحظة",
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
+      "due_overdue": "{record} متأخرة عن موعدها",
+      "due_today": "{record} موعدها اليوم",
       "other": "{actor} · {record}"
     },
+    "groupUnread": "{count} غير مقروء",
     "snoozeTomorrow": "حتى الغد 08:00",
     "snoozeDay": "حتى {day} 08:00",
     "snoozeWeek": "لمدة أسبوع · {when}",
