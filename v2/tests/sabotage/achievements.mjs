@@ -242,4 +242,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'clear-filters-shows-twice-when-nothing-matches',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'the row button hides while the empty box is up',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementList.tsx',
+        find: '{filtered && page?.rows.length !== 0 ? (',
+        replace: '{filtered ? (',
+      },
+    ],
+  },
+  {
+    name: 'record-back-arrow-has-no-own-name',
+    breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
+    expect: 'Back to Achievements',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/AchievementRecord.tsx',
+        find: "label: t('backTo') }}",
+        replace: "label: t('back') }}",
+      },
+    ],
+  },
 ];

@@ -165,7 +165,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         // a phone has the back arrow and the title, no trail; the title takes three lines, then a "more" tap
         crumbsClass="max-lg:hidden"
         titleMore={{ more: t('titleMore'), less: t('titleLess') }}
-        back={{ href: '/kpis/achievements', label: t('back') }}
+        back={{ href: '/kpis/achievements', label: t('backTo') }}
         title={locale === 'ar' ? a.line_ar : a.line_en}
         subtitle={[
           a.number,
