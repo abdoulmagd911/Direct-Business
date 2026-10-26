@@ -1888,7 +1888,7 @@ export const sabotages = [
   {
     name: 'board-card-hides-the-block-reason',
     breaks: ['e2e:tests/e2e/tasks.spec.ts'],
-    expect: 'the board',
+    expect: 'the board card says why it is blocked',
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskBoard.tsx',
