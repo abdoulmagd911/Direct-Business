@@ -12,7 +12,7 @@ const tag = () => Math.random().toString(36).slice(2, 8);
 const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
 
 for (const width of [375, 1440]) {
-  test(`a Reminder is listed once on My day — in the Reminders block, not again in My notes — at ${width} px`, async ({
+  test(`a Reminder is listed once on My day, also when My notes is narrowed to Reminders — at ${width} px`, async ({
     page,
     context,
   }) => {
@@ -42,12 +42,14 @@ for (const width of [375, 1440]) {
       `Call the supplier ${t}`,
     );
     await expect(page.getByText(`Call the supplier ${t}`), 'it shows once on the whole page').toHaveCount(1);
-    // the Reminder filter is the one place that asks for reminders as notes
+    // narrowed to Reminders, My notes is the list and the Reminders block steps aside: still once
     await page.goto('/my-day?kind=reminder');
     await hydrated(page);
-    await expect(page.locator('[data-block="me"]'), 'the Reminder filter still lists it').toContainText(
+    await expect(page.locator('[data-block="me"]'), 'the Reminder filter lists it').toContainText(
       `Call the supplier ${t}`,
     );
+    await expect(page.locator('[data-reminders]'), 'and the Reminders block is not drawn above it').toHaveCount(0);
+    await expect(page.getByText(`Call the supplier ${t}`), 'once on the filtered page too').toHaveCount(1);
   });
 
   test(`the capture sheet offers only Only me for a Reminder and files it private — at ${width} px`, async ({

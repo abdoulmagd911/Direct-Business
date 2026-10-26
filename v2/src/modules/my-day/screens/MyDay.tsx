@@ -15,7 +15,7 @@ import { Tabs } from '@/ui/Tabs';
 import { BLOCK_ROWS } from '../logic';
 import { CAPTURE_KINDS, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
-import { laterReminders, notesWithoutListedReminders } from '../today-reminders';
+import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
 import { CaptureShortcut } from './CaptureShortcut';
@@ -68,14 +68,8 @@ export function MyDay({ data }: { data: MyDayData }) {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;
   };
-  // a Reminder is listed once: above (Today or Reminders) while it waits, in My notes once it is done; the Reminder
-  // filter is the one place that asks for them as notes
-  const notes =
-    scope === 'me' && kind !== 'reminder'
-      ? notesWithoutListedReminders(answer.notes, answer.reminders, data.due?.due ?? [])
-      : answer.notes;
-  const rows = all ? notes : notes.slice(0, BLOCK_ROWS);
-  const more = !all && (answer.more || notes.length > BLOCK_ROWS);
+  const rows = all ? answer.notes : answer.notes.slice(0, BLOCK_ROWS);
+  const more = !all && (answer.more || answer.notes.length > BLOCK_ROWS);
 
   return (
     <>
@@ -106,7 +100,8 @@ export function MyDay({ data }: { data: MyDayData }) {
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
       {scope === 'me' ? <CaptureShortcut /> : null}
-      {scope === 'me' && later.length ? (
+      {/* narrowed to one kind, My notes is the list: the Reminders block would list the same reminders again */}
+      {scope === 'me' && !kind && later.length ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
           <ul className="divide-y divide-border">
