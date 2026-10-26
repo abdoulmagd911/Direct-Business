@@ -2,7 +2,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useMe } from '@/core/auth/me-context';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
@@ -50,7 +50,7 @@ export function ActivityTimeline({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
-  const me = useMe().person.id;
+  const me = useMaybeMe()?.person.id;
   const [busy, setBusy] = useState<string | null>(null);
   const undoable = (r: HistoryRow) => !r.undone && r.kind !== 'system' && r.kind !== 'job' && r.kind !== 'undo';
   const newestMine = rows.find((r) => r.actor_id === me && undoable(r))?.request_id;
