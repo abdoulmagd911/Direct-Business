@@ -144,7 +144,7 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
-  test(`${w.name}: on a task Follow up is visible, saves one follow-up, and Escalate stays in the ⋯ menu`, async ({
+  test(`${w.name}: on a task Follow up is visible, saves one follow-up, and Escalate is its own labelled button`, async ({
     browser,
   }) => {
     const admin = await adminWithTeam();
@@ -157,14 +157,18 @@ for (const w of WIDTHS) {
     await page.goto(`/tasks/${number}`);
     await hydrated(page);
     await expect(page.locator('[data-mark-done]'), 'Mark done stays the main action').toBeVisible();
-    await expect(page.getByRole('button', { name: 'Escalate', exact: true })).toHaveCount(0);
-    const phone = w.width < 640;
-    await page.locator('[data-task-more]').click();
     await expect(
-      page.getByRole('menuitem'),
-      phone ? 'the ⋯ menu holds Edit, Follow up and Escalate' : 'the ⋯ menu holds Escalate',
-    ).toHaveText(phone ? ['Edit', 'Follow up', 'Escalate'] : ['Escalate']);
-    await page.keyboard.press('Escape');
+      page.getByRole('button', { name: 'Escalate', exact: true }),
+      'Escalate is a labelled button (E)',
+    ).toBeVisible();
+    const phone = w.width < 640;
+    if (phone) {
+      await page.locator('[data-task-more]').click();
+      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit and Follow up').toHaveText(['Edit', 'Follow up']);
+      await page.keyboard.press('Escape');
+    } else {
+      await expect(page.locator('[data-task-more]'), 'on a desk there is no ⋯ left to open').toBeHidden();
+    }
     await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
     const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`, phone);
     await expect(page.locator('[data-no-notes]'), 'beside a follow-up, an empty Notes says No other notes').toHaveText(
