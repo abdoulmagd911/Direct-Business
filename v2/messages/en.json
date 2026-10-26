@@ -1789,6 +1789,11 @@
       "terms_list_expected": "Terms must be a list",
       "side_required": "A contract needs its side"
     },
+    "activity": {
+      "with_whom_required": "Say who it was with: an organisation or someone inside Direct",
+      "unknown_internal_counterpart": "That team or system is not on the list: {detail}",
+      "share_team_internal_only": "Only an activity inside Direct can be shared with a team"
+    },
     "reference": {
       "unknown_department": "No active department: {detail}",
       "mailbox_invalid": "Where the codes go must be an email address",
@@ -2022,6 +2027,14 @@
       "who": "Who was it with?",
       "whoOrg": "A client, lead or supplier",
       "whoNext": "Next",
+      "whoKind": "It was with",
+      "whoInside": "Someone inside Direct",
+      "insideField": "Team or system",
+      "insideNone": "Choose a team or system",
+      "needWho": "Choose a client, lead or supplier",
+      "needInside": "Choose a team or system",
+      "ticketRef": "Ticket reference (optional)",
+      "shareTeam": "Share with my team",
       "log": "Log activity",
       "logged": "{type} logged",
       "logFor": "Log activity for {name}",

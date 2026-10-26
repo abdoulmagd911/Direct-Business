@@ -6,6 +6,7 @@ import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { lastActivityTypeKey, readLastActivityType, writeLastActivityType } from '@/core/prefs/last-activity-type';
 import { Button } from '@/ui/Button';
+import { Checkbox } from '@/ui/Checkbox';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
@@ -70,10 +71,13 @@ export function LogActivityDialog({
   onDone,
   partnerName,
   onChangeWho,
+  internalKey,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  partnerId: string;
+  partnerId: string | null;
+  /** V645: the key of the team or system inside Direct this was with, instead of an organisation (partnerId is then null). */
+  internalKey?: string;
   types: ListEntry[];
   outcomes: ListEntry[];
   onDone: () => void;
@@ -89,7 +93,7 @@ export function LogActivityDialog({
   const fresh = () => {
     const last = readLastActivityType(storeKey);
     const type = [last, 'call'].find((k) => k && types.some((x) => x.key === k)) ?? types[0]?.key ?? '';
-    return { type, outcome: '', on: today(), body: '', next: '', nextOn: '' };
+    return { type, outcome: '', on: today(), body: '', next: '', nextOn: '', ticket: '', share: false };
   };
   const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
@@ -132,7 +136,11 @@ export function LogActivityDialog({
       ),
       () =>
         rpc('activity_log', {
-          p_partner: partnerId,
+          // the generated type asks for an organisation; with someone inside Direct there is none (V645)
+          p_partner: partnerId as string,
+          p_internal: internalKey,
+          p_ticket_ref: f.ticket.trim() || undefined,
+          p_share_team: internalKey ? f.share : undefined,
           p_type: f.type,
           p_outcome: f.outcome || undefined,
           p_happened_on: f.on,
@@ -162,7 +170,7 @@ export function LogActivityDialog({
         />
       }
       closeLabel={t('common.close')}
-      dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
+      dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn || !!f.ticket}
       footer={
         <div className="flex w-full flex-wrap items-center justify-end gap-2">
           {!ok && why ? (
@@ -215,6 +223,24 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.line')} className="sm:col-span-2">
           {(p) => <Textarea {...p} rows={3} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />}
         </Field>
+        <Field label={t('partners.activity.ticketRef')} className="sm:col-span-2">
+          {(p) => (
+            <Input {...p} value={f.ticket} onChange={(e) => setF({ ...f, ticket: e.target.value })} maxLength={500} />
+          )}
+        </Field>
+        {internalKey ? (
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <Checkbox
+              id="activity-share-team"
+              checked={f.share}
+              onCheckedChange={(v) => setF({ ...f, share: v })}
+              label={t('partners.activity.shareTeam')}
+            />
+            <label htmlFor="activity-share-team" className="text-sm">
+              {t('partners.activity.shareTeam')}
+            </label>
+          </div>
+        ) : null}
         <Field label={demoSet ? t('partners.activity.demoDay') : t('partners.activity.nextStepOn')}>
           {(p) => (
             <Input

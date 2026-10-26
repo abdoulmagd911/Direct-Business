@@ -1,5 +1,6 @@
 // Sabotages for Log activity in the + (V646).
 const UNIT = 'unit:tests/unit/shell/the-plus-offers-log-activity-between-task-and-achievement.test.ts';
+const INSIDE = 'e2e:tests/e2e/log-activity-inside-direct.spec.ts';
 const PHONE = 'e2e:tests/e2e/log-activity-title-and-reason.spec.ts';
 const E2E = 'e2e:tests/e2e/log-activity-from-the-plus.spec.ts';
 
@@ -35,8 +36,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/LogActivityEntry.tsx',
-        find: 'disabled={!who}',
-        replace: 'disabled={false}',
+        find: "const ready = mode === 'org' ? !!who : !!inside;",
+        replace: 'const ready = true;',
       },
     ],
   },
@@ -122,6 +123,30 @@ export const sabotages = [
         file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
         find: 'className="justify-start px-0 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
         replace: 'className="ms-2 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+      },
+    ],
+  },
+  {
+    name: 'log-activity-inside-needs-no-team',
+    breaks: [INSIDE],
+    expect: 'Next waits for a team or system',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/LogActivityEntry.tsx',
+        find: "const ready = mode === 'org' ? !!who : !!inside;",
+        replace: "const ready = mode === 'org' ? !!who : true;",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-drops-the-ticket',
+    breaks: [INSIDE],
+    expect: 'TEST-1234',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: 'p_ticket_ref: f.ticket.trim() || undefined,',
+        replace: 'p_ticket_ref: undefined,',
       },
     ],
   },
