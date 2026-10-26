@@ -199,6 +199,7 @@ export function ActivityScreen({
             onChanged={() => router.refresh()}
             describe={describe}
             summarize={summarize}
+            undoEvery
           />
         </section>
       ) : null}
