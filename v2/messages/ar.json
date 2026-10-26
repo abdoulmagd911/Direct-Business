@@ -1006,6 +1006,8 @@
     }
   },
   "activity": {
+    "helper": "مساعد",
+    "followUp": "متابعة",
     "deleted": {
       "restore": "استعادة",
       "restored": "تمت استعادة {what}",

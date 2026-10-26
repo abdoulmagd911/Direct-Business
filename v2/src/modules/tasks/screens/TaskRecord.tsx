@@ -257,7 +257,21 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         {tab === 'activity' ? (
           history ? (
             history.length ? (
-              <ActivityTimeline rows={history} people={people} />
+              <ActivityTimeline
+                rows={history}
+                people={people}
+                describe={(field, v) => {
+                  // the task's own ids in words (B): its status, client and project by name, never an id
+                  if (typeof v !== 'string' || !v) return null;
+                  if (field === 'status_id') {
+                    const s = lookups.statuses.find((x) => x.id === v);
+                    return s ? (names.locale === 'ar' ? s.name_ar : s.name_en) : null;
+                  }
+                  if (field === 'partner_id') return names.partner(v) || null;
+                  if (field === 'project_id') return names.project(v) || null;
+                  return null;
+                }}
+              />
             ) : (
               <DataState kind="empty" message={t('record.noActivity')} />
             )
