@@ -826,7 +826,8 @@
         "calendar": "Calendar"
       },
       "board": {
-        "emptyColumn": "Nothing here"
+        "emptyColumn": "Nothing here",
+        "blockedLabel": "Blocked:"
       },
       "calendar": {
         "previous": "Previous month",

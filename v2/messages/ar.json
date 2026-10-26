@@ -506,6 +506,9 @@
     "tasks": {
       "unknownOwner": "غير معروف",
       "blocked": "متوقفة",
+      "board": {
+        "blockedLabel": "متوقفة:"
+      },
       "blockedSince": "متوقفة منذ {date}",
       "internalWork": "داخلي",
       "markDone": "تعليم “{title}” كمنجزة",

@@ -194,6 +194,15 @@ for (const w of WIDTHS) {
     await expect(page.locator('[data-blocked-reason]')).toContainText('Waiting for the made-up supplier');
     await page.screenshot({ path: shot(`tasks-record-blocked-${w.name}`), fullPage: true });
 
+    // the board's card says why too (26 Oct): "Blocked: <reason>", in full
+    await page.goto('/tasks?view=owned&layout=board');
+    const card = page.locator('[data-board-card]', { hasText: title });
+    await expect(card.locator('[data-board-block-reason]'), 'the board card says why it is blocked').toHaveText(
+      'Blocked: Waiting for the made-up supplier',
+    );
+    await page.goBack();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
     // resuming is choosing In progress
     await page.locator('button[data-task-status]').click();
     await page.locator('[data-move="in_progress"]').click();
