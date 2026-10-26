@@ -1,6 +1,6 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
@@ -12,6 +12,47 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { nameOf, type ListEntry } from '../../types';
 import { today, useWords } from './words';
+
+/**
+ * The dialog's title line: the name wraps over at most three lines with a "More" tap (V653, ruling of 23 Oct — a dialog
+ * title is not a picker row), and "Change" stays at the end of the line, on a phone as on a PC.
+ */
+function TitleLine({ text, onChange }: { text: string; onChange?: () => void }) {
+  const t = useTranslations();
+  const box = useRef<HTMLSpanElement>(null);
+  const [more, setMore] = useState(false);
+  const [open, setOpen] = useState(false);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && !open) setMore(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+  return (
+    <span className="flex items-baseline gap-3">
+      <span className="min-w-0 flex-1">
+        <span ref={box} className={open ? 'break-words' : 'line-clamp-3 break-words'} data-activity-title>
+          {text}
+        </span>
+        {more || open ? (
+          <span className="flex justify-start">
+            <Button
+              variant="link"
+              className="justify-start px-0 text-sm font-normal"
+              onClick={() => setOpen(!open)}
+              data-activity-title-more
+            >
+              {open ? t('partners.activity.titleLess') : t('partners.activity.titleMore')}
+            </Button>
+          </span>
+        ) : null}
+      </span>
+      {onChange ? (
+        <Button variant="link" className="shrink-0 text-sm font-normal" onClick={onChange} data-activity-change>
+          {t('partners.activity.change')}
+        </Button>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * Log activity (V150, V401, V406): call · meeting · demo · visit · note, the outcome from that type's own list (required
@@ -57,7 +98,12 @@ export function LogActivityDialog({
   const outcome = own.find((o) => o.key === f.outcome);
   const demoSet = outcome?.meaning === 'demo_set';
   const ok =
-    !!f.type && (own.length === 0 || !!f.outcome) && !!f.on && (!f.next || !!f.nextOn) && (!demoSet || !!f.nextOn);
+    !!f.type &&
+    (own.length === 0 || !!f.outcome) &&
+    !!f.on &&
+    !!f.body.trim() &&
+    (!f.next || !!f.nextOn) &&
+    (!demoSet || !!f.nextOn);
   // What is still missing, in the words of the boxes themselves — one line under the form while Save is off
   const missing = [
     !f.type && t('partners.activity.need.type'),
@@ -65,11 +111,17 @@ export function LogActivityDialog({
     !f.on && t('partners.activity.need.on'),
     ((!!f.next && !f.nextOn) || (demoSet && !f.nextOn)) && t('partners.activity.need.nextOn'),
   ].filter((x): x is string => !!x);
-  const why = missing.length
-    ? t('partners.activity.need.line', {
-        list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
-      })
-    : '';
+  // Save says in one line what is still missing: the boxes to choose, then the line to write (22–23 Oct)
+  const why = [
+    missing.length
+      ? t('partners.activity.need.line', {
+          list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
+        })
+      : '',
+    f.body.trim() ? '' : t('partners.activity.need.body'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const save = async () => {
     setBusy(true);
     await command(
@@ -103,26 +155,29 @@ export function LogActivityDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+      title={
+        <TitleLine
+          text={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+          onChange={onChangeWho}
+        />
+      }
       closeLabel={t('common.close')}
       dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {!ok && why ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-why>
+              {why}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!ok} loading={busy} onClick={() => void save()} data-activity-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
-        {onChangeWho ? (
-          <div className="sm:col-span-2">
-            <Button variant="link" onClick={onChangeWho} data-activity-change>
-              {t('partners.activity.change')}
-            </Button>
-          </div>
-        ) : null}
         <Field label={t('partners.activity.type')}>
           {(p) => (
             <Select
@@ -133,7 +188,7 @@ export function LogActivityDialog({
             />
           )}
         </Field>
-        <Field label={t('partners.activity.outcome')}>
+        <Field label={own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')}>
           {(p) => (
             <Select
               {...p}
@@ -175,11 +230,6 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.nextStep')}>
           {(p) => <Input {...p} value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />}
         </Field>
-        {!ok && why ? (
-          <p className="text-sm text-muted sm:col-span-2" role="status" data-activity-why>
-            {why}
-          </p>
-        ) : null}
       </div>
     </Dialog>
   );
@@ -232,12 +282,17 @@ export function AddNoteDialog({
       closeLabel={t('common.close')}
       dirty={!!f.body}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {!f.body.trim() ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-note-why>
+              {t('partners.note.need')}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!f.body.trim()} loading={busy} onClick={() => void save()} data-note-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">

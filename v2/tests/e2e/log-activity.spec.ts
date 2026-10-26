@@ -39,9 +39,12 @@ for (const width of [1440, 375]) {
     await expect(save).toBeDisabled();
     // the type opens on Call the first time (22 Oct), so only the outcome is still asked; the type stays changeable
     await expect(form.getByLabel('Type')).toContainText('Call');
-    await expect(why, 'the line under the form').toHaveText('Choose an outcome');
+    await expect(why, 'the line under the form').toHaveText('Choose an outcome · Write what happened to save');
     await form.getByLabel('Outcome').click();
     await page.getByRole('option', { name: 'Answered' }).click();
+    await expect(why, 'only the line to write is left').toHaveText('Write what happened to save');
+    await expect(save).toBeDisabled();
+    await form.getByLabel('What happened').fill('Made-up call about the offer');
     await expect(why, 'nothing missing, no line').toHaveCount(0);
     await expect(save).toBeEnabled();
 

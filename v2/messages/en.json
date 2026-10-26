@@ -423,7 +423,9 @@
       "refAdded": "Reference added",
       "refRemoved": "Reference removed",
       "empty": "No achievements yet",
-      "noMatch": "No achievements match",
+      "noMatch": "No achievements match these filters",
+      "titleMore": "More",
+      "titleLess": "Show less",
       "filters": {
         "category": "Category",
         "all": "All",
@@ -432,14 +434,15 @@
         "backfilled": "Backfilled",
         "past": "Past work",
         "needsOwner": "Needs owner",
-        "clear": "Clear",
+        "clear": "Clear filters",
         "allCategories": "All categories",
         "anyMonth": "Any month",
         "meaning": {
           "backfilled": "Added later from earlier records, not logged at the time.",
           "past": "From before the app went live: every backfilled entry and anything dated earlier.",
           "needsOwner": "No owner is named yet."
-        }
+        },
+        "clearMonth": "Clear month"
       },
       "cols": {
         "achievement": "Achievement",
@@ -490,7 +493,7 @@
         "remove": "Remove",
         "move": "Move",
         "assign": "Give owner",
-        "addRef": "Add reference",
+        "addRef": "Add evidence",
         "save": "Save",
         "cancel": "Cancel",
         "choose": "Choose"
@@ -507,13 +510,12 @@
       "notRevenue": "Not revenue",
       "noDate": "No date yet",
       "back": "Achievements",
+      "backTo": "Back to Achievements",
       "figures": {
         "value": "Deal value",
         "count": "Count",
-        "date": "Date",
-        "refs": "Evidence"
+        "date": "Date"
       },
-      "evidenceNone": "No evidence yet",
       "source": "{kind} · {period}",
       "reports": {
         "bd_monthly": "BD monthly",
@@ -2024,9 +2026,12 @@
       "logged": "{type} logged",
       "logFor": "Log activity for {name}",
       "change": "Change",
+      "titleMore": "More",
+      "titleLess": "Less",
       "loggedFor": "{type} logged for {name}",
       "type": "Type",
       "outcome": "Outcome",
+      "outcomeOptional": "Outcome (optional)",
       "happenedOn": "Happened on",
       "line": "What happened",
       "nextStep": "Next step",
@@ -2041,6 +2046,7 @@
       "none": "Nothing logged yet",
       "by": "by {name}",
       "need": {
+        "body": "Write what happened to save",
         "line": "Choose {list}",
         "type": "a type",
         "outcome": "an outcome",
@@ -2051,6 +2057,7 @@
     "note": {
       "add": "Add note",
       "added": "Note added",
+      "need": "Write the note to save",
       "kind": "Kind",
       "body": "Note",
       "kinds": {
