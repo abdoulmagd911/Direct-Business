@@ -148,7 +148,7 @@ test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edi
   await expect(row.locator('[data-escalate-open]'), 'Escalate is a labelled button on the row').toHaveText('Escalate');
   await expect(row.locator('[data-escalate-open]'), 'with its one line of what it does').toHaveAttribute(
     'title',
-    'Tell a colleague this task needs them: they are notified and follow it',
+    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
   );
   await expect(row.locator('[data-edit-task-open]'), 'Edit is not on the row').toBeHidden();
   await expect(row.locator('[data-follow-up]'), 'Follow up is not on the row').toBeHidden();
@@ -174,7 +174,7 @@ test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edi
   await page.keyboard.press('Escape');
   await row.locator('[data-escalate-open]').click();
   await expect(page.getByRole('dialog'), 'Escalate opens, its line read out with it').toHaveAccessibleDescription(
-    'Tell a colleague this task needs them: they are notified and follow it',
+    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
   );
   await page.keyboard.press('Escape');
   await row.locator('[data-task-more]').click();
