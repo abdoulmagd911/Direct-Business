@@ -683,6 +683,7 @@
       },
       "escalate": {
         "open": "Escalate",
+        "what": "Tell a colleague this task needs them: they are notified and follow it",
         "title": "Escalate {number}",
         "to": "Escalate to",
         "to_required": "Pick who to tell",
