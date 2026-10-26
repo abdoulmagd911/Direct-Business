@@ -90,7 +90,8 @@ export function NotificationsPanel({
     const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
     const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? kindWord;
     const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
-    const key = `notifications.kinds.${n.kind}`;
+    // D (26 Oct): the due alert's second notice, once the day has passed, says so
+    const key = n.label_key === 'alert.overdue' ? 'notifications.kinds.alert_overdue' : `notifications.kinds.${n.kind}`;
     return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
   };
   const detailOf = (n: Notification) =>

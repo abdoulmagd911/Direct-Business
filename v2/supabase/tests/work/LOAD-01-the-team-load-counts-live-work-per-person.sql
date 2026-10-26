@@ -30,14 +30,17 @@ select api.action_item_add(current_setting('t.t1')::uuid, jsonb_build_object('te
   'owner_id', current_setting('t.am1')));
 select api.action_item_add(current_setting('t.t2')::uuid, jsonb_build_object('text', 'Made-up item two',
   'owner_id', current_setting('t.am1')));
--- past work: a task dated before go-live is not load
+-- past work: a task added through the Past work form is not load, open or not (an open task merely dated before
+-- go-live, with an owner, is live work and load: D, 26 Oct)
 select test.as_owner();
 insert into core.setting (key, value, valid_from, reason, created_by)
 values ('app.go_live_on', to_jsonb((core.riyadh_today() - 15)::text), core.riyadh_today() - 15, 'made up: go-live',
         current_setting('t.mgr')::uuid);
-select test.as_person(current_setting('t.mgr')::uuid);
-select api.task_create(jsonb_build_object('title', 'Made-up past', 'owner_id', current_setting('t.am1'),
-  'work_type', 'internal', 'happened_on', core.riyadh_today() - 30, 'due_on', core.riyadh_today() - 20));
+insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by, origin,
+                       happened_on, due_on)
+values ('TSK-2026-99001', 'Made-up past', current_setting('t.am1')::uuid, (select id from core.team where code = 'test_desk'),
+        test.department('commercial'), (select id from work.task_status where is_default and deleted_at is null limit 1),
+        'internal', current_setting('t.mgr')::uuid, 'backfill', core.riyadh_today() - 30, core.riyadh_today() - 20);
 select test.as_owner();
 update core.person set active = false where id = current_setting('t.off')::uuid;
 

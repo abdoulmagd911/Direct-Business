@@ -1327,6 +1327,7 @@
       "reminder": "تذكير: {record}",
       "note_mention": "أشار إليك {actor} في ملاحظة",
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
+      "alert_overdue": "تأخر موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
     "snoozeTomorrow": "حتى الغد 08:00",

@@ -1,7 +1,7 @@
 -- PAST-02 — the go-live day is read live, never stored on an entry (V609). With app.go_live_on blank, a task and an
 -- achievement dated 2 and 16 Oct are live work, and nothing is ever logged late. Once an admin sets the day to 18 Oct,
--- the same entries move into Past work with no change to them, and "logged late" counts from 18 Oct only. Every value
--- is made up.
+-- the same entries move into Past work with no change to them — a task once it is closed: an open task with an owner
+-- stays live whatever its date (D, 26 Oct) — and "logged late" counts from 18 Oct only. Every value is made up.
 -- Sabotage: supabase/tests/sabotage/past-work-fixed-when-logged.sql.
 select set_config('v2.test_now', '2026-10-23 09:00:00+03', true);
 insert into core.team (department_id, code, name_en, name_ar)
@@ -25,6 +25,7 @@ select set_config('t.t20', api.task_create(jsonb_build_object('title', 'Made-up 
   'happened_on', '2026-10-20')) ->> 'id', true);
 select set_config('t.a16', api.achievement_log(jsonb_build_object('category', 'AWARD',
   'title', 'Made-up award of 16 Oct', 'happened_on', '2026-10-16')) ->> 'id', true);
+select api.task_status_set(current_setting('t.t2')::uuid, 'done');
 select test.eq((api.tasks('{"past_work": true}'::jsonb) ->> 'total')::int, 0, 'while the day is blank, Past work is empty');
 select test.eq((api.task(current_setting('t.t2')::uuid) ->> 'past_work')::boolean, false, 'and 2 Oct is live work');
 select test.eq((api.achievement(current_setting('t.a16')::uuid) ->> 'past_work')::boolean, false,
@@ -41,9 +42,10 @@ select api.setting_set('app.go_live_on', null, to_jsonb('2026-10-18'::text), nul
 select test.as_person(current_setting('t.am')::uuid);
 select test.eq((select jsonb_agg(x ->> 'title' order by x ->> 'title') from jsonb_array_elements(
                   api.tasks('{"past_work": true}'::jsonb) -> 'rows') x),
-  '["Made-up task of 16 Oct", "Made-up task of 2 Oct"]'::jsonb, 'the tasks of 2 and 16 Oct are now under Past work');
-select test.eq((select jsonb_agg(x ->> 'title') from jsonb_array_elements(api.tasks() -> 'rows') x),
-  '["Made-up task of 20 Oct"]'::jsonb, 'and only 20 Oct stays live');
+  '["Made-up task of 2 Oct"]'::jsonb, 'the closed task of 2 Oct is now under Past work');
+select test.eq((select jsonb_agg(x ->> 'title' order by x ->> 'title') from jsonb_array_elements(api.tasks() -> 'rows') x),
+  '["Made-up task of 16 Oct", "Made-up task of 20 Oct"]'::jsonb,
+  'the open task of 16 Oct stays live with 20 Oct: open work stays in sight (D)');
 select test.eq((api.achievement(current_setting('t.a16')::uuid) ->> 'past_work')::boolean, true,
   'the achievement of 16 Oct is past work too');
 select test.eq((api.achievements('{"past_work": true}'::jsonb) ->> 'total')::int, 1, 'and is listed under it');
