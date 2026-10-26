@@ -6,66 +6,24 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import type { SettingSchema } from '../schema';
+import { keyWord, valueText, valueWord } from '../words';
 
-/** File types as people say them (files.allowed_types holds MIME types — W20). */
-const FILE_TYPES: Record<string, string> = {
-  'application/pdf': 'PDF',
-  'image/png': 'PNG',
-  'image/jpeg': 'JPEG',
-  'image/webp': 'WebP',
-  'image/gif': 'GIF',
-  'image/svg+xml': 'SVG',
-  'text/csv': 'CSV',
-  'text/plain': 'Text',
-  'application/msword': 'Word (.doc)',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word (.docx)',
-  'application/vnd.ms-excel': 'Excel (.xls)',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel (.xlsx)',
-  'application/vnd.ms-powerpoint': 'PowerPoint (.ppt)',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint (.pptx)',
-  'application/zip': 'ZIP',
-};
-
-/** A key in plain words: its wording, else "account_manager" → "Account manager". */
+/** A key in plain words (see keyWord). */
 export function useKeyWords() {
   const t = useTranslations();
-  return (k: string): string => {
-    if (t.has(`settings.fields.${k}`)) return t(`settings.fields.${k}`);
-    const plain = k.replace(/_/g, ' ');
-    return plain.charAt(0).toUpperCase() + plain.slice(1);
-  };
+  return (k: string): string => keyWord(t, k);
 }
 
-/** The word for an enum value: the setting's own list in the catalog, else a shared list, else the value itself. */
+/** The word for an enum value (see valueWord). */
 export function useValueWords(settingKey: string) {
   const t = useTranslations();
-  return (v: unknown): string => {
-    if (typeof v === 'boolean') return t(`settings.setting.values.${v}`);
-    if (typeof v === 'number') return String(v);
-    if (typeof v !== 'string') return JSON.stringify(v);
-    if (FILE_TYPES[v]) return FILE_TYPES[v];
-    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])
-      if (t.has(k)) return t(k);
-    return v;
-  };
+  return (v: unknown): string => valueWord(t, settingKey, v);
 }
 
-/** A value as words, for the card and the preview: lists joined, objects as "Key: value" pairs (W16). */
+/** A value as words, for the card and the preview (see valueText). */
 export function SchemaValue({ settingKey, value }: { settingKey: string; value: unknown }) {
-  const word = useValueWords(settingKey);
-  const keyWord = useKeyWords();
   const t = useTranslations();
-  if (value === '' || value === null || value === undefined) return <>{t('settings.setting.notSet')}</>;
-  if (Array.isArray(value)) return <>{value.length ? value.map(word).join(' · ') : '—'}</>;
-  if (value && typeof value === 'object')
-    return (
-      <>
-        {Object.entries(value as Record<string, unknown>)
-          .map(([k, v]) => `${keyWord(k)}: ${word(v)}`)
-          .join(' · ')}
-      </>
-    );
-  return <>{word(value)}</>;
+  return <>{valueText(t, settingKey, value)}</>;
 }
 
 /** The control for one schema: switch, select, number, text, a checklist for enum arrays, one line each for string arrays. */
@@ -85,6 +43,7 @@ export function SchemaEditor({
   id?: string;
 }) {
   const word = useValueWords(settingKey);
+  const keyWords = useKeyWords();
   if (schema.type === 'boolean')
     return <Switch id={id} checked={value === true} onCheckedChange={onChange} label={label} />;
   if (schema.enum)
@@ -149,7 +108,7 @@ export function SchemaEditor({
     return (
       <div className="grid gap-3 sm:grid-cols-2">
         {Object.entries(schema.properties).map(([k, s]) => (
-          <Field key={k} label={k}>
+          <Field key={k} label={keyWords(k)}>
             {(p) => (
               <SchemaEditor
                 {...p}
@@ -157,7 +116,7 @@ export function SchemaEditor({
                 schema={s}
                 value={obj[k]}
                 onChange={(v) => onChange({ ...obj, [k]: v })}
-                label={k}
+                label={keyWords(k)}
               />
             )}
           </Field>
