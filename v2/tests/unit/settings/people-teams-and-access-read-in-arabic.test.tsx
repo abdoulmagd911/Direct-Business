@@ -176,6 +176,7 @@ describe('Organization & access in Arabic (QA-591)', () => {
   it('writes a person by the Arabic name on the People tab', () => {
     const text = draw('people');
     for (const p of people) expect(text, `the Arabic name of ${p.id}`).toContain(p.full_name_ar!);
+    expect(text, 'the Arabic name of p1: no English name left').not.toContain('Made Up');
   });
 
   it('names every page and capability of the matrix, and has the four levels and the three tabs, in Arabic', () => {
