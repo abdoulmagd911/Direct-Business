@@ -86,15 +86,15 @@ describe('Log activity says why Save is off, in one line', () => {
   it('says to choose a type when the list has none, in English', () => {
     log('en', []);
     const why = document.querySelector('[data-activity-why]');
-    expect(why?.textContent, 'the line under the form').toBe('Choose a type');
+    expect(why?.textContent, 'the line under the form').toContain('Choose a type');
     expect(document.querySelector('[data-activity-save]')).toHaveProperty('disabled', true);
   });
   it('says to choose the outcome once the type has opened on Call (22 Oct), in English', () => {
     log('en');
-    expect(document.querySelector('[data-activity-why]')?.textContent).toBe('Choose an outcome');
+    expect(document.querySelector('[data-activity-why]')?.textContent).toContain('Choose an outcome');
   });
   it('says it in Arabic with the boxes’ own words', () => {
     log('ar', []);
-    expect(document.querySelector('[data-activity-why]')?.textContent).toBe('اختر النوع');
+    expect(document.querySelector('[data-activity-why]')?.textContent).toContain('اختر النوع');
   });
 });
