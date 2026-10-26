@@ -394,7 +394,9 @@
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "تذكير · {when}"
+        "linkReminder": "تذكير · {when}",
+        "linkTask": "مهمة {number} · {title}",
+        "linkActionItem": "بند عمل في {number} · {text}"
       },
       "turn": {
         "label": "تحويل إلى",
@@ -416,7 +418,8 @@
         "when": "متى",
         "text": "ذكّرني بـ",
         "logged": "تم تسجيل {type} على {name}",
-        "reminded": "تم ضبط التذكير في {when}"
+        "reminded": "تم ضبط التذكير في {when}",
+        "taskTitle": "تحويل هذه الملاحظة إلى مهمة"
       },
       "finish": {
         "label": "إنهاء الاجتماع",
