@@ -59,8 +59,10 @@ for (const width of [1280, 1440]) {
         `insert into core.team (department_id, code, name_en, name_ar) values ($1, $2, 'Made-up team', 'فريق حسابات الشركات الكبرى والمؤسسات الحكومية والتعليمية') returning id`,
         [dept!.id, `t_${tag}`],
       );
+      const seeded: string[] = [];
       for (const name of ['عبد الرحمن محمد الشهري', 'نورة بنت خالد القحطاني', 'سلطان بن فهد العتيبي']) {
         const p = await makePerson();
+        seeded.push(p.id);
         await sql(
           `update core.person set full_name_ar = $2, job_title_ar = 'مسؤول حسابات رئيسي', department_id = $3, team_id = $4 where id = $1`,
           [p.id, name, dept!.id, team!.id],
@@ -83,8 +85,9 @@ for (const width of [1280, 1440]) {
       // the last sign-in date is whole: day, short month, a four-figure year, and inside the table's box (it was cut to "026")
       await page.goto('/settings/org?tab=people');
       await hydrated(page);
-      const cells = page.locator('[data-person-last-sign-in]');
+      const cells = page.locator(seeded.map((id) => `[data-person-row="${id}"] [data-person-last-sign-in]`).join(', '));
       await expect(cells.first()).toBeVisible();
+      expect(await cells.count(), 'the three seeded people are listed').toBe(3);
       for (const cell of await cells.all()) {
         const text = (await cell.innerText()).trim();
         if (!/\d/.test(text)) continue;

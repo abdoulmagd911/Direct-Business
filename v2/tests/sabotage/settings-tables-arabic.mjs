@@ -8,8 +8,16 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '<table className="w-full table-fixed text-sm">',
-        replace: '<table className="w-full text-sm whitespace-nowrap">',
+        find: `sm:block">
+        <table className="w-full table-fixed text-sm">
+          <thead className="text-xs text-muted">
+            <tr>
+              <th className="w-[24%]`,
+        replace: `sm:block">
+        <table className="w-full text-sm whitespace-nowrap">
+          <thead className="text-xs text-muted">
+            <tr>
+              <th className="w-[24%]`,
       },
     ],
   },

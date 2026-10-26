@@ -194,15 +194,27 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
         <table className="w-full table-fixed text-sm">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="w-[24%] px-4 py-2.5 text-start font-medium">{t('settings.people.name')}</th>
-              <th className="w-[14%] px-4 py-2.5 text-start font-medium">{t('settings.people.role')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.department')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.people.team')}</th>
-              <th className="hidden px-4 py-2.5 text-start font-medium min-[1600px]:table-cell">
+              <th className="w-[24%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.name')}
+              </th>
+              <th className="w-[14%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.role')}
+              </th>
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.department')}
+              </th>
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.team')}
+              </th>
+              <th className="hidden px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere] min-[1600px]:table-cell">
                 {t('settings.people.emails')}
               </th>
-              <th className="w-[15%] px-4 py-2.5 text-start font-medium">{t('settings.people.lastSignIn')}</th>
-              <th className="w-[16%] px-4 py-2.5 text-start font-medium">{t('settings.people.status')}</th>
+              <th className="w-[15%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.lastSignIn')}
+              </th>
+              <th className="w-[16%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                {t('settings.people.status')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -308,13 +320,35 @@ function PersonRole({ row, roleName }: { row: PersonRow; roleName: string }) {
   return <>{roleName}</>;
 }
 
+/** A status chip in the People table wraps inside its column rather than pushing the table wider (QA-592). */
+const WRAPS = 'h-auto min-h-6 max-w-full whitespace-normal py-1 [overflow-wrap:anywhere]';
+
 /** Left (grey) · Switched off (grey) · No role (amber) · Allowed (green), in that order. */
 function PersonStatus({ row }: { row: PersonRow }) {
   const t = useTranslations();
-  if (row.left_on) return <StatusChip tone="neutral">{t('settings.people.left')}</StatusChip>;
-  if (!row.can_sign_in) return <StatusChip tone="neutral">{t('settings.people.signInOff')}</StatusChip>;
-  if (!row.role) return <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>;
-  return <StatusChip tone="success">{t('settings.people.signInOn')}</StatusChip>;
+  if (row.left_on)
+    return (
+      <StatusChip className={WRAPS} tone="neutral">
+        {t('settings.people.left')}
+      </StatusChip>
+    );
+  if (!row.can_sign_in)
+    return (
+      <StatusChip className={WRAPS} tone="neutral">
+        {t('settings.people.signInOff')}
+      </StatusChip>
+    );
+  if (!row.role)
+    return (
+      <StatusChip className={WRAPS} tone="warning">
+        {t('settings.people.noRole')}
+      </StatusChip>
+    );
+  return (
+    <StatusChip className={WRAPS} tone="success">
+      {t('settings.people.signInOn')}
+    </StatusChip>
+  );
 }
 
 function AddPersonDialog({
@@ -709,12 +743,22 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
             <table className="w-full table-fixed text-sm">
               <thead className="text-xs text-muted">
                 <tr>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.name')}</th>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.code')}</th>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.department')}</th>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.lead')}</th>
-                  <th className="w-[12%] px-4 py-2.5 text-end font-medium">{t('settings.teams.members')}</th>
-                  <th className="w-[22%] px-4 py-2.5" />
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.name')}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.code')}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.department')}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.lead')}
+                  </th>
+                  <th className="w-[12%] px-4 py-2.5 text-end font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.members')}
+                  </th>
+                  <th className="w-[26%] px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -799,13 +843,19 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
             <table className="w-full table-fixed text-sm">
               <thead className="text-xs text-muted">
                 <tr>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.name')}</th>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.teams.code')}</th>
-                  <th className="px-4 py-2.5 text-start font-medium">{t('settings.departments.head')}</th>
-                  <th className="px-4 py-2.5 text-end font-medium">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.name')}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.teams.code')}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                    {t('settings.departments.head')}
+                  </th>
+                  <th className="px-4 py-2.5 text-end font-medium [overflow-wrap:anywhere]">
                     {t('settings.people.people', { count: 0 }).replace(/^0\s*/, '')}
                   </th>
-                  <th className="w-[22%] px-4 py-2.5" />
+                  <th className="w-[26%] px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
