@@ -27,8 +27,10 @@ export function initialsOf(name: string): string {
   // a word that starts with a digit or a mark ("13Oct", "8Oct", "-") is not a name: initials come from letters
   const named = words.filter((w) => /^\p{L}/u.test(w));
   const use = named.length ? named : words;
-  const first = use[0]?.[0] ?? '';
-  const last = use.length > 1 ? (use[use.length - 1]?.[0] ?? '') : '';
+  // an Arabic family name starts with the article ال ("الغامدي"): the initial is the letter after it
+  const initial = (w: string | undefined) => w?.replace(/^ال(?=\p{L}{2})/u, '')[0] ?? '';
+  const first = initial(use[0]);
+  const last = use.length > 1 ? initial(use[use.length - 1]) : '';
   return (first + last).toUpperCase();
 }
 

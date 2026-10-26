@@ -885,6 +885,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
 function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
   const t = useTranslations();
   const names = useNames(org);
+  const arabic = names.locale === 'ar';
   const router = useRouter();
   const words = useWords(t('settings.roles.saved'));
   const [editing, setEditing] = useState<OrgRole | 'new' | null>(null);
@@ -930,9 +931,12 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
         <table className="w-full text-sm whitespace-nowrap">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.name')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.nameAr')}</th>
-              <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.key')}</th>
+              {/* in Arabic: the one Arabic name, and no Key column — the key is technical (oversight, 26 Oct) */}
+              {arabic ? null : <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.name')}</th>}
+              <th className="px-4 py-2.5 text-start font-medium">
+                {arabic ? t('settings.roles.role') : t('settings.roles.nameAr')}
+              </th>
+              {arabic ? null : <th className="px-4 py-2.5 text-start font-medium">{t('settings.roles.key')}</th>}
               <th className="px-4 py-2.5 text-end font-medium">{t('settings.roles.people')}</th>
               <th className="px-4 py-2.5" />
             </tr>
@@ -942,16 +946,25 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
               .sort((a, b) => a.sort - b.sort)
               .map((r) => (
                 <tr key={r.id} data-role-row={r.key}>
-                  <td className="px-4 py-2.5">
-                    <span className="flex items-center gap-2 font-medium">
-                      {r.name_en}
-                      {r.is_admin ? <StatusChip tone="info">{t('settings.roles.admin')}</StatusChip> : null}
-                    </span>
-                  </td>
+                  {arabic ? null : (
+                    <td className="px-4 py-2.5">
+                      <span className="flex items-center gap-2 font-medium">
+                        {r.name_en}
+                        {r.is_admin ? <StatusChip tone="info">{t('settings.roles.admin')}</StatusChip> : null}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-4 py-2.5" dir="rtl">
-                    {r.name_ar}
+                    {arabic ? (
+                      <span className="flex items-center gap-2 font-medium">
+                        {r.name_ar || r.name_en}
+                        {r.is_admin ? <StatusChip tone="info">{t('settings.roles.admin')}</StatusChip> : null}
+                      </span>
+                    ) : (
+                      r.name_ar
+                    )}
                   </td>
-                  <td className="px-4 py-2.5 font-data text-muted">{r.key}</td>
+                  {arabic ? null : <td className="px-4 py-2.5 font-data text-muted">{r.key}</td>}
                   <td className="px-4 py-2.5 text-end font-data">
                     {people.filter((p) => p.role?.id === r.id && p.active).length}
                   </td>

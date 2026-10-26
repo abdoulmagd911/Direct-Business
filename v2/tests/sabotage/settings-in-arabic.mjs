@@ -76,4 +76,52 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'arabic-roles-table-shows-the-key-column',
+    breaks: [ORG],
+    expect: 'no English role name or role key',
+    edits: [
+      {
+        file: 'src/modules/org/screens/OrgAccess.tsx',
+        find: '{arabic ? null : <td className="px-4 py-2.5 font-data text-muted">{r.key}</td>}',
+        replace: '<td className="px-4 py-2.5 font-data text-muted">{r.key}</td>',
+      },
+    ],
+  },
+  {
+    name: 'arabic-avatar-takes-english-initials',
+    breaks: [ORG],
+    expect: 'the avatar of',
+    edits: [
+      {
+        file: 'src/modules/org/types.ts',
+        find: "fullName: locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en,",
+        replace: 'fullName: p.full_name_en,',
+      },
+    ],
+  },
+  {
+    name: 'arabic-initials-take-the-article',
+    breaks: [ORG],
+    expect: 'the avatar of',
+    edits: [
+      {
+        file: 'src/ui/Avatar.tsx',
+        find: "w?.replace(/^ال(?=\\p{L}{2})/u, '')[0] ?? ''",
+        replace: "w?.[0] ?? ''",
+      },
+    ],
+  },
+  {
+    name: 'arabic-list-valued-setting-shows-the-keys',
+    breaks: [CHOICES],
+    expect: 'flights',
+    edits: [
+      {
+        file: 'src/modules/settings/words.ts',
+        find: '  const listed = names?.(settingKey, v);\n  if (listed) return listed;\n',
+        replace: '',
+      },
+    ],
+  },
 ];

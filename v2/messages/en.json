@@ -1520,7 +1520,8 @@
       "admin": "Admin role",
       "saved": "Role saved",
       "edit": "Edit {name}",
-      "people": "People"
+      "people": "People",
+      "role": "Role"
     },
     "access": {
       "matrix": "Roles × pages",

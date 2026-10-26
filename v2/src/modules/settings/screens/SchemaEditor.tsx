@@ -1,12 +1,12 @@
 'use client';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Checkbox } from '@/ui/Checkbox';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import type { SettingSchema } from '../schema';
-import { keyWord, valueText, valueWord } from '../words';
+import { keyWord, nameLookup, valueText, valueWord, type ChoiceNames } from '../words';
 
 /** A key in plain words (see keyWord). */
 export function useKeyWords() {
@@ -21,9 +21,10 @@ export function useValueWords(settingKey: string) {
 }
 
 /** A value as words, for the card and the preview (see valueText). */
-export function SchemaValue({ settingKey, value }: { settingKey: string; value: unknown }) {
+export function SchemaValue({ settingKey, value, names }: { settingKey: string; value: unknown; names?: ChoiceNames }) {
   const t = useTranslations();
-  return <>{valueText(t, settingKey, value)}</>;
+  const locale = useLocale() as 'en' | 'ar';
+  return <>{valueText(t, settingKey, value, nameLookup(names, locale))}</>;
 }
 
 /** The control for one schema: switch, select, number, text, a checklist for enum arrays, one line each for string arrays. */
@@ -34,6 +35,7 @@ export function SchemaEditor({
   onChange,
   label,
   id,
+  names,
 }: {
   settingKey: string;
   schema: SettingSchema;
@@ -41,8 +43,11 @@ export function SchemaEditor({
   onChange: (v: unknown) => void;
   label: string;
   id?: string;
+  /** The entries of the lists some values are keys of (LIST_VALUES): offered by name, never typed as keys. */
+  names?: ChoiceNames;
 }) {
   const word = useValueWords(settingKey);
+  const locale = useLocale() as 'en' | 'ar';
   const keyWords = useKeyWords();
   if (schema.type === 'boolean')
     return <Switch id={id} checked={value === true} onCheckedChange={onChange} label={label} />;
@@ -86,6 +91,26 @@ export function SchemaEditor({
       </ul>
     );
   }
+  if (schema.type === 'array' && names?.[settingKey]) {
+    const list = Array.isArray(value) ? (value as string[]) : [];
+    const lookup = nameLookup(names, locale);
+    return (
+      <ul className="flex flex-col gap-2" role="group" aria-label={label}>
+        {names[settingKey]
+          .filter((e) => e.active !== false || list.includes(e.key))
+          .map((e) => (
+            <li key={e.key} className="flex items-center gap-2.5">
+              <Checkbox
+                checked={list.includes(e.key)}
+                onCheckedChange={(on) => onChange(on ? [...list, e.key] : list.filter((x) => x !== e.key))}
+                label={lookup(settingKey, e.key) ?? e.key}
+              />
+              <span className="text-sm">{lookup(settingKey, e.key)}</span>
+            </li>
+          ))}
+      </ul>
+    );
+  }
   if (schema.type === 'array')
     return (
       <Textarea
@@ -117,6 +142,7 @@ export function SchemaEditor({
                 value={obj[k]}
                 onChange={(v) => onChange({ ...obj, [k]: v })}
                 label={keyWords(k)}
+                names={names}
               />
             )}
           </Field>

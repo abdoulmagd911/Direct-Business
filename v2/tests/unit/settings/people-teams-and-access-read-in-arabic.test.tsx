@@ -143,9 +143,7 @@ describe('Organization & access in Arabic (QA-591)', () => {
       expect(text.replace(/\S+@\S+/g, ' '), 'no catalog key').not.toMatch(
         /\b[a-z]+(?:_[a-z]+)*\.[a-z_]+(?:\.[a-zA-Z_]+)*\b/,
       );
-      // Data, not wording: the sample emails, the team and department codes, the roles' English names and keys (the
-      // Roles table shows both names and the key on purpose), and the avatars' initials and label (the shared Avatar takes them from
-      // the English full name in every language; reported to the Architect, not changed here).
+      // Data, not wording: the sample emails and the team and department codes.
       expect(
         latinLeft(text.replace(/\S+@\S+/g, ' '), [
           'MP',
@@ -166,6 +164,14 @@ describe('Organization & access in Arabic (QA-591)', () => {
       ).toEqual([]);
     });
   }
+
+  it('shows the Arabic role name and no Key column on the Roles table, and the Arabic initials on an avatar (oversight, 26 Oct)', () => {
+    const text = draw('access');
+    expect(text).toContain('مسؤول النظام');
+    expect(text, 'no English role name or role key').not.toMatch(/\b(Admin|Member|admin|member)\b/);
+    expect(text, 'no Key column').not.toMatch(new RegExp(`(^|\\s)${ar.settings.roles.key}(\\s|$)`));
+    expect(draw('people'), 'the avatar of سلمى الغامدي reads س غ').toContain('سغ');
+  });
 
   it('writes a person by the Arabic name on the People tab', () => {
     const text = draw('people');

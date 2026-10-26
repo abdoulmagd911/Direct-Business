@@ -57,4 +57,33 @@ describe('every choice and field of a setting has an Arabic word', () => {
       expect(latinLeft(out, s.typed), `${s.def.key} as drawn: ${out}`).toEqual([]);
     }
   });
+
+  it('shows the entries a list-valued setting counts by their Arabic names, never their keys (oversight, 26 Oct)', () => {
+    const def = settings.find((s) => s.def.key === 'finance.revenue_definition')!.def;
+    const value = { basis: 'revenue', services: ['flights'], client_types: ['client'], commissions: true };
+    const names = {
+      'finance.revenue_definition.services': [
+        { key: 'flights', name_en: 'Flights', name_ar: 'تذاكر الطيران', active: true },
+      ],
+      'finance.revenue_definition.client_types': [{ key: 'client', name_en: 'Client', name_ar: 'عميل', active: true }],
+    };
+    const out = wordsOf(
+      renderToStaticMarkup(
+        <NextIntlClientProvider locale="ar" messages={ar} timeZone="Asia/Riyadh">
+          <SchemaValue settingKey={def.key} value={value} names={names} />
+          <SchemaEditor
+            settingKey={def.key}
+            schema={def.schema}
+            value={value}
+            onChange={() => undefined}
+            label="تسمية"
+            names={names}
+          />
+        </NextIntlClientProvider>,
+      ),
+    );
+    expect(out).toContain('تذاكر الطيران');
+    expect(out).toContain('عميل');
+    expect(latinLeft(out), out).toEqual([]);
+  });
 });
