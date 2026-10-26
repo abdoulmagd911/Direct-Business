@@ -168,6 +168,8 @@
   },
   "common": {
     "filter": "Filter",
+    "datePlaceholder": "dd mmm yyyy",
+    "dateTimePlaceholder": "dd mmm yyyy, hh:mm",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
