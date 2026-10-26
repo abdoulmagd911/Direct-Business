@@ -1,7 +1,8 @@
 /**
  * G (26 Oct): a note's author shares it with one named colleague from the note's page. Who sees it: One colleague,
  * then the colleague by name, then Save. That colleague opens the note and reads it; the author's own teammate finds
- * nothing there. At 1280 px and 375 px. Every value is made up.
+ * nothing there. The colleague's bell says who shared it and the note's title. At 1280 px and 375 px. Every value is
+ * made up.
  * Sabotage: supabase/tests/sabotage/a-shared-note-reaches-its-authors-team.sql (the read rule), and
  * tests/sabotage/note-share.mjs (the page).
  */
@@ -25,9 +26,9 @@ for (const width of [1280, 375]) {
       [author.id, `share_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
     );
     await sql(`update core.person set team_id = $2 where id in ($1, $3)`, [author.id, team!.id, mate.id]);
-    const namedName = (
-      await sql<{ name: string }>(`select full_name_en as name from core.person where id = $1`, [named.id])
-    )[0]!.name;
+    const nameOf = async (id: string) =>
+      (await sql<{ name: string }>(`select full_name_en as name from core.person where id = $1`, [id]))[0]!.name;
+    const namedName = await nameOf(named.id);
 
     await page.setViewportSize({ width, height: 1000 });
     await signIn(page, author.email, '/my-day');
@@ -56,6 +57,10 @@ for (const width of [1280, 375]) {
     await hydrated(seen);
     await expect(seen.locator('[data-note-page]'), 'the named colleague opens it').toBeVisible();
     await expect(seen.getByRole('heading', { level: 1 })).toContainText('Made-up words');
+    await seen.locator('[data-bell]').click();
+    await expect(seen.locator('[data-notifications-panel]'), 'the bell says who shared which note').toContainText(
+      `${await nameOf(author.id)} shared a note with you: ${title}`,
+    );
     await theirs.close();
 
     const other = await browser.newContext();

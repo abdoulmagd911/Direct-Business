@@ -1902,6 +1902,7 @@
       "alert_file_review": "A file on {record} is due for review",
       "reminder": "Reminder: {record}",
       "note_mention": "{actor} mentioned you in a note",
+      "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
       "other": "{actor} · {record}"
     },

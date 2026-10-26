@@ -14,7 +14,8 @@ alter table my.note add constraint note_visibility_check check (visibility in ('
 alter table my.note add constraint note_shared_with_one check ((visibility = 'person') = (shared_with is not null)
                                                                and shared_with is distinct from person_id);
 
--- Tell the colleague a note was shared with them, once: when it is new to them.
+-- Tell the colleague a note was shared with them, once: when it is new to them. The notice carries the note's line, so
+-- the bell says which note ("<who> shared a note with you: <title>").
 create function my.share_told(p_note uuid, p_was uuid) returns void
 language plpgsql volatile security definer set search_path = ''
 as $$
@@ -24,7 +25,7 @@ begin
   select * into n from my.note where id = p_note;
   if n.shared_with is not null and n.shared_with is distinct from p_was then
     perform notify.push(n.shared_with, 'note_mention', 'my.note', n.id, 'notify.note_shared',
-                        pg_catalog.jsonb_build_object('note_id', n.id, 'kind', n.kind));
+                        pg_catalog.jsonb_build_object('note_id', n.id, 'kind', n.kind, 'title', my.note_line(n)));
   end if;
 end
 $$;

@@ -15,4 +15,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    // the shared note's notice reads as a mention, without the note's title
+    name: 'a-shared-note-is-told-as-a-mention',
+    breaks: [E2E],
+    expect: 'the bell says who shared which note',
+    edits: [
+      {
+        file: 'src/ui/shell/NotificationsPanel.tsx',
+        find: "n.label_key === 'notify.note_shared'",
+        replace: "n.label_key === 'notify.note_shared_never'",
+      },
+    ],
+  },
 ];

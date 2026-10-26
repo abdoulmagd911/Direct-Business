@@ -35,6 +35,9 @@ select test.raises(format('select api.note_update(%L, %L::jsonb, 1)', current_se
 select test.as_owner();
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.named')::uuid
                 and entity_table = 'my.note' and entity_id = current_setting('t.n')::uuid), 1, 'and is told once');
+select test.eq((select label_args ->> 'title' from notify.notification where person_id = current_setting('t.named')::uuid
+                and entity_table = 'my.note' and entity_id = current_setting('t.n')::uuid),
+  'Made-up words for one colleague', 'with the note''s title');
 
 select test.as_person(current_setting('t.mate')::uuid);
 select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002',
