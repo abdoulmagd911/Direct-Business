@@ -101,7 +101,8 @@ export const sabotages = [
       {
         file: OVERVIEW,
         find: "'inline-flex h-[var(--control-h)] items-center px-3.5 text-base",
-        replace: "'inline-flex h-6 items-center px-3.5 text-base",
+        // the shared phone rule gives a link a 44 px minimum; a zero minimum (a utility beats that rule) lets the short height show
+        replace: "'inline-flex h-6 min-h-0 items-center px-3.5 text-base",
       },
     ],
   },
