@@ -24,11 +24,15 @@ export const sabotages = [
     edits: [{ file: 'src/modules/my-day/quick-capture.ts', find: 'rest.length ? rest : [title]', replace: '[title]' }],
   },
   {
-    name: 'wrap-up-lets-done-lose-to-a-move',
+    name: 'wrap-up-sends-the-rows-nobody-chose',
     breaks: [UNIT],
-    expect: 'chooses Tomorrow unless told otherwise, and Done wins',
+    expect: 'sends only the rows the person chose',
     edits: [
-      { file: 'src/modules/my-day/logic.ts', find: "choice: s.done ? 'done' : s.move", replace: 'choice: s.move' },
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'return choice ? [{ kind: i.kind, id: i.id, choice }] : [];',
+        replace: "return [{ kind: i.kind, id: i.id, choice: choice ?? 'tomorrow' }];",
+      },
     ],
   },
   {
@@ -80,14 +84,14 @@ export const sabotages = [
     ],
   },
   {
-    name: 'wrap-up-defaults-to-next-week',
+    name: 'wrap-up-chooses-tomorrow-by-itself',
     breaks: [E2E],
     expect: WRAP,
     edits: [
       {
-        file: 'src/modules/my-day/logic.ts',
-        find: "{ done: false, move: 'tomorrow' }",
-        replace: "{ done: false, move: 'next_week' }",
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: 'const chosen = states[i.id];',
+        replace: "const chosen = states[i.id] ?? 'tomorrow';",
       },
     ],
   },
@@ -116,14 +120,14 @@ export const sabotages = [
     ],
   },
   {
-    name: 'wrap-up-summary-hides-the-default',
+    name: 'wrap-up-summary-counts-the-rows-left-alone',
     breaks: [UNIT],
     expect: 'counts what one Save will do',
     edits: [
       {
         file: 'src/modules/my-day/logic.ts',
-        find: 'out[p.choice as keyof typeof out] += 1;',
-        replace: "if (p.choice !== 'tomorrow') out[p.choice as keyof typeof out] += 1;",
+        find: 'for (const p of wrapPayload(items, states)) out[p.choice] += 1;',
+        replace: "for (const i of items) out[states[i.id] ?? 'tomorrow'] += 1;",
       },
     ],
   },
@@ -158,20 +162,92 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('pages.myDay.wrap.title')}",
-        replace: "{t('pages.myDay.wrap.title')}",
+        find: "{parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('common.save')}",
+        replace: "{t('common.save')}",
       },
     ],
   },
   {
-    name: 'wrap-up-next-week-shows-no-date',
+    name: 'wrap-up-tomorrow-shows-no-date',
     breaks: [E2E],
     expect: WRAP,
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: '{landsOn[move] ? (',
-        replace: "{move === 'tomorrow' && landsOn[move] ? (",
+        find: "{c === 'tomorrow' ? (",
+        replace: "{c === 'tomorrow' && false ? (",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-save-can-be-pressed-with-nothing-chosen',
+    breaks: [E2E],
+    expect: WRAP,
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: 'disabled={!parts} onClick',
+        replace: 'onClick',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-offers-a-fourth-choice',
+    breaks: [E2E],
+    expect: WRAP,
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: "['done', 'tomorrow', 'drop'];",
+        replace: "['done', 'tomorrow', 'drop', 'tomorrow'];",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-names-every-capture-a-note',
+    breaks: [UNIT],
+    expect: 'names each capture by its real kind',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'word: captureWord(n),',
+        replace: "word: 'note',",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-names-every-capture-a-note-in-the-dialog',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'its row says idea, not Note',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: 'data-wrap-word={i.word}',
+        replace: 'data-wrap-word="note"',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-draws-no-group-headings',
+    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
+    expect: 'sits in the note group',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: 'data-wrap-group={g.word}',
+        replace: 'data-wrap-group="all"',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-puts-every-row-in-every-group',
+    breaks: [UNIT],
+    expect: 'groups the rows by kind',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'items.filter((i) => i.word === word)',
+        replace: 'items',
       },
     ],
   },
@@ -200,8 +276,20 @@ export const sabotages = [
       { file: 'src/modules/my-day/screens/WrapUpDialog.tsx', find: 'items?.length ? (', replace: 'true ? (' },
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: '<Button variant="primary" loading={busy}',
-        replace: '<Button variant="primary" disabled={!items?.length} loading={busy}',
+        find: '<Button variant="primary" loading={busy} disabled={!parts}',
+        replace: '<Button variant="primary" loading={busy} disabled={!items?.length}',
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-greyed-save-says-nothing',
+    breaks: [E2E],
+    expect: 'a greyed Save says in one line what is missing',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '{!parts ? (\n              <p',
+        replace: '{!parts && false ? (\n              <p',
       },
     ],
   },
