@@ -109,10 +109,23 @@ test('a follow-up chip wraps on a phone and stays wide enough to read next to th
   await expect(row).toContainText(`Chipfollow${t}`);
   const m = await row.evaluate((el) => {
     const chip = el.querySelector('.rounded-pill') as HTMLElement;
+    const line = el.querySelector('[data-reminder-line]') as HTMLElement;
+    const [words, time] = Array.from(line.children) as HTMLElement[];
     const r = el.getBoundingClientRect();
     const c = chip.getBoundingClientRect();
-    return { rowW: r.width, chipW: c.width, chipH: c.height, line: parseFloat(getComputedStyle(chip).lineHeight) };
+    return {
+      rowW: r.width,
+      chipW: c.width,
+      chipH: c.height,
+      line: parseFloat(getComputedStyle(chip).lineHeight),
+      wordsW: words!.getBoundingClientRect().width,
+      timeSameLine: Math.abs(words!.getBoundingClientRect().top - time!.getBoundingClientRect().top) < 6,
+      chipBelow: c.top >= line.getBoundingClientRect().bottom - 1,
+    };
   });
+  expect(m.timeSameLine, 'the words and their time stay together on one line').toBe(true);
+  expect(m.chipBelow, 'the record chip is on its own line under them').toBe(true);
+  expect(m.wordsW, 'the words are not squeezed into a narrow column').toBeGreaterThan(m.rowW * 0.4);
   expect(m.chipW, 'the chip takes most of the row, not a sliver beside the time').toBeGreaterThan(m.rowW * 0.6);
   expect(m.chipH, 'and wraps to a few lines, never a tall strip').toBeLessThan(m.line * 5);
   const sideways = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);

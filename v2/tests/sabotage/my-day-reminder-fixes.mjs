@@ -1,5 +1,8 @@
 // Sabotages for the My day reminder fixes (job N): each breaks one promise of its specs.
 const E2E = 'e2e:tests/e2e/my-day-reminder-fixes.spec.ts';
+const TODAY =
+  'unit:tests/unit/my-day/the-today-block-lists-reminders-and-names-a-followups-record-only-to-who-may-see-it.test.tsx';
+const UNIT = 'unit:tests/unit/my-day/a-later-reminder-says-done-and-wraps-its-title.test.tsx';
 
 export const sabotages = [
   {
@@ -47,6 +50,42 @@ export const sabotages = [
         file: 'src/modules/my-day/screens/MyDay.tsx',
         find: '<span className="min-w-0 flex-1 basis-full sm:basis-0">',
         replace: '<span className="min-w-0 flex-1">',
+      },
+    ],
+  },
+  {
+    name: 'the-reminder-time-drops-under-its-words',
+    breaks: [E2E],
+    expect: 'the words and their time stay together on one line',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/MyDay.tsx',
+        find: '<span className="flex items-baseline gap-3" data-reminder-line>',
+        replace: '<span className="flex flex-col gap-1" data-reminder-line>',
+      },
+    ],
+  },
+  {
+    name: 'the-reminder-line-loses-its-time',
+    breaks: [UNIT],
+    expect: 'keeps its words and its time together on one line',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/MyDay.tsx',
+        find: "{formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}",
+        replace: '{null}',
+      },
+    ],
+  },
+  {
+    name: 'the-today-reminder-time-moves-after-the-chip',
+    breaks: [TODAY],
+    expect: 'keeps a due reminder',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: "{overdue ? formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }) : r.time}",
+        replace: '{null}',
       },
     ],
   },
