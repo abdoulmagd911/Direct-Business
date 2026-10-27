@@ -22,7 +22,7 @@ cannot open web addresses, a Claude Code session can read them and answer for it
 
 ## Where things stand
 
-- **Go-live is postponed (V609).** Day one is the date the owner sets after one combined test round (QA 1 on desktop,
+- **Day one is Sunday 18 Oct 2026 (V655, owner 23 Oct); staff access and the test-data reset are separate steps.** Earlier text: **Go-live is postponed (V609).** Day one is the date the owner sets after one combined test round (QA 1 on desktop,
   QA 2 at phone width, 7–8 Oct) and his go. Until then the team sees a preview the owner shows from his own account
   (`PREVIEW.md`, his checklist).
   Day one opens Clients (Suppliers as its tab), My day, Tasks, the Past work grid and achievements to the pilot group —

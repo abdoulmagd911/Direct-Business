@@ -12,6 +12,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { valid, type SettingDefRow, type SettingRow } from '../schema';
+import type { ChoiceNames } from '../words';
 import { SchemaEditor, SchemaValue } from './SchemaEditor';
 
 export type Department = { id: string; name_en: string; name_ar: string | null };
@@ -36,12 +37,15 @@ export function SettingCard({
   departments,
   canEdit,
   today,
+  names,
 }: {
   def: SettingDefRow;
   departments: Department[];
   canEdit: boolean;
   /** Riyadh's date on the SERVER (YYYY-MM-DD): the day a change applies from is never the browser's clock (PRF-139). */
   today: string;
+  /** The names of the list entries that some of this setting's values are keys of. */
+  names?: ChoiceNames;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -138,7 +142,7 @@ export function SettingCard({
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="text-base font-semibold">{label}</h3>
           <p className="font-display text-xl" data-setting-value>
-            <SchemaValue settingKey={def.key} value={def.value} />
+            <SchemaValue names={names} settingKey={def.key} value={def.value} />
           </p>
           <p className="text-xs text-muted">
             {companyRow && companyRow.reason !== 'default'
@@ -159,7 +163,7 @@ export function SettingCard({
               <span className="flex items-center gap-2">
                 <StatusChip tone="neutral">{deptName(r.department_id)}</StatusChip>
                 <span className="font-medium">
-                  <SchemaValue settingKey={def.key} value={r.value} />
+                  <SchemaValue names={names} settingKey={def.key} value={r.value} />
                 </span>
                 <span className="text-xs text-muted">
                   {formatDate(new Date(r.valid_from), locale, { dateStyle: 'medium' })}
@@ -219,6 +223,7 @@ export function SettingCard({
                 value={value}
                 onChange={setValue}
                 label={label}
+                names={names}
               />
             )}
           </Field>
@@ -248,14 +253,14 @@ export function SettingCard({
           >
             <dt className="text-muted">{t('settings.setting.preview.from')}</dt>
             <dd className="font-medium">
-              <SchemaValue settingKey={def.key} value={previewed ? previewed.value_before : fromValue} />
+              <SchemaValue names={names} settingKey={def.key} value={previewed ? previewed.value_before : fromValue} />
             </dd>
             <dt className="text-muted">{t('settings.setting.preview.to')}</dt>
             <dd className="font-medium">
               {previewed ? (
-                <SchemaValue settingKey={def.key} value={previewed.value_after} />
+                <SchemaValue names={names} settingKey={def.key} value={previewed.value_after} />
               ) : valid(def.schema, value) ? (
-                <SchemaValue settingKey={def.key} value={value} />
+                <SchemaValue names={names} settingKey={def.key} value={value} />
               ) : (
                 '—'
               )}

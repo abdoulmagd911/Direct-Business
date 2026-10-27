@@ -1,17 +1,59 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { lastActivityTypeKey, readLastActivityType, writeLastActivityType } from '@/core/prefs/last-activity-type';
 import { Button } from '@/ui/Button';
+import { Checkbox } from '@/ui/Checkbox';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { nameOf, type ListEntry } from '../../types';
 import { today, useWords } from './words';
+
+/**
+ * The dialog's title line: the name wraps over at most three lines with a "More" tap (V653, ruling of 23 Oct — a dialog
+ * title is not a picker row), and "Change" stays at the end of the line, on a phone as on a PC.
+ */
+function TitleLine({ text, onChange }: { text: string; onChange?: () => void }) {
+  const t = useTranslations();
+  const box = useRef<HTMLSpanElement>(null);
+  const [more, setMore] = useState(false);
+  const [open, setOpen] = useState(false);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && !open) setMore(el.scrollHeight > el.clientHeight + 1);
+  }, [text, open]);
+  return (
+    <span className="flex items-baseline gap-3">
+      <span className="min-w-0 flex-1">
+        <span ref={box} className={open ? 'break-words' : 'line-clamp-3 break-words'} data-activity-title>
+          {text}
+        </span>
+        {more || open ? (
+          <span className="flex justify-start">
+            <Button
+              variant="link"
+              className="justify-start px-0 text-sm font-normal"
+              onClick={() => setOpen(!open)}
+              data-activity-title-more
+            >
+              {open ? t('partners.activity.titleLess') : t('partners.activity.titleMore')}
+            </Button>
+          </span>
+        ) : null}
+      </span>
+      {onChange ? (
+        <Button variant="link" className="shrink-0 text-sm font-normal" onClick={onChange} data-activity-change>
+          {t('partners.activity.change')}
+        </Button>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * Log activity (V150, V401, V406): call · meeting · demo · visit · note, the outcome from that type's own list (required
@@ -29,10 +71,13 @@ export function LogActivityDialog({
   onDone,
   partnerName,
   onChangeWho,
+  internalKey,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  partnerId: string;
+  partnerId: string | null;
+  /** V645: the key of the team or system inside Direct this was with, instead of an organisation (partnerId is then null). */
+  internalKey?: string;
   types: ListEntry[];
   outcomes: ListEntry[];
   onDone: () => void;
@@ -48,7 +93,7 @@ export function LogActivityDialog({
   const fresh = () => {
     const last = readLastActivityType(storeKey);
     const type = [last, 'call'].find((k) => k && types.some((x) => x.key === k)) ?? types[0]?.key ?? '';
-    return { type, outcome: '', on: today(), body: '', next: '', nextOn: '' };
+    return { type, outcome: '', on: today(), body: '', next: '', nextOn: '', ticket: '', share: false };
   };
   const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
@@ -57,7 +102,12 @@ export function LogActivityDialog({
   const outcome = own.find((o) => o.key === f.outcome);
   const demoSet = outcome?.meaning === 'demo_set';
   const ok =
-    !!f.type && (own.length === 0 || !!f.outcome) && !!f.on && (!f.next || !!f.nextOn) && (!demoSet || !!f.nextOn);
+    !!f.type &&
+    (own.length === 0 || !!f.outcome) &&
+    !!f.on &&
+    !!f.body.trim() &&
+    (!f.next || !!f.nextOn) &&
+    (!demoSet || !!f.nextOn);
   // What is still missing, in the words of the boxes themselves — one line under the form while Save is off
   const missing = [
     !f.type && t('partners.activity.need.type'),
@@ -65,11 +115,17 @@ export function LogActivityDialog({
     !f.on && t('partners.activity.need.on'),
     ((!!f.next && !f.nextOn) || (demoSet && !f.nextOn)) && t('partners.activity.need.nextOn'),
   ].filter((x): x is string => !!x);
-  const why = missing.length
-    ? t('partners.activity.need.line', {
-        list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
-      })
-    : '';
+  // Save says in one line what is still missing: the boxes to choose, then the line to write (22–23 Oct)
+  const why = [
+    missing.length
+      ? t('partners.activity.need.line', {
+          list: new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(missing),
+        })
+      : '',
+    f.body.trim() ? '' : t('partners.activity.need.body'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const save = async () => {
     setBusy(true);
     await command(
@@ -80,7 +136,11 @@ export function LogActivityDialog({
       ),
       () =>
         rpc('activity_log', {
-          p_partner: partnerId,
+          // the generated type asks for an organisation; with someone inside Direct there is none (V645)
+          p_partner: partnerId as string,
+          p_internal: internalKey,
+          p_ticket_ref: f.ticket.trim() || undefined,
+          p_share_team: internalKey ? f.share : undefined,
           p_type: f.type,
           p_outcome: f.outcome || undefined,
           p_happened_on: f.on,
@@ -103,26 +163,29 @@ export function LogActivityDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+      title={
+        <TitleLine
+          text={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}
+          onChange={onChangeWho}
+        />
+      }
       closeLabel={t('common.close')}
-      dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn}
+      dirty={!!f.body || !!f.outcome || !!f.next || !!f.nextOn || !!f.ticket}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {!ok && why ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-why>
+              {why}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!ok} loading={busy} onClick={() => void save()} data-activity-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
-        {onChangeWho ? (
-          <div className="sm:col-span-2">
-            <Button variant="link" onClick={onChangeWho} data-activity-change>
-              {t('partners.activity.change')}
-            </Button>
-          </div>
-        ) : null}
         <Field label={t('partners.activity.type')}>
           {(p) => (
             <Select
@@ -133,7 +196,7 @@ export function LogActivityDialog({
             />
           )}
         </Field>
-        <Field label={t('partners.activity.outcome')}>
+        <Field label={own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')}>
           {(p) => (
             <Select
               {...p}
@@ -160,6 +223,24 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.line')} className="sm:col-span-2">
           {(p) => <Textarea {...p} rows={3} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />}
         </Field>
+        <Field label={t('partners.activity.ticketRef')} className="sm:col-span-2">
+          {(p) => (
+            <Input {...p} value={f.ticket} onChange={(e) => setF({ ...f, ticket: e.target.value })} maxLength={500} />
+          )}
+        </Field>
+        {internalKey ? (
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <Checkbox
+              id="activity-share-team"
+              checked={f.share}
+              onCheckedChange={(v) => setF({ ...f, share: v })}
+              label={t('partners.activity.shareTeam')}
+            />
+            <label htmlFor="activity-share-team" className="text-sm">
+              {t('partners.activity.shareTeam')}
+            </label>
+          </div>
+        ) : null}
         <Field label={demoSet ? t('partners.activity.demoDay') : t('partners.activity.nextStepOn')}>
           {(p) => (
             <Input
@@ -175,11 +256,6 @@ export function LogActivityDialog({
         <Field label={t('partners.activity.nextStep')}>
           {(p) => <Input {...p} value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />}
         </Field>
-        {!ok && why ? (
-          <p className="text-sm text-muted sm:col-span-2" role="status" data-activity-why>
-            {why}
-          </p>
-        ) : null}
       </div>
     </Dialog>
   );
@@ -232,12 +308,17 @@ export function AddNoteDialog({
       closeLabel={t('common.close')}
       dirty={!!f.body}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {!f.body.trim() ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-note-why>
+              {t('partners.note.need')}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!f.body.trim()} loading={busy} onClick={() => void save()} data-note-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">

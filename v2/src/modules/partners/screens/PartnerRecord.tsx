@@ -767,6 +767,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         types={lists.activityTypes}
         outcomes={lists.outcomes}
         onDone={refresh}
+        partnerName={tradeName(card, locale)}
       />
       <AddNoteDialog open={noting} onOpenChange={setNoting} partnerId={card.id} onDone={refresh} />
       <EditPartnerDialog

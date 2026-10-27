@@ -56,6 +56,33 @@ export const sabotages = [
     name: 'phone-task-dots-fall-to-a-second-row',
     breaks: [E2E],
     expect: 'the actions all sit on one row',
-    edits: [{ file: RECORD, find: "className={escalatable ? undefined : 'sm:hidden'}", replace: 'className="w-full"' }],
+    // since E (26 Oct) the dots are phone-only, so the sabotage widens them where they show
+    edits: [
+      {
+        file: RECORD,
+        find: '<Button aria-label={t(\'common.more\')} className="sm:hidden" data-task-more>',
+        replace: '<Button aria-label={t(\'common.more\')} className="w-full" data-task-more>',
+      },
+    ],
+  },
+  {
+    // E (26 Oct): Escalate goes back behind the dots, unlabelled on the row
+    name: 'escalate-hides-behind-the-dots-again',
+    breaks: [E2E],
+    expect: 'Escalate is a labelled button on the row',
+    edits: [
+      {
+        file: RECORD,
+        find: '      {escalatable ? (\n        <Button\n          icon={<Megaphone />}',
+        replace: '      {false ? (\n        <Button\n          icon={<Megaphone />}',
+      },
+    ],
+  },
+  {
+    // E (26 Oct): the Escalate button no longer says in one line what it does
+    name: 'escalate-says-nothing-of-what-it-does',
+    breaks: [E2E],
+    expect: 'with its one line of what it does',
+    edits: [{ file: RECORD, find: "          title={t('pages.tasks.escalate.what')}\n", replace: '' }],
   },
 ];

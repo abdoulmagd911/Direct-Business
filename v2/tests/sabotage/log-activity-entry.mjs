@@ -1,5 +1,7 @@
 // Sabotages for Log activity in the + (V646).
 const UNIT = 'unit:tests/unit/shell/the-plus-offers-log-activity-between-task-and-achievement.test.ts';
+const INSIDE = 'e2e:tests/e2e/log-activity-inside-direct.spec.ts';
+const PHONE = 'e2e:tests/e2e/log-activity-title-and-reason.spec.ts';
 const E2E = 'e2e:tests/e2e/log-activity-from-the-plus.spec.ts';
 
 export const sabotages = [
@@ -34,8 +36,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/LogActivityEntry.tsx',
-        find: 'disabled={!who}',
-        replace: 'disabled={false}',
+        find: "const ready = mode === 'org' ? !!who : !!inside;",
+        replace: 'const ready = true;',
       },
     ],
   },
@@ -58,8 +60,93 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
-        find: "title={partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}",
-        replace: "title={t('partners.activity.log')}",
+        find: "{partnerName ? t('partners.activity.logFor', { name: partnerName }) : t('partners.activity.log')}",
+        replace: "{t('partners.activity.log')}",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-saves-without-a-line',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'keeps Save off and says what to write',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: '    !!f.body.trim() &&\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'log-activity-outcome-never-says-optional',
+    breaks: ['unit:tests/unit/partners/log-activity-says-where-it-lands.test.tsx'],
+    expect: 'reads Outcome (optional)',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')",
+        replace: "t('partners.activity.outcome')",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-title-has-no-cap',
+    breaks: [PHONE],
+    expect: 'keeps to three lines',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: "open ? 'break-words' : 'line-clamp-3 break-words'",
+        replace: "'break-words'",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-reason-is-left-in-the-form',
+    breaks: [PHONE],
+    expect: 'sits next to Save',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: '<p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-activity-why>',
+        replace:
+          '<p className="w-full text-sm text-muted sm:w-auto sm:flex-1 absolute -bottom-96" role="status" data-activity-why>',
+      },
+    ],
+  },
+  {
+    name: 'log-activity-more-is-indented',
+    breaks: [PHONE],
+    expect: 'starts at the title start edge',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: 'className="justify-start px-0 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+        replace: 'className="ms-2 text-sm font-normal"\n              onClick={() => setOpen(!open)}',
+      },
+    ],
+  },
+  {
+    name: 'log-activity-inside-needs-no-team',
+    breaks: [INSIDE],
+    expect: 'Next waits for a team or system',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/LogActivityEntry.tsx',
+        find: "const ready = mode === 'org' ? !!who : !!inside;",
+        replace: "const ready = mode === 'org' ? !!who : true;",
+      },
+    ],
+  },
+  {
+    name: 'log-activity-drops-the-ticket',
+    breaks: [INSIDE],
+    expect: 'TEST-1234',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/LogActivityDialog.tsx',
+        find: 'p_ticket_ref: f.ticket.trim() || undefined,',
+        replace: 'p_ticket_ref: undefined,',
       },
     ],
   },

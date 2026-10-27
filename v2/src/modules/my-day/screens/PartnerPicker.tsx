@@ -52,12 +52,20 @@ export function PartnerPicker({
   if (value)
     return (
       <span
-        className="inline-flex min-h-[var(--control-h)] items-center gap-2 rounded-md border border-border bg-surface ps-3"
+        className="inline-flex min-h-[var(--control-h)] max-w-full items-center gap-2 rounded-md border border-border bg-surface ps-3"
         data-partner-picked={value.id}
       >
-        <Building2 className="size-4 text-muted" aria-hidden="true" />
-        <span className="truncate">{nameOf(value, locale)}</span>
-        <span className="font-data text-sm text-muted">{value.number}</span>
+        <Building2 className="size-4 shrink-0 text-muted" aria-hidden="true" />
+        {/* as in the list below: the name wraps over as many lines as it needs and is never cut with an ellipsis; the code
+            sits on its own line under it and never breaks in the middle */}
+        <span className="flex min-w-0 flex-1 flex-col py-1">
+          <span className="min-w-0 [overflow-wrap:anywhere]" data-partner-picked-name>
+            {nameOf(value, locale)}
+          </span>
+          <span className="font-data text-sm whitespace-nowrap text-muted" data-partner-picked-number>
+            {value.number}
+          </span>
+        </span>
         <IconButton label={t('common.remove')} icon={<X />} size="sm" onClick={() => onChange(null)} />
       </span>
     );
@@ -123,8 +131,16 @@ export function PartnerPicker({
                   data-partner-hit={p.id}
                 >
                   <Building2 className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="truncate">{nameOf(p, locale)}</span>
-                  <span className="font-data text-sm text-muted">{p.number}</span>
+                  {/* the name wraps (onto as many lines as it needs, a long word breaks) and is never cut with an ellipsis;
+                      the code sits on its own line under it and never breaks in the middle */}
+                  <span className="flex min-w-0 flex-1 flex-col py-1">
+                    <span className="min-w-0 [overflow-wrap:anywhere]" data-partner-hit-name>
+                      {nameOf(p, locale)}
+                    </span>
+                    <span className="font-data text-sm whitespace-nowrap text-muted" data-partner-hit-number>
+                      {p.number}
+                    </span>
+                  </span>
                 </button>
               </li>
             ))

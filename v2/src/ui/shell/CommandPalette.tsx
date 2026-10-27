@@ -12,6 +12,7 @@ import { canSee } from '../person';
 import { reachableFor } from './nav';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { createActionsFor } from './CreateMenu';
+import { paletteMatches } from './palette-match';
 
 // Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
 // person without Activity reaches it here.
@@ -114,10 +115,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   };
   // cmdk's own filter is off (QA-72): a person the server found by a nickname or a folded Arabic spelling stays; the
   // pages and actions are filtered here, on the words as shown
-  const matches = (label: string) => !term || label.toLowerCase().includes(term.toLowerCase());
+  const matches = (label: string) => paletteMatches(label, term);
   const pages = reachableFor(me).filter((p) => matches(t(p.label)));
   const actions = paletteActions().filter((a) => canSee(me, a.page) && matches(t(a.label)));
-  const createActions = createActionsFor(me).filter((a) => matches(`${t('top.create')} ${t(`create.${a.key}`)}`));
+  const createActions = createActionsFor(me).filter((a) => matches(`${t('top.create')} · ${t(`create.${a.key}`)}`));
   const personName = (p: Hit) => (locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en);
 
   return (
