@@ -5,7 +5,7 @@
 -- admin never does); the author or an admin removes one, and Undo brings it back. A blank or very long comment is
 -- refused. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-comment-reads-without-the-task-rule.sql, a-viewer-may-comment.sql,
--- a-comment-tells-the-whole-team.sql, an-admin-edits-any-comment.sql, a-comment-on-past-work-tells-the-team.sql.
+-- a-comment-tells-the-whole-team.sql, an-admin-edits-any-comment.sql, a-comment-on-past-work-tells-the-team.sql, a-viewer-who-helps-may-comment.sql, an-admin-removal-tells-the-author.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_cmt', 'Test Comment Desk', 'فريق التعليقات');
 select set_config('t.head', test.person('Test Comment Head', 'head')::text, true);
@@ -15,9 +15,10 @@ select set_config('t.peer', test.person('Test Peer Member', 'member')::text, tru
 select set_config('t.viewer', test.person('Test Comment Viewer', 'viewer')::text, true);
 select set_config('t.far', test.person('Test Far Head', 'head', 'test_other_dept')::text, true);
 select set_config('t.admin', test.person('Test Comment Admin', 'admin')::text, true);
+select set_config('t.vhelp', test.person('Test Viewer Helper', 'viewer')::text, true);
 update core.person set team_id = (select id from core.team where code = 'test_cmt')
 where id in (current_setting('t.head')::uuid, current_setting('t.own')::uuid, current_setting('t.help')::uuid,
-             current_setting('t.peer')::uuid, current_setting('t.viewer')::uuid);
+             current_setting('t.peer')::uuid, current_setting('t.viewer')::uuid, current_setting('t.vhelp')::uuid);
 insert into core.setting (key, value, valid_from, reason, created_by)
 values ('app.go_live_on', to_jsonb((core.riyadh_today() - 30)::text), core.riyadh_today() - 30, 'made up: go-live',
         current_setting('t.head')::uuid);
@@ -26,7 +27,8 @@ values ('app.go_live_on', to_jsonb((core.riyadh_today() - 30)::text), core.riyad
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.t', api.task_create(jsonb_build_object('title', 'Made-up comment task', 'work_type', 'internal',
   'owner_id', current_setting('t.own'), 'due_on', (core.riyadh_today() + 3)::text)) ->> 'id', true);
-select api.task_helpers_set(current_setting('t.t')::uuid, array[current_setting('t.help')::uuid]);
+select api.task_helpers_set(current_setting('t.t')::uuid,
+  array[current_setting('t.help')::uuid, current_setting('t.vhelp')::uuid]);
 
 -- the helper writes: the owner and the creator are told once, the author and the colleague are not
 select test.as_person(current_setting('t.help')::uuid);
@@ -73,6 +75,13 @@ select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid
   'a viewer reads the comments');
 select test.raises(format('select api.task_comment_add(%L, %L)', current_setting('t.t'), 'Made up'), '42501',
   'a viewer reads only: no comment', 'access.needs_level');
+
+-- a viewer who is named a helper still reads only
+select test.as_person(current_setting('t.vhelp')::uuid);
+select test.eq((api.task_comments(current_setting('t.t')::uuid) ->> 'can_write')::boolean, false,
+  'a viewer who helps reads only');
+select test.raises(format('select api.task_comment_add(%L, %L)', current_setting('t.t'), 'Made up'), '42501',
+  'a viewer who helps adds no comment', 'access.needs_level');
 
 -- a head of another department sees no task, so no comment
 select test.as_person(current_setting('t.far')::uuid);
@@ -134,3 +143,14 @@ select test.as_owner();
 select test.eq((select count(*)::int from notify.notification where kind = 'task_commented'
                 and request_id = (current_setting('t.cp')::jsonb ->> 'request_id')::uuid), 0,
   'a comment on past work tells nobody');
+
+-- an admin removes the author's comment and Undo brings it back: the author is told of neither (QA-603)
+select test.as_person(current_setting('t.help')::uuid);
+select set_config('t.c3', api.task_comment_add(current_setting('t.t')::uuid, 'Made-up third remark')::text, true);
+select test.as_person(current_setting('t.admin')::uuid);
+select set_config('t.rm3', api.task_comment_remove((current_setting('t.c3')::jsonb ->> 'id')::uuid)::text, true);
+select api.undo((current_setting('t.rm3')::jsonb ->> 'request_id')::uuid);
+select test.as_owner();
+select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.help')::uuid
+                and kind in ('changed_by_other', 'followed_change')), 0,
+  'an admin removing a comment, and Undo, tell its author nothing twice');

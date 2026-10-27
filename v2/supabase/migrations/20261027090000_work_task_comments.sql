@@ -4,7 +4,7 @@
 --     every read; a comment never widens who sees the task, and a private or other-department task's comments stay
 --     unreadable to a person who cannot see the task.
 --   * Write: whoever may change the task (work.can_edit_task: Full on Tasks, or Own and its owner or creator) or helps
---     on it (V240) — and can see it. A viewer reads only.
+--     on it (V240) with Own on Tasks — and can see it. A viewer, even one who helps, reads only.
 --   * Own comments: only the author edits one; the author or an admin removes one (an admin never edits). Each is one
 --     request with Undo (D7); removing is a soft delete, so Undo brings it back.
 --   * Telling people: a new comment tells the task's owner, creator and helpers in the app (kind task_commented), never
@@ -68,20 +68,24 @@ begin
 end
 $$;
 
--- A comment's one owner is its author: if an admin removes it, the author is told it changed.
+-- A comment has no owners of its own: the notice for a new comment is the task's (task_commented, from the door), and
+-- the generic "changed by someone else" notice stays out of it, so an admin's removal and its Undo tell nobody twice
+-- (QA-603).
 create function work.task_comment_owners(p_id uuid) returns setof uuid
 language sql stable security definer set search_path = ''
-as $$ select c.created_by from work.task_comment c where c.id = p_id $$;
+as $$ select null::uuid where false $$;
 
 -- ================================================================ who may write
--- Whoever can see the task and may change it (Full on Tasks, or Own and its owner or creator) or helps on it.
+-- Whoever can see the task and may change it (Full on Tasks, or Own and its owner or creator) or helps on it — and a
+-- helper still needs Own on Tasks: a viewer who helps reads only (the Architect's change request on #356).
 create function work.can_comment(p_person uuid, t work.task) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select authz.can_see_as(p_person, 'work.task', t.id)
          and (work.can_edit_task(p_person, t)
-              or exists (select 1 from work.task_helper h
-                         where h.task_id = t.id and h.person_id = p_person and h.deleted_at is null))
+              or (authz.level_of(p_person, 'tasks') >= 'own'
+                  and exists (select 1 from work.task_helper h
+                              where h.task_id = t.id and h.person_id = p_person and h.deleted_at is null)))
 $$;
 
 -- The task a person may comment on (or read the comments of): refused with the same words the tasks use.
