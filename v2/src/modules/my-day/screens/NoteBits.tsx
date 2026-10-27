@@ -1,14 +1,15 @@
 'use client';
 import {
+  type LucideIcon,
   Bell,
+  CalendarClock,
   CheckSquare,
+  Globe,
+  Lightbulb,
   Lock,
   StickyNote,
+  UserRound,
   Users,
-  Globe,
-  CalendarClock,
-  Lightbulb,
-  type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -31,7 +32,12 @@ export const CAPTURE_ICON: Record<NonNullable<MyNote['capture_kind']>, LucideIco
   reminder: Bell,
   meeting: CalendarClock,
 };
-const VISIBILITY_ICON: Record<Visibility, LucideIcon> = { private: Lock, team: Users, workspace: Globe };
+const VISIBILITY_ICON: Record<Visibility, LucideIcon> = {
+  private: Lock,
+  team: Users,
+  workspace: Globe,
+  person: UserRound,
+};
 
 const chipClass =
   'inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-pill border border-border px-2 text-xs font-medium text-muted [&_svg]:size-3';
@@ -70,19 +76,22 @@ export function LinkChip({ link }: { link: NoteLink }) {
             ? t('pages.myDay.note.linkActivity', { type, name })
             : type;
   const route = linkRoute(link);
-  const cls = cn(chipClass, 'border-accent/40 text-text');
+  // a long title never widens the note page on a phone (K, 26 Oct): the chip is at most its row, its words cut short
+  const cls = cn(chipClass, 'max-w-full border-accent/40 text-text');
+  const words = <span className="min-w-0 truncate">{label}</span>;
   return route ? (
     <Link
       href={route}
       className={cn(cls, 'hover:bg-accent-soft')}
+      title={label}
       data-turned-into={link.entity}
       data-link-id={link.id}
     >
-      {label}
+      {words}
     </Link>
   ) : (
-    <span className={cls} data-turned-into={link.entity} data-link-id={link.id}>
-      {label}
+    <span className={cls} title={label} data-turned-into={link.entity} data-link-id={link.id}>
+      {words}
     </span>
   );
 }
