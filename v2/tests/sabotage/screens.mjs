@@ -632,8 +632,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        find: '  if (!row.role)\n    return (\n      <StatusChip className={WRAPS} tone="warning">\n        {t(\'settings.people.noRole\')}\n      </StatusChip>\n    );\n  return (\n    <StatusChip className={WRAPS} tone="success">',
+        replace: '  return (\n    <StatusChip className={WRAPS} tone="success">',
       },
     ],
   },

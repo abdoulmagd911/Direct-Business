@@ -350,6 +350,8 @@
       },
       "visibility": {
         "label": "من يراها",
+        "person": "زميل واحد",
+        "sharedWith": "مشارَكة مع",
         "private": "أنا فقط",
         "team": "فريقي",
         "workspace": "الجميع"
@@ -394,7 +396,9 @@
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "تذكير · {when}"
+        "linkReminder": "تذكير · {when}",
+        "linkTask": "مهمة {number} · {title}",
+        "linkActionItem": "بند عمل في {number} · {text}"
       },
       "turn": {
         "label": "تحويل إلى",
@@ -416,7 +420,8 @@
         "when": "متى",
         "text": "ذكّرني بـ",
         "logged": "تم تسجيل {type} على {name}",
-        "reminded": "تم ضبط التذكير في {when}"
+        "reminded": "تم ضبط التذكير في {when}",
+        "taskTitle": "تحويل هذه الملاحظة إلى مهمة"
       },
       "finish": {
         "label": "إنهاء الاجتماع",
@@ -1553,6 +1558,7 @@
       "turn_into_needs_partner": "اختر الجهة أولًا",
       "turn_into_not_yet": "يتوفر مع صفحته",
       "body_required": "تحتاج الملاحظة إلى كلمات",
+      "share_needs_a_colleague": "اختر الزميل الذي تشاركها معه",
       "turn_into_type_invalid": "اختر مكالمة أو اجتماعًا",
       "turn_into_invalid": "لا يمكن التحويل إلى هذا النوع",
       "wrap_up_choice_invalid": "اختر الترحيل أو تم",
@@ -1603,6 +1609,7 @@
       "alert_file_review": "يحين موعد مراجعة ملف على {record}",
       "reminder": "تذكير: {record}",
       "note_mention": "أشار إليك {actor} في ملاحظة",
+      "note_shared": "شارك {actor} معك ملاحظة: {record}",
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
