@@ -1,7 +1,7 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { useWords } from '@/modules/partners/screens/record/words';
@@ -46,6 +46,17 @@ export function TargetsScreen({
   const [chosenYear, setChosenYear] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // under a plan's name: what the name does not already say (a plan is named "Department Year" unless it was renamed),
+  // then its categories; each part keeps its own direction, so a Latin name never scrambles an Arabic line
+  const detail = (p: PlanRow): string[] => {
+    const d = byId.get(p.department_id);
+    const dn = d ? name(d) : '—';
+    const out: string[] = [];
+    if (!p.name.includes(dn)) out.push(dn);
+    if (!p.name.includes(String(p.year))) out.push(String(p.year));
+    out.push(t('settings.targets.categories', { count: p.categories }));
+    return out;
+  };
   const freeYears = (department: string) => {
     const held = new Set(plans.filter((p) => p.department_id === department).map((p) => p.year));
     const out: number[] = [];
@@ -91,8 +102,12 @@ export function TargetsScreen({
             <li key={p.id} className="flex flex-col gap-0.5 px-4 py-3 [overflow-wrap:anywhere]" data-plan-row={p.id}>
               <span className="font-medium">{p.name}</span>
               <span className="text-sm text-muted">
-                {byId.get(p.department_id) ? name(byId.get(p.department_id)!) : '—'} · {p.year} ·{' '}
-                {t('settings.targets.categories', { count: p.categories })}
+                {detail(p).map((part, i, all) => (
+                  <Fragment key={i}>
+                    <bdi>{part}</bdi>
+                    {i < all.length - 1 ? ' · ' : null}
+                  </Fragment>
+                ))}
               </span>
             </li>
           ))}
