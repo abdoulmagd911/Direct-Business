@@ -177,3 +177,31 @@ for (const [label, width, height] of [
     await expect(page.locator('[data-comment-body]')).toHaveText('Made-up second remark');
   });
 }
+
+test('an Undo that takes a moment says so at once, then says Undone, and the comment is back', async ({ page }) => {
+  test.setTimeout(120_000);
+  const member = await makePerson();
+  await withTeam(member, 'test_cmt_slow_undo');
+  const number = await taskOf(member);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, member.email, `/tasks/${number}?tab=comments`);
+  await hydrated(page);
+  await page.locator('[data-add-comment] textarea').fill('Made-up slow remark');
+  await page.getByRole('button', { name: 'Add comment' }).click();
+  await expect(page.locator('[data-comment]')).toHaveCount(1);
+  await page.locator('[data-comment-remove]').click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.locator('[data-comment]')).toHaveCount(0);
+  // the Undo reaches the database slowly (three seconds)
+  await page.route('**/rpc/undo', async (route) => {
+    await new Promise((r) => setTimeout(r, 3000));
+    await route.continue();
+  });
+  await page.locator('[data-sonner-toast][data-front="true"]').getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('Undoing…'), 'a message at once, while the Undo works').toBeVisible({ timeout: 800 });
+  await expect(page.getByText('Undone', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-comment]')).toHaveCount(1);
+  await page.reload();
+  await hydrated(page);
+  await expect(page.locator('[data-comment-body]')).toHaveText('Made-up slow remark');
+});

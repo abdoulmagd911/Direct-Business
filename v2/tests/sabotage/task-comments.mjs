@@ -56,4 +56,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'undo-says-nothing-while-it-works',
+    breaks: [E2E],
+    expect: 'a message at once, while the Undo works',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/words.ts',
+        find: "undoing: t('common.undoing'),",
+        replace: '',
+      },
+    ],
+  },
 ];

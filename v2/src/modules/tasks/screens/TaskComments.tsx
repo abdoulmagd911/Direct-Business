@@ -91,6 +91,7 @@ export function TaskComments({
           request_id?: string | null;
         }>,
       {
+        undoDirect: true,
         after: (r) => {
           const id = r?.id ?? '';
           if (first) {
@@ -129,6 +130,7 @@ export function TaskComments({
           request_id?: string | null;
         }>,
       {
+        undoDirect: true,
         after: () => {
           setEditing(null);
           if (first) {
@@ -152,6 +154,7 @@ export function TaskComments({
       words(t('pages.tasks.comments.removed')),
       () => rpc('task_comment_remove', { p_id: c.id }) as Promise<{ request_id?: string | null }>,
       {
+        undoDirect: true,
         after: () => {
           setRemoving(null);
           if (first) {
