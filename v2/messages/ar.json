@@ -596,7 +596,8 @@
         "overview": "نظرة عامة",
         "activity": "النشاط",
         "related": "ذات صلة",
-        "items": "بنود العمل"
+        "items": "بنود العمل",
+        "comments": "التعليقات"
       },
       "flags": {
         "stale": "بلا تحديث",
@@ -673,7 +674,10 @@
           "notes_too_long": "الملاحظات طويلة جدًا",
           "ref_value_required": "المرجع يحتاج إلى قيمة",
           "ref_taken": "هذا المرجع موجود على المهمة بالفعل",
-          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا"
+          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا",
+          "comment_body_required": "اكتب شيئًا أولًا",
+          "comment_too_long": "أقصى طول للتعليق 4000 حرف",
+          "comment_not_yours": "لا يعدّل التعليق إلا من كتبه"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",
@@ -778,7 +782,23 @@
         "send": "تصعيد",
         "done": "تم التصعيد إلى {name}"
       },
-      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق."
+      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق.",
+      "comments": {
+        "empty": "لا تعليقات بعد",
+        "readOnly": "يمكنك قراءة التعليقات على هذه المهمة، أما كتابتها فللعاملين عليها.",
+        "write": "اكتب تعليقًا",
+        "add": "إضافة تعليق",
+        "edit": "عدّل تعليقك",
+        "edited": "معدّل",
+        "added": "أُضيف التعليق",
+        "saved": "حُفظ التعليق",
+        "removed": "حُذف التعليق",
+        "removeTitle": "حذف تعليق {name}؟",
+        "bodyRequired": "اكتب شيئًا أولًا",
+        "tooLong": "الحد الأقصى {max} حرف",
+        "delete": "حذف",
+        "editAction": "تعديل"
+      }
     },
     "weeklyReview": {
       "title": "مراجعة الأسبوع",
@@ -888,6 +908,7 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
+    "task_comment": "تعليق",
     "task_template": "قالب مهمة",
     "task_occurrence": "مهمة من قالب",
     "project_health": "صحة المشروع",
@@ -1146,7 +1167,8 @@
       "escalated": "أمر تم تصعيده إليّ",
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
-      "alert_quiet_client": "عميل لي توقف عن الشراء"
+      "alert_quiet_client": "عميل لي توقف عن الشراء",
+      "task_commented": "تعليق على مهمة لي"
     },
     "devices": {
       "unknown": "متصفح"
@@ -1355,6 +1377,16 @@
       }
     },
     "emptyGroup": "لا شيء لإعداده هنا بعد.",
+    "targets": {
+      "openPlan": "فتح خطة",
+      "open": "فتح",
+      "year": "السنة",
+      "categories": "الفئات: {count}",
+      "none": "لم تُفتح أي خطة بعد.",
+      "everyYear": "لهذه الإدارة خطة لكل سنة.",
+      "noDepartment": "أضف إدارة أولًا.",
+      "everyDepartmentEveryYear": "لكل إدارة خطة لكل سنة بالفعل."
+    },
     "fields": {
       "width": "عدد الخانات",
       "prefix": "البادئة",
@@ -1434,6 +1466,17 @@
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",
+      "year_invalid": "يمكن فتح خطة من سنة 2025 حتى السنة القادمة"
+    },
+    "kind": {
+      "PermissionDenied": "ليست لديك صلاحية للقيام بذلك",
+      "Conflict": "تغيّر هذا منذ فتحته. أعد التحميل وحاول مرة أخرى.",
+      "RuleBroken": "رُفض هذا التغيير: {detail}",
+      "NotFound": "لم يُعثر على هذا السجل",
+      "Unavailable": "لم يردّ الخادم. حاول مرة أخرى."
+    },
     "people": {
       "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته"
     },
@@ -1602,6 +1645,7 @@
       "alert_kpi_checkin": "يوم مراجعة المؤشر: {record}",
       "escalated": "صعّد {actor} {record} إليك",
       "alert_quiet_client": "توقف التواصل مع {record}",
+      "task_commented": "علّق {actor} على {record}",
       "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
       "alert_activity_stale": "لا نشاط على {record}",
       "alert_file_review": "يحين موعد مراجعة ملف على {record}",
