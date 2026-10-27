@@ -1606,7 +1606,9 @@
       "open": "Open",
       "year": "Year",
       "categories": "Categories: {count}",
-      "none": "No plan has been opened yet."
+      "none": "No plan has been opened yet.",
+      "everyYear": "This department has a plan for every year.",
+      "noDepartment": "Add a department first."
     },
     "fields": {
       "width": "Digits",

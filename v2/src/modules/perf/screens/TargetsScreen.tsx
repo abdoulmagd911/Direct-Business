@@ -52,10 +52,15 @@ export function TargetsScreen({
     const d = byId.get(p.department_id);
     const dn = d ? name(d) : '—';
     const out: string[] = [];
-    if (!p.name.includes(dn)) out.push(dn);
-    if (!p.name.includes(String(p.year))) out.push(String(p.year));
+    if (!title(p).includes(dn)) out.push(dn);
+    if (!title(p).includes(String(p.year))) out.push(String(p.year));
     out.push(t('settings.targets.categories', { count: p.categories }));
     return out;
+  };
+  // a plan is named "Department Year" in English when it is opened; until someone renames it, it reads in the page's language
+  const title = (p: PlanRow): string => {
+    const d = byId.get(p.department_id);
+    return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
   };
   const freeYears = (department: string) => {
     const held = new Set(plans.filter((p) => p.department_id === department).map((p) => p.year));
@@ -91,7 +96,12 @@ export function TargetsScreen({
 
   return (
     <section className="flex flex-col gap-4" data-targets>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {live.length ? null : (
+          <p className="text-sm text-muted" data-plan-open-why>
+            {t('settings.targets.noDepartment')}
+          </p>
+        )}
         <Button variant="primary" onClick={start} disabled={!live.length} data-plan-open>
           {t('settings.targets.openPlan')}
         </Button>
@@ -100,7 +110,7 @@ export function TargetsScreen({
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-plans>
           {plans.map((p) => (
             <li key={p.id} className="flex flex-col gap-0.5 px-4 py-3 [overflow-wrap:anywhere]" data-plan-row={p.id}>
-              <span className="font-medium">{p.name}</span>
+              <span className="font-medium">{title(p)}</span>
               <span className="text-sm text-muted">
                 {detail(p).map((part, i, all) => (
                   <Fragment key={i}>
@@ -161,6 +171,11 @@ export function TargetsScreen({
               />
             )}
           </Field>
+          {dept && !years.length ? (
+            <p className="text-sm text-muted" data-plan-no-year>
+              {t('settings.targets.everyYear')}
+            </p>
+          ) : null}
         </div>
       </Dialog>
     </section>

@@ -65,3 +65,32 @@ test('the day the app went live is chosen in the date box and read back as 27 Oc
   await expect(dialog.locator('[data-setting-preview]')).toContainText('27 Oct 2026');
   // nothing is saved: the day is a setting of the whole app, which other specs read
 });
+
+test('a department with a plan for every year says why Open is grey', async ({ page }) => {
+  const admin = await makePerson({ admin: true });
+  const tag = Math.random().toString(36).slice(2, 7);
+  const name = `Made-up full dept ${tag}`;
+  const [dept] = await sql<{ id: string }>(
+    `insert into core.department (code, name_en, name_ar) values ($1, $2, $3) returning id`,
+    [`f_${tag}`, name, `إدارة ${tag}`],
+  );
+  const year = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' }).slice(0, 4));
+  for (let y = 2025; y <= year + 1; y++)
+    await sql(`insert into perf.plan (department_id, year, name, created_by) values ($1, $2, $3, $4)`, [
+      dept!.id,
+      y,
+      `${name} ${y}`,
+      admin.id,
+    ]);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, admin.email, '/settings/performance');
+  await hydrated(page);
+  await page.locator('[data-plan-open]').click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Department').click();
+  await page.getByRole('option', { name }).click();
+  await expect(dialog.locator('[data-plan-no-year]'), 'a greyed Open says why').toHaveText(
+    'This department has a plan for every year.',
+  );
+  await expect(dialog.locator('[data-plan-save]')).toBeDisabled();
+});
