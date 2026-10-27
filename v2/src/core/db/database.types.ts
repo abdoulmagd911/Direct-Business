@@ -529,6 +529,10 @@ export type Database = {
         Args: { p_body: string; p_happened_on: string; p_items?: Json; p_mentions?: string[]; p_task: string };
         Returns: Json;
       };
+      task_comment_add: { Args: { p_body: string; p_task: string }; Returns: Json };
+      task_comment_edit: { Args: { p_body: string; p_id: string; p_version: number }; Returns: Json };
+      task_comment_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      task_comments: { Args: { p_task: string }; Returns: Json };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
       task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };

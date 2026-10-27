@@ -9,15 +9,17 @@ export const sabotages = [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
         find: `sm:block">
-        <table className="w-full table-fixed text-sm">
+        <table className="w-full table-auto text-sm">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="w-[24%]`,
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
+                {t('settings.people.name')}`,
         replace: `sm:block">
         <table className="w-full text-sm whitespace-nowrap">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="w-[24%]`,
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
+                {t('settings.people.name')}`,
       },
     ],
   },

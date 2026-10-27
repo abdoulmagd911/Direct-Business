@@ -41,8 +41,9 @@ export type ToastExtra = { label: string; onClick: () => void };
 
 export const toast = {
   /** A command succeeded. Pass `undo` when the command is undoable; the button is "Undo". */
-  done(title: string, opts: { description?: string; undo?: ToastUndo; extra?: ToastExtra } = {}) {
+  done(title: string, opts: { description?: string; undo?: ToastUndo; extra?: ToastExtra; id?: string | number } = {}) {
     return sonnerToast.success(title, {
+      id: opts.id,
       description: opts.description,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
       // a second thing to do with what just happened (Done → Log as achievement): a button beside Undo, and a way out
@@ -50,8 +51,12 @@ export const toast = {
     });
   },
   /** A command was refused or failed: the reason in words, never a code. */
-  failed(title: string, description?: string) {
-    return sonnerToast.error(title, { description, duration: 8000 });
+  failed(title: string, description?: string, id?: string | number) {
+    return sonnerToast.error(title, { description, duration: 8000, id });
+  },
+  /** Something is under way (an Undo that takes a moment): a message at once, which the result then replaces. */
+  working(title: string) {
+    return sonnerToast.loading(title);
   },
   dismiss: sonnerToast.dismiss,
 };
