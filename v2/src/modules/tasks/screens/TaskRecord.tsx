@@ -24,27 +24,35 @@ import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import type { TaskLookups } from '../load';
 import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView } from '../rules';
-import type { TaskDetail } from '../types';
+import type { TaskComments as Comments, TaskDetail } from '../types';
 import { Checklist } from './Checklist';
+import { TaskComments } from './TaskComments';
 import { Escalate } from './Escalate';
 import { DATE_MAX } from './DueDayPicker';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
 import { HelpersField, OwnerPicker } from './TaskPeople';
 import { useCommandWords, useNames } from './words';
 
-export type TaskRecordData = { task: TaskDetail; tab: string; history: HistoryRow[] | null; lookups: TaskLookups };
+export type TaskRecordData = {
+  task: TaskDetail;
+  tab: string;
+  history: HistoryRow[] | null;
+  /** The comments (V657); null when they could not be read. */
+  comments: Comments | null;
+  lookups: TaskLookups;
+};
 
-const TABS = ['overview', 'activity', 'related', 'items'] as const;
+const TABS = ['overview', 'comments', 'activity', 'related', 'items'] as const;
 
 /**
  * A task's record (V95): the title, its number and where it belongs; its status (a menu of moves — V401) and flags;
- * three key figures; Done and Edit. Tabs Overview · Activity · Related · Action items; the rail holds every property.
+ * three key figures; Done and Edit. Tabs Overview · Comments · Activity · Related · Action items; the rail holds every property.
  */
 export function TaskRecord({ data }: { data: TaskRecordData }) {
   const t = useTranslations();
   const router = useRouter();
   const me = useMe();
-  const { task, history, lookups } = data;
+  const { task, history, comments, lookups } = data;
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const today = riyadhDay(new Date());
@@ -208,7 +216,12 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         tabs={TABS.map((k) => ({
           key: k,
           label: t(`pages.tasks.tabs.${k}`),
-          count: k === 'items' ? task.action_items.length : undefined,
+          count:
+            k === 'items'
+              ? task.action_items.length
+              : k === 'comments'
+                ? (comments?.comments.length ?? undefined)
+                : undefined,
         }))}
         tab={tab}
         tabHref={(k) => (k === 'overview' ? `/tasks/${task.number}` : `/tasks/${task.number}?tab=${k}`)}
@@ -258,6 +271,18 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
               )}
             </section>
           </div>
+        ) : null}
+        {tab === 'comments' ? (
+          comments ? (
+            <TaskComments task={task} data={comments} personName={names.person} locale={names.locale} />
+          ) : (
+            <DataState
+              kind="failed"
+              message={t('state.failed', { what: t('pages.tasks.tabs.comments') })}
+              onRetry={() => router.refresh()}
+              retryLabel={t('common.tryAgain')}
+            />
+          )
         ) : null}
         {tab === 'activity' ? (
           history ? (
