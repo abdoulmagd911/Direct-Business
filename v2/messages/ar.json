@@ -162,7 +162,9 @@
     "showAll": "عرض الكل",
     "by": "بواسطة",
     "on": "في",
-    "of": "من"
+    "of": "من",
+    "datePlaceholder": "يوم شهر سنة",
+    "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة"
   },
   "state": {
     "failed": "تعذّر تحميل {what}",
