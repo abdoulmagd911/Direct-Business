@@ -537,9 +537,6 @@
     "tasks": {
       "unknownOwner": "غير معروف",
       "blocked": "متوقفة",
-      "board": {
-        "blockedLabel": "متوقفة:"
-      },
       "blockedSince": "متوقفة منذ {date}",
       "internalWork": "داخلي",
       "markDone": "تعليم “{title}” كمنجزة",
@@ -800,7 +797,8 @@
         "calendar": "تقويم"
       },
       "board": {
-        "emptyColumn": "لا شيء هنا"
+        "emptyColumn": "لا شيء هنا",
+        "blockedLabel": "متوقفة:"
       },
       "calendar": {
         "previous": "الشهر السابق",
