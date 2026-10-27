@@ -90,8 +90,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: "visibility: about ? 'private' : visibility,",
-        replace: "visibility: about ? 'team' : visibility,",
+        find: "visibility: about || kind === 'reminder' ? 'private' : visibility,",
+        replace: "visibility: about || kind === 'reminder' ? 'team' : visibility,",
       },
     ],
   },

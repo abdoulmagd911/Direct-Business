@@ -97,7 +97,8 @@
     "language": "اللغة",
     "direction": "الاتجاه (للتطوير)",
     "signOut": "تسجيل الخروج",
-    "myProfile": "ملفي"
+    "myProfile": "ملفي",
+    "recentlyDeleted": "المحذوفة مؤخرًا"
   },
   "theme": {
     "light": "فاتح",
@@ -161,13 +162,17 @@
     "showAll": "عرض الكل",
     "by": "بواسطة",
     "on": "في",
-    "of": "من"
+    "of": "من",
+    "undoing": "جارٍ التراجع…",
+    "datePlaceholder": "يوم شهر سنة",
+    "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة"
   },
   "state": {
     "failed": "تعذّر تحميل {what}",
     "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
     "empty": "لا شيء هنا بعد",
-    "notMeasured": "غير مقاس"
+    "notMeasured": "غير مقاس",
+    "loading": "جارٍ تحميل {what}"
   },
   "confirm": {
     "title": "إزالة {item}؟",
@@ -435,19 +440,16 @@
         "title": "ختام اليوم",
         "summary": "{count, plural, one {# عنصر للإنهاء} other {# عناصر للإنهاء}}",
         "done": "منجز",
-        "notDone": "غير منجز",
         "tomorrow": "غدًا",
-        "nextWeek": "الأسبوع القادم",
         "drop": "إسقاط",
         "turn": "تحويل إلى",
         "saved": "تم ختام اليوم",
         "none": "لا شيء متبقٍ لختام اليوم.",
         "task": "مهمة",
-        "note": "ملاحظة",
         "saveWith": "حفظ · {parts}",
+        "chooseOne": "اختر منجز أو غدًا أو إسقاط لصفّ واحد على الأقل للحفظ",
         "partTomorrow": "{count} إلى الغد",
         "partToDay": "{count} إلى {day}",
-        "partNextWeek": "{count} إلى الأسبوع القادم",
         "partDrop": "{count} إسقاط",
         "partDone": "{count} منجز",
         "gone": "{items} لم يعد في قائمتك (لم يعد لك أو أُغلق). تم استبعاده وبقيت خياراتك الأخرى."
@@ -599,7 +601,8 @@
         "overview": "نظرة عامة",
         "activity": "النشاط",
         "related": "ذات صلة",
-        "items": "بنود العمل"
+        "items": "بنود العمل",
+        "comments": "التعليقات"
       },
       "flags": {
         "stale": "بلا تحديث",
@@ -676,7 +679,10 @@
           "notes_too_long": "الملاحظات طويلة جدًا",
           "ref_value_required": "المرجع يحتاج إلى قيمة",
           "ref_taken": "هذا المرجع موجود على المهمة بالفعل",
-          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا"
+          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا",
+          "comment_body_required": "اكتب شيئًا أولًا",
+          "comment_too_long": "أقصى طول للتعليق 4000 حرف",
+          "comment_not_yours": "لا يعدّل التعليق إلا من كتبه"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",
@@ -781,7 +787,38 @@
         "send": "تصعيد",
         "done": "تم التصعيد إلى {name}"
       },
-      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق."
+      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق.",
+      "layout": {
+        "label": "عرض المهام كـ",
+        "list": "قائمة",
+        "board": "لوحة",
+        "calendar": "تقويم"
+      },
+      "board": {
+        "emptyColumn": "لا شيء هنا"
+      },
+      "calendar": {
+        "previous": "الشهر السابق",
+        "next": "الشهر التالي",
+        "emptyMonth": "لا مهام مستحقة هذا الشهر",
+        "noDue": "{count, plural, one {مهمة واحدة بلا يوم استحقاق} two {مهمتان بلا يوم استحقاق} few {# مهام بلا يوم استحقاق} many {# مهمة بلا يوم استحقاق} other {# مهمة بلا يوم استحقاق}}"
+      },
+      "comments": {
+        "empty": "لا تعليقات بعد",
+        "readOnly": "يمكنك قراءة التعليقات على هذه المهمة، أما كتابتها فللعاملين عليها.",
+        "write": "اكتب تعليقًا",
+        "add": "إضافة تعليق",
+        "edit": "عدّل تعليقك",
+        "edited": "معدّل",
+        "added": "أُضيف التعليق",
+        "saved": "حُفظ التعليق",
+        "removed": "حُذف التعليق",
+        "removeTitle": "حذف تعليق {name}؟",
+        "bodyRequired": "اكتب شيئًا أولًا",
+        "tooLong": "الحد الأقصى {max} حرف",
+        "delete": "حذف",
+        "editAction": "تعديل"
+      }
     },
     "weeklyReview": {
       "title": "مراجعة الأسبوع",
@@ -891,6 +928,7 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
+    "task_comment": "تعليق",
     "task_template": "قالب مهمة",
     "task_occurrence": "مهمة من قالب",
     "project_health": "صحة المشروع",
@@ -1147,7 +1185,8 @@
       "escalated": "أمر تم تصعيده إليّ",
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
-      "alert_quiet_client": "عميل لي توقف عن الشراء"
+      "alert_quiet_client": "عميل لي توقف عن الشراء",
+      "task_commented": "تعليق على مهمة لي"
     },
     "devices": {
       "unknown": "متصفح"
@@ -1357,6 +1396,16 @@
       }
     },
     "emptyGroup": "لا شيء لإعداده هنا بعد.",
+    "targets": {
+      "openPlan": "فتح خطة",
+      "open": "فتح",
+      "year": "السنة",
+      "categories": "الفئات: {count}",
+      "none": "لم تُفتح أي خطة بعد.",
+      "everyYear": "لهذه الإدارة خطة لكل سنة.",
+      "noDepartment": "أضف إدارة أولًا.",
+      "everyDepartmentEveryYear": "لكل إدارة خطة لكل سنة بالفعل."
+    },
     "fields": {
       "width": "عدد الخانات",
       "prefix": "البادئة",
@@ -1436,8 +1485,20 @@
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",
+      "year_invalid": "يمكن فتح خطة من سنة 2025 حتى السنة القادمة"
+    },
+    "kind": {
+      "PermissionDenied": "ليست لديك صلاحية للقيام بذلك",
+      "Conflict": "تغيّر هذا منذ فتحته. أعد التحميل وحاول مرة أخرى.",
+      "RuleBroken": "رُفض هذا التغيير: {detail}",
+      "NotFound": "لم يُعثر على هذا السجل",
+      "Unavailable": "لم يردّ الخادم. حاول مرة أخرى."
+    },
     "people": {
-      "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته"
+      "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته",
+      "email_taken": "هذا البريد يخص {detail} بالفعل"
     },
     "person": {
       "assist_home_team": "لا يساعد الشخص فريقه الأساسي",
@@ -1452,7 +1513,17 @@
       "reassign_needs_off": "يُسلَّم العمل فقط عند إيقاف الشخص",
       "hand_over_to_self": "اختر شخصًا آخر ليتسلّم العمل",
       "head_needs_successor": "هذا الشخص يرأس {detail} — اختر رئيسًا جديدًا أولًا",
-      "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها"
+      "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها",
+      "full_name_required": "الاسم الكامل مطلوب",
+      "department_required": "الإدارة مطلوبة",
+      "manager_cycle": "لا يتبع شخص لمن يتبع له",
+      "team_outside_department": "الفريق في إدارة أخرى",
+      "not_yourself": "لا أحد يوقف نفسه",
+      "manager_not_team_member": "حساب مسؤول النظام وحساب الاختبار ليسا مديرًا لأحد",
+      "has_reports": "يتبع هذا الشخص أشخاص — أعطهم مديرًا آخر أولًا",
+      "account_taken": "يوجد حساب من هذا النوع بالفعل",
+      "unknown_account": "ليس نوع حساب",
+      "account_in_no_team": "حساب مسؤول النظام وحساب الاختبار بلا فريق وبلا مدير"
     },
     "overview": {
       "period_invalid": "تنتهي الفترة قبل أن تبدأ",
@@ -1488,7 +1559,13 @@
       "source_required": "اختر من أين جاءت"
     },
     "common": {
-      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
+      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم",
+      "conflict": "غيّر أحدهم هذا منذ فتحته. أعد التحميل وحاول مجددًا.",
+      "not_found": "لم يُعثر على هذا السجل",
+      "unavailable": "لم يردّ الخادم. حاول مجددًا.",
+      "nothing_selected": "لم يُحدَّد شيء",
+      "reason_required": "اذكر السبب",
+      "bad_request": "لم يُفهم الطلب: {detail}"
     },
     "partner": {
       "unknown_side": "جانب غير معروف: {detail}",
@@ -1584,6 +1661,86 @@
       "kind_invalid": "يمكن ختام المهام والملاحظات فقط",
       "not_yours": "يمكن ختام عناصرك أنت فقط",
       "not_open": "هذا العنصر مغلق بالفعل"
+    },
+    "list": {
+      "key_taken": "هذا المعرّف مستخدم من قبل",
+      "key_fixed": "المعرّف لا يتغيّر",
+      "nothing_to_change": "لا شيء لتغييره",
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "unknown_field": "حقل غير معروف: {detail}",
+      "retire_blocked_by_duplicate": "يحمل سجل آخر البديل هناك، فلم يُستبدل شيء",
+      "retire_blocked_by_rule": "يخالف البديل قاعدة في سجل يستخدمه، فلم يُستبدل شيء"
+    },
+    "undo": {
+      "changed_since": "غيّر أحدهم هذا بعد ذلك، فلا يمكن التراجع",
+      "not_allowed": "لا يمكنك التراجع عن هذا",
+      "already_undone": "تم التراجع من قبل",
+      "blocked_by_duplicate": "يحمل سجل آخر هذه القيمة الآن: {detail}",
+      "not_undoable": "ما يكتبه النظام لا يمكن التراجع عنه",
+      "nothing_to_undo": "لا شيء للتراجع عنه",
+      "cannot_remove": "لا يمكن إزالة هذا السجل",
+      "via_admin_route": "يُتراجع عن تغيير الدخول من الإعدادات، فيتبعه الدخول فورًا"
+    },
+    "view": {
+      "not_yours": "لا يزيل العرض المحفوظ إلا صاحبه",
+      "shared_needs_full": "مشاركة العرض تحتاج المستوى الكامل في هذه الصفحة",
+      "name_taken": "يوجد عرض بهذا الاسم في هذه الصفحة"
+    },
+    "restore": {
+      "not_removable": "سجلات {detail} لا تُزال أبدًا، فلا شيء للاستعادة",
+      "not_removed": "هذا السجل غير محذوف",
+      "too_late": "حُذف قبل أكثر من {detail} يومًا — اطلب من مسؤول النظام",
+      "not_allowed": "يستعيده من حذفه أو مالكوه أو مسؤول النظام فقط",
+      "blocked_by_duplicate": "يحمل سجل آخر القيمة نفسها الآن: {detail}",
+      "via_admin_route": "يُستعاد سجل الدخول من الإعدادات، فيتبعه الدخول فورًا",
+      "system_removal": "أزال التطبيق هذا بنفسه عند تحديثه، فلا يُستعاد"
+    },
+    "notify": {
+      "unknown_tab": "تبويب إشعارات غير معروف",
+      "snooze_in_the_past": "اختر وقتًا لم يحن بعد",
+      "snooze_too_far": "أجّل لمدة أقصر"
+    },
+    "access": {
+      "needs_level": "تحتاج صلاحية أوسع في هذه الصفحة",
+      "needs_capability": "لا تملك هذه الصلاحية",
+      "not_your_own": "لا أحد يغيّر صلاحياته بنفسه",
+      "admins_only": "مسؤول النظام فقط يفعل هذا",
+      "above_your_level": "لا يمكنك منح أكثر مما تملك",
+      "denied": "لا تملك صلاحية تنفيذ هذا"
+    },
+    "profile": {
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "arabic_not_enabled": "العربية لم تُفعَّل بعد",
+      "unknown_field": "حقل غير معروف: {detail}",
+      "nothing_to_change": "لا شيء لتغييره"
+    },
+    "setting": {
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "unknown": "إعداد غير معروف",
+      "reason_required": "اذكر السبب"
+    },
+    "auth": {
+      "no_active_person": "لم تسجّل الدخول"
+    },
+    "team": {
+      "other_department": "يجب أن يبقى الفريق في إدارته",
+      "code_taken": "هذا الرمز مستخدم من قبل"
+    },
+    "role": {
+      "key_fixed": "معرّف الدور لا يتغيّر",
+      "admins_only": "مسؤول النظام فقط يغيّر اسم دور المسؤول"
+    },
+    "org": {
+      "name_ar_required": "الاسم بالعربية مطلوب"
+    },
+    "password": {
+      "too_short": "10 أحرف على الأقل",
+      "no_email": "ليس لهذا الشخص بريد مسموح بعد"
+    },
+    "person_password": {
+      "has_one": "لهذا الشخص كلمة مرور خاصة به — تبقى كما هي",
+      "no_sign_in": "ليس لهذا الشخص بريد مسموح بعد",
+      "confirm_required": "إعادة التعيين تستبدل كلمة المرور الحالية — أكّدها أولًا"
     }
   },
   "notifications": {
@@ -1604,6 +1761,7 @@
       "alert_kpi_checkin": "يوم مراجعة المؤشر: {record}",
       "escalated": "صعّد {actor} {record} إليك",
       "alert_quiet_client": "توقف التواصل مع {record}",
+      "task_commented": "علّق {actor} على {record}",
       "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
       "alert_activity_stale": "لا نشاط على {record}",
       "alert_file_review": "يحين موعد مراجعة ملف على {record}",
@@ -1611,6 +1769,7 @@
       "note_mention": "أشار إليك {actor} في ملاحظة",
       "note_shared": "شارك {actor} معك ملاحظة: {record}",
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
+      "alert_overdue": "تأخر موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
     "snoozeTomorrow": "حتى الغد 08:00",
@@ -1619,7 +1778,22 @@
     "snoozeDate": "حتى تاريخ…",
     "snoozeUntil": "تأجيل حتى",
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
-    "someDetails": "بعض التفاصيل"
+    "someDetails": "بعض التفاصيل",
+    "title": "الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "mentions": "الإشارات",
+      "assigned": "المُسندة إليّ"
+    },
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "earlier": "قبل ذلك"
+    },
+    "unread": "غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "markRead": "تعليم كمقروء",
+    "snooze": "تأجيل"
   },
   "partners": {
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
@@ -1881,7 +2055,9 @@
     "since": "منذ",
     "stale": "راكدة منذ {date}",
     "nextStepDue": "الخطوة التالية {date}",
-    "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة"
+    "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة",
+    "capped": "يظهر {shown} من {total} — ابحث أو صفِّ لتضييق القائمة",
+    "chooseType": "اختر النوع"
   },
   "createNew": {
     "task": "مهمة جديدة",
@@ -1923,5 +2099,30 @@
     "view": "عرض",
     "own": "سجلاته فقط",
     "full": "كامل"
+  },
+  "recentlyDeleted": {
+    "title": "المحذوفة مؤخرًا"
+  },
+  "conflict": {
+    "title": "غيّر أحدهم هذا السجل منذ فتحته",
+    "titleBy": "غيّر {name} هذا السجل منذ فتحته",
+    "description": "اختر لكل حقل القيمة التي تريد الاحتفاظ بها.",
+    "when": "تم التغيير {time}",
+    "theirs": "قيمته",
+    "theirsBy": "كتب {name}",
+    "mine": "قيمتي",
+    "save": "حفظ اختياري"
+  },
+  "views": {
+    "save": "حفظ العرض",
+    "saveTitle": "حفظ هذا العرض",
+    "name": "الاسم",
+    "shared": "مشترك مع كل من يفتح هذه الصفحة",
+    "saved": "تم حفظ العرض",
+    "removed": "تمت إزالة {name}",
+    "default": "العرض الافتراضي",
+    "setDefault": "افتح هذا العرض أولًا",
+    "menu": "{name}: المزيد",
+    "label": "العروض"
   }
 }

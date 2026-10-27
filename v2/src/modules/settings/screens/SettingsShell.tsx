@@ -9,7 +9,8 @@ import { settingsGroups } from '../groups';
 
 /**
  * Settings (V97, admins only): the groups down the start side (a list of links, not tabs — the group's own page may
- * carry the one tab row), the group's content beside them; on a phone the groups wrap across the top, every one in
+ * carry the one tab row), the group's content beside them — cards and lists at a reading width, a table (data-wide) at
+ * the whole width of the content, so no word of it breaks; on a phone the groups wrap across the top, every one in
  * sight — a sideways scroll hid the last ones with no cue (QA-183d).
  */
 export async function SettingsShell({
@@ -55,7 +56,7 @@ export async function SettingsShell({
       <PageHeader crumbs={[{ label: t('settings.title'), href: '/settings' }]} title={title} actions={actions} />
       <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] md:gap-10">
         {nav}
-        <div className="flex min-w-0 flex-col gap-6 [&>*]:max-w-[880px]">{children}</div>
+        <div className="flex min-w-0 flex-col gap-6 [&>*]:max-w-[880px] [&>[data-wide]]:max-w-none">{children}</div>
       </div>
     </Page>
   );

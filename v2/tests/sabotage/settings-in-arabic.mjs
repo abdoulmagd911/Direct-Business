@@ -47,8 +47,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/words.ts',
-        find: '${valueText(t, `${settingKey}.${k}`, v, names)}',
-        replace: '${valueText(t, settingKey, v, names)}',
+        find: '${valueText(t, `${settingKey}.${k}`, v, names, locale)}',
+        replace: '${valueText(t, settingKey, v, names, locale)}',
       },
     ],
   },
@@ -120,6 +120,42 @@ export const sabotages = [
       {
         file: 'src/modules/settings/words.ts',
         find: '  const listed = names?.(settingKey, v);\n  if (listed) return listed;\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'arabic-gate-person-page-word-missing',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: settings.people.signInLog',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '      "signInLog": "سجل الدخول",\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'arabic-gate-new-screen-word-has-no-wording',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: settings.setting.brandNew',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: "{t('settings.setting.change')}",
+        replace: "{t('settings.setting.change')}{t('settings.setting.brandNew')}",
+      },
+    ],
+  },
+  {
+    name: 'arabic-gate-level-word-missing',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: levels.own',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '    "own": "سجلاته فقط",\n',
         replace: '',
       },
     ],
