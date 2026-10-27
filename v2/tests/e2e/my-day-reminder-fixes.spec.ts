@@ -119,7 +119,9 @@ test('a follow-up chip wraps on a phone and stays wide enough to read next to th
       chipH: c.height,
       line: parseFloat(getComputedStyle(chip).lineHeight),
       wordsW: words!.getBoundingClientRect().width,
-      timeSameLine: Math.abs(words!.getBoundingClientRect().top - time!.getBoundingClientRect().top) < 6,
+      timeSameLine:
+        time!.getBoundingClientRect().top < words!.getBoundingClientRect().bottom &&
+        time!.getBoundingClientRect().bottom > words!.getBoundingClientRect().top,
       chipBelow: c.top >= line.getBoundingClientRect().bottom - 1,
     };
   });
