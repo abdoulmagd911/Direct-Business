@@ -2,6 +2,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
@@ -16,9 +17,11 @@ export type { HistoryRow, RecordChange } from './history';
 export { historyRows } from './history';
 
 /**
- * The activity timeline of a record (V61, §3.3): newest first, each request with who, when, what changed and Undo
- * where the request is not undone. The database decides who may undo (V128); a refusal comes back in words. Long
- * histories show the last few with "Show all" (V81).
+ * The activity timeline of a record (V61, §3.3): newest first, each request with who, when and what changed. A record's
+ * timeline offers Undo on the reader's own newest action only (B, 26 Oct); the whole change log offers it on every
+ * request not undone. The database decides who may undo (V128); a refusal comes back in words. Values read as words:
+ * a person by name, a day as "26 Oct 2026", never an id or a raw date. Long histories show the last few with "Show
+ * all" (V81).
  */
 export function ActivityTimeline({
   rows,
@@ -28,6 +31,7 @@ export function ActivityTimeline({
   describe,
   summarize,
   entityWords,
+  undoEvery = false,
 }: {
   rows: HistoryRow[];
   /** Who is who, for the chips: from api.org() or the record itself. */
@@ -40,11 +44,22 @@ export function ActivityTimeline({
   summarize?: (entity: string | undefined, id: string | undefined) => string | null;
   /** What this screen calls a kind of record in a line (a client's page says "Client added", never "Partner added"). */
   entityWords?: Record<string, string>;
+  /** The whole change log: Undo on every request not undone, not only on the reader's newest. */
+  undoEvery?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
+  const me = useMaybeMe()?.person.id;
   const [busy, setBusy] = useState<string | null>(null);
+  const undoable = (r: HistoryRow) => !r.undone && r.kind !== 'system' && r.kind !== 'job' && r.kind !== 'undo';
+  const newestMine = rows.find((r) => r.actor_id === me && undoable(r))?.request_id;
+  const offersUndo = (r: HistoryRow) => undoable(r) && (undoEvery || r.request_id === newestMine);
+  const words: Record<string, string> = {
+    task_helper: t('activity.helper'),
+    reminder: t('activity.followUp'),
+    ...entityWords,
+  };
 
   // A column name is never shown: its wording, else the name in plain words ("manager_id" → "Manager").
   const fieldLabel = (f: string) => {
@@ -57,6 +72,10 @@ export function ActivityTimeline({
     if (said) return said;
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'boolean') return t(v ? 'common.yes' : 'common.no');
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(v, locale, { dateStyle: 'medium' });
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))
+      return formatDate(new Date(v), locale, { dateStyle: 'medium', timeStyle: 'short' });
+    if (typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return people[v]?.displayName ?? '—';
     if (typeof v === 'string' || typeof v === 'number') return String(v);
     return JSON.stringify(v);
   };
@@ -72,6 +91,10 @@ export function ActivityTimeline({
       .find(Boolean);
     const parts: string[] = [];
     if (typeof name === 'string') parts.push(name);
+    // a task's helper by name; a follow-up by its time (B)
+    if (typeof after.person_id === 'string' && c.entity === 'task_helper')
+      parts.push(people[after.person_id]?.displayName ?? '—');
+    if (typeof after.remind_at === 'string') parts.push(valueWords('remind_at', after.remind_at));
     for (const k of ['department_id', 'team_id', 'role_id']) {
       const word = after[k] ? describe?.(k, after[k]) : null;
       if (word) parts.push(word);
@@ -88,7 +111,7 @@ export function ActivityTimeline({
     const c = r.changes?.[0];
     if (!c) return t('activity.actions.request');
     const what =
-      (c.entity && entityWords?.[c.entity]) ||
+      (c.entity && words[c.entity]) ||
       (c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? ''));
     if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
     return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
@@ -197,7 +220,7 @@ export function ActivityTimeline({
             );
           })()}
         </div>
-        {!r.undone && r.kind !== 'system' && r.kind !== 'job' && r.kind !== 'undo' ? (
+        {offersUndo(r) ? (
           <Button
             variant="ghost"
             size="xs"

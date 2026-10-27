@@ -36,6 +36,7 @@ export function Escalate({
       open={open}
       onOpenChange={onOpenChange}
       title={t('pages.tasks.escalate.title', { number: task.number })}
+      description={t('pages.tasks.escalate.what')}
       closeLabel={t('common.close')}
       size="sm"
     >
