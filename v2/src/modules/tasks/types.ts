@@ -111,3 +111,17 @@ export type TeamLoad = {
   partners_owned: number;
   prospects_assigned: number;
 };
+
+/** api.task_comments(task) (V657): a task's comments, oldest first (newest last), and whether the reader may write one. */
+export type TaskComment = {
+  id: string;
+  body: string;
+  author_id: string;
+  created_at: string;
+  edited_at: string | null;
+  version: number;
+  mine: boolean;
+  can_edit: boolean;
+  can_remove: boolean;
+};
+export type TaskComments = { can_write: boolean; comments: TaskComment[] };

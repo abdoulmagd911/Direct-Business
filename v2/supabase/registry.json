@@ -465,7 +465,8 @@
             "escalated",
             "alert_project_no_update",
             "alert_due_tomorrow",
-            "alert_quiet_client"
+            "alert_quiet_client",
+            "task_commented"
           ]
         }
       },
@@ -491,7 +492,8 @@
         "escalated",
         "alert_project_no_update",
         "alert_due_tomorrow",
-        "alert_quiet_client"
+        "alert_quiet_client",
+        "task_commented"
       ],
       "effective_dated": false
     },
@@ -1834,6 +1836,18 @@
       "table": "work.task",
       "page": "tasks",
       "owners": "work.task_owners",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": "work.row_level",
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "task_comment",
+      "table": "work.task_comment",
+      "page": "tasks",
+      "owners": "work.task_comment_owners",
       "list": false,
       "private": false,
       "visible": null,
