@@ -8,8 +8,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/NotificationsPanel.tsx',
-        find: "n.label_key === 'alert.overdue'",
-        replace: "n.label_key === 'alert.overdue_never'",
+        find: "'alert.overdue': 'notifications.kinds.alert_overdue',",
+        replace: "'alert.overdue_never': 'notifications.kinds.alert_overdue',",
       },
     ],
   },
