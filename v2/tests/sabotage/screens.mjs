@@ -632,8 +632,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        find: '  if (!row.role)\n    return (\n      <StatusChip className={WRAPS} tone="warning">\n        {t(\'settings.people.noRole\')}\n      </StatusChip>\n    );\n  return (\n    <StatusChip className={WRAPS} tone="success">',
+        replace: '  return (\n    <StatusChip className={WRAPS} tone="success">',
       },
     ],
   },
@@ -671,8 +671,8 @@ export const sabotages = [
     expect: 'a word, not a key',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
-        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        file: 'src/modules/settings/words.ts',
+        find: '  for (const k of valueWordKeys(settingKey, v)) if (t.has(k)) return t(k);\n',
         replace: '',
       },
     ],
@@ -1289,7 +1289,7 @@ export const sabotages = [
     expect: 'Word (.docx)',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        file: 'src/modules/settings/words.ts',
         find: "wordprocessingml.document': 'Word (.docx)'",
         replace: "wordprocessingml.document': 'Word'",
       },

@@ -168,6 +168,8 @@
   },
   "common": {
     "filter": "Filter",
+    "datePlaceholder": "dd mmm yyyy",
+    "dateTimePlaceholder": "dd mmm yyyy, hh:mm",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
@@ -200,7 +202,8 @@
     "showAll": "Show all",
     "by": "by",
     "on": "on",
-    "of": "of"
+    "of": "of",
+    "undoing": "Undoing…"
   },
   "state": {
     "failed": "{what} could not be loaded",
@@ -235,6 +238,8 @@
       },
       "visibility": {
         "label": "Who sees it",
+        "person": "One colleague",
+        "sharedWith": "Shared with",
         "private": "Only me",
         "team": "My team",
         "workspace": "Everyone"
@@ -261,6 +266,8 @@
         "items": "Checklist",
         "addItem": "Add a row",
         "itemLabel": "Row {n}",
+        "itemDone": "Item done",
+        "moreItems": "{count, plural, one {# more item} other {# more items}}",
         "removeItem": "Remove row {n}",
         "organisation": "Organisation",
         "meetingOn": "Meeting day",
@@ -271,7 +278,7 @@
         "carried": "Carried to {date}",
         "turnedInto": "Turned into",
         "fromNote": "From note",
-        "saved": "Note saved",
+        "saved": "{kind, select, checklist {Checklist saved} meeting {Meeting saved} other {Note saved}}",
         "remove": "Delete note",
         "removeTitle": "Delete the note “{name}”?",
         "removeBody": "What it was turned into stays.",
@@ -318,19 +325,16 @@
         "title": "Wrap up today",
         "summary": "{count, plural, one {# thing to wrap up} other {# things to wrap up}}",
         "done": "Done",
-        "notDone": "Not done",
         "tomorrow": "Tomorrow",
-        "nextWeek": "Next week",
         "drop": "Drop",
         "turn": "Turn into",
         "saved": "Day wrapped up",
         "none": "Nothing left to wrap up today.",
         "task": "Task",
-        "note": "Note",
         "saveWith": "Save · {parts}",
+        "chooseOne": "Choose Done, Tomorrow or Drop on a row to save",
         "partTomorrow": "{count} to tomorrow",
         "partToDay": "{count} to {day}",
-        "partNextWeek": "{count} next week",
         "partDrop": "{count} dropped",
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
@@ -637,7 +641,8 @@
         "overview": "Overview",
         "activity": "Activity",
         "related": "Related",
-        "items": "Action items"
+        "items": "Action items",
+        "comments": "Comments"
       },
       "flags": {
         "stale": "No update",
@@ -683,6 +688,7 @@
       },
       "escalate": {
         "open": "Escalate",
+        "what": "Tell someone about this task, with a note. They get a notification and follow the task from then on.",
         "title": "Escalate {number}",
         "to": "Escalate to",
         "to_required": "Pick who to tell",
@@ -735,7 +741,10 @@
           "notes_too_long": "The notes are too long",
           "ref_value_required": "The reference needs a value",
           "ref_taken": "That reference is already on the task",
-          "origin_invalid": "This kind of task cannot be added here"
+          "origin_invalid": "This kind of task cannot be added here",
+          "comment_body_required": "Write something first",
+          "comment_too_long": "A comment can be at most 4,000 characters",
+          "comment_not_yours": "Only the person who wrote a comment can change it"
         },
         "action_item": {
           "text_required": "Write the action item",
@@ -834,6 +843,22 @@
         "next": "Next month",
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
+      },
+      "comments": {
+        "empty": "No comments yet",
+        "readOnly": "You can read the comments on this task. People who work on it can write them.",
+        "write": "Write a comment",
+        "add": "Add comment",
+        "edit": "Edit your comment",
+        "edited": "edited",
+        "added": "Comment added",
+        "saved": "Comment saved",
+        "removed": "Comment deleted",
+        "removeTitle": "Delete the comment by {name}?",
+        "bodyRequired": "Write something first",
+        "tooLong": "At most {max} characters",
+        "delete": "Delete",
+        "editAction": "Edit"
       }
     },
     "weeklyReview": {
@@ -944,6 +969,7 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
+    "task_comment": "Comment",
     "task_template": "Task template",
     "task_occurrence": "Task made from a template",
     "project_health": "Project health",
@@ -1109,6 +1135,8 @@
     "followUpsFailed": "Follow-ups · try again"
   },
   "activity": {
+    "helper": "Helper",
+    "followUp": "Follow-up",
     "title": "Activity",
     "locked": "Activity is for managers, heads of department and admins",
     "tabs": {
@@ -1308,7 +1336,8 @@
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
-      "alert_quiet_client": "A client of mine has gone quiet"
+      "alert_quiet_client": "A client of mine has gone quiet",
+      "task_commented": "A comment on a task of mine"
     },
     "devices": {
       "label": "Device",
@@ -1521,7 +1550,8 @@
       "admin": "Admin role",
       "saved": "Role saved",
       "edit": "Edit {name}",
-      "people": "People"
+      "people": "People",
+      "role": "Role"
     },
     "access": {
       "matrix": "Roles × pages",
@@ -1585,9 +1615,27 @@
           "appraisal": "Appraisal",
           "activity": "Activity"
         }
+      },
+      "finance": {
+        "revenue_definition": {
+          "basis": {
+            "revenue": "Revenue",
+            "profit": "Profit"
+          }
+        }
       }
     },
     "emptyGroup": "Nothing to set up here yet.",
+    "targets": {
+      "openPlan": "Open a plan",
+      "open": "Open",
+      "year": "Year",
+      "categories": "Categories: {count}",
+      "none": "No plan has been opened yet.",
+      "everyYear": "This department has a plan for every year.",
+      "noDepartment": "Add a department first.",
+      "everyDepartmentEveryYear": "Every department already has a plan for every year."
+    },
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
@@ -1595,10 +1643,24 @@
       "account_manager": "Account manager",
       "commercial_manager": "Commercial manager",
       "in_app": "In app",
-      "email": "Email"
+      "email": "Email",
+      "basis": "Basis",
+      "services": "Services",
+      "client_types": "Client types",
+      "commissions": "Commissions count",
+      "prepaid": "Prepaid",
+      "postpaid": "Postpaid",
+      "tender": "Tender"
+    },
+    "fileTypes": {
+      "text": "Text"
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "That department already has a plan for that year",
+      "year_invalid": "A plan can be opened for 2025 up to next year"
+    },
     "overview": {
       "period_invalid": "The period ends before it starts",
       "unknown_period": "Choose month, quarter or year to date, or your own dates"
@@ -1790,6 +1852,11 @@
       "terms_list_expected": "Terms must be a list",
       "side_required": "A contract needs its side"
     },
+    "activity": {
+      "with_whom_required": "Say who it was with: an organisation or someone inside Direct",
+      "unknown_internal_counterpart": "That team or system is not on the list: {detail}",
+      "share_team_internal_only": "Only an activity inside Direct can be shared with a team"
+    },
     "reference": {
       "unknown_department": "No active department: {detail}",
       "mailbox_invalid": "Where the codes go must be an email address",
@@ -1811,6 +1878,7 @@
       "turn_into_needs_partner": "Choose the organisation first",
       "turn_into_not_yet": "This arrives with its page",
       "body_required": "A note needs words",
+      "share_needs_a_colleague": "Pick the one colleague to share it with",
       "turn_into_type_invalid": "Choose call or meeting",
       "turn_into_invalid": "This cannot be turned into that",
       "wrap_up_choice_invalid": "Choose carry over or done",
@@ -1895,12 +1963,15 @@
       "alert_kpi_checkin": "KPI check-in day: {record}",
       "escalated": "{actor} escalated {record} to you",
       "alert_quiet_client": "{record} has gone quiet",
+      "task_commented": "{actor} commented on {record}",
       "alert_project_no_update": "{record} has no health update",
       "alert_activity_stale": "{record} has had no activity",
       "alert_file_review": "A file on {record} is due for review",
       "reminder": "Reminder: {record}",
       "note_mention": "{actor} mentioned you in a note",
+      "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
+      "alert_overdue": "{record} is overdue",
       "other": "{actor} · {record}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",
@@ -2023,6 +2094,14 @@
       "who": "Who was it with?",
       "whoOrg": "A client, lead or supplier",
       "whoNext": "Next",
+      "whoKind": "It was with",
+      "whoInside": "Someone inside Direct",
+      "insideField": "Team or system",
+      "insideNone": "Choose a team or system",
+      "needWho": "Choose a client, lead or supplier",
+      "needInside": "Choose a team or system",
+      "ticketRef": "Ticket reference (optional)",
+      "shareTeam": "Share with my team",
       "log": "Log activity",
       "logged": "{type} logged",
       "logFor": "Log activity for {name}",

@@ -1,6 +1,7 @@
 -- PAST-01 — past work (V491, V506). A task dated before go-live is past work: it may carry owner Unknown, which live
 -- work never may; it raises no overdue flag and no notice; it sits under Past work and Needs an owner, never in My work;
--- a manager gives it an owner in one logged change, and Undo restores Unknown. Every value is made up.
+-- a manager gives it an owner in one logged change — open and owned, it is then live work in My work (D, 26 Oct) —
+-- and Undo restores Unknown. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/live-work-without-an-owner.sql, past-work-flagged-overdue.sql.
 insert into core.team (department_id, code, name_en, name_ar)
 values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق الاختبار');
@@ -40,7 +41,8 @@ select test.eq((select count(*)::int from audit.change where request_id = curren
 select test.eq((select count(*)::int from notify.notification where request_id = current_setting('t.asg')::uuid), 0,
   'still telling nobody');
 select test.as_person(current_setting('t.am1')::uuid);
-select test.eq((api.tasks('{"scope": "my_work"}'::jsonb) ->> 'total')::int, 0, 'past work is never in My work');
+select test.eq((api.tasks('{"scope": "my_work"}'::jsonb) ->> 'total')::int, 1,
+  'once it has an owner and is still open, it is live work in My work (D, 26 Oct)');
 select test.as_person(current_setting('t.mgr')::uuid);
 select test.runs(format('select api.undo(%L)', current_setting('t.asg')), 'Undo');
 select test.eq(api.task(current_setting('t.t')::uuid) ->> 'owner_id', null, 'restores Unknown');

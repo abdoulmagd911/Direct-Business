@@ -12,6 +12,8 @@ export type CommandWords = {
   undo: string;
   /** The done line of the Undo itself, e.g. "Undone". */
   undone: string;
+  /** Said at once when Undo is pressed, until the Undo is through (it can take a moment): "Undoing…". */
+  undoing?: string;
   /** Turns a refusal into words (next-intl's `t`, with `t.has`). */
   failed: (key: string, detail: string) => string;
   has: (key: string) => boolean;
@@ -45,6 +47,8 @@ export type CommandOptions<T extends Written> = {
   /** A second button on the success toast, beside Undo (Done → Log as achievement). */
   extra?: { label: string; onClick: () => void };
   conflict?: ConflictPlan;
+  /** Undo straight through the database: for a write that never touches sign-in (the admin route is for those). */
+  undoDirect?: boolean;
   /** The other person's name, for the conflict dialog; api.hover_person when absent. */
   nameOf?: (personId: string) => string | undefined;
 };
@@ -79,7 +83,16 @@ async function whoIs(id: string | undefined, nameOf?: (id: string) => string | u
  * Supabase Auth in step (an undone allowed e-mail, sign-in link or switch re-syncs the bans of the people it touched);
  * anyone else, or a build without the route, undoes through api.undo. Either way the database decides who may (V128).
  */
-async function undoRequest(requestId: string): Promise<void> {
+async function undoRequest(requestId: string, direct = false): Promise<void> {
+  if (direct) {
+    try {
+      await rpc('undo', { p_request: requestId });
+      return;
+    } catch (e) {
+      // only a sign-in change is undone through the admin route, which the database names
+      if (!(e instanceof DbError) || e.key !== 'undo.via_admin_route') throw e;
+    }
+  }
   try {
     const r = await fetch('/auth/admin/undo', {
       method: 'POST',
@@ -114,7 +127,7 @@ export async function command<T extends Written>(
 ): Promise<T | undefined> {
   try {
     const result = await write();
-    await done(words, result, opts.after, opts.extra);
+    await done(words, result, opts.after, opts.extra, opts.undoDirect);
     return result;
   } catch (e) {
     if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
@@ -129,7 +142,7 @@ export async function command<T extends Written>(
       if (again === 'cancelled') return undefined;
       try {
         const result = (await again()) as T;
-        await done(words, result, opts.after, opts.extra);
+        await done(words, result, opts.after, opts.extra, opts.undoDirect);
         return result;
       } catch (e2) {
         refuse(words, e2);
@@ -155,6 +168,7 @@ async function done<T extends Written>(
   result: T,
   after?: (r: T) => void | Promise<void>,
   extra?: { label: string; onClick: () => void },
+  undoDirect?: boolean,
 ) {
   const requestId = (result as { request_id?: string | null } | null)?.request_id ?? null;
   toast.done(words.done, {
@@ -163,13 +177,14 @@ async function done<T extends Written>(
       ? {
           label: words.undo,
           onUndo: async () => {
+            const waiting = words.undoing ? toast.working(words.undoing) : undefined;
             try {
-              await undoRequest(requestId);
-              toast.done(words.undone);
+              await undoRequest(requestId, undoDirect);
+              toast.done(words.undone, { id: waiting });
               refetchAll();
               await after?.(result);
             } catch (e) {
-              refuse(words, e);
+              refuse(words, e, waiting);
             }
           },
         }
@@ -179,9 +194,9 @@ async function done<T extends Written>(
   await after?.(result);
 }
 
-function refuse(words: CommandWords, e: unknown) {
+function refuse(words: CommandWords, e: unknown, id?: string | number) {
   const { key, detail } = errorKey(e, words.has);
-  toast.failed(words.failed(key, detail));
+  toast.failed(words.failed(key, detail), undefined, id);
 }
 
 async function resolveConflict(

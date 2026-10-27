@@ -102,9 +102,16 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
   return out;
 }
 
-export type WrapMove = 'tomorrow' | 'next_week' | 'drop';
+/** What a person can decide about a row: Done, Tomorrow (the next working day) or Drop. A row with no choice is left alone. */
+export type WrapChoice = 'done' | 'tomorrow' | 'drop';
+export const WRAP_CHOICES: WrapChoice[] = ['done', 'tomorrow', 'drop'];
+/** The word a row is shown under: a task, or what the capture was made as (V641). */
+export type WrapWord = 'task' | NonNullable<MyNote['capture_kind']>;
+/** The order the groups are drawn in: tasks first, then the captures by kind. */
+export const WRAP_WORDS: WrapWord[] = ['task', 'note', 'idea', 'checklist', 'reminder', 'meeting'];
 export type WrapItem = {
   kind: 'task' | 'note';
+  word: WrapWord;
   id: string;
   title: string;
   client: string | null;
@@ -115,9 +122,10 @@ export type WrapItem = {
 /** How a row is named when it is spoken about: a task by its number, a note by its words. */
 export const wrapLabel = (i: { title: string; number?: string | null }) =>
   i.number ? `${i.number} ${i.title}` : i.title;
-/** What a person decides about one item: done, or not done and where it goes (Tomorrow unless they say otherwise). */
-export type WrapState = { done: boolean; move: WrapMove };
-export const WRAP_DEFAULT: WrapState = { done: false, move: 'tomorrow' };
+
+/** The capture's own kind word: what it was captured as, or what its stored kind says on a read that predates it. */
+export const captureWord = (n: MyNote): NonNullable<MyNote['capture_kind']> =>
+  n.capture_kind ?? (n.kind === 'sticky' ? 'note' : n.kind);
 
 /**
  * Wrap up v2 walks the day's tasks (mine, overdue or due today) and my open captures. The rows I only help on are
@@ -128,6 +136,7 @@ export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
     .filter((t) => t.role === 'owner' && (t.group === 'overdue' || t.group === 'today'))
     .map((t): WrapItem => ({
       kind: 'task',
+      word: 'task',
       id: t.id,
       title: t.title,
       client: t.partner_name,
@@ -136,6 +145,7 @@ export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
     }));
   const captured = openCaptures(notes).map((n): WrapItem => ({
     kind: 'note',
+    word: captureWord(n),
     id: n.id,
     title: noteTitle(n),
     client: null,
@@ -144,18 +154,25 @@ export function wrapItems(tasks: TodayTask[], notes: MyNote[]): WrapItem[] {
   return [...mine, ...captured];
 }
 
-/** The one request for the lot: api.wrap_up's items, Done winning over any move. */
-export function wrapPayload(items: WrapItem[], states: Record<string, WrapState | undefined>) {
-  return items.map((i) => {
-    const s = states[i.id] ?? WRAP_DEFAULT;
-    return { kind: i.kind, id: i.id, choice: s.done ? 'done' : s.move };
+/** The rows grouped by their kind word, in the fixed order; a kind with no rows has no group. */
+export function wrapGroups(items: WrapItem[]): { word: WrapWord; items: WrapItem[] }[] {
+  return WRAP_WORDS.map((word) => ({ word, items: items.filter((i) => i.word === word) })).filter(
+    (g) => g.items.length > 0,
+  );
+}
+
+/** The one request for the lot: api.wrap_up's items — only the rows the person chose; the rest stay as they are. */
+export function wrapPayload(items: WrapItem[], states: Record<string, WrapChoice | undefined>) {
+  return items.flatMap((i) => {
+    const choice = states[i.id];
+    return choice ? [{ kind: i.kind, id: i.id, choice }] : [];
   });
 }
 
-/** What one Save will do, counted from the choices on screen, so no one re-dates the list without seeing it. */
-export function wrapSummary(items: WrapItem[], states: Record<string, WrapState | undefined>) {
-  const out = { done: 0, tomorrow: 0, next_week: 0, drop: 0 };
-  for (const p of wrapPayload(items, states)) out[p.choice as keyof typeof out] += 1;
+/** What one Save will do, counted from the choices made, so no one re-dates the list without seeing it. */
+export function wrapSummary(items: WrapItem[], states: Record<string, WrapChoice | undefined>) {
+  const out = { done: 0, tomorrow: 0, drop: 0 };
+  for (const p of wrapPayload(items, states)) out[p.choice] += 1;
   return out;
 }
 
