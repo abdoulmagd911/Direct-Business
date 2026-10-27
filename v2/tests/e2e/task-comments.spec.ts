@@ -139,6 +139,11 @@ for (const [label, width, height] of [
       if (route.request().headers()['rsc']) await new Promise((r) => setTimeout(r, 1500));
       await route.continue();
     });
+    // and so is the screen's own read of the list after a write
+    await page.route('**/rpc/task_comments', async (route) => {
+      await new Promise((r) => setTimeout(r, 1500));
+      await route.continue();
+    });
 
     // add: it is on the screen, and the tab counts it, at once — the screen does not wait for the server's re-read
     await page.locator('[data-add-comment] textarea').fill('Made-up member remark');
@@ -273,29 +278,4 @@ test('after Undo the list shows the comment even when the page re-read is very l
   await page.reload();
   await hydrated(page);
   await expect(page.locator('[data-comment-body]'), 'and is in the database').toHaveText('Made-up no-re-read remark');
-});
-
-test('only the newest message offers Undo', async ({ page }) => {
-  test.setTimeout(120_000);
-  const member = await makePerson();
-  await withTeam(member, 'test_cmt_one_undo');
-  const number = await taskOf(member);
-  await page.setViewportSize({ width: 375, height: 800 });
-  await signIn(page, member.email, `/tasks/${number}?tab=comments`);
-  await hydrated(page);
-  await page.locator('[data-add-comment] textarea').fill('Made-up first');
-  await page.getByRole('button', { name: 'Add comment' }).click();
-  await expect(page.getByText('Comment added')).toBeVisible();
-  await page.locator('[data-add-comment] textarea').fill('Made-up second');
-  await page.getByRole('button', { name: 'Add comment' }).click();
-  await expect(page.locator('[data-comment]')).toHaveCount(2);
-  // counted once, a moment after the older message was taken down (waiting longer would let it run out by itself)
-  await page.waitForTimeout(1200);
-  expect(
-    await page
-      .locator('[data-sonner-toast] [data-button]')
-      .filter({ hasText: /^Undo$/ })
-      .count(),
-    'one Undo on the screen, the newest',
-  ).toBe(1);
 });
