@@ -33,7 +33,8 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
   const [types, outcomes, org, lookups] = await Promise.all([
     activityTypes(),
     activityOutcomes(),
-    note.mine ? null : (serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>),
+    // everyone's names: the author's for a reader, the colleagues a note may be shared with for its author (G)
+    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     canTask ? loadLookups(me) : null,
   ]);
   const author = org?.people.find((p) => p.id === note.author_id);
@@ -46,6 +47,10 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         types={types}
         outcomes={outcomes}
         taskLookups={lookups ? { org: lookups.org, partners: lookups.partners, projects: lookups.projects } : undefined}
+        colleagues={(org?.people ?? [])
+          .filter((p) => p.id !== me.person.id)
+          .map((p) => ({ id: p.id, name: personName(p, locale === 'ar' ? 'ar' : 'en') }))
+          .sort((a, b) => a.name.localeCompare(b.name))}
       />
     </Page>
   );
