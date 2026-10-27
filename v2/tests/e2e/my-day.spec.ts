@@ -213,7 +213,7 @@ test('Finish meeting logs the meeting on its organisation and marks the note log
   await page.locator('[data-note-add-item]').click();
   await page.getByRole('textbox', { name: 'Row 1' }).fill('Share the made-up approver list');
   await page.locator('[data-note-save]').click();
-  await expect(toast(page, 'Note saved')).toBeVisible();
+  await expect(toast(page, 'Meeting saved')).toBeVisible();
 
   await page.locator('[data-finish-meeting]').click();
   const dialog = page.getByRole('dialog');
