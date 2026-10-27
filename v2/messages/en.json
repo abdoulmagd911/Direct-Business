@@ -1599,6 +1599,13 @@
       }
     },
     "emptyGroup": "Nothing to set up here yet.",
+    "targets": {
+      "openPlan": "Open a plan",
+      "open": "Open",
+      "year": "Year",
+      "categories": "Categories: {count}",
+      "none": "No plan has been opened yet."
+    },
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
