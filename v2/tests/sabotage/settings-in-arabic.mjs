@@ -160,4 +160,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'arabic-density-hint-missing',
+    breaks: ['unit:tests/unit/words/the-density-help-line-reads-in-arabic-and-keeps-its-english.test.ts'],
+    expect: 'the Arabic line exists',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '    },\n    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط."\n',
+        replace: '    }\n',
+      },
+    ],
+  },
 ];
