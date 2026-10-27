@@ -39,16 +39,23 @@ export function Toaster() {
 export type ToastUndo = { label: string; onUndo: () => void | Promise<void> };
 export type ToastExtra = { label: string; onClick: () => void };
 
+/** The message that now offers Undo, so the next one can take its place. */
+let lastUndo: string | number | undefined;
+
 export const toast = {
   /** A command succeeded. Pass `undo` when the command is undoable; the button is "Undo". */
   done(title: string, opts: { description?: string; undo?: ToastUndo; extra?: ToastExtra; id?: string | number } = {}) {
-    return sonnerToast.success(title, {
+    // only the newest message offers Undo: an older one left behind could be pressed by mistake (a phone stacks them)
+    if (opts.undo && lastUndo !== undefined) sonnerToast.dismiss(lastUndo);
+    const shown = sonnerToast.success(title, {
       id: opts.id,
       description: opts.description,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
       // a second thing to do with what just happened (Done → Log as achievement): a button beside Undo, and a way out
       ...(opts.extra ? { cancel: { label: opts.extra.label, onClick: opts.extra.onClick }, closeButton: true } : {}),
     });
+    if (opts.undo) lastUndo = shown;
+    return shown;
   },
   /** A command was refused or failed: the reason in words, never a code. */
   failed(title: string, description?: string, id?: string | number) {

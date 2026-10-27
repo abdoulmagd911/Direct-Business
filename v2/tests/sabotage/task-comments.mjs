@@ -68,4 +68,28 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'list-ignores-the-read-after-a-write',
+    breaks: [E2E],
+    expect: 'the comment is back on the screen',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        find: 'const list = mine ? newer(mine, data) : data;',
+        replace: 'const list = data;',
+      },
+    ],
+  },
+  {
+    name: 'older-messages-keep-their-undo',
+    breaks: [E2E],
+    expect: 'one Undo on the screen, the newest',
+    edits: [
+      {
+        file: 'src/ui/Toast.tsx',
+        find: 'if (opts.undo && lastUndo !== undefined) sonnerToast.dismiss(lastUndo);',
+        replace: '',
+      },
+    ],
+  },
 ];

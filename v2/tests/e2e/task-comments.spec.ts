@@ -205,3 +205,97 @@ test('an Undo that takes a moment says so at once, then says Undone, and the com
   await hydrated(page);
   await expect(page.locator('[data-comment-body]')).toHaveText('Made-up slow remark');
 });
+
+for (const waitMs of [0, 1000, 3000]) {
+  test(`a slow server (2 s): Undo ${waitMs / 1000} s after the delete message puts the comment back on the screen and in the database`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const member = await makePerson();
+    await withTeam(member, `test_cmt_slow_${waitMs}`);
+    const number = await taskOf(member);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, member.email, `/tasks/${number}?tab=comments`);
+    await hydrated(page);
+    await page.route('**/tasks/**', async (route) => {
+      if (route.request().headers()['rsc']) await new Promise((r) => setTimeout(r, 2000));
+      await route.continue();
+    });
+    await page.locator('[data-add-comment] textarea').fill('Made-up slow-server remark');
+    await page.getByRole('button', { name: 'Add comment' }).click();
+    await expect(page.locator('[data-comment]')).toHaveCount(1);
+    await page.waitForTimeout(3000); // the page's own re-read has landed
+    await page.locator('[data-comment-remove]').click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('[data-comment]')).toHaveCount(0);
+    await page.waitForTimeout(waitMs);
+    await page.locator('[data-sonner-toast][data-front="true"]').getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Undone', { exact: true })).toBeVisible({ timeout: 10_000 });
+    // once the re-reads have all landed, the screen still shows it
+    await page.waitForTimeout(6000);
+    await expect(page.locator('[data-comment]'), 'the comment is back on the screen').toHaveCount(1);
+    await page.reload();
+    await hydrated(page);
+    await expect(page.locator('[data-comment-body]'), 'and in the database').toHaveText('Made-up slow-server remark');
+  });
+}
+
+test('after Undo the list shows the comment even when the page re-read is very late (the screen reads it again itself)', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const member = await makePerson();
+  await withTeam(member, 'test_cmt_noreread');
+  const number = await taskOf(member);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, member.email, `/tasks/${number}?tab=comments`);
+  await hydrated(page);
+  await page.locator('[data-add-comment] textarea').fill('Made-up no-re-read remark');
+  await page.getByRole('button', { name: 'Add comment' }).click();
+  await expect(page.locator('[data-comment]')).toHaveCount(1);
+  await page.waitForTimeout(2500);
+  await page.locator('[data-comment-remove]').click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.locator('[data-comment]')).toHaveCount(0);
+  await page.waitForTimeout(2500); // the page's own re-read of the deleted state has landed
+  let cut = true;
+  await page.route('**/tasks/**', async (route) => {
+    // the page's own re-read does not come back for a long time
+    if (cut && route.request().headers()['rsc']) await new Promise((r) => setTimeout(r, 20_000));
+    await route.continue().catch(() => {});
+  });
+  await page.locator('[data-sonner-toast][data-front="true"]').getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('Undone', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-comment]'), 'the comment is back on the screen').toHaveCount(1, { timeout: 3000 });
+  await page.waitForTimeout(3000);
+  await expect(page.locator('[data-comment]'), 'and stays').toHaveCount(1);
+  cut = false;
+  await page.reload();
+  await hydrated(page);
+  await expect(page.locator('[data-comment-body]'), 'and is in the database').toHaveText('Made-up no-re-read remark');
+});
+
+test('only the newest message offers Undo', async ({ page }) => {
+  test.setTimeout(120_000);
+  const member = await makePerson();
+  await withTeam(member, 'test_cmt_one_undo');
+  const number = await taskOf(member);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, member.email, `/tasks/${number}?tab=comments`);
+  await hydrated(page);
+  await page.locator('[data-add-comment] textarea').fill('Made-up first');
+  await page.getByRole('button', { name: 'Add comment' }).click();
+  await expect(page.getByText('Comment added')).toBeVisible();
+  await page.locator('[data-add-comment] textarea').fill('Made-up second');
+  await page.getByRole('button', { name: 'Add comment' }).click();
+  await expect(page.locator('[data-comment]')).toHaveCount(2);
+  // counted once, a moment after the older message was taken down (waiting longer would let it run out by itself)
+  await page.waitForTimeout(1200);
+  expect(
+    await page
+      .locator('[data-sonner-toast] [data-button]')
+      .filter({ hasText: /^Undo$/ })
+      .count(),
+    'one Undo on the screen, the newest',
+  ).toBe(1);
+});
