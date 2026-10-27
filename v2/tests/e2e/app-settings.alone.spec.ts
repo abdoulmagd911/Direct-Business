@@ -440,6 +440,55 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
   });
 });
 
+// ---- V657: a task's comments in Arabic, at 375 px
+
+test('in Arabic at 375 px: the Comments tab, the box and the comment say the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
+      pages: { tasks: { tabs: { comments: string }; comments: { write: string; add: string; added: string } } };
+    };
+    const w = ar.pages.tasks;
+    const me = await makePerson({ admin: true });
+    await sql(
+      `insert into core.team (department_id, code, name_en, name_ar, created_by)
+       values ((select id from core.department where code = 'commercial'), 'test_cmt_ar', 'Test comments Arabic', 'فريق', $1)
+       on conflict (department_id, code) do nothing`,
+      [me.id],
+    );
+    await sql(
+      `update core.person set team_id = (select t.id from core.team t where t.code = 'test_cmt_ar') where id = $1`,
+      [me.id],
+    );
+    const number = `TSK-1995-${Math.floor(Math.random() * 90000) + 10000}`;
+    await sql(
+      `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
+       values ($1, 'Made-up Arabic comments task', $2, (select team_id from core.person where id = $2),
+               (select department_id from core.person where id = $2),
+               (select id from work.task_status where is_default and deleted_at is null), 'internal', $2)`,
+      [number, me.id],
+    );
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/');
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto(`/tasks/${number}?tab=comments`);
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.comments);
+    await page.locator('[data-add-comment] textarea').fill('تعليق تجريبي');
+    await expect(page.getByRole('button', { name: w.comments.add })).toBeVisible();
+    await page.getByRole('button', { name: w.comments.add }).click();
+    await expect(page.locator('[data-comment-body]')).toHaveText('تعليق تجريبي');
+    await expect(page.getByText(w.comments.added)).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+  });
+});
+
 // ---- The Architect's ruling V643: the 44 px rule holds in Arabic too — wide AND high, at 375 px, right to left
 
 test('every tappable thing is at least 44 px wide and high on a phone, on every page and in the dialogs and menus — Arabic', async ({

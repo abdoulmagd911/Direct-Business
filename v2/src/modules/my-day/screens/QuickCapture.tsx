@@ -79,7 +79,7 @@ export function QuickCapture() {
   // filtered per reader (QA-560).
   const words_ = about && !text.trim() ? t('pages.myDay.quick.followUpTitle') : text;
   const args = quickCaptureArgs(kind, words_, {
-    visibility: about ? 'private' : visibility,
+    visibility: about || kind === 'reminder' ? 'private' : visibility,
     day: today(),
     remindAt: chosen ? instantOf(chosen) : undefined,
     about: about ? { entity: about.entity, id: about.id } : undefined,
@@ -166,13 +166,14 @@ export function QuickCapture() {
           ) : null}
           {about ? null : (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
-              {VISIBILITIES.map((v) => (
+              {/* a Reminder is only ever told to its owner: the one choice offered is Only me */}
+              {(kind === 'reminder' ? VISIBILITIES.filter((v) => v === 'private') : VISIBILITIES).map((v) => (
                 <button
                   key={v}
                   type="button"
                   role="radio"
-                  aria-checked={visibility === v}
-                  className={pill(visibility === v)}
+                  aria-checked={kind === 'reminder' || visibility === v}
+                  className={pill(kind === 'reminder' || visibility === v)}
                   onClick={() => setVisibility(v)}
                   data-quick-visibility={v}
                 >

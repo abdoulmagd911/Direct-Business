@@ -236,11 +236,11 @@ test('Wrap up carries the open captures to the next working day, keeping the day
   await hydrated(page);
   await page.locator('[data-wrap-open]').click();
   const dialog = page.getByRole('dialog');
-  for (const id of ids)
-    await expect(dialog.locator(`[data-wrap-item="${id}"] [data-wrap-move="tomorrow"]`)).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
+  for (const id of ids) {
+    const row = dialog.locator(`[data-wrap-item="${id}"]`);
+    await expect(row.locator('[data-wrap-word="note"]'), 'a plain note is named a Note').toHaveText('Note');
+    await row.locator('[data-wrap-choice="tomorrow"]').click();
+  }
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
   await expect(page.locator('[data-my-note]', { hasText: t }), 'carried notes wait for their day').toHaveCount(0);
@@ -253,6 +253,45 @@ test('Wrap up carries the open captures to the next working day, keeping the day
     expect(r.carried_to! > r.happened_on, 'to a later day, the day it happened kept').toBe(true);
   }
 });
+
+for (const width of [375, 1440]) {
+  test(`Wrap up names each capture by its real kind and groups the rows by kind, at ${width} px`, async ({ page }) => {
+    const person = await makePerson();
+    const t = tag();
+    await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+    await signIn(page, person.email, '/my-day');
+    const ctx = page.context();
+    const made = [
+      [await capture(ctx, `Plain note ${t}`), 'note'],
+      [await capture(ctx, `Bright idea ${t}`, 'private', 'idea'), 'idea'],
+      [await capture(ctx, `Packing list ${t}`, 'private', 'checklist'), 'checklist'],
+    ] as const;
+    await page.goto('/my-day');
+    await hydrated(page);
+    await page.locator('[data-wrap-open]').click();
+    const dialog = page.getByRole('dialog');
+    for (const [id, word] of made) {
+      const row = dialog.locator(`[data-wrap-item="${id}"]`);
+      await expect(row.locator('[data-wrap-word]'), `its row says ${word}, not Note`).toHaveAttribute(
+        'data-wrap-word',
+        word,
+      );
+      await expect(
+        dialog.locator(`[data-wrap-group="${word}"] [data-wrap-item="${id}"]`),
+        `and sits in the ${word} group`,
+      ).toHaveCount(1);
+    }
+    await expect(dialog.locator('[data-wrap-group="idea"] h4')).toHaveText('Idea');
+    await expect(dialog.locator('[data-wrap-group="checklist"] h4')).toHaveText('Checklist');
+    // only three choices, however narrow the screen, and the dialog does not scroll sideways
+    await expect(dialog.locator(`[data-wrap-item="${made[1][0]}"] [data-wrap-choice]`)).toHaveText([
+      'Done',
+      /Tomorrow|Sun|Mon|Tue|Wed|Thu/,
+      'Drop',
+    ]);
+    await expect(dialog.locator('[data-wrap-choice="next_week"]'), 'no Next week').toHaveCount(0);
+  });
+}
 
 test("What's new counts the team's notes since the last visit, never a private one, and Mark seen clears it", async ({
   browser,

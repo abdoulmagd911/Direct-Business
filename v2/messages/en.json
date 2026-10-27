@@ -168,6 +168,8 @@
   },
   "common": {
     "filter": "Filter",
+    "datePlaceholder": "dd mmm yyyy",
+    "dateTimePlaceholder": "dd mmm yyyy, hh:mm",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
@@ -322,19 +324,16 @@
         "title": "Wrap up today",
         "summary": "{count, plural, one {# thing to wrap up} other {# things to wrap up}}",
         "done": "Done",
-        "notDone": "Not done",
         "tomorrow": "Tomorrow",
-        "nextWeek": "Next week",
         "drop": "Drop",
         "turn": "Turn into",
         "saved": "Day wrapped up",
         "none": "Nothing left to wrap up today.",
         "task": "Task",
-        "note": "Note",
         "saveWith": "Save · {parts}",
+        "chooseOne": "Choose Done, Tomorrow or Drop on a row to save",
         "partTomorrow": "{count} to tomorrow",
         "partToDay": "{count} to {day}",
-        "partNextWeek": "{count} next week",
         "partDrop": "{count} dropped",
         "partDone": "{count} done",
         "gone": "{items} no longer on your list (not yours any more, or already closed). It was left out; your other choices are kept."
@@ -641,7 +640,8 @@
         "overview": "Overview",
         "activity": "Activity",
         "related": "Related",
-        "items": "Action items"
+        "items": "Action items",
+        "comments": "Comments"
       },
       "flags": {
         "stale": "No update",
@@ -740,7 +740,10 @@
           "notes_too_long": "The notes are too long",
           "ref_value_required": "The reference needs a value",
           "ref_taken": "That reference is already on the task",
-          "origin_invalid": "This kind of task cannot be added here"
+          "origin_invalid": "This kind of task cannot be added here",
+          "comment_body_required": "Write something first",
+          "comment_too_long": "A comment can be at most 4,000 characters",
+          "comment_not_yours": "Only the person who wrote a comment can change it"
         },
         "action_item": {
           "text_required": "Write the action item",
@@ -838,6 +841,22 @@
         "next": "Next month",
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
+      },
+      "comments": {
+        "empty": "No comments yet",
+        "readOnly": "You can read the comments on this task. People who work on it can write them.",
+        "write": "Write a comment",
+        "add": "Add comment",
+        "edit": "Edit your comment",
+        "edited": "edited",
+        "added": "Comment added",
+        "saved": "Comment saved",
+        "removed": "Comment deleted",
+        "removeTitle": "Delete the comment by {name}?",
+        "bodyRequired": "Write something first",
+        "tooLong": "At most {max} characters",
+        "delete": "Delete",
+        "editAction": "Edit"
       }
     },
     "weeklyReview": {
@@ -948,6 +967,7 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
+    "task_comment": "Comment",
     "task_template": "Task template",
     "task_occurrence": "Task made from a template",
     "project_health": "Project health",
@@ -1314,7 +1334,8 @@
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
-      "alert_quiet_client": "A client of mine has gone quiet"
+      "alert_quiet_client": "A client of mine has gone quiet",
+      "task_commented": "A comment on a task of mine"
     },
     "devices": {
       "label": "Device",
@@ -1926,6 +1947,7 @@
       "alert_kpi_checkin": "KPI check-in day: {record}",
       "escalated": "{actor} escalated {record} to you",
       "alert_quiet_client": "{record} has gone quiet",
+      "task_commented": "{actor} commented on {record}",
       "alert_project_no_update": "{record} has no health update",
       "alert_activity_stale": "{record} has had no activity",
       "alert_file_review": "A file on {record} is due for review",
@@ -1933,6 +1955,7 @@
       "note_mention": "{actor} mentioned you in a note",
       "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
+      "alert_overdue": "{record} is overdue",
       "other": "{actor} · {record}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",
