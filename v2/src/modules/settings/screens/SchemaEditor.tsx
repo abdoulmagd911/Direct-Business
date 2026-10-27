@@ -6,7 +6,7 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import type { SettingSchema } from '../schema';
-import { keyWord, nameLookup, valueText, valueWord, type ChoiceNames } from '../words';
+import { DAY_PATTERN, keyWord, nameLookup, valueText, valueWord, type ChoiceNames } from '../words';
 
 /** A key in plain words (see keyWord). */
 export function useKeyWords() {
@@ -24,7 +24,7 @@ export function useValueWords(settingKey: string) {
 export function SchemaValue({ settingKey, value, names }: { settingKey: string; value: unknown; names?: ChoiceNames }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
-  return <>{valueText(t, settingKey, value, nameLookup(names, locale))}</>;
+  return <>{valueText(t, settingKey, value, nameLookup(names, locale), locale)}</>;
 }
 
 /** The control for one schema: switch, select, number, text, a checklist for enum arrays, one line each for string arrays. */
@@ -150,6 +150,16 @@ export function SchemaEditor({
       </div>
     );
   }
+  // a day (the day the app went live) is chosen in the date box, never typed as 2026-10-27
+  if (schema.type === 'string' && schema.pattern === DAY_PATTERN)
+    return (
+      <Input
+        id={id}
+        type="date"
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
   return (
     <Input
       id={id}
