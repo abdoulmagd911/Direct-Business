@@ -797,7 +797,8 @@
         "calendar": "تقويم"
       },
       "board": {
-        "emptyColumn": "لا شيء هنا"
+        "emptyColumn": "لا شيء هنا",
+        "blockedLabel": "متوقفة:"
       },
       "calendar": {
         "previous": "الشهر السابق",
