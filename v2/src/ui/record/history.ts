@@ -32,6 +32,8 @@ export type RecordChange = {
   after: unknown;
   undone: boolean;
   undo_of: string | null;
+  /** Which kind of record the change is to: the record itself, or a task's helper, or the reader's follow-up (B). */
+  entity?: string;
 };
 
 /** api.record_history's flat changes → one HistoryRow per request (newest first), the shape api.activity already has. */
@@ -60,7 +62,14 @@ export function historyRows(
           changes: [],
         })
         .get(c.request_id)!;
-    row.changes.push({ entity, id, action: c.action, fields: c.fields ?? [], before: c.before, after: c.after });
+    row.changes.push({
+      entity: c.entity ?? entity,
+      id,
+      action: c.action,
+      fields: c.fields ?? [],
+      before: c.before,
+      after: c.after,
+    });
   }
   return [...out.values()];
 }

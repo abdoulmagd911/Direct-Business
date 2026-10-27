@@ -136,7 +136,8 @@ export function nameOf(
 export function avatarOf(p: OrgPerson, locale: 'en' | 'ar') {
   return {
     displayName: nameOf(p, locale),
-    fullName: p.full_name_en,
+    // the initials and the screen-reader label come from the Arabic name in Arabic, when the person has one
+    fullName: locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en,
     avatarUrl: null,
     badge: { kind: p.badge_kind ?? 'none', value: p.badge_value },
   };
