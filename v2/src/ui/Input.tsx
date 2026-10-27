@@ -1,5 +1,5 @@
 'use client';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   forwardRef,
   useCallback,
@@ -30,6 +30,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
   ref,
 ) {
   const locale = useLocale() as 'en' | 'ar';
+  const t = useTranslations();
   const [own, setOwn] = useState(String(defaultValue ?? ''));
   const shown = value !== undefined ? String(value) : own;
   const change = useCallback(
@@ -46,6 +47,10 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
       : type === 'datetime-local'
         ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
         : formatDate(`${shown}T12:00:00+03:00`, locale);
+  // an empty box says how the day will be written, in the language of the screen (V653 (2), QA-600): `dd mmm yyyy`
+  const hint = t(
+    type === 'time' ? 'common.timeHint' : type === 'datetime-local' ? 'common.dateTimeHint' : 'common.dateHint',
+  );
   const open = (e: MouseEvent<HTMLInputElement>) => {
     onClick?.(e);
     try {
@@ -80,7 +85,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
           !shown && 'text-muted',
         )}
       >
-        {!shown ? (placeholder ?? '—') : written}
+        {!shown ? (placeholder ?? hint) : written}
       </div>
       {/* while the real field is up (keyboard focus) the date it holds is written in a chip just above its end, the app's
           way, as it changes: out of the browser's own text (a box can be narrow, a time long, the page right to left) and

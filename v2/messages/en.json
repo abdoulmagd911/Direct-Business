@@ -200,7 +200,10 @@
     "showAll": "Show all",
     "by": "by",
     "on": "on",
-    "of": "of"
+    "of": "of",
+    "dateHint": "dd mmm yyyy",
+    "dateTimeHint": "dd mmm yyyy, hh:mm",
+    "timeHint": "hh:mm"
   },
   "state": {
     "failed": "{what} could not be loaded",
