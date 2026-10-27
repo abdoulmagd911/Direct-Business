@@ -67,6 +67,8 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const [escalating, setEscalating] = useState(false);
   // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
   const [followUps, setFollowUps] = useState(0);
+  // the Comments tab's own count while it is open, so the tab's number follows an add or a delete at once
+  const [commentCount, setCommentCount] = useState<number | null>(null);
   const status = lookups.statuses.find((s) => s.key === task.status);
   const statusLabel =
     view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
@@ -220,7 +222,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
             k === 'items'
               ? task.action_items.length
               : k === 'comments'
-                ? (comments?.comments.length ?? undefined)
+                ? (commentCount ?? comments?.comments.length ?? undefined)
                 : undefined,
         }))}
         tab={tab}
@@ -274,7 +276,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         ) : null}
         {tab === 'comments' ? (
           comments ? (
-            <TaskComments task={task} data={comments} personName={names.person} locale={names.locale} />
+            <TaskComments
+              task={task}
+              data={comments}
+              personName={names.person}
+              locale={names.locale}
+              onCount={setCommentCount}
+            />
           ) : (
             <DataState
               kind="failed"

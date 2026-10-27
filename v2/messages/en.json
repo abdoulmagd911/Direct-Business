@@ -202,7 +202,8 @@
     "showAll": "Show all",
     "by": "by",
     "on": "on",
-    "of": "of"
+    "of": "of",
+    "undoing": "Undoing…"
   },
   "state": {
     "failed": "{what} could not be loaded",
