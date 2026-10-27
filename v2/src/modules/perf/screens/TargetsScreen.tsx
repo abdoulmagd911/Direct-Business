@@ -18,6 +18,25 @@ export type PlanRow = { id: string; department_id: string; year: number; name: s
 /** The earliest year a plan may be opened for, and the latest is next year (perf.plan_open). */
 const FIRST_YEAR = 2025;
 
+/** The years a department has no plan for, newest first: the only years a plan may be opened for (perf.plan_open). */
+export function freeYearsOf(plans: PlanRow[], department: string, year: number): number[] {
+  const held = new Set(plans.filter((p) => p.department_id === department).map((p) => p.year));
+  const out: number[] = [];
+  for (let y = year + 1; y >= FIRST_YEAR; y--) if (!held.has(y)) out.push(y);
+  return out;
+}
+
+/**
+ * What the plan dialog starts on: the first department with a year free, and this year if it is free, else its newest free
+ * year. A department with no year free starts with no year — never a taken one, which the database would refuse.
+ */
+export function startingChoice(plans: PlanRow[], live: OrgDepartment[], year: number): { dept: string; year: string } {
+  const first = live.find((d) => freeYearsOf(plans, d.id, year).length) ?? live[0];
+  if (!first) return { dept: '', year: '' };
+  const free = freeYearsOf(plans, first.id, year);
+  return { dept: first.id, year: free.length ? String(free.includes(year) ? year : free[0]) : '' };
+}
+
 /**
  * Settings → Targets: the plans that are open, newest year first, and the one door to open another — a department and a
  * year it has no plan for. A new plan starts from the department's nearest plan (the database copies its categories).
@@ -62,16 +81,13 @@ export function TargetsScreen({
     const d = byId.get(p.department_id);
     return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
   };
-  const freeYears = (department: string) => {
-    const held = new Set(plans.filter((p) => p.department_id === department).map((p) => p.year));
-    const out: number[] = [];
-    for (let y = year + 1; y >= FIRST_YEAR; y--) if (!held.has(y)) out.push(y);
-    return out;
-  };
+  const freeYears = (department: string) => freeYearsOf(plans, department, year);
+  // Open a plan is greyed while there is nothing to open — no department, or every department has every year — and says why
+  const anyFree = live.some((d) => freeYears(d.id).length > 0);
   const start = () => {
-    const first = live.find((d) => freeYears(d.id).length) ?? live[0];
-    setDept(first?.id ?? '');
-    setChosenYear(first ? String(freeYears(first.id).includes(year) ? year : (freeYears(first.id)[0] ?? year)) : '');
+    const first = startingChoice(plans, live, year);
+    setDept(first.dept);
+    setChosenYear(first.year);
     setOpen(true);
   };
   const years = dept ? freeYears(dept) : [];
@@ -97,12 +113,12 @@ export function TargetsScreen({
   return (
     <section className="flex flex-col gap-4" data-targets>
       <div className="flex flex-wrap items-center justify-end gap-3">
-        {live.length ? null : (
+        {anyFree ? null : (
           <p className="text-sm text-muted" data-plan-open-why>
-            {t('settings.targets.noDepartment')}
+            {live.length ? t('settings.targets.everyDepartmentEveryYear') : t('settings.targets.noDepartment')}
           </p>
         )}
-        <Button variant="primary" onClick={start} disabled={!live.length} data-plan-open>
+        <Button variant="primary" onClick={start} disabled={!anyFree} data-plan-open>
           {t('settings.targets.openPlan')}
         </Button>
       </div>

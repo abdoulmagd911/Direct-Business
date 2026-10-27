@@ -57,8 +57,44 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/perf/screens/TargetsScreen.tsx',
-        find: '{live.length ? null : (',
-        replace: '{true ? null : (',
+        find: "{live.length ? t('settings.targets.everyDepartmentEveryYear') : t('settings.targets.noDepartment')}",
+        replace: "{t('settings.targets.everyDepartmentEveryYear')}",
+      },
+    ],
+  },
+  {
+    name: 'targets-open-stays-clickable-when-every-year-is-taken',
+    breaks: [UNIT],
+    expect: 'greys Open a plan and says why',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/TargetsScreen.tsx',
+        find: 'disabled={!anyFree}',
+        replace: 'disabled={!live.length}',
+      },
+    ],
+  },
+  {
+    name: 'targets-starts-on-a-taken-year',
+    breaks: [UNIT],
+    expect: 'starts with no year, never a taken one',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/TargetsScreen.tsx',
+        find: "year: free.length ? String(free.includes(year) ? year : free[0]) : '' };",
+        replace: 'year: String(free.includes(year) ? year : (free[0] ?? year)) };',
+      },
+    ],
+  },
+  {
+    name: 'targets-refusal-has-no-words-in-arabic',
+    breaks: [UNIT],
+    expect: 'words both refusals of plan_open in English and in Arabic',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '"year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",',
+        replace: '',
       },
     ],
   },
