@@ -29,6 +29,13 @@ for (const width of [1568, 1440, 1280]) {
       `update core.person set department_id = $2, team_id = $3, job_title_en = 'Development lead' where id = $1`,
       [p.id, dept!.id, team!.id],
     );
+    // a hyphenated name may wrap after its hyphen; that is not a word cut in the middle
+    const [dash] = await sql<{ id: string }>(
+      `insert into core.department (code, name_en, name_ar) values ($1, 'Made-up Cross-functional Partnerships', 'شراكات') returning id`,
+      [`h_${tag}`],
+    );
+    const q = await makePerson();
+    await sql(`update core.person set department_id = $2 where id = $1`, [q.id, dash!.id]);
     await page.setViewportSize({ width, height: 1000 });
     await signIn(page, admin.email, '/settings/org?tab=people');
     await hydrated(page);

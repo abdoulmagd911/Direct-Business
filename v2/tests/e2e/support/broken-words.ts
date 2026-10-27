@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 
 /**
  * Every word inside the matching elements that the page breaks across two lines ("Departme" / "nt"): a word whose text
- * range has pieces on more than one line. A line that wraps between words is not a broken word.
+ * range has pieces on more than one line. A line that wraps between words, or after a hyphen, is not a broken word.
  */
 export const brokenWords = (page: Page, scope: string): Promise<string[]> =>
   page.evaluate((selector) => {
@@ -12,7 +12,8 @@ export const brokenWords = (page: Page, scope: string): Promise<string[]> =>
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         if (!node.parentElement?.getClientRects().length) continue;
         const text = node.textContent ?? '';
-        for (const m of text.matchAll(/\S+/g)) {
+        // a word is cut where it has no hyphen to break at: "Made-up" may wrap after its hyphen, "Departme-nt" may not
+        for (const m of text.matchAll(/[^\s-]+-?/g)) {
           const range = document.createRange();
           range.setStart(node, m.index!);
           range.setEnd(node, m.index! + m[0].length);
