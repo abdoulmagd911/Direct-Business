@@ -281,4 +281,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'wrap-up-greyed-save-says-nothing',
+    breaks: [E2E],
+    expect: 'a greyed Save says in one line what is missing',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: '{!parts ? (\n              <p',
+        replace: '{!parts && false ? (\n              <p',
+      },
+    ],
+  },
 ];

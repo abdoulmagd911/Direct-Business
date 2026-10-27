@@ -171,6 +171,10 @@ test('Wrap up moves the day in one request: Done, Tomorrow, Drop — nothing cho
     'Save',
   );
   await expect(dialog.locator('[data-wrap-save]'), 'and cannot be pressed').toBeDisabled();
+  await expect(
+    dialog.locator('[data-wrap-why]'),
+    'a greyed Save says in one line what is missing, in view beside it (QA-595)',
+  ).toHaveText('Choose Done, Tomorrow or Drop on a row to save');
   // at 375 px Done, Tomorrow and Drop stay on one line, none of them cut off by the date
   const tops = await rowOf(`Due task ${t}`)
     .locator('[data-wrap-choice]')
@@ -184,6 +188,7 @@ test('Wrap up moves the day in one request: Done, Tomorrow, Drop — nothing cho
   await rowOf(`Late task ${t}`).locator('[data-wrap-choice="done"]').click();
   await rowOf(`Due task ${t}`).locator('[data-wrap-choice="tomorrow"]').click();
   await rowOf(`Third task ${t}`).locator('[data-wrap-choice="drop"]').click();
+  await expect(dialog.locator('[data-wrap-why]'), 'once something is chosen the reason goes').toHaveCount(0);
   await expect(
     dialog.locator('[data-wrap-save]'),
     'Save counts only the rows chosen, never the one left alone',

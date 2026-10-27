@@ -442,6 +442,7 @@
         "none": "لا شيء متبقٍ لختام اليوم.",
         "task": "مهمة",
         "saveWith": "حفظ · {parts}",
+        "chooseOne": "اختر منجز أو غدًا أو إسقاط لصفّ واحد على الأقل للحفظ",
         "partTomorrow": "{count} إلى الغد",
         "partToDay": "{count} إلى {day}",
         "partDrop": "{count} إسقاط",

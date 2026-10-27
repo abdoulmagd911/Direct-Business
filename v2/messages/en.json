@@ -329,6 +329,7 @@
         "none": "Nothing left to wrap up today.",
         "task": "Task",
         "saveWith": "Save · {parts}",
+        "chooseOne": "Choose Done, Tomorrow or Drop on a row to save",
         "partTomorrow": "{count} to tomorrow",
         "partToDay": "{count} to {day}",
         "partDrop": "{count} dropped",

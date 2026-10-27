@@ -122,12 +122,18 @@ export function WrapUpDialog({
       footer={
         // QA-570: the save button is drawn only when there is something to save; an empty day shows the message and Close
         items?.length ? (
-          <>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2">
+            {/* V654 (6): a greyed Save says in one line what is missing, beside it and in view on a phone (QA-595) */}
+            {!parts ? (
+              <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-wrap-why>
+                {t('pages.myDay.wrap.chooseOne')}
+              </p>
+            ) : null}
             <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
             <Button variant="primary" loading={busy} disabled={!parts} onClick={() => void save()} data-wrap-save>
               {parts ? t('pages.myDay.wrap.saveWith', { parts }) : t('common.save')}
             </Button>
-          </>
+          </div>
         ) : (
           <Button onClick={() => onOpenChange(false)} data-wrap-close>
             {items === null ? t('common.cancel') : t('common.close')}
