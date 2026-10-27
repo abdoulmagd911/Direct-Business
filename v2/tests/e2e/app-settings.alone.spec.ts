@@ -25,6 +25,7 @@ import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
+import { brokenWords } from './support/broken-words';
 import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
@@ -527,6 +528,9 @@ for (const width of [1280, 1440]) {
         await hydrated(page);
         await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
         expect(await overflowOf(page), `the ${tab} table fits its box in Arabic`).toEqual([]);
+        expect(await brokenWords(page, `[data-${tab}] table`), `no word of the ${tab} table breaks in Arabic`).toEqual(
+          [],
+        );
       }
       // the last sign-in date is whole: day, short month, a four-figure year, and inside the table's box (it was cut to "026")
       await page.goto('/settings/org?tab=people');
