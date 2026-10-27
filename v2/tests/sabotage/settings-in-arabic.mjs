@@ -124,4 +124,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'arabic-gate-person-page-word-missing',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: settings.people.signInLog',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '      "signInLog": "سجل الدخول",\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'arabic-gate-new-screen-word-has-no-wording',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: settings.setting.brandNew',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/SettingCard.tsx',
+        find: "{t('settings.setting.change')}",
+        replace: "{t('settings.setting.change')}{t('settings.setting.brandNew')}",
+      },
+    ],
+  },
+  {
+    name: 'arabic-gate-level-word-missing',
+    breaks: ['unit:tests/unit/words/every-word-the-settings-screens-use-exists-in-arabic.test.ts'],
+    expect: 'ar: levels.own',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '    "own": "سجلاته فقط",\n',
+        replace: '',
+      },
+    ],
+  },
 ];
