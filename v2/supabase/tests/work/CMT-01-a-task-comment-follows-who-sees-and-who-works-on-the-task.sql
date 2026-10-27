@@ -126,14 +126,15 @@ select api.task_comment_remove((current_setting('t.c1')::jsonb ->> 'id')::uuid, 
 select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid) -> 'comments'), 1,
   'an admin removes anyone''s comment');
 
--- every change is on the change log, and past work tells nobody
+-- every change is on the change log, and past work (an old task with no owner: an old task still open with an owner
+-- is live work, #350) tells nobody
 select test.as_owner();
 select test.ok(exists (select 1 from audit.change where table_name = 'work.task_comment'
                        and row_id = (current_setting('t.c1')::jsonb ->> 'id')::uuid),
   'a comment is on the change log');
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.past', api.task_create(jsonb_build_object('title', 'Made-up past comment task',
-  'work_type', 'internal', 'owner_id', current_setting('t.own'),
+  'work_type', 'internal', 'owner_unknown', true,
   'happened_on', core.riyadh_today() - 200, 'due_on', core.riyadh_today() - 190))::text, true);
 select api.task_helpers_set((current_setting('t.past')::jsonb ->> 'id')::uuid, array[current_setting('t.help')::uuid]);
 select test.as_person(current_setting('t.help')::uuid);
