@@ -1,3 +1,5 @@
+import { formatDate } from '@/core/i18n/format';
+
 /** What the Settings screens need of a translator: `t` and `t.has` (next-intl's, or `createTranslator`'s). */
 export type Say = { (key: string): string; has: (key: string) => boolean };
 
@@ -19,6 +21,10 @@ const FILE_TYPES: Record<string, string> = {
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint (.pptx)',
   'application/zip': 'ZIP',
 };
+
+/** The pattern of a setting that holds a day (or nothing yet), such as the day the app went live: it is chosen in a date box
+ * and written the one way the whole app writes a date. */
+export const DAY_PATTERN = '^(\\d{4}-\\d{2}-\\d{2})?$';
 
 /** The catalog key of a field's name inside an object setting ("account_manager"), when it has one. */
 export const keyWordKey = (k: string): string => `settings.fields.${k}`;
@@ -65,10 +71,18 @@ export function keyWord(t: Say, k: string): string {
 }
 
 /** The word for an enum value: the setting's own list in the catalog, else a shared list, else the value itself. */
-export function valueWord(t: Say, settingKey: string, v: unknown, names?: NameLookup): string {
+export function valueWord(
+  t: Say,
+  settingKey: string,
+  v: unknown,
+  names?: NameLookup,
+  locale: 'en' | 'ar' = 'en',
+): string {
   if (typeof v === 'boolean') return t(`settings.setting.values.${v}`);
   if (typeof v === 'number') return String(v);
   if (typeof v !== 'string') return JSON.stringify(v);
+  // a day is written as the app writes every date: 27 Oct 2026
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(`${v}T12:00:00+03:00`, locale);
   const listed = names?.(settingKey, v);
   if (listed) return listed;
   if (FILE_TYPES[v]) return FILE_TYPES[v];
@@ -79,13 +93,19 @@ export function valueWord(t: Say, settingKey: string, v: unknown, names?: NameLo
 
 /** A value as words, for the card and the preview: lists joined, objects as "Key: value" pairs (W16). A field inside an
  * object is worded under the setting's key and its own ("finance.revenue_definition.basis"), as the editor words it. */
-export function valueText(t: Say, settingKey: string, value: unknown, names?: NameLookup): string {
+export function valueText(
+  t: Say,
+  settingKey: string,
+  value: unknown,
+  names?: NameLookup,
+  locale: 'en' | 'ar' = 'en',
+): string {
   if (value === '' || value === null || value === undefined) return t('settings.setting.notSet');
   if (Array.isArray(value))
-    return value.length ? value.map((v) => valueText(t, settingKey, v, names)).join(' · ') : '—';
+    return value.length ? value.map((v) => valueText(t, settingKey, v, names, locale)).join(' · ') : '—';
   if (typeof value === 'object')
     return Object.entries(value as Record<string, unknown>)
-      .map(([k, v]) => `${keyWord(t, k)}: ${valueText(t, `${settingKey}.${k}`, v, names)}`)
+      .map(([k, v]) => `${keyWord(t, k)}: ${valueText(t, `${settingKey}.${k}`, v, names, locale)}`)
       .join(' · ');
-  return valueWord(t, settingKey, value, names);
+  return valueWord(t, settingKey, value, names, locale);
 }

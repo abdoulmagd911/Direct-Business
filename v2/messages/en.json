@@ -1622,6 +1622,16 @@
       }
     },
     "emptyGroup": "Nothing to set up here yet.",
+    "targets": {
+      "openPlan": "Open a plan",
+      "open": "Open",
+      "year": "Year",
+      "categories": "Categories: {count}",
+      "none": "No plan has been opened yet.",
+      "everyYear": "This department has a plan for every year.",
+      "noDepartment": "Add a department first.",
+      "everyDepartmentEveryYear": "Every department already has a plan for every year."
+    },
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
@@ -1643,6 +1653,10 @@
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "That department already has a plan for that year",
+      "year_invalid": "A plan can be opened for 2025 up to next year"
+    },
     "overview": {
       "period_invalid": "The period ends before it starts",
       "unknown_period": "Choose month, quarter or year to date, or your own dates"

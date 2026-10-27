@@ -7,6 +7,7 @@ import type { SettingsAnswer } from '@/modules/settings/schema';
 import type { ListEntry } from '@/modules/settings/screens/ListEditor';
 import { OrgAccess, type OrgAnswer, type PeopleAnswer, type MatrixAnswer } from '@/modules/org/screens/OrgAccess';
 import { SettingsGroup } from '@/modules/settings/screens/SettingsGroup';
+import { TargetsScreen, type PlanRow } from '@/modules/perf/screens/TargetsScreen';
 import { LIST_VALUES, type ChoiceNames } from '@/modules/settings/words';
 import { SettingsShell } from '@/modules/settings/screens/SettingsShell';
 import { DataState } from '@/ui/DataState';
@@ -80,6 +81,15 @@ export default async function SettingsGroupPage({
           canEdit={answer.can_edit}
           today={today}
         />
+      </SettingsShell>
+    );
+  }
+  // Targets: the plans that are open, and the door to open another (the group has no settings or lists of its own yet)
+  if (group === 'performance' && !answer.settings.length && !lists.length) {
+    const plans = (await serverRpc('plans', {} as never)) as unknown as PlanRow[];
+    return (
+      <SettingsShell current={group} title={t(def.label)}>
+        <TargetsScreen plans={plans} departments={departments} year={Number(today.slice(0, 4))} />
       </SettingsShell>
     );
   }
