@@ -214,6 +214,10 @@ function api.sign_in_password_check(p_email text, p_user_agent text) execute ser
 function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
 function api.task(p_id uuid) execute authenticated
 function api.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
+function api.task_comment_add(p_task uuid, p_body text) execute authenticated
+function api.task_comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
+function api.task_comment_remove(p_id uuid, p_reason text) execute authenticated
+function api.task_comments(p_task uuid) execute authenticated
 function api.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function api.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
 function api.task_from_template(p_template uuid, p_values jsonb) execute authenticated
@@ -479,6 +483,10 @@ function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) ex
 function work.project_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.projects_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
+function work.task_comment_add(p_task uuid, p_body text) execute authenticated
+function work.task_comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
+function work.task_comment_remove(p_id uuid, p_reason text) execute authenticated
+function work.task_comments(p_task uuid) execute authenticated
 function work.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function work.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
 function work.task_from_template(p_template uuid, p_values jsonb) execute authenticated
