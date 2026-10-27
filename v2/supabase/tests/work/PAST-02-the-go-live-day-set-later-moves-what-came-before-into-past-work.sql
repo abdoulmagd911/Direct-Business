@@ -1,7 +1,8 @@
 -- PAST-02 — the go-live day is read live, never stored on an entry (V609). With app.go_live_on blank, a task and an
 -- achievement dated 2 and 16 Oct are live work, and nothing is ever logged late. Once an admin sets the day to 18 Oct,
--- the same entries move into Past work with no change to them — a task once it is closed: an open task with an owner
--- stays live whatever its date (D, 26 Oct) — and "logged late" counts from 18 Oct only. Every value is made up.
+-- the same entries move into Past work with no change to them — a task when it was also closed before that day: an open
+-- task with an owner stays live whatever its date (D, 26 Oct) — and "logged late" counts from 18 Oct only. Every value
+-- is made up.
 -- Sabotage: supabase/tests/sabotage/past-work-fixed-when-logged.sql.
 select set_config('v2.test_now', '2026-10-23 09:00:00+03', true);
 insert into core.team (department_id, code, name_en, name_ar)
@@ -25,7 +26,10 @@ select set_config('t.t20', api.task_create(jsonb_build_object('title', 'Made-up 
   'happened_on', '2026-10-20')) ->> 'id', true);
 select set_config('t.a16', api.achievement_log(jsonb_build_object('category', 'AWARD',
   'title', 'Made-up award of 16 Oct', 'happened_on', '2026-10-16')) ->> 'id', true);
+-- the task of 2 Oct was closed on 10 Oct, before day one
+select set_config('v2.test_now', '2026-10-10 09:00:00+03', true);
 select api.task_status_set(current_setting('t.t2')::uuid, 'done');
+select set_config('v2.test_now', '2026-10-23 09:00:00+03', true);
 select test.eq((api.tasks('{"past_work": true}'::jsonb) ->> 'total')::int, 0, 'while the day is blank, Past work is empty');
 select test.eq((api.task(current_setting('t.t2')::uuid) ->> 'past_work')::boolean, false, 'and 2 Oct is live work');
 select test.eq((api.achievement(current_setting('t.a16')::uuid) ->> 'past_work')::boolean, false,

@@ -1,8 +1,9 @@
 -- D (the Architect's order of 26 Oct, his recommendation, the owner not objecting): open items stay visible.
 --  1. An open task with an owner is never past work, whatever its date: it shows on My work and My day, counts as
---     overdue when it is, and tells people of its changes. Past work is what is closed from before day one
---     (app.go_live_on, V609), what was added through the Past work form, and — V491/V506 still — a task from before day
---     one whose owner is Unknown, until someone takes it. Every reader of work.task_is_past follows: My day, My work,
+--     overdue when it is, and tells people of its changes. Past work is what was both done and closed before day one
+--     (app.go_live_on, V609) — work of before day one finished after it stays in that week's record (QA-597) — what was
+--     added through the Past work form, and — V491/V506 still — a task from before day one whose owner is Unknown, until
+--     someone takes it. Every reader of work.task_is_past follows: My day, My work,
 --     the weekly review, the due and overdue alerts, the record's links, leaving.
 --  2. An open task past its due day tells its owner once, "<task> is overdue" (label alert.overdue), under the due
 --     alert's own setting (alert_due_tomorrow), as "coming due" does before it.
@@ -12,7 +13,8 @@ create or replace function work.task_is_past(t work.task) returns boolean
 language sql stable security definer set search_path = ''
 as $$
   select t.origin = 'backfill'
-      or (work.is_past(t.happened_on) and (t.closed_at is not null or t.owner_id is null))
+      or (work.is_past(t.happened_on)
+          and (t.owner_id is null or (t.closed_at is not null and work.is_past(core.riyadh_day(t.closed_at)))))
 $$;
 
 create or replace function notify.alert_due_tomorrow() returns setof notify.alert
