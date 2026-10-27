@@ -15,6 +15,7 @@ import type { ListEntry } from '../../../src/modules/partners/types';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+vi.mock('@/core/auth/me-context', () => ({ useMe: () => ({ person: { id: 'p1' } }) }));
 
 const { NewPartnerDialog } = await import('../../../src/modules/partners/screens/NewPartnerDialog');
 const { LogActivityDialog } = await import('../../../src/modules/partners/screens/record/LogActivityDialog');
@@ -70,26 +71,30 @@ describe('a box with no choices is not shown (New client, New supplier)', () => 
 });
 
 describe('Log activity says why Save is off, in one line', () => {
-  const log = (locale: 'en' | 'ar') =>
+  const log = (locale: 'en' | 'ar', types = [entry('call', { id: 't1' })]) =>
     draw(
       <LogActivityDialog
         open
         onOpenChange={() => {}}
         partnerId="x"
-        types={[entry('call', { id: 't1' })]}
+        types={types}
         outcomes={[entry('answered', { activity_type_id: 't1' } as never)]}
         onDone={() => {}}
       />,
       locale,
     );
-  it('says to choose a type first, in English', () => {
-    log('en');
+  it('says to choose a type when the list has none, in English', () => {
+    log('en', []);
     const why = document.querySelector('[data-activity-why]');
-    expect(why?.textContent, 'the line under the form').toBe('Choose a type');
+    expect(why?.textContent, 'the line under the form').toContain('Choose a type');
     expect(document.querySelector('[data-activity-save]')).toHaveProperty('disabled', true);
   });
+  it('says to choose the outcome once the type has opened on Call (22 Oct), in English', () => {
+    log('en');
+    expect(document.querySelector('[data-activity-why]')?.textContent).toContain('Choose an outcome');
+  });
   it('says it in Arabic with the boxes’ own words', () => {
-    log('ar');
-    expect(document.querySelector('[data-activity-why]')?.textContent).toBe('اختر النوع');
+    log('ar', []);
+    expect(document.querySelector('[data-activity-why]')?.textContent).toContain('اختر النوع');
   });
 });

@@ -16,12 +16,17 @@
  *
  * The 44 px wide-and-high walk in Arabic (V643) lives here for the same reason.
  * Sabotages: tests/sabotage/tap-sizes.mjs "the-shared-tap-rule-is-gone", "the-tap-rule-forgets-the-width".
+ *
+ * QA-592 too: the People and Teams tables of Settings → People & access fit their box in Arabic at 1,280 and 1,440 px, and
+ * the last sign-in date is whole. Sabotage: tests/sabotage/settings-tables-arabic.mjs.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
+import { brokenWords } from './support/broken-words';
+import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
@@ -290,6 +295,201 @@ test('in Arabic at 375 px: the weekly review reads right to left in the catalog�
   });
 });
 
+// ---- The Achievements list on a phone, in Arabic (the Architect's order of 22 Oct): the three switches and the month
+// box say what they mean in the catalog's words, and nothing scrolls sideways
+
+type FilterWords = {
+  pages: {
+    achievements: {
+      filters: {
+        backfilled: string;
+        past: string;
+        needsOwner: string;
+        anyMonth: string;
+        month: string;
+        meaning: Record<'backfilled' | 'past' | 'needsOwner', string>;
+      };
+    };
+  };
+};
+
+test('in Arabic at 375 px: the Achievements list’s switches and month box say what they mean, in the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const f = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as FilterWords).pages
+      .achievements.filters;
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/kpis/achievements');
+    await hydrated(page);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto('/kpis/achievements');
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('[data-month-filter]')).toContainText(f.month);
+    await expect(page.locator('[data-month-filter]')).toContainText(f.anyMonth);
+    for (const k of ['backfilled', 'past', 'needsOwner'] as const) {
+      const row = page.locator(`[data-achievement-switch="${k}"]`);
+      await expect(row).toContainText(f[k]);
+      await expect(row).toContainText(f.meaning[k]);
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+  });
+});
+
+// ---- V654, the Achievements record page and list in Arabic at 375 px: the words of the catalog, no trail on a phone
+
+type RecordWords = {
+  pages: {
+    achievements: {
+      noMatch: string;
+      backTo: string;
+      tabs: { evidence: string };
+      actions: { addRef: string };
+      marks: { noEvidence: string };
+      filters: { clear: string; clearMonth: string };
+    };
+  };
+};
+
+test('in Arabic at 375 px: the Achievements record and list say Clear filters, Add evidence and No evidence in the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const w = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as RecordWords).pages
+      .achievements;
+    await ensureAchievementPlan();
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/kpis/achievements');
+    await hydrated(page);
+    const [cat] = await sql<{ code: string }>(
+      `select c.code from perf.achievement_category c
+       where c.active and c.deleted_at is null and c.required_ref_system_id is null and not c.has_deal_value
+         and not c.sets_prospect order by c.code limit 1`,
+    );
+    const made = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'إنجاز تجريبي بعنوان طويل يمتد على عدة أسطر في الهاتف',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    await expect(
+      page.getByRole('link', { name: w.backTo, exact: true }),
+      'the back arrow has its own name',
+    ).toBeVisible();
+    await expect(page.getByText(w.marks.noEvidence, { exact: true }), 'No evidence once').toHaveCount(1);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.evidence);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText('(');
+    await page.getByRole('link', { name: new RegExp(w.tabs.evidence) }).click();
+    await hydrated(page);
+    await expect(page.getByRole('button', { name: w.actions.addRef })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+
+    // a PC: the last crumb keeps its ACH number in view when the title is long and in Latin letters (QA-590)
+    const long = await callAs(context, 'achievement_log', {
+      p_values: {
+        category: cat!.code,
+        title: 'TEST A very long made-up achievement title that runs on and on and on for the trail',
+        happened_on: new Date().toISOString().slice(0, 10),
+      },
+    });
+    expect(long.status, JSON.stringify(long.body)).toBe(200);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/kpis/achievements/${(long.body as { id: string }).id}`);
+    await hydrated(page);
+    const seen = await page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]').evaluate((span) => {
+      const node = span.firstChild as Text;
+      const r = document.createRange();
+      r.setStart(node, 0);
+      r.setEnd(node, 3);
+      const n = r.getBoundingClientRect();
+      const box = span.getBoundingClientRect();
+      return { text: node.data.slice(0, 3), inside: n.left >= box.left - 1 && n.right <= box.right + 1 };
+    });
+    expect(seen.text, 'the crumb starts with the ACH number').toBe('ACH');
+    expect(seen.inside, 'the last crumb keeps its ACH number in view').toBe(true);
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto('/kpis/achievements?mine=1&month=2000-01');
+    await hydrated(page);
+    await expect(
+      page.getByRole('button', { name: w.filters.clear }),
+      'nothing matches: Clear filters shows once, in the empty box',
+    ).toHaveCount(1);
+    await expect(page.locator('[data-clear-filters]')).toBeVisible();
+    await expect(page.locator('[data-clear-month]')).toHaveAttribute('aria-label', w.filters.clearMonth);
+    await expect(page.getByText(w.noMatch)).toBeVisible();
+    await page.locator('[data-clear-filters]').click();
+    await expect(page).toHaveURL(/\/kpis\/achievements$/);
+  });
+});
+
+// ---- V657: a task's comments in Arabic, at 375 px
+
+test('in Arabic at 375 px: the Comments tab, the box and the comment say the catalog’s words', async ({
+  page,
+  context,
+}) => {
+  await withArabic(async () => {
+    const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
+      pages: { tasks: { tabs: { comments: string }; comments: { write: string; add: string; added: string } } };
+    };
+    const w = ar.pages.tasks;
+    const me = await makePerson({ admin: true });
+    await sql(
+      `insert into core.team (department_id, code, name_en, name_ar, created_by)
+       values ((select id from core.department where code = 'commercial'), 'test_cmt_ar', 'Test comments Arabic', 'فريق', $1)
+       on conflict (department_id, code) do nothing`,
+      [me.id],
+    );
+    await sql(
+      `update core.person set team_id = (select t.id from core.team t where t.code = 'test_cmt_ar') where id = $1`,
+      [me.id],
+    );
+    const number = `TSK-1995-${Math.floor(Math.random() * 90000) + 10000}`;
+    await sql(
+      `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
+       values ($1, 'Made-up Arabic comments task', $2, (select team_id from core.person where id = $2),
+               (select department_id from core.person where id = $2),
+               (select id from work.task_status where is_default and deleted_at is null), 'internal', $2)`,
+      [number, me.id],
+    );
+    await page.setViewportSize({ width: 375, height: 800 });
+    await signIn(page, me.email, '/');
+    await setPrefs(context, { locale: 'ar' });
+    await page.goto(`/tasks/${number}?tab=comments`);
+    await hydrated(page);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.comments);
+    await page.locator('[data-add-comment] textarea').fill('تعليق تجريبي');
+    await expect(page.getByRole('button', { name: w.comments.add })).toBeVisible();
+    await page.getByRole('button', { name: w.comments.add }).click();
+    await expect(page.locator('[data-comment-body]')).toHaveText('تعليق تجريبي');
+    await expect(page.getByText(w.comments.added)).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      'no sideways scroll',
+    ).toBe(true);
+  });
+});
+
 // ---- The Architect's ruling V643: the 44 px rule holds in Arabic too — wide AND high, at 375 px, right to left
 
 test('every tappable thing is at least 44 px wide and high on a phone, on every page and in the dialogs and menus — Arabic', async ({
@@ -318,3 +518,86 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
     }
   });
 });
+
+// ---- QA-592: the People and Teams tables fit their box in Arabic at 1,280 and 1,440 px; the cut last sign-in date is whole
+
+/** Every box that scrolls sideways inside the Settings page, and the page itself: how far its content runs past it. */
+const overflowOf = (page: Page) =>
+  page.evaluate(() => {
+    const out: string[] = [];
+    const vw = document.documentElement.clientWidth;
+    if (document.documentElement.scrollWidth > vw + 1)
+      out.push(`the page scrolls sideways (${document.documentElement.scrollWidth} in ${vw})`);
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>('main *'))) {
+      const cs = getComputedStyle(el);
+      if (cs.overflowX !== 'auto' && cs.overflowX !== 'scroll') continue;
+      if (el.scrollWidth > el.clientWidth + 1)
+        out.push(
+          `${el.tagName.toLowerCase()}${el.closest('[data-people]') ? ' (people)' : el.closest('[data-teams]') ? ' (teams)' : ''}: content ${el.scrollWidth} px in a box of ${el.clientWidth} px`,
+        );
+    }
+    return out;
+  });
+
+for (const width of [1280, 1440]) {
+  test(`People and Teams tables fit their box in Arabic — at ${width} px`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await withArabic(async () => {
+      const admin = await makePerson({ admin: true });
+      // a few made-up colleagues with Arabic names, a job title, a team and a last sign-in, so the rows are realistic
+      // a department and a team with the long Arabic names real ones have
+      const tag = Math.random().toString(36).slice(2, 7);
+      const [dept] = await sql<{ id: string }>(
+        `insert into core.department (code, name_en, name_ar) values ($1, 'Made-up department', 'قسم خدمة العملاء للشركات الكبرى والمؤسسات الحكومية') returning id`,
+        [`d_${tag}`],
+      );
+      const [team] = await sql<{ id: string }>(
+        `insert into core.team (department_id, code, name_en, name_ar) values ($1, $2, 'Made-up team', 'فريق حسابات الشركات الكبرى والمؤسسات الحكومية والتعليمية') returning id`,
+        [dept!.id, `t_${tag}`],
+      );
+      const seeded: string[] = [];
+      for (const name of ['عبد الرحمن محمد الشهري', 'نورة بنت خالد القحطاني', 'سلطان بن فهد العتيبي']) {
+        const p = await makePerson();
+        seeded.push(p.id);
+        await sql(
+          `update core.person set full_name_ar = $2, job_title_ar = 'مسؤول حسابات رئيسي', department_id = $3, team_id = $4 where id = $1`,
+          [p.id, name, dept!.id, team!.id],
+        );
+        await sql(
+          `insert into core.sign_in_log (person_id, email, provider, result, at) values ($1, $2, 'email', 'ok', now() - interval '3 days')`,
+          [p.id, p.email],
+        );
+      }
+      await page.setViewportSize({ width, height: 900 });
+      await signIn(page, admin.email, '/my-day');
+      await hydrated(page);
+      await setPrefs(context, { locale: 'ar' });
+      for (const tab of ['people', 'teams']) {
+        await page.goto(`/settings/org?tab=${tab}`);
+        await hydrated(page);
+        await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+        expect(await overflowOf(page), `the ${tab} table fits its box in Arabic`).toEqual([]);
+        expect(await brokenWords(page, `[data-${tab}] table`), `no word of the ${tab} table breaks in Arabic`).toEqual(
+          [],
+        );
+      }
+      // the last sign-in date is whole: day, short month, a four-figure year, and inside the table's box (it was cut to "026")
+      await page.goto('/settings/org?tab=people');
+      await hydrated(page);
+      const cells = page.locator(seeded.map((id) => `[data-person-row="${id}"] [data-person-last-sign-in]`).join(', '));
+      await expect(cells.first()).toBeVisible();
+      expect(await cells.count(), 'the three seeded people are listed').toBe(3);
+      for (const cell of await cells.all()) {
+        const text = (await cell.innerText()).trim();
+        if (!/\d/.test(text)) continue;
+        expect(text, 'the date has its four-figure year').toMatch(/\d{1,2} \S+ \d{4}$/);
+        const inside = await cell.evaluate((td) => {
+          const box = td.closest('.overflow-x-auto')!.getBoundingClientRect();
+          const r = td.getBoundingClientRect();
+          return r.left >= box.left - 0.5 && r.right <= box.right + 0.5;
+        });
+        expect(inside, 'the last sign-in date is inside the table box').toBe(true);
+      }
+    });
+  });
+}

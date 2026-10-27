@@ -10,6 +10,7 @@ import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
 import { avatarOf, describeWith, nameOf, summarizeWith, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
+import { ScrollCue } from '@/ui/ScrollCue';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
@@ -198,6 +199,7 @@ export function ActivityScreen({
             onChanged={() => router.refresh()}
             describe={describe}
             summarize={summarize}
+            undoEvery
           />
         </section>
       ) : null}
@@ -251,7 +253,7 @@ export function ActivityScreen({
         </section>
       ) : null}
       {current === 'signIns' ? (
-        <section className="overflow-x-auto rounded-lg border border-border bg-raised" data-activity-sign-ins>
+        <ScrollCue className="rounded-lg border border-border bg-raised" data-activity-sign-ins>
           {signIns.length ? (
             <table className="w-full text-sm">
               <thead className="text-xs text-muted">
@@ -286,7 +288,7 @@ export function ActivityScreen({
           ) : (
             <DataState kind="empty" message={t('activity.none')} />
           )}
-        </section>
+        </ScrollCue>
       ) : null}
       {current === 'deleted' ? <RecentlyDeleted rows={deleted} people={people} /> : null}
       <ReasonDialog

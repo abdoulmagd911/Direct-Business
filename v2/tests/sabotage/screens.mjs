@@ -632,8 +632,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        find: '  if (!row.role)\n    return (\n      <StatusChip className={WRAPS} tone="warning">\n        {t(\'settings.people.noRole\')}\n      </StatusChip>\n    );\n  return (\n    <StatusChip className={WRAPS} tone="success">',
+        replace: '  return (\n    <StatusChip className={WRAPS} tone="success">',
       },
     ],
   },
@@ -671,8 +671,8 @@ export const sabotages = [
     expect: 'a word, not a key',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
-        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        file: 'src/modules/settings/words.ts',
+        find: '  for (const k of valueWordKeys(settingKey, v)) if (t.has(k)) return t(k);\n',
         replace: '',
       },
     ],
@@ -1139,8 +1139,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="line-clamp-2 break-words text-3xl',
-        replace: 'className="truncate text-3xl',
+        find: "className={cn(titleClamp, 'break-words text-3xl",
+        replace: "className={cn('truncate', 'break-words text-3xl",
       },
     ],
   },
@@ -1289,7 +1289,7 @@ export const sabotages = [
     expect: 'Word (.docx)',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        file: 'src/modules/settings/words.ts',
         find: "wordprocessingml.document': 'Word (.docx)'",
         replace: "wordprocessingml.document': 'Word'",
       },
@@ -1886,14 +1886,32 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'bell-stays-open-on-a-new-page',
+    breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
+    expect: 'closed by the page change',
+    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: '    if (bell) setBell(false);\n', replace: '' }],
+  },
+  {
     name: 'restore-offered-to-everyone',
     breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
     expect: 'leaves the button off a row the person may not restore',
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: '{d.can_restore === false ? null : (',
-        replace: '{false ? null : (',
+        find: '{d.can_restore === false ? (',
+        replace: '{false ? (',
+      },
+    ],
+  },
+  {
+    name: 'restore-refusal-says-nothing',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'says why in one line where it is refused',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: "'restore.blocked_by_duplicate': 'has_owner',",
+        replace: '',
       },
     ],
   },

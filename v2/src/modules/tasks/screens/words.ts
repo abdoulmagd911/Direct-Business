@@ -13,6 +13,7 @@ export function useCommandWords(): (done: string) => CommandWords {
     done,
     undo: t('common.undo'),
     undone: t('activity.undone'),
+    undoing: t('common.undoing'),
     has: (k) => t.has(refusalKey(k)),
     failed: (k, d) => t(refusalKey(k), { detail: d }),
   });
