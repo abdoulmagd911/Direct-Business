@@ -18,7 +18,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
 import { checklistCount, noteTitle } from '../logic';
-import { VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
+import { NOTE_VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
 import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
@@ -34,6 +34,7 @@ type Draft = {
   body: string;
   items: NoteItem[];
   visibility: MyNote['visibility'];
+  shared_with: string;
   happened_on: string;
   meeting_partner: PartnerRef | null;
   meeting_on: string;
@@ -44,6 +45,7 @@ const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
   body: n.body ?? '',
   items: n.items,
   visibility: n.visibility,
+  shared_with: n.shared_with ?? '',
   happened_on: n.happened_on,
   meeting_partner: partner,
   meeting_on: n.meeting_on ?? '',
@@ -60,9 +62,12 @@ export function NotePage({
   types,
   outcomes,
   taskLookups,
+  colleagues = [],
 }: {
   note: MyNote;
   author?: string;
+  /** Whom the author may share the note with, by name (G): every other active colleague. */
+  colleagues?: { id: string; name: string }[];
   /** The names a task from this note points at; absent for someone who may not make tasks (no Task in Turn into). */
   taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
   types: ListEntry[];
@@ -106,6 +111,7 @@ export function NotePage({
             body: d.body.trim() || null,
             items: d.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
             visibility: d.visibility,
+            shared_with: d.visibility === 'person' ? d.shared_with || null : null,
             happened_on: d.happened_on,
             meeting_partner_id: d.meeting_partner?.id ?? null,
             meeting_on: d.meeting_on || null,
@@ -274,10 +280,26 @@ export function NotePage({
                 value={d.visibility}
                 disabled={!mine}
                 onValueChange={(v) => setD({ ...d, visibility: v as MyNote['visibility'] })}
-                options={VISIBILITIES.map((v) => ({ value: v, label: t(`pages.myDay.visibility.${v}`) }))}
+                options={NOTE_VISIBILITIES.map((v) => ({ value: v, label: t(`pages.myDay.visibility.${v}`) }))}
               />
             )}
           </Field>
+          {d.visibility === 'person' ? (
+            <Field label={t('pages.myDay.visibility.sharedWith')}>
+              {(p) =>
+                mine ? (
+                  <Select
+                    {...p}
+                    value={d.shared_with || undefined}
+                    onValueChange={(v) => setD({ ...d, shared_with: v })}
+                    options={colleagues.map((c) => ({ value: c.id, label: c.name }))}
+                  />
+                ) : (
+                  <span id={p.id}>{colleagues.find((c) => c.id === note.shared_with)?.name ?? '—'}</span>
+                )
+              }
+            </Field>
+          ) : null}
           <Field label={t('pages.myDay.note.happenedOn')}>
             {(p) => (
               <Input

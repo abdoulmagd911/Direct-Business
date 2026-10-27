@@ -235,6 +235,8 @@
       },
       "visibility": {
         "label": "Who sees it",
+        "person": "One colleague",
+        "sharedWith": "Shared with",
         "private": "Only me",
         "team": "My team",
         "workspace": "Everyone"
@@ -1839,6 +1841,7 @@
       "turn_into_needs_partner": "Choose the organisation first",
       "turn_into_not_yet": "This arrives with its page",
       "body_required": "A note needs words",
+      "share_needs_a_colleague": "Pick the one colleague to share it with",
       "turn_into_type_invalid": "Choose call or meeting",
       "turn_into_invalid": "This cannot be turned into that",
       "wrap_up_choice_invalid": "Choose carry over or done",
@@ -1928,6 +1931,7 @@
       "alert_file_review": "A file on {record} is due for review",
       "reminder": "Reminder: {record}",
       "note_mention": "{actor} mentioned you in a note",
+      "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
       "other": "{actor} · {record}"
     },
