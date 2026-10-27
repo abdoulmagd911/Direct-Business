@@ -11,6 +11,7 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
+import { useMediaQuery } from '@/ui/useMediaQuery';
 import { Switch } from '@/ui/Switch';
 
 export type ListEntry = {
@@ -44,6 +45,7 @@ const EXTRA: Record<string, { col: 'side' | 'status'; options: readonly string[]
  */
 export function ListEditor({ entity, label, rows }: { entity: string; label: string; rows: ListEntry[] }) {
   const t = useTranslations();
+  const phone = useMediaQuery('(max-width: 639px)');
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
@@ -221,65 +223,110 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
         </div>
       </div>
       {/* on a phone the key and the order step aside and the names get room, so Edit and Archive stay on screen (QA-183c) */}
-      <div className="-mx-5 overflow-x-auto px-5">
-        <table className="w-full text-sm">
-          <thead className="text-xs text-muted">
-            <tr>
-              <th className="py-2 text-start font-medium">{t('settings.list.nameEn')}</th>
-              <th className="py-2 ps-4 pe-6 text-end font-medium">{t('settings.list.nameAr')}</th>
+      {phone ? (
+        <ul className="flex flex-col gap-2" data-list-cards>
+          {shown.map((r) => (
+            <li
+              key={r.id}
+              className="rounded-lg border border-border bg-raised p-3"
+              data-list-entry={r.key}
+              data-active={r.active}
+            >
+              <div className="flex flex-wrap items-center gap-2 font-medium [overflow-wrap:anywhere]">
+                {r.name_en}
+                {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
+              </div>
+              <div className="mt-0.5 text-sm [overflow-wrap:anywhere]" dir="rtl" lang="ar">
+                {r.name_ar}
+              </div>
               {extra ? (
-                <th className="py-2 pe-4 text-start font-medium" data-list-column={extra.col}>
-                  {t(`settings.list.${extra.col}`)}
-                </th>
+                <div className="mt-1 text-sm text-muted [overflow-wrap:anywhere]" data-list-extra={extraOf(r)}>
+                  {extraWord(extraOf(r))}
+                </div>
               ) : null}
-              <th className="hidden py-2 text-end font-medium sm:table-cell">{t('settings.list.sort')}</th>
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {shown.map((r) => (
-              <tr key={r.id} data-list-entry={r.key} data-active={r.active}>
-                <td className="py-2.5">
-                  <span className="flex items-center gap-2">
-                    {r.name_en}
-                    {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
-                  </span>
-                </td>
-                <td className="py-2.5 ps-4 pe-6 text-end" dir="rtl" lang="ar">
-                  {r.name_ar}
-                </td>
+              <div className="mt-2 flex flex-wrap gap-1">
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => startEdit(r)}
+                  aria-label={t('settings.list.edit', { name: name(r) })}
+                >
+                  {t('common.edit')}
+                </Button>
+                {r.active ? (
+                  <Button size="xs" variant="ghost" onClick={() => void startArchive(r)} data-list-archive>
+                    {t('settings.list.archive')}
+                  </Button>
+                ) : (
+                  <Button size="xs" variant="ghost" onClick={() => void restore(r)}>
+                    {t('settings.list.restore')}
+                  </Button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="-mx-5 overflow-x-auto px-5">
+          <table className="w-full text-sm">
+            <thead className="text-xs text-muted">
+              <tr>
+                <th className="py-2 text-start font-medium">{t('settings.list.nameEn')}</th>
+                <th className="py-2 ps-4 pe-6 text-end font-medium">{t('settings.list.nameAr')}</th>
                 {extra ? (
-                  <td className="py-2.5 pe-4 sm:whitespace-nowrap" data-list-extra={extraOf(r)}>
-                    {extraWord(extraOf(r))}
-                  </td>
+                  <th className="py-2 pe-4 text-start font-medium" data-list-column={extra.col}>
+                    {t(`settings.list.${extra.col}`)}
+                  </th>
                 ) : null}
-                <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
-                <td className="py-2.5 text-end">
-                  <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => startEdit(r)}
-                      aria-label={t('settings.list.edit', { name: name(r) })}
-                    >
-                      {t('common.edit')}
-                    </Button>
-                    {r.active ? (
-                      <Button size="xs" variant="ghost" onClick={() => void startArchive(r)} data-list-archive>
-                        {t('settings.list.archive')}
-                      </Button>
-                    ) : (
-                      <Button size="xs" variant="ghost" onClick={() => void restore(r)}>
-                        {t('settings.list.restore')}
-                      </Button>
-                    )}
-                  </span>
-                </td>
+                <th className="hidden py-2 text-end font-medium sm:table-cell">{t('settings.list.sort')}</th>
+                <th className="py-2" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {shown.map((r) => (
+                <tr key={r.id} data-list-entry={r.key} data-active={r.active}>
+                  <td className="py-2.5">
+                    <span className="flex items-center gap-2">
+                      {r.name_en}
+                      {!r.active ? <StatusChip tone="neutral">{t('settings.list.archived')}</StatusChip> : null}
+                    </span>
+                  </td>
+                  <td className="py-2.5 ps-4 pe-6 text-end" dir="rtl" lang="ar">
+                    {r.name_ar}
+                  </td>
+                  {extra ? (
+                    <td className="py-2.5 pe-4 sm:whitespace-nowrap" data-list-extra={extraOf(r)}>
+                      {extraWord(extraOf(r))}
+                    </td>
+                  ) : null}
+                  <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
+                  <td className="py-2.5 text-end">
+                    <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => startEdit(r)}
+                        aria-label={t('settings.list.edit', { name: name(r) })}
+                      >
+                        {t('common.edit')}
+                      </Button>
+                      {r.active ? (
+                        <Button size="xs" variant="ghost" onClick={() => void startArchive(r)} data-list-archive>
+                          {t('settings.list.archive')}
+                        </Button>
+                      ) : (
+                        <Button size="xs" variant="ghost" onClick={() => void restore(r)}>
+                          {t('settings.list.restore')}
+                        </Button>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Dialog
         open={editing !== null}
