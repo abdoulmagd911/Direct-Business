@@ -33,19 +33,34 @@ describe('a date box shows the date the way the app writes it', () => {
     const html = draw(<Input type="datetime-local" value="2026-10-14T09:30" onChange={() => undefined} />);
     expect(html).toMatch(/data-date-text[^>]*>14 Oct 2026, 09:30</);
   });
-  it('shows the Arabic month in Arabic', () => {
-    expect(draw(<Input type="date" value="2026-10-14" onChange={() => undefined} />, 'ar')).toMatch(/>14 \S+ 2026</);
-  });
-  it('says how the day will be written while it is empty, in the language of the screen (QA-600, V653)', () => {
-    const empty = (type: string, locale: 'en' | 'ar') =>
-      draw(<Input type={type as 'date'} value="" onChange={() => undefined} />, locale);
-    expect(empty('date', 'en')).toMatch(/data-date-text[^>]*>dd mmm yyyy</);
-    expect(empty('date', 'ar'), 'Arabic: day month year, not a dash').toMatch(/data-date-text[^>]*>يوم شهر سنة</);
-    expect(empty('datetime-local', 'ar')).toMatch(/data-date-text[^>]*>يوم شهر سنة، ساعة:دقيقة</);
-    expect(empty('time', 'ar')).toMatch(/data-date-text[^>]*>ساعة:دقيقة</);
-    expect(draw(<Input type="date" value="" placeholder="اختر" onChange={() => undefined} />, 'ar')).toMatch(
-      /data-date-text[^>]*>اختر</,
+  it('writes the day as it is, never padded: 4 Oct 2026, not 04 Oct 2026', () => {
+    expect(draw(<Input type="date" value="2026-10-04" onChange={() => undefined} />)).toMatch(
+      /data-date-text[^>]*>4 Oct 2026</,
     );
+    expect(draw(<Input type="datetime-local" value="2026-10-04T09:05" onChange={() => undefined} />)).toMatch(
+      /data-date-text[^>]*>4 Oct 2026, 09:05</,
+    );
+  });
+  it('says how the date will be written while the box is empty: dd mmm yyyy in English (V653 (2))', () => {
+    expect(draw(<Input type="date" value="" onChange={() => undefined} />)).toMatch(/data-date-text[^>]*>dd mmm yyyy</);
+    expect(draw(<Input type="datetime-local" value="" onChange={() => undefined} />)).toMatch(
+      /data-date-text[^>]*>dd mmm yyyy, hh:mm</,
+    );
+    expect(
+      draw(<Input type="date" value="" placeholder="From" onChange={() => undefined} />),
+      'a placeholder given wins',
+    ).toMatch(/data-date-text[^>]*>From</);
+  });
+  it('keeps the dash for an empty time box, and in Arabic until its words are given; shows the Arabic month in Arabic', () => {
+    expect(draw(<Input type="time" value="" onChange={() => undefined} />)).toMatch(/data-date-text[^>]*>—</);
+    expect(
+      draw(<Input type="date" value="" onChange={() => undefined} />, 'ar'),
+      'Arabic: day month year, not a dash',
+    ).toMatch(/data-date-text[^>]*>يوم شهر سنة</);
+    expect(draw(<Input type="datetime-local" value="" onChange={() => undefined} />, 'ar')).toMatch(
+      /data-date-text[^>]*>يوم شهر سنة، ساعة:دقيقة</,
+    );
+    expect(draw(<Input type="date" value="2026-10-14" onChange={() => undefined} />, 'ar')).toMatch(/>14 \S+ 2026</);
   });
   it('shows the real field, and hides the written date, while the field has keyboard focus', () => {
     const html = draw(<Input type="date" value="2026-10-14" onChange={() => undefined} />);

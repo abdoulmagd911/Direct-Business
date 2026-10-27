@@ -168,6 +168,8 @@
   },
   "common": {
     "filter": "Filter",
+    "datePlaceholder": "dd mmm yyyy",
+    "dateTimePlaceholder": "dd mmm yyyy, hh:mm",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
@@ -1934,6 +1936,7 @@
       "note_mention": "{actor} mentioned you in a note",
       "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
+      "alert_overdue": "{record} is overdue",
       "other": "{actor} · {record}"
     },
     "none": "Nothing new. You are told here when work is assigned to you, someone mentions you, or a record you follow changes.",
