@@ -92,9 +92,13 @@ export function NotificationsPanel({
     const noteLine = typeof n.label_args?.title === 'string' && n.label_args.title ? n.label_args.title : null;
     const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? noteLine ?? kindWord;
     const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
-    // a note shared by name rides the note-mention kind (its setting), with words of its own
-    const key =
-      n.label_key === 'notify.note_shared' ? 'notifications.kinds.note_shared' : `notifications.kinds.${n.kind}`;
+    // a notice whose label has words of its own: a note shared by name (it rides the note-mention kind and its
+    // setting), and the due alert's second notice once the day has passed (D, 26 Oct)
+    const byLabel: Record<string, string> = {
+      'notify.note_shared': 'notifications.kinds.note_shared',
+      'alert.overdue': 'notifications.kinds.alert_overdue',
+    };
+    const key = (n.label_key && byLabel[n.label_key]) || `notifications.kinds.${n.kind}`;
     return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
   };
   const detailOf = (n: Notification) =>

@@ -23,8 +23,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/NotificationsPanel.tsx',
-        find: "n.label_key === 'notify.note_shared'",
-        replace: "n.label_key === 'notify.note_shared_never'",
+        find: "'notify.note_shared': 'notifications.kinds.note_shared',",
+        replace: "'notify.note_shared_never': 'notifications.kinds.note_shared',",
       },
     ],
   },
