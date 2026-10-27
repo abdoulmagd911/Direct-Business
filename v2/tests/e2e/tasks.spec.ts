@@ -405,8 +405,7 @@ for (const w of WIDTHS) {
     const number = await taskIn('commercial', member.id, `Made-up escalated ${tag}`);
     const { ctx, page } = await signedIn(browser, member, w.width, w.height, `/tasks/${number}`);
 
-    // Escalate sits in the task's ⋯ menu with Follow up (V632 Stage 2: no new button on the header)
-    await page.locator('[data-task-more]').click();
+    // Escalate is a labelled button on the task's header (E, 26 Oct; it was in the ⋯ menu)
     await page.locator('[data-escalate-open]').click();
     const form = page.locator('form[data-escalate]');
     await expect(form).toBeVisible();

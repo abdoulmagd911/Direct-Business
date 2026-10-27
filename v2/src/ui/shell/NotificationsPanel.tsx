@@ -88,9 +88,13 @@ export function NotificationsPanel({
   const wordsOf = (n: Notification) => {
     const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
     const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
-    const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? kindWord;
+    // a note has no title of its own on the server's side: a shared note's notice carries its line
+    const noteLine = typeof n.label_args?.title === 'string' && n.label_args.title ? n.label_args.title : null;
+    const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? noteLine ?? kindWord;
     const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
-    const key = `notifications.kinds.${n.kind}`;
+    // a note shared by name rides the note-mention kind (its setting), with words of its own
+    const key =
+      n.label_key === 'notify.note_shared' ? 'notifications.kinds.note_shared' : `notifications.kinds.${n.kind}`;
     return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
   };
   const detailOf = (n: Notification) =>
