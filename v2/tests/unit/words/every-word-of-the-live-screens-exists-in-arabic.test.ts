@@ -21,8 +21,6 @@ const WAITING = [
   'sign_in.', // the sign-in door
   'finance.', // Finance (not live)
   'errors.finance.', // Finance refusals (not live)
-  'common.datePlaceholder', // QA-600, PR #360
-  'common.dateTimePlaceholder', // QA-600, PR #360
 ];
 
 describe('every word of the live screens exists in Arabic (27 Oct sweep)', () => {
