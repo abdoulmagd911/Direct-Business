@@ -7,6 +7,7 @@ import type { SettingsAnswer } from '@/modules/settings/schema';
 import type { ListEntry } from '@/modules/settings/screens/ListEditor';
 import { OrgAccess, type OrgAnswer, type PeopleAnswer, type MatrixAnswer } from '@/modules/org/screens/OrgAccess';
 import { SettingsGroup } from '@/modules/settings/screens/SettingsGroup';
+import { LIST_VALUES, type ChoiceNames } from '@/modules/settings/words';
 import { SettingsShell } from '@/modules/settings/screens/SettingsShell';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
@@ -82,9 +83,20 @@ export default async function SettingsGroupPage({
       </SettingsShell>
     );
   }
+  // Values that are the keys of a list's entries are shown by the entries' names (V4, V501): read here, one round more
+  // only where this group has such a setting.
+  const names: ChoiceNames = {};
+  for (const [path, list] of Object.entries(LIST_VALUES)) {
+    if (!answer.settings.some((x) => path.startsWith(`${x.key}.`))) continue;
+    const have = lists.find((l) => l.key === list)?.rows;
+    names[path] = (
+      have ?? ((await serverRpc('list', { p_list: list, p_include_retired: true })) as unknown as ListEntry[])
+    ).filter((e) => e.active);
+  }
   return (
     <SettingsShell current={group} title={t(def.label)}>
       <SettingsGroup
+        names={names}
         settings={answer.settings}
         canEdit={answer.can_edit}
         departments={departments}
