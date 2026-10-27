@@ -32,4 +32,40 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'comment-waits-for-the-reread',
+    breaks: [E2E],
+    expect: 'the comment shows at once',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        find: '[...data.comments, ...added.filter((a) => !data.comments.some((c) => c.id === a.id))]',
+        replace: '[...data.comments]',
+      },
+    ],
+  },
+  {
+    name: 'comments-tab-count-waits-for-the-reread',
+    breaks: [E2E],
+    expect: 'and the tab counts it at once',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskRecord.tsx',
+        find: '(commentCount ?? comments?.comments.length ?? undefined)',
+        replace: '(comments?.comments.length ?? undefined)',
+      },
+    ],
+  },
+  {
+    name: 'undo-says-nothing-while-it-works',
+    breaks: [E2E],
+    expect: 'a message at once, while the Undo works',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/words.ts',
+        find: "undoing: t('common.undoing'),",
+        replace: '',
+      },
+    ],
+  },
 ];
