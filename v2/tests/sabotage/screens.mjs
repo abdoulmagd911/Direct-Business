@@ -1886,6 +1886,42 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'board-card-hides-the-block-reason',
+    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
+    expect: 'the board card says why it is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskBoard.tsx',
+        find: '                      <BlockReason task={r} />\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'board-card-says-nothing-when-blocked',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says why a blocked task is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'return null;',
+      },
+    ],
+  },
+  {
+    name: 'board-card-blames-an-unblocked-task',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says nothing for a task that is not blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'if (!task.blocked_reason) return null;',
+      },
+    ],
+  },
+  {
     name: 'bell-stays-open-on-a-new-page',
     breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
     expect: 'closed by the page change',

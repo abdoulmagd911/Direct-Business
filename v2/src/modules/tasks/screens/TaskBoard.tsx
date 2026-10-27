@@ -7,6 +7,7 @@ import { cn } from '@/ui/cn';
 import type { TaskLookups } from '../load';
 import { boardColumns, dueState, statusView } from '../rules';
 import type { TaskRow } from '../types';
+import { BlockReason } from './BlockReason';
 import { StatusMenu, statusName } from './StatusControl';
 import { useNames } from './words';
 
@@ -57,6 +58,7 @@ export function TaskBoard({ rows, lookups, today }: { rows: TaskRow[]; lookups: 
                         <span className="font-data">{r.number}</span>
                         {` · ${names.person(r.owner_id)}`}
                       </p>
+                      <BlockReason task={r} />
                       <div className="flex flex-wrap items-center gap-1.5">
                         <StatusMenu task={r} statuses={lookups.statuses} label={label} canEdit={r.can_edit} />
                         {r.due_on ? (
