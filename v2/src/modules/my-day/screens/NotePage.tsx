@@ -101,7 +101,7 @@ export function NotePage({
   const save = async () => {
     setBusy(true);
     await command(
-      words(t('pages.myDay.note.saved')),
+      words(t('pages.myDay.note.saved', { kind: note.kind })),
       () =>
         rpc('note_update', {
           p_id: note.id,
