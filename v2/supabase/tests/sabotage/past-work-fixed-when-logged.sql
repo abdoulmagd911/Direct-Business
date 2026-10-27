@@ -1,6 +1,6 @@
 -- Sabotage: past-work-fixed-when-logged
 -- Breaks: sql:PAST-02
--- Expect: the tasks of 2 and 16 Oct are now under Past work
+-- Expect: the closed task of 2 Oct is now under Past work
 -- Past work reads the go-live day as it stood on the entry's own day, as if it were stored when the entry was made
 -- (V609): setting the day later never moves earlier entries into Past work.
 do $$
