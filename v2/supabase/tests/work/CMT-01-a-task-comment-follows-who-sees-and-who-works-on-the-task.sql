@@ -121,6 +121,12 @@ select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid
 select api.undo((current_setting('t.rm')::jsonb ->> 'request_id')::uuid);
 select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid) -> 'comments'), 2,
   'and Undo brings it back');
+-- Undo of an add takes the new comment away again (the live test of 28 Oct)
+select set_config('t.c3', api.task_comment_add(current_setting('t.t')::uuid, 'Made-up third remark')::text, true);
+select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid) -> 'comments'), 3, 'a third comment is added');
+select api.undo((current_setting('t.c3')::jsonb ->> 'request_id')::uuid);
+select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid) -> 'comments'), 2,
+  'Undo of an add takes it away again');
 select test.as_person(current_setting('t.admin')::uuid);
 select api.task_comment_remove((current_setting('t.c1')::jsonb ->> 'id')::uuid, 'Made up reason');
 select test.eq(jsonb_array_length(api.task_comments(current_setting('t.t')::uuid) -> 'comments'), 1,
