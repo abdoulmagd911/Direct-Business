@@ -1,4 +1,4 @@
-// Sabotages for the Arabic sweep of 27 Oct: words of the bell and the Tasks layout switch taken out again.
+// Sabotages for the Arabic sweep of 27 Oct: words of the bell, the Tasks layout switch, Activity, My profile and the sign-in door taken out again.
 const WORDS = 'unit:tests/unit/words/every-word-of-the-live-screens-exists-in-arabic.test.ts';
 
 export const sabotages = [
@@ -19,5 +19,23 @@ export const sabotages = [
         replace: '        "board": "لوحة"\n',
       },
     ],
+  },
+  {
+    name: 'arabic-activity-title-missing',
+    breaks: [WORDS],
+    expect: 'activity.none',
+    edits: [{ file: 'messages/ar.json', find: '    "none": "لا تغييرات بعد",\n', replace: '' }],
+  },
+  {
+    name: 'arabic-profile-saved-missing',
+    breaks: [WORDS],
+    expect: 'profile.saved',
+    edits: [{ file: 'messages/ar.json', find: '    "saved": "حُفظ ملفك",\n', replace: '' }],
+  },
+  {
+    name: 'arabic-sign-in-signing-in-missing',
+    breaks: [WORDS],
+    expect: 'sign_in.password.signingIn',
+    edits: [{ file: 'messages/ar.json', find: '      "signingIn": "جارٍ تسجيل الدخول…",\n', replace: '' }],
   },
 ];
