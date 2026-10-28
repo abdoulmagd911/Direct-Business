@@ -52,7 +52,7 @@ for (const width of [1280, 375]) {
     const ahead = new Date(Date.now() + 30 * 86_400_000);
     const aheadDay = ahead.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
     const [aheadYear, , aheadDate] = aheadDay.split('-');
-    const aheadWords = new RegExp(`\\b${Number(aheadDate)} [A-Z][a-z]{2,3} ${aheadYear}\\b`);
+    const aheadWords = new RegExp(`${Number(aheadDate)} [A-Z][a-z]{2,3} ${aheadYear}, 09:00`);
     const follow = await callAs(ctx, 'note_capture', {
       p_kind: 'reminder',
       p_values: {
