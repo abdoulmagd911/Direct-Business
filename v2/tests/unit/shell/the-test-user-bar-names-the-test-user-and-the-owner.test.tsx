@@ -68,6 +68,14 @@ describe('Sign in as test user on the People page', () => {
   it('is offered to an admin on a TEST row', () => {
     expect(offersSwitch(admin, { is_test: true })).toBe(true);
   });
+  it('is not offered while this device is already signed in as a test user (QA-615)', () => {
+    const switched = {
+      person: { role: { is_admin: true } },
+      test_switch: { by_id: 'o1', by_name_en: 'Made-up Owner', by_name_ar: null, since: '2026-10-28T10:00:00Z' },
+    } as unknown as Me;
+    expect(offersSwitch(switched, { is_test: true })).toBe(false);
+    expect(offersSwitch({ ...admin, test_switch: null } as unknown as Me, { is_test: true })).toBe(true);
+  });
   it('is not offered on a real colleague, nor to someone who is not an admin', () => {
     expect(offersSwitch(admin, { is_test: false })).toBe(false);
     expect(offersSwitch(admin, {})).toBe(false);

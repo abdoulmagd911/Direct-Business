@@ -22,8 +22,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/test-switch/offer.ts',
-        find: 'return !!me.person?.role?.is_admin && row.is_test === true;',
-        replace: 'return !!me.person?.role?.is_admin;',
+        find: 'return !me.test_switch && !!me.person?.role?.is_admin && row.is_test === true;',
+        replace: 'return !me.test_switch && !!me.person?.role?.is_admin;',
       },
     ],
   },
@@ -34,8 +34,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/test-switch/offer.ts',
-        find: 'return !!me.person?.role?.is_admin && row.is_test === true;',
-        replace: 'return row.is_test === true;',
+        find: 'return !me.test_switch && !!me.person?.role?.is_admin && row.is_test === true;',
+        replace: 'return !me.test_switch && row.is_test === true;',
       },
     ],
   },
@@ -61,6 +61,18 @@ export const sabotages = [
         find: "  await rpc('test_switch_start', { p_person: person } as never);\n  page.go(AFTER_SWITCH_PATH);",
         replace:
           "  try {\n    await rpc('test_switch_start', { p_person: person } as never);\n  } catch {\n    page.go(AFTER_SWITCH_PATH);\n    return;\n  }\n  page.go(AFTER_SWITCH_PATH);",
+      },
+    ],
+  },
+  {
+    name: 'the-switch-is-offered-while-already-switched',
+    breaks: [T],
+    expect: '> is not offered while this device is already signed in as a test user (QA-615)',
+    edits: [
+      {
+        file: 'src/core/test-switch/offer.ts',
+        find: 'return !me.test_switch && !!me.person?.role?.is_admin && row.is_test === true;',
+        replace: 'return !!me.person?.role?.is_admin && row.is_test === true;',
       },
     ],
   },
