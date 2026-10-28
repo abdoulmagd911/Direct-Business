@@ -23,9 +23,27 @@ export type QuickValues = {
   values: Record<string, unknown>;
 };
 
+/** A captured title's length: about three lines on a phone (V654 (9)); the words past it go to the note's body. */
+export const TITLE_CAP = 80;
+
 /**
- * What the sheet sends to `api.note_capture`: the first line is the title; Note, Idea and Reminder keep the rest as
- * the body; a Checklist makes every further line an item (a single line is its own item). Private unless chosen
+ * Finding 1 (26 Oct): the first line is the title only up to TITLE_CAP. A longer line, as a paragraph typed in one go,
+ * gives its first sentence when that fits, else its words up to the cap and "…"; what is left starts the body. Nothing
+ * typed is lost.
+ */
+export function splitTitle(line: string): { title: string; rest: string } {
+  if (line.length <= TITLE_CAP) return { title: line, rest: '' };
+  const sentence = /^(.{1,80}?[.!?؟])\s+(.*)$/su.exec(line);
+  if (sentence) return { title: sentence[1]!, rest: sentence[2]!.trim() };
+  const head = line.slice(0, TITLE_CAP);
+  const cut = head.lastIndexOf(' ');
+  const at = cut > TITLE_CAP / 2 ? cut : TITLE_CAP;
+  return { title: `${line.slice(0, at).trim()}…`, rest: line.slice(at).trim() };
+}
+
+/**
+ * What the sheet sends to `api.note_capture`: the first line is the title (see splitTitle); Note, Idea and Reminder keep
+ * the rest as the body; a Checklist makes every further line an item (a single line is its own item). Private unless chosen
  * otherwise (V454). A Reminder needs its time — the sheet refuses to save without one.
  */
 export function quickCaptureArgs(
@@ -43,12 +61,14 @@ export function quickCaptureArgs(
   const base = { visibility: opts.visibility, happened_on: opts.day };
   if (kind === 'checklist') {
     const items = (rest.length ? rest : [title]).map((t) => ({ text: t, done: false }));
-    return { kind: 'checklist', values: { ...base, title, items } };
+    return { kind: 'checklist', values: { ...base, title: title.slice(0, 200), items } };
   }
+  const split = splitTitle(title);
+  const body = [split.rest, ...rest].filter(Boolean);
   const values: Record<string, unknown> = {
     ...base,
-    title: title.slice(0, 200),
-    ...(rest.length ? { body: rest.join('\n') } : {}),
+    title: split.title,
+    ...(body.length ? { body: body.join('\n') } : {}),
   };
   if (kind === 'reminder') {
     if (!opts.remindAt) return null;
