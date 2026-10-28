@@ -48,12 +48,17 @@ for (const width of [1280, 375]) {
     expect(moved.status, JSON.stringify(moved.body)).toBe(200);
     const given = await callAs(ctx, 'tasks_assign', { p_ids: [id], p_owner: mate.id });
     expect(given.status, JSON.stringify(given.body)).toBe(200);
+    // the follow-up is a month ahead, at 09:00 Riyadh time: a reminder in the past is refused
+    const ahead = new Date(Date.now() + 30 * 86_400_000);
+    const aheadDay = ahead.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+    const [aheadYear, , aheadDate] = aheadDay.split('-');
+    const aheadWords = new RegExp(`\\b${Number(aheadDate)} [A-Z][a-z]{2,3} ${aheadYear}\\b`);
     const follow = await callAs(ctx, 'note_capture', {
       p_kind: 'reminder',
       p_values: {
         title: 'Follow-up',
         visibility: 'private',
-        remind_at: '2026-10-28T09:00:00+03:00',
+        remind_at: `${aheadDay}T09:00:00+03:00`,
         about: { entity: 'task', id },
       },
     });
@@ -74,7 +79,7 @@ for (const width of [1280, 375]) {
       `Owner: ${ownerName} → ${mateName}`,
     );
     const followRow = rows.filter({ hasText: 'Follow-up added' });
-    await expect(followRow, 'the follow-up set is a line, with its time').toContainText('28 Oct 2026');
+    await expect(followRow, 'the follow-up set is a line, with its time').toContainText(aheadWords);
     await expect(page.locator('[data-undo-request]'), "Undo only on the reader's newest action").toHaveCount(1);
     await expect(rows.first().locator('[data-undo-request]'), 'which is the newest line').toHaveCount(1);
     await expect(rows.first()).toContainText('Follow-up added');
