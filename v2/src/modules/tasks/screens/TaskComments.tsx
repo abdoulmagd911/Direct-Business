@@ -52,7 +52,8 @@ export function TaskComments({
   // the read made right after a write) or the read this screen makes itself after each write and Undo. A late, older
   // read never puts the list back; what shows ahead of a read (below) is dropped when a newer read arrives.
   const [mine, setMine] = useState<Comments | null>(null);
-  const newer = (a: Comments, b: Comments) => (a.read_at && b.read_at && a.read_at > b.read_at ? a : b);
+  // a read without a time (a database that does not stamp it yet) cannot be told apart, so this screen's own, later one wins
+  const newer = (a: Comments, b: Comments) => (!a.read_at || !b.read_at || a.read_at > b.read_at ? a : b);
   const list = mine ? newer(mine, data) : data;
   const [seen, setSeen] = useState(list);
   if (seen !== list) {
