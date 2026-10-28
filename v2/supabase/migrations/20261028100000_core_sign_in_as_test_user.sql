@@ -413,3 +413,72 @@ as $$ select core.test_switch_end() $$;
 comment on function api.test_switch_end() is 'V656: back to my account (logged).';
 revoke all on function api.test_switch_start(uuid), api.test_switch_end() from public;
 grant execute on function api.test_switch_start(uuid), api.test_switch_end() to authenticated;
+
+-- QA-612: a device's own sign-outs and list belong to the signed-in person, not the TEST person they are switched to,
+-- so signing out ends the switch (V656 (2)). Ending a device also clears its switch.
+create or replace function core.my_devices() returns table (id uuid, device_label text, signed_in_at timestamptz,
+                                                            last_seen_at timestamptz, this_device boolean)
+language sql stable security definer set search_path = ''
+as $$
+  select d.id, d.device_label, d.signed_in_at, d.last_seen_at, d.auth_session_id = core.jwt_session_id()
+  from core.device_session d
+  where d.person_id = authz.real_me() and d.signed_out_at is null
+    and d.last_seen_at > core.clock() - pg_catalog.make_interval(days => core.device_idle_days())
+  order by d.last_seen_at desc
+$$;
+create or replace function core.device_sign_out(p_device uuid default null) returns int
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.real_me();
+  n int;
+begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  n := core.end_devices(me, coalesce(p_device, (core.live_device()).id), null, 'person', me);
+  if n = 0 then
+    raise exception using errcode = 'P0002', message = 'common.not_found';
+  end if;
+  return n;
+end
+$$;
+create or replace function core.device_sign_out_others() returns int
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.real_me();
+begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  return core.end_devices(me, null, (core.live_device()).id, 'person', me);
+end
+$$;
+
+create or replace function core.end_devices(p_person uuid, p_device uuid, p_except uuid, p_reason text, p_by uuid) returns int
+language plpgsql volatile security definer set search_path = ''
+as $$
+declare
+  d core.device_session;
+  n int := 0;
+begin
+  for d in
+    update core.device_session s
+    set signed_out_at = pg_catalog.now(), signed_out_by = p_by, sign_out_reason = p_reason, as_person_id = null,
+        as_since = null
+    where s.person_id = p_person and s.signed_out_at is null
+      and (p_device is null or s.id = p_device)
+      and (p_except is null or s.id <> p_except)
+    returning s.*
+  loop
+    delete from auth.sessions where id = d.auth_session_id;
+    insert into core.sign_in_log (person_id, auth_user_id, auth_session_id, email, provider, result, detail)
+    values (d.person_id, d.auth_user_id, d.auth_session_id,
+            (select a.email from core.person_auth a where a.auth_user_id = d.auth_user_id), 'email', 'signed_out',
+            p_reason);
+    n := n + 1;
+  end loop;
+  return n;
+end
+$$;

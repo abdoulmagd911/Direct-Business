@@ -1,10 +1,10 @@
 -- SWITCH-01 — V656 (2): the owner-only "Sign in as test user" switch. Only an admin on the holder list switches, only to
 -- a person marked TEST; never on to another while switched; no access change while switched; every request is logged
--- as the TEST user with the owner named; it ends with "Back to my account", a new device starts unswitched, and leaving
--- the list ends it at once. Every value is made up.
+-- as the TEST user with the owner named; it ends with "Back to my account" or at sign-out, a new device starts
+-- unswitched, and leaving the list ends it at once. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/switch-allows-any-admin.sql, switch-reaches-a-real-person.sql,
 -- switch-on-while-switched.sql, access-change-while-switched.sql, switch-survives-a-new-device.sql,
--- switch-writes-unnamed.sql.
+-- switch-writes-unnamed.sql, switch-survives-sign-out.sql.
 select test.department('commercial');
 select test.as_owner();
 select core.test_users_seed();
@@ -76,3 +76,16 @@ select test.as_owner();
 delete from core.test_switch_holder where person_id = current_setting('t.owner')::uuid;
 select test.as_auth(current_setting('t.uid')::uuid, current_setting('t.sid')::uuid);
 select test.eq(authz.me()::text, current_setting('t.owner'), 'off the list, the switch has ended at once');
+
+-- signing out ends the switch (QA-612): the device's own sign-out is the signed-in person's, not the TEST person's
+select test.as_owner();
+insert into core.test_switch_holder (person_id, note) values (current_setting('t.owner')::uuid, 'made up: the owner');
+select test.as_auth(current_setting('t.uid')::uuid, current_setting('t.sid')::uuid);
+select test.eq(authz.me()::text, current_setting('t.tmember'), 'back on the list, the switch holds again');
+select test.eq((select count(*)::int from api.my_devices()), 2, 'switched, my devices are still the owner''s own');
+select test.runs('select api.device_sign_out()', 'signing out while switched signs this device out');
+select test.eq(authz.me(), null::uuid, 'and the session is no one: the switch has ended');
+select test.as_owner();
+select test.eq((select jsonb_build_object('out', d.signed_out_at is not null, 'as', d.as_person_id) from core.device_session d
+                where d.auth_session_id = current_setting('t.sid')::uuid),
+  jsonb_build_object('out', true, 'as', null), 'the device is signed out with no switch left on it');
