@@ -1886,6 +1886,18 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'mentions-tab-shows-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-tabs-are-cut-from-one-read.test.ts'],
+    expect: 'show every kind under All, only mentions under Mentions',
+    edits: [
+      {
+        file: 'src/core/notify/useNotifications.ts',
+        find: "(tab === 'mentions' ? kind === 'mentioned' :",
+        replace: "(tab === 'mentions' ? true :",
+      },
+    ],
+  },
+  {
     name: 'board-card-hides-the-block-reason',
     breaks: ['e2e:tests/e2e/tasks.spec.ts'],
     expect: 'the board card says why it is blocked',
