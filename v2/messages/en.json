@@ -202,7 +202,8 @@
     "showAll": "Show all",
     "by": "by",
     "on": "on",
-    "of": "of"
+    "of": "of",
+    "undoing": "Undoing…"
   },
   "state": {
     "failed": "{what} could not be loaded",
@@ -265,6 +266,8 @@
         "items": "Checklist",
         "addItem": "Add a row",
         "itemLabel": "Row {n}",
+        "itemDone": "Item done",
+        "moreItems": "{count, plural, one {# more item} other {# more items}}",
         "removeItem": "Remove row {n}",
         "organisation": "Organisation",
         "meetingOn": "Meeting day",
@@ -275,7 +278,7 @@
         "carried": "Carried to {date}",
         "turnedInto": "Turned into",
         "fromNote": "From note",
-        "saved": "Note saved",
+        "saved": "{kind, select, checklist {Checklist saved} meeting {Meeting saved} other {Note saved}}",
         "remove": "Delete note",
         "removeTitle": "Delete the note “{name}”?",
         "removeBody": "What it was turned into stays.",
@@ -638,7 +641,8 @@
         "overview": "Overview",
         "activity": "Activity",
         "related": "Related",
-        "items": "Action items"
+        "items": "Action items",
+        "comments": "Comments"
       },
       "flags": {
         "stale": "No update",
@@ -737,7 +741,10 @@
           "notes_too_long": "The notes are too long",
           "ref_value_required": "The reference needs a value",
           "ref_taken": "That reference is already on the task",
-          "origin_invalid": "This kind of task cannot be added here"
+          "origin_invalid": "This kind of task cannot be added here",
+          "comment_body_required": "Write something first",
+          "comment_too_long": "A comment can be at most 4,000 characters",
+          "comment_not_yours": "Only the person who wrote a comment can change it"
         },
         "action_item": {
           "text_required": "Write the action item",
@@ -828,13 +835,30 @@
         "calendar": "Calendar"
       },
       "board": {
-        "emptyColumn": "Nothing here"
+        "emptyColumn": "Nothing here",
+        "blockedLabel": "Blocked:"
       },
       "calendar": {
         "previous": "Previous month",
         "next": "Next month",
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
+      },
+      "comments": {
+        "empty": "No comments yet",
+        "readOnly": "You can read the comments on this task. People who work on it can write them.",
+        "write": "Write a comment",
+        "add": "Add comment",
+        "edit": "Edit your comment",
+        "edited": "edited",
+        "added": "Comment added",
+        "saved": "Comment saved",
+        "removed": "Comment deleted",
+        "removeTitle": "Delete the comment by {name}?",
+        "bodyRequired": "Write something first",
+        "tooLong": "At most {max} characters",
+        "delete": "Delete",
+        "editAction": "Edit"
       }
     },
     "weeklyReview": {
@@ -945,6 +969,7 @@
     "task_ref": "Task reference",
     "task_contact": "Task contact",
     "task_status_change": "Status change",
+    "task_comment": "Comment",
     "task_template": "Task template",
     "task_occurrence": "Task made from a template",
     "project_health": "Project health",
@@ -1311,7 +1336,8 @@
       "escalated": "Something escalated to me",
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
-      "alert_quiet_client": "A client of mine has gone quiet"
+      "alert_quiet_client": "A client of mine has gone quiet",
+      "task_commented": "A comment on a task of mine"
     },
     "devices": {
       "label": "Device",
@@ -1600,6 +1626,16 @@
       }
     },
     "emptyGroup": "Nothing to set up here yet.",
+    "targets": {
+      "openPlan": "Open a plan",
+      "open": "Open",
+      "year": "Year",
+      "categories": "Categories: {count}",
+      "none": "No plan has been opened yet.",
+      "everyYear": "This department has a plan for every year.",
+      "noDepartment": "Add a department first.",
+      "everyDepartmentEveryYear": "Every department already has a plan for every year."
+    },
     "fields": {
       "width": "Digits",
       "prefix": "Prefix",
@@ -1621,6 +1657,10 @@
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "That department already has a plan for that year",
+      "year_invalid": "A plan can be opened for 2025 up to next year"
+    },
     "overview": {
       "period_invalid": "The period ends before it starts",
       "unknown_period": "Choose month, quarter or year to date, or your own dates"
@@ -1883,6 +1923,12 @@
       "kind_invalid": "Only tasks and notes can be wrapped up",
       "not_yours": "Only your own items can be wrapped up",
       "not_open": "This item is already closed"
+    },
+    "test_switch": {
+      "not_allowed": "Only the owner's account can sign in as a test user.",
+      "not_a_test_user": "This person is not a test user.",
+      "already_switched": "You are already signed in as a test user. Go back to your account first.",
+      "no_access_change": "Access and settings cannot be changed while you are signed in as a test user."
     }
   },
   "notifications": {
@@ -1923,6 +1969,7 @@
       "alert_kpi_checkin": "KPI check-in day: {record}",
       "escalated": "{actor} escalated {record} to you",
       "alert_quiet_client": "{record} has gone quiet",
+      "task_commented": "{actor} commented on {record}",
       "alert_project_no_update": "{record} has no health update",
       "alert_activity_stale": "{record} has had no activity",
       "alert_file_review": "A file on {record} is due for review",
@@ -2380,5 +2427,10 @@
       "noFigures": "In no figures"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import."
+  },
+  "testSwitch": {
+    "bar": "TEST user: {name} (you are {owner})",
+    "back": "Back to my account",
+    "start": "Sign in as test user"
   }
 }

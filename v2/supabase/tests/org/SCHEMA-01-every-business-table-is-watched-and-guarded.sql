@@ -23,6 +23,7 @@ begin
     and format('%s.%s', n.nspname, c.relname) not in ('audit.request', 'audit.change', 'core.counter', 'core.sign_in_log',
       'core.device_session', 'notify.notification', 'notify.follow', 'core.person_last_seen', 'core.person_default_view',
       'core.auth_ticket',   -- one-time tickets of the admin routes (V162): used once, never changed by a person
+      'core.test_switch_holder',   -- V656: who may switch to a TEST user; no door, set in the SQL editor, gone at go-live
       'finance.import_batch', 'finance.import_held')   -- what an import did (§3.11): written once by the import, never changed
     and (not c.relrowsecurity
       or not exists (select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'stamp' and t.tgfoid = 'audit.stamp'::regproc)

@@ -47,13 +47,9 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
       : type === 'datetime-local'
         ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
         : formatDate(`${shown}T12:00:00+03:00`, locale);
-  // an empty box says how the date will be written (V653 (2)); in Arabic it keeps the dash until its words are given
+  // an empty box says how the date will be written (V653 (2)), in the language of the screen (QA-600)
   const hint =
-    locale !== 'en' || type === 'time'
-      ? '—'
-      : type === 'datetime-local'
-        ? t('common.dateTimePlaceholder')
-        : t('common.datePlaceholder');
+    type === 'time' ? '—' : type === 'datetime-local' ? t('common.dateTimePlaceholder') : t('common.datePlaceholder');
   const open = (e: MouseEvent<HTMLInputElement>) => {
     onClick?.(e);
     try {

@@ -47,8 +47,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/words.ts',
-        find: '${valueText(t, `${settingKey}.${k}`, v, names)}',
-        replace: '${valueText(t, settingKey, v, names)}',
+        find: '${valueText(t, `${settingKey}.${k}`, v, names, locale)}',
+        replace: '${valueText(t, settingKey, v, names, locale)}',
       },
     ],
   },
@@ -157,6 +157,18 @@ export const sabotages = [
         file: 'messages/ar.json',
         find: '    "own": "سجلاته فقط",\n',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'arabic-density-hint-missing',
+    breaks: ['unit:tests/unit/words/the-density-help-line-reads-in-arabic-and-keeps-its-english.test.ts'],
+    expect: 'the Arabic line exists',
+    edits: [
+      {
+        file: 'messages/ar.json',
+        find: '    },\n    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط."\n',
+        replace: '    }\n',
       },
     ],
   },

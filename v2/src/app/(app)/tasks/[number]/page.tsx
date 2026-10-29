@@ -5,7 +5,7 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
 import { loadLookups } from '@/modules/tasks/load';
 import { TaskRecord } from '@/modules/tasks/screens/TaskRecord';
-import type { TaskDetail, TaskList } from '@/modules/tasks/types';
+import type { TaskComments, TaskDetail, TaskList } from '@/modules/tasks/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
@@ -50,7 +50,7 @@ export default async function TaskPage({
   const id = await idOf(decodeURIComponent(number));
   if (!id) notFound();
   const failed: string[] = [];
-  const [task, history, lookups] = await Promise.all([
+  const [task, history, comments, lookups] = await Promise.all([
     serverRpc('task', { p_id: id }).then(
       (r) => r as unknown as TaskDetail,
       (e: { kind?: string }) => {
@@ -61,6 +61,7 @@ export default async function TaskPage({
     maybe<RecordChange[]>('history', failed, () =>
       serverRpc('record_history', { p_entity: 'task', p_id: id } as never),
     ),
+    maybe<TaskComments>('comments', failed, () => serverRpc('task_comments', { p_task: id } as never) as never),
     loadLookups(me, failed),
   ]);
   return (
@@ -70,6 +71,7 @@ export default async function TaskPage({
           task,
           tab: typeof tab === 'string' ? tab : 'overview',
           history: history ? historyRows(history, 'task', id) : null,
+          comments,
           lookups,
         }}
       />

@@ -53,7 +53,13 @@ describe('a date box shows the date the way the app writes it', () => {
   });
   it('keeps the dash for an empty time box, and in Arabic until its words are given; shows the Arabic month in Arabic', () => {
     expect(draw(<Input type="time" value="" onChange={() => undefined} />)).toMatch(/data-date-text[^>]*>—</);
-    expect(draw(<Input type="date" value="" onChange={() => undefined} />, 'ar')).toMatch(/data-date-text[^>]*>—</);
+    expect(
+      draw(<Input type="date" value="" onChange={() => undefined} />, 'ar'),
+      'Arabic: day month year, not a dash',
+    ).toMatch(/data-date-text[^>]*>يوم شهر سنة</);
+    expect(draw(<Input type="datetime-local" value="" onChange={() => undefined} />, 'ar')).toMatch(
+      /data-date-text[^>]*>يوم شهر سنة، ساعة:دقيقة</,
+    );
     expect(draw(<Input type="date" value="2026-10-14" onChange={() => undefined} />, 'ar')).toMatch(/>14 \S+ 2026</);
   });
   it('shows the real field, and hides the written date, while the field has keyboard focus', () => {

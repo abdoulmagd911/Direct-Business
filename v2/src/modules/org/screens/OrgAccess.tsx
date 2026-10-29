@@ -8,6 +8,8 @@ import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
 import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { rpc } from '@/core/db/rpc';
+import { offersSwitch } from '@/core/test-switch/offer';
+import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
 import type { SettingDefRow } from '@/modules/settings/schema';
@@ -87,27 +89,29 @@ export function OrgAccess({
   const current = (TABS as readonly string[]).includes(tab) ? tab : (FOLDED[tab] ?? 'people');
   return (
     <>
-      <Tabs
-        label={t('nav.settings.org')}
-        value={current}
-        tabs={TABS.map((k) => ({
-          value: k,
-          label: t(`settings.tabs.${k}`),
-          href: `/settings/org?tab=${k}`,
-          count:
-            k === 'people'
-              ? people.filter((p) => p.active).length
-              : k === 'teams'
-                ? org.teams.filter((x) => x.active).length
-                : undefined,
-        }))}
-      />
+      <div data-wide>
+        <Tabs
+          label={t('nav.settings.org')}
+          value={current}
+          tabs={TABS.map((k) => ({
+            value: k,
+            label: t(`settings.tabs.${k}`),
+            href: `/settings/org?tab=${k}`,
+            count:
+              k === 'people'
+                ? people.filter((p) => p.active).length
+                : k === 'teams'
+                  ? org.teams.filter((x) => x.active).length
+                  : undefined,
+          }))}
+        />
+      </div>
       {current === 'people' ? <PeopleTab me={me} org={org} people={people} /> : null}
       {current === 'teams' ? <TeamsTab org={org} /> : null}
       {current === 'access' ? (
         <>
           <AccessTab matrix={matrix} />
-          <section className="flex flex-col gap-4" data-access-section="roles">
+          <section className="flex flex-col gap-4" data-access-section="roles" data-wide>
             <h2 className="font-display text-lg font-semibold">{t('settings.tabs.roles')}</h2>
             <RolesTab org={org} people={people} />
           </section>
@@ -162,6 +166,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
   const router = useRouter();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
+  const sw = useTestSwitch();
   const rows = people
     .filter(
       (p) =>
@@ -171,13 +176,15 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
           .includes(q.toLowerCase()),
     )
     .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
-  void me;
+  // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it
+  const offered = (p: PersonRow) => offersSwitch(me, p);
+  const anyOffer = rows.some(offered);
   // the name and the job title in the language of the screen, the English one where there is no Arabic yet
   const arabic = names.locale === 'ar';
   const fullName = (p: PersonRow) => (arabic && p.full_name_ar) || p.full_name_en;
   const jobTitle = (p: PersonRow) => (arabic && p.job_title_ar) || p.job_title_en;
   return (
-    <section className="flex flex-col gap-4" data-people>
+    <section className="flex flex-col gap-4" data-people data-wide>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="relative flex items-center">
           <Search className="pointer-events-none absolute start-3 size-4 text-muted" aria-hidden="true" />
@@ -195,30 +202,31 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
         </Button>
       </div>
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
-        <table className="w-full table-fixed text-sm">
+        <table className="w-full table-auto text-sm">
           <thead className="text-xs text-muted">
             <tr>
-              <th className="w-[24%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.name')}
               </th>
-              <th className="w-[14%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.role')}
               </th>
-              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.department')}
               </th>
-              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.team')}
               </th>
-              <th className="hidden px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere] min-[1600px]:table-cell">
+              <th className="hidden px-4 py-2.5 text-start font-medium [overflow-wrap:break-word] min-[1600px]:table-cell">
                 {t('settings.people.emails')}
               </th>
-              <th className="w-[15%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.lastSignIn')}
               </th>
-              <th className="w-[16%] px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+              <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.status')}
               </th>
+              {anyOffer ? <th className="px-4 py-2.5" aria-hidden="true" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -226,7 +234,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
               const avatar = names.avatar(p.id);
               return (
                 <tr key={p.id} className="hover:bg-surface" data-person-row={p.id}>
-                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                  <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                     <Link
                       href={`/people/${p.id}`}
                       className="flex items-center gap-2.5 hover:underline"
@@ -239,13 +247,13 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]" data-person-role>
+                  <td className="px-4 py-2.5 [overflow-wrap:break-word]" data-person-role>
                     <PersonRole row={p} roleName={names.role(p.role?.id)} />
                   </td>
-                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                  <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                     {isAccount(p) ? '—' : names.dept(p.department_id) || '—'}
                   </td>
-                  <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                  <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                     {isAccount(p) ? '—' : names.team(p.team_id) || '—'}
                   </td>
                   {/* Emails from 1600 px, truncated with the full list in the title, so Status keeps its room at 1440
@@ -256,10 +264,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                   >
                     {p.emails.map((e) => e.email).join(', ')}
                   </td>
-                  <td
-                    className="px-4 py-2.5 font-data text-xs text-muted [overflow-wrap:anywhere]"
-                    data-person-last-sign-in
-                  >
+                  <td className="whitespace-nowrap px-4 py-2.5 font-data text-xs text-muted" data-person-last-sign-in>
                     {p.last_sign_in_at
                       ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
                       : t('settings.people.never')}
@@ -267,6 +272,15 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                   <td className="px-4 py-2.5" data-person-status>
                     <PersonStatus row={p} />
                   </td>
+                  {anyOffer ? (
+                    <td className="px-4 py-2.5">
+                      {offered(p) ? (
+                        <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
+                          {t('testSwitch.start')}
+                        </Button>
+                      ) : null}
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -302,6 +316,13 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                     : t('settings.people.never')}
                 </span>
               </div>
+              {offered(p) ? (
+                <div className="mt-2">
+                  <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
+                    {t('testSwitch.start')}
+                  </Button>
+                </div>
+              ) : null}
             </li>
           );
         })}
@@ -324,8 +345,8 @@ function PersonRole({ row, roleName }: { row: PersonRow; roleName: string }) {
   return <>{roleName}</>;
 }
 
-/** A status chip in the People table wraps inside its column rather than pushing the table wider (QA-592). */
-const WRAPS = 'h-auto min-h-6 max-w-full whitespace-normal py-1 [overflow-wrap:anywhere]';
+/** A status chip in the People table wraps between its words, never inside one (QA-592). */
+const WRAPS = 'h-auto min-h-6 max-w-full whitespace-normal py-1 [overflow-wrap:break-word]';
 
 /** Left (grey) · Switched off (grey) · No role (amber) · Allowed (green), in that order. */
 function PersonStatus({ row }: { row: PersonRow }) {
@@ -686,7 +707,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
     </div>
   );
   return (
-    <div className="flex flex-col gap-8" data-teams>
+    <div className="flex flex-col gap-8" data-teams data-wide>
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">{t('settings.tabs.teams')}</h3>
@@ -744,25 +765,25 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           </ul>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border bg-raised">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full table-auto text-sm">
               <thead className="text-xs text-muted">
                 <tr>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.name')}
                   </th>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.code')}
                   </th>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.department')}
                   </th>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.lead')}
                   </th>
-                  <th className="w-[12%] px-4 py-2.5 text-end font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-end font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.members')}
                   </th>
-                  <th className="w-[26%] px-4 py-2.5" />
+                  <th className="px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -770,15 +791,15 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                   .sort((a, b) => Number(!a.active) - Number(!b.active) || a.name_en.localeCompare(b.name_en))
                   .map((x) => (
                     <tr key={x.id} data-team-row={x.code}>
-                      <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                      <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                         <span className="flex items-center gap-2 font-medium">
                           {names.pick(x)}
                           {!x.active ? <StatusChip tone="neutral">{t('settings.teams.retiredChip')}</StatusChip> : null}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:anywhere]">{x.code}</td>
-                      <td className="px-4 py-2.5 [overflow-wrap:anywhere]">{names.dept(x.department_id)}</td>
-                      <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                      <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:break-word]">{x.code}</td>
+                      <td className="px-4 py-2.5 [overflow-wrap:break-word]">{names.dept(x.department_id)}</td>
+                      <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                         {names.person(x.lead_person_id) || t('settings.teams.noLead')}
                       </td>
                       <td className="px-4 py-2.5 text-end font-data">{members(x.id)}</td>
@@ -844,30 +865,30 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
           </ul>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border bg-raised">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full table-auto text-sm">
               <thead className="text-xs text-muted">
                 <tr>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.name')}
                   </th>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.teams.code')}
                   </th>
-                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                     {t('settings.departments.head')}
                   </th>
-                  <th className="px-4 py-2.5 text-end font-medium [overflow-wrap:anywhere]">
+                  <th className="px-4 py-2.5 text-end font-medium [overflow-wrap:break-word]">
                     {t('settings.people.people', { count: 0 }).replace(/^0\s*/, '')}
                   </th>
-                  <th className="w-[26%] px-4 py-2.5" />
+                  <th className="px-4 py-2.5" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {org.departments.map((x) => (
                   <tr key={x.id}>
-                    <td className="px-4 py-2.5 font-medium [overflow-wrap:anywhere]">{names.pick(x)}</td>
-                    <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:anywhere]">{x.code}</td>
-                    <td className="px-4 py-2.5 [overflow-wrap:anywhere]">
+                    <td className="px-4 py-2.5 font-medium [overflow-wrap:break-word]">{names.pick(x)}</td>
+                    <td className="px-4 py-2.5 font-data text-muted [overflow-wrap:break-word]">{x.code}</td>
+                    <td className="px-4 py-2.5 [overflow-wrap:break-word]">
                       {names.person(x.head_person_id) || t('settings.departments.noHead')}
                     </td>
                     <td className="px-4 py-2.5 text-end font-data">
@@ -1253,7 +1274,7 @@ function AccessTab({ matrix }: { matrix: MatrixAnswer }) {
   const pageWord = (key: string) => (labels[key] && t.has(labels[key]!) ? t(labels[key]!) : key);
   const capWord = (key: string) => (caps[key] && t.has(caps[key]!) ? t(caps[key]!) : key);
   return (
-    <ScrollCue className="rounded-lg border border-border bg-raised" data-access-matrix>
+    <ScrollCue className="rounded-lg border border-border bg-raised" data-access-matrix data-wide>
       <table className="w-full text-sm">
         <thead className="text-xs text-muted">
           <tr>
