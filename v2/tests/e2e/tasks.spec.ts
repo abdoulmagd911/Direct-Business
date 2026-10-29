@@ -194,6 +194,15 @@ for (const w of WIDTHS) {
     await expect(page.locator('[data-blocked-reason]')).toContainText('Waiting for the made-up supplier');
     await page.screenshot({ path: shot(`tasks-record-blocked-${w.name}`), fullPage: true });
 
+    // the board's card says why too (26 Oct): "Blocked: <reason>", in full
+    await page.goto('/tasks?view=owned&layout=board');
+    const card = page.locator('[data-board-card]', { hasText: title });
+    await expect(card.locator('[data-board-block-reason]'), 'the board card says why it is blocked').toHaveText(
+      'Blocked: Waiting for the made-up supplier',
+    );
+    await page.goBack();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+
     // resuming is choosing In progress
     await page.locator('button[data-task-status]').click();
     await page.locator('[data-move="in_progress"]').click();
@@ -405,8 +414,7 @@ for (const w of WIDTHS) {
     const number = await taskIn('commercial', member.id, `Made-up escalated ${tag}`);
     const { ctx, page } = await signedIn(browser, member, w.width, w.height, `/tasks/${number}`);
 
-    // Escalate sits in the task's ⋯ menu with Follow up (V632 Stage 2: no new button on the header)
-    await page.locator('[data-task-more]').click();
+    // Escalate is a labelled button on the task's header (E, 26 Oct; it was in the ⋯ menu)
     await page.locator('[data-escalate-open]').click();
     const form = page.locator('form[data-escalate]');
     await expect(form).toBeVisible();

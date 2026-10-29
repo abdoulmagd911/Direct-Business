@@ -632,8 +632,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        find: '  if (!row.role)\n    return (\n      <StatusChip className={WRAPS} tone="warning">\n        {t(\'settings.people.noRole\')}\n      </StatusChip>\n    );\n  return (\n    <StatusChip className={WRAPS} tone="success">',
+        replace: '  return (\n    <StatusChip className={WRAPS} tone="success">',
       },
     ],
   },
@@ -671,8 +671,8 @@ export const sabotages = [
     expect: 'a word, not a key',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
-        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        file: 'src/modules/settings/words.ts',
+        find: '  for (const k of valueWordKeys(settingKey, v)) if (t.has(k)) return t(k);\n',
         replace: '',
       },
     ],
@@ -1289,7 +1289,7 @@ export const sabotages = [
     expect: 'Word (.docx)',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        file: 'src/modules/settings/words.ts',
         find: "wordprocessingml.document': 'Word (.docx)'",
         replace: "wordprocessingml.document': 'Word'",
       },
@@ -1951,6 +1951,42 @@ export const sabotages = [
         find: 'onClick={() => void act(() => markRead([n.id]))}\n                                  data-notification-mark-read',
         replace:
           'onClick={() => void act(() => markRead())}\n                                  data-notification-mark-read',
+      },
+    ],
+  },
+  {
+    name: 'board-card-hides-the-block-reason',
+    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
+    expect: 'the board card says why it is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskBoard.tsx',
+        find: '                      <BlockReason task={r} />\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'board-card-says-nothing-when-blocked',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says why a blocked task is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'return null;',
+      },
+    ],
+  },
+  {
+    name: 'board-card-blames-an-unblocked-task',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says nothing for a task that is not blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'if (!task.blocked_reason) return null;',
       },
     ],
   },

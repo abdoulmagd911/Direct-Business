@@ -102,3 +102,43 @@ for (const width of [375, 1440]) {
     expect(c.x + c.width, 'the whole code is inside the row').toBeLessThanOrEqual(r.x + r.width + 0.5);
   });
 }
+
+for (const width of [375, 1440]) {
+  test(`the chosen client chip wraps a long name without an ellipsis and keeps the code whole on its own line — at ${width} px`, async ({
+    page,
+    context,
+  }) => {
+    const admin = await makePerson({ admin: true });
+    const t = tag();
+    const long = `Chiporg${t} the made-up travel and tourism company of the long and winding name that goes on for a good while`;
+    await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+    await signIn(page, admin.email, '/my-day');
+    await hydrated(page);
+    const made = await callAs(context, 'partner_create', {
+      p_partner: { trade_name_en: long, sides: [{ side: 'client', type: 'corporate' }] },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    await page.locator(width < 640 ? '[data-create-bar]' : '[data-create]').click();
+    await page.locator('[data-create-item="activity"]').click();
+    await page.locator('[data-partner-search]').fill(`Chiporg${t}`);
+    await page.locator('[data-partner-hit]').first().click();
+    const chip = page.locator('[data-partner-picked]');
+    await expect(chip).toBeVisible();
+    const name = chip.locator('[data-partner-picked-name]');
+    const code = chip.locator('[data-partner-picked-number]');
+    const c0 = (await chip.boundingBox())!;
+    const n = (await name.boundingBox())!;
+    const c = (await code.boundingBox())!;
+    expect(
+      await name.evaluate((e) => getComputedStyle(e).textOverflow),
+      'the name is not cut with an ellipsis',
+    ).not.toBe('ellipsis');
+    const lineHeight = await name.evaluate((e) => parseFloat(getComputedStyle(e).lineHeight));
+    expect(n.height, 'the long name wraps onto more than one line').toBeGreaterThan(lineHeight * 1.5);
+    expect(await name.evaluate((e) => e.scrollWidth <= e.clientWidth + 1), 'the whole name is shown').toBe(true);
+    expect(n.x + n.width, 'the name is inside the chip').toBeLessThanOrEqual(c0.x + c0.width + 0.5);
+    expect(c.y, 'the code is on its own line under the name').toBeGreaterThanOrEqual(n.y + n.height - 1);
+    expect(c.height, 'the code is one piece on one line').toBeLessThan(lineHeight * 1.5);
+    expect(c0.x + c0.width, 'the chip fits the screen').toBeLessThanOrEqual(width);
+  });
+}

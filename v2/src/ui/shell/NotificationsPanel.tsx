@@ -82,11 +82,20 @@ export function NotificationsPanel({
   const wordsOf = (n: Notification, now: Date) => {
     const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
     const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
+    // the record's name: the server's, else the one the notice's label carries (a note's line, a task's title), else the kind's word
     const record = recordName(n, locale, kindWord);
     const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
+    // a notice whose label has words of its own: a note shared by name (it rides the note-mention kind and its
+    // setting), and the due alert's second notice once the day has passed (D, 26 Oct)
+    const byLabel: Record<string, string> = {
+      'notify.note_shared': 'notifications.kinds.note_shared',
+      'alert.overdue': 'notifications.kinds.alert_overdue',
+    };
     // a due-date notice says where its day stands now: overdue, due today, or coming due
     const due = dueState(n, now);
-    const key = due && due !== 'coming' ? `notifications.kinds.due_${due}` : `notifications.kinds.${n.kind}`;
+    const key =
+      (n.label_key && byLabel[n.label_key]) ||
+      (due && due !== 'coming' ? `notifications.kinds.due_${due}` : `notifications.kinds.${n.kind}`);
     return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
   };
   const detailOf = (n: Notification) =>
