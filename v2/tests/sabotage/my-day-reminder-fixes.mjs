@@ -96,8 +96,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: '<span className="flex min-w-0 flex-1 flex-col">',
-        replace: '<span className="flex min-w-0 flex-1 flex-row items-start">',
+        find: '<span className="flex min-w-0 flex-col">',
+        replace: '<span className="flex min-w-0 flex-row items-start">',
       },
     ],
   },

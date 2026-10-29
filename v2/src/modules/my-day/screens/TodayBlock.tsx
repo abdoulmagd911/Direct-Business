@@ -113,7 +113,7 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   };
   const body = (
     // one block that stacks its two parts: the words and their time, then the record's chip under them
-    <span className="flex min-w-0 flex-1 flex-col">
+    <span className="flex min-w-0 flex-col">
       {/* the words and their time stay together on one line; the record's chip has the line under them */}
       <span className="flex items-baseline gap-3" data-reminder-line>
         <span className="min-w-0 flex-1 break-words">{title}</span>
