@@ -14,6 +14,7 @@ import { Drawer } from './Drawer';
 import { NavProgress } from './NavProgress';
 import { NotificationsPanel } from './NotificationsPanel';
 import { RefetchBridge } from './RefetchBridge';
+import { TestSwitchBar } from './TestSwitchBar';
 import { TopBar } from './TopBar';
 
 /**
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex h-dvh min-h-0 overflow-hidden bg-bg text-text" data-app-shell>
         <Drawer />
         <div className="flex min-w-0 flex-1 flex-col">
+          <TestSwitchBar />
           <TopBar
             onOpenSearch={() => setSearch(true)}
             onOpenBell={() => setBell((o) => !o)}

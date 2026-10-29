@@ -100,17 +100,19 @@ export function MyDay({ data }: { data: MyDayData }) {
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
       {scope === 'me' ? <CaptureShortcut /> : null}
-      {scope === 'me' && later.length ? (
+      {/* narrowed to one kind, My notes is the list: the Reminders block would list the same reminders again */}
+      {scope === 'me' && !kind && later.length ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
           <ul className="divide-y divide-border">
             {later.slice(0, BLOCK_ROWS).map((r) => (
               <li
                 key={r.id}
-                className="flex items-center gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
                 data-reminder={r.id}
               >
-                <span className="min-w-0 flex-1">
+                {/* on a phone the words and the record's chip take the whole line, the time and Done sit under them */}
+                <span className="min-w-0 flex-1 basis-full sm:basis-0">
                   <span className="block break-words">{r.text}</span>
                   {/* a follow-up says what it is about, as a tag — never in its title (QA-560), only if the reader may see it */}
                   {r.about?.label ? (

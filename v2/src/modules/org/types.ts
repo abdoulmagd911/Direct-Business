@@ -72,6 +72,8 @@ export type PersonRow = {
   version: number;
   /** 'team_member', or the owner's 'admin_account' / the 'test_account' (V444, V445; core.person.account, #115). */
   account?: string | null;
+  /** V656: a TEST user, marked in the data; only these can be signed in as. */
+  is_test?: boolean;
   role: { id: string; key: string; is_admin: boolean } | null;
   emails: { id: string; email: string; is_primary: boolean }[];
   last_sign_in_at: string | null;
@@ -136,7 +138,8 @@ export function nameOf(
 export function avatarOf(p: OrgPerson, locale: 'en' | 'ar') {
   return {
     displayName: nameOf(p, locale),
-    fullName: p.full_name_en,
+    // the initials and the screen-reader label come from the Arabic name in Arabic, when the person has one
+    fullName: locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en,
     avatarUrl: null,
     badge: { kind: p.badge_kind ?? 'none', value: p.badge_value },
   };

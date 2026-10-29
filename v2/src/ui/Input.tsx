@@ -1,5 +1,5 @@
 'use client';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   forwardRef,
   useCallback,
@@ -18,7 +18,7 @@ export const inputClass =
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
 
 /**
- * A date or time box (W-daily 13, V643 (4)): a time is shown 24-hour (`09:00`) whatever the device says. The browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
+ * A date or time box (W-daily 13, V643 (4)): an empty date box reads `dd mmm yyyy` in English (V653 (2)); a time is shown 24-hour (`09:00`) whatever the device says. The browser draws a date input in its own format (`10/14/2026`, `14/10/2026`, `2026-10-14`),
  * so the box shows the date the way the whole app writes it — `14 Oct 2026` — and the real date input sits invisibly
  * on top of it, keeping the label, the keyboard, the value (always `YYYY-MM-DD`, or `YYYY-MM-DDThh:mm` with a time)
  * and the native picker. While the field has keyboard focus the real input is shown and the written date hidden, so
@@ -30,6 +30,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
   ref,
 ) {
   const locale = useLocale() as 'en' | 'ar';
+  const t = useTranslations();
   const [own, setOwn] = useState(String(defaultValue ?? ''));
   const shown = value !== undefined ? String(value) : own;
   const change = useCallback(
@@ -46,6 +47,9 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
       : type === 'datetime-local'
         ? formatDate(`${shown.slice(0, 16)}:00+03:00`, locale, { dateStyle: 'medium', timeStyle: 'short' })
         : formatDate(`${shown}T12:00:00+03:00`, locale);
+  // an empty box says how the date will be written (V653 (2)), in the language of the screen (QA-600)
+  const hint =
+    type === 'time' ? '—' : type === 'datetime-local' ? t('common.dateTimePlaceholder') : t('common.datePlaceholder');
   const open = (e: MouseEvent<HTMLInputElement>) => {
     onClick?.(e);
     try {
@@ -80,7 +84,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
           !shown && 'text-muted',
         )}
       >
-        {!shown ? (placeholder ?? '—') : written}
+        {!shown ? (placeholder ?? hint) : written}
       </div>
       {/* while the real field is up (keyboard focus) the date it holds is written in a chip just above its end, the app's
           way, as it changes: out of the browser's own text (a box can be narrow, a time long, the page right to left) and
