@@ -1,7 +1,7 @@
 // Sabotages for Follow up on a record (V632 Stage 2, V282, V283, builder D): each breaks one promise of its spec.
 const E2E = 'e2e:tests/e2e/follow-up-on-a-record.spec.ts';
 const CLIENT = 'on a client Follow up is visible, saves one follow-up, and Watch is named Watch';
-const TASK = 'on a task Follow up is visible, saves one follow-up, and Escalate stays in the ⋯ menu';
+const TASK = 'on a task Follow up is visible, saves one follow-up, and Escalate is its own labelled button';
 const CHIP = "on My day a task's client chip opens the client";
 
 export const sabotages = [

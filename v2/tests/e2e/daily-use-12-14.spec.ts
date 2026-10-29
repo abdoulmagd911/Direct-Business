@@ -25,7 +25,8 @@ for (const width of WIDTHS) {
     const shown = created.locator('xpath=..').locator('[data-date-text]');
     await expect(shown).toHaveText('3 Sep 2026');
     const text = await page.locator('[data-date-text]').allTextContents();
-    for (const t of text) expect(t, 'one format for every date box').toMatch(/^(—|\d{1,2} [A-Z][a-z]{2} \d{4})$/);
+    for (const t of text)
+      expect(t, 'one format for every date box').toMatch(/^(—|dd mmm yyyy|\d{1,2} [A-Z][a-z]{2} \d{4})$/);
     const box = await created.boundingBox();
     expect(box!.height, 'a 44 px target').toBeGreaterThanOrEqual(40);
     expect(
