@@ -89,4 +89,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'the-today-chip-sits-beside-the-words',
+    breaks: [E2E],
+    expect: 'the record chip is on its own line under them',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: '<span className="flex min-w-0 flex-1 flex-col">',
+        replace: '<span className="flex min-w-0 flex-1 flex-row items-start">',
+      },
+    ],
+  },
 ];

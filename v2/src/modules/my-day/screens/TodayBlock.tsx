@@ -112,7 +112,8 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
     setBusy(false);
   };
   const body = (
-    <>
+    // one block that stacks its two parts: the words and their time, then the record's chip under them
+    <span className="flex min-w-0 flex-1 flex-col">
       {/* the words and their time stay together on one line; the record's chip has the line under them */}
       <span className="flex items-baseline gap-3" data-reminder-line>
         <span className="min-w-0 flex-1 break-words">{title}</span>
@@ -121,14 +122,14 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
         </span>
       </span>
       {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
-      <StatusChip tone="info" className="mt-1 h-auto min-h-6 max-w-full whitespace-normal py-1 leading-snug">
+      <StatusChip tone="info" className="mt-1 h-auto min-h-6 max-w-full self-start whitespace-normal py-1 leading-snug">
         <span className="min-w-0 break-words">
           {r.about?.label
             ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
             : t('pages.myDay.today.reminder')}
         </span>
       </StatusChip>
-    </>
+    </span>
   );
   return (
     <li
