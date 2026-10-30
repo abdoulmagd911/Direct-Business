@@ -24,8 +24,8 @@ export const sabotages = [
     edits: [
       {
         file: TIMELINE,
-        find: "return formatDate(v, locale, { dateStyle: 'medium' });",
-        replace: 'return v;',
+        find: 'const when = formatStoredDate(v, locale);',
+        replace: 'const when: string | null = null;',
       },
     ],
   },
