@@ -17,6 +17,7 @@ import { rpc } from '@/core/db/rpc';
 import { liveKinds, noteText, noteTitle, TURN_READY } from '../logic';
 import type { MyNote, TurnKind } from '../types';
 import { PartnerPicker } from './PartnerPicker';
+import { TaskPicker, type TaskRef } from './TaskPicker';
 
 /** A logged meeting or call is a call or a meeting (V433); the other activity types are logged on the record itself. */
 const CALL_OR_MEETING = ['call', 'meeting'];
@@ -256,6 +257,77 @@ export function ReminderDialog({
         </Field>
         <Field label={t('pages.myDay.turn.text')}>
           {(p) => <Input {...p} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />}
+        </Field>
+      </div>
+    </Dialog>
+  );
+}
+
+/**
+ * An item on a task's checklist from a note (V647, V433): the person searches the task by title or number, the item's text
+ * is the note's first words, and the item and the note stay linked both ways (api.note_turn_into 'action_item'). A task
+ * the person cannot change is refused by the database in words; nothing is added.
+ */
+export function ChecklistItemDialog({
+  note,
+  open,
+  onOpenChange,
+}: {
+  note: MyNote;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const t = useTranslations();
+  const words = useWords();
+  const [task, setTask] = useState<TaskRef | null>(null);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (!task) return;
+    setBusy(true);
+    await command(
+      words(t('pages.myDay.turn.itemAdded', { number: task.number })),
+      () =>
+        rpc('note_turn_into', { p_note: note.id, p_kind: 'action_item', p_values: { task_id: task.id } }) as Promise<{
+          request_id?: string | null;
+        }>,
+      {
+        after: () => {
+          onOpenChange(false);
+          setTask(null);
+        },
+      },
+    );
+    setBusy(false);
+  };
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setTask(null);
+        onOpenChange(o);
+      }}
+      title={t('pages.myDay.turn.itemTitle')}
+      description={noteTitle(note) || undefined}
+      size="sm"
+      closeLabel={t('common.close')}
+      footer={
+        <>
+          <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+          <Button
+            variant="primary"
+            disabled={!task}
+            loading={busy}
+            onClick={() => void save()}
+            data-checklist-item-save
+          >
+            {t('common.save')}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4" data-checklist-item-form>
+        <Field label={t('pages.myDay.turn.task')}>
+          {(p) => <TaskPicker id={p.id} value={task} onChange={setTask} />}
         </Field>
       </div>
     </Dialog>

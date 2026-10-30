@@ -21,9 +21,10 @@ export const TURN_NEEDS: Partial<Record<TurnKind, string>> = {
 
 /**
  * The Turn into flags that are set: their dialog and their database door are both in (V605 (3)) — an achievement
- * (V381) and a task (V226: the task door and the checklist option are live in production since 7 Oct).
+ * (V381), a task (V226: the task door and the checklist option are live in production since 7 Oct) and an item on a
+ * task's checklist (V647: the database door has taken it since 3 Oct; the picker is in).
  */
-export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into', 'tasks.turn_into_task']);
+export const TURN_READY: ReadonlySet<string> = new Set(['kpis.turn_into', 'tasks.turn_into_task', 'tasks.turn_into']);
 
 export function turnLive(kind: TurnKind, built: ReadonlySet<string>): boolean {
   const flag = TURN_NEEDS[kind];

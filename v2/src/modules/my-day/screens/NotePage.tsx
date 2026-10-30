@@ -21,7 +21,7 @@ import { checklistCount, noteTitle } from '../logic';
 import { NOTE_VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PartnerPicker } from './PartnerPicker';
-import { LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
+import { ChecklistItemDialog, LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
 import { useMe } from '@/core/auth/me-context';
 import { AchievementFromNoteDialog } from '@/modules/perf/screens/AchievementFromNote';
 import type { OrgAnswer } from '@/modules/org/types';
@@ -392,6 +392,11 @@ export function NotePage({
               fromNote={{ id: note.id, hasItems: note.items.some((i) => i.text.trim() !== '') }}
             />
           ) : null}
+          <ChecklistItemDialog
+            note={note}
+            open={turning === 'action_item'}
+            onOpenChange={(o) => setTurning(o ? 'action_item' : null)}
+          />
           <AchievementFromNoteDialog
             note={note}
             open={turning === 'achievement'}
