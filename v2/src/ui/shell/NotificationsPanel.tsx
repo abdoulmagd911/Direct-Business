@@ -1,6 +1,6 @@
 'use client';
 import * as RD from '@radix-ui/react-dialog';
-import { Clock, X } from 'lucide-react';
+import { Check, Clock, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -236,6 +236,15 @@ export function NotificationsPanel({
                                     .join(' · ')}
                                 </span>
                               </span>
+                              {n.read_at ? null : (
+                                <IconButton
+                                  label={t('notifications.markRead')}
+                                  icon={<Check />}
+                                  size="sm"
+                                  onClick={() => void act(() => markRead([n.id]))}
+                                  data-notification-mark-read
+                                />
+                              )}
                               <Menu>
                                 <MenuTrigger asChild>
                                   <IconButton
@@ -269,11 +278,6 @@ export function NotificationsPanel({
                                   >
                                     {t('notifications.snoozeDate')}
                                   </MenuItem>
-                                  {!n.read_at ? (
-                                    <MenuItem onSelect={() => void act(() => markRead([n.id]))} data-notification-read>
-                                      {t('notifications.markRead')}
-                                    </MenuItem>
-                                  ) : null}
                                 </MenuContent>
                               </Menu>
                             </li>
