@@ -6,7 +6,7 @@ import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, formatStoredDate } from '@/core/i18n/format';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
 import { Button } from '@/ui/Button';
@@ -320,7 +320,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             </RailField>
             {Object.entries(s.fields ?? {}).map(([key, value]) => (
               <RailField key={key} label={key}>
-                {value === null || value === undefined || value === '' ? '—' : String(value)}
+                {value === null || value === undefined || value === ''
+                  ? '—'
+                  : (formatStoredDate(value, locale) ?? String(value))}
               </RailField>
             ))}
           </RailSection>

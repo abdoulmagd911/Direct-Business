@@ -36,13 +36,17 @@ export function DueDayPicker({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const [now] = useState(() => new Date());
-  const [text, setText] = useState(value ?? '');
+  // a day is shown the one way the app writes it (`20 Oct 2026`), never as 2026-10-20 (W-daily 13)
+  const written = (d: string) => formatDate(`${d}T12:00:00+03:00`, locale);
+  const [text, setText] = useState(() => (value && parseDueDay(value) ? written(parseDueDay(value)!) : (value ?? '')));
   const calendar = useRef<HTMLInputElement>(null);
   const day = parseDueDay(text);
   const set = (typed: string) => {
     setText(typed);
     onChange(parseDueDay(typed) ?? (typed.trim() || undefined));
   };
+  // a day that is picked (a chip, the calendar) is written back as the app writes a date
+  const pick = (d: string) => set(parseDueDay(d) ? written(parseDueDay(d)!) : d);
   const chips = [
     { key: 'today', day: riyadhNow(now).day, label: t('pages.tasks.add.dueToday') },
     {
@@ -62,7 +66,7 @@ export function DueDayPicker({
             role="radio"
             aria-checked={day === c.day}
             className={whenChip(day === c.day)}
-            onClick={() => set(c.day)}
+            onClick={() => pick(c.day)}
             data-due-chip={c.key}
           >
             {c.label}
@@ -79,7 +83,7 @@ export function DueDayPicker({
           placeholder={t('pages.tasks.add.duePlaceholder')}
           value={text}
           onChange={(e) => set(e.target.value)}
-          onBlur={() => day && setText(day)}
+          onBlur={() => day && setText(written(day))}
           name="due"
           className="min-w-0 flex-1"
         />
@@ -102,7 +106,7 @@ export function DueDayPicker({
           aria-hidden
           className="sr-only"
           value={day ?? ''}
-          onChange={(e) => set(e.target.value)}
+          onChange={(e) => pick(e.target.value)}
         />
         {text ? (
           <Button type="button" variant="ghost" onClick={() => set('')} data-due-clear>

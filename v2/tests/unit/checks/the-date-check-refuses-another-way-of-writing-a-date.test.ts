@@ -41,6 +41,16 @@ describe('the date check refuses another way of writing a date', () => {
     expect(got.map((f) => f.file).sort()).toEqual(['src/modules/demo/Form.tsx', 'src/modules/demo/Form2.tsx']);
   });
 
+  it('refuses a raw time input, which would show the browser clock (9:30 AM)', async () => {
+    const root = fixture({
+      'src/modules/demo/At.tsx': `export const F = () => <input type="time" name="at" />;\n`,
+      'src/ui/Input.tsx': `export const I = () => <input type="time" />;\n`,
+    });
+    const got = await findings(check, root);
+    expect(got.map((f) => f.file)).toEqual(['src/modules/demo/At.tsx']);
+    expect(got[0]!.message).toContain('TimeInput');
+  });
+
   it('allows the shared formatter, the en-CA day idiom, a month on its own and a date box made by Input', async () => {
     const root = fixture({
       'src/core/i18n/format.ts': `export const f = (d: Date) => new Intl.DateTimeFormat('en-GB', { month: 'long', day: 'numeric' }).format(d);\n`,
