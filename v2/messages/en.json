@@ -299,7 +299,7 @@
           "action_item": "Item on a task's checklist",
           "achievement": "Achievement"
         },
-        "itemTitle": "Add to a task's checklist",
+        "itemTitle": "Item on a task's checklist",
         "task": "Task",
         "searchTask": "Search tasks by title or number",
         "noTask": "No task found",
