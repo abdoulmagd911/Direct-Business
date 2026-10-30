@@ -1,5 +1,5 @@
 'use client';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ import { DataState } from '@/ui/DataState';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
+import { Switch } from '@/ui/Switch';
 import { cn } from '@/ui/cn';
 import { hrefOf, type AchievementPage, type AchievementRow, type Category, type ListFilter } from '../types';
 
@@ -64,7 +65,7 @@ export function AchievementList({
           ) : null
         }
       />
-      <div className="flex flex-wrap items-center gap-2" data-achievement-filters>
+      <div className="flex flex-wrap items-end gap-2" data-achievement-filters>
         <Select
           aria-label={t('filters.category')}
           className="w-48"
@@ -88,29 +89,52 @@ export function AchievementList({
             </button>
           ))}
         </div>
-        <Input
-          type="month"
-          aria-label={t('filters.month')}
-          className="w-44"
-          value={filter.month ?? ''}
-          onChange={(e) => go({ ...filter, month: e.target.value || undefined })}
-        />
-        {(['backfilled', 'past', 'needsOwner'] as const).map((k) => (
-          <Button
-            key={k}
-            size="sm"
-            variant={filter[k] ? 'primary' : 'secondary'}
-            aria-pressed={!!filter[k]}
-            onClick={() => toggle(k)}
-          >
-            {t(`filters.${k}`)}
-          </Button>
-        ))}
-        {filtered ? (
-          <Button size="sm" variant="ghost" onClick={() => go({})}>
+        <label className="flex flex-col gap-0.5 text-sm text-muted" data-month-filter>
+          {t('filters.month')}
+          <span className="relative">
+            <Input
+              type="month"
+              className={cn('w-44', !filter.month && 'text-transparent')}
+              value={filter.month ?? ''}
+              onChange={(e) => go({ ...filter, month: e.target.value || undefined })}
+            />
+            {/* an empty month box draws only dashes on some phones: say what it means instead */}
+            {!filter.month ? (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-base text-muted"
+              >
+                {t('filters.anyMonth')}
+              </span>
+            ) : (
+              <button
+                type="button"
+                aria-label={t('filters.clearMonth')}
+                data-clear-month
+                onClick={() => go({ ...filter, month: undefined })}
+                className="absolute inset-y-0 end-9 inline-grid size-8 place-items-center text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        </label>
+        {filtered && page?.rows.length !== 0 ? (
+          <Button size="sm" variant="ghost" onClick={() => go({})} data-clear-filters-row>
             {t('filters.clear')}
           </Button>
         ) : null}
+      </div>
+      <div className="flex flex-col gap-1" data-achievement-switches>
+        {(['backfilled', 'past', 'needsOwner'] as const).map((k) => (
+          <div key={k} className="flex items-center gap-3" data-achievement-switch={k}>
+            <Switch checked={!!filter[k]} onCheckedChange={() => toggle(k)} label={t(`filters.${k}`)} />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-text">{t(`filters.${k}`)}</span>
+              <span className="block text-sm text-muted">{t(`filters.meaning.${k}`)}</span>
+            </span>
+          </div>
+        ))}
       </div>
       {!page ? (
         <DataState
@@ -121,7 +145,17 @@ export function AchievementList({
           retryLabel={tc('common.tryAgain')}
         />
       ) : page.rows.length === 0 ? (
-        <DataState kind="empty" message={filtered ? t('noMatch') : t('empty')} />
+        <DataState
+          kind="empty"
+          message={filtered ? t('noMatch') : t('empty')}
+          action={
+            filtered ? (
+              <Button size="sm" variant="secondary" onClick={() => go({})} data-clear-filters>
+                {t('filters.clear')}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <ul
           className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
@@ -146,10 +180,12 @@ function Row({ row, owner, top }: { row: AchievementRow; owner: string | null; t
     <li data-achievement-row={row.id}>
       <Link
         href={`/kpis/achievements/${row.id}`}
-        className="flex flex-col gap-1 px-4 py-3 hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus sm:flex-row sm:items-center sm:gap-4"
+        className="flex min-w-0 flex-col items-stretch gap-1 px-4 py-3 hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus sm:flex-row sm:items-center sm:gap-4"
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-text">{locale === 'ar' ? row.line_ar : row.line_en}</span>
+          <span className="line-clamp-3 break-words font-medium text-text" data-achievement-title>
+            {locale === 'ar' ? row.line_ar : row.line_en}
+          </span>
           <span className="block truncate text-sm text-muted">
             {parent ? `${locale === 'ar' ? parent.name_ar : parent.name_en} · ` : ''}
             {category}

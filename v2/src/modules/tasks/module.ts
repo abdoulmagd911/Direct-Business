@@ -90,6 +90,16 @@ export default defineModule({
       owners: 'work.task_contact_owners',
       level: 'work.row_level',
     },
+    // A comment on a task (V657): read by whoever sees the task, written by whoever may change it or helps on it; its one
+    // owner is its author.
+    {
+      key: 'task_comment',
+      table: 'work.task_comment',
+      page: 'tasks',
+      label: 'entity.task_comment',
+      owners: 'work.task_comment_owners',
+      level: 'work.row_level',
+    },
     {
       key: 'task_status_change',
       table: 'work.task_status_change',

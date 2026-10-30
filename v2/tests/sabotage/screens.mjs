@@ -632,8 +632,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/OrgAccess.tsx',
-        find: '  if (!row.role) return <StatusChip tone="warning">{t(\'settings.people.noRole\')}</StatusChip>;\n  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
-        replace: '  return <StatusChip tone="success">{t(\'settings.people.signInOn\')}</StatusChip>;',
+        find: '  if (!row.role)\n    return (\n      <StatusChip className={WRAPS} tone="warning">\n        {t(\'settings.people.noRole\')}\n      </StatusChip>\n    );\n  return (\n    <StatusChip className={WRAPS} tone="success">',
+        replace: '  return (\n    <StatusChip className={WRAPS} tone="success">',
       },
     ],
   },
@@ -671,8 +671,8 @@ export const sabotages = [
     expect: 'a word, not a key',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
-        find: '    for (const k of [`settings.values.${settingKey}.${v}`, `theme.${v}`, `density.${v}`, `profile.notify.${v}`])\n      if (t.has(k)) return t(k);\n',
+        file: 'src/modules/settings/words.ts',
+        find: '  for (const k of valueWordKeys(settingKey, v)) if (t.has(k)) return t(k);\n',
         replace: '',
       },
     ],
@@ -1139,8 +1139,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/RecordPage.tsx',
-        find: 'className="line-clamp-2 break-words text-3xl',
-        replace: 'className="truncate text-3xl',
+        find: "className={cn(titleClamp, 'break-words text-3xl",
+        replace: "className={cn('truncate', 'break-words text-3xl",
       },
     ],
   },
@@ -1289,7 +1289,7 @@ export const sabotages = [
     expect: 'Word (.docx)',
     edits: [
       {
-        file: 'src/modules/settings/screens/SchemaEditor.tsx',
+        file: 'src/modules/settings/words.ts',
         find: "wordprocessingml.document': 'Word (.docx)'",
         replace: "wordprocessingml.document': 'Word'",
       },
@@ -1886,14 +1886,116 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'mentions-tab-shows-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-tabs-are-cut-from-one-read.test.ts'],
+    expect: 'show every kind under All, only mentions under Mentions',
+    edits: [
+      {
+        file: 'src/core/notify/useNotifications.ts',
+        find: "(tab === 'mentions' ? kind === 'mentioned' :",
+        replace: "(tab === 'mentions' ? true :",
+      },
+    ],
+  },
+  {
+    name: 'bell-says-the-type-not-the-name',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'says the name the server gave',
+    edits: [{ file: 'src/ui/shell/bell-words.ts', find: 'return named ?? kindWord;', replace: 'return kindWord;' }],
+  },
+  {
+    name: 'bell-says-coming-due-when-late',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'puts a due-date notice at overdue',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return due < today ? 'overdue' : due === today ? 'today' : 'coming';",
+        replace: "return due < today ? 'coming' : due === today ? 'today' : 'coming';",
+      },
+    ],
+  },
+  {
+    name: 'bell-today-is-not-a-group',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'groups a notice made today under Today',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';",
+        replace: "return day === today ? 'yesterday' : day === yesterday ? 'yesterday' : 'earlier';",
+      },
+    ],
+  },
+  {
+    name: 'bell-group-header-has-no-unread',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Today group, with its unread count on the header',
+    edits: [{ file: 'src/ui/shell/NotificationsPanel.tsx', find: '{g.unread ? (', replace: '{false ? (' }],
+  },
+  {
+    name: 'board-card-hides-the-block-reason',
+    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
+    expect: 'the board card says why it is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskBoard.tsx',
+        find: '                      <BlockReason task={r} />\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'board-card-says-nothing-when-blocked',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says why a blocked task is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'return null;',
+      },
+    ],
+  },
+  {
+    name: 'board-card-blames-an-unblocked-task',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says nothing for a task that is not blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'if (!task.blocked_reason) return null;',
+      },
+    ],
+  },
+  {
+    name: 'bell-stays-open-on-a-new-page',
+    breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
+    expect: 'closed by the page change',
+    edits: [{ file: 'src/ui/shell/AppShell.tsx', find: '    if (bell) setBell(false);\n', replace: '' }],
+  },
+  {
     name: 'restore-offered-to-everyone',
     breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
     expect: 'leaves the button off a row the person may not restore',
     edits: [
       {
         file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
-        find: '{d.can_restore === false ? null : (',
-        replace: '{false ? null : (',
+        find: '{d.can_restore === false ? (',
+        replace: '{false ? (',
+      },
+    ],
+  },
+  {
+    name: 'restore-refusal-says-nothing',
+    breaks: ['unit:tests/unit/settings/a-viewer-is-not-offered-restore.test.tsx'],
+    expect: 'says why in one line where it is refused',
+    edits: [
+      {
+        file: 'src/modules/settings/screens/RecentlyDeleted.tsx',
+        find: "'restore.blocked_by_duplicate': 'has_owner',",
+        replace: '',
       },
     ],
   },

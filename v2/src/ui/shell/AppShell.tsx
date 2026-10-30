@@ -1,6 +1,8 @@
 'use client';
+import { usePathname } from 'next/navigation';
 import { Suspense, useState, type ReactNode } from 'react';
 import { QuickCapture } from '@/modules/my-day/screens/QuickCapture';
+import { LogActivityEntry } from '@/modules/partners/screens/LogActivityEntry';
 import { ReminderAlert } from '@/modules/my-day/screens/ReminderAlert';
 import { useNotifications, type NotificationTab } from '@/core/notify/useNotifications';
 import { ConflictDialog } from '../ConflictDialog';
@@ -12,6 +14,7 @@ import { Drawer } from './Drawer';
 import { NavProgress } from './NavProgress';
 import { NotificationsPanel } from './NotificationsPanel';
 import { RefetchBridge } from './RefetchBridge';
+import { TestSwitchBar } from './TestSwitchBar';
 import { TopBar } from './TopBar';
 
 /**
@@ -24,11 +27,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [bell, setBell] = useState(false);
   const [tab, setTab] = useState<NotificationTab>('all');
   const notifications = useNotifications(bell, tab);
+  // The bell's panel closes when the page changes — a link, Back or Forward — on a phone and on a PC (V654); an outside
+  // tap and Escape already close it. Done while rendering: the page that was open when the panel opened is remembered.
+  const pathname = usePathname();
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    if (bell) setBell(false);
+  }
   return (
     <TooltipProvider>
       <div className="flex h-dvh min-h-0 overflow-hidden bg-bg text-text" data-app-shell>
         <Drawer />
         <div className="flex min-w-0 flex-1 flex-col">
+          <TestSwitchBar />
           <TopBar
             onOpenSearch={() => setSearch(true)}
             onOpenBell={() => setBell((o) => !o)}
@@ -49,12 +61,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         tab={tab}
         onTabChange={setTab}
         items={notifications.items}
+        tabUnread={notifications.tabUnread}
         failed={notifications.failed}
         reload={notifications.reload}
         markRead={notifications.markRead}
         snooze={notifications.snooze}
       />
       <QuickCapture />
+      <LogActivityEntry />
       <ConflictDialog />
       <RefetchBridge />
       <Suspense fallback={null}>

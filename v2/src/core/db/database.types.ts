@@ -69,6 +69,7 @@ export type Database = {
       action_item_done: { Args: { p_done: boolean; p_id: string; p_on?: string }; Returns: Json };
       action_item_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       action_items_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      activities_inside: { Args: { p_limit?: number; p_offset?: number }; Returns: Json };
       activity: {
         Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
         Returns: Json;
@@ -77,11 +78,14 @@ export type Database = {
         Args: {
           p_body?: string;
           p_happened_on?: string;
+          p_internal?: string;
           p_mentions?: string[];
           p_next_step?: string;
           p_next_step_on?: string;
           p_outcome?: string;
           p_partner: string;
+          p_share_team?: boolean;
+          p_ticket_ref?: string;
           p_type: string;
         };
         Returns: Json;
@@ -525,6 +529,10 @@ export type Database = {
         Args: { p_body: string; p_happened_on: string; p_items?: Json; p_mentions?: string[]; p_task: string };
         Returns: Json;
       };
+      task_comment_add: { Args: { p_body: string; p_task: string }; Returns: Json };
+      task_comment_edit: { Args: { p_body: string; p_id: string; p_version: number }; Returns: Json };
+      task_comment_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      task_comments: { Args: { p_task: string }; Returns: Json };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
       task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
@@ -560,6 +568,8 @@ export type Database = {
       templates_offered: { Args: { p_event: string; p_partner?: string }; Returns: Json };
       tender_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
+      test_switch_end: { Args: Record<PropertyKey, never>; Returns: boolean };
+      test_switch_start: { Args: { p_person: string }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };

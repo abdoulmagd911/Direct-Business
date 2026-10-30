@@ -56,6 +56,7 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   await expect(page.getByRole('menuitem')).toHaveText([
     'Capture',
     'Task',
+    'Log activity',
     'Client',
     'Supplier',
     'Invoice',

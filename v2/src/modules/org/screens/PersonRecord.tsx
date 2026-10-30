@@ -84,6 +84,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const manager = byId(person.manager_id);
   const pick = (x: { name_en: string; name_ar: string | null } | undefined) =>
     x ? (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en) : '';
+  // the name and the job title in the language of the screen, the English one where there is no Arabic yet
+  const shownName = (locale === 'ar' && person.full_name_ar) || person.full_name_en;
+  const shownTitle = (locale === 'ar' && person.job_title_ar) || person.job_title_en;
   const roleName = pick(org.roles.find((r) => r.id === (row?.role?.id ?? (self ? me.person.role?.id : undefined))));
   const reports = org.people.filter((p) => p.manager_id === person.id);
   const teammates = org.people.filter((p) => p.team_id && p.team_id === person.team_id && p.id !== person.id);
@@ -296,7 +299,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const doSwitch = async (reason: string) => {
     const on = !(row?.can_sign_in ?? true);
     await run(
-      words(t(on ? 'settings.people.switchedOn' : 'settings.people.switchedOff', { name: person.full_name_en })),
+      words(t(on ? 'settings.people.switchedOn' : 'settings.people.switchedOff', { name: shownName })),
       async () => {
         const r = (await rpc('person_switch', { p_id: person.id, p_on: on, p_reason: reason } as never)) as {
           request_id?: string | null;
@@ -338,7 +341,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   };
   const signOutEverywhere = async (reason: string) => {
     await run(
-      words(t('settings.people.signedOutEverywhere', { name: person.full_name_en })),
+      words(t('settings.people.signedOutEverywhere', { name: shownName })),
       async () => {
         const res = await fetch('/auth/admin/sign-out', {
           method: 'POST',
@@ -689,8 +692,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       crumbs={[{ label: t('settings.tabs.people'), href: '/settings/org?tab=people' }]}
       back={{ href: '/settings/org?tab=people', label: t('record.back') }}
       avatar={<Avatar person={avatarOf(person, locale)} size="xl" />}
-      title={person.full_name_en}
-      subtitle={[person.job_title_en, account ? null : pick(team) || pick(dept)].filter(Boolean).join(' · ')}
+      title={shownName}
+      subtitle={[shownTitle, account ? null : pick(team) || pick(dept)].filter(Boolean).join(' · ')}
       chips={
         <>
           {person.account === 'admin_account' ? (
@@ -837,11 +840,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         <Dialog
           open={editing}
           onOpenChange={setEditing}
-          title={
-            t('settings.people.updated', { name: '' }).trim()
-              ? `${t('common.edit')} · ${person.full_name_en}`
-              : person.full_name_en
-          }
+          title={t('settings.people.updated', { name: '' }).trim() ? `${t('common.edit')} · ${shownName}` : shownName}
           dirty
           footer={
             <>
@@ -995,10 +994,10 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         onOpenChange={setSwitching}
         title={
           row?.can_sign_in
-            ? t('settings.people.switchOffTitle', { name: person.full_name_en })
-            : `${t('settings.people.switchOn')} · ${person.full_name_en}`
+            ? t('settings.people.switchOffTitle', { name: shownName })
+            : `${t('settings.people.switchOn')} · ${shownName}`
         }
-        body={row?.can_sign_in ? t('settings.people.switchOffBody', { name: person.full_name_en }) : undefined}
+        body={row?.can_sign_in ? t('settings.people.switchOffBody', { name: shownName }) : undefined}
         onSave={doSwitch}
         destructive={row?.can_sign_in ?? false}
         words={{
@@ -1025,7 +1024,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <ReasonDialog
         open={generating}
         onOpenChange={setGenerating}
-        title={`${t('settings.people.password.generate')} · ${person.full_name_en}`}
+        title={`${t('settings.people.password.generate')} · ${shownName}`}
         body={t('settings.people.password.body')}
         onSave={generatePassword}
         words={{
@@ -1038,7 +1037,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <Dialog
         open={temporary !== null}
         onOpenChange={(o) => !o && setTemporary(null)}
-        title={t('settings.people.password.temporaryTitle', { name: person.full_name_en })}
+        title={t('settings.people.password.temporaryTitle', { name: shownName })}
         size="sm"
         closeLabel={t('common.close')}
         footer={
@@ -1065,7 +1064,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <ReasonDialog
         open={signingOut}
         onOpenChange={setSigningOut}
-        title={`${t('settings.people.signOutEverywhere')} · ${person.full_name_en}`}
+        title={`${t('settings.people.signOutEverywhere')} · ${shownName}`}
         onSave={signOutEverywhere}
         words={{
           reason: t('common.reason'),
@@ -1078,9 +1077,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         open={levelChange !== null}
         onOpenChange={(o) => !o && setLevelChange(null)}
         title={
-          levelChange
-            ? t('settings.access.personLevel', { name: person.full_name_en, page: pageLabel(levelChange.page) })
-            : ''
+          levelChange ? t('settings.access.personLevel', { name: shownName, page: pageLabel(levelChange.page) }) : ''
         }
         body={
           levelChange
@@ -1098,7 +1095,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <ReasonDialog
         open={roleChange !== null}
         onOpenChange={(o) => !o && setRoleChange(null)}
-        title={`${t('settings.people.setRole')} · ${person.full_name_en}`}
+        title={`${t('settings.people.setRole')} · ${shownName}`}
         body={roleChange ? `${roleName || '—'} → ${pick(org.roles.find((r) => r.id === roleChange))}` : undefined}
         onSave={setRole}
         words={{
@@ -1111,7 +1108,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <Dialog
         open={addingEmail}
         onOpenChange={setAddingEmail}
-        title={`${t('settings.people.addEmail')} · ${person.full_name_en}`}
+        title={`${t('settings.people.addEmail')} · ${shownName}`}
         dirty={email !== ''}
         size="sm"
         footer={

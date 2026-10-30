@@ -37,13 +37,14 @@ for (const width of [1440, 375]) {
     const why = page.locator('[data-activity-why]');
     const save = page.locator('[data-activity-save]');
     await expect(save).toBeDisabled();
-    await expect(why, 'the line under the form').toHaveText('Choose a type');
-
-    await form.getByLabel('Type').click();
-    await page.getByRole('option', { name: 'Call' }).click();
-    await expect(why).toHaveText('Choose an outcome');
+    // the type opens on Call the first time (22 Oct), so only the outcome is still asked; the type stays changeable
+    await expect(form.getByLabel('Type')).toContainText('Call');
+    await expect(why, 'the line under the form').toHaveText('Choose an outcome · Write what happened to save');
     await form.getByLabel('Outcome').click();
     await page.getByRole('option', { name: 'Answered' }).click();
+    await expect(why, 'only the line to write is left').toHaveText('Write what happened to save');
+    await expect(save).toBeDisabled();
+    await form.getByLabel('What happened').fill('Made-up call about the offer');
     await expect(why, 'nothing missing, no line').toHaveCount(0);
     await expect(save).toBeEnabled();
 

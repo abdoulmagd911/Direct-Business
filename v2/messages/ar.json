@@ -29,9 +29,47 @@
       "unavailable": "تسجيل الدخول غير متاح الآن — حاول مجددًا",
       "inactive": "لم يُستخدم هذا الجهاز منذ 30 يومًا — اطلب رمزًا جديدًا",
       "signed_out_elsewhere": "سُجّل خروج هذا الجهاز — اطلب رمزًا جديدًا",
-      "signed_out_by_admin": "سجّل أحد المسؤولين خروج هذا الجهاز — اطلب رمزًا جديدًا"
+      "signed_out_by_admin": "سجّل أحد المسؤولين خروج هذا الجهاز — اطلب رمزًا جديدًا",
+      "code_off": "سجّل الدخول بكلمة المرور"
     },
-    "language": "اللغة"
+    "language": "اللغة",
+    "footer": "© {year} دايركت",
+    "password": {
+      "again": "كلمة المرور الجديدة مرة أخرى",
+      "capsLock": "زر الحروف الكبيرة (Caps Lock) مفعّل",
+      "current": "كلمة المرور الحالية",
+      "error": {
+        "email_required": "أدخل بريدك الإلكتروني للعمل.",
+        "invalid_email": "أدخل بريدك الإلكتروني للعمل.",
+        "mismatch": "كلمتا المرور غير متطابقتين",
+        "not_listed": "هذا البريد ليس في قائمة الفريق. اطلب من أحد المسؤولين إضافتك.",
+        "not_needed": "لا تحتاج كلمة المرور إلى تغيير هنا — استخدم ملفي ← تغيير كلمة المرور.",
+        "not_signed_in": "سجّل الدخول أولًا",
+        "password_required": "أدخل كلمة المرور.",
+        "rate_limited": "محاولات كثيرة. حاول مجددًا بعد 15 دقيقة أو اطلب المساعدة من أحد المسؤولين.",
+        "same_as_email": "لا يمكن أن تكون هي بريدك الإلكتروني",
+        "switched_off": "حسابك موقوف",
+        "too_long": "طويلة جدًا — اختر كلمة مرور أقصر",
+        "too_short": "10 أحرف على الأقل",
+        "unavailable": "تعذّر الوصول إلى الخادم. تحقّق من اتصالك وحاول مجددًا.",
+        "wrong_current": "كلمة المرور الحالية غير صحيحة",
+        "wrong_password": "البريد وكلمة المرور غير متطابقين. حاول مجددًا أو اطلب من أحد المسؤولين إعادة تعيينها."
+      },
+      "forgot": "نسيت كلمة المرور؟ اطلب من أحد المسؤولين.",
+      "hide": "إخفاء كلمة المرور",
+      "label": "كلمة المرور",
+      "new": "كلمة المرور الجديدة",
+      "rule": "{min} أحرف على الأقل.",
+      "setAndContinue": "تعيين كلمة المرور والمتابعة",
+      "setTitle": "اختر كلمة مرور جديدة",
+      "show": "إظهار كلمة المرور",
+      "signIn": "تسجيل الدخول",
+      "signingIn": "جارٍ تسجيل الدخول…",
+      "subtitle": "سجّل الدخول ببريدك الإلكتروني للعمل وكلمة المرور."
+    },
+    "switch_to_ar": "العربية",
+    "switch_to_en": "English",
+    "tab_title": "تسجيل الدخول · مساحة العمل التجارية"
   },
   "session": {
     "sign_out": "تسجيل الخروج",
@@ -68,7 +106,8 @@
     },
     "settings_home": "الإعدادات",
     "clients": "العملاء",
-    "suppliers_partners": "الموردون"
+    "suppliers_partners": "الموردون",
+    "profile": "ملفي"
   },
   "top": {
     "search": "ابحث في العملاء والمهام والفواتير",
@@ -87,7 +126,8 @@
     "openInSettings": "فتح الإعدادات",
     "organisations": "الجهات",
     "notes": "الملاحظات",
-    "recentlyDeleted": "المحذوفة مؤخرًا"
+    "recentlyDeleted": "المحذوفة مؤخرًا",
+    "people": "الأشخاص"
   },
   "profileMenu": {
     "theme": "المظهر",
@@ -95,7 +135,8 @@
     "language": "اللغة",
     "direction": "الاتجاه (للتطوير)",
     "signOut": "تسجيل الخروج",
-    "myProfile": "ملفي"
+    "myProfile": "ملفي",
+    "recentlyDeleted": "المحذوفة مؤخرًا"
   },
   "theme": {
     "light": "فاتح",
@@ -118,6 +159,7 @@
   },
   "create": {
     "task": "مهمة",
+    "activity": "تسجيل نشاط",
     "client": "عميل",
     "supplier": "مورد",
     "invoice": "فاتورة",
@@ -138,13 +180,37 @@
     "notMeasured": "غير مقاس",
     "loading": "جارٍ التحميل",
     "sar": "ريال",
-    "filter": "تصفية"
+    "filter": "تصفية",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "addNew": "+ إضافة",
+    "apply": "تطبيق",
+    "all": "الكل",
+    "today": "اليوم",
+    "name": "الاسم",
+    "actions": "الإجراءات",
+    "yes": "نعم",
+    "no": "لا",
+    "none": "لا شيء",
+    "search": "بحث",
+    "required": "مطلوب",
+    "saveChanges": "حفظ التغييرات",
+    "reason": "السبب",
+    "optional": "اختياري",
+    "showAll": "عرض الكل",
+    "by": "بواسطة",
+    "on": "في",
+    "of": "من",
+    "undoing": "جارٍ التراجع…",
+    "datePlaceholder": "يوم شهر سنة",
+    "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة"
   },
   "state": {
     "failed": "تعذّر تحميل {what}",
     "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
     "empty": "لا شيء هنا بعد",
-    "notMeasured": "غير مقاس"
+    "notMeasured": "غير مقاس",
+    "loading": "جارٍ تحميل {what}"
   },
   "confirm": {
     "title": "إزالة {item}؟",
@@ -163,7 +229,9 @@
       "refAdded": "تمت إضافة المرجع",
       "refRemoved": "تمت إزالة المرجع",
       "empty": "لا إنجازات بعد",
-      "noMatch": "لا إنجازات مطابقة",
+      "noMatch": "لا إنجازات تطابق هذه التصفيات",
+      "titleMore": "المزيد",
+      "titleLess": "عرض أقل",
       "filters": {
         "category": "الفئة",
         "all": "الكل",
@@ -172,8 +240,15 @@
         "backfilled": "بأثر رجعي",
         "past": "العمل السابق",
         "needsOwner": "بلا مالك",
-        "clear": "مسح",
-        "allCategories": "كل الفئات"
+        "clear": "مسح التصفيات",
+        "allCategories": "كل الفئات",
+        "anyMonth": "أي شهر",
+        "meaning": {
+          "backfilled": "أُضيف لاحقًا من سجلات سابقة ولم يُسجَّل وقت حدوثه.",
+          "past": "من قبل تشغيل التطبيق: كل ما أُضيف لاحقًا وكل ما يسبق ذلك التاريخ.",
+          "needsOwner": "لم يُسمَّ له صاحب بعد."
+        },
+        "clearMonth": "مسح الشهر"
       },
       "cols": {
         "achievement": "الإنجاز",
@@ -224,7 +299,7 @@
         "remove": "إزالة",
         "move": "نقل",
         "assign": "تحديد مالك",
-        "addRef": "إضافة مرجع",
+        "addRef": "إضافة دليل",
         "save": "حفظ",
         "cancel": "إلغاء",
         "choose": "اختيار"
@@ -241,13 +316,12 @@
       "notRevenue": "ليس إيرادًا",
       "noDate": "بلا تاريخ بعد",
       "back": "الإنجازات",
+      "backTo": "العودة إلى الإنجازات",
       "figures": {
         "value": "قيمة الصفقة",
         "count": "العدد",
-        "date": "التاريخ",
-        "refs": "الأدلة"
+        "date": "التاريخ"
       },
-      "evidenceNone": "لا أدلة بعد",
       "source": "{kind} · {period}",
       "reports": {
         "bd_monthly": "تطوير الأعمال (شهري)",
@@ -319,6 +393,8 @@
       },
       "visibility": {
         "label": "من يراها",
+        "person": "زميل واحد",
+        "sharedWith": "مشارَكة مع",
         "private": "أنا فقط",
         "team": "فريقي",
         "workspace": "الجميع"
@@ -345,6 +421,8 @@
         "items": "قائمة المراجعة",
         "addItem": "إضافة صف",
         "itemLabel": "الصف {n}",
+        "itemDone": "تم إنجاز البند",
+        "moreItems": "{count, plural, one {بند آخر} two {بندان آخران} few {# بنود أخرى} many {# بندًا آخر} other {# بند آخر}}",
         "removeItem": "إزالة الصف {n}",
         "organisation": "الجهة",
         "meetingOn": "يوم الاجتماع",
@@ -355,7 +433,7 @@
         "carried": "تم الترحيل إلى {date}",
         "turnedInto": "تحوّلت إلى",
         "fromNote": "من ملاحظة",
-        "saved": "تم حفظ الملاحظة",
+        "saved": "{kind, select, checklist {تم حفظ قائمة المهام} meeting {تم حفظ الاجتماع} other {تم حفظ الملاحظة}}",
         "remove": "حذف الملاحظة",
         "removeTitle": "حذف الملاحظة «{name}»؟",
         "removeBody": "ما تحوّلت إليه يبقى.",
@@ -363,7 +441,9 @@
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
         "linkActivity": "{type} · {name}",
-        "linkReminder": "تذكير · {when}"
+        "linkReminder": "تذكير · {when}",
+        "linkTask": "مهمة {number} · {title}",
+        "linkActionItem": "بند عمل في {number} · {text}"
       },
       "turn": {
         "label": "تحويل إلى",
@@ -385,7 +465,8 @@
         "when": "متى",
         "text": "ذكّرني بـ",
         "logged": "تم تسجيل {type} على {name}",
-        "reminded": "تم ضبط التذكير في {when}"
+        "reminded": "تم ضبط التذكير في {when}",
+        "taskTitle": "تحويل هذه الملاحظة إلى مهمة"
       },
       "finish": {
         "label": "إنهاء الاجتماع",
@@ -399,19 +480,16 @@
         "title": "ختام اليوم",
         "summary": "{count, plural, one {# عنصر للإنهاء} other {# عناصر للإنهاء}}",
         "done": "منجز",
-        "notDone": "غير منجز",
         "tomorrow": "غدًا",
-        "nextWeek": "الأسبوع القادم",
         "drop": "إسقاط",
         "turn": "تحويل إلى",
         "saved": "تم ختام اليوم",
         "none": "لا شيء متبقٍ لختام اليوم.",
         "task": "مهمة",
-        "note": "ملاحظة",
         "saveWith": "حفظ · {parts}",
+        "chooseOne": "اختر منجز أو غدًا أو إسقاط لصفّ واحد على الأقل للحفظ",
         "partTomorrow": "{count} إلى الغد",
         "partToDay": "{count} إلى {day}",
-        "partNextWeek": "{count} إلى الأسبوع القادم",
         "partDrop": "{count} إسقاط",
         "partDone": "{count} منجز",
         "gone": "{items} لم يعد في قائمتك (لم يعد لك أو أُغلق). تم استبعاده وبقيت خياراتك الأخرى."
@@ -563,7 +641,8 @@
         "overview": "نظرة عامة",
         "activity": "النشاط",
         "related": "ذات صلة",
-        "items": "بنود العمل"
+        "items": "بنود العمل",
+        "comments": "التعليقات"
       },
       "flags": {
         "stale": "بلا تحديث",
@@ -640,7 +719,10 @@
           "notes_too_long": "الملاحظات طويلة جدًا",
           "ref_value_required": "المرجع يحتاج إلى قيمة",
           "ref_taken": "هذا المرجع موجود على المهمة بالفعل",
-          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا"
+          "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا",
+          "comment_body_required": "اكتب شيئًا أولًا",
+          "comment_too_long": "أقصى طول للتعليق 4000 حرف",
+          "comment_not_yours": "لا يعدّل التعليق إلا من كتبه"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",
@@ -735,6 +817,7 @@
       },
       "escalate": {
         "open": "تصعيد",
+        "what": "أبلغ شخصًا عن هذه المهمة مع ملاحظة. يصله إشعار ويتابع المهمة من الآن فصاعدًا.",
         "title": "تصعيد {number}",
         "to": "تصعيد إلى",
         "to_required": "اختر من تُبلغه",
@@ -744,7 +827,39 @@
         "send": "تصعيد",
         "done": "تم التصعيد إلى {name}"
       },
-      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق."
+      "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق.",
+      "layout": {
+        "label": "عرض المهام كـ",
+        "list": "قائمة",
+        "board": "لوحة",
+        "calendar": "تقويم"
+      },
+      "board": {
+        "emptyColumn": "لا شيء هنا",
+        "blockedLabel": "متوقفة:"
+      },
+      "calendar": {
+        "previous": "الشهر السابق",
+        "next": "الشهر التالي",
+        "emptyMonth": "لا مهام مستحقة هذا الشهر",
+        "noDue": "{count, plural, one {مهمة واحدة بلا يوم استحقاق} two {مهمتان بلا يوم استحقاق} few {# مهام بلا يوم استحقاق} many {# مهمة بلا يوم استحقاق} other {# مهمة بلا يوم استحقاق}}"
+      },
+      "comments": {
+        "empty": "لا تعليقات بعد",
+        "readOnly": "يمكنك قراءة التعليقات على هذه المهمة، أما كتابتها فللعاملين عليها.",
+        "write": "اكتب تعليقًا",
+        "add": "إضافة تعليق",
+        "edit": "عدّل تعليقك",
+        "edited": "معدّل",
+        "added": "أُضيف التعليق",
+        "saved": "حُفظ التعليق",
+        "removed": "حُذف التعليق",
+        "removeTitle": "حذف تعليق {name}؟",
+        "bodyRequired": "اكتب شيئًا أولًا",
+        "tooLong": "الحد الأقصى {max} حرف",
+        "delete": "حذف",
+        "editAction": "تعديل"
+      }
     },
     "weeklyReview": {
       "title": "مراجعة الأسبوع",
@@ -854,6 +969,7 @@
     "task_ref": "مرجع المهمة",
     "task_contact": "جهة اتصال المهمة",
     "task_status_change": "تغيير الحالة",
+    "task_comment": "تعليق",
     "task_template": "قالب مهمة",
     "task_occurrence": "مهمة من قالب",
     "project_health": "صحة المشروع",
@@ -997,11 +1113,38 @@
     }
   },
   "activity": {
+    "helper": "مساعد",
+    "followUp": "متابعة",
+    "deleted": {
+      "restore": "استعادة",
+      "restored": "تمت استعادة {what}",
+      "blocked": {
+        "has_owner": "له مالك بالفعل",
+        "needs_capability": "يستعيده من يملك صلاحية إدارته فقط",
+        "not_allowed": "لا تملك صلاحية استعادته",
+        "other": "لا يمكن استعادته"
+      },
+      "none": "لا شيء محذوف مؤخرًا"
+    },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
       "results": {
-        "code_sent": "تم التحقق من البريد"
-      }
+        "code_sent": "تم التحقق من البريد",
+        "ok": "تم تسجيل الدخول",
+        "not_listed": "البريد غير مسموح",
+        "switched_off": "الحساب موقوف",
+        "code_invalid": "الرمز غير صحيح",
+        "code_expired": "انتهت صلاحية الرمز",
+        "provider_error": "تعذّر الإرسال",
+        "signed_out": "تم تسجيل الخروج",
+        "rate_limited": "محاولات كثيرة",
+        "wrong_password": "كلمة المرور غير صحيحة",
+        "locked": "الحساب مقفل لكثرة المحاولات الخاطئة"
+      },
+      "at": "الوقت",
+      "device": "الجهاز",
+      "email": "البريد الإلكتروني",
+      "result": "النتيجة"
     },
     "fields": {
       "full_name_en": "الاسم الكامل",
@@ -1058,27 +1201,204 @@
     "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
     "reportsTo": "يتبع {name}",
-    "locked": "النشاط للمديرين ورؤساء الإدارات ومسؤولي النظام"
+    "locked": "النشاط للمديرين ورؤساء الإدارات ومسؤولي النظام",
+    "undone": "تم التراجع",
+    "actions": {
+      "delete": "تم حذف {what}",
+      "insert": "تمت إضافة {what}",
+      "remove": "تمت إزالة {what}",
+      "request": "تغيير",
+      "restore": "تمت استعادة {what}",
+      "update": "تم تغيير {what}: {fields}"
+    },
+    "filters": {
+      "anyone": "أي شخص",
+      "anything": "أي شيء",
+      "since": "منذ",
+      "what": "ماذا",
+      "who": "من"
+    },
+    "kinds": {
+      "import": "استيراد",
+      "job": "عملية مجدولة",
+      "system": "النظام",
+      "ui": "من التطبيق",
+      "undo": "تراجع"
+    },
+    "labels": {
+      "access": {
+        "changed": "تغيّرت الصلاحيات"
+      },
+      "department": {
+        "saved": "حُفظت الإدارة"
+      },
+      "list": {
+        "removed": "حُذف عنصر من القائمة",
+        "retired": "أُرشف عنصر من القائمة",
+        "saved": "حُفظ عنصر في القائمة"
+      },
+      "person": {
+        "account_set": "تحدّد نوع الحساب",
+        "created": "أُضيف شخص",
+        "switched": "تبدّل تسجيل الدخول",
+        "updated": "تغيّرت بيانات شخص"
+      },
+      "profile": {
+        "updated": "تحدّث الملف"
+      },
+      "record": {
+        "restored": "استُعيد سجل"
+      },
+      "registry": {
+        "synced": "تمت مزامنة السجل"
+      },
+      "role": {
+        "saved": "حُفظ الدور"
+      },
+      "setting": {
+        "changed": "تغيّر إعداد",
+        "cleared": "أُفرغ إعداد"
+      },
+      "team": {
+        "retired": "أُوقف فريق",
+        "saved": "حُفظ الفريق"
+      },
+      "tender": {
+        "signed": "تم توقيع العقد، من المنافسة {number}"
+      },
+      "view": {
+        "removed": "حُذف العرض",
+        "saved": "حُفظ العرض"
+      }
+    },
+    "loadMore": "عرض الأقدم",
+    "none": "لا تغييرات بعد",
+    "revert": "إرجاع",
+    "revertBody": "يعود {setting} إلى قيمته السابقة اعتبارًا من اليوم، كإدخال جديد في سجل الإعدادات.",
+    "revertTitle": "إرجاع {setting}؟",
+    "reverted": "أُرجع الإعداد",
+    "tabs": {
+      "changes": "التغييرات",
+      "deleted": "المحذوفة مؤخرًا",
+      "settings": "سجل الإعدادات",
+      "signIns": "تسجيلات الدخول"
+    },
+    "title": "النشاط",
+    "undoneChip": "تم التراجع"
   },
   "profile": {
+    "title": "ملفي",
     "sections": {
-      "preferences": "التفضيلات"
+      "preferences": "التفضيلات",
+      "appearance": "المظهر",
+      "devices": "الأجهزة",
+      "notifications": "الإشعارات",
+      "password": "كلمة المرور",
+      "profile": "الملف"
     },
+    "fullNameEn": "الاسم الكامل",
     "notify": {
+      "assigned": "مهمة أُسندت إليّ",
+      "helper_added": "تمت إضافتي مساعدًا",
+      "mentioned": "تمت الإشارة إليّ",
+      "changed_by_other": "سجل لي غيّره شخص آخر",
+      "followed_change": "تغيّر سجل أتابعه",
+      "decision_needed": "مطلوب قرار",
+      "report_issued": "صدر تقرير",
+      "report_for_review": "تقرير ينتظر مراجعتي",
+      "appraisal_step": "خطوة في تقييم الأداء",
+      "import_done": "اكتمل استيراد",
+      "alert_contract_expiring": "عقد يقترب من الانتهاء",
+      "alert_kpi_behind": "مؤشر متأخر عن الوتيرة",
+      "alert_invoice_unpaid": "فاتورة غير مدفوعة",
+      "alert_kpi_checkin": "يوم متابعة المؤشرات",
+      "alert_activity_stale": "جهة توقف التواصل معها",
+      "alert_file_review": "ملف ينتظر المراجعة",
+      "reminder": "تذكيراتي",
+      "note_mention": "الإشارة إليّ في ملاحظة",
+      "escalated": "أمر تم تصعيده إليّ",
+      "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
       "alert_quiet_client": "عميل لي توقف عن الشراء",
-      "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
-      "escalated": "أمر تم تصعيده إليّ",
-      "reminder": "تذكيراتي",
-      "note_mention": "الإشارة إليّ في ملاحظة"
-    }
+      "task_commented": "تعليق على مهمة لي"
+    },
+    "badge": "الشارة",
+    "badgeKind": {
+      "icon": "أيقونة",
+      "none": "بلا شارة"
+    },
+    "badgeValue": "أيّها",
+    "density": "الكثافة",
+    "displayNameAr": "الاسم المعروض (بالعربية)",
+    "displayNameEn": "الاسم المعروض",
+    "drawer": "القائمة",
+    "drawerCollapsed": "مطويّة",
+    "drawerPinned": "مثبّتة",
+    "fullNameAr": "الاسم الكامل (بالعربية)",
+    "language": "اللغة",
+    "nicknameAr": "اسم التعريف (بالعربية)",
+    "nicknameEn": "اسم التعريف",
+    "notifyIntro": "داخل التطبيق",
+    "password": {
+      "change": "تغيير كلمة المرور",
+      "changed": "تم تغيير كلمة المرور"
+    },
+    "saved": "حُفظ ملفك",
+    "startPage": "صفحة البداية",
+    "theme": "المظهر",
+    "devices": {
+      "unknown": "متصفح",
+      "label": "الجهاز",
+      "lastSeen": "آخر ظهور",
+      "othersSignedOut": "{count, plural, one {سُجّل خروج جهاز واحد} two {سُجّل خروج جهازين} few {سُجّل خروج # أجهزة} many {سُجّل خروج # جهازًا} other {سُجّل خروج # جهاز}}",
+      "signOut": "تسجيل الخروج",
+      "signOutOthers": "تسجيل الخروج من كل الأجهزة الأخرى",
+      "signedIn": "تاريخ الدخول",
+      "signedOut": "سُجّل خروج الجهاز",
+      "thisDevice": "هذا الجهاز"
+    },
+    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط."
   },
   "settings": {
     "tabs": {
-      "signIn": "تسجيل الدخول"
+      "signIn": "تسجيل الدخول",
+      "people": "الأشخاص",
+      "teams": "الفرق",
+      "roles": "الأدوار",
+      "access": "الصلاحيات",
+      "settings": "الإعدادات",
+      "lists": "القوائم"
     },
     "setting": {
-      "notSet": "غير محدد"
+      "notSet": "غير محدد",
+      "companyWide": "كل الإدارات",
+      "department": "الإدارة",
+      "current": "القيمة الحالية",
+      "newValue": "القيمة الجديدة",
+      "appliesFrom": "تسري من",
+      "reason": "السبب",
+      "rows": "أين تم ضبطه",
+      "by": "ضبطه",
+      "preview": {
+        "title": "ما الذي سيتغير",
+        "from": "من",
+        "to": "إلى",
+        "departments": "{count, plural, one {إدارة واحدة تحتفظ بقيمتها الخاصة} two {إدارتان تحتفظان بقيمتهما الخاصة} few {# إدارات تحتفظ بقيمتها الخاصة} many {# إدارة تحتفظ بقيمتها الخاصة} other {# إدارة تحتفظ بقيمتها الخاصة}}",
+        "fromToday": "تسري من اليوم",
+        "fromDate": "تسري من {date}",
+        "replacesSameDay": "تحل محل تغيير سابق في اليوم نفسه"
+      },
+      "save": "حفظ الإعداد",
+      "saved": "تم حفظ الإعداد",
+      "change": "تغيير",
+      "clear": "العودة إلى القيمة المعتمدة لكل الإدارات",
+      "cleared": "تمت إزالة قيمة الإدارة",
+      "default": "القيمة الافتراضية",
+      "edit": "تغيير {setting}",
+      "values": {
+        "true": "مفعّل",
+        "false": "غير مفعّل"
+      }
     },
     "list": {
       "side": "الجانب",
@@ -1092,7 +1412,31 @@
           "at_risk": "مهددة",
           "lost": "مفقودة"
         }
-      }
+      },
+      "add": "إضافة بند",
+      "key": "المعرّف",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "sort": "الترتيب",
+      "active": "فعّال",
+      "archived": "مؤرشف",
+      "archive": "أرشفة",
+      "restore": "استعادة",
+      "usedIn": "مستخدم في {count}",
+      "usage": "السجلات التي تستخدمه",
+      "replaceWith": "نقل سجلاته إلى",
+      "retireTitle": "أرشفة {name}؟",
+      "retireBody": "تختفي البنود المؤرشفة من خيارات الاختيار وتبقى في السجلات التي تحملها.",
+      "retireBodyUsed": "{count, plural, one {سجل واحد يحمل {name}. ينتقل} two {سجلان يحملان {name}. ينتقلان} few {# سجلات تحمل {name}. تنتقل} many {# سجلًا يحمل {name}. تنتقل} other {# سجل يحمل {name}. تنتقل}} إلى البند الذي تختاره، في تغيير واحد يمكن التراجع عنه.",
+      "saved": "تم حفظ البند",
+      "archivedDone": "تمت أرشفة {name}",
+      "restored": "تمت استعادة {name}",
+      "edit": "تعديل {name}",
+      "new": "بند جديد",
+      "arabicRequired": "الاسم بالعربية مطلوب",
+      "showArchived": "عرض المؤرشف",
+      "entries": "{count, plural, one {بند واحد} two {بندان} few {# بنود} many {# بندًا} other {# بند}}",
+      "banned": "التطبيق لا يستخدم كلمة {word}"
     },
     "people": {
       "noRole": "بلا دور",
@@ -1112,7 +1456,66 @@
       "accessStandard": "{role} (دون تغيير)",
       "accessChanged": "{role} + {count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
       "accessShowAll": "عرض الكل",
-      "accessHide": "عرض أقل"
+      "accessHide": "عرض أقل",
+      "add": "إضافة شخص",
+      "name": "الاسم",
+      "role": "الدور",
+      "team": "الفريق",
+      "department": "الإدارة",
+      "manager": "المدير",
+      "emails": "البريد المسموح",
+      "lastSignIn": "آخر دخول",
+      "canSignIn": "يمكنه تسجيل الدخول",
+      "signInOn": "مسموح",
+      "signInOff": "موقوف",
+      "status": "الحالة",
+      "active": "فعّال",
+      "left": "غادر",
+      "jobTitleEn": "المسمى الوظيفي",
+      "jobTitleAr": "المسمى الوظيفي (بالعربية)",
+      "joinedOn": "تاريخ الانضمام",
+      "leftOn": "تاريخ المغادرة",
+      "allowSignIn": "السماح بتسجيل الدخول",
+      "email": "بريد العمل",
+      "addEmail": "إضافة بريد",
+      "removeEmail": "إزالة البريد",
+      "primary": "الأساسي",
+      "switchOff": "إيقاف",
+      "switchOn": "تشغيل",
+      "switchOffTitle": "إيقاف {name}؟",
+      "switchOffBody": "يُسجَّل خروج {name} من كل الأجهزة ولا يستطيع الدخول حتى يُعاد تشغيله.",
+      "signOutEverywhere": "تسجيل الخروج من كل الأجهزة",
+      "signedOutEverywhere": "تم تسجيل خروج {name} من كل الأجهزة",
+      "added": "تمت إضافة {name}",
+      "updated": "تم تحديث {name}",
+      "switched": "{name} {state}",
+      "noEmails": "لا بريد مسموح",
+      "devices": "الأجهزة",
+      "signInLog": "سجل الدخول",
+      "access": "الصلاحيات",
+      "overrides": "الاستثناءات",
+      "overrideLevel": "المستوى في {page}",
+      "noManager": "بلا مدير",
+      "noTeam": "بلا فريق",
+      "never": "لم يدخل بعد",
+      "openRecord": "فتح",
+      "people": "{count, plural, one {شخص واحد} two {شخصان} few {# أشخاص} many {# شخصًا} other {# شخص}}",
+      "setRole": "تغيير الدور",
+      "emailAdded": "تم السماح بـ {email}",
+      "emailRemoved": "تمت إزالة {email}",
+      "kind": "النوع",
+      "staff": "موظف",
+      "system": "حساب النظام",
+      "reports": "من يتبعونه مباشرة",
+      "password": {
+        "generate": "إنشاء كلمة مرور مؤقتة",
+        "generated": "تم إنشاء كلمة المرور المؤقتة",
+        "body": "تُنشأ كلمة مرور مؤقتة عشوائية وتظهر هنا مرة واحدة مع زر النسخ. يختار الشخص كلمة مرور خاصة به عند دخوله التالي.",
+        "temporaryTitle": "كلمة مرور مؤقتة لـ {name}",
+        "temporaryBody": "سلّمها له مباشرة أو بالهاتف، فهي تظهر الآن فقط. تعمل حتى يختار كلمة مرور خاصة به، وهذا أول ما يُطلب منه عند دخوله التالي.",
+        "copy": "نسخ",
+        "copied": "تم النسخ"
+      }
     },
     "values": {
       "partner": {
@@ -1120,9 +1523,54 @@
           "monogram": "الأحرف الأولى",
           "blank": "فارغ"
         }
+      },
+      "work": {
+        "week_starts_on": {
+          "saturday": "السبت",
+          "sunday": "الأحد",
+          "monday": "الاثنين"
+        }
+      },
+      "app": {
+        "export_formats": {
+          "csv": "CSV",
+          "xlsx": "Excel"
+        },
+        "default_start_page": {
+          "my_day": "يومي",
+          "overview": "نظرة عامة",
+          "clients": "العملاء",
+          "suppliers_partners": "الموردون",
+          "pipeline": "الفرص",
+          "projects": "المشاريع",
+          "tasks": "المهام",
+          "finance": "المالية",
+          "kpis": "الإنجازات",
+          "reports": "التقارير",
+          "appraisal": "تقييم الأداء",
+          "activity": "سجل النشاط"
+        }
+      },
+      "finance": {
+        "revenue_definition": {
+          "basis": {
+            "revenue": "الإيرادات",
+            "profit": "الربح"
+          }
+        }
       }
     },
     "emptyGroup": "لا شيء لإعداده هنا بعد.",
+    "targets": {
+      "openPlan": "فتح خطة",
+      "open": "فتح",
+      "year": "السنة",
+      "categories": "الفئات: {count}",
+      "none": "لم تُفتح أي خطة بعد.",
+      "everyYear": "لهذه الإدارة خطة لكل سنة.",
+      "noDepartment": "أضف إدارة أولًا.",
+      "everyDepartmentEveryYear": "لكل إدارة خطة لكل سنة بالفعل."
+    },
     "fields": {
       "width": "عدد الخانات",
       "prefix": "البادئة",
@@ -1130,12 +1578,92 @@
       "account_manager": "مدير الحساب",
       "commercial_manager": "المدير التجاري",
       "in_app": "داخل التطبيق",
-      "email": "البريد الإلكتروني"
+      "email": "البريد الإلكتروني",
+      "basis": "الأساس",
+      "services": "الخدمات",
+      "client_types": "أنواع العملاء",
+      "commissions": "احتساب العمولات",
+      "prepaid": "الدفع المسبق",
+      "postpaid": "الدفع الآجل",
+      "tender": "المنافسات"
+    },
+    "title": "الإعدادات",
+    "noAccess": "الإعدادات للمسؤولين فقط",
+    "teams": {
+      "add": "إضافة فريق",
+      "code": "الرمز",
+      "name": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "lead": "قائد الفريق",
+      "members": "الأعضاء",
+      "retire": "إيقاف الفريق",
+      "retireTitle": "إيقاف {name}؟",
+      "retireBody": "{count, plural, one {يوجد شخص واحد} two {يوجد شخصان} few {يوجد # أشخاص} many {يوجد # شخصًا} other {يوجد # شخص}} في {name}. اختر الفريق الذي ينتقلون إليه، أو لا فريق.",
+      "moveTo": "نقل أعضائه إلى",
+      "noTeam": "بلا فريق",
+      "retired": "تم إيقاف {name}",
+      "saved": "تم حفظ الفريق",
+      "edit": "تعديل {name}",
+      "retiredChip": "متوقف",
+      "department": "الإدارة",
+      "noLead": "بلا قائد"
+    },
+    "departments": {
+      "add": "إضافة إدارة",
+      "head": "رئيس الإدارة",
+      "saved": "تم حفظ الإدارة",
+      "edit": "تعديل {name}",
+      "noHead": "بلا رئيس"
+    },
+    "roles": {
+      "name": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "key": "المعرّف",
+      "admin": "دور المسؤول",
+      "saved": "تم حفظ الدور",
+      "edit": "تعديل {name}",
+      "people": "الأشخاص",
+      "role": "الدور"
+    },
+    "access": {
+      "matrix": "الأدوار × الصفحات",
+      "page": "الصفحة",
+      "capability": "الصلاحية",
+      "level": "المستوى",
+      "granted": "ممنوحة",
+      "changed": "تم تغيير الصلاحية",
+      "changeTitle": "ضبط {what} لـ {who}",
+      "personLevel": "مستوى {name} في {page}",
+      "clearOverride": "العودة إلى مستوى الدور",
+      "roleOverride": "الدور",
+      "override": "استثناء",
+      "effective": "المعمول به",
+      "capabilities": "الصلاحيات الإضافية",
+      "pages": "الصفحات",
+      "reasonBody": "يُسجَّل كل تغيير في الصلاحيات مع سببه."
+    },
+    "form": {
+      "reasonRequired": "السبب مطلوب"
+    },
+    "fileTypes": {
+      "text": "نص"
     }
   },
   "errors": {
+    "plan": {
+      "year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",
+      "year_invalid": "يمكن فتح خطة من سنة 2025 حتى السنة القادمة"
+    },
+    "kind": {
+      "PermissionDenied": "ليست لديك صلاحية للقيام بذلك",
+      "Conflict": "تغيّر هذا منذ فتحته. أعد التحميل وحاول مرة أخرى.",
+      "RuleBroken": "رُفض هذا التغيير: {detail}",
+      "NotFound": "لم يُعثر على هذا السجل",
+      "Unavailable": "لم يردّ الخادم. حاول مرة أخرى."
+    },
     "people": {
-      "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته"
+      "own_last_email": "هذا آخر بريد يمكنك الدخول به — أضف بريدًا آخر قبل إزالته",
+      "email_taken": "هذا البريد يخص {detail} بالفعل"
     },
     "person": {
       "assist_home_team": "لا يساعد الشخص فريقه الأساسي",
@@ -1150,7 +1678,17 @@
       "reassign_needs_off": "يُسلَّم العمل فقط عند إيقاف الشخص",
       "hand_over_to_self": "اختر شخصًا آخر ليتسلّم العمل",
       "head_needs_successor": "هذا الشخص يرأس {detail} — اختر رئيسًا جديدًا أولًا",
-      "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها"
+      "open_work": "لا يزال لدى هذا الشخص عمل مفتوح — حدّد من يتسلّمه في الخطوة نفسها",
+      "full_name_required": "الاسم الكامل مطلوب",
+      "department_required": "الإدارة مطلوبة",
+      "manager_cycle": "لا يتبع شخص لمن يتبع له",
+      "team_outside_department": "الفريق في إدارة أخرى",
+      "not_yourself": "لا أحد يوقف نفسه",
+      "manager_not_team_member": "حساب مسؤول النظام وحساب الاختبار ليسا مديرًا لأحد",
+      "has_reports": "يتبع هذا الشخص أشخاص — أعطهم مديرًا آخر أولًا",
+      "account_taken": "يوجد حساب من هذا النوع بالفعل",
+      "unknown_account": "ليس نوع حساب",
+      "account_in_no_team": "حساب مسؤول النظام وحساب الاختبار بلا فريق وبلا مدير"
     },
     "overview": {
       "period_invalid": "تنتهي الفترة قبل أن تبدأ",
@@ -1186,7 +1724,13 @@
       "source_required": "اختر من أين جاءت"
     },
     "common": {
-      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم"
+      "date_in_future": "لا يمكن أن تقع الملاحظة بعد اليوم",
+      "conflict": "غيّر أحدهم هذا منذ فتحته. أعد التحميل وحاول مجددًا.",
+      "not_found": "لم يُعثر على هذا السجل",
+      "unavailable": "لم يردّ الخادم. حاول مجددًا.",
+      "nothing_selected": "لم يُحدَّد شيء",
+      "reason_required": "اذكر السبب",
+      "bad_request": "لم يُفهم الطلب: {detail}"
     },
     "partner": {
       "unknown_side": "جانب غير معروف: {detail}",
@@ -1230,6 +1774,11 @@
       "terms_list_expected": "يجب أن تكون الشروط قائمة",
       "side_required": "يحتاج العقد إلى جانبه"
     },
+    "activity": {
+      "with_whom_required": "حدّد مع من كان ذلك: جهة أو شخص داخل دايركت",
+      "unknown_internal_counterpart": "هذا الفريق أو النظام غير موجود في القائمة: {detail}",
+      "share_team_internal_only": "لا يمكن مشاركة مع فريق إلا نشاط داخل دايركت"
+    },
     "reference": {
       "mailbox_invalid": "يجب أن تكون وجهة الرموز عنوان بريد إلكتروني",
       "unknown_department": "لا يوجد قسم نشط: {detail}",
@@ -1251,6 +1800,7 @@
       "turn_into_needs_partner": "اختر الجهة أولًا",
       "turn_into_not_yet": "يتوفر مع صفحته",
       "body_required": "تحتاج الملاحظة إلى كلمات",
+      "share_needs_a_colleague": "اختر الزميل الذي تشاركها معه",
       "turn_into_type_invalid": "اختر مكالمة أو اجتماعًا",
       "turn_into_invalid": "لا يمكن التحويل إلى هذا النوع",
       "wrap_up_choice_invalid": "اختر الترحيل أو تم",
@@ -1276,6 +1826,92 @@
       "kind_invalid": "يمكن ختام المهام والملاحظات فقط",
       "not_yours": "يمكن ختام عناصرك أنت فقط",
       "not_open": "هذا العنصر مغلق بالفعل"
+    },
+    "list": {
+      "key_taken": "هذا المعرّف مستخدم من قبل",
+      "key_fixed": "المعرّف لا يتغيّر",
+      "nothing_to_change": "لا شيء لتغييره",
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "unknown_field": "حقل غير معروف: {detail}",
+      "retire_blocked_by_duplicate": "يحمل سجل آخر البديل هناك، فلم يُستبدل شيء",
+      "retire_blocked_by_rule": "يخالف البديل قاعدة في سجل يستخدمه، فلم يُستبدل شيء"
+    },
+    "undo": {
+      "changed_since": "غيّر أحدهم هذا بعد ذلك، فلا يمكن التراجع",
+      "not_allowed": "لا يمكنك التراجع عن هذا",
+      "already_undone": "تم التراجع من قبل",
+      "blocked_by_duplicate": "يحمل سجل آخر هذه القيمة الآن: {detail}",
+      "not_undoable": "ما يكتبه النظام لا يمكن التراجع عنه",
+      "nothing_to_undo": "لا شيء للتراجع عنه",
+      "cannot_remove": "لا يمكن إزالة هذا السجل",
+      "via_admin_route": "يُتراجع عن تغيير الدخول من الإعدادات، فيتبعه الدخول فورًا"
+    },
+    "view": {
+      "not_yours": "لا يزيل العرض المحفوظ إلا صاحبه",
+      "shared_needs_full": "مشاركة العرض تحتاج المستوى الكامل في هذه الصفحة",
+      "name_taken": "يوجد عرض بهذا الاسم في هذه الصفحة"
+    },
+    "restore": {
+      "not_removable": "سجلات {detail} لا تُزال أبدًا، فلا شيء للاستعادة",
+      "not_removed": "هذا السجل غير محذوف",
+      "too_late": "حُذف قبل أكثر من {detail} يومًا — اطلب من مسؤول النظام",
+      "not_allowed": "يستعيده من حذفه أو مالكوه أو مسؤول النظام فقط",
+      "blocked_by_duplicate": "يحمل سجل آخر القيمة نفسها الآن: {detail}",
+      "via_admin_route": "يُستعاد سجل الدخول من الإعدادات، فيتبعه الدخول فورًا",
+      "system_removal": "أزال التطبيق هذا بنفسه عند تحديثه، فلا يُستعاد"
+    },
+    "notify": {
+      "unknown_tab": "تبويب إشعارات غير معروف",
+      "snooze_in_the_past": "اختر وقتًا لم يحن بعد",
+      "snooze_too_far": "أجّل لمدة أقصر"
+    },
+    "access": {
+      "needs_level": "تحتاج صلاحية أوسع في هذه الصفحة",
+      "needs_capability": "لا تملك هذه الصلاحية",
+      "not_your_own": "لا أحد يغيّر صلاحياته بنفسه",
+      "admins_only": "مسؤول النظام فقط يفعل هذا",
+      "above_your_level": "لا يمكنك منح أكثر مما تملك",
+      "denied": "لا تملك صلاحية تنفيذ هذا"
+    },
+    "profile": {
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "arabic_not_enabled": "العربية لم تُفعَّل بعد",
+      "unknown_field": "حقل غير معروف: {detail}",
+      "nothing_to_change": "لا شيء لتغييره"
+    },
+    "setting": {
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "unknown": "إعداد غير معروف",
+      "reason_required": "اذكر السبب"
+    },
+    "auth": {
+      "no_active_person": "لم تسجّل الدخول"
+    },
+    "team": {
+      "other_department": "يجب أن يبقى الفريق في إدارته",
+      "code_taken": "هذا الرمز مستخدم من قبل"
+    },
+    "role": {
+      "key_fixed": "معرّف الدور لا يتغيّر",
+      "admins_only": "مسؤول النظام فقط يغيّر اسم دور المسؤول"
+    },
+    "org": {
+      "name_ar_required": "الاسم بالعربية مطلوب"
+    },
+    "password": {
+      "too_short": "10 أحرف على الأقل",
+      "no_email": "ليس لهذا الشخص بريد مسموح بعد"
+    },
+    "person_password": {
+      "has_one": "لهذا الشخص كلمة مرور خاصة به — تبقى كما هي",
+      "no_sign_in": "ليس لهذا الشخص بريد مسموح بعد",
+      "confirm_required": "إعادة التعيين تستبدل كلمة المرور الحالية — أكّدها أولًا"
+    },
+    "test_switch": {
+      "not_allowed": "حساب المالك وحده يمكنه الدخول كمستخدم تجريبي.",
+      "not_a_test_user": "هذا الشخص ليس مستخدمًا تجريبيًا.",
+      "already_switched": "أنت داخل بالفعل كمستخدم تجريبي. عد إلى حسابك أولًا.",
+      "no_access_change": "لا يمكن تغيير الصلاحيات والإعدادات أثناء الدخول كمستخدم تجريبي."
     }
   },
   "notifications": {
@@ -1296,21 +1932,42 @@
       "alert_kpi_checkin": "يوم مراجعة المؤشر: {record}",
       "escalated": "صعّد {actor} {record} إليك",
       "alert_quiet_client": "توقف التواصل مع {record}",
+      "task_commented": "علّق {actor} على {record}",
       "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
       "alert_activity_stale": "لا نشاط على {record}",
       "alert_file_review": "يحين موعد مراجعة ملف على {record}",
       "reminder": "تذكير: {record}",
       "note_mention": "أشار إليك {actor} في ملاحظة",
+      "note_shared": "شارك {actor} معك ملاحظة: {record}",
       "alert_due_tomorrow": "يقترب موعد استحقاق {record}",
+      "due_overdue": "{record} متأخرة عن موعدها",
+      "due_today": "{record} موعدها اليوم",
+      "alert_overdue": "تأخر موعد استحقاق {record}",
       "other": "{actor} · {record}"
     },
+    "groupUnread": "{count} غير مقروء",
     "snoozeTomorrow": "حتى الغد 08:00",
     "snoozeDay": "حتى {day} 08:00",
     "snoozeWeek": "لمدة أسبوع · {when}",
     "snoozeDate": "حتى تاريخ…",
     "snoozeUntil": "تأجيل حتى",
     "none": "لا جديد. يصلك هنا إشعار عندما يُسند إليك عمل، أو يشير إليك أحد، أو يتغير سجل تتابعه.",
-    "someDetails": "بعض التفاصيل"
+    "someDetails": "بعض التفاصيل",
+    "title": "الإشعارات",
+    "tabs": {
+      "all": "الكل",
+      "mentions": "الإشارات",
+      "assigned": "المُسندة إليّ"
+    },
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "earlier": "قبل ذلك"
+    },
+    "unread": "غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "markRead": "تعليم كمقروء",
+    "snooze": "تأجيل"
   },
   "partners": {
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
@@ -1396,10 +2053,27 @@
       "related": "ذات صلة"
     },
     "activity": {
+      "who": "مع من كان ذلك؟",
+      "whoOrg": "عميل أو عميل محتمل أو مورد",
+      "whoNext": "التالي",
+      "whoKind": "كان ذلك مع",
+      "whoInside": "شخص داخل دايركت",
+      "insideField": "فريق أو نظام",
+      "insideNone": "اختر فريقًا أو نظامًا",
+      "needWho": "اختر عميلًا أو عميلًا محتملًا أو مورّدًا",
+      "needInside": "اختر فريقًا أو نظامًا",
+      "ticketRef": "مرجع التذكرة (اختياري)",
+      "shareTeam": "مشاركة مع فريقي",
       "log": "تسجيل نشاط",
       "logged": "تم تسجيل {type}",
+      "logFor": "تسجيل نشاط لـ {name}",
+      "change": "تغيير",
+      "titleMore": "المزيد",
+      "titleLess": "أقل",
+      "loggedFor": "تم تسجيل {type} لـ {name}",
       "type": "النوع",
       "outcome": "النتيجة",
+      "outcomeOptional": "النتيجة (اختياري)",
       "happenedOn": "تاريخ الحدوث",
       "line": "ما الذي حدث",
       "nextStep": "الخطوة التالية",
@@ -1414,6 +2088,7 @@
       "none": "لم يُسجَّل شيء بعد",
       "by": "بواسطة {name}",
       "need": {
+        "body": "اكتب ما حدث للحفظ",
         "line": "اختر {list}",
         "type": "النوع",
         "outcome": "النتيجة",
@@ -1424,6 +2099,7 @@
     "note": {
       "add": "إضافة ملاحظة",
       "added": "تمت إضافة الملاحظة",
+      "need": "اكتب الملاحظة للحفظ",
       "kind": "النوع",
       "body": "الملاحظة",
       "kinds": {
@@ -1553,10 +2229,13 @@
     "since": "منذ",
     "stale": "راكدة منذ {date}",
     "nextStepDue": "الخطوة التالية {date}",
-    "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة"
+    "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة",
+    "capped": "يظهر {shown} من {total} — ابحث أو صفِّ لتضييق القائمة",
+    "chooseType": "اختر النوع"
   },
   "createNew": {
     "task": "مهمة جديدة",
+    "activity": "تسجيل نشاط",
     "client": "عميل جديد",
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",
@@ -1568,7 +2247,16 @@
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
     "followUp": "متابعة",
     "followUpOn": "متابعة · {when}",
-    "followUpsFailed": "المتابعات · حاول مرة أخرى"
+    "followUpsFailed": "المتابعات · حاول مرة أخرى",
+    "overview": "نظرة عامة",
+    "activity": "النشاط",
+    "related": "المرتبط",
+    "showAll": "عرض الكل ({count})",
+    "showLess": "عرض أقل",
+    "tabs": "أقسام السجل",
+    "back": "رجوع",
+    "details": "التفاصيل",
+    "noActivity": "لا تغييرات بعد"
   },
   "follow": {
     "follow": "مراقبة",
@@ -1579,5 +2267,41 @@
   "finance": {
     "stampNone": "المدفوعات · لم تُستورد بعد",
     "notImported": "لم يُستورد شيء بعد. تظهر الأرقام هنا بعد أول استيراد من المدفوعات."
+  },
+  "levels": {
+    "none": "بلا صلاحية",
+    "view": "عرض",
+    "own": "سجلاته فقط",
+    "full": "كامل"
+  },
+  "recentlyDeleted": {
+    "title": "المحذوفة مؤخرًا"
+  },
+  "conflict": {
+    "title": "غيّر أحدهم هذا السجل منذ فتحته",
+    "titleBy": "غيّر {name} هذا السجل منذ فتحته",
+    "description": "اختر لكل حقل القيمة التي تريد الاحتفاظ بها.",
+    "when": "تم التغيير {time}",
+    "theirs": "قيمته",
+    "theirsBy": "كتب {name}",
+    "mine": "قيمتي",
+    "save": "حفظ اختياري"
+  },
+  "views": {
+    "save": "حفظ العرض",
+    "saveTitle": "حفظ هذا العرض",
+    "name": "الاسم",
+    "shared": "مشترك مع كل من يفتح هذه الصفحة",
+    "saved": "تم حفظ العرض",
+    "removed": "تمت إزالة {name}",
+    "default": "العرض الافتراضي",
+    "setDefault": "افتح هذا العرض أولًا",
+    "menu": "{name}: المزيد",
+    "label": "العروض"
+  },
+  "testSwitch": {
+    "bar": "مستخدم تجريبي: {name} (أنت {owner})",
+    "back": "العودة إلى حسابي",
+    "start": "الدخول كمستخدم تجريبي"
   }
 }
