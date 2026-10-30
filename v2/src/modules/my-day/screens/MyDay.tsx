@@ -113,7 +113,13 @@ export function MyDay({ data }: { data: MyDayData }) {
               >
                 {/* on a phone the words and the record's chip take the whole line, the time and Done sit under them */}
                 <span className="min-w-0 flex-1 basis-full sm:basis-0">
-                  <span className="block break-words">{r.text}</span>
+                  {/* the words and their time stay together on one line; the record's chip has the line under them */}
+                  <span className="flex items-baseline gap-3" data-reminder-line>
+                    <span className="min-w-0 flex-1 break-words">{r.text}</span>
+                    <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
+                      {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                  </span>
                   {/* a follow-up says what it is about, as a tag — never in its title (QA-560), only if the reader may see it */}
                   {r.about?.label ? (
                     // the record's name wraps rather than being cut to "Follow up…" on a phone
@@ -127,10 +133,13 @@ export function MyDay({ data }: { data: MyDayData }) {
                     </StatusChip>
                   ) : null}
                 </span>
-                <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
-                  {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => void done(r)} data-reminder-done-later>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ms-auto sm:ms-0"
+                  onClick={() => void done(r)}
+                  data-reminder-done-later
+                >
                   {t('pages.myDay.alert.done')}
                 </Button>
               </li>

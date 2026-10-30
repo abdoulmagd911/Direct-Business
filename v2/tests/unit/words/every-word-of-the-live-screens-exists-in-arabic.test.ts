@@ -16,9 +16,6 @@ const flat = (o: unknown, p = ''): string[] =>
 
 /** Not yet worded in Arabic, by owner: each is its own job, listed so the rest stays covered. */
 const WAITING = [
-  'activity.', // the change log (Activity page)
-  'profile.', // My profile
-  'sign_in.', // the sign-in door
   'finance.', // Finance (not live)
   'errors.finance.', // Finance refusals (not live)
 ];

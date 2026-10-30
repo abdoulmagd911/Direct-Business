@@ -1923,6 +1923,12 @@
       "kind_invalid": "Only tasks and notes can be wrapped up",
       "not_yours": "Only your own items can be wrapped up",
       "not_open": "This item is already closed"
+    },
+    "test_switch": {
+      "not_allowed": "Only the owner's account can sign in as a test user.",
+      "not_a_test_user": "This person is not a test user.",
+      "already_switched": "You are already signed in as a test user. Go back to your account first.",
+      "no_access_change": "Access and settings cannot be changed while you are signed in as a test user."
     }
   },
   "notifications": {
@@ -1939,6 +1945,7 @@
     },
     "unread": "Unread",
     "markAllRead": "Mark all read",
+    "groupUnread": "{count} unread",
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
@@ -1971,6 +1978,8 @@
       "note_mention": "{actor} mentioned you in a note",
       "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
+      "due_overdue": "{record} is overdue",
+      "due_today": "{record} is due today",
       "alert_overdue": "{record} is overdue",
       "other": "{actor} · {record}"
     },
@@ -2421,5 +2430,10 @@
       "noFigures": "In no figures"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import."
+  },
+  "testSwitch": {
+    "bar": "TEST user: {name} (you are {owner})",
+    "back": "Back to my account",
+    "start": "Sign in as test user"
   }
 }
