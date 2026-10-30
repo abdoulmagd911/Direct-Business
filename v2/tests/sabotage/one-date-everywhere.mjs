@@ -14,8 +14,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/record/ActivityTimeline.tsx',
-        find: 'return formatStoredDate(v, locale) ?? String(v);',
-        replace: 'return String(v);',
+        find: 'const when = formatStoredDate(v, locale);',
+        replace: 'const when: string | null = null;',
       },
     ],
   },
