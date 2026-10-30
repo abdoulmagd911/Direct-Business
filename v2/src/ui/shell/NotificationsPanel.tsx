@@ -19,20 +19,11 @@ import { Field } from '../Field';
 import { IconButton } from '../IconButton';
 import { Input } from '../Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
+import { dueState, groupOf, recordName, riyadhDay } from './bell-words';
 import { Tabs } from '../Tabs';
 import { toast } from '../Toast';
 
-type Group = 'today' | 'yesterday' | 'earlier';
-
 const DAY_MS = 86_400_000;
-const riyadhDay = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
-/** Today, yesterday and tomorrow are Riyadh days counted from the SERVER's clock (V40, QA-74): the browser's clock and zone decide nothing. */
-const groupOf = (at: string, now: Date): Group => {
-  const day = riyadhDay(new Date(at));
-  const today = riyadhDay(now);
-  const yesterday = riyadhDay(new Date(now.getTime() - DAY_MS));
-  return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';
-};
 const plusDays = (now: Date, n: number) => riyadhDay(new Date(now.getTime() + n * DAY_MS));
 
 /**
@@ -88,12 +79,11 @@ export function NotificationsPanel({
     const plain = f.replace(/_id$/, '').replace(/_/g, ' ');
     return plain.charAt(0).toUpperCase() + plain.slice(1);
   };
-  const wordsOf = (n: Notification) => {
+  const wordsOf = (n: Notification, now: Date) => {
     const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
     const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
-    // a note has no title of its own on the server's side: a shared note's notice carries its line
-    const noteLine = typeof n.label_args?.title === 'string' && n.label_args.title ? n.label_args.title : null;
-    const record = (locale === 'ar' ? n.title_ar : n.title) ?? n.title ?? noteLine ?? kindWord;
+    // the record's name: the server's, else the one the notice's label carries (a note's line, a task's title), else the kind's word
+    const record = recordName(n, locale, kindWord);
     const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
     // a notice whose label has words of its own: a note shared by name (it rides the note-mention kind and its
     // setting), and the due alert's second notice once the day has passed (D, 26 Oct)
@@ -101,7 +91,11 @@ export function NotificationsPanel({
       'notify.note_shared': 'notifications.kinds.note_shared',
       'alert.overdue': 'notifications.kinds.alert_overdue',
     };
-    const key = (n.label_key && byLabel[n.label_key]) || `notifications.kinds.${n.kind}`;
+    // a due-date notice says where its day stands now: overdue, due today, or coming due
+    const due = dueState(n, now);
+    const key =
+      (n.label_key && byLabel[n.label_key]) ||
+      (due && due !== 'coming' ? `notifications.kinds.due_${due}` : `notifications.kinds.${n.kind}`);
     return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
   };
   const detailOf = (n: Notification) =>
@@ -116,10 +110,12 @@ export function NotificationsPanel({
   // the server's clock, as the gate read it for this page load: the day groups and the snooze days come from it
   const now = new Date(useMe().session.last_seen_at);
   const tomorrowName = tomorrowDayName(now, locale);
-  const groups = (['today', 'yesterday', 'earlier'] as const).map((g) => ({
-    key: g,
-    rows: (items ?? []).filter((n) => groupOf(n.created_at, now) === g),
-  }));
+  const groups = (['today', 'yesterday', 'earlier'] as const)
+    .map((g) => ({
+      key: g,
+      rows: (items ?? []).filter((n) => groupOf(n.created_at, now) === g),
+    }))
+    .map((g) => ({ ...g, unread: g.rows.filter((n) => !n.read_at).length }));
   const unreadShown = (items ?? []).filter((n) => !n.read_at).map((n) => n.id);
   const unreadHere = unreadShown.length > 0;
 
@@ -179,13 +175,21 @@ export function NotificationsPanel({
                   .filter((g) => g.rows.length)
                   .map((g) => (
                     <section key={g.key} className="mb-2" data-notifications-group={g.key}>
-                      <h3 className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[.07em] text-muted">
-                        {t(`notifications.groups.${g.key}`)}
+                      <h3
+                        className="flex items-baseline gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[.07em] text-muted"
+                        data-notifications-group-head
+                      >
+                        <span>{t(`notifications.groups.${g.key}`)}</span>
+                        {g.unread ? (
+                          <span className="font-normal normal-case tracking-normal" data-notifications-group-unread>
+                            {t('notifications.groupUnread', { count: g.unread })}
+                          </span>
+                        ) : null}
                       </h3>
                       <ul className="flex flex-col">
                         {g.rows.map((n) => {
                           const href = entityRoute(n.entity, n.entity_id);
-                          const line = wordsOf(n);
+                          const line = wordsOf(n, now);
                           const detail = detailOf(n);
                           return (
                             <li
@@ -204,7 +208,6 @@ export function NotificationsPanel({
                                   n.read_at ? 'bg-transparent' : 'bg-primary',
                                 )}
                               />
-                              {!n.read_at ? <span className="sr-only">{t('notifications.unread')}</span> : null}
                               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                 {href ? (
                                   <Link
