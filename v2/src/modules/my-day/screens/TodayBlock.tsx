@@ -112,22 +112,24 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
     setBusy(false);
   };
   const body = (
-    <>
-      <span className="block break-words">{title}</span>
-      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
-        <StatusChip tone="info" className="h-auto min-h-6 max-w-full whitespace-normal py-1 leading-snug">
-          <span className="min-w-0 break-words">
-            {r.about?.label
-              ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
-              : t('pages.myDay.today.reminder')}
-          </span>
-        </StatusChip>
-        <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
+    // one block that stacks its two parts: the words and their time, then the record's chip under them
+    <span className="flex min-w-0 flex-col">
+      {/* the words and their time stay together on one line; the record's chip has the line under them */}
+      <span className="flex items-baseline gap-3" data-reminder-line>
+        <span className="min-w-0 flex-1 break-words">{title}</span>
+        <span className={`shrink-0 font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
           {overdue ? formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }) : r.time}
         </span>
       </span>
-    </>
+      {/* the record is a tag, never the title (QA-560), and only when this reader may see it (V454) */}
+      <StatusChip tone="info" className="mt-1 h-auto min-h-6 max-w-full self-start whitespace-normal py-1 leading-snug">
+        <span className="min-w-0 break-words">
+          {r.about?.label
+            ? t('pages.myDay.today.followUpAbout', { name: r.about.label })
+            : t('pages.myDay.today.reminder')}
+        </span>
+      </StatusChip>
+    </span>
   );
   return (
     <li

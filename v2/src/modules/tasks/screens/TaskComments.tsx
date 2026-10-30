@@ -48,22 +48,34 @@ export function TaskComments({
   const [added, setAdded] = useState<TaskComment[]>([]);
   const [gone, setGone] = useState<string[]>([]);
   const [newWords, setNewWords] = useState<Record<string, string>>({});
-  // the server's re-read arrived: it is the truth now, so what showed ahead of it is dropped
-  const [seen, setSeen] = useState(data);
-  if (seen !== data) {
-    setSeen(data);
+  // The newest read of the list wins, whichever way it came: the page's own re-read (it can be late, and then older than
+  // the read made right after a write) or the read this screen makes itself after each write and Undo. A late, older
+  // read never puts the list back; what shows ahead of a read (below) is dropped when a newer read arrives.
+  const [mine, setMine] = useState<Comments | null>(null);
+  const newer = (a: Comments, b: Comments) => (a.read_at > b.read_at ? a : b);
+  const list = mine ? newer(mine, data) : data;
+  const [seen, setSeen] = useState(list);
+  if (seen !== list) {
+    setSeen(list);
     setAdded([]);
     setGone([]);
     setNewWords({});
   }
+  const readAgain = async () => {
+    try {
+      setMine((await rpc('task_comments', { p_task: task.id })) as unknown as Comments);
+    } catch {
+      // the page's own re-read follows anyway
+    }
+  };
   const shown = useMemo(
     () =>
-      [...data.comments, ...added.filter((a) => !data.comments.some((c) => c.id === a.id))]
+      [...list.comments, ...added.filter((a) => !list.comments.some((c) => c.id === a.id))]
         .filter((c) => !gone.includes(c.id))
         .map((c) =>
           newWords[c.id] === undefined ? c : { ...c, body: newWords[c.id] as string, edited_at: c.edited_at ?? 'now' },
         ),
-    [data, added, gone, newWords],
+    [list, added, gone, newWords],
   );
   useEffect(() => {
     onCount?.(shown.length);
@@ -93,6 +105,7 @@ export function TaskComments({
       {
         undoDirect: true,
         after: (r) => {
+          void readAgain();
           const id = r?.id ?? '';
           if (first) {
             first = false;
@@ -132,6 +145,7 @@ export function TaskComments({
       {
         undoDirect: true,
         after: () => {
+          void readAgain();
           setEditing(null);
           if (first) {
             first = false;
@@ -156,6 +170,7 @@ export function TaskComments({
       {
         undoDirect: true,
         after: () => {
+          void readAgain();
           setRemoving(null);
           if (first) {
             first = false;
@@ -243,7 +258,7 @@ export function TaskComments({
           ))}
         </ul>
       )}
-      {data.can_write ? (
+      {list.can_write ? (
         <form
           className="flex flex-col gap-3"
           onSubmit={(e) => {

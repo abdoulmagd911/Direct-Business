@@ -38,6 +38,8 @@ export interface MeProfile {
 
 export interface Me {
   status: 'ok';
+  /** V656: set while this device is switched to a TEST user; `person` is then the TEST user and this names who switched. */
+  test_switch?: { by_id: string; by_name_en: string; by_name_ar: string | null; since: string } | null;
   session: { device_id: string; signed_in_at: string; last_seen_at: string; email: string };
   person: MePerson;
   levels: Record<string, Level>;

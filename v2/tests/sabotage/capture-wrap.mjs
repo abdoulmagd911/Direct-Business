@@ -2,6 +2,7 @@
 const E2E = 'e2e:tests/e2e/capture-wrap.spec.ts';
 const UNIT = 'unit:tests/unit/my-day/quick-capture-and-wrap-up-v2-rules.test.ts';
 const TITLE = 'Quick capture from another page files a note, an idea, a checklist and a reminder';
+const MY = 'e2e:tests/e2e/my-day.spec.ts';
 const WRAP = 'Wrap up moves the day in one request';
 
 export const sabotages = [
@@ -216,14 +217,27 @@ export const sabotages = [
     ],
   },
   {
-    name: 'wrap-up-names-every-capture-a-note-in-the-dialog',
-    breaks: ['e2e:tests/e2e/my-day.spec.ts'],
-    expect: 'its row says idea, not Note',
+    name: 'wrap-up-repeats-the-kind-on-every-row',
+    breaks: [MY],
+    expect: 'the group heading says the kind once',
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: 'data-wrap-word={i.word}',
-        replace: 'data-wrap-word="note"',
+        find: "{i.title || t('pages.myDay.note.untitled')}\n                        </Link>",
+        replace:
+          "{i.title || t('pages.myDay.note.untitled')}\n                        </Link>\n                        <span data-wrap-word={i.word}>{i.word}</span>",
+      },
+    ],
+  },
+  {
+    name: 'wrap-up-heads-every-group-note',
+    breaks: [MY],
+    expect: 'toHaveText',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
+        find: "{t(g.word === 'task' ? 'pages.myDay.wrap.task' : `pages.myDay.quick.kinds.${g.word}`)}",
+        replace: "{t('pages.myDay.quick.kinds.note')}",
       },
     ],
   },

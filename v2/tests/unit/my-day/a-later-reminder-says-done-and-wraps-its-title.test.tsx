@@ -22,14 +22,14 @@ const answer = {
   since: [],
   more: false,
 } as unknown as MyDayAnswer;
-const draw = (locale: 'en' | 'ar') =>
+const draw = (locale: 'en' | 'ar', a: MyDayAnswer = answer) =>
   renderToStaticMarkup(
     <NextIntlClientProvider locale={locale} messages={locale === 'en' ? en : ar} timeZone="Asia/Riyadh">
       <MyDay
         data={{
           title: 'Wednesday',
           scope: 'me',
-          answer,
+          answer: a,
           all: false,
           people: [],
           statuses: [],
@@ -52,6 +52,22 @@ describe('a reminder for a later day on My day', () => {
     expect(row).toContain(LONG);
     expect(row).toMatch(/class="[^"]*break-words[^"]*"[^>]*>Ask the made-up/);
     expect(row).not.toMatch(/class="[^"]*truncate[^"]*"[^>]*>Ask the made-up/);
+  });
+  it('keeps its words and its time together on one line, with the record chip on the line under them', () => {
+    const about = { entity: 'partner', id: 'c1', label: 'Dune Foods' };
+    const withChip = draw('en', {
+      ...answer,
+      reminders: [{ ...answer.reminders[0]!, about }],
+    } as unknown as MyDayAnswer);
+    const at = withChip.indexOf('data-reminder-line');
+    const line = withChip.slice(at, withChip.indexOf('Follow up: Dune Foods') - 1);
+    expect(at, 'there is a line for the words').toBeGreaterThan(-1);
+    expect(line, 'the words are on the line').toContain(LONG);
+    expect(line, 'and so is the time').toContain('18 Oct 2026');
+    expect(line, 'the record chip is under it, not on it').not.toContain('Follow up: Dune Foods');
+    expect(withChip.indexOf('Follow up: Dune Foods'), 'the chip comes after the line').toBeGreaterThan(
+      withChip.indexOf('18 Oct 2026'),
+    );
   });
   it('writes its date the one way', () => {
     expect(row).toContain('18 Oct 2026');

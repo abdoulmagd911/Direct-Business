@@ -1886,6 +1886,111 @@ export const sabotages = [
     edits: [{ file: 'src/ui/IconButton.tsx', find: '      {children}\n', replace: '' }],
   },
   {
+    name: 'mentions-tab-shows-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-tabs-are-cut-from-one-read.test.ts'],
+    expect: 'show every kind under All, only mentions under Mentions',
+    edits: [
+      {
+        file: 'src/core/notify/useNotifications.ts',
+        find: "(tab === 'mentions' ? kind === 'mentioned' :",
+        replace: "(tab === 'mentions' ? true :",
+      },
+    ],
+  },
+  {
+    name: 'bell-says-the-type-not-the-name',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'says the name the server gave',
+    edits: [{ file: 'src/ui/shell/bell-words.ts', find: 'return named ?? kindWord;', replace: 'return kindWord;' }],
+  },
+  {
+    name: 'bell-says-coming-due-when-late',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'puts a due-date notice at overdue',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return due < today ? 'overdue' : due === today ? 'today' : 'coming';",
+        replace: "return due < today ? 'coming' : due === today ? 'today' : 'coming';",
+      },
+    ],
+  },
+  {
+    name: 'bell-today-is-not-a-group',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'groups a notice made today under Today',
+    edits: [
+      {
+        file: 'src/ui/shell/bell-words.ts',
+        find: "return day === today ? 'today' : day === yesterday ? 'yesterday' : 'earlier';",
+        replace: "return day === today ? 'yesterday' : day === yesterday ? 'yesterday' : 'earlier';",
+      },
+    ],
+  },
+  {
+    name: 'bell-group-header-has-no-unread',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Today group, with its unread count on the header',
+    edits: [{ file: 'src/ui/shell/NotificationsPanel.tsx', find: '{g.unread ? (', replace: '{false ? (' }],
+  },
+  {
+    name: 'bell-mark-read-button-is-gone',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Mark as read button on each unread row',
+    edits: [
+      { file: 'src/ui/shell/NotificationsPanel.tsx', find: '{n.read_at ? null : (', replace: '{true ? null : (' },
+    ],
+  },
+  {
+    name: 'bell-mark-read-marks-everything',
+    breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
+    expect: 'has a Mark as read button on each unread row',
+    edits: [
+      {
+        file: 'src/ui/shell/NotificationsPanel.tsx',
+        find: 'onClick={() => void act(() => markRead([n.id]))}\n                                  data-notification-mark-read',
+        replace:
+          'onClick={() => void act(() => markRead())}\n                                  data-notification-mark-read',
+      },
+    ],
+  },
+  {
+    name: 'board-card-hides-the-block-reason',
+    breaks: ['e2e:tests/e2e/tasks.spec.ts'],
+    expect: 'the board card says why it is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskBoard.tsx',
+        find: '                      <BlockReason task={r} />\n',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'board-card-says-nothing-when-blocked',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says why a blocked task is blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'return null;',
+      },
+    ],
+  },
+  {
+    name: 'board-card-blames-an-unblocked-task',
+    breaks: ['unit:tests/unit/tasks/a-blocked-card-says-why.test.tsx'],
+    expect: 'says nothing for a task that is not blocked',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/BlockReason.tsx',
+        find: "if (statusView(task) !== 'blocked' || !task.blocked_reason) return null;",
+        replace: 'if (!task.blocked_reason) return null;',
+      },
+    ],
+  },
+  {
     name: 'bell-stays-open-on-a-new-page',
     breaks: ['e2e:tests/e2e/the-bell-closes-when-the-page-changes.spec.ts'],
     expect: 'closed by the page change',

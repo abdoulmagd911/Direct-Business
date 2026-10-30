@@ -6,7 +6,7 @@ export const sabotages = [
     name: 'comment-box-shows-to-a-reader',
     breaks: [E2E],
     expect: 'a reader has no box',
-    edits: [{ file: 'src/modules/tasks/screens/TaskComments.tsx', find: '{data.can_write ? (', replace: '{true ? (' }],
+    edits: [{ file: 'src/modules/tasks/screens/TaskComments.tsx', find: '{list.can_write ? (', replace: '{true ? (' }],
   },
   {
     name: 'comment-delete-asks-nothing',
@@ -39,8 +39,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskComments.tsx',
-        find: '[...data.comments, ...added.filter((a) => !data.comments.some((c) => c.id === a.id))]',
-        replace: '[...data.comments]',
+        find: '[...list.comments, ...added.filter((a) => !list.comments.some((c) => c.id === a.id))]',
+        replace: '[...list.comments]',
       },
     ],
   },
@@ -65,6 +65,18 @@ export const sabotages = [
         file: 'src/modules/tasks/screens/words.ts',
         find: "undoing: t('common.undoing'),",
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'list-ignores-the-read-after-a-write',
+    breaks: [E2E],
+    expect: 'the comment is back on the screen',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        find: 'const list = mine ? newer(mine, data) : data;',
+        replace: 'const list = data;',
       },
     ],
   },

@@ -238,7 +238,10 @@ test('Wrap up carries the open captures to the next working day, keeping the day
   const dialog = page.getByRole('dialog');
   for (const id of ids) {
     const row = dialog.locator(`[data-wrap-item="${id}"]`);
-    await expect(row.locator('[data-wrap-word="note"]'), 'a plain note is named a Note').toHaveText('Note');
+    await expect(
+      dialog.locator(`[data-wrap-group="note"] [data-wrap-item="${id}"]`),
+      'a plain note sits under the Note heading',
+    ).toHaveCount(1);
     await row.locator('[data-wrap-choice="tomorrow"]').click();
   }
   await dialog.locator('[data-wrap-save]').click();
@@ -272,15 +275,16 @@ for (const width of [375, 1440]) {
     const dialog = page.getByRole('dialog');
     for (const [id, word] of made) {
       const row = dialog.locator(`[data-wrap-item="${id}"]`);
-      await expect(row.locator('[data-wrap-word]'), `its row says ${word}, not Note`).toHaveAttribute(
-        'data-wrap-word',
-        word,
-      );
+      await expect(
+        row.locator('[data-wrap-word]'),
+        'the group heading says the kind once; the row does not repeat it',
+      ).toHaveCount(0);
       await expect(
         dialog.locator(`[data-wrap-group="${word}"] [data-wrap-item="${id}"]`),
         `and sits in the ${word} group`,
       ).toHaveCount(1);
     }
+    await expect(dialog.locator('[data-wrap-group="note"] h4')).toHaveText('Note');
     await expect(dialog.locator('[data-wrap-group="idea"] h4')).toHaveText('Idea');
     await expect(dialog.locator('[data-wrap-group="checklist"] h4')).toHaveText('Checklist');
     // only three choices, however narrow the screen, and the dialog does not scroll sideways

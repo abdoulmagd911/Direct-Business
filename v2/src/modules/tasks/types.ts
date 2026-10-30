@@ -124,4 +124,4 @@ export type TaskComment = {
   can_edit: boolean;
   can_remove: boolean;
 };
-export type TaskComments = { can_write: boolean; comments: TaskComment[] };
+export type TaskComments = { read_at: string; can_write: boolean; comments: TaskComment[] };

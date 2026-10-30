@@ -238,6 +238,8 @@ function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text
 function api.templates_offered(p_event text, p_partner uuid) execute authenticated
 function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.test_switch_end() execute authenticated
+function api.test_switch_start(p_person uuid) execute authenticated
 function api.undo(p_request uuid) execute authenticated
 function api.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function api.view_default_set(p_page text, p_view uuid) execute authenticated
@@ -258,7 +260,9 @@ function authz.in_my_departments(p_department uuid) execute authenticated
 function authz.is_admin() execute authenticated
 function authz.level(p_page text) execute authenticated
 function authz.me() execute authenticated
+function authz.real_me() execute authenticated
 function authz.reports_to(p_person uuid) execute authenticated
+function authz.switched_by() execute authenticated
 function core.access_clear_person_capability(p_person uuid, p_capability text, p_reason text) execute authenticated
 function core.access_clear_person_level(p_person uuid, p_page text, p_reason text) execute authenticated
 function core.access_clear_team_level(p_team uuid, p_page text, p_reason text) execute authenticated
@@ -352,6 +356,8 @@ function core.sign_in_password_check(p_email text, p_user_agent text) execute se
 function core.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
 function core.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function core.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
+function core.test_switch_end() execute authenticated
+function core.test_switch_start(p_person uuid) execute authenticated
 function core.view_default_set(p_page text, p_view uuid) execute authenticated
 function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function core.views(p_page text) execute authenticated

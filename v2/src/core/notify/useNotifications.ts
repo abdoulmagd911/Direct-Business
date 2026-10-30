@@ -29,8 +29,13 @@ export type Notification = {
   fields?: string[];
 };
 
+/** Which kinds each tab shows (api.notifications' own rule, notify.list): All is every kind, so it is the badge. */
+export const tabHas = (tab: NotificationTab, kind: string) =>
+  tab === 'all' || (tab === 'mentions' ? kind === 'mentioned' : kind === 'assigned' || kind === 'helper_added');
+
 /**
- * The bell's data: the unread count (drawn in the top bar) and the list of the open tab. Both re-read after every
+ * The bell's data: the unread count (drawn in the top bar) and the list of the open tab, cut from ONE read of everything so the tabs' own counts and the badge come from the same rows
+ * (the owner saw 14 and 15 with Mentions saying Nothing new). Both re-read after every
  * command (the global refetch), when the window comes back, when the panel opens or its tab changes — and live,
  * through Realtime on the person's own notifications when the deployment has it (NEXT_PUBLIC_REALTIME=1; the local
  * stacks run without the Realtime service). Never a timer (A's lint refuses polling).
@@ -38,7 +43,7 @@ export type Notification = {
 export function useNotifications(open: boolean, tab: NotificationTab) {
   const me = useMe();
   const [unread, setUnread] = useState<number | null>(null);
-  const [items, setItems] = useState<Notification[] | null>(null);
+  const [all, setAll] = useState<Notification[] | null>(null);
   const [failed, setFailed] = useState(false);
 
   const loadUnread = useCallback(async () => {
@@ -50,12 +55,12 @@ export function useNotifications(open: boolean, tab: NotificationTab) {
   }, []);
   const loadList = useCallback(async () => {
     try {
-      setItems(((await rpc('notifications', { p_tab: tab, p_limit: 100 })) as unknown as Notification[]) ?? []);
+      setAll(((await rpc('notifications', { p_tab: 'all', p_limit: 100 })) as unknown as Notification[]) ?? []);
       setFailed(false);
     } catch {
       setFailed(true);
     }
-  }, [tab]);
+  }, []);
   const reload = useCallback(async () => {
     await Promise.all([loadUnread(), open ? loadList() : Promise.resolve()]);
   }, [loadUnread, loadList, open]);
@@ -64,6 +69,19 @@ export function useNotifications(open: boolean, tab: NotificationTab) {
     // The first read runs after the paint (the compiler's rule: no state set inside the effect itself).
     queueMicrotask(() => void reload());
     return onRefetch(() => void reload());
+  }, [reload]);
+
+  // Back on the window: a count read before the person left may be stale on this screen while another one moved on.
+  useEffect(() => {
+    const back = () => {
+      if (document.visibilityState === 'visible') void reload();
+    };
+    window.addEventListener('focus', back);
+    document.addEventListener('visibilitychange', back);
+    return () => {
+      window.removeEventListener('focus', back);
+      document.removeEventListener('visibilitychange', back);
+    };
   }, [reload]);
 
   useEffect(() => {
@@ -96,5 +114,10 @@ export function useNotifications(open: boolean, tab: NotificationTab) {
     [reload],
   );
 
-  return { unread, items, failed, reload, markRead, snooze };
+  const items = all === null ? null : all.filter((n) => tabHas(tab, n.kind));
+  /** Unread per tab, from the same rows as the list; null until the list has been read. */
+  const tabUnread = (k: NotificationTab) =>
+    all === null ? null : all.filter((n) => !n.read_at && tabHas(k, n.kind)).length;
+
+  return { unread, items, tabUnread, failed, reload, markRead, snooze };
 }

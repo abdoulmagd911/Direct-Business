@@ -8,6 +8,8 @@ import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
 import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { rpc } from '@/core/db/rpc';
+import { offersSwitch } from '@/core/test-switch/offer';
+import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
 import type { SettingDefRow } from '@/modules/settings/schema';
@@ -164,6 +166,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
   const router = useRouter();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
+  const sw = useTestSwitch();
   const rows = people
     .filter(
       (p) =>
@@ -173,7 +176,9 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
           .includes(q.toLowerCase()),
     )
     .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
-  void me;
+  // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it
+  const offered = (p: PersonRow) => offersSwitch(me, p);
+  const anyOffer = rows.some(offered);
   // the name and the job title in the language of the screen, the English one where there is no Arabic yet
   const arabic = names.locale === 'ar';
   const fullName = (p: PersonRow) => (arabic && p.full_name_ar) || p.full_name_en;
@@ -221,6 +226,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
               <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.status')}
               </th>
+              {anyOffer ? <th className="px-4 py-2.5" aria-hidden="true" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -266,6 +272,15 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                   <td className="px-4 py-2.5" data-person-status>
                     <PersonStatus row={p} />
                   </td>
+                  {anyOffer ? (
+                    <td className="px-4 py-2.5">
+                      {offered(p) ? (
+                        <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
+                          {t('testSwitch.start')}
+                        </Button>
+                      ) : null}
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -301,6 +316,13 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                     : t('settings.people.never')}
                 </span>
               </div>
+              {offered(p) ? (
+                <div className="mt-2">
+                  <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
+                    {t('testSwitch.start')}
+                  </Button>
+                </div>
+              ) : null}
             </li>
           );
         })}
