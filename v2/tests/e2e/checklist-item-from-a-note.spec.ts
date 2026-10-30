@@ -96,3 +96,41 @@ test('a note turned into an item on a task’s checklist is linked both ways, an
   await expect(theirDialog.getByText('No task found')).toBeVisible();
   await other.close();
 });
+
+test('the task rows of the picker are 44 px high on a phone and stay compact on a wide screen (V643)', async ({
+  page,
+}) => {
+  const member = await makePerson();
+  const t = tag();
+  const [team] = await sql<{ id: string }>(
+    `insert into core.team (department_id, code, name_en, name_ar)
+       select department_id, $2, $3, $4 from core.person where id = $1 returning id`,
+    [member.id, `ck_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
+  );
+  await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+  const made = await callAs(page.context(), 'task_create', { p_values: { title: `Made-up ${t} tap size` } });
+  expect(made.status, JSON.stringify(made.body)).toBe(200);
+  const { number } = made.body as { number: string };
+  const note = await callAs(page.context(), 'note_capture', {
+    p_kind: 'sticky',
+    p_values: { title: `Made-up ${t} a note`, visibility: 'private' },
+  });
+  expect(note.status, JSON.stringify(note.body)).toBe(200);
+  const noteId = (note.body as { id: string }).id;
+  const rowHeight = async () => {
+    await page.goto(`/my-day/notes/${noteId}`);
+    await hydrated(page);
+    await page.locator('[data-turn-into]').click();
+    await page.locator('[data-turn-kind="action_item"]').click();
+    await page.getByRole('dialog').locator('[data-task-search]').fill(number);
+    const hit = page.getByRole('dialog').locator('[data-task-hit]').first();
+    await expect(hit).toBeVisible();
+    return hit.evaluate((e) => Math.round(e.getBoundingClientRect().height * 10) / 10);
+  };
+  expect(await rowHeight(), 'a task row is a 44 px target on a phone').toBeGreaterThanOrEqual(43.5);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  expect(await rowHeight(), 'on a wide screen it stays compact').toBeLessThanOrEqual(41);
+});

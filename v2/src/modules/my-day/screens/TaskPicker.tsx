@@ -73,7 +73,7 @@ export function TaskPicker({
                     onChange(h);
                     setQ('');
                   }}
-                  className="flex min-h-10 w-full items-center gap-2.5 rounded-md px-2.5 text-start hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus"
+                  className="flex min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-start hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus sm:min-h-10"
                   data-task-hit={h.id}
                 >
                   <ListChecks className="size-4 shrink-0 text-muted" aria-hidden="true" />
