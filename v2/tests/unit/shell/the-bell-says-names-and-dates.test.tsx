@@ -70,7 +70,7 @@ afterEach(() => {
   root = null;
   document.body.innerHTML = '';
 });
-const draw = (items: Notification[]) => {
+const draw = (items: Notification[], markRead: (ids?: string[]) => Promise<void> = async () => {}) => {
   const host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -86,7 +86,7 @@ const draw = (items: Notification[]) => {
           tabUnread={() => 0}
           failed={false}
           reload={async () => {}}
-          markRead={async () => {}}
+          markRead={markRead}
           snooze={async () => {}}
         />
       </NextIntlClientProvider>,
@@ -118,5 +118,26 @@ describe('the panel', () => {
     expect(today!.querySelector('h3')!.textContent).toContain('Today');
     expect(today!.querySelector('[data-notifications-group-unread]')!.textContent).toBe('2 unread');
     expect(document.querySelectorAll('li .sr-only').length, 'no loose unread label between rows').toBe(0);
+  });
+});
+
+describe('marking one notice read', () => {
+  it('has a Mark as read button on each unread row, beside the snooze, and none on a read row', () => {
+    const marked: (string[] | undefined)[] = [];
+    draw(
+      [row('u1', { title: 'TEST Task A' }), row('r1', { title: 'TEST Task B', read_at: '2026-10-26T08:30:00Z' })],
+      async (ids) => {
+        marked.push(ids);
+      },
+    );
+    const unread = document.querySelector('[data-notification="u1"]')!;
+    const read = document.querySelector('[data-notification="r1"]')!;
+    const button = unread.querySelector<HTMLButtonElement>('[data-notification-mark-read]');
+    expect(button, 'a button on the unread row').not.toBeNull();
+    expect(button!.getAttribute('aria-label')).toBe('Mark as read');
+    expect(unread.querySelector('[data-notification-snooze]'), 'beside the snooze').not.toBeNull();
+    expect(read.querySelector('[data-notification-mark-read]'), 'none on a read row').toBeNull();
+    act(() => button!.click());
+    expect(marked, 'marks only that notice').toEqual([['u1']]);
   });
 });
