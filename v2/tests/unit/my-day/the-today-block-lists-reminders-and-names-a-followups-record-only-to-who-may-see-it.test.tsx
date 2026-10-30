@@ -170,4 +170,15 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
     const html = draw({ tasks: [task('a', '2026-10-12'), task('b', '2026-10-14'), task('c', '2026-10-16')] }, 'ar');
     expect(headings(html)).toEqual(['اليوم', 'متأخرة1', 'مستحق اليوم', 'الأيام السبعة القادمة']);
   });
+
+  it("keeps a due reminder's words and its time on one line, with the record chip on the line under them", () => {
+    const html = draw({ due: dueFollowUp({ entity: 'partner', id: 'c1', label: 'Dune Foods' }) });
+    const at = html.indexOf('data-reminder-line');
+    const chipAt = html.indexOf('Follow up: Dune Foods');
+    expect(at, 'there is a line for the words').toBeGreaterThan(-1);
+    const line = html.slice(at, chipAt);
+    expect(line, 'the words are on the line').toContain('Ask about the renewal');
+    expect(line, 'and so is the time').toContain('08:00');
+    expect(line.indexOf('08:00'), 'the time is before the chip, not after it').toBeGreaterThan(-1);
+  });
 });

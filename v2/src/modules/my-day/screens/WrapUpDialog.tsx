@@ -175,9 +175,6 @@ export function WrapUpDialog({
                         >
                           {i.title || t('pages.myDay.note.untitled')}
                         </Link>
-                        <span className="shrink-0 text-xs text-muted" data-wrap-word={i.word}>
-                          {t(i.word === 'task' ? 'pages.myDay.wrap.task' : `pages.myDay.quick.kinds.${i.word}`)}
-                        </span>
                       </div>
                       {/* three equal columns, so Done, Tomorrow and Drop stay on one line at 375 px */}
                       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={i.title}>
