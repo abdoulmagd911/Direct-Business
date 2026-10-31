@@ -146,7 +146,7 @@ export function TimeInput({
         }
       }}
       onBlur={() => read && setText(formatClock(read, locale))}
-      className={cn(inputClass, 'h-[var(--control-h)] font-data tabular', className)}
+      className={cn(inputClass, 'h-[var(--control-h)]', className)}
       {...rest}
     />
   );
