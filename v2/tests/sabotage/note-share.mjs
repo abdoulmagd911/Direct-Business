@@ -1,17 +1,30 @@
-// Sabotages for G (26 Oct): a note shared with one named colleague, from the note's page.
+// Sabotages for G (26 Oct) and V524: a note shared with named colleagues, from the note's page.
 const E2E = 'e2e:tests/e2e/a-note-shared-with-one-colleague.spec.ts';
 
 export const sabotages = [
   {
-    // the page saves "One colleague" without saying which one: the door refuses, nothing is shared
+    // the page saves "Named colleagues" without saying which: the door refuses, nothing is shared
     name: 'a-shared-note-names-no-colleague',
     breaks: [E2E],
-    expect: 'the note says it is shared with one',
+    expect: 'the note says it is shared with named colleagues',
     edits: [
       {
         file: 'src/modules/my-day/screens/NotePage.tsx',
-        find: "shared_with: d.visibility === 'person' ? d.shared_with || null : null,",
+        find: "shared_with: d.visibility === 'person' ? d.shared_with : null,",
         replace: 'shared_with: null,',
+      },
+    ],
+  },
+  {
+    // QA-594 undone: the colleague reading a note shared with them finds a dash where their own name should be
+    name: 'a-shared-note-hides-its-reader',
+    breaks: [E2E],
+    expect: 'the colleague finds themselves on the list as You',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/NotePage.tsx',
+        find: "id === me ? t('pages.myDay.visibility.you') : (colleagues.find((c) => c.id === id)?.name ?? '—');",
+        replace: "colleagues.find((c) => c.id === id)?.name ?? '—';",
       },
     ],
   },
