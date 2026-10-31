@@ -69,6 +69,7 @@ function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
+function api.finance_credit_split_set(p_invoice uuid, p_shares jsonb, p_note text) execute authenticated
 function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
@@ -113,7 +114,7 @@ function api.list_remove(p_list text, p_id uuid, p_reason text) execute authenti
 function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function api.list_save(p_list text, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
 function api.list_usage(p_list text, p_id uuid) execute authenticated
-function api.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text) execute authenticated
+function api.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text, p_options jsonb) execute authenticated
 function api.match_pin_clear(p_id uuid, p_reason text) execute authenticated
 function api.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) execute authenticated
 function api.match_queue() execute authenticated
@@ -364,6 +365,7 @@ function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function finance.closed_months() execute authenticated
+function finance.credit_split_set(p_invoice uuid, p_shares jsonb, p_note text) execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
@@ -376,7 +378,7 @@ function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.income_by_service(p_from date, p_to date) execute authenticated
-function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text) execute authenticated
+function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text, p_options jsonb) execute authenticated
 function finance.match_pin_clear(p_id uuid, p_reason text) execute authenticated
 function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) execute authenticated
 function finance.match_queue() execute authenticated

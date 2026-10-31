@@ -593,6 +593,20 @@
       "effective_dated": false
     },
     {
+      "key": "partner.match_order",
+      "group": "settings.partners",
+      "label": "setting.partner.match_order",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "minItems": 6,
+        "maxItems": 6,
+        "type": "array",
+        "items": { "type": "string", "enum": ["client_id", "tax_no", "code", "email", "phone", "alias"] }
+      },
+      "default": ["client_id", "tax_no", "code", "email", "phone", "alias"],
+      "effective_dated": false
+    },
+    {
       "key": "partner.name_stop_words",
       "group": "settings.partners",
       "label": "setting.partner.name_stop_words",
