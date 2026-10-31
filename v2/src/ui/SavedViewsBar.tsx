@@ -1,7 +1,7 @@
 'use client';
 import { Check, MoreHorizontal, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { isAdmin } from './shell/nav';
 import type { CommandWords } from '@/core/commands/command';
@@ -29,6 +29,7 @@ export function SavedViewsBar({
   query,
   onOpen,
   canShare,
+  onDefault,
   className,
 }: {
   page: string;
@@ -40,6 +41,8 @@ export function SavedViewsBar({
   query: Record<string, unknown>;
   onOpen: (view: { key: string; query?: Record<string, unknown> }) => void;
   canShare: boolean;
+  /** Told once, when the views are read, of the one this person set as their default — for a page that does not open on it by its address. */
+  onDefault?: (view: { key: string; query: Record<string, unknown> }) => void;
   className?: string;
 }) {
   const admin = isAdmin(useMe());
@@ -52,6 +55,13 @@ export function SavedViewsBar({
     failed: (k, d) => t(k, { detail: d }),
   };
   const { views, failed, reload, save, setDefault, remove } = useSavedViews(page, words);
+  const opened = useRef(false);
+  useEffect(() => {
+    const d = views?.find((v) => v.default);
+    if (!onDefault || opened.current || !views) return;
+    opened.current = true;
+    if (d) onDefault({ key: d.id, query: d.query });
+  }, [views, onDefault]);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [shared, setShared] = useState(false);
