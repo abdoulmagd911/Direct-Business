@@ -47,4 +47,18 @@ export const sabotages = [
     expect: 'reads the first real day in the text',
     edits: [{ file: RULES, find: 'if (d > new Date(Date.UTC(y, m, 0)).getUTCDate()) return null;', replace: '' }],
   },
+  {
+    name: 'name-suggested-from-a-15-digit-card',
+    breaks: [UNIT],
+    expect: 'a 15-digit card number anywhere in the text suggests nothing at all',
+    edits: [{ file: RULES, find: '(?:\\d[ -]?){12,18}\\d', replace: '(?:\\d[ -]?){15}\\d' }],
+  },
+  {
+    name: 'name-suggested-from-a-digit-only-passport',
+    breaks: [UNIT],
+    expect: 'a passport number of digits only anywhere in the text suggests nothing at all',
+    edits: [
+      { file: RULES, find: '[\\s.:]*[a-z]?\\d{7,9}\\b/i,\n  /جواز', replace: '[\\s.:]*[a-z]\\d{7,9}\\b/i,\n  /جواز' },
+    ],
+  },
 ];

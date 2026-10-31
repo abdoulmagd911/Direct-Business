@@ -22,9 +22,9 @@ export function plain(s: string): string {
 // an identity or payment number found in the text: nothing at all is suggested from such a file
 const SENSITIVE = [
   /\b[a-z]{2}\d{2}(?:\s?[a-z0-9]{4}){3,7}(?:\s?[a-z0-9]{1,4})?\b/i, // an IBAN
-  /\b(?:\d[ -]?){15}\d\b/, // a card number
+  /\b(?:\d[ -]?){12,18}\d\b/, // a card number, 13 to 19 digits (the American Express shape too)
   /(?<![\d])[12]\d{9}(?![\d])/, // a Saudi national or residence ID
-  /\bpassport\s*(?:no|number|#)?[\s.:]*[a-z]\d{7,8}\b/i,
+  /\bpassport\s*(?:no|number|#)?[\s.:]*[a-z]?\d{7,9}\b/i,
   /جواز\s*السفر\s*(?:رقم)?[\s.:]*[a-z]?\d{7,9}/i,
 ];
 

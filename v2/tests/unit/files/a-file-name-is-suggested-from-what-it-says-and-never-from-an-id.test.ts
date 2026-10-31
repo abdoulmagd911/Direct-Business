@@ -46,6 +46,8 @@ describe('a file that holds an identity is never suggested from (V655 B privacy)
   it.each([
     ['an IBAN', 'Contract\nIBAN GB82 WEST 1234 5698 7654 32'],
     ['a card number', 'Invoice\nCard 4111 1111 1111 1111'],
+    ['a 15-digit card number', 'Invoice\nCard 3782 822463 10005'],
+    ['a passport number of digits only', 'Contract\nPassport No: 123456789'],
     ['a national ID', 'Contract\nID 1098765432'],
     ['a passport', 'Contract\nPassport No: A12345678'],
   ])('%s anywhere in the text suggests nothing at all', (_n, text) => {
