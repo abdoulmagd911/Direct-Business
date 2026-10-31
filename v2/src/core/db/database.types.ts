@@ -235,6 +235,12 @@ export type Database = {
       finance_import_map: { Args: { p_source?: string }; Returns: Json };
       finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_manual_not_paid_out: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_manual_paid_out: {
+        Args: { p_id: string; p_on: string; p_reason?: string; p_version: number };
+        Returns: Json;
+      };
+      finance_manual_revenue_add: { Args: { p_fields: Json; p_reason?: string }; Returns: Json };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
       finance_no_supplier_cost_set: {
         Args: { p_product: string; p_reason?: string; p_value: boolean; p_version: number };

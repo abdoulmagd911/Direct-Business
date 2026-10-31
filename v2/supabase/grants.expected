@@ -81,6 +81,9 @@ function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp w
 function api.finance_import_map(p_source text) execute authenticated
 function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
+function api.finance_manual_not_paid_out() execute authenticated
+function api.finance_manual_paid_out(p_id uuid, p_on date, p_version integer, p_reason text) execute authenticated
+function api.finance_manual_revenue_add(p_fields jsonb, p_reason text) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
@@ -376,6 +379,9 @@ function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.income_by_service(p_from date, p_to date) execute authenticated
+function finance.manual_not_paid_out() execute authenticated
+function finance.manual_paid_out(p_id uuid, p_on date, p_version integer, p_reason text) execute authenticated
+function finance.manual_revenue_add(p_fields jsonb, p_reason text) execute authenticated
 function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text) execute authenticated
 function finance.match_pin_clear(p_id uuid, p_reason text) execute authenticated
 function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) execute authenticated
