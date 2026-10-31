@@ -3,14 +3,14 @@ import { ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, parseClock } from '@/core/i18n/format';
 import { nameOf, tradeName, type ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
 import { BUILT } from '@/ui/shell/CreateMenu';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
-import { Input, Textarea } from '@/ui/Input';
+import { Input, Textarea, TimeInput } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
@@ -184,7 +184,7 @@ export function LogFromNoteDialog({
 const tomorrowAtNine = () => {
   const d = new Date(`${today()}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
-  return `${d.toISOString().slice(0, 10)}T09:00`;
+  return { day: d.toISOString().slice(0, 10), time: '09:00' };
 };
 
 /** A reminder from a note (V455: the five-minute job sends it once at its time, Riyadh's clock). */
@@ -200,14 +200,14 @@ export function ReminderDialog({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
-  const fresh = () => ({ at: tomorrowAtNine(), text: noteTitle(note) });
+  const fresh = () => ({ ...tomorrowAtNine(), text: noteTitle(note) });
   const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
-  const ok = !!f.at && !!f.text.trim();
+  const ok = !!f.day && !!parseClock(f.time) && !!f.text.trim();
   const save = async () => {
     setBusy(true);
     // the time is Riyadh's (UTC+3, no daylight saving): the stored instant is the same wherever the browser is
-    const at = `${f.at}:00+03:00`;
+    const at = `${f.day}T${f.time}:00+03:00`;
     await command(
       words(
         t('pages.myDay.turn.reminded', { when: formatDate(at, locale, { dateStyle: 'medium', timeStyle: 'short' }) }),
@@ -244,17 +244,22 @@ export function ReminderDialog({
       }
     >
       <div className="flex flex-col gap-4" data-reminder-form>
-        <Field label={t('pages.myDay.turn.when')}>
-          {(p) => (
-            <Input
-              {...p}
-              type="datetime-local"
-              value={f.at}
-              onChange={(e) => setF({ ...f, at: e.target.value })}
-              className="font-data"
-            />
-          )}
-        </Field>
+        <div className="flex flex-wrap gap-3" data-reminder-when>
+          <Field label={t('pages.myDay.quick.day')} className="min-w-0 flex-1">
+            {(p) => (
+              <Input
+                {...p}
+                type="date"
+                value={f.day}
+                onChange={(e) => e.target.value && setF({ ...f, day: e.target.value })}
+                data-reminder-day
+              />
+            )}
+          </Field>
+          <Field label={t('pages.myDay.quick.time')} className="min-w-0 flex-1">
+            {(p) => <TimeInput {...p} value={f.time} onChange={(time) => setF({ ...f, time })} data-reminder-time />}
+          </Field>
+        </div>
         <Field label={t('pages.myDay.turn.text')}>
           {(p) => <Input {...p} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />}
         </Field>
