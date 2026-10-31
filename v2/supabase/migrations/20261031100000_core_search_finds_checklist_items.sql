@@ -1,0 +1,105 @@
+-- V660 (the owner's productivity list: "search over one's own and shared notes and tasks", "tasks and their
+-- checklists"; the Architect's order of 31 Oct). Search already finds the notes the reader may see, their own and those
+-- shared with them (my.note_visible, V524), and a note by an item of its checklist. Now a task is found by an item of
+-- its checklist too, and a hit found by an item alone names that item ('item'), so the reader sees why it was found.
+-- The read rules are unchanged: a task only for those who may see it, a note only for those my.note_visible lets in.
+-- core.search is replaced whole, as 20261017120000 left it, but for the lines named. Forward-only (V103).
+
+create or replace function core.search(p_q text, p_limit int default 10) returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  me uuid := authz.me();
+  q text := norm.fold(p_q);
+  lim int := greatest(1, least(coalesce(p_limit, 10), 50));
+  stop text[] := partner.stop_words();
+  sees_client boolean;
+begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
+  if q is null or pg_catalog.length(q) < 2 then
+    return pg_catalog.jsonb_build_object('partners', '[]'::jsonb, 'people', '[]'::jsonb, 'notes', '[]'::jsonb,
+                                         'tasks', '[]'::jsonb, 'invoices', '[]'::jsonb);
+  end if;
+  sees_client := authz.level_of(me, 'clients') >= 'view';
+  return pg_catalog.jsonb_build_object(
+    'partners', coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', y.id, 'number', y.number,
+               'trade_name_en', y.trade_name_en, 'trade_name_ar', y.trade_name_ar, 'matched_by', y.matched_by)
+               order by y.rank, pg_catalog.lower(y.trade_name_en))
+      from (select * from (select distinct on (p.id) p.id, p.number, p.trade_name_en, p.trade_name_ar, m.matched_by, m.rank
+            from partner.partner p
+            join (select i.partner_id, i.kind as matched_by, 0 as rank from partner.identifier i
+                  where i.deleted_at is null and (sees_client or i.kind not in ('payments_client_id', 'discount_code'))
+                    and i.value_key in (norm.key('payments_client_id', p_q), norm.key('vat', p_q), norm.key('email', p_q),
+                                        norm.key('phone', p_q), norm.key('discount_code', p_q), norm.key('name', p_q, stop))
+                  union all
+                  select p2.id, 'name', 1 from partner.partner p2
+                  where norm.fold(p2.trade_name_en) like '%' || q || '%' or norm.fold(p2.trade_name_ar) like '%' || q || '%'
+                     or norm.fold(p2.official_name_en) like '%' || q || '%' or norm.fold(p2.official_name_ar) like '%' || q || '%'
+                  union all
+                  select p3.id, 'number', 0 from partner.partner p3 where norm.fold(p3.number) = q) m on m.partner_id = p.id
+            where p.deleted_at is null and p.archived_at is null and partner.level_of(me, p.id) >= 'view'
+            order by p.id, m.rank) x
+            order by x.rank, pg_catalog.lower(x.trade_name_en) limit lim) y), '[]'::jsonb),
+    'people', coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', p.id, 'full_name_en', p.full_name_en,
+               'full_name_ar', p.full_name_ar, 'job_title_en', p.job_title_en) order by pg_catalog.lower(p.full_name_en))
+      from (select * from core.person p0
+            where p0.kind = 'staff' and p0.active and p0.deleted_at is null
+              and (norm.fold(p0.full_name_en) like '%' || q || '%' or norm.fold(p0.full_name_ar) like '%' || q || '%'
+                   or norm.fold(p0.nickname_en) like '%' || q || '%' or norm.fold(p0.nickname_ar) like '%' || q || '%')
+            order by pg_catalog.lower(p0.full_name_en) limit lim) p), '[]'::jsonb),
+    -- V641: every kind of captured item the reader may see — a note, an idea, a checklist (by its items too), a
+    -- reminder, a meeting — named by its title, else its first line, else its first item, and by what it was captured as
+    'notes', coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', n.id, 'kind', n.kind, 'title', n.title,
+               'author_id', n.person_id, 'happened_on', n.happened_on, 'mine', n.person_id = me,
+               'label', coalesce(n.title, notify.first_line(n.body), notify.first_line(n.items -> 0 ->> 'text')),
+               -- V660: found by a checklist item alone, the hit names that item
+               'item', case when coalesce(norm.fold(n.title), '') not like '%' || q || '%'
+                             and coalesce(norm.fold(n.body), '') not like '%' || q || '%'
+                            then (select i ->> 'text' from pg_catalog.jsonb_array_elements(coalesce(n.items, '[]'::jsonb))
+                                  with ordinality x(i, o)
+                                  where norm.fold(i ->> 'text') like '%' || q || '%' order by x.o limit 1) end,
+               'capture_kind', case
+                 when n.kind in ('meeting', 'checklist') then n.kind
+                 when n.idea then 'idea'
+                 when exists (select 1 from core.reminder r
+                              where r.note_id = n.id and r.deleted_at is null
+                                and not exists (select 1 from my.note_link l
+                                                where l.entity_table = 'core.reminder' and l.entity_id = r.id)) then 'reminder'
+                 else 'note' end)
+               order by n.logged_at desc, n.id)
+      from (select * from my.note n0
+            where n0.deleted_at is null
+              and (norm.fold(n0.title) like '%' || q || '%' or norm.fold(n0.body) like '%' || q || '%'
+                   or exists (select 1 from pg_catalog.jsonb_array_elements(coalesce(n0.items, '[]'::jsonb)) i
+                              where norm.fold(i ->> 'text') like '%' || q || '%'))
+              and my.note_visible(n0.id, me)
+            order by n0.logged_at desc, n0.id limit lim) n), '[]'::jsonb),
+    -- D4: tasks by title or number, each one the reader may see (live: a task is found the moment it is saved);
+    -- V660: and by an item of its checklist, the hit naming that item
+    'tasks', coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id', t.id, 'number', t.number, 'title', t.title,
+               'due_on', t.due_on, 'closed', t.closed_at is not null, 'partner_id', t.partner_id,
+               'item', case when norm.fold(t.title) not like '%' || q || '%' and norm.fold(t.number) <> q
+                            then (select a.text from work.action_item a
+                                  where a.task_id = t.id and a.deleted_at is null
+                                    and norm.fold(a.text) like '%' || q || '%'
+                                  order by a.sort, a.created_at, a.id limit 1) end)
+               order by t.closed_at is not null, t.due_on nulls last, t.number)
+      from (select * from work.task t0
+            where t0.deleted_at is null
+              and (norm.fold(t0.title) like '%' || q || '%' or norm.fold(t0.number) = q
+                   or exists (select 1 from work.action_item a0
+                              where a0.task_id = t0.id and a0.deleted_at is null
+                                and norm.fold(a0.text) like '%' || q || '%'))
+              and work.row_level('work.task', t0.id, me) >= 'view'
+            order by t0.closed_at is not null, t0.due_on nulls last, t0.number limit lim) t), '[]'::jsonb),
+    -- D4: invoices by their number or DPIN, for a reader who sees Finance (V458)
+    'invoices', case when authz.level_of(me, 'finance') >= 'view'
+                     then coalesce(finance.search_numbers(p_q, lim), '[]'::jsonb) else '[]'::jsonb end);
+end
+$$;

@@ -238,8 +238,11 @@
       },
       "visibility": {
         "label": "Who sees it",
-        "person": "One colleague",
+        "person": "Named colleagues",
         "sharedWith": "Shared with",
+        "shareAdd": "Add a colleague",
+        "shareRemove": "Remove {name}",
+        "you": "You",
         "private": "Only me",
         "team": "My team",
         "workspace": "Everyone"
