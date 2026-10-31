@@ -20,6 +20,7 @@ import { rpc } from '@/core/db/rpc';
 import { checklistCount, noteTitle } from '../logic';
 import { NOTE_VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
+import { PeoplePicker } from './PeoplePicker';
 import { PartnerPicker } from './PartnerPicker';
 import { ChecklistItemDialog, LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
 import { useMe } from '@/core/auth/me-context';
@@ -312,13 +313,10 @@ export function NotePage({
                     </ul>
                   ) : null}
                   {mine && addable.length ? (
-                    <Select
-                      {...p}
-                      value=""
-                      placeholder={t('pages.myDay.visibility.shareAdd')}
-                      aria-label={t('pages.myDay.visibility.shareAdd')}
-                      onValueChange={(v) => setD({ ...d, shared_with: [...d.shared_with, v] })}
-                      options={addable.map((c) => ({ value: c.id, label: c.name }))}
+                    <PeoplePicker
+                      id={p.id}
+                      options={addable}
+                      onPick={(v) => setD({ ...d, shared_with: [...d.shared_with, v] })}
                     />
                   ) : null}
                 </div>
