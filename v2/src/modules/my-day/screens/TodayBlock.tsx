@@ -9,10 +9,20 @@ import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { DoneTick } from '@/modules/tasks/screens/StatusControl';
 import type { TaskStatus } from '@/modules/tasks/types';
-import { todayGroups, noteRoute } from '../logic';
+import {
+  FIXED_TASK_VIEWS,
+  TASK_GROUPS,
+  helpingTasks,
+  noteRoute,
+  readTaskView,
+  todayGroups,
+  type TaskGroup,
+} from '../logic';
 import { markReminderDone } from '../reminder-done';
+import { whenChip } from './WhenPicker';
 import { todayReminders, type TodayReminder } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import type { PendingReminder, TodayTask } from '../types';
@@ -45,12 +55,31 @@ export function TodayBlock({
   const router = useRouter();
   const g = todayGroups(tasks, day);
   const rem = todayReminders(pending, due?.due ?? [], day);
-  const groups = [
+  const all = [
     { key: 'overdue', rows: g.overdue, reminders: rem.overdue },
     { key: 'today', rows: g.today, reminders: rem.today },
     { key: 'next', rows: g.next, reminders: [] as TodayReminder[] },
+    { key: 'helping', rows: helpingTasks(tasks), reminders: [] as TodayReminder[] },
   ] as const;
+  // the groups drawn (P5-7): none chosen means all four; a fixed or saved view sets them, a chip changes them
+  const [shown, setShown] = useState<TaskGroup[]>([]);
+  const [view, setView] = useState('all');
+  const groups = all.filter((x) => !shown.length || shown.includes(x.key));
   const none = groups.every((x) => !x.rows.length && !x.reminders.length);
+  const count = (k: TaskGroup) =>
+    all.find((x) => x.key === k)!.rows.length + all.find((x) => x.key === k)!.reminders.length;
+  const open = (v: { key: string; query?: Record<string, unknown> }) => {
+    setView(v.key);
+    setShown(
+      v.key in FIXED_TASK_VIEWS ? FIXED_TASK_VIEWS[v.key as keyof typeof FIXED_TASK_VIEWS] : readTaskView(v.query),
+    );
+  };
+  const toggle = (k: TaskGroup) => {
+    setView('');
+    setShown((cur) =>
+      cur.includes(k) ? cur.filter((x) => x !== k) : TASK_GROUPS.filter((x) => x === k || cur.includes(x)),
+    );
+  };
   return (
     <section className="rounded-lg border border-border bg-raised px-4 py-2" data-today-block>
       <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.today.title')}</h2>
@@ -68,6 +97,35 @@ export function TodayBlock({
           retryLabel={t('common.tryAgain')}
         />
       ) : null}
+      {/* P5-7: saved views of the block and a chip per group; none pressed shows all four */}
+      <div className="flex flex-col gap-2 py-3" data-today-views>
+        <SavedViewsBar
+          page="my_day"
+          fixed={(['all', 'mine', 'helping'] as const).map((k) => ({
+            key: k,
+            label: t(`pages.myDay.today.views.${k}`),
+          }))}
+          current={view}
+          query={{ groups: shown }}
+          onOpen={open}
+          onDefault={open}
+          canShare={false}
+        />
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('pages.myDay.today.filter')} data-today-chips>
+          {TASK_GROUPS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={shown.includes(k)}
+              onClick={() => toggle(k)}
+              className={whenChip(shown.includes(k))}
+              data-today-chip={k}
+            >
+              {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       {none ? (
         <DataState kind="empty" message={t('pages.myDay.today.empty')} />
       ) : (
@@ -89,7 +147,13 @@ export function TodayBlock({
                   <ReminderRow key={r.id} reminder={r} overdue={x.key === 'overdue'} />
                 ))}
                 {x.rows.map((r) => (
-                  <TodayRow key={r.id} task={r} statuses={statuses} overdue={x.key === 'overdue'} />
+                  <TodayRow
+                    key={r.id}
+                    task={r}
+                    statuses={statuses}
+                    overdue={x.key === 'overdue'}
+                    helping={x.key === 'helping'}
+                  />
                 ))}
               </ul>
             </div>
@@ -166,7 +230,18 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   );
 }
 
-function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: TaskStatus[]; overdue: boolean }) {
+function TodayRow({
+  task,
+  statuses,
+  overdue,
+  helping = false,
+}: {
+  task: TodayTask;
+  statuses: TaskStatus[];
+  overdue: boolean;
+  /** A task I only help on: it is not mine to finish, so no done tick (P5-7). */
+  helping?: boolean;
+}) {
   const locale = useLocale() as 'en' | 'ar';
   const tick = {
     id: task.id,
@@ -182,7 +257,7 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
       className="relative flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
       data-today-task={task.number}
     >
-      <DoneTick task={tick} statuses={statuses} title={task.title} />
+      {helping ? null : <DoneTick task={tick} statuses={statuses} title={task.title} />}
       <div className="min-w-0 flex-1">
         <Link
           href={`/tasks/${task.number}`}

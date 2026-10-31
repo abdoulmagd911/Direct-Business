@@ -103,6 +103,30 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
   return out;
 }
 
+/** The four groups of the Today block, in the order they are drawn (P5-7). */
+export const TASK_GROUPS = ['overdue', 'today', 'next', 'helping'] as const;
+export type TaskGroup = (typeof TASK_GROUPS)[number];
+
+/** The block's views that come with the page: all four groups, the tasks that are mine, the tasks I only help on. */
+export const FIXED_TASK_VIEWS: Record<'all' | 'mine' | 'helping', TaskGroup[]> = {
+  all: [],
+  mine: ['overdue', 'today', 'next'],
+  helping: ['helping'],
+};
+
+/** The groups a saved view keeps; an unknown word is dropped, and none at all means every group is drawn. */
+export function readTaskView(query: Record<string, unknown> | undefined): TaskGroup[] {
+  const raw = Array.isArray(query?.groups) ? (query!.groups as unknown[]) : [];
+  return TASK_GROUPS.filter((g) => raw.includes(g));
+}
+
+/** The tasks I only help on (they are not mine to chase, so `todayGroups` leaves them out), the nearest day first. */
+export function helpingTasks(tasks: TodayTask[]): TodayTask[] {
+  return tasks
+    .filter((t) => t.role === 'helper' || t.group === 'helping')
+    .sort((a, b) => a.due_on.localeCompare(b.due_on));
+}
+
 /** What a person can decide about a row: Done, Tomorrow (the next working day) or Drop. A row with no choice is left alone. */
 export type WrapChoice = 'done' | 'tomorrow' | 'drop';
 export const WRAP_CHOICES: WrapChoice[] = ['done', 'tomorrow', 'drop'];
