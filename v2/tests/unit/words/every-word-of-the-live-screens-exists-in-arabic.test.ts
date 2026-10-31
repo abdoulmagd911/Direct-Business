@@ -14,18 +14,12 @@ const flat = (o: unknown, p = ''): string[] =>
     v && typeof v === 'object' ? flat(v, `${p}${k}.`) : [`${p}${k}`],
   );
 
-/** Not yet worded in Arabic, by owner: each is its own job, listed so the rest stays covered. */
-const WAITING = [
-  'finance.', // Finance (not live)
-  'errors.finance.', // Finance refusals (not live)
-];
-
-describe('every word of the live screens exists in Arabic (27 Oct sweep)', () => {
+describe('every word of the app exists in Arabic (27 Oct sweep, whole catalog since 31 Oct)', () => {
   const have = new Set(flat(ar));
-  const missing = flat(en).filter((k) => !have.has(k) && !WAITING.some((w) => k === w || k.startsWith(w)));
+  const missing = flat(en).filter((k) => !have.has(k));
 
-  it('has every English word outside the waiting namespaces', () => {
-    expect(missing, 'English words with no Arabic on a live screen').toEqual([]);
+  it('has every English word', () => {
+    expect(missing, 'English words with no Arabic').toEqual([]);
   });
 
   it('really is looking at the whole catalog', () => {
