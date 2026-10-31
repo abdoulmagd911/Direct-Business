@@ -8,8 +8,20 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/TurnDialogs.tsx',
-        find: '{(p) => <TimeInput {...p} value={f.time}',
-        replace: '{(p) => <Input type="datetime-local" {...p} value={f.time}',
+        find: '<TimeInput',
+        replace: '<Input type="datetime-local"',
+      },
+    ],
+  },
+  {
+    name: 'reminder-save-ignores-the-typed-time',
+    breaks: ['unit:tests/unit/my-day/the-reminder-dialog-keeps-save-off-for-a-time-that-is-not-a-time.test.tsx'],
+    expect: 'keeps Save off and says what is missing',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TurnDialogs.tsx',
+        find: 'const ok = !!f.day && timeOk && !!f.text.trim();',
+        replace: 'const ok = !!f.day && !!f.text.trim();',
       },
     ],
   },

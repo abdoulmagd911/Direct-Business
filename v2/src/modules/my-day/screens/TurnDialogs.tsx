@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
-import { formatDate, parseClock } from '@/core/i18n/format';
+import { formatDate } from '@/core/i18n/format';
 import { nameOf, tradeName, type ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
 import { BUILT } from '@/ui/shell/CreateMenu';
@@ -203,7 +203,10 @@ export function ReminderDialog({
   const fresh = () => ({ ...tomorrowAtNine(), text: noteTitle(note) });
   const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
-  const ok = !!f.day && !!parseClock(f.time) && !!f.text.trim();
+  // the time box holds what was typed; f.time keeps the last readable time, so whether the box reads as a time is held here
+  const [timeOk, setTimeOk] = useState(true);
+  const ok = !!f.day && timeOk && !!f.text.trim();
+  const missing = !f.day ? 'day' : !timeOk ? 'time' : !f.text.trim() ? 'text' : null;
   const save = async () => {
     setBusy(true);
     // the time is Riyadh's (UTC+3, no daylight saving): the stored instant is the same wherever the browser is
@@ -222,6 +225,7 @@ export function ReminderDialog({
         after: () => {
           onOpenChange(false);
           setF(fresh());
+          setTimeOk(true);
         },
       },
     );
@@ -235,12 +239,18 @@ export function ReminderDialog({
       size="sm"
       closeLabel={t('common.close')}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {/* V654 (6): a greyed Save says in one line what is missing, beside it and in view on a phone */}
+          {missing ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-reminder-why>
+              {t(`pages.myDay.turn.reminderMissing.${missing}`)}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!ok} loading={busy} onClick={() => void save()} data-reminder-save>
             {t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="flex flex-col gap-4" data-reminder-form>
@@ -257,7 +267,15 @@ export function ReminderDialog({
             )}
           </Field>
           <Field label={t('pages.myDay.quick.time')} className="min-w-0 flex-1">
-            {(p) => <TimeInput {...p} value={f.time} onChange={(time) => setF({ ...f, time })} data-reminder-time />}
+            {(p) => (
+              <TimeInput
+                {...p}
+                value={f.time}
+                onChange={(time) => setF({ ...f, time })}
+                onReadable={setTimeOk}
+                data-reminder-time
+              />
+            )}
           </Field>
         </div>
         <Field label={t('pages.myDay.turn.text')}>

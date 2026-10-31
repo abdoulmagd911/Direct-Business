@@ -21,6 +21,6 @@ describe('the Reminder When box', () => {
     expect(reminder).toContain('`${f.day}T${f.time}:00+03:00`');
   });
   it('cannot be saved while the typed time is not a time', () => {
-    expect(reminder).toContain('!!parseClock(f.time)');
+    expect(reminder).toContain('onReadable={setTimeOk}');
   });
 });

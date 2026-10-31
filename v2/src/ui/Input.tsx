@@ -109,11 +109,14 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
 export function TimeInput({
   value,
   onChange,
+  onReadable,
   className,
   ...rest
 }: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> & {
   value: string;
   onChange: (hhmm: string) => void;
+  /** Told after every keystroke whether the box now holds a time, so a screen can keep Save off on a half-typed one. */
+  onReadable?: (readable: boolean) => void;
   mono?: boolean;
 }) {
   const locale = useLocale() as 'en' | 'ar';
@@ -136,6 +139,7 @@ export function TimeInput({
       onChange={(e) => {
         setText(e.target.value);
         const t = parseClock(e.target.value);
+        onReadable?.(!!t);
         if (t) {
           setSeen(t);
           onChange(t);
