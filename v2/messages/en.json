@@ -368,15 +368,18 @@
         "today": "Due today",
         "next": "Next 7 days",
         "helping": "Helping",
-        "filter": "Show",
-        "views": { "all": "All", "mine": "Mine", "helping": "Helping" },
+        "filter": "Show only",
+        "views": {
+          "all": "All"
+        },
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",
         "followUpAbout": "Follow up: {name}",
         "markDone": "Mark “{title}” done",
         "reminderDone": "Reminder done · {title}",
-        "failed": "Reminders could not be read just now."
+        "failed": "Reminders could not be read just now.",
+        "saveHint": "Keeps the groups shown now under a name, so you can open them again."
       },
       "quick": {
         "title": "Quick capture",

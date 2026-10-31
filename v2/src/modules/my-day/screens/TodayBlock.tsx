@@ -101,17 +101,24 @@ export function TodayBlock({
       <div className="flex flex-col gap-2 py-3" data-today-views>
         <SavedViewsBar
           page="my_day"
-          fixed={(['all', 'mine', 'helping'] as const).map((k) => ({
-            key: k,
-            label: t(`pages.myDay.today.views.${k}`),
-          }))}
+          fixed={[{ key: 'all', label: t('pages.myDay.today.views.all') }]}
           current={view}
           query={{ groups: shown }}
           onOpen={open}
           onDefault={open}
           canShare={false}
+          saveHint={t('pages.myDay.today.saveHint')}
         />
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t('pages.myDay.today.filter')} data-today-chips>
+        {/* the chips are a filter, not buttons that do something: the word says so, and a count sits in each */}
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t('pages.myDay.today.filter')}
+          data-today-chips
+        >
+          <span className="text-sm text-muted" data-today-filter-label>
+            {t('pages.myDay.today.filter')}
+          </span>
           {TASK_GROUPS.map((k) => (
             <button
               key={k}

@@ -49,4 +49,41 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'today-views-repeat-helping',
+    breaks: [BOX],
+    expect: 'has one view of its own, All',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: "fixed={[{ key: 'all', label: t('pages.myDay.today.views.all') }]}",
+        replace:
+          "fixed={[{ key: 'all', label: t('pages.myDay.today.views.all') }, { key: 'helping', label: t('pages.myDay.today.helping') }]}",
+      },
+    ],
+  },
+  {
+    name: 'save-view-has-no-icon',
+    breaks: [BOX],
+    expect: 'says the chips filter',
+    edits: [
+      {
+        file: 'src/ui/SavedViewsBar.tsx',
+        find: '<Bookmark className="size-4" aria-hidden="true" />',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'today-chips-say-nothing-about-being-a-filter',
+    breaks: [BOX],
+    expect: 'says the chips filter',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: 'data-today-filter-label',
+        replace: 'data-today-no-label',
+      },
+    ],
+  },
 ];
