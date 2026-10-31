@@ -7,6 +7,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { setPrefs } from './helpers';
+import { withArabicOn } from './support/arabic';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -23,14 +24,7 @@ for (const code of ['en', 'ar'] as const) {
       [member.id, `wu_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
     );
     await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
-    if (code === 'ar') {
-      await sql(
-        `insert into core.setting (key, value, valid_from, reason, created_by)
-           values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason: wrap-up day', $1)`,
-        [member.id],
-      );
-    }
-    try {
+    const body = async () => {
       await page.setViewportSize({ width: 375, height: 800 });
       await signIn(page, member.email, '/my-day');
       await hydrated(page);
@@ -59,8 +53,8 @@ for (const code of ['en', 'ar'] as const) {
       expect(new Set(tops).size, 'Done, Tomorrow and Drop stay on one row').toBe(1);
       const heights = await row.evaluateAll((els) => els.slice(0, 3).map((e) => e.getBoundingClientRect().height));
       expect(Math.min(...heights), 'each choice is a 44 px target').toBeGreaterThanOrEqual(43.5);
-    } finally {
-      if (code === 'ar') await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
-    }
+    };
+    if (code === 'ar') await withArabicOn(member.id, 'Made-up reason: wrap-up day', body);
+    else await body();
   });
 }
