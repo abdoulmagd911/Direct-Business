@@ -176,8 +176,8 @@ export function WrapUpDialog({
                           {i.title || t('pages.myDay.note.untitled')}
                         </Link>
                       </div>
-                      {/* three equal columns, so Done, Tomorrow and Drop stay on one line at 375 px */}
-                      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={i.title}>
+                      {/* Tomorrow is the wider column: its day is written under it and stays on one line at 375 px */}
+                      <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-2" role="radiogroup" aria-label={i.title}>
                         {WRAP_CHOICES.map((c) => (
                           <button
                             key={c}
@@ -193,7 +193,10 @@ export function WrapUpDialog({
                           >
                             <span>{(c === 'tomorrow' ? tomorrowName : null) ?? t(`pages.myDay.wrap.${c}`)}</span>
                             {c === 'tomorrow' ? (
-                              <span className="font-data text-xs font-normal text-muted" data-wrap-lands-on="tomorrow">
+                              <span
+                                className="text-xs font-normal whitespace-nowrap text-muted tabular"
+                                data-wrap-lands-on="tomorrow"
+                              >
                                 {tomorrowDate}
                               </span>
                             ) : null}

@@ -7,6 +7,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
 import { setPrefs } from './helpers';
+import { withArabicOn } from './support/arabic';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -22,12 +23,7 @@ test('a date in Arabic is drawn in the app’s own fonts, not a system monospace
     [member.id, `ad_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
   );
   await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by)
-       values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason: Arabic dates', $1)`,
-    [member.id],
-  );
-  try {
+  await withArabicOn(member.id, 'Made-up reason: Arabic dates', async () => {
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, member.email, '/my-day');
     await hydrated(page);
@@ -54,7 +50,5 @@ test('a date in Arabic is drawn in the app’s own fonts, not a system monospace
     const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
     const system = fonts.filter((f) => !f.isCustomFont).map((f) => f.familyName);
     expect(system, 'the Arabic date is drawn in the app’s own fonts, not a system monospace font').toEqual([]);
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
-  }
+  });
 });
