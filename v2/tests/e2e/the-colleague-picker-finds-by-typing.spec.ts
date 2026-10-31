@@ -17,11 +17,7 @@ for (const width of [375, 1440]) {
     const other = await makePerson({});
     const nameOf = async (id: string) =>
       (await sql<{ name: string }>(`select full_name_en as name from core.person where id = $1`, [id]))[0]!.name;
-    const [firstName, secondName, otherName] = [
-      await nameOf(first.id),
-      await nameOf(second.id),
-      await nameOf(other.id),
-    ];
+    const [firstName, secondName] = [await nameOf(first.id), await nameOf(second.id)];
     const t = Math.random().toString(36).slice(2, 8);
     const [team] = await sql<{ id: string }>(
       `insert into core.team (department_id, code, name_en, name_ar)
