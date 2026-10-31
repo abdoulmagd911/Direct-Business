@@ -12,6 +12,12 @@ import { MyDay } from '../../../src/modules/my-day/screens/MyDay';
 import type { MyDayAnswer } from '../../../src/modules/my-day/types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }), usePathname: () => '/my-day' }));
+// the Today block's saved views bar reads who is signed in and the page's saved views; neither is the subject here
+vi.mock('@/core/auth/me-context', () => ({
+  useMe: () => ({ person: { id: 'p1' }, levels: {} }),
+  useMaybeMe: () => null,
+}));
+vi.mock('@/core/db/rpc', () => ({ rpc: vi.fn(async () => []) }));
 
 const LONG =
   'Ask the made-up Dune Foods buyer about the renewal terms and the new delivery schedule for the autumn season';
