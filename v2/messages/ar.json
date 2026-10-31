@@ -396,6 +396,8 @@
         "person": "زملاء بالاسم",
         "sharedWith": "مشارَكة مع",
         "shareAdd": "إضافة زميل",
+        "shareSearch": "اكتب اسمًا",
+        "shareNone": "لا يوجد زميل بهذا الاسم",
         "shareRemove": "إزالة {name}",
         "you": "أنت",
         "private": "أنا فقط",

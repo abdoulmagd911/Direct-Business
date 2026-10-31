@@ -241,6 +241,8 @@
         "person": "Named colleagues",
         "sharedWith": "Shared with",
         "shareAdd": "Add a colleague",
+        "shareSearch": "Type a name",
+        "shareNone": "No colleague with that name",
         "shareRemove": "Remove {name}",
         "you": "You",
         "private": "Only me",
