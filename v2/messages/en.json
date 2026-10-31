@@ -308,6 +308,11 @@
         "noTask": "No task found",
         "itemAdded": "Added to the checklist of {number}",
         "activityTitle": "Log a meeting or call",
+        "reminderMissing": {
+          "day": "Pick the day for the reminder.",
+          "time": "Type the time as hours and minutes, like 09:30.",
+          "text": "Write what to be reminded of."
+        },
         "reminderTitle": "Set a reminder",
         "organisation": "Organisation",
         "searchOrg": "Search organisations by name or number",
