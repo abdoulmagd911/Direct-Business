@@ -272,7 +272,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: 'grid grid-cols-3 gap-2',
+        find: 'grid grid-cols-[1fr_1.4fr_1fr] gap-2',
         replace: 'flex flex-wrap gap-2',
       },
       {
