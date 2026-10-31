@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * P5-7: the Today block draws Overdue, Due today, Next 7 days and Helping; the tasks I only help on sit in Helping with no
- * done tick (they are not mine to finish); a chip per group shows only the groups pressed; the fixed views All · Mine ·
- * Helping set the chips; a saved view marked as my default opens on its groups. Names are made up.
+ * done tick (they are not mine to finish); a chip per group shows only the groups pressed (the chips say "Show only", and
+ * Helping is a control once); the one fixed view, All, clears them; Save view has an icon and says what it keeps; a saved view marked as my default opens on its groups. Names are made up.
  * Sabotage: tests/sabotage/my-day-task-groups.mjs.
  */
 import { NextIntlClientProvider } from 'next-intl';
@@ -87,14 +87,26 @@ describe('the Today block: groups, chips and views', () => {
     click('[data-today-chip="overdue"]');
     expect(groups()).toEqual(['overdue', 'today', 'next', 'helping']);
   });
-  it('the fixed views set the chips: Mine leaves Helping out, Helping shows only it, All shows everything', async () => {
+  it('has one view of its own, All, which clears the chips; the chips are the only place Helping is a choice', async () => {
     await draw();
-    click('[data-view="mine"]');
-    expect(groups()).toEqual(['overdue', 'today', 'next']);
-    click('[data-view="helping"]');
-    expect(groups()).toEqual(['helping']);
+    expect(
+      [...document.querySelectorAll('[data-saved-views] [data-view]')].map((b) => b.getAttribute('data-view')),
+    ).toEqual(['all']);
+    click('[data-today-chip="helping"]');
     click('[data-view="all"]');
     expect(groups()).toHaveLength(4);
+    // "Helping" is a control once (the chip); the group below it is a heading, not a second control
+    const controls = [...document.querySelectorAll('[data-today-views] button')].filter((b) =>
+      /^Helping/.test(b.textContent ?? ''),
+    );
+    expect(controls).toHaveLength(1);
+  });
+  it('says the chips filter ("Show only") and what Save view keeps, with an icon beside the words', async () => {
+    await draw();
+    expect(document.querySelector('[data-today-filter-label]')?.textContent).toBe('Show only');
+    const save = document.querySelector('[data-view-save]') as HTMLElement;
+    expect(save.querySelector('svg')).not.toBeNull();
+    expect(save.getAttribute('title')).toBe(en.pages.myDay.today.saveHint);
   });
   it('opens on the saved view this person set as their default', async () => {
     saved = [

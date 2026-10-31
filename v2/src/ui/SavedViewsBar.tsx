@@ -1,5 +1,5 @@
 'use client';
-import { Check, MoreHorizontal, Star } from 'lucide-react';
+import { Bookmark, Check, MoreHorizontal, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
@@ -30,6 +30,7 @@ export function SavedViewsBar({
   onOpen,
   canShare,
   onDefault,
+  saveHint,
   className,
 }: {
   page: string;
@@ -43,6 +44,8 @@ export function SavedViewsBar({
   canShare: boolean;
   /** Told once, when the views are read, of the one this person set as their default — for a page that does not open on it by its address. */
   onDefault?: (view: { key: string; query: Record<string, unknown> }) => void;
+  /** One line saying what Save view keeps on this page: shown on the button's hover and in the save box. */
+  saveHint?: string;
   className?: string;
 }) {
   const admin = isAdmin(useMe());
@@ -145,7 +148,8 @@ export function SavedViewsBar({
           {t('state.failed', { what: t('views.label') })} · {t('common.tryAgain')}
         </Button>
       ) : null}
-      <Button size="sm" variant="ghost" onClick={() => setSaving(true)} data-view-save>
+      <Button size="sm" variant="ghost" onClick={() => setSaving(true)} title={saveHint} data-view-save>
+        <Bookmark className="size-4" aria-hidden="true" />
         {t('views.save')}
       </Button>
       <Dialog
@@ -165,6 +169,7 @@ export function SavedViewsBar({
         }
       >
         <div className="flex flex-col gap-4">
+          {saveHint ? <p className="text-sm text-muted">{saveHint}</p> : null}
           <Field label={t('views.name')}>
             {(p) => <Input {...p} value={name} onChange={(e) => setName(e.target.value)} autoFocus />}
           </Field>

@@ -107,12 +107,8 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
 export const TASK_GROUPS = ['overdue', 'today', 'next', 'helping'] as const;
 export type TaskGroup = (typeof TASK_GROUPS)[number];
 
-/** The block's views that come with the page: all four groups, the tasks that are mine, the tasks I only help on. */
-export const FIXED_TASK_VIEWS: Record<'all' | 'mine' | 'helping', TaskGroup[]> = {
-  all: [],
-  mine: ['overdue', 'today', 'next'],
-  helping: ['helping'],
-};
+/** The one view that comes with the page: all four groups. Which groups to show is the chips' job, so no second control repeats them. */
+export const FIXED_TASK_VIEWS: Record<'all', TaskGroup[]> = { all: [] };
 
 /** The groups a saved view keeps; an unknown word is dropped, and none at all means every group is drawn. */
 export function readTaskView(query: Record<string, unknown> | undefined): TaskGroup[] {
