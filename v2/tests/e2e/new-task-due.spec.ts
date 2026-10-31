@@ -17,6 +17,12 @@ const WIDTHS = [
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
 
+/** A day written the way the app writes it: 2026-10-20 -> 20 Oct 2026. */
+const written = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m! - 1]} ${y}`;
+};
+
 const riyadhToday = () =>
   new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Riyadh',
@@ -68,7 +74,7 @@ for (const w of WIDTHS) {
 
     // a chip fills the box, Clear empties it
     await form.locator('[data-due-chip="today"]').click();
-    await expect(due, 'Today is the Riyadh day').toHaveValue(riyadhToday());
+    await expect(due, 'Today is the Riyadh day, written the way dates are written').toHaveValue(written(riyadhToday()));
     await expect(form.locator('[data-due-chip="today"]')).toHaveAttribute('aria-checked', 'true');
     await form.locator('[data-due-clear]').click();
     await expect(due, 'Clear empties Due').toHaveValue('');
@@ -81,7 +87,7 @@ for (const w of WIDTHS) {
       '20 Oct 2026',
     );
     await form.locator('input[name="title"]').focus();
-    await expect(due, 'and the box says it back as the day').toHaveValue('2026-10-20');
+    await expect(due, 'and the box says it back as the day, never 2026-10-20').toHaveValue('20 Oct 2026');
 
     const title = `Made-up due task ${randomUUID().slice(0, 6)}`;
     await form.locator('input[name="title"]').fill(title);

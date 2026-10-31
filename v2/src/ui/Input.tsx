@@ -9,7 +9,7 @@ import {
   type MouseEvent,
   type TextareaHTMLAttributes,
 } from 'react';
-import { formatDate } from '@/core/i18n/format';
+import { formatClock, formatDate, parseClock } from '@/core/i18n/format';
 import { cn } from './cn';
 
 export const inputClass =
@@ -100,6 +100,53 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
     </div>
   );
 });
+
+/**
+ * A time box (W-daily 13): the browser draws a time input in the computer's own clock (`9:30 AM`), so this is a text box
+ * that reads the time typed in any common way ("9", "930", "21.05", "9:30 pm") and writes it back as 24-hour `HH:MM`
+ * (`09:30`), in Arabic too. `value` and `onChange` carry `HH:MM`; a half-typed time is held in the box and not sent.
+ */
+export function TimeInput({
+  value,
+  onChange,
+  className,
+  ...rest
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> & {
+  value: string;
+  onChange: (hhmm: string) => void;
+  mono?: boolean;
+}) {
+  const locale = useLocale() as 'en' | 'ar';
+  const [text, setText] = useState(() => (parseClock(value) ? formatClock(parseClock(value)!, locale) : value));
+  const [seen, setSeen] = useState(value);
+  // a time chosen elsewhere (a chip) is written into the box
+  if (value !== seen) {
+    setSeen(value);
+    if (parseClock(value) && parseClock(text) !== value) setText(formatClock(value, locale));
+  }
+  const read = parseClock(text);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder="09:30"
+      value={text}
+      aria-invalid={text.trim() !== '' && !read ? true : undefined}
+      onChange={(e) => {
+        setText(e.target.value);
+        const t = parseClock(e.target.value);
+        if (t) {
+          setSeen(t);
+          onChange(t);
+        }
+      }}
+      onBlur={() => read && setText(formatClock(read, locale))}
+      className={cn(inputClass, 'h-[var(--control-h)] font-data tabular', className)}
+      {...rest}
+    />
+  );
+}
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ className, mono, ...rest }, ref) {
   if (rest.type === 'date' || rest.type === 'datetime-local' || rest.type === 'time')

@@ -2,7 +2,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import { cn } from '@/ui/cn';
-import { Input } from '@/ui/Input';
+import { Input, TimeInput } from '@/ui/Input';
 import {
   hasPassed,
   laterToday,
@@ -86,12 +86,7 @@ export function WhenPicker({
             </label>
             <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
               {t('pages.myDay.quick.time')}
-              <Input
-                type="time"
-                value={pick.time}
-                onChange={(e) => e.target.value && onPick({ ...pick, time: e.target.value })}
-                data-when-time-field
-              />
+              <TimeInput value={pick.time} onChange={(time) => onPick({ ...pick, time })} data-when-time-field />
             </label>
           </div>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.time')}>

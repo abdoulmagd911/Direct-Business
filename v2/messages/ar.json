@@ -451,7 +451,7 @@
           "activity": "اجتماع أو مكالمة مسجّلة",
           "reminder": "تذكير",
           "task": "مهمة",
-          "action_item": "بند إجراء",
+          "action_item": "بند عمل في مهمة",
           "achievement": "إنجاز"
         },
         "activityTitle": "تسجيل اجتماع أو مكالمة",
@@ -466,7 +466,12 @@
         "text": "ذكّرني بـ",
         "logged": "تم تسجيل {type} على {name}",
         "reminded": "تم ضبط التذكير في {when}",
-        "taskTitle": "تحويل هذه الملاحظة إلى مهمة"
+        "taskTitle": "تحويل هذه الملاحظة إلى مهمة",
+        "itemTitle": "بند عمل في مهمة",
+        "task": "المهمة",
+        "searchTask": "ابحث عن مهمة بالعنوان أو الرقم",
+        "noTask": "لا توجد مهمة بهذا العنوان",
+        "itemAdded": "تمت الإضافة إلى بنود عمل {number}"
       },
       "finish": {
         "label": "إنهاء الاجتماع",
@@ -660,7 +665,7 @@
         "due_invalid": "اختر تاريخًا",
         "dueToday": "اليوم",
         "dueClear": "مسح",
-        "duePlaceholder": "yyyy-mm-dd",
+        "duePlaceholder": "20 أكتوبر 2026",
         "dueCalendar": "اختر من التقويم",
         "owner_required": "اختر مالكًا"
       },

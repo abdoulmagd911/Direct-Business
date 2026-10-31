@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, formatStoredDate } from '@/core/i18n/format';
 import { Button } from '../Button';
 import { StatusChip } from '../Chip';
 import { PersonChip } from '../PersonChip';
@@ -72,9 +72,11 @@ export function ActivityTimeline({
     if (said) return said;
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'boolean') return t(v ? 'common.yes' : 'common.no');
-    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(v, locale, { dateStyle: 'medium' });
-    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v))
-      return formatDate(new Date(v), locale, { dateStyle: 'medium', timeStyle: 'short' });
+    // a stored day or moment is written the one way the app writes a date (formatStoredDate), then a person's id by name
+    if (typeof v === 'string' || typeof v === 'number') {
+      const when = formatStoredDate(v, locale);
+      if (when) return when;
+    }
     if (typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return people[v]?.displayName ?? '—';
     if (typeof v === 'string' || typeof v === 'number') return String(v);
     return JSON.stringify(v);
