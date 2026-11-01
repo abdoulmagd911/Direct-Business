@@ -100,7 +100,7 @@ select test.eq(api.action_item_star(current_setting('t.item2')::uuid, true) -> '
   'starring it again changes and logs nothing');
 select test.as_person(current_setting('t.item_owner')::uuid);
 select test.raises(format('select api.task_star(%L, true)', current_setting('t.task')), '42501',
-  'the item''s owner still cannot star the task itself', 'access.needs_level');
+  'someone who may not change the task cannot star it', 'access.needs_level');
 
 -- someone who may see the task but may not tick its item cannot star the item, or the task either
 select test.as_person(current_setting('t.viewer')::uuid);
