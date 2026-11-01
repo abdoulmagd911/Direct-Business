@@ -163,7 +163,7 @@ test("one's own record shows real figures, never not measured; a member sees a c
   await expect(page.getByLabel('Display name (Arabic)')).toBeVisible();
 });
 
-test('an unknown address is Not found; an unbuilt page says it is being built; a setting reads as a word; My day is headed by the date; the empty bell says what it is for', async ({
+test('an unknown address is Not found; an unbuilt page says it is not ready yet; a setting reads as a word; My day is headed by the date; the empty bell says what it is for', async ({
   page,
 }) => {
   const admin = await makePerson({ admin: true });
@@ -173,13 +173,15 @@ test('an unknown address is Not found; an unbuilt page says it is being built; a
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await expect(page.locator('h1'), 'never the raw path as a title').not.toHaveText(/^\//);
   await expect(page.locator('[data-not-found-home]')).toHaveText('Go to My day');
-  // an unbuilt page says so in two words (V217, cut 9)
+  // an unbuilt page says it is not ready yet, and points at Tasks or Achievements (V217, cut 9)
   // Tasks is built (builder D, #147, V270), KPIs opens on Achievements (V605) and Finance has its Overview (P4-5, V231),
   // so they left this list
   for (const route of ['/pipeline']) {
     await page.goto(route);
     await hydrated(page);
-    await expect(page.locator('[data-state="empty"]'), `${route} says it is being built`).toContainText('Being built.');
+    await expect(page.locator('[data-state="empty"]'), `${route} says it is not ready yet`).toContainText(
+      'Not ready yet. Use Tasks or Achievements for now.',
+    );
     await expect(page.locator('[data-state="empty"]')).not.toContainText('Nothing here yet');
   }
   await page.goto('/settings/work');
