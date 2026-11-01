@@ -693,7 +693,7 @@
         "due_invalid": "Pick a date",
         "dueToday": "Today",
         "dueClear": "Clear",
-        "duePlaceholder": "20 Oct 2026",
+        "duePlaceholder": "For example, 20 Oct 2026",
         "dueCalendar": "Pick on a calendar",
         "owner_required": "Pick an owner"
       },
