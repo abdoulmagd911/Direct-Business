@@ -393,6 +393,9 @@ function EditTask({
       onOpenChange={onOpenChange}
       title={t('pages.tasks.edit.title', { number: task.number })}
       closeLabel={t('common.close')}
+      // Always dirty: the browser's date picker popup sits outside the dialog, so a tap on its Clear would
+      // otherwise close the whole edit unsaved. Cancel still closes, as always.
+      dirty
     >
       {open ? <EditForm task={task} onClose={() => onOpenChange(false)} /> : null}
     </Dialog>
