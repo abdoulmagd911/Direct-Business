@@ -49,6 +49,16 @@ describe('status: the four locked meanings, Blocked with its reason, Done asks a
       go: { p_status: 'done', p_close_items: true },
     });
     expect(planMove(row(), to('done'), STATUSES)).toEqual({ go: { p_status: 'done' } });
-    expect(planMove(t, to('cancelled'), STATUSES)).toEqual({ go: { p_status: 'cancelled' } });
+  });
+
+  it('Cancelled asks for its reason, and sends it with Cancelled', () => {
+    expect(planMove(row(), to('cancelled'), STATUSES)).toEqual({ ask: 'reason' });
+    expect(planMove(row(), to('cancelled'), STATUSES, { reason: '   ' })).toEqual({ ask: 'reason' });
+    expect(planMove(row(), to('cancelled'), STATUSES, { reason: ' The client withdrew ' })).toEqual({
+      go: { p_status: 'cancelled', p_reason: 'The client withdrew' },
+    });
+    expect(planMove(row(), to('cancelled'), STATUSES, { reason: 'x'.repeat(501) })).toEqual({
+      refuse: 'reason_too_long',
+    });
   });
 });

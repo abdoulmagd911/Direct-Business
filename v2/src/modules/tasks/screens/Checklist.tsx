@@ -13,6 +13,7 @@ import { Input } from '@/ui/Input';
 import { cn } from '@/ui/cn';
 import { canTick } from '../rules';
 import type { TaskDetail } from '../types';
+import { StarMark, StarToggle } from './StarToggle';
 import { useCommandWords } from './words';
 
 const ITEM_MAX = 500;
@@ -105,6 +106,18 @@ export function Checklist({
                     </span>
                   ) : null}
                 </span>
+                {may ? (
+                  <StarToggle
+                    id={i.id}
+                    door="action_item_star"
+                    starred={!!i.starred}
+                    title={i.text}
+                    number={task.number}
+                    className="-me-2.5 -mt-2 -mb-2.5"
+                  />
+                ) : (
+                  <StarMark starred={!!i.starred} />
+                )}
               </li>
             );
           })}

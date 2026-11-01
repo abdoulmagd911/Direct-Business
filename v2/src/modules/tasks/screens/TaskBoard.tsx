@@ -8,13 +8,14 @@ import type { TaskLookups } from '../load';
 import { boardColumns, dueState, statusView } from '../rules';
 import type { TaskRow } from '../types';
 import { BlockReason } from './BlockReason';
+import { CancelReason } from './CancelReason';
 import { StatusMenu, statusName } from './StatusControl';
 import { useNames } from './words';
 
 /**
  * The board (§8 Tasks): one column per status, in the settings' order, each with its count. A card is the task's title,
- * number, owner and due day; its status menu moves it (no dragging — the same moves the record offers, Blocked asking
- * for its reason). The board reads the list's rows, so both count the same tasks. At 390 px the columns stack.
+ * number, owner and due day; its status menu moves it (no dragging — the same moves the record offers, Blocked and
+ * Cancelled asking for their reason). The board reads the list's rows, so both count the same tasks. At 390 px the columns stack.
  */
 export function TaskBoard({ rows, lookups, today }: { rows: TaskRow[]; lookups: TaskLookups; today: string }) {
   const t = useTranslations();
@@ -59,6 +60,7 @@ export function TaskBoard({ rows, lookups, today }: { rows: TaskRow[]; lookups: 
                         {` · ${names.person(r.owner_id)}`}
                       </p>
                       <BlockReason task={r} />
+                      <CancelReason task={r} />
                       <div className="flex flex-wrap items-center gap-1.5">
                         <StatusMenu task={r} statuses={lookups.statuses} label={label} canEdit={r.can_edit} />
                         {r.due_on ? (

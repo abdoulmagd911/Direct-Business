@@ -195,7 +195,8 @@ export type MovePlan =
   | { refuse: 'reason_too_long' };
 
 /**
- * What a chosen move needs before it is sent (V401, V191): Blocked needs its reason; Done with open action items asks
+ * What a chosen move needs before it is sent (V401, V191): Blocked needs its reason, and so does Cancelled, so a
+ * cancelled task closes with its why recorded instead of a stray note; Done with open action items asks
  * first, then closes them too (one request, one Undo). The database refuses the same — this asks before it has to.
  */
 export function planMove(
@@ -210,6 +211,12 @@ export function planMove(
     if (reason.length > REASON_MAX) return { refuse: 'reason_too_long' };
     const progress = statuses.find((s) => s.meaning === 'in_progress' && s.active);
     return { go: { p_status: progress?.key ?? 'in_progress', p_reason: reason } };
+  }
+  if (move.kind === 'status' && move.status.meaning === 'cancelled') {
+    const reason = answers.reason?.trim() ?? '';
+    if (!reason) return { ask: 'reason' };
+    if (reason.length > REASON_MAX) return { refuse: 'reason_too_long' };
+    return { go: { p_status: move.status.key, p_reason: reason } };
   }
   if (move.status.meaning === 'done' && t.open_action_items > 0) {
     if (!answers.closeItems) return { ask: 'close_items', count: t.open_action_items };

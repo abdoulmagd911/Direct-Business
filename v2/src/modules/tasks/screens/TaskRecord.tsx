@@ -240,6 +240,12 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="break-words text-base">{task.blocked_reason}</p>
               </div>
             ) : null}
+            {task.meaning === 'cancelled' && task.cancelled_reason ? (
+              <div className="rounded-md border border-border bg-surface px-4 py-3" data-cancelled-reason>
+                <p className="text-sm font-semibold">{t('pages.tasks.board.cancelledLabel')}</p>
+                <p className="break-words text-base">{task.cancelled_reason}</p>
+              </div>
+            ) : null}
             <section className="flex flex-col gap-2">
               <h2 className="text-lg font-semibold">{t('pages.tasks.fields.notes')}</h2>
               {task.notes ? (

@@ -19,8 +19,8 @@ import { useCommandWords } from './words';
 type Task = Pick<TaskRow, 'id' | 'number' | 'title' | 'status' | 'meaning' | 'blocked_reason' | 'open_action_items'>;
 
 /**
- * One status move, asked the way V401 and V191 say: Blocked asks its reason; Done with open action items asks whether
- * to close them too. Every move is one request through api.task_status_set, with Undo.
+ * One status move, asked the way V401 and V191 say: Blocked asks its reason, and so does Cancelled; Done with open
+ * action items asks whether to close them too. Every move is one request through api.task_status_set, with Undo.
  */
 export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const t = useTranslations();
@@ -28,7 +28,7 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const words = useCommandWords();
   const router = useRouter();
   const canLog = ['own', 'full'].includes(useMaybeMe()?.levels.kpis ?? 'none');
-  const [blocking, setBlocking] = useState(false);
+  const [reasoning, setReasoning] = useState<Move | null>(null);
   const [closing, setClosing] = useState<{ move: Move; count: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -69,7 +69,7 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const choose = async (move: Move, answers: { reason?: string; closeItems?: boolean } = {}) => {
     const plan = planMove(task, move, statuses, answers);
     if ('ask' in plan) {
-      if (plan.ask === 'reason') setBlocking(true);
+      if (plan.ask === 'reason') setReasoning(move);
       else setClosing({ move, count: plan.count });
       return;
     }
@@ -81,19 +81,24 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
   const dialogs: ReactNode = (
     <>
       <ReasonDialog
-        open={blocking}
-        onOpenChange={setBlocking}
-        title={t('pages.tasks.status.blockTitle', { number: task.number })}
+        open={!!reasoning}
+        onOpenChange={(o) => !o && setReasoning(null)}
+        title={
+          reasoning?.kind === 'block'
+            ? t('pages.tasks.status.blockTitle', { number: task.number })
+            : t('pages.tasks.status.cancelTitle', { number: task.number })
+        }
         body={task.title}
         words={{
-          reason: t('pages.tasks.status.blockReason'),
-          save: t('pages.tasks.status.block'),
+          reason:
+            reasoning?.kind === 'block' ? t('pages.tasks.status.blockReason') : t('pages.tasks.status.cancelReason'),
+          save: reasoning?.kind === 'block' ? t('pages.tasks.status.block') : t('pages.tasks.status.cancel'),
           cancel: t('common.cancel'),
           reasonRequired: t('pages.tasks.status.reasonRequired'),
         }}
         onSave={async (reason) => {
-          await choose({ kind: 'block' }, { reason });
-          setBlocking(false);
+          if (reasoning) await choose(reasoning, { reason });
+          setReasoning(null);
         }}
       />
       <Confirm

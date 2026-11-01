@@ -76,6 +76,7 @@ export function row(over: Partial<TaskRow> = {}): TaskRow {
     closed_at: null,
     blocked_reason: null,
     blocked_on: null,
+    cancelled_reason: null,
     version: 1,
     can_edit: true,
     open_action_items: 0,

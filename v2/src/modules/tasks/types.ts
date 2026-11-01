@@ -32,6 +32,7 @@ export type TaskRow = {
   closed_at: string | null;
   blocked_reason: string | null;
   blocked_on: string | null;
+  cancelled_reason: string | null;
   version: number;
   can_edit: boolean;
   open_action_items: number;
@@ -59,6 +60,7 @@ export type ActionItem = {
   happened_on: string;
   version: number;
   overdue: boolean;
+  starred: boolean;
   helpers: string[];
 };
 
