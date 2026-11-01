@@ -403,6 +403,7 @@
         "workspace": "مساحة العمل"
       },
       "tabsLabel": "ملاحظات من",
+      "sharedWithMe": "مشارَكة معي",
       "kinds": {
         "sticky": "ملاحظة",
         "meeting": "اجتماع",
@@ -462,6 +463,7 @@
         "removed": "تم حذف الملاحظة",
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
+        "mentions": "إشارة",
         "linkActivity": "{type} · {name}",
         "linkReminder": "تذكير · {when}",
         "linkTask": "مهمة {number} · {title}",

@@ -43,6 +43,9 @@ export function entityRoute(entity: string | null | undefined, id: string | null
       return `/tasks/${id}`;
     case 'achievement':
       return `/kpis/achievements/${id}`;
+    case 'my_note':
+      // The registry key for a My day note (my.note); its page is /my-day/notes/[id] (noteRoute in my-day/logic).
+      return `/my-day/notes/${id}`;
     default:
       return null;
   }

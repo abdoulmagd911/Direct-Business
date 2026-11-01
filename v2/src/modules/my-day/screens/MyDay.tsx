@@ -55,6 +55,8 @@ export function MyDay({ data }: { data: MyDayData }) {
   const words = useWords();
   const { scope, answer, all, kind } = data;
   const [wrapping, setWrapping] = useState(false);
+  // "Shared with me": a client-side filter over the already-loaded team rows, not a fourth tab or a new read.
+  const [sharedWithMe, setSharedWithMe] = useState(false);
   // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
   const done = (r: PendingReminder) =>
     command(
@@ -68,8 +70,11 @@ export function MyDay({ data }: { data: MyDayData }) {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;
   };
-  const rows = all ? answer.notes : answer.notes.slice(0, BLOCK_ROWS);
-  const more = !all && (answer.more || answer.notes.length > BLOCK_ROWS);
+  const baseRows = all ? answer.notes : answer.notes.slice(0, BLOCK_ROWS);
+  const rows =
+    scope === 'team' && sharedWithMe ? baseRows.filter((n) => n.visibility === 'person' && !n.mine) : baseRows;
+  // When the filter is on, the "more" link would drop it (it is client state, not in the address), so it is hidden.
+  const more = !sharedWithMe && !all && (answer.more || answer.notes.length > BLOCK_ROWS);
 
   return (
     <>
@@ -181,6 +186,25 @@ export function MyDay({ data }: { data: MyDayData }) {
                 {k ? t(`pages.myDay.quick.kinds.${k}`) : t('pages.myDay.kindFilter.all')}
               </Link>
             ))}
+          </nav>
+        ) : null}
+        {scope === 'team' ? (
+          <nav
+            aria-label={t('pages.myDay.sharedWithMe')}
+            className="flex flex-wrap gap-1.5 border-b border-border py-2.5"
+          >
+            <button
+              type="button"
+              aria-pressed={sharedWithMe}
+              onClick={() => setSharedWithMe((v) => !v)}
+              className={cn(
+                'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+                sharedWithMe ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',
+              )}
+              data-shared-with-me
+            >
+              {t('pages.myDay.sharedWithMe')}
+            </button>
           </nav>
         ) : null}
         {rows.length ? (

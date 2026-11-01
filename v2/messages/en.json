@@ -231,6 +231,7 @@
         "workspace": "Workspace"
       },
       "tabsLabel": "Whose notes",
+      "sharedWithMe": "Shared with me",
       "kinds": {
         "sticky": "Note",
         "meeting": "Meeting",
@@ -290,6 +291,7 @@
         "removed": "Note deleted",
         "notFound": "This note is not there, or it is not yours to read.",
         "details": "Details",
+        "mentions": "Mention",
         "linkActivity": "{type} · {name}",
         "linkReminder": "Reminder · {when}",
         "linkTask": "Task {number} · {title}",

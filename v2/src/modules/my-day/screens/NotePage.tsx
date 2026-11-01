@@ -36,6 +36,7 @@ type Draft = {
   items: NoteItem[];
   visibility: MyNote['visibility'];
   shared_with: string[];
+  mentions: string[];
   happened_on: string;
   meeting_partner: PartnerRef | null;
   meeting_on: string;
@@ -47,6 +48,7 @@ const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
   items: n.items,
   visibility: n.visibility,
   shared_with: n.shared_with ?? [],
+  mentions: n.mentions ?? [],
   happened_on: n.happened_on,
   meeting_partner: partner,
   meeting_on: n.meeting_on ?? '',
@@ -103,6 +105,11 @@ export function NotePage({
   const nameOf = (id: string) =>
     id === me ? t('pages.myDay.visibility.you') : (colleagues.find((c) => c.id === id)?.name ?? '—');
   const addable = colleagues.filter((c) => !d.shared_with.includes(c.id));
+  // A mention only notifies someone who can see the note (the database refuses otherwise), so on a
+  // named-colleagues note only colleagues already shared with are offered; on team/workspace notes anyone is.
+  const mentionable = colleagues.filter(
+    (c) => !d.mentions.includes(c.id) && (d.visibility === 'person' ? d.shared_with.includes(c.id) : true),
+  );
 
   const save = async () => {
     setBusy(true);
@@ -112,6 +119,7 @@ export function NotePage({
         rpc('note_update', {
           p_id: note.id,
           p_version: note.version,
+          p_mentions: d.mentions,
           p_values: {
             title: d.title.trim() || null,
             body: d.body.trim() || null,
@@ -285,7 +293,10 @@ export function NotePage({
                 {...p}
                 value={d.visibility}
                 disabled={!mine}
-                onValueChange={(v) => setD({ ...d, visibility: v as MyNote['visibility'] })}
+                // A private note mentions nobody (the database refuses it), so switching to private clears mentions.
+                onValueChange={(v) =>
+                  setD({ ...d, visibility: v as MyNote['visibility'], mentions: v === 'private' ? [] : d.mentions })
+                }
                 options={NOTE_VISIBILITIES.map((v) => ({ value: v, label: t(`pages.myDay.visibility.${v}`) }))}
               />
             )}
@@ -317,6 +328,39 @@ export function NotePage({
                       id={p.id}
                       options={addable}
                       onPick={(v) => setD({ ...d, shared_with: [...d.shared_with, v] })}
+                    />
+                  ) : null}
+                </div>
+              )}
+            </Field>
+          ) : null}
+          {d.visibility !== 'private' ? (
+            <Field label={t('pages.myDay.note.mentions')}>
+              {(p) => (
+                <div className="flex flex-col gap-2" data-note-mentions>
+                  {d.mentions.length ? (
+                    <ul className="flex flex-col gap-1">
+                      {d.mentions.map((id) => (
+                        <li key={id} className="flex items-center justify-between gap-2" data-mentioned-person={id}>
+                          <span className="min-w-0 break-words">{nameOf(id)}</span>
+                          {mine ? (
+                            <IconButton
+                              size="sm"
+                              label={t('pages.myDay.visibility.shareRemove', { name: nameOf(id) })}
+                              icon={<X />}
+                              onClick={() => setD({ ...d, mentions: d.mentions.filter((x) => x !== id) })}
+                              data-mention-remove={id}
+                            />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {mine && mentionable.length ? (
+                    <PeoplePicker
+                      id={p.id}
+                      options={mentionable}
+                      onPick={(v) => setD({ ...d, mentions: [...d.mentions, v] })}
                     />
                   ) : null}
                 </div>

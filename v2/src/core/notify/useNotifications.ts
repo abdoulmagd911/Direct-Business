@@ -31,7 +31,10 @@ export type Notification = {
 
 /** Which kinds each tab shows (api.notifications' own rule, notify.list): All is every kind, so it is the badge. */
 export const tabHas = (tab: NotificationTab, kind: string) =>
-  tab === 'all' || (tab === 'mentions' ? kind === 'mentioned' : kind === 'assigned' || kind === 'helper_added');
+  tab === 'all' ||
+  (tab === 'mentions'
+    ? kind === 'mentioned' || kind === 'note_mention'
+    : kind === 'assigned' || kind === 'helper_added');
 
 /**
  * The bell's data: the unread count (drawn in the top bar) and the list of the open tab, cut from ONE read of everything so the tabs' own counts and the badge come from the same rows
