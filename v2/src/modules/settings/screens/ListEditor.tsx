@@ -13,6 +13,7 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { useMediaQuery } from '@/ui/useMediaQuery';
 import { Switch } from '@/ui/Switch';
+import { ScrollCue } from '@/ui/ScrollCue';
 
 export type ListEntry = {
   id: string;
@@ -267,7 +268,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
           ))}
         </ul>
       ) : (
-        <div className="-mx-5 overflow-x-auto px-5">
+        <ScrollCue className="-mx-5 px-5">
           <table className="w-full text-sm">
             <thead className="text-xs text-muted">
               <tr>
@@ -325,7 +326,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollCue>
       )}
 
       <Dialog
