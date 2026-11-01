@@ -326,7 +326,15 @@
         "text": "Remind me to",
         "logged": "{type} logged on {name}",
         "reminded": "Reminder set for {when}",
-        "taskTitle": "Make a task from this note"
+        "taskTitle": "Make a task from this note",
+        "refused": {
+          "activity": "You can only view this organisation, so you cannot log a call or meeting on it.",
+          "finish": "You can only view this organisation, so you cannot log this meeting on it.",
+          "reminder": "Your access does not allow you to set a reminder.",
+          "task": "Your access does not allow you to add a task here.",
+          "action_item": "You can only view this task, so you cannot add to its checklist.",
+          "achievement": "Your access does not allow you to log an achievement."
+        }
       },
       "finish": {
         "label": "Finish meeting",
