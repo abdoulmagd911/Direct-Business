@@ -97,9 +97,43 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
   const out: TodayGroups = { overdue: [], today: [], next: [] };
   for (const t of tasks) {
     if (t.role === 'helper' || t.group === 'helping') continue;
-    const g = t.group ?? (t.due_on < day ? 'overdue' : t.due_on === day ? 'today' : 'next');
+    const g = t.group ?? (!t.due_on ? 'next' : t.due_on < day ? 'overdue' : t.due_on === day ? 'today' : 'next');
     out[g].push(t);
   }
+  return out;
+}
+
+/** V661 (V514 (2)): a task is urgent when it is overdue or due within this many days of today. Named here alone (V275). */
+export const URGENT_WITHIN_DAYS = 2;
+
+/** The Today list's four boxes, in the order they are drawn (V661, V514 (4)). */
+export const TODAY_BOXES = ['do_now', 'plan_it', 'quick', 'later'] as const;
+export type TodayBox = (typeof TODAY_BOXES)[number];
+
+/** Whole days from `day` to `due` (both Riyadh dates, YYYY-MM-DD); negative when overdue. */
+function daysUntil(due: string, day: string): number {
+  return Math.round((Date.parse(`${due}T00:00:00Z`) - Date.parse(`${day}T00:00:00Z`)) / 86_400_000);
+}
+
+/** One task's box (V661): starred and urgent = Do now; starred = Plan it; urgent = Quick or hand off; else Later. */
+export function todayBox(t: Pick<TodayTask, 'starred' | 'due_on'>, day: string): TodayBox {
+  const urgent = !!t.due_on && daysUntil(t.due_on, day) <= URGENT_WITHIN_DAYS;
+  if (t.starred) return urgent ? 'do_now' : 'plan_it';
+  return urgent ? 'quick' : 'later';
+}
+
+/**
+ * The Today list sorted into its four boxes (V661): my own tasks, each box by due day then number. Tasks I only help on
+ * are not mine to chase and stay out, as in `todayGroups`.
+ */
+export function todayBoxes(tasks: TodayTask[], day: string): Record<TodayBox, TodayTask[]> {
+  const out: Record<TodayBox, TodayTask[]> = { do_now: [], plan_it: [], quick: [], later: [] };
+  for (const t of tasks) {
+    if (t.role === 'helper' || t.group === 'helping') continue;
+    out[todayBox(t, day)].push(t);
+  }
+  for (const b of TODAY_BOXES)
+    out[b].sort((x, y) => (x.due_on ?? '9999').localeCompare(y.due_on ?? '9999') || x.number.localeCompare(y.number));
   return out;
 }
 
@@ -120,7 +154,7 @@ export function readTaskView(query: Record<string, unknown> | undefined): TaskGr
 export function helpingTasks(tasks: TodayTask[]): TodayTask[] {
   return tasks
     .filter((t) => t.role === 'helper' || t.group === 'helping')
-    .sort((a, b) => a.due_on.localeCompare(b.due_on));
+    .sort((a, b) => (a.due_on ?? '9999').localeCompare(b.due_on ?? '9999'));
 }
 
 /**

@@ -67,6 +67,7 @@ export type Database = {
       achievements_remove: { Args: { p_ids: string[]; p_reason: string }; Returns: Json };
       action_item_add: { Args: { p_task: string; p_values: Json }; Returns: Json };
       action_item_done: { Args: { p_done: boolean; p_id: string; p_on?: string }; Returns: Json };
+      action_item_star: { Args: { p_id: string; p_starred: boolean }; Returns: Json };
       action_item_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       action_items_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       activities_inside: { Args: { p_limit?: number; p_offset?: number }; Returns: Json };
@@ -539,6 +540,7 @@ export type Database = {
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      task_star: { Args: { p_id: string; p_starred: boolean }; Returns: Json };
       task_status_set: {
         Args: { p_close_items?: boolean; p_happened_on?: string; p_id: string; p_reason?: string; p_status: string };
         Returns: Json;

@@ -309,9 +309,12 @@ function TodayRow({
               <StatusChip tone="neutral">{task.partner_name}</StatusChip>
             </Link>
           ) : null}
-          <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
-            {formatDate(task.due_on, locale, { dateStyle: 'medium' })}
-          </span>
+          {/* a starred task may have no due day (V661): then no day is shown */}
+          {task.due_on ? (
+            <span className={`font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
+              {formatDate(task.due_on, locale, { dateStyle: 'medium' })}
+            </span>
+          ) : null}
         </span>
       </div>
     </li>

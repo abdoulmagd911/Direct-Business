@@ -100,11 +100,14 @@ export type TodayTask = {
   id: string;
   number: string;
   title: string;
-  due_on: string;
+  /** None for a starred task without a due day (V661: a starred task is on Today whatever its due day). */
+  due_on: string | null;
   partner_id: string | null;
   partner_name: string | null;
   group: 'overdue' | 'today' | 'next' | 'helping';
   role: 'owner' | 'helper';
+  /** The importance star (V661). */
+  starred?: boolean;
   /** How many times a wrap-up carried it over. */
   carried_over?: number;
 };
