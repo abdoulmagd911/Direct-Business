@@ -50,7 +50,15 @@ describe('the menu (V238)', () => {
 
   it('shows Activity to anyone whose access opens it', () => {
     const levels = everywhere('full', { overview: 'view', activity: 'view' });
-    expect(keys(me('manager', levels))).toEqual(['my_day', 'tasks', 'clients', 'finance', 'kpis', 'reports', 'activity']);
+    expect(keys(me('manager', levels))).toEqual([
+      'my_day',
+      'tasks',
+      'clients',
+      'finance',
+      'kpis',
+      'reports',
+      'activity',
+    ]);
   });
 
   it('never shows a page whose screen is not built, to any role, in the menu, the bar, More or Ctrl K (QA3-002)', () => {
