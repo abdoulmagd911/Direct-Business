@@ -99,4 +99,28 @@ export const sabotages = [
       { file: 'src/modules/my-day/screens/TodayBlock.tsx', find: '</PhoneFilter>', replace: '</>' },
     ],
   },
+  {
+    name: 'today-block-draws-every-row',
+    breaks: [BOX],
+    expect: 'draws seven of nine',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: '? capRows(groups, BLOCK_ROWS)',
+        replace: '? groups.map((x) => ({ ...x, total: x.rows.length + x.reminders.length }))',
+      },
+    ],
+  },
+  {
+    name: 'today-overdue-count-counts-only-the-rows-drawn',
+    breaks: [BOX],
+    expect: 'keeps the true count on the Overdue heading',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: '                    {x.total}\n',
+        replace: '                    {x.rows.length + x.reminders.length}\n',
+      },
+    ],
+  },
 ];
