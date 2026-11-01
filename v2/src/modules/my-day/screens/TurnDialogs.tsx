@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
+import { withRefusal } from '@/core/commands/refusal';
 import { formatDate } from '@/core/i18n/format';
 import { nameOf, tradeName, type ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
@@ -98,10 +99,13 @@ export function LogFromNoteDialog({
       ...(f.body.trim() ? { body: f.body.trim() } : {}),
     };
     await command(
-      words(
-        finish
-          ? t('pages.myDay.finish.done', { name })
-          : t('pages.myDay.turn.logged', { type: nameOf(type, locale), name }),
+      withRefusal(
+        words(
+          finish
+            ? t('pages.myDay.finish.done', { name })
+            : t('pages.myDay.turn.logged', { type: nameOf(type, locale), name }),
+        ),
+        t(finish ? 'pages.myDay.turn.refused.finish' : 'pages.myDay.turn.refused.activity'),
       ),
       () =>
         (finish
@@ -212,8 +216,11 @@ export function ReminderDialog({
     // the time is Riyadh's (UTC+3, no daylight saving): the stored instant is the same wherever the browser is
     const at = `${f.day}T${f.time}:00+03:00`;
     await command(
-      words(
-        t('pages.myDay.turn.reminded', { when: formatDate(at, locale, { dateStyle: 'medium', timeStyle: 'short' }) }),
+      withRefusal(
+        words(
+          t('pages.myDay.turn.reminded', { when: formatDate(at, locale, { dateStyle: 'medium', timeStyle: 'short' }) }),
+        ),
+        t('pages.myDay.turn.refused.reminder'),
       ),
       () =>
         rpc('note_turn_into', {
@@ -308,7 +315,10 @@ export function ChecklistItemDialog({
     if (!task) return;
     setBusy(true);
     await command(
-      words(t('pages.myDay.turn.itemAdded', { number: task.number })),
+      withRefusal(
+        words(t('pages.myDay.turn.itemAdded', { number: task.number })),
+        t('pages.myDay.turn.refused.action_item'),
+      ),
       () =>
         rpc('note_turn_into', { p_note: note.id, p_kind: 'action_item', p_values: { task_id: task.id } }) as Promise<{
           request_id?: string | null;

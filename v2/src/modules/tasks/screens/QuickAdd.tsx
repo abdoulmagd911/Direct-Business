@@ -20,6 +20,7 @@ import {
   type QuickAddInput,
 } from '../rules';
 import type { NamePick } from '../types';
+import { withRefusal } from '@/core/commands/refusal';
 import { readDateInTitle } from '@/modules/my-day/title-date';
 import { TitleDateChip } from '@/modules/my-day/screens/TitleDateChip';
 import { DueDayPicker } from './DueDayPicker';
@@ -116,11 +117,15 @@ export function QuickAddForm({
   const people = owners.people
     .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  const quickWords = (done: string) => ({
-    ...words(done),
-    has: (k: string) => t.has(quickAddRefusalKey(k)),
-    failed: (k: string, d: string) => t(quickAddRefusalKey(k), { detail: d }),
-  });
+  const quickWords = (done: string) => {
+    const w = {
+      ...words(done),
+      has: (k: string) => t.has(quickAddRefusalKey(k)),
+      failed: (k: string, d: string) => t(quickAddRefusalKey(k), { detail: d }),
+    };
+    // turned into from a note, it is a dialog, not a page: "not enough access" says so in its own words
+    return fromNote ? withRefusal(w, t('pages.myDay.turn.refused.task')) : w;
+  };
 
   const save = async () => {
     const r = quickAddValues(read ? { ...f, due: read.day } : f, me.person.id, { ownerRequired });

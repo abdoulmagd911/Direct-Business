@@ -14,6 +14,7 @@ import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import type { Category } from '../types';
 import { riyadhToday } from './LogAchievement';
+import { withRefusal } from '@/core/commands/refusal';
 import { useCommandWords } from './words';
 
 type System = { key: string; name_en: string; name_ar: string };
@@ -35,6 +36,7 @@ export function AchievementFromNoteDialog({
 }) {
   const t = useTranslations('pages.achievements');
   const tc = useTranslations('common');
+  const tt = useTranslations('pages.myDay.turn');
   const locale = useLocale() as 'en' | 'ar';
   const words = useCommandWords();
   const fresh = () => ({
@@ -80,7 +82,7 @@ export function AchievementFromNoteDialog({
     setBusy(true);
     const system = needsRef ?? systems[0]?.key;
     await command(
-      words(t('logged')),
+      withRefusal(words(t('logged')), tt('refused.achievement')),
       () =>
         rpc('note_turn_into', {
           p_note: note.id,
