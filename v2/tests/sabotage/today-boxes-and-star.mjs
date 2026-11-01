@@ -1,8 +1,6 @@
 // Sabotages for the Today block's four boxes and the importance star (V661), caught by
 // tests/unit/my-day/the-today-block-groups-views-and-chips.test.tsx.
 const BOX = 'unit:tests/unit/my-day/the-today-block-groups-views-and-chips.test.tsx';
-const HEADINGS =
-  'unit:tests/unit/my-day/the-today-block-lists-reminders-and-names-a-followups-record-only-to-who-may-see-it.test.tsx';
 export const sabotages = [
   {
     name: 'today-boxes-in-the-wrong-order',
