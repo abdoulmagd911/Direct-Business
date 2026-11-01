@@ -109,16 +109,16 @@ export const sabotages = [
     ],
   },
   {
-    // QA-564, widened: with an overdue task present the groups still never read just "Today" (the card is titled that)
+    // QA-564, widened: the boxes still never read just "Today" (the card is titled that)
     name: 'today-says-today-twice',
     breaks: [TODAY],
-    expect: 'says Today once with an overdue task and a task due today and one next',
-    edits: [{ file: 'messages/en.json', find: '"today": "Due today",', replace: '"today": "Today",' }],
+    expect: 'says Today once, then the four boxes in order',
+    edits: [{ file: 'messages/en.json', find: '"do_now": "Do now"', replace: '"do_now": "Today"' }],
   },
   {
     name: 'today-says-today-twice-in-the-browser',
     breaks: ['e2e:tests/e2e/today-block.spec.ts'],
-    expect: 'the groups, in order, with an overdue task present',
-    edits: [{ file: 'messages/en.json', find: '"today": "Due today",', replace: '"today": "Today",' }],
+    expect: 'the boxes, in order, with the empty ones left out',
+    edits: [{ file: 'messages/en.json', find: '"do_now": "Do now"', replace: '"do_now": "Today"' }],
   },
 ];

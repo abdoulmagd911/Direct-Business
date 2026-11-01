@@ -6,12 +6,13 @@ import { rpc } from '@/core/db/rpc';
 import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 
-/** A task the reader may see, as api.search answers it. */
-export type TaskRef = { id: string; number: string; title: string; closed: boolean };
+/** A task the reader may see, as api.search answers it; `can_edit` says whether they may add to it (V662). */
+export type TaskRef = { id: string; number: string; title: string; closed: boolean; can_edit?: boolean };
 
 /**
  * A task by title or number (api.search's tasks, two letters or more — the same search as Ctrl K, which reads only what
- * the person may see). The chosen one shows as a chip with a clear button; nothing is picked for the person (V647).
+ * the person may see), minus the closed tasks and the ones they can only view (V662: nothing is offered that the database
+ * would refuse). The chosen one shows as a chip with a clear button; nothing is picked for the person (V647).
  */
 export function TaskPicker({
   value,
@@ -37,7 +38,8 @@ export function TaskPicker({
       live = false;
     };
   }, [term, value]);
-  const hits = term.length >= 2 && found.term === term ? found.hits.filter((h) => !h.closed) : [];
+  const hits =
+    term.length >= 2 && found.term === term ? found.hits.filter((h) => !h.closed && h.can_edit !== false) : [];
 
   if (value)
     return (

@@ -212,12 +212,15 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           onRetry={retry}
           retryLabel={t('common.tryAgain')}
         />
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && layout === 'list' ? (
         <DataState
           kind="empty"
           message={t(isFiltered(f) ? 'pages.tasks.emptyFiltered' : `pages.tasks.empty.${f.scope}`)}
         />
       ) : (
+        // Board and Calendar keep their own shape when there are no tasks,
+        // instead of the list's "No tasks yet" — that was why both layouts
+        // showed no board and no calendar for an empty My work.
         <>
           {layout === 'board' ? (
             <TaskBoard rows={rows} lookups={lookups} today={today} />

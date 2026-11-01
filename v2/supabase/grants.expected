@@ -31,6 +31,7 @@ function api.achievements_assign(p_ids uuid[], p_owner uuid, p_reason text) exec
 function api.achievements_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.action_item_add(p_task uuid, p_values jsonb) execute authenticated
 function api.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
+function api.action_item_star(p_id uuid, p_starred boolean) execute authenticated
 function api.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.activities_inside(p_limit integer, p_offset integer) execute authenticated
@@ -224,6 +225,7 @@ function api.task_from_template(p_template uuid, p_values jsonb) execute authent
 function api.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function api.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function api.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.task_star(p_id uuid, p_starred boolean) execute authenticated
 function api.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
 function api.task_template_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.task_templates() execute authenticated
@@ -478,6 +480,7 @@ function pipeline.remove(p_entity text, p_ids uuid[], p_reason text) execute aut
 function pipeline.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.action_item_add(p_task uuid, p_values jsonb) execute authenticated
 function work.action_item_done(p_id uuid, p_done boolean, p_on date) execute authenticated
+function work.action_item_star(p_id uuid, p_starred boolean) execute authenticated
 function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.backfill_keys_held(p_keys text[]) execute authenticated
@@ -501,6 +504,7 @@ function work.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function work.task_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function work.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function work.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
+function work.task_star(p_id uuid, p_starred boolean) execute authenticated
 function work.task_status_set(p_id uuid, p_status text, p_happened_on date, p_reason text, p_close_items boolean) execute authenticated
 function work.task_template_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.task_templates() execute authenticated

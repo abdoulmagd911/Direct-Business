@@ -16,21 +16,21 @@ export const sabotages = [
     ],
   },
   {
-    name: 'today-block-counts-no-overdue',
+    name: 'today-block-counts-no-box-rows',
     breaks: [E2E],
-    expect: 'groups my tasks, ticks one done with Undo and opens one',
+    expect: 'the boxes, in order, with the empty ones left out',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: "x.key === 'overdue' ? (",
-        replace: "x.key !== 'overdue' ? (",
+        find: '{x.total}',
+        replace: "{''}",
       },
     ],
   },
   {
     name: 'today-block-row-does-not-open-the-task',
     breaks: [E2E],
-    expect: 'groups my tasks, ticks one done with Undo and opens one',
+    expect: 'sorts my tasks into its four boxes, stars one, ticks one done with Undo and opens one',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
