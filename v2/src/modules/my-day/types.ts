@@ -25,8 +25,8 @@ export type Scope = 'me' | 'team' | 'workspace';
 
 export const NOTE_KINDS: NoteKind[] = ['sticky', 'meeting', 'checklist'];
 export const VISIBILITIES: Visibility[] = ['private', 'team', 'workspace'];
-/** On a note's own page a note may also be shared with one named colleague (G, 26 Oct). */
-/** A note's choices, in the order the page offers them: Only me, One colleague, My team, Everyone. */
+/** On a note's own page a note may also be shared with named colleagues (G, 26 Oct; several, V524). */
+/** A note's choices, in the order the page offers them: Only me, Named colleagues, My team, Everyone. */
 export const NOTE_VISIBILITIES: Visibility[] = ['private', 'person', 'team', 'workspace'];
 export const SCOPES: Scope[] = ['me', 'team', 'workspace'];
 
@@ -66,8 +66,8 @@ export type MyNote = {
   body: string | null;
   items: NoteItem[];
   visibility: Visibility;
-  /** The one colleague a note is shared with when its visibility is 'person' (G). */
-  shared_with?: string | null;
+  /** The colleagues a note is shared with when its visibility is 'person' (G; several, V524). */
+  shared_with?: string[];
   happened_on: string;
   logged_at: string;
   author_id: string;

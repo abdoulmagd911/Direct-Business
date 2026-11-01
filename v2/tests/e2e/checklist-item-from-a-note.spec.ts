@@ -134,3 +134,41 @@ test('the task rows of the picker are 44 px high on a phone and stay compact on 
   await page.setViewportSize({ width: 1440, height: 900 });
   expect(await rowHeight(), 'on a wide screen it stays compact').toBeLessThanOrEqual(41);
 });
+
+test('in the task picker the task number stays on one line and the title keeps its room, at 375 px', async ({
+  page,
+}) => {
+  const member = await makePerson();
+  const t = tag();
+  const [team] = await sql<{ id: string }>(
+    `insert into core.team (department_id, code, name_en, name_ar)
+       select department_id, $2, $3, $4 from core.person where id = $1 returning id`,
+    [member.id, `ck_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
+  );
+  await sql(`update core.person set team_id = $2 where id = $1`, [member.id, team!.id]);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+  const made = await callAs(page.context(), 'task_create', {
+    p_values: { title: `Made-up ${t} visa pack for the group` },
+  });
+  expect(made.status, JSON.stringify(made.body)).toBe(200);
+  const { number } = made.body as { number: string };
+  const note = await callAs(page.context(), 'note_capture', {
+    p_kind: 'sticky',
+    p_values: { title: `Made-up ${t} a note`, visibility: 'private' },
+  });
+  expect(note.status, JSON.stringify(note.body)).toBe(200);
+  await page.goto(`/my-day/notes/${(note.body as { id: string }).id}`);
+  await hydrated(page);
+  await page.locator('[data-turn-into]').click();
+  await page.locator('[data-turn-kind="action_item"]').click();
+  await page.getByRole('dialog').locator('[data-task-search]').fill(number);
+  const hit = page.getByRole('dialog').locator('[data-task-hit]').first();
+  await expect(hit).toBeVisible();
+  const box = (sel: string) => hit.locator(sel).evaluate((e) => e.getBoundingClientRect().toJSON());
+  const numberBox = await box('.font-data');
+  const titleBox = await box('.truncate');
+  expect(numberBox.height, 'the task number is on one line').toBeLessThan(24);
+  expect(titleBox.width, 'the title keeps room to be read').toBeGreaterThanOrEqual(200);
+});

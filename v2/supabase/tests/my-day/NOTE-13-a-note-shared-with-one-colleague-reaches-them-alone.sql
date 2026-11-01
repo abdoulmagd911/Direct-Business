@@ -22,8 +22,8 @@ update core.person set active = false where id = current_setting('t.gone')::uuid
 select test.as_person(current_setting('t.author')::uuid);
 select set_config('t.n', api.note_capture('sticky', jsonb_build_object('title', 'Made-up words for one colleague',
   'visibility', 'person', 'shared_with', current_setting('t.named'))) ->> 'id', true);
-select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'shared_with', current_setting('t.named'),
-  'the note says whom it is shared with');
+select test.eq((api.my_note(current_setting('t.n')::uuid) -> 'shared_with')::text,
+  jsonb_build_array(current_setting('t.named'))::text, 'the note says whom it is shared with');
 
 select test.as_person(current_setting('t.named')::uuid);
 select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'title', 'Made-up words for one colleague',
@@ -62,7 +62,8 @@ select test.raises(format('select api.note_capture(%L, %L::jsonb)', 'sticky',
 
 -- made private again, the colleague no longer reads it
 select api.note_update(current_setting('t.n')::uuid, '{"visibility": "private"}'::jsonb, 1);
-select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'shared_with', null, 'private again, it is shared with no one');
+select test.eq((api.my_note(current_setting('t.n')::uuid) -> 'shared_with')::text, '[]',
+  'private again, it is shared with no one');
 select test.as_person(current_setting('t.named')::uuid);
 select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002',
   'and the colleague no longer reads it', 'common.not_found');

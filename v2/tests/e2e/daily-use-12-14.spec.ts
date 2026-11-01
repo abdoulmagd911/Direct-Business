@@ -75,7 +75,7 @@ for (const width of WIDTHS) {
       await hydrated(page);
       if (rtl) expect(await page.evaluate(() => document.documentElement.dir)).toBe('rtl');
 
-      // the box with a date, and (below) the long one with a date and a time: for each, focused by keyboard with a value
+      // the box with a date, and (below) the reminder's Day box: for each, focused by keyboard with a value
       const check = async (field: ReturnType<Page['getByLabel']>, what: string) => {
         await field.focus();
         await page.keyboard.press('Shift+Tab');
@@ -105,7 +105,7 @@ for (const width of WIDTHS) {
       await page.getByLabel('Created').fill('2026-10-09');
       await check(page.getByLabel('Created'), 'a date');
 
-      // a note's Turn into → Reminder has the date-and-time box
+      // a note's Turn into → Reminder has the Day box (its time is the app's own 24-hour box since #378)
       const made = await callAs(page.context(), 'note_capture', {
         p_kind: 'sticky',
         p_values: { title: `Made-up reminder box ${tag()}`, visibility: 'private' },
@@ -115,9 +115,9 @@ for (const width of WIDTHS) {
       await hydrated(page);
       await page.locator('[data-turn-into]').click();
       await page.locator('[data-turn-kind="reminder"]').click();
-      const when = page.locator('[data-reminder-form] input[type="datetime-local"]');
-      await when.fill('2026-10-09T15:00');
-      await check(when, 'a date and a time');
+      const when = page.locator('[data-reminder-form] [data-reminder-day]');
+      await when.fill('2026-10-09');
+      await check(when, "the reminder's day");
     });
   }
 

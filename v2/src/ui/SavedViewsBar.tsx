@@ -1,7 +1,7 @@
 'use client';
-import { Check, MoreHorizontal, Star } from 'lucide-react';
+import { Bookmark, Check, MoreHorizontal, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { isAdmin } from './shell/nav';
 import type { CommandWords } from '@/core/commands/command';
@@ -29,6 +29,8 @@ export function SavedViewsBar({
   query,
   onOpen,
   canShare,
+  onDefault,
+  saveHint,
   className,
 }: {
   page: string;
@@ -40,6 +42,10 @@ export function SavedViewsBar({
   query: Record<string, unknown>;
   onOpen: (view: { key: string; query?: Record<string, unknown> }) => void;
   canShare: boolean;
+  /** Told once, when the views are read, of the one this person set as their default — for a page that does not open on it by its address. */
+  onDefault?: (view: { key: string; query: Record<string, unknown> }) => void;
+  /** One line saying what Save view keeps on this page: shown on the button's hover and in the save box. */
+  saveHint?: string;
   className?: string;
 }) {
   const admin = isAdmin(useMe());
@@ -52,6 +58,13 @@ export function SavedViewsBar({
     failed: (k, d) => t(k, { detail: d }),
   };
   const { views, failed, reload, save, setDefault, remove } = useSavedViews(page, words);
+  const opened = useRef(false);
+  useEffect(() => {
+    const d = views?.find((v) => v.default);
+    if (!onDefault || opened.current || !views) return;
+    opened.current = true;
+    if (d) onDefault({ key: d.id, query: d.query });
+  }, [views, onDefault]);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [shared, setShared] = useState(false);
@@ -135,7 +148,8 @@ export function SavedViewsBar({
           {t('state.failed', { what: t('views.label') })} · {t('common.tryAgain')}
         </Button>
       ) : null}
-      <Button size="sm" variant="ghost" onClick={() => setSaving(true)} data-view-save>
+      <Button size="sm" variant="ghost" onClick={() => setSaving(true)} title={saveHint} data-view-save>
+        <Bookmark className="size-4" aria-hidden="true" />
         {t('views.save')}
       </Button>
       <Dialog
@@ -155,6 +169,7 @@ export function SavedViewsBar({
         }
       >
         <div className="flex flex-col gap-4">
+          {saveHint ? <p className="text-sm text-muted">{saveHint}</p> : null}
           <Field label={t('views.name')}>
             {(p) => <Input {...p} value={name} onChange={(e) => setName(e.target.value)} autoFocus />}
           </Field>

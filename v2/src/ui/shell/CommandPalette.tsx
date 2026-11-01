@@ -33,9 +33,11 @@ type NoteHit = {
   id: string;
   label: string | null;
   capture_kind: 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
+  /** V660: the checklist item it was found by, when found by an item alone */
+  item?: string | null;
 };
-// a task the reader may see (api.search reads it by its row level), by its number and title
-type TaskHit = { id: string; number: string; title: string; closed: boolean };
+// a task the reader may see (api.search reads it by its row level), by its number and title, or by a checklist item
+type TaskHit = { id: string; number: string; title: string; closed: boolean; item?: string | null };
 
 const itemClass =
   'flex h-11 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft sm:h-10';
@@ -201,7 +203,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       data-palette-task={k.id}
                     >
                       <CheckSquare className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                      <span className="truncate">{k.title}</span>
+                      <span className="truncate">
+                        {k.title}
+                        {k.item ? (
+                          <span className="text-muted" data-palette-item>
+                            {' · '}
+                            {k.item}
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="ms-auto shrink-0 font-data text-sm text-muted">{k.number}</span>
                     </Command.Item>
                   ))}
@@ -220,7 +230,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                         data-palette-note={n.id}
                       >
                         <StickyNote className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                        <span className="truncate">{n.label ?? kind}</span>
+                        <span className="truncate">
+                          {n.label ?? kind}
+                          {n.item ? (
+                            <span className="text-muted" data-palette-item>
+                              {' · '}
+                              {n.item}
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="ms-auto shrink-0 text-sm text-muted" data-palette-note-kind>
                           {kind}
                         </span>

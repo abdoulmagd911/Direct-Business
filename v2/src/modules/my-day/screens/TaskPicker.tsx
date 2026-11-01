@@ -47,7 +47,7 @@ export function TaskPicker({
       >
         <ListChecks className="size-4 text-muted" aria-hidden="true" />
         <span className="truncate">{value.title}</span>
-        <span className="font-data text-sm text-muted">{value.number}</span>
+        <span className="shrink-0 font-data text-sm whitespace-nowrap text-muted">{value.number}</span>
         <IconButton label={t('common.remove')} icon={<X />} size="sm" onClick={() => onChange(null)} />
       </span>
     );
@@ -77,8 +77,10 @@ export function TaskPicker({
                   data-task-hit={h.id}
                 >
                   <ListChecks className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="truncate">{h.title}</span>
-                  <span className="font-data text-sm text-muted">{h.number}</span>
+                  <span className="flex min-w-0 flex-1 flex-col py-0.5">
+                    <span className="truncate">{h.title}</span>
+                    <span className="font-data text-xs whitespace-nowrap text-muted">{h.number}</span>
+                  </span>
                 </button>
               </li>
             ))

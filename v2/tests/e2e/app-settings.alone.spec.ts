@@ -25,6 +25,7 @@ import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
 import { setPrefs } from './helpers';
+import { withArabicOn } from './support/arabic';
 import { brokenWords } from './support/broken-words';
 import { ensureAchievementPlan } from './support/achievement-plan';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -84,12 +85,7 @@ test("the admin's default theme and density apply to a person without their own 
 
 test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)', async ({ page, context }) => {
   const admin = await makePerson({ admin: true });
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by)
-       values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason', $1)`,
-    [admin.id],
-  );
-  try {
+  await withArabicOn(admin.id, 'Made-up reason', async () => {
     await page.goto('/sign-in');
     // the door draws the button twice — in the phone's bar and beside the form on a wide screen — and shows one
     await expect(page.locator('[data-door-language]:visible')).toBeVisible();
@@ -106,9 +102,7 @@ test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)',
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
-  }
+  });
 });
 
 // ---- QA-556: New invoice at the three doors, in English and in Arabic
@@ -121,16 +115,7 @@ const catalog = (code: 'en' | 'ar') =>
 /** Arabic on for the length of one case, then off again (the setting reaches every screen, which is why this file runs alone). */
 async function withArabic(run: () => Promise<void>) {
   const admin = await makePerson({ admin: true });
-  await sql(
-    `insert into core.setting (key, value, valid_from, reason, created_by)
-       values ('app.arabic_enabled', 'true'::jsonb, current_date, 'Made-up reason: QA-556 specs', $1)`,
-    [admin.id],
-  );
-  try {
-    await run();
-  } finally {
-    await sql(`update core.setting set deleted_at = now() where key = 'app.arabic_enabled'`);
-  }
+  await withArabicOn(admin.id, 'Made-up reason: QA-556 specs', run);
 }
 
 for (const code of ['en', 'ar'] as const) {

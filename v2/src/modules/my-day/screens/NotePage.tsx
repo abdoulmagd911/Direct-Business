@@ -20,6 +20,7 @@ import { rpc } from '@/core/db/rpc';
 import { checklistCount, noteTitle } from '../logic';
 import { NOTE_VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
+import { PeoplePicker } from './PeoplePicker';
 import { PartnerPicker } from './PartnerPicker';
 import { ChecklistItemDialog, LogFromNoteDialog, ReminderDialog, TurnIntoMenu } from './TurnDialogs';
 import { useMe } from '@/core/auth/me-context';
@@ -34,7 +35,7 @@ type Draft = {
   body: string;
   items: NoteItem[];
   visibility: MyNote['visibility'];
-  shared_with: string;
+  shared_with: string[];
   happened_on: string;
   meeting_partner: PartnerRef | null;
   meeting_on: string;
@@ -45,7 +46,7 @@ const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
   body: n.body ?? '',
   items: n.items,
   visibility: n.visibility,
-  shared_with: n.shared_with ?? '',
+  shared_with: n.shared_with ?? [],
   happened_on: n.happened_on,
   meeting_partner: partner,
   meeting_on: n.meeting_on ?? '',
@@ -66,7 +67,7 @@ export function NotePage({
 }: {
   note: MyNote;
   author?: string;
-  /** Whom the author may share the note with, by name (G): every other active colleague. */
+  /** Whom the author may share the note with, by name (G, V524): every other active colleague. */
   colleagues?: { id: string; name: string }[];
   /** The names a task from this note points at; absent for someone who may not make tasks (no Task in Turn into). */
   taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
@@ -97,6 +98,11 @@ export function NotePage({
   const Icon = KIND_ICON[note.kind];
   const count = checklistCount({ items: d.items });
   const mine = note.mine;
+  // QA-594: the reader is not among the colleagues offered, so a colleague reading a note shared with them is "You"
+  const me = useMe().person.id;
+  const nameOf = (id: string) =>
+    id === me ? t('pages.myDay.visibility.you') : (colleagues.find((c) => c.id === id)?.name ?? '—');
+  const addable = colleagues.filter((c) => !d.shared_with.includes(c.id));
 
   const save = async () => {
     setBusy(true);
@@ -111,7 +117,7 @@ export function NotePage({
             body: d.body.trim() || null,
             items: d.items.filter((i) => i.text.trim()).map((i) => ({ ...i, text: i.text.trim() })),
             visibility: d.visibility,
-            shared_with: d.visibility === 'person' ? d.shared_with || null : null,
+            shared_with: d.visibility === 'person' ? d.shared_with : null,
             happened_on: d.happened_on,
             meeting_partner_id: d.meeting_partner?.id ?? null,
             meeting_on: d.meeting_on || null,
@@ -286,18 +292,35 @@ export function NotePage({
           </Field>
           {d.visibility === 'person' ? (
             <Field label={t('pages.myDay.visibility.sharedWith')}>
-              {(p) =>
-                mine ? (
-                  <Select
-                    {...p}
-                    value={d.shared_with || undefined}
-                    onValueChange={(v) => setD({ ...d, shared_with: v })}
-                    options={colleagues.map((c) => ({ value: c.id, label: c.name }))}
-                  />
-                ) : (
-                  <span id={p.id}>{colleagues.find((c) => c.id === note.shared_with)?.name ?? '—'}</span>
-                )
-              }
+              {(p) => (
+                <div className="flex flex-col gap-2" data-shared-with>
+                  {d.shared_with.length ? (
+                    <ul className="flex flex-col gap-1">
+                      {d.shared_with.map((id) => (
+                        <li key={id} className="flex items-center justify-between gap-2" data-shared-person={id}>
+                          <span className="min-w-0 break-words">{nameOf(id)}</span>
+                          {mine ? (
+                            <IconButton
+                              size="sm"
+                              label={t('pages.myDay.visibility.shareRemove', { name: nameOf(id) })}
+                              icon={<X />}
+                              onClick={() => setD({ ...d, shared_with: d.shared_with.filter((x) => x !== id) })}
+                              data-shared-remove={id}
+                            />
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {mine && addable.length ? (
+                    <PeoplePicker
+                      id={p.id}
+                      options={addable}
+                      onPick={(v) => setD({ ...d, shared_with: [...d.shared_with, v] })}
+                    />
+                  ) : null}
+                </div>
+              )}
             </Field>
           ) : null}
           <Field label={t('pages.myDay.note.happenedOn')}>

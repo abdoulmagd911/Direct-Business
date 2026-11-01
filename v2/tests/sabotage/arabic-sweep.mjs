@@ -38,4 +38,16 @@ export const sabotages = [
     expect: 'sign_in.password.signingIn',
     edits: [{ file: 'messages/ar.json', find: '      "signingIn": "جارٍ تسجيل الدخول…",\n', replace: '' }],
   },
+  {
+    name: 'arabic-finance-ready-missing',
+    breaks: [WORDS],
+    expect: 'finance.ready',
+    edits: [{ file: 'messages/ar.json', find: '    "ready": "جاهز",\n', replace: '' }],
+  },
+  {
+    name: 'arabic-finance-refusal-missing',
+    breaks: [WORDS],
+    expect: 'errors.finance.month_closed',
+    edits: [{ file: 'messages/ar.json', find: '      "month_closed": "هذا الشهر مغلق بالفعل",\n', replace: '' }],
+  },
 ];

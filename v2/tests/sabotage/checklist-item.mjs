@@ -38,4 +38,16 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'the-task-number-sits-beside-the-title-in-the-picker',
+    breaks: [E2E],
+    expect: 'the title keeps room to be read',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TaskPicker.tsx',
+        find: '<span className="flex min-w-0 flex-1 flex-col py-0.5">',
+        replace: '<span className="flex min-w-0 flex-1 flex-row items-center gap-2.5 py-0.5">',
+      },
+    ],
+  },
 ];

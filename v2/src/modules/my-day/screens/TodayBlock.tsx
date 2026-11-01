@@ -9,10 +9,23 @@ import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { PhoneFilter } from '@/ui/PhoneFilter';
+import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { DoneTick } from '@/modules/tasks/screens/StatusControl';
 import type { TaskStatus } from '@/modules/tasks/types';
-import { todayGroups, noteRoute } from '../logic';
+import {
+  BLOCK_ROWS,
+  FIXED_TASK_VIEWS,
+  TASK_GROUPS,
+  capRows,
+  helpingTasks,
+  noteRoute,
+  readTaskView,
+  todayGroups,
+  type TaskGroup,
+} from '../logic';
 import { markReminderDone } from '../reminder-done';
+import { whenChip } from './WhenPicker';
 import { todayReminders, type TodayReminder } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import type { PendingReminder, TodayTask } from '../types';
@@ -45,12 +58,39 @@ export function TodayBlock({
   const router = useRouter();
   const g = todayGroups(tasks, day);
   const rem = todayReminders(pending, due?.due ?? [], day);
-  const groups = [
+  const all = [
     { key: 'overdue', rows: g.overdue, reminders: rem.overdue },
     { key: 'today', rows: g.today, reminders: rem.today },
     { key: 'next', rows: g.next, reminders: [] as TodayReminder[] },
+    { key: 'helping', rows: helpingTasks(tasks), reminders: [] as TodayReminder[] },
   ] as const;
+  // the groups drawn (P5-7): none chosen means all four; a fixed or saved view sets them, a chip changes them
+  const [shown, setShown] = useState<TaskGroup[]>([]);
+  const [view, setView] = useState('all');
+  const groups = all.filter((x) => !shown.length || shown.includes(x.key));
   const none = groups.every((x) => !x.rows.length && !x.reminders.length);
+  // a block draws 5–7 rows, then "Show all" (V433): the first seven of what the chips leave
+  const [all7, setAll7] = useState(false);
+  const total = groups.reduce((n, x) => n + x.rows.length + x.reminders.length, 0);
+  const cut = total > BLOCK_ROWS;
+  const drawn =
+    cut && !all7
+      ? capRows(groups, BLOCK_ROWS)
+      : groups.map((x) => ({ ...x, total: x.rows.length + x.reminders.length }));
+  const count = (k: TaskGroup) =>
+    all.find((x) => x.key === k)!.rows.length + all.find((x) => x.key === k)!.reminders.length;
+  const open = (v: { key: string; query?: Record<string, unknown> }) => {
+    setView(v.key);
+    setShown(
+      v.key in FIXED_TASK_VIEWS ? FIXED_TASK_VIEWS[v.key as keyof typeof FIXED_TASK_VIEWS] : readTaskView(v.query),
+    );
+  };
+  const toggle = (k: TaskGroup) => {
+    setView('');
+    setShown((cur) =>
+      cur.includes(k) ? cur.filter((x) => x !== k) : TASK_GROUPS.filter((x) => x === k || cur.includes(x)),
+    );
+  };
   return (
     <section className="rounded-lg border border-border bg-raised px-4 py-2" data-today-block>
       <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.today.title')}</h2>
@@ -68,10 +108,51 @@ export function TodayBlock({
           retryLabel={t('common.tryAgain')}
         />
       ) : null}
+      {/* P5-7: saved views of the block and a chip per group; none pressed shows all four */}
+      <div className="flex flex-col gap-2 py-3" data-today-views>
+        <SavedViewsBar
+          page="my_day"
+          fixed={[{ key: 'all', label: t('pages.myDay.today.views.all') }]}
+          current={view}
+          query={{ groups: shown }}
+          onOpen={open}
+          onDefault={open}
+          canShare={false}
+          saveHint={t('pages.myDay.today.saveHint')}
+        />
+        {/* the chips are a filter, not buttons that do something: the word says so, and a count sits in each */}
+        {/* on a phone the chips fold behind one Filter button, as on the Tasks page (V630); PC draws them as before */}
+        <div className="flex flex-wrap items-center gap-2" data-today-filter>
+          <PhoneFilter label={t('common.filter')} count={shown.length}>
+            <div
+              className="flex flex-wrap items-center gap-2"
+              role="group"
+              aria-label={t('pages.myDay.today.filter')}
+              data-today-chips
+            >
+              <span className="text-sm text-muted" data-today-filter-label>
+                {t('pages.myDay.today.filter')}
+              </span>
+              {TASK_GROUPS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={shown.includes(k)}
+                  onClick={() => toggle(k)}
+                  className={whenChip(shown.includes(k))}
+                  data-today-chip={k}
+                >
+                  {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
+                </button>
+              ))}
+            </div>
+          </PhoneFilter>
+        </div>
+      </div>
       {none ? (
         <DataState kind="empty" message={t('pages.myDay.today.empty')} />
       ) : (
-        groups
+        drawn
           .filter((x) => x.rows.length || x.reminders.length)
           .map((x) => (
             <div key={x.key} data-today-group={x.key}>
@@ -80,7 +161,7 @@ export function TodayBlock({
                 {t(`pages.myDay.today.${x.key}`)}
                 {x.key === 'overdue' ? (
                   <span className="ms-2 font-data text-danger" data-today-overdue-count>
-                    {x.rows.length + x.reminders.length}
+                    {x.total}
                   </span>
                 ) : null}
               </h3>
@@ -89,12 +170,31 @@ export function TodayBlock({
                   <ReminderRow key={r.id} reminder={r} overdue={x.key === 'overdue'} />
                 ))}
                 {x.rows.map((r) => (
-                  <TodayRow key={r.id} task={r} statuses={statuses} overdue={x.key === 'overdue'} />
+                  <TodayRow
+                    key={r.id}
+                    task={r}
+                    statuses={statuses}
+                    overdue={x.key === 'overdue'}
+                    helping={x.key === 'helping'}
+                  />
                 ))}
               </ul>
             </div>
           ))
       )}
+      {cut ? (
+        <div className="border-t border-border py-2.5">
+          <button
+            type="button"
+            onClick={() => setAll7((v) => !v)}
+            aria-expanded={all7}
+            className="text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+            data-today-more
+          >
+            {all7 ? t('pages.myDay.today.showFewer') : t('pages.myDay.today.showAll', { count: total })}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -166,7 +266,18 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   );
 }
 
-function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: TaskStatus[]; overdue: boolean }) {
+function TodayRow({
+  task,
+  statuses,
+  overdue,
+  helping = false,
+}: {
+  task: TodayTask;
+  statuses: TaskStatus[];
+  overdue: boolean;
+  /** A task I only help on: it is not mine to finish, so no done tick (P5-7). */
+  helping?: boolean;
+}) {
   const locale = useLocale() as 'en' | 'ar';
   const tick = {
     id: task.id,
@@ -182,7 +293,7 @@ function TodayRow({ task, statuses, overdue }: { task: TodayTask; statuses: Task
       className="relative flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
       data-today-task={task.number}
     >
-      <DoneTick task={tick} statuses={statuses} title={task.title} />
+      {helping ? null : <DoneTick task={tick} statuses={statuses} title={task.title} />}
       <div className="min-w-0 flex-1">
         <Link
           href={`/tasks/${task.number}`}

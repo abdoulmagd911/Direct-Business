@@ -238,8 +238,13 @@
       },
       "visibility": {
         "label": "Who sees it",
-        "person": "One colleague",
+        "person": "Named colleagues",
         "sharedWith": "Shared with",
+        "shareAdd": "Add a colleague",
+        "shareSearch": "Type a name",
+        "shareNone": "No colleague with that name",
+        "shareRemove": "Remove {name}",
+        "you": "You",
         "private": "Only me",
         "team": "My team",
         "workspace": "Everyone"
@@ -305,6 +310,11 @@
         "noTask": "No task found",
         "itemAdded": "Added to the checklist of {number}",
         "activityTitle": "Log a meeting or call",
+        "reminderMissing": {
+          "day": "Pick the day for the reminder.",
+          "time": "Type the time as hours and minutes, like 09:30.",
+          "text": "Write what to be reminded of."
+        },
         "reminderTitle": "Set a reminder",
         "organisation": "Organisation",
         "searchOrg": "Search organisations by name or number",
@@ -357,13 +367,21 @@
         "overdue": "Overdue",
         "today": "Due today",
         "next": "Next 7 days",
+        "helping": "Helping",
+        "filter": "Show only",
+        "views": {
+          "all": "All"
+        },
         "empty": "Nothing due today",
         "carried": "Carried over from yesterday ({count})",
         "reminder": "Reminder",
         "followUpAbout": "Follow up: {name}",
         "markDone": "Mark “{title}” done",
         "reminderDone": "Reminder done · {title}",
-        "failed": "Reminders could not be read just now."
+        "failed": "Reminders could not be read just now.",
+        "saveHint": "Keeps the groups shown now under a name, so you can open them again.",
+        "showAll": "Show all ({count})",
+        "showFewer": "Show fewer"
       },
       "quick": {
         "title": "Quick capture",

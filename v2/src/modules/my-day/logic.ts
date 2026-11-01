@@ -103,6 +103,48 @@ export function todayGroups(tasks: TodayTask[], day: string): TodayGroups {
   return out;
 }
 
+/** The four groups of the Today block, in the order they are drawn (P5-7). */
+export const TASK_GROUPS = ['overdue', 'today', 'next', 'helping'] as const;
+export type TaskGroup = (typeof TASK_GROUPS)[number];
+
+/** The one view that comes with the page: all four groups. Which groups to show is the chips' job, so no second control repeats them. */
+export const FIXED_TASK_VIEWS: Record<'all', TaskGroup[]> = { all: [] };
+
+/** The groups a saved view keeps; an unknown word is dropped, and none at all means every group is drawn. */
+export function readTaskView(query: Record<string, unknown> | undefined): TaskGroup[] {
+  const raw = Array.isArray(query?.groups) ? (query!.groups as unknown[]) : [];
+  return TASK_GROUPS.filter((g) => raw.includes(g));
+}
+
+/** The tasks I only help on (they are not mine to chase, so `todayGroups` leaves them out), the nearest day first. */
+export function helpingTasks(tasks: TodayTask[]): TodayTask[] {
+  return tasks
+    .filter((t) => t.role === 'helper' || t.group === 'helping')
+    .sort((a, b) => a.due_on.localeCompare(b.due_on));
+}
+
+/**
+ * A block draws 5–7 rows, then "Show all" (V433, WRK-026): of the Today block's groups, in the order they are drawn and each
+ * group's reminders before its tasks, only the first `limit` rows are kept. A group whose rows are all cut is dropped;
+ * `total` is each group's full count, for the heading that counts what is overdue.
+ */
+export function capRows<A, B>(
+  groups: readonly { key: string; reminders: readonly B[]; rows: readonly A[] }[],
+  limit: number,
+): { key: string; reminders: B[]; rows: A[]; total: number }[] {
+  let left = limit;
+  const out: { key: string; reminders: B[]; rows: A[]; total: number }[] = [];
+  for (const g of groups) {
+    const reminders = g.reminders.slice(0, Math.max(left, 0));
+    left -= reminders.length;
+    const rows = g.rows.slice(0, Math.max(left, 0));
+    left -= rows.length;
+    if (reminders.length || rows.length)
+      out.push({ key: g.key, reminders, rows, total: g.reminders.length + g.rows.length });
+  }
+  return out;
+}
+
 /** What a person can decide about a row: Done, Tomorrow (the next working day) or Drop. A row with no choice is left alone. */
 export type WrapChoice = 'done' | 'tomorrow' | 'drop';
 export const WRAP_CHOICES: WrapChoice[] = ['done', 'tomorrow', 'drop'];

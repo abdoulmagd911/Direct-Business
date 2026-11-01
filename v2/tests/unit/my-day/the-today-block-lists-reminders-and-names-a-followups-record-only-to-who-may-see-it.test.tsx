@@ -14,6 +14,12 @@ import type { DueReminder } from '../../../src/modules/my-day/reminder-alert';
 import type { AboutRecord } from '../../../src/modules/my-day/types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }) }));
+// the saved views bar reads who is signed in and the page's saved views; neither is the subject here
+vi.mock('@/core/auth/me-context', () => ({
+  useMe: () => ({ person: { id: 'p1' }, levels: {} }),
+  useMaybeMe: () => null,
+}));
+vi.mock('@/core/db/rpc', () => ({ rpc: vi.fn(async () => []) }));
 
 const DAY = '2026-10-14';
 const draw = (props: Partial<Parameters<typeof TodayBlock>[0]>, locale: 'en' | 'ar' = 'en') =>
