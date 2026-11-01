@@ -372,9 +372,6 @@
       },
       "today": {
         "title": "Today",
-        "overdue": "Overdue",
-        "today": "Due today",
-        "next": "Next 7 days",
         "helping": "Helping",
         "filter": "Show only",
         "views": {
@@ -389,7 +386,12 @@
         "failed": "Reminders could not be read just now.",
         "saveHint": "Keeps the groups shown now under a name, so you can open them again.",
         "showAll": "Show all ({count})",
-        "showFewer": "Show fewer"
+        "showFewer": "Show fewer",
+        "reminders": "Reminders",
+        "do_now": "Do now",
+        "plan_it": "Plan it",
+        "quick": "Quick or hand off",
+        "later": "Later"
       },
       "quick": {
         "title": "Quick capture",
@@ -890,6 +892,15 @@
         "tooLong": "At most {max} characters",
         "delete": "Delete",
         "editAction": "Edit"
+      },
+      "star": {
+        "mark": "Mark “{title}” as important",
+        "unmark": "Remove the importance mark from “{title}”",
+        "markHint": "Mark as important",
+        "unmarkHint": "Important — tap to remove",
+        "marked": "Marked as important · {number}",
+        "unmarked": "Importance mark removed · {number}",
+        "important": "Important"
       }
     },
     "weeklyReview": {

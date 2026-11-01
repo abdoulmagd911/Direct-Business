@@ -137,8 +137,11 @@ export function todayBoxes(tasks: TodayTask[], day: string): Record<TodayBox, To
   return out;
 }
 
-/** The four groups of the Today block, in the order they are drawn (P5-7). */
-export const TASK_GROUPS = ['overdue', 'today', 'next', 'helping'] as const;
+/**
+ * The groups of the Today block, in the order they are drawn (P5-7, V661): the reminders that are due, then the four boxes
+ * of my own tasks, then the tasks I only help on. A chip each.
+ */
+export const TASK_GROUPS = ['reminders', ...TODAY_BOXES, 'helping'] as const;
 export type TaskGroup = (typeof TASK_GROUPS)[number];
 
 /** The one view that comes with the page: all four groups. Which groups to show is the chips' job, so no second control repeats them. */

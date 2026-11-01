@@ -12,16 +12,18 @@ import { DataState } from '@/ui/DataState';
 import { PhoneFilter } from '@/ui/PhoneFilter';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { DoneTick } from '@/modules/tasks/screens/StatusControl';
+import { StarMark, StarToggle } from '@/modules/tasks/screens/StarToggle';
 import type { TaskStatus } from '@/modules/tasks/types';
 import {
   BLOCK_ROWS,
   FIXED_TASK_VIEWS,
   TASK_GROUPS,
+  TODAY_BOXES,
   capRows,
   helpingTasks,
   noteRoute,
   readTaskView,
-  todayGroups,
+  todayBoxes,
   type TaskGroup,
 } from '../logic';
 import { markReminderDone } from '../reminder-done';
@@ -31,10 +33,11 @@ import type { DueAnswer } from '../reminder-alert';
 import type { PendingReminder, TodayTask } from '../types';
 
 /**
- * The Today block at the top of My day (productivity stage 1): my tasks as Overdue (with its count), Today and Next
- * (the rest of this week). A row is a done tick (Undo comes with it), the title (opens the task), the client and the due
- * day. Stage 2 adds reminders due today or overdue (a tick ends it, in the bell too) and tags a follow-up with the
- * record it is about — named only if this reader may see the record (V454). Nothing due → "Nothing due today".
+ * The Today block at the top of My day: the reminders that are due (a tick ends one, in the bell too; a follow-up names the
+ * record it is about only if this reader may see it, V454), then my tasks in the four boxes of V661 — Do now, Plan it, Quick
+ * or hand off, Later, by the importance star and the due day — then the tasks I only help on. A task row is a done tick (Undo
+ * comes with it), the title (opens the task), the client, the due day and the star (44 px; one tap sets or clears it).
+ * Nothing due → "Nothing due today".
  */
 export function TodayBlock({
   tasks,
@@ -56,15 +59,17 @@ export function TodayBlock({
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const g = todayGroups(tasks, day);
+  const boxes = todayBoxes(tasks, day);
   const rem = todayReminders(pending, due?.due ?? [], day);
-  const all = [
-    { key: 'overdue', rows: g.overdue, reminders: rem.overdue },
-    { key: 'today', rows: g.today, reminders: rem.today },
-    { key: 'next', rows: g.next, reminders: [] as TodayReminder[] },
-    { key: 'helping', rows: helpingTasks(tasks), reminders: [] as TodayReminder[] },
-  ] as const;
-  // the groups drawn (P5-7): none chosen means all four; a fixed or saved view sets them, a chip changes them
+  // reminders first (a due note is not a task: no star, no box — WRK-161), then V661's four boxes, then the tasks I only help on
+  type Group = { key: TaskGroup; rows: TodayTask[]; reminders: TodayReminder[] };
+  const all: Group[] = [
+    { key: 'reminders', rows: [], reminders: [...rem.overdue, ...rem.today] },
+    ...TODAY_BOXES.map((k): Group => ({ key: k, rows: boxes[k], reminders: [] })),
+    { key: 'helping', rows: helpingTasks(tasks), reminders: [] },
+  ];
+  const overdueReminders = new Set(rem.overdue.map((r) => r.id));
+  // the groups drawn (P5-7): none chosen means all of them; a fixed or saved view sets them, a chip changes them
   const [shown, setShown] = useState<TaskGroup[]>([]);
   const [view, setView] = useState('all');
   const groups = all.filter((x) => !shown.length || shown.includes(x.key));
@@ -156,27 +161,19 @@ export function TodayBlock({
           .filter((x) => x.rows.length || x.reminders.length)
           .map((x) => (
             <div key={x.key} data-today-group={x.key}>
-              {/* the card is titled "Today"; its groups are never titled just that: Overdue · Due today · Next 7 days (QA-564) */}
+              {/* the card is titled "Today"; its groups are never titled just that (QA-564): Do now · Plan it · Quick or hand off · Later (V661) */}
               <h3 className="pt-3 text-sm font-medium text-muted">
                 {t(`pages.myDay.today.${x.key}`)}
-                {x.key === 'overdue' ? (
-                  <span className="ms-2 font-data text-danger" data-today-overdue-count>
-                    {x.total}
-                  </span>
-                ) : null}
+                <span className="ms-2 font-data" data-today-count>
+                  {x.total}
+                </span>
               </h3>
               <ul className="divide-y divide-border">
                 {x.reminders.map((r) => (
-                  <ReminderRow key={r.id} reminder={r} overdue={x.key === 'overdue'} />
+                  <ReminderRow key={r.id} reminder={r} overdue={overdueReminders.has(r.id)} />
                 ))}
                 {x.rows.map((r) => (
-                  <TodayRow
-                    key={r.id}
-                    task={r}
-                    statuses={statuses}
-                    overdue={x.key === 'overdue'}
-                    helping={x.key === 'helping'}
-                  />
+                  <TodayRow key={r.id} task={r} statuses={statuses} helping={x.key === 'helping'} />
                 ))}
               </ul>
             </div>
@@ -269,16 +266,16 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
 function TodayRow({
   task,
   statuses,
-  overdue,
   helping = false,
 }: {
   task: TodayTask;
   statuses: TaskStatus[];
-  overdue: boolean;
   /** A task I only help on: it is not mine to finish, so no done tick (P5-7). */
   helping?: boolean;
 }) {
   const locale = useLocale() as 'en' | 'ar';
+  // overdue is the red day on the row; the heading no longer says it (V661: the boxes replace Overdue · Due today · Next 7 days)
+  const overdue = task.group === 'overdue';
   const tick = {
     id: task.id,
     number: task.number,
@@ -317,6 +314,19 @@ function TodayRow({
           ) : null}
         </span>
       </div>
+      {/* the importance star (V661): a 44 px tap for whoever may change the task, a plain mark for one who only helps */}
+      {helping ? (
+        <StarMark starred={!!task.starred} />
+      ) : (
+        <StarToggle
+          id={task.id}
+          door="task_star"
+          starred={!!task.starred}
+          title={task.title}
+          number={task.number}
+          className="-me-2.5 -mt-2 -mb-2.5"
+        />
+      )}
     </li>
   );
 }

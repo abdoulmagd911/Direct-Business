@@ -34,11 +34,14 @@ async function personWithTasks() {
 }
 
 for (const width of [375, 1440]) {
-  test(`the Today block groups my tasks, ticks one done with Undo and opens one — at ${width} px`, async ({ page }) => {
+  test(`the Today block sorts my tasks into its four boxes, stars one, ticks one done with Undo and opens one — at ${width} px`, async ({
+    page,
+  }) => {
     const { me, t, make } = await personWithTasks();
     const late = await make(`Late task ${t}`, -2);
-    await make(`Due task ${t}`, 0);
-    await make(`Later task ${t}`, 1);
+    const due = await make(`Due task ${t}`, 0);
+    await make(`Soon task ${t}`, 1);
+    await make(`Later task ${t}`, 5);
     await page.setViewportSize({ width, height: width === 375 ? 800 : 1000 });
     await signIn(page, me.email, '/my-day');
     await hydrated(page);
@@ -47,7 +50,7 @@ for (const width of [375, 1440]) {
       p_partner: { trade_name_en: org, sides: [{ side: 'client', type: 'corporate' }] },
     });
     expect(made.status, JSON.stringify(made.body)).toBe(200);
-    await sql(`update work.task set partner_id = $2, work_type = 'client' where number = $1`, [
+    await sql(`update work.task set partner_id = $2, work_type = 'client', starred = true where number = $1`, [
       late,
       (made.body as { id: string }).id,
     ]);
@@ -56,20 +59,28 @@ for (const width of [375, 1440]) {
     const block = page.locator('[data-today-block]');
     await expect(block.locator(`[data-today-task="${late}"]`), 'the client chip').toContainText(org);
     await expect(block).toBeVisible();
-    await expect(
-      block.locator('[data-today-group="overdue"] [data-today-overdue-count]'),
-      'Overdue shows its count',
-    ).toHaveText('1');
-    // the card is titled Today and its groups never just that (QA-564): Overdue · Due today · Next 7 days
+    // the card is titled Today and its groups never just that (QA-564): the four boxes of V661 — starred and overdue is Do now
     await expect(block.locator('h2')).toHaveText('Today');
-    await expect(block.locator('h3'), 'the groups, in order, with an overdue task present').toHaveText([
-      /^Overdue\s*1$/,
-      'Due today',
-      'Next 7 days',
+    await expect(block.locator('h3'), 'the boxes, in order, with the empty ones left out').toHaveText([
+      /^Do now\s*1$/,
+      /^Quick or hand off\s*2$/,
+      /^Later\s*1$/,
     ]);
     expect(await block.getByText('Today', { exact: true }).count(), 'the word Today is the card title only').toBe(1);
-    await expect(block.locator('[data-today-group="today"]')).toContainText(`Due task ${t}`);
-    await expect(block.locator('[data-today-group="next"]')).toContainText(`Later task ${t}`);
+    await expect(block.locator('[data-today-group="do_now"]')).toContainText(`Late task ${t}`);
+    await expect(block.locator('[data-today-group="quick"]')).toContainText(`Due task ${t}`);
+    await expect(block.locator('[data-today-group="later"]')).toContainText(`Later task ${t}`);
+    // the star is a 44 px target, on for the starred task and off for the others
+    const star = block.locator(`[data-today-task="${late}"] button[data-star]`);
+    await expect(star).toHaveAttribute('data-star', 'on');
+    const starBox = await star.boundingBox();
+    expect(starBox!.width, 'the star is a 44 px target').toBeGreaterThanOrEqual(44);
+    expect(starBox!.height).toBeGreaterThanOrEqual(44);
+    // starring a task that is due today moves it from Quick or hand off to Do now
+    await block.locator(`[data-today-task="${due}"] button[data-star]`).click();
+    await expect(block.locator('[data-today-group="do_now"]'), 'a starred, urgent task joins Do now').toContainText(
+      `Due task ${t}`,
+    );
     await expect(block.locator('[data-today-task]').first().locator('[data-done-tick]')).toBeVisible();
     const tick = await block.locator('[data-done-tick]').first().boundingBox();
     expect(tick!.width, 'the tick is a 44 px target').toBeGreaterThanOrEqual(44);
