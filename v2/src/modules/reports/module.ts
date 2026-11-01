@@ -9,6 +9,7 @@ export default defineModule({
       route: '/reports',
       label: 'nav.reports',
       icon: 'file-text',
+      built: true,
       nav: { group: 'main', order: 90, tier: 'manage', viewer: true },
       defaults: { admin: 'full', head: 'full', manager: 'view', member: 'view', viewer: 'view' },
     },

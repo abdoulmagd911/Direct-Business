@@ -623,7 +623,7 @@
       "seeList": "See the achievements list",
       "empty": "No achievements in this month"
     },
-    "beingBuilt": "Being built.",
+    "beingBuilt": "Not ready yet. Use Tasks or Achievements for now.",
     "tasks": {
       "unknownOwner": "Unknown",
       "blocked": "Blocked",
