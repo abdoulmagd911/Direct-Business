@@ -86,4 +86,17 @@ export const sabotages = [
       },
     ],
   },
+  {
+    name: 'today-chips-stay-open-on-a-phone',
+    breaks: [BOX],
+    expect: 'fold behind one Filter button',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodayBlock.tsx',
+        find: "<PhoneFilter label={t('common.filter')} count={shown.length}>",
+        replace: '<>',
+      },
+      { file: 'src/modules/my-day/screens/TodayBlock.tsx', find: '</PhoneFilter>', replace: '</>' },
+    ],
+  },
 ];

@@ -127,6 +127,24 @@ describe('the Today block: groups, chips and views', () => {
   });
 });
 
+describe('the chips on a phone (V630)', () => {
+  it('fold behind one Filter button that counts the chips pressed; the chips stay in the panel the button opens', async () => {
+    await draw();
+    const toggle = document.querySelector('[data-today-views] [data-filter-toggle]') as HTMLElement;
+    expect(toggle.textContent).toContain('Filter');
+    expect(toggle.querySelector('[data-filter-count]')).toBeNull();
+    const panel = document.querySelector('[data-today-views] [data-filter-panel]')!;
+    expect(panel.querySelectorAll('[data-today-chip]')).toHaveLength(4);
+    expect(panel.className).toContain('max-sm:hidden');
+    click('[data-today-chip="helping"]');
+    click('[data-today-chip="overdue"]');
+    expect(toggle.querySelector('[data-filter-count]')?.textContent).toBe('2');
+    click('[data-today-views] [data-filter-toggle]');
+    expect(panel.className).toContain('max-sm:flex');
+    expect(panel.className).not.toContain('max-sm:hidden');
+  });
+});
+
 describe('the block helpers', () => {
   it('readTaskView keeps only known groups, in the block order; none means all', () => {
     expect(readTaskView({ groups: ['helping', 'nonsense', 'overdue'] })).toEqual(['overdue', 'helping']);

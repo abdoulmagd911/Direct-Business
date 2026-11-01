@@ -9,6 +9,7 @@ import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { PhoneFilter } from '@/ui/PhoneFilter';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { DoneTick } from '@/modules/tasks/screens/StatusControl';
 import type { TaskStatus } from '@/modules/tasks/types';
@@ -110,27 +111,32 @@ export function TodayBlock({
           saveHint={t('pages.myDay.today.saveHint')}
         />
         {/* the chips are a filter, not buttons that do something: the word says so, and a count sits in each */}
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="group"
-          aria-label={t('pages.myDay.today.filter')}
-          data-today-chips
-        >
-          <span className="text-sm text-muted" data-today-filter-label>
-            {t('pages.myDay.today.filter')}
-          </span>
-          {TASK_GROUPS.map((k) => (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={shown.includes(k)}
-              onClick={() => toggle(k)}
-              className={whenChip(shown.includes(k))}
-              data-today-chip={k}
+        {/* on a phone the chips fold behind one Filter button, as on the Tasks page (V630); PC draws them as before */}
+        <div className="flex flex-wrap items-center gap-2" data-today-filter>
+          <PhoneFilter label={t('common.filter')} count={shown.length}>
+            <div
+              className="flex flex-wrap items-center gap-2"
+              role="group"
+              aria-label={t('pages.myDay.today.filter')}
+              data-today-chips
             >
-              {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
-            </button>
-          ))}
+              <span className="text-sm text-muted" data-today-filter-label>
+                {t('pages.myDay.today.filter')}
+              </span>
+              {TASK_GROUPS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={shown.includes(k)}
+                  onClick={() => toggle(k)}
+                  className={whenChip(shown.includes(k))}
+                  data-today-chip={k}
+                >
+                  {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
+                </button>
+              ))}
+            </div>
+          </PhoneFilter>
         </div>
       </div>
       {none ? (
