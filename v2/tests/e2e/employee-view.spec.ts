@@ -494,6 +494,8 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   // Job 1 — log what happened with a client today, with the next step: ≤ 4 taps to the client, ≤ 60 s to save
   const started = Date.now();
   await tap(page.locator('[data-bottom-bar]').getByRole('link', { name: 'Clients' }));
+  // My day has a Filter button of its own now, so wait until this is the Clients page before reaching for its Filter
+  await expect(page).toHaveURL(/\/clients/);
   await hydrated(page);
   await tap(page.locator('[data-filter-toggle]')); // the search sits behind the one Filter button on a phone (V630)
   await page.getByPlaceholder('Search by name or number').fill(name);
