@@ -38,7 +38,10 @@ export function Checklist({
   const [due, setDue] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState<string | null>(null);
-  const items = task.action_items;
+  // Item just added: show it at once instead of waiting for the slow server refresh; it clears when the fresh list arrives.
+  const [added, setAdded] = useState<{ item: (typeof task.action_items)[number]; base: number } | null>(null);
+  const items =
+    added && task.action_items.length === added.base ? [...task.action_items, added.item] : task.action_items;
   const open = items.filter((i) => !i.done_on).length;
 
   const tick = async (id: string, done: boolean, label: string) => {
@@ -65,6 +68,23 @@ export function Checklist({
         after: () => {
           setText('');
           setDue('');
+          setAdded({
+            base: task.action_items.length,
+            item: {
+              id: `local-${Date.now()}`,
+              text: line,
+              owner_id: me.person.id,
+              due_on: due || null,
+              done_on: null,
+              done_by: null,
+              sort: task.action_items.length,
+              happened_on: '',
+              version: 0,
+              overdue: false,
+              starred: false,
+              helpers: [],
+            },
+          });
         },
       },
     );
@@ -81,7 +101,7 @@ export function Checklist({
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
           {items.map((i) => {
-            const may = canTick(i, task, me.person.id);
+            const may = canTick(i, task, me.person.id) && !i.id.startsWith('local-');
             return (
               <li key={i.id} className="flex items-start gap-3 px-4 py-3" data-item={i.text}>
                 <Checkbox

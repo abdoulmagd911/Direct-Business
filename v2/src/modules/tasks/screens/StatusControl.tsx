@@ -13,7 +13,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { cn } from '@/ui/cn';
 import { STATUS_TONE, planMove, statusMoves, statusView, type Move } from '../rules';
-import type { TaskRow, TaskStatus } from '../types';
+import type { Meaning, TaskRow, TaskStatus } from '../types';
 import { useCommandWords } from './words';
 
 type Task = Pick<TaskRow, 'id' | 'number' | 'title' | 'status' | 'meaning' | 'blocked_reason' | 'open_action_items'>;
@@ -22,7 +22,16 @@ type Task = Pick<TaskRow, 'id' | 'number' | 'title' | 'status' | 'meaning' | 'bl
  * One status move, asked the way V401 and V191 say: Blocked asks its reason, and so does Cancelled; Done with open
  * action items asks whether to close them too. Every move is one request through api.task_status_set, with Undo.
  */
-export function useStatusMove(task: Task, statuses: TaskStatus[]) {
+export function useStatusMove(
+  task: Task,
+  statuses: TaskStatus[],
+  onMoved?: (next: {
+    status: string;
+    meaning: Meaning;
+    blocked_reason: string | null;
+    cancelled_reason: string | null;
+  }) => void,
+) {
   const t = useTranslations();
   const locale = useLocale();
   const words = useCommandWords();
@@ -75,6 +84,22 @@ export function useStatusMove(task: Task, statuses: TaskStatus[]) {
     }
     if ('refuse' in plan) return;
     await send(plan.go, doneLine(move), move.kind === 'status' && move.status.meaning === 'done');
+    // The record's server refresh is slow, so tell the caller the new status at once; it clears when the fresh task arrives.
+    if (move.kind === 'block') {
+      onMoved?.({
+        status: plan.go.p_status,
+        meaning: 'in_progress',
+        blocked_reason: plan.go.p_reason ?? null,
+        cancelled_reason: null,
+      });
+    } else {
+      onMoved?.({
+        status: plan.go.p_status,
+        meaning: move.status.meaning,
+        blocked_reason: null,
+        cancelled_reason: move.status.meaning === 'cancelled' ? (plan.go.p_reason ?? null) : null,
+      });
+    }
   };
   const doneStatus = statuses.find((s) => s.meaning === 'done' && s.active);
 
@@ -132,15 +157,22 @@ export function StatusMenu({
   statuses,
   label,
   canEdit,
+  onMoved,
 }: {
   task: Task;
   statuses: TaskStatus[];
   label: string;
   canEdit: boolean;
+  onMoved?: (next: {
+    status: string;
+    meaning: Meaning;
+    blocked_reason: string | null;
+    cancelled_reason: string | null;
+  }) => void;
 }) {
   const t = useTranslations();
   const locale = useLocale();
-  const move = useStatusMove(task, statuses);
+  const move = useStatusMove(task, statuses, onMoved);
   const view = statusView(task);
   const chip = (
     <StatusChip tone={STATUS_TONE[view]} className={canEdit ? 'pe-1.5' : undefined}>
