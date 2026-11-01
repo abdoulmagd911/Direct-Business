@@ -123,6 +123,28 @@ export function helpingTasks(tasks: TodayTask[]): TodayTask[] {
     .sort((a, b) => a.due_on.localeCompare(b.due_on));
 }
 
+/**
+ * A block draws 5–7 rows, then "Show all" (V433, WRK-026): of the Today block's groups, in the order they are drawn and each
+ * group's reminders before its tasks, only the first `limit` rows are kept. A group whose rows are all cut is dropped;
+ * `total` is each group's full count, for the heading that counts what is overdue.
+ */
+export function capRows<A, B>(
+  groups: readonly { key: string; reminders: readonly B[]; rows: readonly A[] }[],
+  limit: number,
+): { key: string; reminders: B[]; rows: A[]; total: number }[] {
+  let left = limit;
+  const out: { key: string; reminders: B[]; rows: A[]; total: number }[] = [];
+  for (const g of groups) {
+    const reminders = g.reminders.slice(0, Math.max(left, 0));
+    left -= reminders.length;
+    const rows = g.rows.slice(0, Math.max(left, 0));
+    left -= rows.length;
+    if (reminders.length || rows.length)
+      out.push({ key: g.key, reminders, rows, total: g.reminders.length + g.rows.length });
+  }
+  return out;
+}
+
 /** What a person can decide about a row: Done, Tomorrow (the next working day) or Drop. A row with no choice is left alone. */
 export type WrapChoice = 'done' | 'tomorrow' | 'drop';
 export const WRAP_CHOICES: WrapChoice[] = ['done', 'tomorrow', 'drop'];

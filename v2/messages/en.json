@@ -379,7 +379,9 @@
         "markDone": "Mark “{title}” done",
         "reminderDone": "Reminder done · {title}",
         "failed": "Reminders could not be read just now.",
-        "saveHint": "Keeps the groups shown now under a name, so you can open them again."
+        "saveHint": "Keeps the groups shown now under a name, so you can open them again.",
+        "showAll": "Show all ({count})",
+        "showFewer": "Show fewer"
       },
       "quick": {
         "title": "Quick capture",

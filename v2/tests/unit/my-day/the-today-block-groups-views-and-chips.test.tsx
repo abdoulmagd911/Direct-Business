@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en.json';
-import { helpingTasks, readTaskView } from '../../../src/modules/my-day/logic';
+import { capRows, helpingTasks, readTaskView } from '../../../src/modules/my-day/logic';
 import type { TodayTask } from '../../../src/modules/my-day/types';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -49,14 +49,14 @@ afterEach(() => {
   document.body.innerHTML = '';
   saved = [];
 });
-const draw = async () => {
+const draw = async (rows: TodayTask[] = tasks) => {
   const host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
   await act(async () => {
     root!.render(
       <NextIntlClientProvider locale="en" messages={en} timeZone="Asia/Riyadh">
-        <TodayBlock tasks={tasks} day="2026-10-14" statuses={[]} due={{ due: [], next_at: null }} />
+        <TodayBlock tasks={rows} day="2026-10-14" statuses={[]} due={{ due: [], next_at: null }} />
       </NextIntlClientProvider>,
     );
   });
@@ -142,6 +142,41 @@ describe('the chips on a phone (V630)', () => {
     click('[data-today-views] [data-filter-toggle]');
     expect(panel.className).toContain('max-sm:flex');
     expect(panel.className).not.toContain('max-sm:hidden');
+  });
+});
+
+describe('the Today block draws 5–7 rows, then Show all (V433)', () => {
+  const many = Array.from({ length: 9 }, (_, i) => task(`TSK-${i + 10}`, '2026-10-10', { group: 'overdue' }));
+  const rowsDrawn = () => document.querySelectorAll('[data-today-task]').length;
+  it('draws seven of nine, keeps the true count on the Overdue heading, and Show all draws the rest', async () => {
+    await draw(many);
+    expect(rowsDrawn()).toBe(7);
+    expect(document.querySelector('[data-today-overdue-count]')?.textContent).toBe('9');
+    const more = document.querySelector('[data-today-more]') as HTMLElement;
+    expect(more.textContent).toBe('Show all (9)');
+    click('[data-today-more]');
+    expect(rowsDrawn()).toBe(9);
+    expect((document.querySelector('[data-today-more]') as HTMLElement).textContent).toBe('Show fewer');
+    click('[data-today-more]');
+    expect(rowsDrawn()).toBe(7);
+  });
+  it('draws no Show all link when seven or fewer rows are left', async () => {
+    await draw(many.slice(0, 7));
+    expect(document.querySelector('[data-today-more]')).toBeNull();
+    await draw();
+    expect(document.querySelector('[data-today-more]')).toBeNull();
+  });
+  it('capRows keeps the first rows in the order drawn, reminders before tasks, and drops a group that is all cut', () => {
+    const g = [
+      { key: 'overdue', reminders: ['r1'], rows: ['a', 'b'] },
+      { key: 'today', reminders: [], rows: ['c', 'd'] },
+      { key: 'next', reminders: [], rows: ['e'] },
+    ];
+    expect(capRows(g, 4)).toEqual([
+      { key: 'overdue', reminders: ['r1'], rows: ['a', 'b'], total: 3 },
+      { key: 'today', reminders: [], rows: ['c'], total: 2 },
+    ]);
+    expect(capRows(g, 0)).toEqual([]);
   });
 });
 

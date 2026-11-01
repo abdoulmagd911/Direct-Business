@@ -14,8 +14,10 @@ import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { DoneTick } from '@/modules/tasks/screens/StatusControl';
 import type { TaskStatus } from '@/modules/tasks/types';
 import {
+  BLOCK_ROWS,
   FIXED_TASK_VIEWS,
   TASK_GROUPS,
+  capRows,
   helpingTasks,
   noteRoute,
   readTaskView,
@@ -67,6 +69,14 @@ export function TodayBlock({
   const [view, setView] = useState('all');
   const groups = all.filter((x) => !shown.length || shown.includes(x.key));
   const none = groups.every((x) => !x.rows.length && !x.reminders.length);
+  // a block draws 5–7 rows, then "Show all" (V433): the first seven of what the chips leave
+  const [all7, setAll7] = useState(false);
+  const total = groups.reduce((n, x) => n + x.rows.length + x.reminders.length, 0);
+  const cut = total > BLOCK_ROWS;
+  const drawn =
+    cut && !all7
+      ? capRows(groups, BLOCK_ROWS)
+      : groups.map((x) => ({ ...x, total: x.rows.length + x.reminders.length }));
   const count = (k: TaskGroup) =>
     all.find((x) => x.key === k)!.rows.length + all.find((x) => x.key === k)!.reminders.length;
   const open = (v: { key: string; query?: Record<string, unknown> }) => {
@@ -142,7 +152,7 @@ export function TodayBlock({
       {none ? (
         <DataState kind="empty" message={t('pages.myDay.today.empty')} />
       ) : (
-        groups
+        drawn
           .filter((x) => x.rows.length || x.reminders.length)
           .map((x) => (
             <div key={x.key} data-today-group={x.key}>
@@ -151,7 +161,7 @@ export function TodayBlock({
                 {t(`pages.myDay.today.${x.key}`)}
                 {x.key === 'overdue' ? (
                   <span className="ms-2 font-data text-danger" data-today-overdue-count>
-                    {x.rows.length + x.reminders.length}
+                    {x.total}
                   </span>
                 ) : null}
               </h3>
@@ -172,6 +182,19 @@ export function TodayBlock({
             </div>
           ))
       )}
+      {cut ? (
+        <div className="border-t border-border py-2.5">
+          <button
+            type="button"
+            onClick={() => setAll7((v) => !v)}
+            aria-expanded={all7}
+            className="text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+            data-today-more
+          >
+            {all7 ? t('pages.myDay.today.showFewer') : t('pages.myDay.today.showAll', { count: total })}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
