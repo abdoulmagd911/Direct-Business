@@ -4,19 +4,19 @@ export const sabotages = [
   {
     name: 'today-block-has-no-helping-group',
     breaks: [BOX],
-    expect: 'draws all four groups, Helping last',
+    expect: 'draws the four boxes in order',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: "{ key: 'helping', rows: helpingTasks(tasks), reminders: [] as TodayReminder[] },",
-        replace: "{ key: 'helping', rows: [] as typeof tasks, reminders: [] as TodayReminder[] },",
+        find: "{ key: 'helping', rows: helpingTasks(tasks), reminders: [] },",
+        replace: "{ key: 'helping', rows: [], reminders: [] },",
       },
     ],
   },
   {
     name: 'a-helped-task-has-a-done-tick',
     breaks: [BOX],
-    expect: 'no done tick on a task I only help on',
+    expect: 'a helped task has a mark and no button',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
@@ -112,14 +112,14 @@ export const sabotages = [
     ],
   },
   {
-    name: 'today-overdue-count-counts-only-the-rows-drawn',
+    name: 'today-box-count-counts-only-the-rows-drawn',
     breaks: [BOX],
-    expect: 'keeps the true count on the Overdue heading',
+    expect: 'keeps the true count on the box heading',
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: '                    {x.total}\n',
-        replace: '                    {x.rows.length + x.reminders.length}\n',
+        find: '{x.total}',
+        replace: '{x.rows.length + x.reminders.length}',
       },
     ],
   },

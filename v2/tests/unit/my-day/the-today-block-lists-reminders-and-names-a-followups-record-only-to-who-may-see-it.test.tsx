@@ -71,7 +71,7 @@ describe('the Today block with reminders', () => {
     expect(html).toContain('data-today-reminder="r2"');
     expect(html.match(/data-reminder-done/g)).toHaveLength(2);
     expect(html).toContain('Mark “Call Sahab Tech” done');
-    expect(html).toContain('data-today-group="overdue"');
+    expect(html).toContain('data-today-group="reminders"');
     expect(html).not.toContain('Nothing due today');
   });
   it('lists a reminder the job has not sent yet if it falls today, and leaves out one for a later day', () => {
@@ -157,24 +157,27 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
   };
   const headings = (html: string) =>
     (html.match(/<h[23][^>]*>.*?<\/h[23]>/g) ?? []).map((h) => h.replace(/<[^>]+>/g, ''));
-  it('titles the card Today and its groups never just Today: Overdue, Due today, Next 7 days', () => {
-    expect(headings(draw({ due: now }))).toEqual(['Today', 'Due today']);
-    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Overdue1', 'Due today']);
+  it('titles the card Today and the due reminders Reminders, never just Today', () => {
+    expect(headings(draw({ due: now }))).toEqual(['Today', 'Reminders1']);
+    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Reminders2']);
   });
-  it('says Today once with an overdue task and a task due today and one next: the card title only', () => {
-    const task = (id: string, due_on: string) =>
-      ({ id, number: `T-${id}`, title: `Made-up task ${id}`, due_on, status_id: 's', helping: false }) as never;
-    const html = draw({
-      tasks: [task('a', '2026-10-12'), task('b', '2026-10-14'), task('c', '2026-10-16')],
-    });
-    expect(headings(html)).toEqual(['Today', 'Overdue1', 'Due today', 'Next 7 days']);
+  const boxTasks = () =>
+    [
+      { id: 'a', due_on: '2026-10-12', starred: true },
+      { id: 'b', due_on: '2026-10-14', starred: false },
+      { id: 'c', due_on: '2026-10-20', starred: false },
+      { id: 'd', due_on: '2026-10-20', starred: true },
+    ].map(
+      (x) => ({ ...x, number: `T-${x.id}`, title: `Made-up task ${x.id}`, status_id: 's', helping: false }) as never,
+    );
+  it('says Today once, then the four boxes in order: Do now, Plan it, Quick or hand off, Later (V661)', () => {
+    const html = draw({ tasks: boxTasks() });
+    expect(headings(html)).toEqual(['Today', 'Do now1', 'Plan it1', 'Quick or hand off1', 'Later1']);
     expect(headings(html).filter((h) => h === 'Today')).toHaveLength(1);
   });
-  it('says the same in Arabic: the groups read متأخرة · مستحق اليوم · الأيام السبعة القادمة', () => {
-    const task = (id: string, due_on: string) =>
-      ({ id, number: `T-${id}`, title: `Made-up task ${id}`, due_on, status_id: 's', helping: false }) as never;
-    const html = draw({ tasks: [task('a', '2026-10-12'), task('b', '2026-10-14'), task('c', '2026-10-16')] }, 'ar');
-    expect(headings(html)).toEqual(['اليوم', 'متأخرة1', 'مستحق اليوم', 'الأيام السبعة القادمة']);
+  it('says the same in Arabic: افعلها الآن · خطّط لها · سريعة أو فوّضها · لاحقًا', () => {
+    const html = draw({ tasks: boxTasks() }, 'ar');
+    expect(headings(html)).toEqual(['اليوم', 'افعلها الآن1', 'خطّط لها1', 'سريعة أو فوّضها1', 'لاحقًا1']);
   });
 
   it("keeps a due reminder's words and its time on one line, with the record chip on the line under them", () => {
