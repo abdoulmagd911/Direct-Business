@@ -604,6 +604,23 @@
       "valueNotNumber": "Enter a number",
       "offerAction": "Log as achievement"
     },
+    "reports": {
+      "summary": "Monthly summary",
+      "month": "Month",
+      "anyMonth": "Any month",
+      "clearMonth": "Clear month",
+      "total": "Total",
+      "dealValue": "Deal value",
+      "withDealValue": "with a deal value",
+      "byCategory": "By category",
+      "byOwner": "By owner",
+      "byPartner": "By organisation",
+      "unknownOwner": "Unknown owner",
+      "unknownPartner": "Unknown organisation",
+      "download": "Download as CSV",
+      "seeList": "See the achievements list",
+      "empty": "No achievements in this month"
+    },
     "beingBuilt": "Being built.",
     "tasks": {
       "unknownOwner": "Unknown",
@@ -738,6 +755,9 @@
         "blockTitle": "Block {number}",
         "blockReason": "What is it waiting for?",
         "block": "Block",
+        "cancelTitle": "Cancel {number}",
+        "cancelReason": "Why was it cancelled?",
+        "cancel": "Cancel task",
         "reasonRequired": "A reason is required",
         "closeItemsTitle": "{count, plural, one {# action item is} other {# action items are}} still open on {number}",
         "closeItemsBody": "Marking it done closes them too, on the same day.",
@@ -869,7 +889,8 @@
       },
       "board": {
         "emptyColumn": "Nothing here",
-        "blockedLabel": "Blocked:"
+        "blockedLabel": "Blocked:",
+        "cancelledLabel": "Cancelled:"
       },
       "calendar": {
         "previous": "Previous month",

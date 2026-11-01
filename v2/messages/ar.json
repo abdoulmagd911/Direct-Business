@@ -373,6 +373,23 @@
       "valueNotNumber": "أدخل رقمًا",
       "offerAction": "سجّل كإنجاز"
     },
+    "reports": {
+      "summary": "ملخص شهري",
+      "month": "الشهر",
+      "anyMonth": "أي شهر",
+      "clearMonth": "مسح الشهر",
+      "total": "الإجمالي",
+      "dealValue": "قيمة الصفقة",
+      "withDealValue": "بقيمة صفقة",
+      "byCategory": "حسب الفئة",
+      "byOwner": "حسب المالك",
+      "byPartner": "حسب الجهة",
+      "unknownOwner": "مالك غير معروف",
+      "unknownPartner": "جهة غير معروفة",
+      "download": "تنزيل بصيغة CSV",
+      "seeList": "عرض قائمة الإنجازات",
+      "empty": "لا إنجازات في هذا الشهر"
+    },
     "myDay": {
       "kindFilter": {
         "label": "عرض",
@@ -716,6 +733,9 @@
         "blockTitle": "إيقاف {number}",
         "blockReason": "ما الذي تنتظره؟",
         "block": "إيقاف",
+        "cancelTitle": "إلغاء {number}",
+        "cancelReason": "لماذا أُلغيت؟",
+        "cancel": "إلغاء المهمة",
         "reasonRequired": "السبب مطلوب",
         "closeItemsTitle": "{count, plural, one {بند عمل واحد لا يزال مفتوحًا} two {بندا عمل لا يزالان مفتوحين} few {# بنود عمل لا تزال مفتوحة} many {# بند عمل لا يزال مفتوحًا} other {# بند عمل لا يزال مفتوحًا}} في {number}",
         "closeItemsBody": "تعليم المهمة منجزة يغلق هذه البنود أيضًا في اليوم نفسه.",
@@ -869,7 +889,8 @@
       },
       "board": {
         "emptyColumn": "لا شيء هنا",
-        "blockedLabel": "متوقفة:"
+        "blockedLabel": "متوقفة:",
+        "cancelledLabel": "أُلغيت:"
       },
       "calendar": {
         "previous": "الشهر السابق",
