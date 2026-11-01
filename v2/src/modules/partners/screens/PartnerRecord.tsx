@@ -159,14 +159,20 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           empty: t('partners.figures.noActivity'),
           value: card.last_activity_on ? formatDate(card.last_activity_on, locale, { dateStyle: 'medium' }) : null,
         };
-      case 'next_step':
+      case 'next_step': {
+        // A next step in the past gets an overdue flag in plain words, so a
+        // 1 Nov check no longer shows a past date with no warning on it.
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+        const overdue = !!card.next_step && card.next_step.on < today;
+        const note = [card.next_step?.text, overdue ? t('status.overdue') : null].filter(Boolean).join(' · ');
         return {
           key: k,
           label: t('partners.figures.next_step'),
           empty: t('partners.figures.noNextStep'),
           value: card.next_step ? formatDate(card.next_step.on, locale, { dateStyle: 'medium' }) : null,
-          note: card.next_step?.text ?? undefined,
+          note: note || undefined,
         };
+      }
       case 'contracts':
         return { key: k, label: t('partners.figures.contracts'), value: String(card.counts.contracts) };
       case 'contacts':
@@ -656,7 +662,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         tabs={TABS.map((k) => ({
           key: k,
           label: t(`partners.tabs.${k}`),
-          count: k === 'activity' && history ? history.length : undefined,
+          // The Activity tab shows notes plus the change log, so its count
+          // must count both, not only the change log (it said 1, listed 5).
+          count: k === 'activity' && history ? notes.length + history.length : undefined,
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
