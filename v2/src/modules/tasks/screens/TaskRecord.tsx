@@ -445,14 +445,22 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
       </Field>
       <Field label={t('pages.tasks.fields.due')}>
         {(p) => (
-          <Input
-            {...p}
-            type="date"
-            max={DATE_MAX}
-            value={f.due_on}
-            onChange={(e) => setF({ ...f, due_on: e.target.value })}
-            name="due"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              {...p}
+              type="date"
+              max={DATE_MAX}
+              value={f.due_on}
+              onChange={(e) => setF({ ...f, due_on: e.target.value })}
+              name="due"
+              className="min-w-0 flex-1"
+            />
+            {f.due_on ? (
+              <Button type="button" variant="ghost" onClick={() => setF({ ...f, due_on: '' })} data-edit-due-clear>
+                {t('pages.tasks.add.dueClear')}
+              </Button>
+            ) : null}
+          </div>
         )}
       </Field>
       <Field label={t('pages.tasks.fields.notes')}>
