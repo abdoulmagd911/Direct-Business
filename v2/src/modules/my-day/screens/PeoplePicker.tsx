@@ -13,10 +13,13 @@ export function PeoplePicker({
   options,
   onPick,
   id,
+  variant = 'share',
 }: {
   options: { id: string; name: string }[];
   onPick: (id: string) => void;
   id?: string;
+  /** 'mention' gives the picker its own label and search marker, so a note with both pickers has no duplicate. */
+  variant?: 'share' | 'mention';
 }) {
   const t = useTranslations();
   const list = useId();
@@ -39,7 +42,7 @@ export function PeoplePicker({
         role="combobox"
         aria-expanded={open}
         aria-controls={list}
-        aria-label={t('pages.myDay.visibility.shareAdd')}
+        aria-label={variant === 'mention' ? t('pages.myDay.note.mentionAdd') : t('pages.myDay.visibility.shareAdd')}
         placeholder={t('pages.myDay.visibility.shareSearch')}
         autoComplete="off"
         value={q}
@@ -49,7 +52,7 @@ export function PeoplePicker({
         }}
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
-        data-people-search
+        {...(variant === 'mention' ? { 'data-mention-search': true } : { 'data-people-search': true })}
       />
       {open ? (
         <ul

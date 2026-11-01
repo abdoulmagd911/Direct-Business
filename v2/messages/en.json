@@ -292,6 +292,7 @@
         "notFound": "This note is not there, or it is not yours to read.",
         "details": "Details",
         "mentions": "Mention",
+        "mentionAdd": "Mention a colleague",
         "linkActivity": "{type} · {name}",
         "linkReminder": "Reminder · {when}",
         "linkTask": "Task {number} · {title}",

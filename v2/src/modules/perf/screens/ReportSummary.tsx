@@ -102,7 +102,7 @@ export function ReportSummary({
   return (
     <>
       <PageHeader
-        title={t('summary')}
+        title={tc('nav.reports')}
         meta={page ? String(page.total) : undefined}
         actions={
           <Button size="sm" variant="secondary" onClick={download} disabled={!page || rows.length === 0}>
@@ -111,6 +111,7 @@ export function ReportSummary({
           </Button>
         }
       />
+      <h2 className="text-lg font-semibold">{t('summary')}</h2>
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-0.5 text-sm text-muted" data-report-month>
           {t('month')}

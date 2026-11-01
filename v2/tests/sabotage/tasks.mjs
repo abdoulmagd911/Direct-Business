@@ -43,7 +43,13 @@ export const sabotages = [
     name: 'tasks-blocked-without-its-reason',
     breaks: [unit('blocked-needs-its-reason-and-done-asks-about-open-items')],
     expect: 'Blocked asks for its reason',
-    edits: [{ file: RULES, find: "    if (!reason) return { ask: 'reason' };\n", replace: '' }],
+    edits: [
+      {
+        file: RULES,
+        find: "if (move.kind === 'block') {\n    const reason = answers.reason?.trim() ?? '';\n    if (!reason) return { ask: 'reason' };\n",
+        replace: "if (move.kind === 'block') {\n    const reason = answers.reason?.trim() ?? '';\n",
+      },
+    ],
   },
   {
     name: 'tasks-done-leaves-items-open',

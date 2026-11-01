@@ -359,6 +359,7 @@ export function NotePage({
                   {mine && mentionable.length ? (
                     <PeoplePicker
                       id={p.id}
+                      variant="mention"
                       options={mentionable}
                       onPick={(v) => setD({ ...d, mentions: [...d.mentions, v] })}
                     />

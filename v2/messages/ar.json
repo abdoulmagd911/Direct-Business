@@ -464,6 +464,7 @@
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
         "mentions": "إشارة",
+        "mentionAdd": "أشر إلى زميل",
         "linkActivity": "{type} · {name}",
         "linkReminder": "تذكير · {when}",
         "linkTask": "مهمة {number} · {title}",

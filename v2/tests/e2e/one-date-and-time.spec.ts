@@ -32,7 +32,10 @@ for (const width of WIDTHS) {
     await signIn(page, me.email, '/tasks/new');
     await hydrated(page);
     const due = page.locator('form[data-quick-add] input[name="due"]');
-    await expect(due, 'the hint is a day written the one way').toHaveAttribute('placeholder', '20 Oct 2026');
+    await expect(due, 'the hint is a day written the one way').toHaveAttribute(
+      'placeholder',
+      'For example, 20 Oct 2026',
+    );
     await due.fill('2026-10-20');
     await page.locator('form[data-quick-add] input[name="title"]').focus();
     await expect(due, 'a day typed ISO is written back as 20 Oct 2026').toHaveValue('20 Oct 2026');

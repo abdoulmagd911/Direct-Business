@@ -1892,8 +1892,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/notify/useNotifications.ts',
-        find: "(tab === 'mentions' ? kind === 'mentioned' :",
-        replace: "(tab === 'mentions' ? true :",
+        find: "kind === 'mentioned' || kind === 'note_mention'",
+        replace: 'true',
       },
     ],
   },
