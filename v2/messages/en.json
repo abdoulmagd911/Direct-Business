@@ -2169,6 +2169,7 @@
       "nextStepOn": "Next step on",
       "demoDay": "Demo day",
       "loggedLate": "Logged late",
+      "noMessage": "No message text",
       "event": {
         "task_added": "Task added: {title}",
         "task_done": "Task done: {title}"

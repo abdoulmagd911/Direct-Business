@@ -619,7 +619,11 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             ) : null}
             {n.from_note ? <FromNoteChip note={n.from_note} /> : null}
           </span>
-          {n.body ? <span className="whitespace-pre-wrap text-sm">{n.body}</span> : null}
+          {n.body ? (
+            <span className="whitespace-pre-wrap text-sm">{n.body}</span>
+          ) : n.kind === 'activity' ? (
+            <span className="text-sm text-muted">{t('partners.activity.noMessage')}</span>
+          ) : null}
           {n.next_step ? (
             <span className="text-sm text-muted">
               {t('partners.activity.nextStep')}: {n.next_step}
