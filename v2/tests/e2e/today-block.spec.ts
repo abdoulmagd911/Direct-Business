@@ -63,7 +63,7 @@ for (const width of [375, 1440]) {
     await expect(block.locator('h2')).toHaveText('Today');
     await expect(block.locator('h3'), 'the boxes, in order, with the empty ones left out').toHaveText([
       /^Do now\s*1$/,
-      /^Quick or hand off\s*2$/,
+      /^Quick or pass to someone\s*2$/,
       /^Later\s*1$/,
     ]);
     expect(await block.getByText('Today', { exact: true }).count(), 'the word Today is the card title only').toBe(1);
