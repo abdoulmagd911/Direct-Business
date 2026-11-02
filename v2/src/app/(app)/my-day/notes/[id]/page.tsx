@@ -53,7 +53,10 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
             id: p.id,
             name: personName(p, locale === 'ar' ? 'ar' : 'en'),
             team_id: p.team_id,
-            is_admin: p.role?.is_admin ?? false,
+            // api.org carries no roles by design, so "admin" here means the owner Admin account, the one
+            // reader the team rule always lets through. Other admin-role staff on other teams are not offered
+            // on a team note (they can still be mentioned on a workspace note); the database stays the guard.
+            is_admin: p.account === 'admin_account',
           }))
           .sort((a, b) => a.name.localeCompare(b.name))}
       />

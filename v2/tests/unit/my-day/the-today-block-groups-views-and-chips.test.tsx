@@ -100,7 +100,7 @@ describe('the Today block: the four boxes, the star, chips and views', () => {
     const headings = () =>
       [...document.querySelectorAll('[data-today-group] h3')].map((h) => h.firstChild?.textContent);
     await draw();
-    expect(headings()).toEqual(['Do now', 'Plan it', 'Quick or hand off', 'Later', 'Helping']);
+    expect(headings()).toEqual(['Do now', 'Plan it', 'Quick or pass to someone', 'Later', 'Helping']);
     act(() => root?.unmount());
     document.body.innerHTML = '';
     await draw(tasks, 'ar');

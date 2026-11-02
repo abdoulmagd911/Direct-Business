@@ -108,8 +108,8 @@ export function NotePage({
   const addable = colleagues.filter((c) => !d.shared_with.includes(c.id));
   // A mention only notifies someone who can see the note (the database refuses otherwise), so on a
   // named-colleagues note only colleagues already shared with are offered; on a team note only
-  // colleagues on the author's team (or admins, who see team notes) are offered; on workspace
-  // notes anyone is. Offering anyone else would only end in a refusal.
+  // colleagues on the author's team (or the owner Admin account, who sees team notes) are offered;
+  // on workspace notes anyone is. Offering anyone else would only end in a refusal.
   const mentionable = colleagues.filter(
     (c) =>
       !d.mentions.includes(c.id) &&
