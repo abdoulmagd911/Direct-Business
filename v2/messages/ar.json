@@ -1501,6 +1501,7 @@
       "new": "بند جديد",
       "arabicRequired": "الاسم بالعربية مطلوب",
       "showArchived": "عرض المؤرشف",
+      "showUsage": "عرض الاستخدام",
       "entries": "{count, plural, one {بند واحد} two {بندان} few {# بنود} many {# بندًا} other {# بند}}",
       "banned": "التطبيق لا يستخدم كلمة {word}"
     },

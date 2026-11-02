@@ -58,6 +58,30 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   const [reason, setReason] = useState('');
   const [archiving, setArchiving] = useState<ListEntry | null>(null);
   const [usage, setUsage] = useState<number | null>(null);
+  // Usage counts for this list, loaded only when asked (one tap): the archive dialog already counts one
+  // entry at a time through api.list_usage, but a list cannot be judged until every entry shows its count.
+  // null = not loaded yet; -1 = that entry could not be counted (shown as —, never as 0).
+  const [usageCounts, setUsageCounts] = useState<Record<string, number> | null>(null);
+  const [usageBusy, setUsageBusy] = useState(false);
+  const loadUsage = async () => {
+    setUsageBusy(true);
+    const entries = await Promise.all(
+      rows.map(async (r) => {
+        try {
+          const n = (await rpc('list_usage', { p_list: entity, p_id: r.id })) as { total?: number } | null;
+          return [r.id, n?.total ?? 0] as const;
+        } catch {
+          return [r.id, -1] as const;
+        }
+      }),
+    );
+    setUsageCounts(Object.fromEntries(entries));
+    setUsageBusy(false);
+  };
+  const usageOf = (r: ListEntry) => {
+    const n = usageCounts?.[r.id];
+    return n === undefined || n < 0 ? '—' : String(n);
+  };
   const [replaceWith, setReplaceWith] = useState('');
   const [busy, setBusy] = useState(false);
   const words = {
@@ -177,6 +201,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
             })) as Promise<{ request_id?: string | null } | null>,
       () => {
         setArchiving(null);
+        setUsageCounts(null);
         router.refresh();
       },
     );
@@ -194,7 +219,10 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
         }) as Promise<{
           request_id?: string | null;
         } | null>,
-      () => router.refresh(),
+      () => {
+        setUsageCounts(null);
+        router.refresh();
+      },
     );
   };
 
@@ -221,6 +249,9 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
           <Button size="sm" onClick={() => startEdit('new')} data-list-add>
             {t('settings.list.add')}
           </Button>
+          <Button size="sm" variant="ghost" onClick={() => void loadUsage()} loading={usageBusy} data-list-show-usage>
+            {t('settings.list.showUsage')}
+          </Button>
         </div>
       </div>
       {/* on a phone the key and the order step aside and the names get room, so Edit and Archive stay on screen (QA-183c) */}
@@ -243,6 +274,11 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               {extra ? (
                 <div className="mt-1 text-sm text-muted [overflow-wrap:anywhere]" data-list-extra={extraOf(r)}>
                   {extraWord(extraOf(r))}
+                </div>
+              ) : null}
+              {usageCounts !== null ? (
+                <div className="mt-1 text-sm text-muted">
+                  {t('settings.list.usage')}: {usageOf(r)}
                 </div>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-1">
@@ -280,6 +316,9 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                   </th>
                 ) : null}
                 <th className="hidden py-2 text-end font-medium sm:table-cell">{t('settings.list.sort')}</th>
+                {usageCounts !== null ? (
+                  <th className="py-2 ps-4 text-end font-medium">{t('settings.list.usage')}</th>
+                ) : null}
                 <th className="py-2" />
               </tr>
             </thead>
@@ -301,6 +340,9 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
                     </td>
                   ) : null}
                   <td className="hidden py-2.5 text-end font-data text-muted sm:table-cell">{r.sort}</td>
+                  {usageCounts !== null ? (
+                    <td className="py-2.5 ps-4 text-end font-data text-muted">{usageOf(r)}</td>
+                  ) : null}
                   <td className="py-2.5 text-end">
                     <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:flex-wrap sm:justify-end">
                       <Button

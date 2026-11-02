@@ -1489,6 +1489,7 @@
       "new": "New entry",
       "arabicRequired": "An Arabic name is required",
       "showArchived": "Show archived",
+      "showUsage": "Show usage",
       "entries": "{count, plural, one {# entry} other {# entries}}",
       "banned": "The app never says {word}",
       "side": "Side",
