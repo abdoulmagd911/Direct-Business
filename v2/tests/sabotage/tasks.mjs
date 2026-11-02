@@ -286,8 +286,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/StatusControl.tsx',
-        find: "await choose({ kind: 'block' }, { reason });",
-        replace: "await choose({ kind: 'block' }, { reason: '' });",
+        find: 'if (reasoning) await choose(reasoning, { reason });',
+        replace: "if (reasoning) await choose(reasoning, { reason: '' });",
       },
     ],
   },
