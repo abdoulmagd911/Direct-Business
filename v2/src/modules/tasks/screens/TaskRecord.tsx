@@ -393,9 +393,9 @@ function EditTask({
       onOpenChange={onOpenChange}
       title={t('pages.tasks.edit.title', { number: task.number })}
       closeLabel={t('common.close')}
-      // Always dirty: the browser's date picker popup sits outside the dialog, so a tap on its Clear would
-      // otherwise close the whole edit unsaved. Cancel still closes, as always.
-      dirty
+      // No dirty flag here on purpose: making the dialog always dirty also blocked Escape, which the
+      // phone-actions test (and a user closing a clean edit) relies on. Clearing the due date is done
+      // by the dialog's own Clear button next to the field, not by the browser picker's Clear.
     >
       {open ? <EditForm task={task} onClose={() => onOpenChange(false)} /> : null}
     </Dialog>
