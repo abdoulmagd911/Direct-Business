@@ -1,5 +1,5 @@
 'use client';
-import { PanelLeftClose, PanelLeftOpen, Pin, PinOff } from 'lucide-react';
+import { Pin, PinOff } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -77,8 +77,6 @@ export function Drawer() {
     );
   };
 
-  const CollapseIcon = pinned ? PanelLeftClose : PanelLeftOpen;
-
   const content = (
     <nav
       aria-label={t('nav.main')}
@@ -137,13 +135,6 @@ export function Drawer() {
             icon={pinned ? <Pin /> : <PinOff />}
             onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
             data-drawer-pin
-          />
-          <FootButton
-            expanded={expanded}
-            label={pinned ? t('nav.collapse') : t('nav.expand')}
-            icon={<CollapseIcon className="flip-rtl" />}
-            onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
-            data-drawer-collapse
           />
         </div>
       </div>

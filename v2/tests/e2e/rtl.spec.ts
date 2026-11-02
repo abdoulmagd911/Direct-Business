@@ -16,10 +16,6 @@ test('the shell mirrors under dir=rtl', async ({ page, context }) => {
   expect(drawer.x, 'drawer sits on the right').toBeGreaterThan(main.x);
   expect(drawer.width).toBeCloseTo(232, 0);
 
-  const collapse = page.locator('[data-drawer-collapse] svg');
-  const transform = await collapse.evaluate((el) => getComputedStyle(el).transform);
-  expect(transform, 'the collapse icon is mirrored').toMatch(/matrix\(-1,/);
-
   await page.locator('[data-kit-section="Table"] tr[data-index]').first().click();
   const panel = page.locator('aside[data-detail-panel]');
   await expect(panel).toBeVisible();

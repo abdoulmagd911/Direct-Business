@@ -79,8 +79,6 @@
     "main": "Main",
     "pin": "Pin drawer",
     "unpin": "Unpin drawer",
-    "collapse": "Collapse drawer",
-    "expand": "Expand drawer",
     "open": "Open menu",
     "close": "Close menu",
     "more": "More",

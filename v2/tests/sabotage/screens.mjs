@@ -39,8 +39,8 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/ar.json',
-        find: '    "collapse": "طي القائمة",\n',
-        replace: '    "collapse": "طي القائمة",\n    "collapse_stray": "طي",\n',
+        find: '    "pin": "تثبيت القائمة",\n',
+        replace: '    "pin": "تثبيت القائمة",\n    "collapse_stray": "طي",\n',
       },
     ],
   },
