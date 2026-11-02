@@ -49,7 +49,12 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         taskLookups={lookups ? { org: lookups.org, partners: lookups.partners, projects: lookups.projects } : undefined}
         colleagues={(org?.people ?? [])
           .filter((p) => p.id !== me.person.id)
-          .map((p) => ({ id: p.id, name: personName(p, locale === 'ar' ? 'ar' : 'en') }))
+          .map((p) => ({
+            id: p.id,
+            name: personName(p, locale === 'ar' ? 'ar' : 'en'),
+            team_id: p.team_id,
+            is_admin: p.role?.is_admin ?? false,
+          }))
           .sort((a, b) => a.name.localeCompare(b.name))}
       />
     </Page>

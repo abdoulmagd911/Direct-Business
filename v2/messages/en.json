@@ -261,7 +261,7 @@
       "fewer": "Show fewer",
       "empty": {
         "me": "No notes yet. Notes you capture with Create appear here.",
-        "team": "Nothing shared with you by your team yet.",
+        "team": "Nothing shared with you yet.",
         "workspace": "Nothing shared with you by others yet.",
         "kind": "Nothing of this kind yet."
       },
@@ -393,7 +393,7 @@
         "reminders": "Reminders",
         "do_now": "Do now",
         "plan_it": "Plan it",
-        "quick": "Quick or hand off",
+        "quick": "Quick or pass to someone",
         "later": "Later"
       },
       "quick": {
@@ -618,9 +618,9 @@
       "byCategory": "By category",
       "byOwner": "By owner",
       "byPartner": "By organisation",
-      "unknownOwner": "Unknown owner",
-      "unknownPartner": "Unknown organisation",
-      "download": "Download as CSV",
+      "unknownOwner": "No owner listed",
+      "unknownPartner": "No organisation listed",
+      "download": "Download as spreadsheet",
       "seeList": "See the achievements list",
       "empty": "No achievements in this month"
     },
@@ -646,7 +646,7 @@
         "helping": "You are not helping on any task",
         "team": "Your team has no tasks yet",
         "my_work": "No tasks yet. Tasks you own or follow appear here.",
-        "past": "No past work yet. Paste it from a report above."
+        "past": "No past work yet. Add it from a report above."
       },
       "noNotes": "No notes",
       "noOtherNotes": "No other notes",
@@ -780,7 +780,7 @@
         "task": {
           "title_required": "A title is required",
           "owner_required": "Live work needs an owner",
-          "open_action_items": "{detail} action items are still open",
+          "open_action_items": "Action items still open: {detail}",
           "only_in_progress_blocks": "Only a task in progress can be blocked",
           "blocked_needs_reason": "Blocked needs a reason",
           "status_before_raised": "That day is before the task was raised",
@@ -821,7 +821,7 @@
         }
       },
       "past": {
-        "title": "Paste past work",
+        "title": "Add past work",
         "source": "Source report",
         "sourceKinds": {
           "bd_monthly": "BD monthly",
@@ -833,7 +833,7 @@
         "quarter": "Q{n} {year}",
         "pickSource": "Pick the report these rows come from",
         "fromReport": "the report's last day",
-        "pasteHere": "Paste rows from a spreadsheet",
+        "pasteHere": "Add rows from a spreadsheet",
         "hasHeader": "The first row holds the headers",
         "fields": {
           "title": "Title",
@@ -843,7 +843,7 @@
           "notes": "Notes",
           "person": "Owner"
         },
-        "noColumn": "Not in the paste",
+        "noColumn": "Not included",
         "column": "Column {letter}",
         "columnNamed": "Column {letter} · {header}",
         "dateOrder": "Dates read",
@@ -1590,15 +1590,15 @@
       "nameAr": "Name (Arabic)",
       "lead": "Lead",
       "members": "Members",
-      "retire": "Retire",
-      "retireTitle": "Retire {name}?",
+      "retire": "Archive",
+      "retireTitle": "Archive {name}?",
       "retireBody": "{count, plural, one {# person is} other {# people are}} in {name}. Pick the team they move to, or none.",
       "moveTo": "Move its people to",
       "noTeam": "No team",
       "retired": "{name} retired",
       "saved": "Team saved",
       "edit": "Edit {name}",
-      "retiredChip": "Retired",
+      "retiredChip": "Archived",
       "department": "Department",
       "noLead": "No lead"
     },
@@ -1941,6 +1941,7 @@
       "not_a_meeting": "Only a meeting note can be finished",
       "not_open": "This note is already handled",
       "not_yours": "Only the author changes a note",
+      "mention_cannot_see": "This person cannot see this note, so they cannot be mentioned. Share the note with them first.",
       "turn_into_needs_partner": "Choose the organisation first",
       "turn_into_not_yet": "This arrives with its page",
       "body_required": "A note needs words",
@@ -2193,7 +2194,7 @@
       "nextStepOn": "Next step on",
       "demoDay": "Demo day",
       "loggedLate": "Logged late",
-      "noMessage": "No message text",
+      "noMessage": "No message",
       "event": {
         "task_added": "Task added: {title}",
         "task_done": "Task done: {title}"

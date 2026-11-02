@@ -70,7 +70,7 @@ export function NotePage({
   note: MyNote;
   author?: string;
   /** Whom the author may share the note with, by name (G, V524): every other active colleague. */
-  colleagues?: { id: string; name: string }[];
+  colleagues?: { id: string; name: string; team_id?: string | null; is_admin?: boolean }[];
   /** The names a task from this note points at; absent for someone who may not make tasks (no Task in Turn into). */
   taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
   types: ListEntry[];
@@ -101,14 +101,23 @@ export function NotePage({
   const count = checklistCount({ items: d.items });
   const mine = note.mine;
   // QA-594: the reader is not among the colleagues offered, so a colleague reading a note shared with them is "You"
-  const me = useMe().person.id;
+  const mePerson = useMe().person;
+  const me = mePerson.id;
   const nameOf = (id: string) =>
     id === me ? t('pages.myDay.visibility.you') : (colleagues.find((c) => c.id === id)?.name ?? '—');
   const addable = colleagues.filter((c) => !d.shared_with.includes(c.id));
   // A mention only notifies someone who can see the note (the database refuses otherwise), so on a
-  // named-colleagues note only colleagues already shared with are offered; on team/workspace notes anyone is.
+  // named-colleagues note only colleagues already shared with are offered; on a team note only
+  // colleagues on the author's team (or admins, who see team notes) are offered; on workspace
+  // notes anyone is. Offering anyone else would only end in a refusal.
   const mentionable = colleagues.filter(
-    (c) => !d.mentions.includes(c.id) && (d.visibility === 'person' ? d.shared_with.includes(c.id) : true),
+    (c) =>
+      !d.mentions.includes(c.id) &&
+      (d.visibility === 'person'
+        ? d.shared_with.includes(c.id)
+        : d.visibility === 'team'
+          ? (mePerson.team_id !== null && c.team_id === mePerson.team_id) || c.is_admin === true
+          : true),
   );
 
   const save = async () => {
