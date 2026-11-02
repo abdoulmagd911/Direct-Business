@@ -1,0 +1,8 @@
+page,control,role,width,test,reads
+# The register of the tests that FOLLOW a control to its result (V641; the owner's question: was every button truly used, not just clicked?).
+# One line per control, per role and width. A control is verified only when a named test clicks it and then reads where its result shows.
+# page: the page pattern as the inventory shows it (/clients/:id). control: the label as the inventory shows it (pages reached read "Title (from /page)").
+# role: * or admin, manager, member, viewer, signed_out (several: separated by spaces). width: * or 375 or 1440.
+# test: "tests/e2e/file.spec.ts › the test title" (the file must exist and the title must be written in it). reads: where the result shows (the address, the dialog, the toast, the row).
+# A line that names no test or no place counts as not followed. Lines starting with # are comments. QA 2 fills this in; the first line is a worked example.
+/finance/new,New invoice (from /finance),admin,1440,tests/e2e/finance-new-button.spec.ts › Finance: New invoice is on the page for Full,"the address becomes /finance/new and the New invoice form shows (data-new-invoice)"
