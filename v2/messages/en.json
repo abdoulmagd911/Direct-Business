@@ -260,7 +260,7 @@
       "more": "Show all",
       "fewer": "Show fewer",
       "empty": {
-        "me": "No notes yet. Notes you capture with Create appear here.",
+        "me": "No notes yet.",
         "team": "Nothing shared with you yet.",
         "workspace": "Nothing shared with you by others yet.",
         "kind": "Nothing of this kind yet."
@@ -605,7 +605,7 @@
         "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       },
       "valueNotNumber": "Enter a number",
-      "offerAction": "Log as achievement"
+      "offerAction": "Log achievement"
     },
     "reports": {
       "summary": "Monthly summary",
@@ -645,7 +645,7 @@
         "owned": "You own no tasks yet",
         "helping": "You are not helping on any task",
         "team": "Your team has no tasks yet",
-        "my_work": "No tasks yet. Tasks you own or follow appear here.",
+        "my_work": "No tasks yet.",
         "past": "No past work yet. Add it from a report above."
       },
       "noNotes": "No notes",

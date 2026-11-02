@@ -139,7 +139,7 @@ for (const [label, width, height] of WIDTHS) {
       await page.locator(`[data-move="${meaning}"]`).click();
     };
     const toast = page.locator('[data-sonner-toast][data-front="true"]');
-    const offer = toast.getByRole('button', { name: 'Log as achievement' });
+    const offer = toast.getByRole('button', { name: 'Log achievement' });
 
     // Done: one toast with Undo and the offer, and a way to wave it off
     await move('done');

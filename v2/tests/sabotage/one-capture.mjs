@@ -120,7 +120,7 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/en.json',
-        find: '"me": "No notes yet. Notes you capture with Create appear here.",',
+        find: '"me": "No notes yet.",',
         replace: '"me": "No notes yet. What you capture here stays yours until you share it.",',
       },
     ],
