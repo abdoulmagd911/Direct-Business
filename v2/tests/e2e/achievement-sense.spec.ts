@@ -171,6 +171,9 @@ for (const [label, width, height] of WIDTHS) {
     await signIn(page, other.me.email, `/tasks/${other.number}`);
     await hydrated(page);
     await move('cancelled');
+    // Cancelled asks its reason first (same dialog as Blocked): fill it or the move never happens
+    await page.locator('[data-reason]').fill('Made-up test cancellation');
+    await page.locator('[data-reason-save]').click();
     await expect(toast.getByRole('button', { name: 'Undo' }), 'the move was made').toBeVisible();
     // counted at once: waiting for something to go proves nothing about something that was never there
     expect(await offer.count(), 'Cancelled offers nothing').toBe(0);
