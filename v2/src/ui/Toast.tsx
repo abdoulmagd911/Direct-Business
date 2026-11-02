@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 
 /**
  * Toasts: bottom-end, 5 s, past tense ("Task created"), Undo where the command is undoable (§2.4).
+ * A toast carrying a second action (Done → Log achievement) stays 10 s: two choices need reading time.
  * No coloured side stripe; the icon and the word carry the outcome.
  */
 export function Toaster() {
@@ -45,6 +46,8 @@ export const toast = {
     return sonnerToast.success(title, {
       id: opts.id,
       description: opts.description,
+      // a toast with a second action stays twice as long: two choices need reading time
+      duration: opts.extra ? 10000 : undefined,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
       // a second thing to do with what just happened (Done → Log as achievement): a button beside Undo, and a way out
       ...(opts.extra ? { cancel: { label: opts.extra.label, onClick: opts.extra.onClick }, closeButton: true } : {}),
