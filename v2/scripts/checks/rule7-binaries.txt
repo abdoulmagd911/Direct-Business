@@ -5,3 +5,4 @@ src/app/favicon.ico — the app's tab icon: no data
 src/app/apple-icon.png — the app's touch icon (the orange mark on slate): no data
 tests/e2e/screenshots/**/*.png — the UI-* screenshots of the kit and screens, made-up values only, kept for the oversight review: no data
 public/brand/*.svg — the official Direct logo (a public brand asset): no data
+tests/unit/export/golden/**/*.{png,pdf,pptx,xlsx} — golden renderings of the made-up sample report and exports (builder C, V301), kept for the golden tests and the PR review: no data
