@@ -450,3 +450,20 @@ export function refusalKey(key: string): string {
   const m = /^errors\.((?:task|action_item|escalation)\.[a-z_]+|person\.unavailable|common\.date_in_future)$/.exec(key);
   return m ? `pages.tasks.errors.${m[1]}` : key;
 }
+// ---------------------------------------------------------------- test tasks may show Remove
+
+/**
+ * A task may show Remove only when it is a test task: its owner or its creator is a TEST
+ * user (core.person.is_test). The server refuses anything else, so this only shapes the
+ * screen; it never decides access. Real tasks never get the control, whatever the screen.
+ */
+export function taskIsTestOwned(
+  task: { owner_id: string | null; created_by?: string | null },
+  people: { id: string; is_test?: boolean }[],
+): boolean {
+  const test = new Set(people.filter((p) => p.is_test === true).map((p) => p.id));
+  return (
+    (task.owner_id !== null && test.has(task.owner_id)) ||
+    (task.created_by !== null && task.created_by !== undefined && test.has(task.created_by))
+  );
+}

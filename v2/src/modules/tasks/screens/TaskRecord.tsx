@@ -1,5 +1,5 @@
 'use client';
-import { AlarmClockPlus, Check, Megaphone, Pencil } from 'lucide-react';
+import { AlarmClockPlus, Check, Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
+import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
@@ -23,7 +24,7 @@ import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import type { TaskLookups } from '../load';
-import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView } from '../rules';
+import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView, taskIsTestOwned } from '../rules';
 import type { TaskComments as Comments, TaskDetail } from '../types';
 import { Checklist } from './Checklist';
 import { TaskComments } from './TaskComments';
@@ -56,22 +57,36 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const today = riyadhDay(new Date());
-  const view = statusView(task);
+  // Status just moved: show it at once instead of waiting for the slow server refresh; cleared when the fresh task arrives.
+  const [statusOverride, setStatusOverride] = useState<{
+    status: string;
+    meaning: typeof task.meaning;
+    blocked_reason: string | null;
+    cancelled_reason: string | null;
+  } | null>(null);
+  const [seenStatus, setSeenStatus] = useState(task.status);
+  if (task.status !== seenStatus) {
+    setSeenStatus(task.status);
+    setStatusOverride(null);
+  }
+  const shown = statusOverride ? { ...task, ...statusOverride } : task;
+  const view = statusView(shown);
   const due = dueState(task, today);
-  const closed = task.meaning === 'done' || task.meaning === 'cancelled';
-  const move = useStatusMove(task, lookups.statuses);
+  const closed = shown.meaning === 'done' || shown.meaning === 'cancelled';
+  const move = useStatusMove(task, lookups.statuses, setStatusOverride);
   // Details' pickers (V287): helpers by whoever may edit the task, the owner by whoever gives work (`tasks.assign`)
   const mayHelp = task.can_edit && !closed;
   const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  const [removing, setRemoving] = useState(false);
   // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
   const [followUps, setFollowUps] = useState(0);
   // the Comments tab's own count while it is open, so the tab's number follows an add or a delete at once
   const [commentCount, setCommentCount] = useState<number | null>(null);
-  const status = lookups.statuses.find((s) => s.key === task.status);
+  const status = lookups.statuses.find((s) => s.key === shown.status);
   const statusLabel =
-    view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
+    view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(shown);
   const date = (d: string | null) => (d ? formatDate(d, names.locale) : '');
   const people = Object.fromEntries((lookups.org?.people ?? []).map((p) => [p.id, avatarOf(p, names.locale)]));
   const where = task.project_id
@@ -91,7 +106,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
 
   const chips = (
     <>
-      <StatusMenu task={task} statuses={lookups.statuses} label={statusLabel} canEdit={task.can_edit} />
+      <StatusMenu
+        task={shown}
+        statuses={lookups.statuses}
+        label={statusLabel}
+        canEdit={task.can_edit}
+        onMoved={setStatusOverride}
+      />
       {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
       {task.stale ? <StatusChip tone="warning">{t('pages.tasks.flags.stale')}</StatusChip> : null}
       {task.past_work ? <StatusChip tone="neutral">{t('pages.tasks.flags.pastWork')}</StatusChip> : null}
@@ -106,6 +127,26 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // whoever may change an open task, its one line of what it does as its title (E, 26 Oct): no longer in the ⋯ menu.
   const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
   const escalatable = task.can_edit && !closed;
+  // Remove is test-only: the task's owner or creator is a TEST user. The server refuses
+  // anything else, so this only hides the control on real tasks; it never decides access.
+  const words = useCommandWords();
+  const mayRemove = task.can_edit && taskIsTestOwned(task, lookups.org?.people ?? []);
+  const reasonWords = {
+    reason: t('dialogs.reason'),
+    save: t('actions.save'),
+    cancel: t('actions.cancel'),
+    reasonRequired: t('dialogs.reasonRequired'),
+  };
+  const remove = async (why: string) => {
+    await command(
+      words(t('removed')),
+      () =>
+        rpc('tasks_remove', { p_ids: [task.id], p_reason: why }) as Promise<{
+          request_id?: string | null;
+        }>,
+      { after: () => router.push('/tasks') },
+    );
+  };
   const actions = (
     <>
       {task.can_edit && !closed && move.markDone ? (
@@ -124,6 +165,11 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       {task.can_edit ? (
         <Button icon={<Pencil />} className="max-sm:hidden" onClick={() => setEditing(true)} data-edit-task-open>
           {t('common.edit')}
+        </Button>
+      ) : null}
+      {mayRemove ? (
+        <Button icon={<Trash2 />} className="max-sm:hidden" onClick={() => setRemoving(true)} data-remove-task-open>
+          {t('common.remove')}
         </Button>
       ) : null}
       <FollowUpButton about={follow} className="max-sm:hidden" />
@@ -157,9 +203,26 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           >
             {t('record.followUp')}
           </MenuItem>
+          {mayRemove ? (
+            <MenuItem icon={<Trash2 />} className="sm:hidden" onSelect={() => setRemoving(true)} data-menu-remove>
+              {t('common.remove')}
+            </MenuItem>
+          ) : null}
         </MenuContent>
       </Menu>
       {task.can_edit ? move.dialogs : null}
+      {mayRemove ? (
+        <ReasonDialog
+          open={removing}
+          onOpenChange={setRemoving}
+          title={t('dialogs.remove')}
+          destructive
+          words={reasonWords}
+          onSave={async (why) => {
+            await remove(why);
+          }}
+        />
+      ) : null}
     </>
   );
 
@@ -237,13 +300,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="text-sm font-semibold">
                   {t('pages.tasks.blockedSince', { date: date(task.blocked_on) })}
                 </p>
-                <p className="break-words text-base">{task.blocked_reason}</p>
+                <p className="break-words text-base">{shown.blocked_reason}</p>
               </div>
             ) : null}
-            {task.meaning === 'cancelled' && task.cancelled_reason ? (
+            {shown.meaning === 'cancelled' && shown.cancelled_reason ? (
               <div className="rounded-md border border-border bg-surface px-4 py-3" data-cancelled-reason>
                 <p className="text-sm font-semibold">{t('pages.tasks.board.cancelledLabel')}</p>
-                <p className="break-words text-base">{task.cancelled_reason}</p>
+                <p className="break-words text-base">{shown.cancelled_reason}</p>
               </div>
             ) : null}
             <section className="flex flex-col gap-2">

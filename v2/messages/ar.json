@@ -777,7 +777,8 @@
           "origin_invalid": "لا يمكن إضافة هذا النوع من المهام هنا",
           "comment_body_required": "اكتب شيئًا أولًا",
           "comment_too_long": "أقصى طول للتعليق 4000 حرف",
-          "comment_not_yours": "لا يعدّل التعليق إلا من كتبه"
+          "comment_not_yours": "لا يعدّل التعليق إلا من كتبه",
+          "remove_not_test": "لا يمكن إزالة إلا مهام الاختبار"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",

@@ -799,7 +799,8 @@
           "origin_invalid": "This kind of task cannot be added here",
           "comment_body_required": "Write something first",
           "comment_too_long": "A comment can be at most 4,000 characters",
-          "comment_not_yours": "Only the person who wrote a comment can change it"
+          "comment_not_yours": "Only the person who wrote a comment can change it",
+          "remove_not_test": "Only test tasks can be removed"
         },
         "action_item": {
           "text_required": "Write the action item",
