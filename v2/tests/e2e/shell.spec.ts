@@ -58,6 +58,7 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
     'Supplier',
     'Invoice',
     'Achievement',
+    'Idea',
   ]);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');

@@ -156,17 +156,19 @@ test('4 · a head has Activity; an admin adds Settings at the foot and in More',
   await ctx.close();
 });
 
-test('5 · a viewer: the built pages their access opens, Reports in More; Create offers Capture and nothing else (V242)', async ({
+test('5 · a viewer: the built pages their access opens, Reports in More; Create offers Capture and Idea (V242, Idea joins Capture for anyone who can open My day)', async ({
   page,
 }) => {
   await openAs(page, 'viewer');
   expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'Reports']);
-  // Capture is for anyone who can open My day, view-only included; Create's other items stay hidden
-  await expect(page.locator('[data-create]')).toHaveAttribute('data-create-direct', 'capture');
+  // Capture and Idea are for anyone who can open My day, view-only included; Create's other items stay hidden
+  await page.locator('[data-create]').click();
+  await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports']);
-  await expect(page.locator('[data-create-bar]')).toHaveAttribute('data-create-direct', 'capture');
+  await page.locator('[data-create-bar]').click();
+  await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
 });
 
 test('6 · a member opens KPIs and Finance from the menu; Reports is built, in the menu and in Ctrl K', async ({
@@ -282,7 +284,7 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
 
 // ── Create ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture and Task, never Partner', async ({
+test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture, Task and Idea, never Partner', async ({
   page,
   browser,
 }) => {
@@ -297,6 +299,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
     'Supplier',
     'Invoice',
     'Achievement',
+    'Idea',
   ]);
   await expect(page.getByRole('menu')).not.toContainText('Partner');
   await page.keyboard.press('Escape');
@@ -327,9 +330,9 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
-  // Clients, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task
+  // Clients, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task, plus Idea
   await one.locator('[data-create]').click();
-  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Idea']);
   await one.locator('[data-create-item="task"]').click();
   await expect(one, 'the Tasks page draws itself with quick add, no redirect (V286)').toHaveURL(/\/tasks\/new$/);
   await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
@@ -338,7 +341,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.goto('/my-day');
   await hydrated(one);
   await one.locator('[data-create-bar]').click();
-  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task']);
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Idea']);
   await ctx.close();
 });
 

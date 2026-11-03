@@ -14,9 +14,7 @@ describe('an idea is never private', () => {
     expect(quickCaptureArgs('idea', 'An idea', { visibility: 'private', day })?.values.visibility).toBe('team');
   });
   it('keeps an idea shared with everyone as everyone', () => {
-    expect(quickCaptureArgs('idea', 'An idea', { visibility: 'workspace', day })?.values.visibility).toBe(
-      'workspace',
-    );
+    expect(quickCaptureArgs('idea', 'An idea', { visibility: 'workspace', day })?.values.visibility).toBe('workspace');
   });
   it('keeps a private note private', () => {
     expect(quickCaptureArgs('note', 'A note', { visibility: 'private', day })?.values.visibility).toBe('private');

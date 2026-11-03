@@ -15,7 +15,7 @@ select set_config('t.task', api.task_create(jsonb_build_object('title', 'Made-up
 select api.task_helpers_set(current_setting('t.task')::uuid, array[current_setting('t.mate')::uuid]);
 select api.task_helpers_set(current_setting('t.task')::uuid, array[]::uuid[]);
 select api.note_capture('reminder', jsonb_build_object('title', 'Follow-up', 'visibility', 'private',
-  'remind_at', '2026-11-03T09:00:00+03:00', 'about', jsonb_build_object('entity', 'task',
+  'remind_at', '2030-01-05T09:00:00+03:00', 'about', jsonb_build_object('entity', 'task',
   'id', current_setting('t.task'))));
 
 select test.eq((select jsonb_agg(x ->> 'action' order by (x ->> 'change_id')::bigint)
@@ -33,7 +33,7 @@ select test.eq((select count(*)::int
 select test.eq((select x -> 'after' ->> 'remind_at'
                 from jsonb_array_elements(api.record_history('task', current_setting('t.task')::uuid)) x
                 where x ->> 'entity' = 'reminder'),
-  '2026-11-03T06:00:00+00:00', 'with its time');
+  '2030-01-05T06:00:00+00:00', 'with its time');
 select test.eq((select count(*)::int
                 from jsonb_array_elements(api.record_history('task', current_setting('t.task')::uuid)) x
                 where x ->> 'entity' = 'task'),
