@@ -164,6 +164,7 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   // Capture and Idea are for anyone who can open My day, view-only included; Create's other items stay hidden
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
+  await page.keyboard.press('Escape');
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports']);
