@@ -57,11 +57,12 @@ export function QuickCapture() {
       const opts = ((e as CustomEvent).detail ?? {}) as OpenOptions;
       const at = new Date();
       setNow(at);
+      const nextKind = opts.about ? 'reminder' : (opts.kind ?? 'note');
       setAbout(opts.about ?? null);
-      setKind(opts.about ? 'reminder' : (opts.kind ?? 'note'));
+      setKind(nextKind);
       setText(opts.text ?? '');
       setDismissed('');
-      setVisibility('private');
+      setVisibility(nextKind === 'idea' ? 'team' : 'private');
       setWhenKey('tomorrow');
       setPick(tomorrow(at));
       setOpen(true);
@@ -141,7 +142,10 @@ export function QuickCapture() {
                   role="radio"
                   aria-checked={kind === k}
                   className={pill(kind === k)}
-                  onClick={() => setKind(k)}
+                  onClick={() => {
+                    setKind(k);
+                    if (k === 'idea' && visibility === 'private') setVisibility('team');
+                  }}
                   data-quick-kind={k}
                 >
                   {t(`pages.myDay.quick.kinds.${k}`)}
@@ -166,8 +170,14 @@ export function QuickCapture() {
           ) : null}
           {about ? null : (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
-              {/* a Reminder is only ever told to its owner: the one choice offered is Only me */}
-              {(kind === 'reminder' ? VISIBILITIES.filter((v) => v === 'private') : VISIBILITIES).map((v) => (
+              {/* a Reminder is only ever told to its owner: the one choice offered is Only me; an idea is never
+                  private-only: Only me is not offered for ideas */}
+              {(kind === 'reminder'
+                ? VISIBILITIES.filter((v) => v === 'private')
+                : kind === 'idea'
+                  ? VISIBILITIES.filter((v) => v !== 'private')
+                  : VISIBILITIES
+              ).map((v) => (
                 <button
                   key={v}
                   type="button"

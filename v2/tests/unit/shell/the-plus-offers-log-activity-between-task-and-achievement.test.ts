@@ -17,7 +17,7 @@ const keys = (m: Me) => createActionsFor(m).map((a) => a.key);
 
 describe('the + and Log activity (V646)', () => {
   it('puts it between Task and the achievement', () => {
-    expect(keys(me({ clients: 'own' }))).toEqual(['capture', 'task', 'activity', 'achievement']);
+    expect(keys(me({ clients: 'own' }))).toEqual(['capture', 'task', 'activity', 'achievement', 'idea']);
   });
   it('offers it to someone with Own or Full on a supplier page only', () => {
     expect(keys(me({ suppliers_partners: 'own' }))).toContain('activity');

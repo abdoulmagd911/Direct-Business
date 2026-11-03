@@ -259,7 +259,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                           a.dialog
                             ? (close(false), a.dialog())
                             : a.sheet
-                              ? (close(false), openQuickCapture())
+                              ? (close(false), openQuickCapture(a.kind ? { kind: a.kind } : undefined))
                               : go(a.route)
                         }
                         className={itemClass}

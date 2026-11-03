@@ -4,6 +4,7 @@ import {
   CheckSquare,
   ClipboardList,
   Handshake,
+  Lightbulb,
   Plus,
   Receipt,
   StickyNote,
@@ -15,7 +16,7 @@ import { useTranslations } from 'next-intl';
 import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { modules } from '@/core/registry';
-import { openQuickCapture } from '@/modules/my-day/quick-capture';
+import { openQuickCapture, type CaptureKind } from '@/modules/my-day/quick-capture';
 import { openLogActivity } from '@/modules/partners/log-activity-entry';
 import { noTeamToWorkIn } from '@/modules/tasks/rules';
 import type { Level } from '@/core/registry/define-module';
@@ -35,6 +36,8 @@ export const CREATE_ACTIONS: {
   at: Level[];
   /** Opens the Quick capture sheet where the person stands instead of going to a page (productivity stage 1). */
   sheet?: boolean;
+  /** Opens the sheet on this kind instead of a plain note (Idea: one tap to share an idea, never private-only). */
+  kind?: CaptureKind;
   /** Opens a dialog in the shell where the person stands instead of going to a page (Log activity, V646). */
   dialog?: () => void;
   /** More than one page can let a person in: any of them at the level is enough (Log activity: clients or suppliers). */
@@ -66,6 +69,9 @@ export const CREATE_ACTIONS: {
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
+  // One tap to share an idea: the sheet opens on Idea, shared with the team, never private-only; the shared list is
+  // My day narrowed to Ideas (Workspace or My team tab, Idea filter). Last, so existing Create order is untouched.
+  { key: 'idea', page: 'my_day', route: '', icon: Lightbulb, at: ['view', 'own', 'full'], sheet: true, kind: 'idea' },
 ];
 
 /** The pages whose screens are built (registry `built`): Create offers them; My day's Turn into opens them (V433). */
@@ -113,7 +119,7 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
     return bar ? (
       <button
         type="button"
-        onClick={() => openQuickCapture()}
+        onClick={() => openQuickCapture(a.kind ? { kind: a.kind } : undefined)}
         data-create-bar
         data-create-direct={a.key}
         className={barClass}
@@ -124,7 +130,7 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
       <Button
         variant="primary"
         icon={<Plus />}
-        onClick={() => openQuickCapture()}
+        onClick={() => openQuickCapture(a.kind ? { kind: a.kind } : undefined)}
         data-create
         data-create-direct={a.key}
         className="hidden sm:inline-flex"
@@ -172,7 +178,7 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
               {a.sheet || a.dialog ? (
                 <button
                   type="button"
-                  onClick={() => (a.dialog ? a.dialog() : openQuickCapture())}
+                  onClick={() => (a.dialog ? a.dialog() : openQuickCapture(a.kind ? { kind: a.kind } : undefined))}
                   data-create-item={a.key}
                 >
                   <Icon />

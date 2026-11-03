@@ -58,7 +58,10 @@ export function quickCaptureArgs(
   const title = lines[0];
   if (!title) return null;
   const rest = lines.slice(1);
-  const base = { visibility: opts.visibility, happened_on: opts.day };
+  // An idea is never private-only: it belongs in the shared Ideas list, so a
+  // private choice on an idea reads as shared with the team instead.
+  const visibility = kind === 'idea' && opts.visibility === 'private' ? 'team' : opts.visibility;
+  const base = { visibility, happened_on: opts.day };
   if (kind === 'checklist') {
     const items = (rest.length ? rest : [title]).map((t) => ({ text: t, done: false }));
     return { kind: 'checklist', values: { ...base, title: title.slice(0, 200), items } };

@@ -14,9 +14,11 @@ export const sabotages = [
     expect: 'the All / Note chips are 44 px on a phone',
     edits: [
       {
+        // The same class string also styles the "Shared with me" toggle below, so the find carries the kind chips'
+        // own next line — the harness requires exactly one match, and this occurrence is the All / Note chips.
         file: 'src/modules/my-day/screens/MyDay.tsx',
-        find: "'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium",
-        replace: "'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium",
+        find: "'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',\n                  kind === k ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',",
+        replace: "'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',\n                  kind === k ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',",
       },
     ],
   },

@@ -162,6 +162,7 @@
     "supplier": "Supplier",
     "invoice": "Invoice",
     "achievement": "Achievement",
+    "idea": "Idea",
     "capture": "Capture"
   },
   "common": {
