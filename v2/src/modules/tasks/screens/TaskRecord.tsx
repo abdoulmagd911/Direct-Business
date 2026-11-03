@@ -57,23 +57,10 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const today = riyadhDay(new Date());
-  // Status just moved: show it at once instead of waiting for the slow server refresh; cleared when the fresh task arrives.
-  const [statusOverride, setStatusOverride] = useState<{
-    status: string;
-    meaning: typeof task.meaning;
-    blocked_reason: string | null;
-    cancelled_reason: string | null;
-  } | null>(null);
-  const [seenStatus, setSeenStatus] = useState(task.status);
-  if (task.status !== seenStatus) {
-    setSeenStatus(task.status);
-    setStatusOverride(null);
-  }
-  const shown = statusOverride ? { ...task, ...statusOverride } : task;
-  const view = statusView(shown);
+  const view = statusView(task);
   const due = dueState(task, today);
-  const closed = shown.meaning === 'done' || shown.meaning === 'cancelled';
-  const move = useStatusMove(task, lookups.statuses, setStatusOverride);
+  const closed = task.meaning === 'done' || task.meaning === 'cancelled';
+  const move = useStatusMove(task, lookups.statuses);
   // Details' pickers (V287): helpers by whoever may edit the task, the owner by whoever gives work (`tasks.assign`)
   const mayHelp = task.can_edit && !closed;
   const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');
@@ -84,9 +71,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const [followUps, setFollowUps] = useState(0);
   // the Comments tab's own count while it is open, so the tab's number follows an add or a delete at once
   const [commentCount, setCommentCount] = useState<number | null>(null);
-  const status = lookups.statuses.find((s) => s.key === shown.status);
+  const status = lookups.statuses.find((s) => s.key === task.status);
   const statusLabel =
-    view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(shown);
+    view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
   const date = (d: string | null) => (d ? formatDate(d, names.locale) : '');
   const people = Object.fromEntries((lookups.org?.people ?? []).map((p) => [p.id, avatarOf(p, names.locale)]));
   const where = task.project_id
@@ -106,13 +93,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
 
   const chips = (
     <>
-      <StatusMenu
-        task={shown}
-        statuses={lookups.statuses}
-        label={statusLabel}
-        canEdit={task.can_edit}
-        onMoved={setStatusOverride}
-      />
+      <StatusMenu task={task} statuses={lookups.statuses} label={statusLabel} canEdit={task.can_edit} />
       {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
       {task.stale ? <StatusChip tone="warning">{t('pages.tasks.flags.stale')}</StatusChip> : null}
       {task.past_work ? <StatusChip tone="neutral">{t('pages.tasks.flags.pastWork')}</StatusChip> : null}
@@ -300,13 +281,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="text-sm font-semibold">
                   {t('pages.tasks.blockedSince', { date: date(task.blocked_on) })}
                 </p>
-                <p className="break-words text-base">{shown.blocked_reason}</p>
+                <p className="break-words text-base">{task.blocked_reason}</p>
               </div>
             ) : null}
-            {shown.meaning === 'cancelled' && shown.cancelled_reason ? (
+            {task.meaning === 'cancelled' && task.cancelled_reason ? (
               <div className="rounded-md border border-border bg-surface px-4 py-3" data-cancelled-reason>
                 <p className="text-sm font-semibold">{t('pages.tasks.board.cancelledLabel')}</p>
-                <p className="break-words text-base">{shown.cancelled_reason}</p>
+                <p className="break-words text-base">{task.cancelled_reason}</p>
               </div>
             ) : null}
             <section className="flex flex-col gap-2">
