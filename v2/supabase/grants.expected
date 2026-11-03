@@ -240,6 +240,7 @@ function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text
 function api.templates_offered(p_event text, p_partner uuid) execute authenticated
 function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
+function api.test_tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.test_switch_end() execute authenticated
 function api.test_switch_start(p_person uuid) execute authenticated
 function api.undo(p_request uuid) execute authenticated
