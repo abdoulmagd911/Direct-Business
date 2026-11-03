@@ -49,6 +49,8 @@ export type OrgPerson = {
   badge_value: string | null;
   /** 'team_member', or the owner's 'admin_account' / the 'test_account' (V444, V445; core.person.account, #115). */
   account?: string | null;
+  /** V656: a TEST user, marked in the data; the test-task Remove gate reads this. */
+  is_test?: boolean;
 };
 /** api.org(): the structure everyone may read — no emails, no access (V132). */
 export type OrgAnswer = { departments: OrgDepartment[]; teams: OrgTeam[]; roles: OrgRole[]; people: OrgPerson[] };
