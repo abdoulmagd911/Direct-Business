@@ -515,6 +515,7 @@ function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute au
 function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.team_load(p_people uuid[]) execute authenticated
 function work.templates_offered(p_event text, p_partner uuid) execute authenticated
+function work.test_tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 schema api usage authenticated
 schema api usage service_role
 schema audit usage authenticated
