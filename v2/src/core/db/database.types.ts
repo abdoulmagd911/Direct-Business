@@ -572,6 +572,7 @@ export type Database = {
       tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       test_switch_end: { Args: Record<PropertyKey, never>; Returns: boolean };
       test_switch_start: { Args: { p_person: string }; Returns: Json };
+      test_tasks_remove: { Args: { p_ids: string[]; p_reason: string }; Returns: Json };
       undo: { Args: { p_request: string }; Returns: Json };
       undo_ticketed: { Args: { p_request: string; p_ticket: string }; Returns: Json };
       view_default_set: { Args: { p_page: string; p_view: string }; Returns: string };

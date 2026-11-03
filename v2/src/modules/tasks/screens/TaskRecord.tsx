@@ -141,7 +141,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
     await command(
       words(t('removed')),
       () =>
-        rpc('tasks_remove', { p_ids: [task.id], p_reason: why }) as Promise<{
+        rpc('test_tasks_remove', { p_ids: [task.id], p_reason: why }) as Promise<{
           request_id?: string | null;
         }>,
       { after: () => router.push('/tasks') },

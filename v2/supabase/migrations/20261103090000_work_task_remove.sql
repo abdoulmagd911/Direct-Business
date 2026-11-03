@@ -1,11 +1,14 @@
--- Rocky, 3 Nov 2026: removing a task, test tasks only. Modeled on perf.achievements_remove:
+-- Rocky, 3 Nov 2026: removing a test task only. Modeled on perf.achievements_remove:
 -- the reason is required, the task, its checklist rows and its helper links are soft-deleted
 -- with the same reason, and audit + request_id let the UI toast offer Undo. The server
 -- refuses anything that is not a test task (owner or creator marked TEST in
 -- core.person.is_test) and anything the caller may not edit, so the screen's gate is a
--- convenience, never the guard. The go-live wipe (core.test_users_remove) is not used
--- here: it also deactivates the TEST users, who must stay while testing continues.
-create function work.tasks_remove(p_ids uuid[], p_reason text) returns jsonb
+-- convenience, never the guard. This is deliberately a SEPARATE function from the general
+-- work.tasks_remove (2 Oct 2026), which the UI never calls but the DEL-03 removal test
+-- relies on: replacing it would break that test, and the confirmed scope here is test
+-- tasks only. The go-live wipe (core.test_users_remove) is not used here: it also
+-- deactivates the TEST users, who must stay while testing continues.
+create function work.test_tasks_remove(p_ids uuid[], p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = '' as $$
 declare
   me uuid := authz.me();
@@ -54,7 +57,7 @@ begin
 end
 $$;
 
-create function api.tasks_remove(p_ids uuid[], p_reason text) returns jsonb
-language sql volatile security invoker set search_path = '' as $$ select work.tasks_remove(p_ids, p_reason) $$;
+create function api.test_tasks_remove(p_ids uuid[], p_reason text) returns jsonb
+language sql volatile security invoker set search_path = '' as $$ select work.test_tasks_remove(p_ids, p_reason) $$;
 
-grant execute on function api.tasks_remove(uuid[], text) to authenticated;
+grant execute on function api.test_tasks_remove(uuid[], text) to authenticated;
