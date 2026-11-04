@@ -257,13 +257,13 @@ export type Database = {
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_ledger: {
         Args: {
-          p_from: string;
-          p_to: string;
-          p_partner?: string;
           p_client_id?: string;
-          p_kind?: string;
           p_code?: string;
+          p_from: string;
+          p_kind?: string;
+          p_partner?: string;
           p_project?: string;
+          p_to: string;
         };
         Returns: Json;
       };
@@ -338,10 +338,7 @@ export type Database = {
         Returns: Json;
       };
       identifier_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
-      import_apply: {
-        Args: { p_batch: string; p_decisions?: Json; p_held?: Json; p_rows: Json };
-        Returns: Json;
-      };
+      import_apply: { Args: { p_batch: string; p_decisions?: Json; p_held?: Json; p_rows: Json }; Returns: Json };
       import_batch_start: {
         Args: { p_file_name: string; p_partner: string; p_signature: string; p_source_promo?: string };
         Returns: Json;
