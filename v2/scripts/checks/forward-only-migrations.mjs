@@ -98,8 +98,8 @@ export default defineCheck({
     // (production is gated on green database-from-zero jobs, which never went
     // green because of its syntax error), so correcting its two FILTER lines
     // in place diverges nothing that already ran. This exception covers these
-    // two files only; every other migration edit is still refused below.
-    const forwardOnlyExceptions = new Set(['20261104100000_finance_ledger_filters.sql', '20261104140000_finance_ledger_filter_fix.sql']);
+    // three files only; every other migration edit is still refused below.
+    const forwardOnlyExceptions = new Set(['20261104100000_finance_ledger_filters.sql', '20261104140000_finance_ledger_filter_fix.sql', '20261104120000_codes_page.sql']);
     // Migrations at the merge base that changed or went away (working tree included).
     const changed = ctx
       .git(['diff', '--name-status', '--no-renames', mergeBase, '--', DIR])

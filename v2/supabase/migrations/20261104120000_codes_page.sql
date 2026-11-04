@@ -1,3 +1,11 @@
+-- ONE-TIME OWNER-APPROVED EXCEPTION (same incident, 4 Nov 2026): this migration
+-- also never applied to any database (same gated jobs, which failed earlier at
+-- 20261104100000 before reaching it), so correcting it in place diverges
+-- nothing that already ran. Bug: the COMMENT string contained an unescaped
+-- apostrophe ("company's"), which ends the string early and fails Postgres
+-- with "syntax error at or near s". Fixed by doubling the apostrophe.
+-- No other line in this file changes.
+
 -- Discount Codes page (owner decisions 4 Nov 2026): codes are standalone individual bookings, tracked for
 -- targets, KPIs and audit, with their own ledger and a per-company view. A code is keyed by its identifier row id —
 -- never by its text, which repeats under different ids. A code's use is recorded against an invoice by the invoice's
@@ -48,7 +56,7 @@ create table finance.code_attribution (
   deleted_at timestamptz, deleted_by uuid references core.person (id), delete_reason text
 );
 create unique index code_attribution_once on finance.code_attribution (code_id, partner_id) where deleted_at is null;
-comment on table finance.code_attribution is 'A code shown under a company (4 Nov 2026): manual attribution, always flagged promo, kept apart from the company's own totals.';
+comment on table finance.code_attribution is 'A code shown under a company (4 Nov 2026): manual attribution, always flagged promo, kept apart from the company''s own totals.';
 
 -- A code's state from its dates, against today in Riyadh: expired once its last day has passed, inactive before
 -- its first day, active in between (open ends count as live).
