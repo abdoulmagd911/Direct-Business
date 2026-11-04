@@ -24,7 +24,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/QuickCapture.tsx',
-        find: "kind === 'reminder' ? VISIBILITIES.filter((v) => v === 'private') : VISIBILITIES",
+        find: "VISIBILITIES.filter((v) => v === 'private')",
         replace: 'VISIBILITIES',
       },
     ],
