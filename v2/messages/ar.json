@@ -1112,6 +1112,8 @@
     "billing_link": "ربط الفاتورة المجمعة",
     "billing_proposal": "اقتراح ربط الفاتورة المجمعة",
     "import_difference": "اختلاف عن الاستيراد",
+    "import_batch": "دفعة استيراد",
+    "import_record": "سجل استيراد",
     "expense_line": "مصروف",
     "tax_invoice": "فاتورة ضريبية",
     "credit_split": "توزيع الإسناد",
