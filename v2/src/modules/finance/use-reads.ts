@@ -159,11 +159,14 @@ export function useFinanceRead<T, F extends ApiFunction>(
   fn: F,
   args: ApiArgs<F>,
   key: string,
+  /** False holds the read: nothing is asked until it turns true (the ledger waits for the tiles). */
+  enabled = true,
 ): { block: Block<T>; retry: () => void } {
   const [state, setState] = useState<{ key: string; block: Block<T> }>({ key, block: { status: 'loading' } });
   const [turn, setTurn] = useState(0);
   const argsKey = JSON.stringify(args);
   useEffect(() => {
+    if (!enabled) return undefined;
     const controller = new AbortController();
     readFinance<T>(fn, JSON.parse(argsKey), controller.signal).then(
       (data) => {
@@ -176,7 +179,7 @@ export function useFinanceRead<T, F extends ApiFunction>(
       },
     );
     return () => controller.abort();
-  }, [fn, argsKey, key, turn]);
+  }, [fn, argsKey, key, turn, enabled]);
   // a write anywhere clears what was kept and every block asks again
   useEffect(
     () =>

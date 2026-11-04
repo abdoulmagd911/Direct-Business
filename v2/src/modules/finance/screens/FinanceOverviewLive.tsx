@@ -86,7 +86,13 @@ export function FinanceOverviewLive({
           service: service.retry,
         }}
       />
-      <FinanceLedgerSection ask={ask} initial={ledger} view={view} full={full} />
+      <FinanceLedgerSection
+        ask={ask}
+        initial={ledger}
+        view={view}
+        full={full}
+        ready={period.block.status === 'ready'}
+      />
     </div>
   );
 }

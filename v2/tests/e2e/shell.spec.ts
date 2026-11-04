@@ -104,9 +104,9 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  // logo, the admin's 7 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings; My
+  // logo, the admin's 8 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings; My
   // profile is in the avatar menu only (daily use 10)
-  await expect(links).toHaveCount(9);
+  await expect(links).toHaveCount(10);
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
 });
 
@@ -129,6 +129,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
     'Finance',
     'Achievements',
     'Reports',
+    'Discount codes',
   ]);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Pipeline' }), 'none for a member').toHaveCount(
     0,

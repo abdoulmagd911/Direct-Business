@@ -25,12 +25,15 @@ export function FinanceLedgerSection({
   initial,
   view,
   full,
+  ready,
 }: {
   ask: PeriodAsk;
   initial: LedgerFilter;
   /** The open saved view's id, from the address — '' for the plain filtered view. */
   view: string;
   full: boolean;
+  /** False holds the ledger read until the tiles are asked first (the read-order rule). */
+  ready: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -72,7 +75,7 @@ export function FinanceLedgerSection({
 
   const args = ledgerReadArgs(initial, ask.from, ask.to);
   const key = JSON.stringify(args);
-  const read = useFinanceRead<LedgerReport, 'finance_ledger'>('finance_ledger', args, `ledger|${key}`);
+  const read = useFinanceRead<LedgerReport, 'finance_ledger'>('finance_ledger', args, `ledger|${key}`, ready);
   const report = read.block.status === 'ready' ? read.block.data : null;
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>
     locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? '');

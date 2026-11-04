@@ -101,20 +101,33 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
     'Finance',
     'Achievements',
     'Reports',
+    'Discount codes',
   ]);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Achievements', 'Reports']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual([
+    'Achievements',
+    'Reports',
+    'Discount codes',
+  ]);
 });
 
 test('2 · a Business Development member (Pipeline Own by a person change) gets no Pipeline entry while Pipeline is not built', async ({
   page,
 }) => {
   await openAs(page, 'bd_member');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Reports']);
+  expect(await drawerLabels(page)).toEqual([
+    'My day',
+    'Tasks',
+    'Clients',
+    'Finance',
+    'Achievements',
+    'Reports',
+    'Discount codes',
+  ]);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
-  expect(await morePages(page)).toEqual(['Achievements', 'Reports']);
+  expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes']);
 });
 
 test('3 · a manager: every built page their access opens, in order (Activity at View); the bar is the first four and More', async ({
@@ -128,16 +141,17 @@ test('3 · a manager: every built page their access opens, in order (Activity at
     'Finance',
     'Achievements',
     'Reports',
+    'Discount codes',
     'Activity',
   ]);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
-  expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Activity']);
+  expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes', 'Activity']);
 });
 
 test('4 · a head has Activity; an admin adds Settings at the foot and in More', async ({ page, browser }) => {
   await openAs(page, 'head');
-  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Reports', 'Activity'];
+  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Reports', 'Discount codes', 'Activity'];
   expect(await drawerLabels(page)).toEqual(head);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
 
@@ -152,7 +166,7 @@ test('4 · a head has Activity; an admin adds Settings at the foot and in More',
     (await admin.locator('[data-drawer]').getByRole('link', { name: 'Activity' }).boundingBox())!.y + 40,
   );
   await admin.setViewportSize(PHONE);
-  expect(await morePages(admin)).toEqual(['Achievements', 'Reports', 'Activity', 'Settings']);
+  expect(await morePages(admin)).toEqual(['Achievements', 'Reports', 'Discount codes', 'Activity', 'Settings']);
   await ctx.close();
 });
 
@@ -160,14 +174,21 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   page,
 }) => {
   await openAs(page, 'viewer');
-  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'Reports']);
+  expect(await drawerLabels(page)).toEqual([
+    'My day',
+    'Clients',
+    'Finance',
+    'Achievements',
+    'Reports',
+    'Discount codes',
+  ]);
   // Capture and Idea are for anyone who can open My day, view-only included; Create's other items stay hidden
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
   await page.keyboard.press('Escape');
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'More', 'Create']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
   await page.locator('[data-create-bar]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
 });
