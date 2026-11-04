@@ -1,3 +1,12 @@
+-- ONE-TIME OWNER-APPROVED EXCEPTION to the forward-only rule (4 Nov 2026, Abdurrahman):
+-- this migration never applied to any database (production is gated on green
+-- database-from-zero jobs, which never went green because of the syntax error
+-- below), so correcting it in place diverges nothing that already ran.
+-- The fix-forward migration 20261104140000 stays in place and re-applies the
+-- same corrected function; it is harmless and is kept for history.
+-- Exception: only the two FILTER lines below are corrected. No other line changes.
+-- FILTER belongs inside the aggregate: coalesce(sum(...) filter (...), 0).
+
 -- Finance page filters, the saved-view ledger and the codes report (workstream B, 4 Nov 2026): one read,
 -- finance.ledger, that answers the filtered view the Finance page draws and the Discount Codes page reuses
 -- (parameterised by code — the same report, never a second one). The Finance page's own figures (finance_period)
@@ -185,8 +194,8 @@ begin
     ),
     by_row as (
       select partner_id, count(*)::int as units, coalesce(sum(revenue), 0) as revenue,
-             coalesce(sum(cost_out), 0) filter (where cost_out is not null) as cost,
-             coalesce(sum(revenue - cost_out), 0) filter (where cost_out is not null) as profit,
+             coalesce(sum(cost_out) filter (where cost_out is not null), 0) as cost,
+             coalesce(sum(revenue - cost_out) filter (where cost_out is not null), 0) as profit,
              count(*) filter (where cost_out is null)::int as without_cost
       from rows group by partner_id
     )
