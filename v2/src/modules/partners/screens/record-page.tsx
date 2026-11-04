@@ -5,7 +5,7 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { PartnerRecord, type PartnerRecordData } from './PartnerRecord';
-import type { Contract, ListEntry, Note, PartnerCard, Side } from '../types';
+import type { CompanyFile, CompanySummary, Contract, ListEntry, Note, PartnerCard, Side } from '../types';
 
 /** What the reader may not read is left out, never faked (the database refuses; the screen shows no-access). */
 async function maybe<T>(read: () => Promise<unknown>): Promise<T | null> {
@@ -36,23 +36,39 @@ export async function PartnerRecordPage({
     refused = true;
   }
   const lists = async (name: string) => (await serverRpc('list', { p_list: name })) as unknown as ListEntry[];
-  const [org, notes, contracts, history, types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities] =
-    await Promise.all([
-      serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
-      card ? maybe<Note[]>(() => serverRpc('notes', { p_entity: 'partner', p_id: id, p_limit: 100 })) : null,
-      card ? maybe<Contract[]>(() => serverRpc('contracts', { p_partner: id })) : null,
-      card
-        ? maybe<RecordChange[]>(() => serverRpc('record_history', { p_entity: 'partner', p_id: id } as never))
-        : null,
-      lists('side_type'),
-      lists('side_tier'),
-      lists('side_status_reason'),
-      lists('contact_role'),
-      lists('activity_type'),
-      lists('activity_outcome'),
-      lists('ref_system'),
-      lists('priority'),
-    ]);
+  const [
+    org,
+    notes,
+    contracts,
+    history,
+    files,
+    summary,
+    types,
+    tiers,
+    reasons,
+    roles,
+    activityTypes,
+    outcomes,
+    systems,
+    priorities,
+  ] = await Promise.all([
+    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+    card ? maybe<Note[]>(() => serverRpc('notes', { p_entity: 'partner', p_id: id, p_limit: 100 })) : null,
+    card ? maybe<Contract[]>(() => serverRpc('contracts', { p_partner: id })) : null,
+    card ? maybe<RecordChange[]>(() => serverRpc('record_history', { p_entity: 'partner', p_id: id } as never)) : null,
+    // The company page's Files section (existing file doors) and its Codes/Finance tabs (one summary
+    // read). Either failing leaves its tab saying so, never an invented figure.
+    card ? maybe<CompanyFile[]>(() => serverRpc('files', { p_entity: 'partner', p_id: id })) : null,
+    card ? maybe<CompanySummary>(() => serverRpc('company_summary', { p_partner: id })) : null,
+    lists('side_type'),
+    lists('side_tier'),
+    lists('side_status_reason'),
+    lists('contact_role'),
+    lists('activity_type'),
+    lists('activity_outcome'),
+    lists('ref_system'),
+    lists('priority'),
+  ]);
   const data: PartnerRecordData = {
     me,
     side,
@@ -63,6 +79,8 @@ export async function PartnerRecordPage({
     notes: notes ?? [],
     contracts: contracts ?? [],
     history: history ? historyRows(history, 'partner', id) : null,
+    files,
+    summary,
     lists: { types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities },
   };
   return (

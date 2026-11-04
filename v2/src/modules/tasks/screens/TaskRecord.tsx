@@ -113,10 +113,10 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const words = useCommandWords();
   const mayRemove = task.can_edit && taskIsTestOwned(task, lookups.org?.people ?? []);
   const reasonWords = {
-    reason: t('dialogs.reason'),
-    save: t('actions.save'),
-    cancel: t('actions.cancel'),
-    reasonRequired: t('dialogs.reasonRequired'),
+    reason: t('pages.tasks.dialogs.reason'),
+    save: t('pages.tasks.actions.save'),
+    cancel: t('pages.tasks.actions.cancel'),
+    reasonRequired: t('pages.tasks.dialogs.reasonRequired'),
   };
   const remove = async (why: string) => {
     await command(
@@ -196,11 +196,12 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         <ReasonDialog
           open={removing}
           onOpenChange={setRemoving}
-          title={t('dialogs.remove')}
+          title={t('pages.tasks.dialogs.remove')}
           destructive
           words={reasonWords}
           onSave={async (why) => {
             await remove(why);
+            setRemoving(false);
           }}
         />
       ) : null}

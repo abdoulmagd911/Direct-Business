@@ -91,6 +91,7 @@
     "finance": "المالية",
     "kpis": "الإنجازات",
     "reports": "التقارير",
+    "codes": "أكواد الخصم",
     "appraisal": "تقييم الأداء",
     "activity": "سجل النشاط",
     "settings": {
@@ -105,6 +106,7 @@
     "settings_home": "الإعدادات",
     "clients": "العملاء",
     "suppliers_partners": "الموردون",
+    "files": "الملفات",
     "profile": "ملفي"
   },
   "top": {
@@ -623,6 +625,64 @@
       "myProfile": "ملفي",
       "find": "ابحث عن إعداد"
     },
+    "codes": {
+      "list": "أكواد الخصم",
+      "empty": "لا توجد أكواد خصم بعد",
+      "filter": {
+        "label": "حالة الكود",
+        "all": "الكل",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "expired": "منتهي"
+      },
+      "columns": {
+        "totalDiscount": "إجمالي الخصم",
+        "totalCollected": "إجمالي المحصّل",
+        "view": "عرض"
+      },
+      "detail": {
+        "title": "تفاصيل الكود",
+        "cost": "التكلفة",
+        "profit": "الربح",
+        "invoices": "الفواتير",
+        "ledger": "السجل",
+        "noCounted": "لا توجد فواتير محسوبة لهذا الكود بعد",
+        "discount": "الخصم",
+        "revenue": "الإيراد",
+        "notCounted": "غير محسوبة",
+        "notCountedNote": "هذه الاستخدامات مسجلة، لكن فواتيرها غير مدفوعة بالكامل أو مستثناة، لذا فهي ليست ضمن الإجماليات.",
+        "directLink": "فتح في دايركت",
+        "remove": "إزالة",
+        "removeTitle": "إزالة هذا الاستخدام؟",
+        "removed": "تمت إزالة الاستخدام"
+      },
+      "addUse": {
+        "invoiceNumber": "رقم الفاتورة",
+        "discount": "الخصم",
+        "directLink": "رابط دايركت",
+        "reason": "السبب",
+        "save": "تسجيل الاستخدام",
+        "done": "تم تسجيل الاستخدام"
+      },
+      "attribution": {
+        "title": "الشركاء",
+        "none": "هذا الكود غير ظاهر تحت أي شريك بعد",
+        "partner": "شريك",
+        "partnerPlaceholder": "اختر شريكًا",
+        "reason": "السبب",
+        "save": "إظهار تحت الشريك",
+        "done": "تمت إضافة الشريك",
+        "removeTitle": "إزالة هذا الشريك؟",
+        "removed": "تمت إزالة الشريك"
+      },
+      "partners": {
+        "title": "حسب الشريك",
+        "note": "إجماليات ترويجية فقط. وهي ليست جزءًا من إجماليات الشريك الخاصة.",
+        "none": "لا يوجد كود ظاهر تحت شريك بعد",
+        "promo": "ترويجي",
+        "codes": "الأكواد"
+      }
+    },
     "beingBuilt": "ليست جاهزة بعد. استخدم المهام أو الإنجازات الآن.",
     "tasks": {
       "unknownOwner": "غير معروف",
@@ -925,6 +985,15 @@
         "marked": "تم التمييز كمهم · {number}",
         "unmarked": "أُزيل تمييز الأهمية · {number}",
         "important": "مهم"
+      },
+      "dialogs": {
+        "remove": "إزالة المهمة",
+        "reason": "السبب",
+        "reasonRequired": "اذكر السبب"
+      },
+      "actions": {
+        "save": "حفظ",
+        "cancel": "إلغاء"
       }
     },
     "weeklyReview": {
@@ -1056,6 +1125,8 @@
     "wallet_rule": "قاعدة المحفظة",
     "commission_word": "كلمة العمولة",
     "channel": "القناة",
+    "code_use": "استخدام كود",
+    "code_attribution": "إسناد كود",
     "import_map": "عمود الاستيراد",
     "item_service": "خدمة البند",
     "item_class": "تصنيف البند",
@@ -1983,6 +2054,8 @@
     },
     "finance": {
       "channel_on_units_only": "تُوضع القناة على معاملة أو فاتورة مستقلة.",
+      "code_use_exists": "هذا الكود مسجل بالفعل على تلك الفاتورة.",
+      "code_attribution_exists": "هذا الكود ظاهر بالفعل تحت ذلك الشريك.",
       "commercial_names_the_person": "الجانب التجاري يحتاج إلى تحديد الشخص الذي يُنسب إليه الإيراد.",
       "expense_status_unknown": "حالة المصروف غير معروفة: {detail}",
       "month_closed": "هذا الشهر مغلق بالفعل",
@@ -2128,7 +2201,93 @@
     "tabs": {
       "overview": "نظرة عامة",
       "activity": "النشاط",
-      "related": "ذات صلة"
+      "related": "ذات صلة",
+      "codes": "الرموز",
+      "finance": "المالية"
+    },
+    "companyFiles": {
+      "title": "ملفات الشركة",
+      "allFiles": "كل الملفات",
+      "none": "لا ملفات بعد",
+      "kind": "النوع",
+      "kinds": {
+        "agreement": "اتفاقية",
+        "cr_certificate": "السجل التجاري",
+        "vat_certificate": "شهادة ضريبة القيمة المضافة",
+        "national_address": "العنوان الوطني",
+        "tender_document": "خطاب الترسية"
+      },
+      "chooseKind": "اختر النوع",
+      "chooseFile": "اختر ملفًا",
+      "download": "تنزيل",
+      "upload": "رفع ملف",
+      "uploaded": "تم رفع الملف",
+      "uploadFailed": "تعذّر رفع الملف — حاول مرة أخرى",
+      "downloadFailed": "تعذّر فتح الملف — حاول مرة أخرى",
+      "remove": "إزالة",
+      "removeTitle": "إزالة {name}؟",
+      "removed": "تمت إزالة الملف",
+      "pending": "الرفع لم يكتمل",
+      "notStored": "لم يُرفع بعد",
+      "size": "الحجم",
+      "addedOn": "أُضيف {date}",
+      "allFilesHint": "ملفات كل الشركات في مكان واحد"
+    },
+    "companyCodes": {
+      "title": "رموز الخصم",
+      "none": "لا رموز خصم على هذه الشركة بعد",
+      "code": "الرمز",
+      "valid": "ساري",
+      "units": "الحجوزات",
+      "revenue": "الإيراد",
+      "profit": "الربح",
+      "noTotals": "لا حجوزات محسوبة لهذا الرمز بعد"
+    },
+    "companyFinance": {
+      "title": "المال",
+      "noAccess": "مال هذه الشركة غير متاح لك",
+      "clientIds": "أرقام العملاء",
+      "clientIdsNone": "لا أرقام عملاء على هذه الشركة بعد",
+      "wallet": "المحفظة",
+      "toppedUp": "المشحون",
+      "walletSpent": "المصروف من المحفظة",
+      "invoicedTotal": "إجمالي الفواتير",
+      "balance": "الرصيد",
+      "held": "المحجوز",
+      "available": "المتاح",
+      "heldNotRecorded": "المحجوز غير مسجّل في مساحة العمل بعد، لذا المتاح فارغ الآن",
+      "totals": "الإجماليات (المدفوعة بالكامل فقط)",
+      "units": "الحجوزات",
+      "revenue": "الإيراد",
+      "cost": "التكلفة",
+      "profit": "الربح",
+      "costPending": "التكلفة ما زالت معلّقة",
+      "costPendingNote": "بعض الحجوزات ما زالت تنتظر تكلفة معتمدة، لذا التكلفة والربح غير نهائيين",
+      "costMissing": "التكلفة غير معروفة بعد",
+      "waitingForIssuing": "بانتظار الإصدار",
+      "waitingCount": "{count} فواتير ما زالت تنتظر فاتورة ضريبية",
+      "tenders": "المناقصات",
+      "tendersNone": "لا مناقصات على هذه الشركة بعد",
+      "tenderAmount": "مبلغ المناقصة",
+      "invoiced": "المفوتر",
+      "remaining": "المتبقي",
+      "expectedProfit": "الربح المتوقع",
+      "actualProfit": "الربح الفعلي",
+      "notKnown": "غير معروف بعد",
+      "appliedNote": "مقدَّمة فقط — لا مال بعد",
+      "noClientId": "لم يُسمَّ رقم عميل بعد، لذا لا شيء محسوب على هذه المناقصة",
+      "state": {
+        "applied": "مقدَّمة",
+        "signed": "موقَّعة"
+      }
+    },
+    "archive": {
+      "title": "كل الملفات",
+      "none": "لا ملفات مطابقة",
+      "partner": "الشريك",
+      "allCompanies": "كل الشركاء",
+      "allKinds": "كل الأنواع",
+      "showAll": "عرض كل الشركاء"
     },
     "activity": {
       "who": "مع من كان ذلك؟",
@@ -2370,7 +2529,8 @@
       "billing": "فاتورة شهرية",
       "standalone": "مستقلة",
       "transaction": "معاملة",
-      "wallet_topup": "شحن المحفظة"
+      "wallet_topup": "شحن المحفظة",
+      "credit_note": "إشعار دائن"
     },
     "late": {
       "cost_changed": "تكلفة متأخرة",
@@ -2393,6 +2553,50 @@
       "provisional": "الربح المؤقت",
       "revenue": "الإيراد",
       "title": "الأشهر"
+    },
+    "ledger": {
+      "title": "دفتر الحسابات",
+      "filter": "المرشحات",
+      "partner": "الشريك",
+      "allCompanies": "كل الشركاء",
+      "noPartner": "لا شريك",
+      "clientId": "رقم العميل",
+      "kind": "نوع الفاتورة",
+      "allKinds": "كل الأنواع",
+      "code": "الرمز",
+      "project": "المشروع",
+      "projectSoon": "ربط المشاريع سيأتي لاحقاً — هذا الحقل لا يغيّر الأرقام بعد.",
+      "apply": "تطبيق",
+      "clear": "مسح",
+      "saveHint": "الحفظ يحتفظ بهذه المرشحات تحت اسم.",
+      "export": "تصدير",
+      "totals": "إجماليات هذا العرض",
+      "units": "الوحدات",
+      "revenue": "الإيراد",
+      "cost": "التكلفة",
+      "profit": "الربح",
+      "received": "المستلم",
+      "remaining": "المتبقي",
+      "withoutCost": "{count, plural, one {# صف ما زال بلا تكلفة} other {# صفوف ما زالت بلا تكلفة}}",
+      "byPartner": "حسب الشركة",
+      "partnerName": "الشركة",
+      "invoices": "الفواتير",
+      "invoiceNumber": "رقم الفاتورة",
+      "transactionNumber": "رقم العملية",
+      "transactions": "العمليات",
+      "created": "أُنشئ",
+      "dpin": "رقم الفاتورة الضريبية",
+      "flags": "ملاحظات",
+      "flag": {
+        "no_invoice_yet": "لا فاتورة بعد",
+        "monthly_fee": "رسم على الفاتورة الشهرية",
+        "cost_pending": "التكلفة معلقة",
+        "waiting_for_issuing": "بانتظار الإصدار"
+      },
+      "empty": "لا شيء مدفوع بالكامل يطابق هذه المرشحات.",
+      "truncated": "يُعرض أحدث 1000 صف؛ الإجماليات تشمل كل شيء.",
+      "failed": "دفتر الحسابات",
+      "noCost": "—"
     },
     "new": {
       "addExpense": "إضافة مصروف",
@@ -2482,6 +2686,32 @@
       "revenue": "الإيراد"
     },
     "title": "المالية"
+  },
+  "import": {
+    "title": "استيراد",
+    "choosePartner": "اختر الشركة أولاً",
+    "downloadTemplate": "حمّل القالب",
+    "uploadReview": "ارفع وراجع",
+    "confirm": "أكّد الاستيراد",
+    "nothingSavedYet": "لن يُحفظ شيء حتى تؤكّد.",
+    "new": "جديد",
+    "updated": "محدّث",
+    "unchanged": "بدون تغيير",
+    "excluded": "مستبعد حسب القاعدة",
+    "needsLinking": "يحتاج ربط",
+    "unknownSignature": "هذا الملف ليس تصديراً معروفاً من دايركت",
+    "unknownSignatureBody": "أعمدته ظاهرة أدناه. لم يُحفظ شيء.",
+    "binaryFile": "هذا ليس ملفاً نصياً (PDF أو Excel أو مضغوط). صدّر التقرير بصيغة CSV وحاول مجدداً.",
+    "ownReport": "هذا ملف صدّره هذا التطبيق، وليس تصديراً من دايركت. أفلت ملف دايركت بدلاً منه.",
+    "noCodeForFile": "هذا الملف لا يحمل عمود كود الخصم. حدّد الكود الذي يخصه قبل الاستيراد.",
+    "duplicateSkip": "مكرر في هذا الملف، تم تجاوزه",
+    "duplicateKeep": "مكرر في هذا الملف، أُبقي باختيارك",
+    "missingTransaction": "رقم المعاملة مفقود",
+    "missingInvoice": "رقم الفاتورة مفقود",
+    "costPending": "التكلفة لم تصل بعد",
+    "confirmed": "تم تأكيد الاستيراد",
+    "linkClash": "رقم الفاتورة نفسه موجود على صف آخر: محجوز لشخص",
+    "templateMissing": "لا قالب بعد: ما زلنا نحتاج أول صف ترويسة حقيقي لهذا التصدير."
   },
   "levels": {
     "none": "بلا صلاحية",

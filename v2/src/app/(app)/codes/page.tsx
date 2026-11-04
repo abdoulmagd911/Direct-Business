@@ -1,0 +1,59 @@
+import { getLocale, getTranslations } from 'next-intl/server';
+import { requireMe } from '@/core/auth/require-me';
+import { serverRpc } from '@/core/db/server-rpc';
+import { CodesScreen } from '@/modules/codes/screens/CodesScreen';
+import type { CodeDetail, CompanyCodeRow, CodeRow, PartnerOption } from '@/modules/codes/types';
+import { tradeName, type PartnersAnswer } from '@/modules/partners/types';
+import { Page } from '@/ui/shell/Page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.codes');
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Discount Codes: the list, the per-company view and the partners an attribution can name come from the
+ * database's own reads; one code's detail only when its id is asked for. Each read is caught on its own,
+ * so a missing side says which read failed instead of breaking the page. The page itself gates on the
+ * codes level (a person at none sees no access, never an empty screen).
+ */
+export default async function CodesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [q, me, t] = await Promise.all([searchParams, requireMe(), getTranslations()]);
+  const level = me.levels.codes ?? 'none';
+  const rawCode = typeof q.code === 'string' ? q.code : undefined;
+  const codeId = rawCode && UUID.test(rawCode) ? rawCode : null;
+  const [rows, companies, detail, clients] = await Promise.all([
+    level === 'none' ? null : (serverRpc('codes_list', {}) as Promise<unknown>).catch(() => null),
+    level === 'none' ? null : (serverRpc('codes_by_company', {}) as Promise<unknown>).catch(() => null),
+    level === 'none' || !codeId
+      ? null
+      : (serverRpc('codes_detail', { p_code: codeId }) as Promise<unknown>).catch(() => null),
+    (serverRpc('partners', { p_filters: { side: 'client' } as never, p_limit: 500 }) as Promise<unknown>).catch(
+      () => null,
+    ),
+  ]);
+  const lang = (await getLocale()) as 'en' | 'ar';
+  const partners: PartnerOption[] = ((clients as PartnersAnswer | null)?.rows ?? []).map((p) => ({
+    id: p.id,
+    name: tradeName(p, lang),
+  }));
+  return (
+    <Page page="codes" title={t('nav.codes')}>
+      <CodesScreen
+        rows={(rows as CodeRow[] | null) ?? []}
+        detail={detail as CodeDetail | null}
+        companyRows={(companies as CompanyCodeRow[] | null) ?? []}
+        partners={partners}
+        full={level === 'full'}
+        selectedId={codeId}
+        listFailed={level !== 'none' && rows === null}
+        detailFailed={level !== 'none' && codeId !== null && detail === null}
+        companiesFailed={level !== 'none' && companies === null}
+      />
+    </Page>
+  );
+}

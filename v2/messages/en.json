@@ -91,6 +91,7 @@
     "finance": "Finance",
     "kpis": "Achievements",
     "reports": "Reports",
+    "codes": "Discount codes",
     "appraisal": "Appraisal",
     "activity": "Activity",
     "settings": {
@@ -105,6 +106,7 @@
     "settings_home": "Settings",
     "clients": "Clients",
     "suppliers_partners": "Suppliers",
+    "files": "Files",
     "profile": "My profile"
   },
   "top": {
@@ -623,6 +625,64 @@
       "seeList": "See the achievements list",
       "empty": "No achievements in this month"
     },
+    "codes": {
+      "list": "Discount codes",
+      "empty": "No discount codes yet",
+      "filter": {
+        "label": "Code state",
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive",
+        "expired": "Expired"
+      },
+      "columns": {
+        "totalDiscount": "Total discount",
+        "totalCollected": "Total collected",
+        "view": "View"
+      },
+      "detail": {
+        "title": "Code detail",
+        "cost": "Cost",
+        "profit": "Profit",
+        "invoices": "Invoices",
+        "ledger": "Ledger",
+        "noCounted": "No counted invoices for this code yet",
+        "discount": "Discount",
+        "revenue": "Revenue",
+        "notCounted": "Not counted",
+        "notCountedNote": "These uses are recorded, but their invoices are not fully paid or are excluded, so they are not in the totals.",
+        "directLink": "Open in Direct",
+        "remove": "Remove",
+        "removeTitle": "Remove this use?",
+        "removed": "Use removed"
+      },
+      "addUse": {
+        "invoiceNumber": "Invoice number",
+        "discount": "Discount",
+        "directLink": "Direct link",
+        "reason": "Reason",
+        "save": "Record use",
+        "done": "Use recorded"
+      },
+      "attribution": {
+        "title": "Partners",
+        "none": "This code is not shown under any partner yet",
+        "partner": "Partner",
+        "partnerPlaceholder": "Choose a partner",
+        "reason": "Reason",
+        "save": "Show under partner",
+        "done": "Partner added",
+        "removeTitle": "Remove this partner?",
+        "removed": "Partner removed"
+      },
+      "partners": {
+        "title": "Per partner",
+        "note": "Promo totals only. These are not part of a partner's own totals.",
+        "none": "No code is shown under a partner yet",
+        "promo": "Promo",
+        "codes": "Codes"
+      }
+    },
     "beingBuilt": "Not ready yet. Use Tasks or Achievements for now.",
     "tasks": {
       "unknownOwner": "Unknown",
@@ -925,6 +985,15 @@
         "marked": "Marked as important · {number}",
         "unmarked": "Importance mark removed · {number}",
         "important": "Important"
+      },
+      "dialogs": {
+        "remove": "Remove task",
+        "reason": "Reason",
+        "reasonRequired": "Say why"
+      },
+      "actions": {
+        "save": "Save",
+        "cancel": "Cancel"
       }
     },
     "weeklyReview": {
@@ -1056,6 +1125,8 @@
     "wallet_rule": "Wallet rule",
     "commission_word": "Commission word",
     "channel": "Channel",
+    "code_use": "Code use",
+    "code_attribution": "Code attribution",
     "import_map": "Import column",
     "item_service": "Item service",
     "item_class": "Item class",
@@ -1984,6 +2055,8 @@
       "product_unknown": "Unknown product: {detail}",
       "unknown_entry": "Unknown entry: {detail}",
       "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
+      "code_use_exists": "This code is already recorded on that invoice.",
+      "code_attribution_exists": "This code is already shown under that partner.",
       "commercial_names_the_person": "Commercial needs the person credited."
     },
     "wrap_up": {
@@ -2165,7 +2238,93 @@
     "tabs": {
       "overview": "Overview",
       "activity": "Activity",
-      "related": "Related"
+      "related": "Related",
+      "codes": "Codes",
+      "finance": "Finance"
+    },
+    "companyFiles": {
+      "title": "Partner files",
+      "allFiles": "All files",
+      "none": "No files yet",
+      "kind": "Kind",
+      "kinds": {
+        "agreement": "Agreement",
+        "cr_certificate": "Commercial registration",
+        "vat_certificate": "VAT certificate",
+        "national_address": "National address",
+        "tender_document": "Letter of award"
+      },
+      "chooseKind": "Choose a kind",
+      "chooseFile": "Choose a file",
+      "download": "Download",
+      "upload": "Upload file",
+      "uploaded": "File uploaded",
+      "uploadFailed": "The file could not be uploaded — try again",
+      "downloadFailed": "The file could not be opened — try again",
+      "remove": "Remove",
+      "removeTitle": "Remove {name}?",
+      "removed": "File removed",
+      "pending": "Upload not finished",
+      "notStored": "Not uploaded yet",
+      "size": "Size",
+      "addedOn": "Added {date}",
+      "allFilesHint": "Every partner's files, in one place"
+    },
+    "companyCodes": {
+      "title": "Discount codes",
+      "none": "No discount codes on this partner yet",
+      "code": "Code",
+      "valid": "Valid",
+      "units": "Bookings",
+      "revenue": "Revenue",
+      "profit": "Profit",
+      "noTotals": "No counted bookings for this code yet"
+    },
+    "companyFinance": {
+      "title": "Money",
+      "noAccess": "Money for this partner is not open to you",
+      "clientIds": "Client IDs",
+      "clientIdsNone": "No client IDs on this partner yet",
+      "wallet": "Wallet",
+      "toppedUp": "Topped up",
+      "walletSpent": "Spent from wallet",
+      "invoicedTotal": "Invoiced total",
+      "balance": "Balance",
+      "held": "Held",
+      "available": "Available",
+      "heldNotRecorded": "Held is not recorded in the workspace yet, so Available is empty for now",
+      "totals": "Totals (Fully Paid only)",
+      "units": "Bookings",
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit",
+      "costPending": "Cost still pending",
+      "costPendingNote": "Some bookings still wait for an approved cost, so Cost and Profit are not final",
+      "costMissing": "Cost not known yet",
+      "waitingForIssuing": "Waiting to be issued",
+      "waitingCount": "{count} invoices still wait for a tax invoice",
+      "tenders": "Tenders",
+      "tendersNone": "No tenders on this partner yet",
+      "tenderAmount": "Tender amount",
+      "invoiced": "Invoiced",
+      "remaining": "Remaining",
+      "expectedProfit": "Expected profit",
+      "actualProfit": "Actual profit",
+      "notKnown": "Not known yet",
+      "appliedNote": "Applied only — no money yet",
+      "noClientId": "No client ID named yet, so nothing is counted against this tender",
+      "state": {
+        "applied": "Applied",
+        "signed": "Signed"
+      }
+    },
+    "archive": {
+      "title": "All files",
+      "none": "No files match",
+      "partner": "Partner",
+      "allCompanies": "All partners",
+      "allKinds": "All kinds",
+      "showAll": "Show all partners"
     },
     "activity": {
       "who": "Who was it with?",
@@ -2450,7 +2609,8 @@
       "transaction": "Transaction",
       "standalone": "Standalone",
       "billing": "Monthly invoice",
-      "wallet_topup": "Wallet top-up"
+      "wallet_topup": "Wallet top-up",
+      "credit_note": "Credit note"
     },
     "source": {
       "typed": "Typed"
@@ -2464,6 +2624,50 @@
       "total": "Total"
     },
     "channel": {},
+    "ledger": {
+      "title": "Ledger",
+      "filter": "Filters",
+      "partner": "Partner",
+      "allCompanies": "All partners",
+      "noPartner": "No partner",
+      "clientId": "Client ID",
+      "kind": "Invoice type",
+      "allKinds": "All types",
+      "code": "Code",
+      "project": "Project",
+      "projectSoon": "Project linking lands later — this box does not change the numbers yet.",
+      "apply": "Apply",
+      "clear": "Clear",
+      "saveHint": "Save keeps these filters under a name.",
+      "export": "Export",
+      "totals": "Totals for this view",
+      "units": "Units",
+      "revenue": "Revenue",
+      "cost": "Cost",
+      "profit": "Profit",
+      "received": "Received",
+      "remaining": "Remaining",
+      "withoutCost": "{count, plural, one {# row still has no cost} other {# rows still have no cost}}",
+      "byPartner": "By partner",
+      "partnerName": "Partner",
+      "invoices": "Invoices",
+      "invoiceNumber": "Invoice no.",
+      "transactionNumber": "Transaction no.",
+      "transactions": "Transactions",
+      "created": "Created",
+      "dpin": "Tax invoice no.",
+      "flags": "Flags",
+      "flag": {
+        "no_invoice_yet": "No invoice yet",
+        "monthly_fee": "Fee on monthly invoice",
+        "cost_pending": "Cost pending",
+        "waiting_for_issuing": "Waiting for issuing"
+      },
+      "empty": "Nothing fully paid matches these filters.",
+      "truncated": "Showing the newest 1000 rows; the totals cover everything.",
+      "failed": "The ledger",
+      "noCost": "—"
+    },
     "new": {
       "title": "New invoice",
       "kind": "Kind",
@@ -2499,6 +2703,32 @@
       "noFigures": "In no figures"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import."
+  },
+  "import": {
+    "title": "Import",
+    "choosePartner": "Choose the partner first",
+    "downloadTemplate": "Download template",
+    "uploadReview": "Upload and review",
+    "confirm": "Confirm import",
+    "nothingSavedYet": "Nothing is saved until you confirm.",
+    "new": "New",
+    "updated": "Updated",
+    "unchanged": "Unchanged",
+    "excluded": "Left out by rule",
+    "needsLinking": "Needs linking",
+    "unknownSignature": "This file is not a known Direct export",
+    "unknownSignatureBody": "Its columns are shown below. Nothing was saved.",
+    "binaryFile": "This is not a text file (PDF, Excel, or zip). Export the report as CSV and try again.",
+    "ownReport": "This is a file this app exported, not a Direct export. Drop the Direct export instead.",
+    "noCodeForFile": "This file has no discount-code column. Say which code it belongs to before importing.",
+    "duplicateSkip": "Duplicate in this file, skipped",
+    "duplicateKeep": "Duplicate in this file, kept by choice",
+    "missingTransaction": "Missing transaction number",
+    "missingInvoice": "Missing invoice number",
+    "costPending": "Cost not in yet",
+    "confirmed": "Import confirmed",
+    "linkClash": "Same invoice number is already on another row: held for a person",
+    "templateMissing": "No template yet: the first real header row for this export is still needed."
   },
   "testSwitch": {
     "bar": "TEST user: {name} (you are {owner})",

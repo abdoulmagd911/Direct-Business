@@ -127,6 +127,25 @@ export type Database = {
         };
         Returns: Json;
       };
+      code_use_add: {
+        Args: {
+          p_code: string;
+          p_direct_url?: string;
+          p_discount: number;
+          p_invoice_ref: string;
+          p_reason?: string;
+          p_source?: string;
+        };
+        Returns: Json;
+      };
+      code_use_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      codes_attribution_add: { Args: { p_code: string; p_partner: string; p_reason: string }; Returns: Json };
+      codes_attribution_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      codes_by_company: { Args: Record<PropertyKey, never>; Returns: Json };
+      codes_detail: { Args: { p_code: string }; Returns: Json };
+      codes_list: { Args: Record<PropertyKey, never>; Returns: Json };
+      company_files: { Args: { p_kind?: string; p_partner?: string }; Returns: Json };
+      company_summary: { Args: { p_partner: string }; Returns: Json };
       contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
       contacts_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       contract_renewal_task: { Args: { p_contract: string }; Returns: Json };
@@ -236,6 +255,18 @@ export type Database = {
       finance_import_map: { Args: { p_source?: string }; Returns: Json };
       finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_ledger: {
+        Args: {
+          p_from: string;
+          p_to: string;
+          p_partner?: string;
+          p_client_id?: string;
+          p_kind?: string;
+          p_code?: string;
+          p_project?: string;
+        };
+        Returns: Json;
+      };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
       finance_no_supplier_cost_set: {
         Args: { p_product: string; p_reason?: string; p_value: boolean; p_version: number };
@@ -308,6 +339,15 @@ export type Database = {
       };
       identifier_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
+      import_apply: {
+        Args: { p_batch: string; p_decisions?: Json; p_held?: Json; p_rows: Json };
+        Returns: Json;
+      };
+      import_batch_start: {
+        Args: { p_file_name: string; p_partner: string; p_signature: string; p_source_promo?: string };
+        Returns: Json;
+      };
+      import_ledger: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };
       list_remove: { Args: { p_id: string; p_list: string; p_reason?: string }; Returns: Json };
       list_retire: { Args: { p_id: string; p_list: string; p_reason: string; p_replacement: string }; Returns: Json };

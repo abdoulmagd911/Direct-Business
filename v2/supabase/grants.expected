@@ -50,6 +50,15 @@ function api.can_see(p_entity text, p_id uuid) execute authenticated
 function api.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
 function api.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function api.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
+function api.code_use_add(p_code uuid, p_invoice_ref text, p_discount numeric, p_source text, p_direct_url text, p_reason text) execute authenticated
+function api.code_use_remove(p_id uuid, p_reason text) execute authenticated
+function api.codes_attribution_add(p_code uuid, p_partner uuid, p_reason text) execute authenticated
+function api.codes_attribution_remove(p_id uuid, p_reason text) execute authenticated
+function api.codes_by_company() execute authenticated
+function api.codes_detail(p_code uuid) execute authenticated
+function api.codes_list() execute authenticated
+function api.company_files(p_partner uuid, p_kind text) execute authenticated
+function api.company_summary(p_partner uuid) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.contract_renewal_task(p_contract uuid) execute authenticated
@@ -82,6 +91,7 @@ function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp w
 function api.finance_import_map(p_source text) execute authenticated
 function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
+function api.finance_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
@@ -109,6 +119,9 @@ function api.identifier_add(p_partner uuid, p_kind text, p_value text, p_reason 
 function api.identifier_block_add(p_kind text, p_match text, p_value text, p_reason text) execute authenticated
 function api.identifier_remove(p_id uuid, p_reason text) execute authenticated
 function api.individual_add(p_name text, p_reason text) execute authenticated
+function api.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions jsonb) execute authenticated
+function api.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
+function api.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
 function api.list_remove(p_list text, p_id uuid, p_reason text) execute authenticated
 function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
@@ -367,6 +380,14 @@ function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function finance.closed_months() execute authenticated
+function finance.code_attribution_add(p_code uuid, p_partner uuid, p_reason text) execute authenticated
+function finance.code_attribution_remove(p_id uuid, p_reason text) execute authenticated
+function finance.code_state(date, date) execute authenticated
+function finance.code_use_add(p_code uuid, p_invoice_ref text, p_discount numeric, p_source text, p_direct_url text, p_reason text) execute authenticated
+function finance.code_use_remove(p_id uuid, p_reason text) execute authenticated
+function finance.codes_by_company() execute authenticated
+function finance.codes_detail(p_code uuid) execute authenticated
+function finance.codes_list() execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
@@ -379,6 +400,7 @@ function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.income_by_service(p_from date, p_to date) execute authenticated
+function finance.ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text) execute authenticated
 function finance.match_pin_clear(p_id uuid, p_reason text) execute authenticated
 function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) execute authenticated
@@ -428,6 +450,8 @@ function partner.client_counts(p_on date) execute authenticated
 function partner.client_id_close(p_id uuid, p_closed_on date, p_reason text) execute authenticated
 function partner.client_id_reopen(p_id uuid, p_reason text) execute authenticated
 function partner.code_terms_add(p_identifier uuid, p_campaign uuid, p_fee_percent numeric, p_approved_by uuid, p_approved_on date, p_effective_from date, p_services uuid[], p_countries text[], p_tiers jsonb, p_review_on date) execute authenticated
+function partner.company_files(p_partner uuid, p_kind text) execute authenticated
+function partner.company_summary(p_partner uuid) execute authenticated
 function partner.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function partner.contacts_remove(p_ids uuid[], p_reason text) execute authenticated
 function partner.contract_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated
@@ -487,6 +511,9 @@ function work.action_items_remove(p_ids uuid[], p_reason text) execute authentic
 function work.backfill_keys_held(p_keys text[]) execute authenticated
 function work.backfill_tasks(p_request jsonb) execute authenticated
 function work.contract_renewal_task(p_contract uuid) execute authenticated
+function work.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions jsonb) execute authenticated
+function work.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
+function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
 function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated

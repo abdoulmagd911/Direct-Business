@@ -28,6 +28,7 @@ import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { PersonHover } from './PersonHover';
+import { CodesTab, FilesSection, FinanceTab } from './record/CompanyTabs';
 import { EditPartnerDialog } from './record/EditPartnerDialog';
 import { AddNoteDialog, LogActivityDialog } from './record/LogActivityDialog';
 import { ContactDialog, ContractDialog, IdentifierDialog, ReferenceDialog } from './record/RailDialogs';
@@ -40,6 +41,8 @@ import {
   nameOf,
   statusTone,
   tradeName,
+  type CompanyFile,
+  type CompanySummary,
   type Contact,
   type Contract,
   type ListEntry,
@@ -61,6 +64,9 @@ export type PartnerRecordData = {
   notes: Note[];
   contracts: Contract[];
   history: HistoryRow[] | null;
+  /** The company's files (null when the read failed) and its Codes/Finance summary (same). */
+  files: CompanyFile[] | null;
+  summary: CompanySummary | null;
   lists: {
     types: ListEntry[];
     tiers: ListEntry[];
@@ -73,7 +79,7 @@ export type PartnerRecordData = {
   };
 };
 
-const TABS = ['overview', 'activity', 'related'] as const;
+const TABS = ['overview', 'codes', 'finance', 'activity', 'related'] as const;
 /** The header figures until the setting is read for everyone (its registry default — V95; see the PR's NEED). */
 const FIGURES = ['last_activity', 'next_step', 'contracts', 'contacts', 'files'] as const;
 
@@ -89,7 +95,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const words = useWords();
-  const { me, side, card, refused, org, notes, contracts, history, lists } = data;
+  const { me, side, card, refused, org, notes, contracts, history, files, summary, lists } = data;
   const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const refresh = () => router.refresh();
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
@@ -668,17 +674,27 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           label: t(`partners.tabs.${k}`),
           // The Activity tab shows notes plus the change log, so its count
           // must count both, not only the change log (it said 1, listed 5).
-          count: k === 'activity' && history ? notes.length + history.length : undefined,
+          count:
+            k === 'activity' && history
+              ? notes.length + history.length
+              : k === 'codes'
+                ? card.identifiers.filter((i) => i.kind === 'discount_code').length
+                : undefined,
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
         {tab === 'overview' ? (
-          <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
-            {rail}
-          </section>
+          <>
+            <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
+              {rail}
+            </section>
+            <FilesSection partnerId={card.id} files={files} mayWrite={mayWrite} onDone={refresh} />
+          </>
         ) : null}
+        {tab === 'codes' ? <CodesTab card={card} summary={summary} /> : null}
+        {tab === 'finance' ? <FinanceTab card={card} summary={summary} onRetry={refresh} /> : null}
         {tab === 'activity' ? (
           <>
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>

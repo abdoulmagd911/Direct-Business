@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Settings,
   Sun,
+  Tag,
   Target,
   Wallet,
 } from 'lucide-react';
@@ -50,6 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
   'folder-kanban': FolderKanban,
   'check-square': CheckSquare,
   wallet: Wallet,
+  tag: Tag,
   target: Target,
   'file-text': FileText,
   'clipboard-check': ClipboardCheck,

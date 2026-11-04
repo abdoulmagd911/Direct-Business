@@ -68,6 +68,91 @@ export type ServiceRow = {
 
 export type IncomeByService = { from: string; to: string; revenue: number; rows: ServiceRow[]; gap: number };
 
+/** The Finance page's extra filters (workstream B): the date range stays the period switch's own. */
+export type LedgerFilter = {
+  partner?: string;
+  clientId?: string;
+  kind?: 'transaction' | 'standalone' | 'billing' | 'credit_note' | 'wallet_topup';
+  code?: string;
+  /** Accepted and kept in saved views; no project link exists yet, so it changes nothing (see finance.ledger). */
+  project?: string;
+};
+
+/** One company the filtered view can pick, as finance.ledger lists it (never the company filter applied). */
+export type LedgerCompany = {
+  partner_id: string | null;
+  partner_number: string | null;
+  trade_name_en: string | null;
+  trade_name_ar: string | null;
+  units: number;
+};
+
+/** One row of the ledger: a revenue unit with its two numbers apart (see finance.ledger). */
+export type LedgerRow = {
+  invoice_id: string;
+  unit_kind: string;
+  transaction_number: string | null;
+  invoice_number: string | null;
+  partner_id: string | null;
+  created_on: string;
+  revenue: number;
+  /** Empty (null) while no approved expense exists — never 0, except a genuine no-supplier-cost 0. */
+  cost: number | null;
+  profit: number | null;
+  dpin: string | null;
+  flags: string[];
+};
+
+/** One invoice of the ledger: its total, what arrived, what is left, and its transactions. */
+export type LedgerInvoice = {
+  invoice_id: string;
+  invoice_number: string | null;
+  kind: string;
+  partner_id: string | null;
+  total_sar: number | null;
+  received_sar: number;
+  remaining_sar: number | null;
+  dpin: string | null;
+  transactions: string[];
+};
+
+/** One company's part of the filtered view: received and remaining come from its invoices, never its unit rows. */
+export type LedgerByCompany = {
+  partner_id: string | null;
+  units: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+  without_cost: number;
+  received: number;
+  remaining: number;
+};
+
+/** Everything finance.ledger answers for one filtered view; the Codes page reads the same shape (by code). */
+export type LedgerReport = {
+  from: string;
+  to: string;
+  partner: string | null;
+  client_id: string | null;
+  kind: string | null;
+  code: string | null;
+  project: string | null;
+  totals: {
+    units: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+    without_cost: number;
+    received: number;
+    remaining: number;
+  };
+  companies: LedgerCompany[];
+  by_company: LedgerByCompany[];
+  invoices: LedgerInvoice[];
+  rows: LedgerRow[];
+  truncated: boolean;
+};
+
 /** Everything the Overview reads in one go; a part that failed is null and says so on the screen. */
 export type OverviewData = {
   period: Period | null;

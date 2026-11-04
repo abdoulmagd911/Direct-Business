@@ -1,6 +1,7 @@
 // The registry index (TECH-SPEC §2.3): every module, in drawer order. A new module is added here and nowhere else;
 // `pnpm registry:sync` then writes the database's copy (V123).
 import appraisal from '../../modules/appraisal/module';
+import codes from '../../modules/codes/module';
 import finance from '../../modules/finance/module';
 import myDay from '../../modules/my-day/module';
 import org from '../../modules/org/module';
@@ -24,6 +25,7 @@ export const modules: readonly ModuleDef[] = [
   finance,
   perf,
   reports,
+  codes,
   appraisal,
   org,
   settings,

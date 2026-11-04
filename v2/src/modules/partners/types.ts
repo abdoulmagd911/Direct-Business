@@ -189,6 +189,111 @@ export type PartnerCard = {
   counts: { contracts: number; files: number; notes: number };
 };
 
+/** One file on a company, as api.files answers it (the existing file doors). */
+export type CompanyFile = {
+  id: string;
+  link_id: string;
+  kind: string;
+  kind_en: string;
+  kind_ar: string | null;
+  purpose: string;
+  side: Side | null;
+  display_name_en: string | null;
+  display_name_ar: string | null;
+  original_name: string | null;
+  mime: string;
+  size_bytes: number;
+  sensitivity: string;
+  status: string;
+  review_on: string | null;
+  review_due: boolean;
+  added_by: string | null;
+  added_at: string;
+  version: number;
+};
+
+/** One row of the All files archive, as api.company_files answers it. */
+export type ArchiveFile = {
+  id: string;
+  link_id: string;
+  partner_id: string;
+  partner_name: string;
+  partner_name_ar: string | null;
+  kind: string;
+  kind_en: string;
+  kind_ar: string | null;
+  purpose: string;
+  side: Side | null;
+  display_name_en: string | null;
+  display_name_ar: string | null;
+  original_name: string | null;
+  mime: string;
+  size_bytes: number;
+  sensitivity: string;
+  status: string;
+  added_by: string | null;
+  added_at: string;
+};
+
+/** A company's wallet roll-up, as api.company_summary answers it. Held and available stay null: no workspace
+ *  table records a hold, so they are shown empty rather than guessed. */
+export type CompanyWallet = {
+  topped_up: number;
+  wallet_spent: number;
+  invoiced_total: number;
+  balance: number;
+  held: number | null;
+  available: number | null;
+};
+
+/** A company's counted (Fully Paid) money, as api.company_summary answers it. Cost and profit stay null while
+ *  every counted unit is still Provisional — missing cost is empty, never 0. */
+export type CompanyFinanceTotals = {
+  units: number;
+  revenue: number;
+  cost: number | null;
+  profit: number | null;
+  provisional_units: number;
+  provisional_revenue: number;
+  cost_pending: boolean;
+  waiting_for_issuing: boolean;
+  waiting_count: number;
+};
+
+/** One discount code's counted totals for a company, as api.company_summary answers it. */
+export type CompanyCodeTotal = { code: string; units: number; revenue: number; profit: number };
+
+/** One tender of a company, as api.company_summary answers it. Expected cost and expected profit stay null:
+ *  a tender carries no expected-cost field, so they are never guessed. */
+export type CompanyTender = {
+  id: string;
+  number: string;
+  title: string;
+  state: 'applied' | 'signed';
+  signed_on: string | null;
+  client_id_named: boolean;
+  tender_amount: number | null;
+  invoiced: number | null;
+  remaining: number | null;
+  units: number | null;
+  approved_cost: number | null;
+  cost_pending: boolean;
+  actual_profit: number | null;
+  expected_cost: number | null;
+  expected_profit: number | null;
+};
+
+/** Everything the company page's Finance tab reads in one go. The money parts are null for a reader without
+ *  Finance view — shown as no access, never as zeros. */
+export type CompanySummary = {
+  partner_id: string;
+  finance_visible: boolean;
+  wallet: CompanyWallet | null;
+  finance: CompanyFinanceTotals | null;
+  codes: CompanyCodeTotal[] | null;
+  tenders: CompanyTender[] | null;
+};
+
 export type HoverPartner = {
   id: string;
   number: string;

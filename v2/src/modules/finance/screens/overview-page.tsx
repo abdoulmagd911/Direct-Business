@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { Page } from '@/ui/shell/Page';
+import { ledgerFilterFromQuery } from '../ledger';
 import { periodAsk, riyadhDay } from '../period';
 import { FinanceOverviewLive } from './FinanceOverviewLive';
 
@@ -16,9 +17,23 @@ export async function FinanceOverviewPage({ searchParams }: { searchParams: Prom
   const [q, me, t] = await Promise.all([searchParams, requireMe(), getTranslations()]);
   const today = riyadhDay();
   const ask = periodAsk({ period: one(q.period), from: one(q.from), to: one(q.to) }, today);
+  // The ledger's filters ride the same address as the period, so a saved view is a named address (workstream B).
+  const ledger = ledgerFilterFromQuery({
+    company: one(q.company),
+    client: one(q.client),
+    kind: one(q.kind),
+    code: one(q.code),
+    project: one(q.project),
+  });
   return (
     <Page page="finance" title={t('nav.finance')}>
-      <FinanceOverviewLive ask={ask} today={today} full={(me.levels.finance ?? 'none') === 'full'} />
+      <FinanceOverviewLive
+        ask={ask}
+        today={today}
+        full={(me.levels.finance ?? 'none') === 'full'}
+        ledger={ledger}
+        view={one(q.view) ?? ''}
+      />
     </Page>
   );
 }

@@ -5,12 +5,14 @@ import type {
   ClosedMonth,
   HealthEntry,
   IncomeByService,
+  LedgerFilter,
   NotInvoiced,
   OverviewData,
   PaymentsAsOf,
   Period,
 } from '../types';
 import { FinanceOverview } from './FinanceOverview';
+import { FinanceLedgerSection } from './FinanceLedgerSection';
 
 const dataOf = <T,>(b: Block<T>): T | null => (b.status === 'ready' ? b.data : null);
 
@@ -19,7 +21,20 @@ const dataOf = <T,>(b: Block<T>): T | null => (b.status === 'ready' ? b.data : n
  * tabs appear at once, each block fills as its read answers, and a block that cannot be read is said so in place with
  * a Try again that repeats only that read. The first asked is the first served: the figures, then the months.
  */
-export function FinanceOverviewLive({ ask, today, full }: { ask: PeriodAsk; today: string; full: boolean }) {
+export function FinanceOverviewLive({
+  ask,
+  today,
+  full,
+  ledger,
+  view,
+}: {
+  ask: PeriodAsk;
+  today: string;
+  full: boolean;
+  /** The ledger's filters, from the address (workstream B); the section below the Overview draws them. */
+  ledger: LedgerFilter;
+  view: string;
+}) {
   const range = { p_from: ask.from, p_to: ask.to };
   const at = `${ask.from}|${ask.to}`;
   const period = useFinanceRead<Period, 'finance_period'>('finance_period', range, `period|${at}`);
@@ -48,27 +63,30 @@ export function FinanceOverviewLive({ ask, today, full }: { ask: PeriodAsk; toda
   };
   const is = (b: Block<unknown>) => b.status === 'loading';
   return (
-    <FinanceOverview
-      ask={ask}
-      today={today}
-      full={full}
-      data={data}
-      loading={{
-        period: is(period.block),
-        closed: is(closed.block),
-        health: is(health.block),
-        notInvoiced: is(notInvoiced.block),
-        asOf: is(asOf.block),
-        service: is(service.block),
-      }}
-      retry={{
-        period: period.retry,
-        closed: closed.retry,
-        health: health.retry,
-        notInvoiced: notInvoiced.retry,
-        asOf: asOf.retry,
-        service: service.retry,
-      }}
-    />
+    <div className="flex flex-col gap-8">
+      <FinanceOverview
+        ask={ask}
+        today={today}
+        full={full}
+        data={data}
+        loading={{
+          period: is(period.block),
+          closed: is(closed.block),
+          health: is(health.block),
+          notInvoiced: is(notInvoiced.block),
+          asOf: is(asOf.block),
+          service: is(service.block),
+        }}
+        retry={{
+          period: period.retry,
+          closed: closed.retry,
+          health: health.retry,
+          notInvoiced: notInvoiced.retry,
+          asOf: asOf.retry,
+          service: service.retry,
+        }}
+      />
+      <FinanceLedgerSection ask={ask} initial={ledger} view={view} full={full} />
+    </div>
   );
 }

@@ -57,6 +57,9 @@ export function ReasonDialog({
               setBusy(true);
               try {
                 await onSave(reason.trim());
+                setReason('');
+                setTouched(false);
+                onOpenChange(false);
               } finally {
                 setBusy(false);
               }
