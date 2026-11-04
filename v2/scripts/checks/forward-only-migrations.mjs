@@ -93,12 +93,13 @@ export default defineCheck({
       return out;
     }
     // ONE-TIME OWNER-APPROVED EXCEPTION (4 Nov 2026): migration
-    // 20261104100000_finance_ledger_filters.sql never applied to any database
+    // 20261104100000_finance_ledger_filters.sql and its fix-forward
+    // 20261104140000_finance_ledger_filter_fix.sql never applied to any database
     // (production is gated on green database-from-zero jobs, which never went
     // green because of its syntax error), so correcting its two FILTER lines
-    // in place diverges nothing that already ran. This exception covers that
-    // one file only; every other migration edit is still refused below.
-    const forwardOnlyExceptions = new Set(['20261104100000_finance_ledger_filters.sql']);
+    // in place diverges nothing that already ran. This exception covers these
+    // two files only; every other migration edit is still refused below.
+    const forwardOnlyExceptions = new Set(['20261104100000_finance_ledger_filters.sql', '20261104140000_finance_ledger_filter_fix.sql']);
     // Migrations at the merge base that changed or went away (working tree included).
     const changed = ctx
       .git(['diff', '--name-status', '--no-renames', mergeBase, '--', DIR])

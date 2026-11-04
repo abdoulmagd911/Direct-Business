@@ -1,3 +1,12 @@
+-- ONE-TIME OWNER-APPROVED EXCEPTION (same incident, 4 Nov 2026): this fix-forward
+-- migration also never applied to any database (same gated jobs), and its
+-- finance.ledger body shared the second bug below, so it is corrected in place
+-- under the same exception as 20261104100000. No other migration is touched.
+-- Second bug, found after the FILTER fix: the plpgsql body ended with the
+-- RETURN parenthesis but no END, so Postgres failed at the closing $$ with
+-- "syntax error at end of input". Proven repo style ends a plpgsql body with
+-- a bare END line, which is what is added here.
+
 -- Fix-forward for 20261104100000 (never edited, forward-only rule): the by_row
 -- cost/profit lines put FILTER after coalesce(), which Postgres rejects
 -- ("syntax error at or near \"filter\""). FILTER belongs inside the aggregate:
@@ -232,6 +241,7 @@ begin
       'truncated', (select pg_catalog.count(*) > 1000 from rows)
     )
   );
+end
 $$;
 
 create or replace function api.finance_ledger(

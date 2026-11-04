@@ -6,6 +6,11 @@
 -- same corrected function; it is harmless and is kept for history.
 -- Exception: only the two FILTER lines below are corrected. No other line changes.
 -- FILTER belongs inside the aggregate: coalesce(sum(...) filter (...), 0).
+-- Second bug in the same file, found after the FILTER fix: the plpgsql body
+-- ended with the RETURN parenthesis but no END, so Postgres failed at the
+-- closing $$ with "syntax error at end of input". Proven repo style ends a
+-- plpgsql body with a bare END line, which is what is added here (and the
+-- same correction is applied to 20261104140000, which shared the bug).
 
 -- Finance page filters, the saved-view ledger and the codes report (workstream B, 4 Nov 2026): one read,
 -- finance.ledger, that answers the filtered view the Finance page draws and the Discount Codes page reuses
@@ -234,6 +239,7 @@ begin
       'truncated', (select pg_catalog.count(*) > 1000 from rows)
     )
   );
+end
 $$;
 
 create function api.finance_ledger(
