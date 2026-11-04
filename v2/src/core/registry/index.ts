@@ -3,6 +3,7 @@
 import appraisal from '../../modules/appraisal/module';
 import codes from '../../modules/codes/module';
 import finance from '../../modules/finance/module';
+import imports from '../../modules/imports/module';
 import myDay from '../../modules/my-day/module';
 import org from '../../modules/org/module';
 import overview from '../../modules/overview/module';
@@ -23,6 +24,7 @@ export const modules: readonly ModuleDef[] = [
   projects,
   tasks,
   finance,
+  imports,
   perf,
   reports,
   codes,

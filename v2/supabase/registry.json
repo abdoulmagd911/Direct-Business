@@ -1180,6 +1180,18 @@
       "rule_only": false
     },
     {
+      "key": "import_batch",
+      "table": "work.import_batch",
+      "page": "finance",
+      "owners": "created_by",
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "import_difference",
       "table": "finance.import_difference",
       "page": "finance",
@@ -1197,6 +1209,18 @@
       "page": "finance",
       "owners": null,
       "list": true,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "import_record",
+      "table": "work.import_record",
+      "page": "finance",
+      "owners": "created_by",
+      "list": false,
       "private": false,
       "visible": null,
       "level": null,
