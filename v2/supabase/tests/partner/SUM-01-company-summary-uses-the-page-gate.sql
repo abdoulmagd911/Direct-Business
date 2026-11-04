@@ -3,16 +3,18 @@
 -- even without partners/view; a reader with no side at view is refused; a missing company is not
 -- found. Every company and person is made up.
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
-select test.as_person(current_setting('t.head')::uuid);
-select set_config('t.p', api.partner_create('{"trade_name_en": "Made Up Zeta", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 select set_config('t.reader', test.person('Test Reader', 'member')::text, true);
 select set_config('t.blind', test.person('Test Blind', 'member')::text, true);
+-- Before any as_person: as_person sets the role to authenticated, which has no direct write on the
+-- access tables (writes go through the api functions), so the overrides are placed while still owner.
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.reader')::uuid, 'clients', 'view', 'made up for a test'),
        (current_setting('t.reader')::uuid, 'partners', 'none', 'made up for a test'),
        (current_setting('t.blind')::uuid, 'clients', 'none', 'made up for a test'),
        (current_setting('t.blind')::uuid, 'suppliers_partners', 'none', 'made up for a test'),
        (current_setting('t.blind')::uuid, 'partners', 'none', 'made up for a test');
+select test.as_person(current_setting('t.head')::uuid);
+select set_config('t.p', api.partner_create('{"trade_name_en": "Made Up Zeta", "sides": [{"side": "client", "type": "corporate"}]}') ->> 'id', true);
 
 select test.as_person(current_setting('t.reader')::uuid);
 select test.ok((api.company_summary(current_setting('t.p')::uuid) ->> 'partner_id') = current_setting('t.p'),
