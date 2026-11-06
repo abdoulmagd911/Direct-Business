@@ -12,6 +12,7 @@ import type {
   Period,
 } from '../types';
 import { FinanceOverview } from './FinanceOverview';
+import { FinanceImportSection } from './FinanceImportSection';
 import { FinanceLedgerSection } from './FinanceLedgerSection';
 
 const dataOf = <T,>(b: Block<T>): T | null => (b.status === 'ready' ? b.data : null);
@@ -93,6 +94,8 @@ export function FinanceOverviewLive({
         full={full}
         ready={period.block.status === 'ready'}
       />
+      {/* Importing needs Finance full (the batch start refuses anything less), so the section is only here for full. */}
+      {full ? <FinanceImportSection /> : null}
     </div>
   );
 }

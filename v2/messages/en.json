@@ -2741,7 +2741,28 @@
     "costPending": "Cost not in yet",
     "confirmed": "Import confirmed",
     "linkClash": "Same invoice number is already on another row: held for a person",
-    "templateMissing": "No template yet: the first real header row for this export is still needed."
+    "templateMissing": "No template yet: the first real header row for this export is still needed.",
+    "chooseFile": "Choose a file",
+    "fileType": "File type",
+    "code": "Discount code",
+    "review": "Review",
+    "rows": "Rows",
+    "row": "Row",
+    "outcome": "Result",
+    "reason": "Reason",
+    "reference": "Reference",
+    "held": "Held rows",
+    "columns": "Columns",
+    "emptyFile": "This file has no rows.",
+    "existingFailed": "What is already imported could not be read.",
+    "keep": "Keep this duplicate",
+    "startOver": "Start over",
+    "signature": {
+      "invoice_export": "Invoice export (non-simplified, the spine)",
+      "transaction_expense_export": "Transaction Expense Export (the only cost source)",
+      "promo_code_invoice_export": "Promo Code Invoice Export",
+      "corporate_transaction_list": "Corporate Transactions list (saved by hand, no export button)"
+    }
   },
   "testSwitch": {
     "bar": "TEST user: {name} (you are {owner})",
