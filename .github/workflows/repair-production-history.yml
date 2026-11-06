@@ -1,0 +1,62 @@
+name: repair production history (one-off)
+
+# TEMPORARY, one-off. Delete this file after one successful run.
+#
+# Why: three versions sit in production's migration history that are not files in main
+# (20261104210645, 20261104211239, 20261104213253). They appeared between run #1548
+# (4 Nov 23:22, production and main agreed on 183 migrations) and run #1551 (5 Nov 01:17),
+# and they block `supabase db push`, so the company-summary migrations cannot reach production.
+# Their content is unknown (no file with those versions exists anywhere in the repo or workspace).
+#
+# What this does: marks exactly those three versions reverted in the history table
+# (`supabase migration repair --status reverted`). It changes NO schema: it only removes
+# the three history rows, so the next push can apply main's pending migrations
+# (20261104234000, 20261105010000). If those three versions made real schema changes,
+# those changes stay in the database; the live checks after the push will show whether
+# anything is off. Owner approval required before dispatch; record it in the run's notes.
+#
+# How: push this file to v2/main, dispatch it once by workflow_dispatch on v2/main,
+# verify the before/after `migration list` output, then delete this file (another push).
+# The deletion push's own CI run then applies the pending migrations as its final proof.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  repair:
+    name: mark the three unknown versions reverted on production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # the GitHub environment "production" holds the database password (same as the v2 workflow)
+    environment: production
+    # one at a time with the production-database job; never cancelled half-way
+    concurrency:
+      group: v2-production-database
+      cancel-in-progress: false
+    env:
+      # direct-commercial: a project ref and its region are addresses, not secrets
+      SUPABASE_PROJECT_REF: kimadjvaxgiqzjaukuqg
+      SUPABASE_REGION: eu-central-1
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: v2/.nvmrc
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+      # the password reaches this step alone; the address it finds is masked and handed on as SUPABASE_PROD_DB_URL
+      - name: reach production through its region's pooler (a read)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/db/prod-url.mjs
+      - name: show the history before the repair (a read)
+        run: supabase migration list --db-url "$SUPABASE_PROD_DB_URL"
+      # history only: this removes three history rows, it changes no table, function or data
+      - name: mark the three unknown versions reverted (history only, no schema change)
+        run: supabase migration repair --status reverted 20261104210645 20261104211239 20261104213253 --db-url "$SUPABASE_PROD_DB_URL"
+      - name: show the history after the repair (a read)
+        run: supabase migration list --db-url "$SUPABASE_PROD_DB_URL"
