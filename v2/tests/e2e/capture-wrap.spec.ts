@@ -185,6 +185,13 @@ test('Wrap up moves the day in one request: Done, Tomorrow, Drop — nothing cho
     .locator('[data-wrap-choice]')
     .evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1).length);
   expect(clipped, 'no choice is cut off by the year in its date').toBe(0);
+  // the three choices sit in a three-column grid row, never a wrapping flex row: the one-row check above
+  // passes whenever the buttons happen to fit, so a flex-wrap container slips through it unnoticed
+  // (run #1551, sabotage wrap-up-moves-wrap-onto-two-lines stayed green). The grid itself is the promise.
+  const display = await rowOf(`Due task ${t}`)
+    .locator('[role="radiogroup"]')
+    .evaluate((el) => getComputedStyle(el).display);
+  expect(display, 'the choices sit in a three-column row').toBe('grid');
   await rowOf(`Late task ${t}`).locator('[data-wrap-choice="done"]').click();
   await rowOf(`Due task ${t}`).locator('[data-wrap-choice="tomorrow"]').click();
   await rowOf(`Third task ${t}`).locator('[data-wrap-choice="drop"]').click();
