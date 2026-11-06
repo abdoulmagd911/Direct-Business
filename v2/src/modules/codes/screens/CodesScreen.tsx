@@ -187,6 +187,12 @@ export function CodesScreen({
           <section className="flex flex-col gap-5" data-codes-detail>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="font-data text-xl">{detail.code}</h2>
+              <Link
+                href={`/finance?code=${encodeURIComponent(detail.code)}`}
+                className="text-sm font-medium text-primary"
+              >
+                {t('pages.codes.detail.viewInFinance')}
+              </Link>
               <StatusChip tone={toneOf(detail.state)}>{t(`pages.codes.filter.${detail.state}`)}</StatusChip>
               <span className="text-sm text-muted">
                 {dateOrDash(detail.valid_from, locale)} — {dateOrDash(detail.valid_to, locale)}

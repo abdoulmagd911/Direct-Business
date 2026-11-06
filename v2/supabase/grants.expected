@@ -110,6 +110,7 @@ function api.finance_search(p_text text, p_limit integer) execute authenticated
 function api.finance_tender_client_id_set(p_tender uuid, p_identifier uuid, p_reason text) execute authenticated
 function api.finance_tender_credit(p_from date, p_to date) execute authenticated
 function api.finance_tenders(p_partner uuid) execute authenticated
+function api.finance_unified_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function api.follow(p_entity text, p_id uuid, p_on boolean) execute authenticated
 function api.following(p_entity text, p_id uuid) execute authenticated
 function api.from_note(p_entity text, p_id uuid) execute authenticated
@@ -423,6 +424,7 @@ function finance.search_numbers(p_text text, p_limit integer) execute authentica
 function finance.tender_client_id_set(p_tender uuid, p_identifier uuid, p_reason text) execute authenticated
 function finance.tender_credit(p_from date, p_to date) execute authenticated
 function finance.tenders(p_partner uuid) execute authenticated
+function finance.unified_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function my.from_note_of(p_entity text, p_id uuid) execute authenticated
 function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
 function my.my_follow_ups(p_entity text, p_id uuid) execute authenticated

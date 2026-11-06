@@ -19,6 +19,7 @@ const headers = {
   transaction: 'Transaction no.',
   invoice: 'Invoice no.',
   kind: 'Type',
+  source: 'Source',
   revenue: 'Revenue',
   cost: 'Cost',
   profit: 'Profit',
@@ -80,6 +81,9 @@ describe('the ledger export files the same view', () => {
           profit: null,
           dpin: null,
           flags: ['no_invoice_yet', 'cost_pending'],
+          source: 'manual',
+          isPromo: false,
+          discountSar: null,
         },
       ]),
       headers,
@@ -87,8 +91,8 @@ describe('the ledger export files the same view', () => {
     );
     const lines = csv.split('\n');
     expect(lines).toHaveLength(3);
-    expect(lines[1]).toBe('2026-01-05,No company,TR-1,,transaction,100,,,,no_invoice_yet cost_pending');
-    expect(lines[2]).toBe('Totals,,,,,100,40,60,,');
+    expect(lines[1]).toBe('2026-01-05,No company,TR-1,,transaction,manual,100,,,,no_invoice_yet cost_pending');
+    expect(lines[2]).toBe('Totals,,,,,,100,40,60,,');
   });
 
   it('a comma in a number is quoted, not split', () => {
@@ -106,6 +110,9 @@ describe('the ledger export files the same view', () => {
           profit: 30,
           dpin: null,
           flags: [],
+          source: 'import',
+          isPromo: false,
+          discountSar: null,
         },
       ]),
       headers,

@@ -84,6 +84,7 @@ export function ledgerRowsToCsv(
     transaction: string;
     invoice: string;
     kind: string;
+    source: string;
     revenue: string;
     cost: string;
     profit: string;
@@ -118,6 +119,7 @@ export function ledgerRowsToCsv(
         r.transaction_number,
         r.invoice_number,
         r.unit_kind,
+        r.source ?? '',
         money(r.revenue),
         money(r.cost),
         money(r.profit),
@@ -130,7 +132,9 @@ export function ledgerRowsToCsv(
   }
   const t = report.totals;
   lines.push(
-    [headers.total, '', '', '', '', money(t.revenue), money(t.cost), money(t.profit), '', ''].map(csvCell).join(','),
+    [headers.total, '', '', '', '', '', money(t.revenue), money(t.cost), money(t.profit), '', '']
+      .map(csvCell)
+      .join(','),
   );
   return lines.join('\n');
 }

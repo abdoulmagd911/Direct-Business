@@ -75,7 +75,12 @@ export function FinanceLedgerSection({
 
   const args = ledgerReadArgs(initial, ask.from, ask.to);
   const key = JSON.stringify(args);
-  const read = useFinanceRead<LedgerReport, 'finance_ledger'>('finance_ledger', args, `ledger|${key}`, ready);
+  const read = useFinanceRead<LedgerReport, 'finance_unified_ledger'>(
+    'finance_unified_ledger',
+    args,
+    `ledger|${key}`,
+    ready,
+  );
   const report = read.block.status === 'ready' ? read.block.data : null;
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>
     locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? '');

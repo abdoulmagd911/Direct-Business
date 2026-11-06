@@ -54,6 +54,7 @@ export function FinanceReport({
         transaction: t('finance.ledger.transactionNumber'),
         invoice: t('finance.ledger.invoiceNumber'),
         kind: t('finance.ledger.kind'),
+        source: t('finance.ledger.source'),
         revenue: t('finance.ledger.revenue'),
         cost: t('finance.ledger.cost'),
         profit: t('finance.ledger.profit'),
@@ -91,7 +92,63 @@ export function FinanceReport({
         {t('finance.ledger.units')}: <b className="font-data tabular">{total.units}</b>
         {' · '}
         {t('finance.ledger.withoutCost', { count: total.without_cost })}
+        {total.manualUnits !== undefined && total.importUnits !== undefined ? (
+          <>
+            {' · '}
+            {t('finance.ledger.sourceManual')}: <b className="font-data tabular">{total.manualUnits}</b>
+            {' · '}
+            {t('finance.ledger.sourceImport')}: <b className="font-data tabular">{total.importUnits}</b>
+          </>
+        ) : null}
+        {total.unconfirmedImportUnits ? (
+          <>
+            {' · '}
+            {t('finance.ledger.unconfirmed', { count: total.unconfirmedImportUnits })}
+          </>
+        ) : null}
       </p>
+      {report.code && report.codeDiscount !== null && report.codeDiscount !== undefined ? (
+        <p className="text-sm text-muted" data-finance-ledger-code-discount>
+          {t('finance.ledger.codeDiscount')}:{' '}
+          <b className="font-data tabular">{formatMoney(report.codeDiscount, locale)}</b>
+        </p>
+      ) : null}
+      {report.promoRows && report.promoRows.length > 0 ? (
+        <section aria-labelledby="finance-ledger-promo" data-finance-ledger-promo>
+          <h3 id="finance-ledger-promo" className="font-display text-lg font-semibold">
+            {t('finance.ledger.promoTitle')}
+          </h3>
+          <p className="mt-2 text-sm text-muted">{t('finance.ledger.promoNote')}</p>
+          <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-raised">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface text-xs text-muted">
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.discount')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.revenue')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.cost')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.profit')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.promoRows.map((pr) => (
+                  <tr key={pr.id} className="border-b border-border last:border-b-0">
+                    <td className="px-4 py-2.5 font-data tabular">{pr.created_on}</td>
+                    <td className="px-4 py-2.5 font-data tabular">{pr.transaction_number ?? '—'}</td>
+                    <td className="px-4 py-2.5 font-data tabular">{pr.invoice_number ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.discount_sar)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.revenue)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.cost)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.profit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section aria-labelledby="finance-ledger-companies" data-finance-ledger-companies>
         <h3 id="finance-ledger-companies" className="font-display text-lg font-semibold">
@@ -180,6 +237,7 @@ export function FinanceReport({
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.source')}</th>
                   <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.revenue')}</th>
                   <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.cost')}</th>
                   <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.profit')}</th>
@@ -192,6 +250,11 @@ export function FinanceReport({
                     <td className="px-4 py-2.5 font-data tabular">{r.created_on}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.transaction_number ?? '—'}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.invoice_number ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-muted">
+                      {r.isPromo
+                        ? `${t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')} · ${t('finance.ledger.promoTitle')}`
+                        : t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')}
+                    </td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(r.revenue, locale)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{money(r.cost)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{money(r.profit)}</td>

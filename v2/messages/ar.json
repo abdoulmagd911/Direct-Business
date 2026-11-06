@@ -654,7 +654,8 @@
         "directLink": "فتح في دايركت",
         "remove": "إزالة",
         "removeTitle": "إزالة هذا الاستخدام؟",
-        "removed": "تمت إزالة الاستخدام"
+        "removed": "تمت إزالة الاستخدام",
+        "viewInFinance": "عرض في المالية"
       },
       "addUse": {
         "invoiceNumber": "رقم الفاتورة",
@@ -2593,12 +2594,22 @@
         "no_invoice_yet": "لا فاتورة بعد",
         "monthly_fee": "رسم على الفاتورة الشهرية",
         "cost_pending": "التكلفة معلقة",
-        "waiting_for_issuing": "بانتظار الإصدار"
+        "waiting_for_issuing": "بانتظار الإصدار",
+        "missing_transaction": "معاملة مفقودة",
+        "missing_invoice": "فاتورة مفقودة"
       },
       "empty": "لا شيء مدفوع بالكامل يطابق هذه المرشحات.",
       "truncated": "يُعرض أحدث 1000 صف؛ الإجماليات تشمل كل شيء.",
       "failed": "دفتر الحسابات",
-      "noCost": "—"
+      "noCost": "—",
+      "source": "المصدر",
+      "sourceManual": "مسجّل هنا",
+      "sourceImport": "مستورَد",
+      "promoTitle": "صفوف أكواد الخصم",
+      "promoNote": "هذه الصفوف تحمل كود خصم، لذا تبقى منفصلة عن إجماليات الشركة ولا تُخلط بها أبدًا.",
+      "unconfirmed": "واردات غير مدفوعة بالكامل: {count}",
+      "codeDiscount": "إجمالي الخصم لهذا الكود",
+      "discount": "الخصم"
     },
     "new": {
       "addExpense": "إضافة مصروف",

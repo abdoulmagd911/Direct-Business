@@ -314,6 +314,18 @@ export type Database = {
       };
       finance_tender_credit: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_tenders: { Args: { p_partner?: string }; Returns: Json };
+      finance_unified_ledger: {
+        Args: {
+          p_from: string;
+          p_to: string;
+          p_partner?: string;
+          p_client_id?: string;
+          p_kind?: string;
+          p_code?: string;
+          p_project?: string;
+        };
+        Returns: Json;
+      };
       follow: { Args: { p_entity: string; p_id: string; p_on?: boolean }; Returns: boolean };
       following: { Args: { p_entity: string; p_id: string }; Returns: boolean };
       from_note: { Args: { p_entity: string; p_id: string }; Returns: Json };

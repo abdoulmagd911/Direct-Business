@@ -101,6 +101,29 @@ export type LedgerRow = {
   profit: number | null;
   dpin: string | null;
   flags: string[];
+  /** Where the row came from: recorded here ('manual') or arrived by import ('import'). */
+  source: 'manual' | 'import';
+  /** True when the row carries a discount-code attribution. */
+  isPromo: boolean;
+  /** The discount on this row, when it carries one; otherwise null. */
+  discountSar: number | null;
+};
+
+/** One imported row that carries a discount-code attribution, kept apart from a plain view's totals. */
+export type UnifiedPromoRow = {
+  id: string;
+  partner_id: string | null;
+  transaction_number: string | null;
+  invoice_number: string | null;
+  created_on: string;
+  code: string | null;
+  discount_sar: number | null;
+  revenue: number | null;
+  cost: number | null;
+  profit: number | null;
+  /** Whether this row counts for its code (fully paid). */
+  counted: boolean;
+  direct_url: string | null;
 };
 
 /** One invoice of the ledger: its total, what arrived, what is left, and its transactions. */
@@ -128,7 +151,7 @@ export type LedgerByCompany = {
   remaining: number;
 };
 
-/** Everything finance.ledger answers for one filtered view; the Codes page reads the same shape (by code). */
+/** Everything finance.unified_ledger answers for one filtered view; the Codes page reads the same shape (by code). */
 export type LedgerReport = {
   from: string;
   to: string;
@@ -145,12 +168,21 @@ export type LedgerReport = {
     without_cost: number;
     received: number;
     remaining: number;
+    /** Only the unified read fills these; an older read leaves them out. */
+    manualUnits?: number;
+    importUnits?: number;
+    promoUnits?: number;
+    unconfirmedImportUnits?: number;
   };
   companies: LedgerCompany[];
   by_company: LedgerByCompany[];
   invoices: LedgerInvoice[];
   rows: LedgerRow[];
   truncated: boolean;
+  /** Imported code rows kept apart from a plain view's totals; empty on a code view. */
+  promoRows?: UnifiedPromoRow[];
+  /** The discount for the code asked for, when a code is asked for; otherwise null. */
+  codeDiscount?: number | null;
 };
 
 /** Everything the Overview reads in one go; a part that failed is null and says so on the screen. */

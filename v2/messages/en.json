@@ -654,7 +654,8 @@
         "directLink": "Open in Direct",
         "remove": "Remove",
         "removeTitle": "Remove this use?",
-        "removed": "Use removed"
+        "removed": "Use removed",
+        "viewInFinance": "View in Finance"
       },
       "addUse": {
         "invoiceNumber": "Invoice number",
@@ -2663,12 +2664,22 @@
         "no_invoice_yet": "No invoice yet",
         "monthly_fee": "Fee on monthly invoice",
         "cost_pending": "Cost pending",
-        "waiting_for_issuing": "Waiting for issuing"
+        "waiting_for_issuing": "Waiting for issuing",
+        "missing_transaction": "Missing transaction",
+        "missing_invoice": "Missing invoice"
       },
       "empty": "Nothing fully paid matches these filters.",
       "truncated": "Showing the newest 1000 rows; the totals cover everything.",
       "failed": "The ledger",
-      "noCost": "—"
+      "noCost": "—",
+      "source": "Source",
+      "sourceManual": "Recorded here",
+      "sourceImport": "Imported",
+      "promoTitle": "Discount-code rows",
+      "promoNote": "These rows carry a discount code, so they sit apart from a company’s own totals and are never mixed into them.",
+      "unconfirmed": "Not fully paid imports: {count}",
+      "codeDiscount": "Total discount for this code",
+      "discount": "Discount"
     },
     "new": {
       "title": "New invoice",
