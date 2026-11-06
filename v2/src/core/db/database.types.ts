@@ -316,13 +316,13 @@ export type Database = {
       finance_tenders: { Args: { p_partner?: string }; Returns: Json };
       finance_unified_ledger: {
         Args: {
-          p_from: string;
-          p_to: string;
-          p_partner?: string;
           p_client_id?: string;
-          p_kind?: string;
           p_code?: string;
+          p_from: string;
+          p_kind?: string;
+          p_partner?: string;
           p_project?: string;
+          p_to: string;
         };
         Returns: Json;
       };
