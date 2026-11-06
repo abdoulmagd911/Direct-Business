@@ -97,12 +97,22 @@ export default defineCheck({
     // 20261104140000_finance_ledger_filter_fix.sql never applied to any database
     // (production is gated on green database-from-zero jobs, which never went
     // green because of its syntax error), so correcting its two FILTER lines
-    // in place diverges nothing that already ran. This exception covers these
-    // three files only; every other migration edit is still refused below.
+    // in place diverges nothing that already ran.
+    // ONE-TIME EXCEPTION (6 Nov 2026, under the owner's finalise rule):
+    // migration 20261104150000_finance_unified_ledger.sql likewise never
+    // applied to any database (its syntax error — a schema-qualified array
+    // constructor, `pg_catalog.array[`, which Postgres reads as a subscript —
+    // kept every database-from-zero job red), so correcting that one token in
+    // place diverges nothing that already ran. Its timestamp stays
+    // 20261104150000: it sorts before 20261105010000, but the unified ledger
+    // does not depend on that migration, so apply order is safe. These
+    // exceptions cover the files listed below only; every other migration
+    // edit is still refused below.
     const forwardOnlyExceptions = new Set([
       '20261104100000_finance_ledger_filters.sql',
       '20261104140000_finance_ledger_filter_fix.sql',
       '20261104120000_codes_page.sql',
+      '20261104150000_finance_unified_ledger.sql',
     ]);
     // Migrations at the merge base that changed or went away (working tree included).
     const changed = ctx

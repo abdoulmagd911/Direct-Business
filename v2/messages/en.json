@@ -2676,7 +2676,7 @@
       "sourceManual": "Recorded here",
       "sourceImport": "Imported",
       "promoTitle": "Discount-code rows",
-      "promoNote": "These rows carry a discount code, so they sit apart from a company’s own totals and are never mixed into them.",
+      "promoNote": "These rows carry a discount code, so they sit apart from a partner's own Revenue · Cost · Profit and are never mixed into them.",
       "unconfirmed": "Not fully paid imports: {count}",
       "codeDiscount": "Total discount for this code",
       "discount": "Discount"

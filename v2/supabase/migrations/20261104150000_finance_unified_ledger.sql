@@ -104,7 +104,7 @@ begin
              case when r.kind = 'transaction' then 'transaction'
                   when r.transaction_ref is not null then 'transaction'
                   else 'standalone' end as mapped_kind,
-             (select pg_catalog.array_agg(f) from pg_catalog.unnest(pg_catalog.array[
+             (select pg_catalog.array_agg(f) from pg_catalog.unnest(array[
                 case when r.missing_transaction then 'missing_transaction' end,
                 case when r.missing_invoice then 'missing_invoice' end,
                 case when r.cost_pending then 'cost_pending' end,
