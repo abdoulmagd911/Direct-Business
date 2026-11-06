@@ -1,0 +1,17 @@
+-- Fix21 (6 Nov 2026): the company Finance tab failed live with Postgres 57014 statement timeout
+-- on every call, while the main Finance page loaded. The tab renders from partner.company_summary.
+--
+-- Root cause, proven with auto_explain on a from-zero build: the function's RETURN query costs
+-- 143,848 — above the JIT threshold (jit_above_cost 100,000) — so Postgres JIT-compiled its
+-- expressions on every call: 3,698 functions, 5,376 ms locally (Emission alone 4,572 ms). The
+-- actual execution is ~25 ms; the time was all JIT compilation. On the Nano instance that
+-- compilation runs far longer, and concurrent calls pile up past the 58 s statement timeout.
+-- The gate (partner.require_level, ~7 ms), the finance level check (~0.2 ms) and the four
+-- subqueries (~260 ms together) are all fast; only the JIT step is slow. The unified ledger and
+-- the ledger do not have this problem (their costs stay below the threshold).
+--
+-- Fix: JIT off for this function only. Nothing else changes — no body, signature, grant or type
+-- change. The call drops from ~4-6 s to ~300 ms locally (planning the large query dominates
+-- what is left), far inside the timeout. Forward-only (V103): a new migration, the applied
+-- company_summary migrations are never edited.
+alter function partner.company_summary(uuid) set jit = off;
