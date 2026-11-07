@@ -34,8 +34,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/weekly-review/screens/WeeklyReview.tsx',
-        find: 'if (weekIsEmpty(answer))',
-        replace: 'if (weekIsEmpty(answer) && false)',
+        find: 'if (weekIsEmpty(answer) && unloggedTotal === 0)',
+        replace: 'if (weekIsEmpty(answer) && unloggedTotal === 0 && false)',
       },
     ],
   },

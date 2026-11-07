@@ -114,7 +114,9 @@ export type Database = {
       auth_user_of: { Args: { p_email: string }; Returns: string };
       backfill_achievement_keys_held: { Args: { p_keys: string[] }; Returns: Json };
       backfill_achievements: { Args: { p_request: Json }; Returns: Json };
+      backfill_confirm: { Args: { p_achievement_id: string; p_task_id: string }; Returns: Json };
       backfill_keys_held: { Args: { p_keys: string[] }; Returns: Json };
+      backfill_proposals: { Args: Record<PropertyKey, never>; Returns: Json };
       backfill_tasks: { Args: { p_request: Json }; Returns: Json };
       campaign_code_add: {
         Args: {
@@ -615,6 +617,7 @@ export type Database = {
       task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_nudge_dismiss: { Args: { p_dismissed: boolean; p_id: string }; Returns: Json };
+      task_nudge_later: { Args: { p_id: string }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       task_star: { Args: { p_id: string; p_starred: boolean }; Returns: Json };
@@ -668,6 +671,7 @@ export type Database = {
       views: { Args: { p_page: string }; Returns: Json };
       views_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       weekly_review: { Args: { p_day?: string }; Returns: Json };
+      weekly_unlogged: { Args: { p_show_routine?: boolean }; Returns: Json };
       wrap_up: { Args: { p_items: Json }; Returns: Json };
     };
     Enums: {

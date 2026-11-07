@@ -46,6 +46,8 @@ export type MyDayData = {
   asks: OpenAsks | null;
   /** The tasks flagged as needing help and addressed to me (`api.escalated_tasks`); null when it could not be read. */
   escalated: TaskRow[] | null;
+  /** My closed tasks with no achievement logged (Phase 6): null when the read failed, so the door shows no badge. */
+  unlogged: number | null;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -275,7 +277,7 @@ export function MyDay({ data }: { data: MyDayData }) {
           due={data.due}
         />
       ) : null}
-      {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
+      {scope === 'me' ? <WeekDoor day={answer.day} unloggedCount={data.unlogged} /> : null}
       {/* Phase 5: my starred tasks, from the Today list — the star already carries undated tasks there. */}
       {scope === 'me' ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-starred>

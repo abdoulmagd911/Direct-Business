@@ -1071,7 +1071,22 @@
       "note": "Note",
       "idea": "Idea",
       "private": "Only me",
-      "reviewDay": "Review day"
+      "reviewDay": "Review day",
+      "nudge": {
+        "title": "Done this week — not yet logged as an achievement",
+        "count": "{count, plural, one {# task still to log} other {# tasks still to log}}",
+        "routineHidden": "Routine tasks are hidden by default",
+        "showRoutine": "Show routine tasks",
+        "hideRoutine": "Hide routine tasks",
+        "log": "Log achievement",
+        "notAchievement": "Not an achievement",
+        "later": "Later",
+        "laterDone": "Put off until next Thursday",
+        "empty": "Everything this week is logged.",
+        "moreDetails": "More details",
+        "result": "Result",
+        "number": "Number"
+      }
     }
   },
   "entity": {
@@ -1279,6 +1294,9 @@
     "notify": {
       "kinds_enabled": "Notifications sent"
     },
+    "nudge": {
+      "weekly_time": "Weekly review nudge time"
+    },
     "partner": {
       "id_format": "Partner number format",
       "name_stop_words": "Words left out when matching names",
@@ -1447,7 +1465,8 @@
       "record.restored": "Record restored",
       "list.removed": "List entry removed",
       "list.retired": "List entry archived",
-      "tender.signed": "Contract signed, from tender {number}"
+      "tender.signed": "Contract signed, from tender {number}",
+      "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}"
     },
     "signIn": {
       "at": "When",
@@ -1592,7 +1611,8 @@
       "task_commented": "A comment on a task of mine",
       "commented": "A comment on a record of mine",
       "asked": "A question asked of me",
-      "escalation_acknowledged": "A need for help I flagged was acknowledged"
+      "escalation_acknowledged": "A need for help I flagged was acknowledged",
+      "alert_weekly_unlogged": "Done tasks not yet logged as achievements"
     },
     "devices": {
       "label": "Device",
@@ -1926,6 +1946,9 @@
       "not_open": "This question is already answered",
       "not_asked": "Only the person asked can answer this question"
     },
+    "backfill": {
+      "no_match": "That task and achievement no longer match"
+    },
     "overview": {
       "period_invalid": "The period ends before it starts",
       "unknown_period": "Choose month, quarter or year to date, or your own dates"
@@ -2250,6 +2273,7 @@
       "note_mention": "{actor} mentioned you in a note",
       "note_shared": "{actor} shared a note with you: {record}",
       "alert_due_tomorrow": "{record} is coming due",
+      "alert_weekly_unlogged": "Done tasks are waiting to be logged as achievements",
       "due_overdue": "{record} is overdue",
       "due_today": "{record} is due today",
       "alert_overdue": "{record} is overdue",

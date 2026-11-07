@@ -29,6 +29,7 @@ export const NOTIFICATION_KINDS = [
   'commented',
   'asked',
   'escalation_acknowledged',
+  'alert_weekly_unlogged',
 ] as const;
 
 /** The seven a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
@@ -259,6 +260,13 @@ export default defineModule({
       label: 'setting.notify.kinds_enabled',
       schema: z.array(z.enum(NOTIFICATION_KINDS)),
       default: [...NOTIFICATION_KINDS],
+    },
+    {
+      key: 'nudge.weekly_time',
+      group: 'settings.app',
+      label: 'setting.nudge.weekly_time',
+      schema: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      default: '11:00',
     },
   ],
   capabilities: [

@@ -9,10 +9,13 @@ import { isReviewDay } from '../logic';
 /**
  * The door to the weekly review on My day's Me tab (QA-557): one whole-row link, no menu entry (V633). On Thursday in
  * Riyadh it is marked as review day — an outline and a chip, never a second filled button beside Wrap up (V630).
+ * Phase 6: the badge counts my closed tasks with no achievement logged from them, and stays until the count reaches
+ * zero (not Thursday-only) — the bell and this badge are the only prompts; the badge is the single door in.
  */
-export function WeekDoor({ day }: { day: string }) {
+export function WeekDoor({ day, unloggedCount }: { day: string; unloggedCount?: number | null }) {
   const t = useTranslations();
   const thursday = isReviewDay(day);
+  const count = unloggedCount ?? 0;
   return (
     <Link
       href="/my-day/week"
@@ -25,6 +28,15 @@ export function WeekDoor({ day }: { day: string }) {
     >
       <CalendarCheck className="size-5 shrink-0 text-muted" aria-hidden="true" />
       <span className="min-w-0 flex-1 font-medium">{t('pages.weeklyReview.title')}</span>
+      {count > 0 ? (
+        <span
+          className="rounded-full bg-primary px-2 py-0.5 font-data text-xs font-semibold text-on-primary"
+          data-week-door-unlogged={count}
+          aria-label={t('pages.weeklyReview.nudge.count', { count })}
+        >
+          {count}
+        </span>
+      ) : null}
       {thursday ? <StatusChip tone="info">{t('pages.weeklyReview.reviewDay')}</StatusChip> : null}
       <ChevronRight className="size-4 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
     </Link>

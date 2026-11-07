@@ -58,9 +58,17 @@ beforeEach(() => {
 });
 
 describe('a list page asks for all its data in one round after me', () => {
-  it('My day: the day, the organisation, the statuses, the due reminders, the open questions and the need-help tasks together, the organisation read once', async () => {
+  it('My day: the day, the organisation, the statuses, the due reminders, the open questions, the need-help tasks and the unlogged closed tasks for the review door together, the organisation read once', async () => {
     const round = await oneRound(() => MyDayPage({ searchParams: Promise.resolve({}) }));
-    expect(round.sort()).toEqual(['escalated_tasks', 'list', 'my_day', 'open_asks', 'org', 'reminders_due']);
+    expect(round.sort()).toEqual([
+      'escalated_tasks',
+      'list',
+      'my_day',
+      'open_asks',
+      'org',
+      'reminders_due',
+      'weekly_unlogged',
+    ]);
   });
   it('Tasks: the list, the statuses, the organisation, the clients and the projects together', async () => {
     const round = await oneRound(() => TasksPage({ searchParams: Promise.resolve({}) }));

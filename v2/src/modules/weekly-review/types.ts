@@ -36,6 +36,25 @@ export type ReviewNote = {
 
 export type ReviewList<T> = { total: number; rows: T[] };
 
+export type UnloggedTask = {
+  task_id: string;
+  task_number: string;
+  title: string;
+  closed_at: string;
+  owner_id: string;
+  /** The Riyadh day the task was closed. */
+  day: string;
+  /** Closed in the week this review shows. */
+  this_week: boolean;
+  partner_id: string | null;
+  partner_name_en: string | null;
+  partner_name_ar: string | null;
+  /** Nudge-eligible by default is false: linked to a partner, or top priority. */
+  routine: boolean;
+};
+
+export type UnloggedAnswer = { total: number; rows: UnloggedTask[] };
+
 export type WeeklyReviewAnswer = {
   today: string;
   week: { from: string; to: string };

@@ -485,7 +485,8 @@
             "task_commented",
             "commented",
             "asked",
-            "escalation_acknowledged"
+            "escalation_acknowledged",
+            "alert_weekly_unlogged"
           ]
         }
       },
@@ -515,8 +516,21 @@
         "task_commented",
         "commented",
         "asked",
-        "escalation_acknowledged"
+        "escalation_acknowledged",
+        "alert_weekly_unlogged"
       ],
+      "effective_dated": false
+    },
+    {
+      "key": "nudge.weekly_time",
+      "group": "settings.app",
+      "label": "setting.nudge.weekly_time",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+      },
+      "default": "11:00",
       "effective_dated": false
     },
     {
