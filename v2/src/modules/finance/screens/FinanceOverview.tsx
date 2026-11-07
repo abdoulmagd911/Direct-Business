@@ -3,7 +3,7 @@ import { ChevronDown, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, Fragment } from 'react';
 import { refetchAll } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
@@ -31,7 +31,8 @@ const monthName = (m: string, locale: Locale) =>
  * The Finance Overview, as drawn (GC-5): the period's three tiles each with the Provisional part directly under the
  * figure (V611), one line of what is not yet invoiced (V424), the commissions sentence (V612), Needs attention, the
  * months newest first with their close and what changed after it (V620), and income by service. A part that failed to
- * read says which one, with Try again — never a 0 (M27, M53).
+ * read says which one, with Try again — never a 0 (M27, M53). A month with cost-provisional units carries a
+ * Provisional row under it, their revenue and profit apart and their cost empty, never 0 (rulebook §16).
  */
 export function FinanceOverview({
   ask,
@@ -260,7 +261,8 @@ function FigureTile({
   kind: string;
   label: string;
   value: number;
-  provisional: number;
+  /** Empty (null) while the Provisional part has no figure — shown empty, never as 0 (rulebook §16). */
+  provisional: number | null;
   units: number;
 }) {
   const t = useTranslations();
@@ -284,7 +286,9 @@ function FigureTile({
       ) : null}
       <span className="text-sm" data-finance-provisional>
         <span className="font-medium text-warning">{t('finance.provisional')}</span>{' '}
-        <b className="font-data tabular">{formatMoney(provisional, locale)}</b>
+        <b className="font-data tabular">
+          {provisional === null ? t('finance.months.none') : formatMoney(provisional, locale)}
+        </b>
         <span className="text-muted"> · {t('finance.provisionalUnits', { count: units })}</span>
       </span>
     </div>
@@ -348,7 +352,10 @@ function Months({ rows, period, ask, full }: { rows: MonthRow[]; period: Period;
         </div>
         <ul className="flex flex-col">
           {rows.map((r) => (
-            <MonthItem key={r.month} row={r} full={full} onClose={() => setClosing(r.month)} />
+            <Fragment key={r.month}>
+              <MonthItem row={r} full={full} onClose={() => setClosing(r.month)} />
+              {r.figures && r.figures.provisional_units > 0 ? <ProvisionalMonthItem row={r} /> : null}
+            </Fragment>
           ))}
         </ul>
         <div
@@ -454,6 +461,46 @@ function Figure({
       {stacked ? <span className="text-xs text-muted">{label}</span> : null}
       <span className="font-data text-sm tabular">{value}</span>
     </span>
+  );
+}
+
+/**
+ * The Provisional row under a month with cost-provisional units: their revenue and profit apart, the cost empty,
+ * never 0 (rulebook §16). The month's own row keeps the clean totals, so the two rows never double-count.
+ */
+function ProvisionalMonthItem({ row }: { row: MonthRow }) {
+  const t = useTranslations();
+  const locale = useLocale() as Locale;
+  const f = row.figures;
+  if (!f) return null;
+  const none = t('finance.months.none');
+  return (
+    <li
+      className="flex flex-col gap-2 border-b border-border bg-surface px-4 py-3 last:border-b-0 max-sm:pe-20"
+      data-finance-month-provisional={row.month}
+    >
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 sm:grid sm:grid-cols-[1.1fr_1fr_1fr_1fr_1fr_1.5fr] sm:gap-3">
+        <span className="font-medium text-warning max-sm:order-1">{t('finance.months.provisionalRow')}</span>
+        <Figure
+          className="max-sm:hidden"
+          label={t('finance.months.revenue')}
+          value={formatMoney(f.provisional_revenue, locale)}
+        />
+        <Figure className="max-sm:hidden" label={t('finance.months.cost')} value={none} />
+        <Figure
+          className="max-sm:hidden"
+          label={t('finance.months.profit')}
+          value={formatMoney(f.provisional_profit, locale)}
+        />
+        <Figure className="max-sm:hidden" label={t('finance.months.provisional')} value={none} />
+        <span aria-hidden="true" className="max-sm:hidden" />
+        <div className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card>
+          <Figure label={t('finance.months.revenue')} value={formatMoney(f.provisional_revenue, locale)} stacked />
+          <Figure label={t('finance.months.profit')} value={formatMoney(f.provisional_profit, locale)} stacked />
+          <Figure label={t('finance.provisional')} value={none} stacked />
+        </div>
+      </div>
+    </li>
   );
 }
 

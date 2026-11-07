@@ -61,8 +61,8 @@ select test.eq((select month_on from finance.money_row where ref = 'TX-1'), curr
 
 -- the hand count of the fake file, by month
 select test.eq((select to_jsonb(x) - 'month_on' from finance.money_month x where x.month_on = current_setting('t.m')::date),
-  '{"units": 4, "revenue": 2500.00, "cost": 950.00, "profit": 1550.00, "provisional_units": 2, "provisional_revenue": 1300.00,
+  '{"units": 4, "revenue": 2500.00, "cost": 650.00, "profit": 550.00, "provisional_units": 2, "provisional_revenue": 1300.00,
     "provisional_profit": 1000.00, "losses": 0}'::jsonb,
-  'TX-1, TX-2, TX-3 and TX-6: 2,500 revenue, 950 cost, 1,550 profit — the Provisional 1,300 and 1,000 beside it');
+  'TX-1, TX-2, TX-3 and TX-6: 2,500 revenue, 650 cost, 550 profit — cost and profit over the costed units only (TX-3 is provisional, so its approved 300 counts in neither), the Provisional 1,300 and 1,000 beside it (rulebook §16)');
 select test.eq((select revenue from finance.money_month where month_on = (current_setting('t.m')::date + interval '1 month')::date),
   200.00, 'SA-5 in the next month');

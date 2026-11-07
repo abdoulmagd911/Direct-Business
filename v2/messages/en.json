@@ -2767,6 +2767,7 @@
       "cost": "Cost",
       "profit": "Profit",
       "provisional": "Provisional profit",
+      "provisionalRow": "Provisional — cost still to come",
       "open": "Open",
       "notClosed": "Not closed",
       "closed": "Closed {date}",

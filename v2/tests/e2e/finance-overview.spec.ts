@@ -102,7 +102,8 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await hydrated(page);
   await blocksSettled(page);
 
-  // only paid units count: 1,000 + 500 revenue, 600 cost, 900 profit; the unit with no approved expense is Provisional
+  // only paid units count: 1,000 + 500 revenue, 600 cost, 400 profit — the cost-provisional unit counts in revenue
+  // only, never in cost or profit (rulebook §16); the unit with no approved expense is Provisional
   await expect(tile(page, 'revenue').locator('[data-finance-figure]'), 'revenue is its short form').toContainText(
     '1.5K',
   );
@@ -111,7 +112,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
     'a short form prints its exact figure',
   ).toContainText('1,500 SAR');
   await expect(tile(page, 'cost').locator('[data-finance-figure]')).toContainText('600');
-  await expect(tile(page, 'profit').locator('[data-finance-figure]')).toContainText('900');
+  await expect(tile(page, 'profit').locator('[data-finance-figure]')).toContainText('400');
   await expect(
     tile(page, 'revenue').locator('[data-finance-provisional]'),
     'the Provisional part sits in the tile',

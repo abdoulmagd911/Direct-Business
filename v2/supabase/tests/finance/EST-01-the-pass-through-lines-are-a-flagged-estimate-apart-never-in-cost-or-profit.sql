@@ -49,8 +49,8 @@ select test.eq((select jsonb_object_agg(i.ref, jsonb_build_object('estimate', c.
 select test.as_person(current_setting('t.head')::uuid);
 select test.eq((api.finance_period(current_setting('t.d')::date, current_setting('t.d')::date)
                 - 'from' - 'to' - 'months' - 'provisional' - 'losses' - 'units'),
-  '{"revenue": 780, "cost": 0, "profit": 780, "estimate": 380, "estimated_units": 2}'::jsonb,
-  'the estimate is apart: cost stays 0 and profit never uses it (V419)');
+  '{"revenue": 780, "cost": 0, "profit": 0, "estimate": 380, "estimated_units": 2}'::jsonb,
+  'the estimate is apart: cost stays 0 and profit never uses it (V419); every unit here is provisional, so the profit total is 0 with the provisional profit apart (rulebook §16)');
 select test.eq((select jsonb_object_agg(ref, estimate) from api.finance_period_units(current_setting('t.d')::date, current_setting('t.d')::date)
                 where ref like 'TX-91%'),
   '{"TX-9101": 300, "TX-9102": null, "TX-9103": null, "TX-9104": 80}'::jsonb, 'each unit shows its estimate flagged, or none');
