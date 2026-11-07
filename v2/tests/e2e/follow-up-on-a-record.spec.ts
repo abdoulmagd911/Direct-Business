@@ -162,16 +162,21 @@ for (const w of WIDTHS) {
       'Need help is a labelled button (E)',
     ).toBeVisible();
     const phone = w.width < 640;
-    // Remind me is behind the ⋯ on both widths now (Phase 0.1): on a phone the menu holds Edit and Remind me,
-    // on a desk it holds Remind me (Edit is a visible button there, its menu item is phone-only).
+    // Remind me is behind the ⋯ on both widths now (Phase 0.1): on a phone the menu holds Edit, Remind me
+    // and Delegate, on a desk it holds Remind me and Delegate (Edit is a visible button there, its menu item
+    // is phone-only; Delegate is in the shared menu for whoever may give work, Phase 0).
     await page.locator('[data-task-more]').click();
     if (phone) {
-      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit and Remind me').toHaveText(['Edit', 'Remind me']);
+      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit, Remind me and Delegate').toHaveText([
+        'Edit',
+        'Remind me',
+        'Delegate',
+      ]);
     } else {
-      await expect(
-        page.getByRole('menuitem', { name: 'Remind me', exact: true }),
-        'Remind me is behind the ⋯ on a desk',
-      ).toBeVisible();
+      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Remind me and Delegate').toHaveText([
+        'Remind me',
+        'Delegate',
+      ]);
     }
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
