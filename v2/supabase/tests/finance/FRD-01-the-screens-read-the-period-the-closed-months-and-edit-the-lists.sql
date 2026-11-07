@@ -26,7 +26,7 @@ select test.eq((select api.finance_period(current_setting('t.m')::date, current_
                        - 'from' - 'to' - 'months'),
   '{"units": 2, "revenue": 700.00, "cost": 100.00, "profit": 300.00, "losses": 0, "estimate": null, "estimated_units": 0,
     "provisional": {"units": 1, "revenue": 300.00, "cost": null, "profit": 300.00}}'::jsonb,
-  'the period counts every paid unit in revenue, the Provisional part beside it, and cost and profit over the costed unit only — the provisional unit''s cost is empty, never 0 (rulebook §16)');
+  'the period counts every paid unit, the Provisional part beside it — cost and profit over the costed unit only, the provisional unit''s cost is empty, never 0 (rulebook §16)');
 select test.eq((select jsonb_agg(jsonb_build_object('ref', ref, 'counted', counted, 'cost_is', cost_is) order by ref)
                 from api.finance_period_units(current_setting('t.m')::date, current_setting('t.d')::date)),
   '[{"ref": "TX-91", "counted": true, "cost_is": "final"}, {"ref": "TX-92", "counted": true, "cost_is": "provisional"},
