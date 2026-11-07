@@ -51,7 +51,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
   // the record's tab row says its tabs in words — never the catalogue's key (the side-tabs label once took the key)
   const tabs = page.locator('main [data-tabs]');
-  for (const label of ['Overview', 'Activity', 'Related'])
+  for (const label of ['Overview', 'Discussion', 'Codes', 'Finance', 'History', 'Related'])
     await expect(tabs.getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
   const figures = page.locator('[data-key-figures]');
   for (const label of ['Last activity', 'Next step', 'Contracts', 'Contacts', 'Files']) {
@@ -91,7 +91,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await expect(toast(page, 'Call logged')).toBeVisible();
   await page
     .locator('main [data-tabs]')
-    .getByRole('link', { name: /^Activity/ })
+    .getByRole('link', { name: /^History/ })
     .click();
   await expect(page.locator('[data-partner-notes]')).toContainText(`Called about ${t}`);
 
