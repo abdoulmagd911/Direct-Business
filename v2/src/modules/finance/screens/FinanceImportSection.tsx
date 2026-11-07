@@ -1,9 +1,11 @@
 'use client';
 import { useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { refetchAll } from '@/core/commands/refetch';
+import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
+import { downloadRecordFile, sha256HexFile } from '@/ui/record/FilesSection';
 import {
   buildPreview,
   detectSignature,
@@ -48,9 +50,17 @@ const OUTCOME_KEY = {
  */
 export function FinanceImportSection() {
   const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [partner, setPartner] = useState<PartnerRef | null>(null);
   const [fileName, setFileName] = useState('');
+  // The original file, kept from pick time: the import only reads its text, so without this the source file could
+  // never be stored or re-downloaded afterwards.
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [batchId, setBatchId] = useState<string | null>(null);
+  const [storedFile, setStoredFile] = useState<{ id: string; name: string } | null>(null);
+  const [sourceFileFailed, setSourceFileFailed] = useState(false);
+  const [storingFile, setStoringFile] = useState(false);
   const [stage, setStage] = useState<Stage>('pick');
   const [detection, setDetection] = useState<Detection | null>(null);
   const [signature, setSignature] = useState<Signature | null>(null);
@@ -72,6 +82,11 @@ export function FinanceImportSection() {
   const resetFile = () => {
     if (fileRef.current) fileRef.current.value = '';
     setFileName('');
+    setSourceFile(null);
+    setBatchId(null);
+    setStoredFile(null);
+    setSourceFileFailed(false);
+    setStoringFile(false);
     setDetection(null);
     setSignature(null);
     setEmptyFile(false);
@@ -116,10 +131,48 @@ export function FinanceImportSection() {
     }
   };
 
+  // Store the import's source file against its batch (kind import_file, restricted): register, store, finish —
+  // the same doors the record Files sections use. A failure here never blocks the import itself; the confirmed
+  // view says the file was not stored and offers a retry from the file still held in state.
+  const storeSourceFile = async (batch: string, file: File) => {
+    setStoringFile(true);
+    setSourceFileFailed(false);
+    try {
+      const begun = (await rpc('file_begin', {
+        p_entity: 'import_batch',
+        p_id: batch,
+        p_kind: 'import_file',
+        p_purpose: 'attachment',
+        p_original_name: file.name,
+        p_size: file.size,
+        p_mime: file.type || 'text/csv',
+        p_sensitivity: 'restricted',
+      })) as unknown as { id: string; bucket: string; path: string };
+      const stored = await browserDb().storage.from(begun.bucket).upload(begun.path, file);
+      if (stored.error) throw stored.error;
+      await rpc('file_finish', { p_id: begun.id, p_sha256: await sha256HexFile(file) });
+      setStoredFile({ id: begun.id, name: file.name });
+    } catch {
+      setSourceFileFailed(true);
+    } finally {
+      setStoringFile(false);
+    }
+  };
+
+  const downloadSourceFile = async () => {
+    if (!storedFile) return;
+    try {
+      await downloadRecordFile(storedFile.id, locale);
+    } catch {
+      toast.failed(t('record.files.downloadFailed'));
+    }
+  };
+
   const onFile = async (file: File | null) => {
     if (!file || !partner) return;
     resetFile();
     setFileName(file.name);
+    setSourceFile(file);
     const text = await file.text();
     const all = parseCsv(text);
     const header = all[0] ?? [];
@@ -174,6 +227,8 @@ export function FinanceImportSection() {
       })) as { id?: string } | null;
       const batchId = batch?.id;
       if (!batchId) throw new Error('import_batch_start answered without a batch id');
+      setBatchId(batchId);
+      if (sourceFile) await storeSourceFile(batchId, sourceFile);
       const payload = toApplyPayload(preview, records, decisions);
       const done = (await rpc('import_apply', {
         p_batch: batchId,
@@ -403,6 +458,29 @@ export function FinanceImportSection() {
         <div className="flex flex-col gap-3" data-import-confirmed>
           <p className="text-sm font-medium">{t('import.confirmed')}</p>
           {counts(confirmed)}
+          {storedFile ? (
+            <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file>
+              <span className="text-muted">{t('import.sourceFile')}: </span>
+              <span className="font-data">{storedFile.name}</span>
+              <Button size="xs" onClick={() => void downloadSourceFile()} data-import-source-download>
+                {t('record.files.download')}
+              </Button>
+            </p>
+          ) : sourceFileFailed ? (
+            <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file-failed role="alert">
+              <span className="text-danger">{t('import.sourceFileFailed')}</span>
+              {batchId && sourceFile ? (
+                <Button
+                  size="xs"
+                  loading={storingFile}
+                  onClick={() => void storeSourceFile(batchId, sourceFile)}
+                  data-import-source-retry
+                >
+                  {t('common.tryAgain')}
+                </Button>
+              ) : null}
+            </p>
+          ) : null}
           <div>
             <Button variant="secondary" onClick={resetFile} data-import-start-over>
               {t('import.startOver')}

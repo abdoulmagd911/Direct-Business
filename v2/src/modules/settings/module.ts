@@ -26,6 +26,9 @@ export const NOTIFICATION_KINDS = [
   'alert_due_tomorrow',
   'alert_quiet_client',
   'task_commented',
+  'commented',
+  'asked',
+  'escalation_acknowledged',
 ] as const;
 
 /** The seven a work-tier person sees in My profile, and the only ones on for them from the start (V217, cut 6). */
@@ -112,6 +115,19 @@ export default defineModule({
       level: 'core.note_level',
       // What happened stays as it was logged: retiring an activity type or outcome leaves its notes alone (V161).
       history: true,
+    },
+    {
+      // A comment belongs to whatever record it is written on: seen and changed as it allows (Phase 2). Its page
+      // follows the parent record, so page is null; history is false — a comment is the discussion itself, not a
+      // change to log.
+      key: 'comment',
+      table: 'core.comment',
+      page: null,
+      label: 'entity.comment',
+      owners: 'core.comment_owners',
+      visible: 'core.comment_visible',
+      level: 'core.comment_level',
+      history: false,
     },
     {
       key: 'mention',

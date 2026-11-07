@@ -261,7 +261,7 @@ export function LogActivityDialog({
   );
 }
 
-/** A note on the record (V150): comments, updates and meeting notes, dated the day they happened. */
+/** A note on the record (V150): updates and meeting notes, dated the day they happened. Internal talk is not a note kind any more — it goes in the record's Discussion. */
 export function AddNoteDialog({
   open,
   onOpenChange,
@@ -275,7 +275,7 @@ export function AddNoteDialog({
 }) {
   const t = useTranslations();
   const words = useWords();
-  const [f, setF] = useState({ kind: 'comment', body: '', on: today() });
+  const [f, setF] = useState({ kind: 'update', body: '', on: today() });
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
@@ -292,7 +292,7 @@ export function AddNoteDialog({
       {
         after: () => {
           onOpenChange(false);
-          setF({ kind: 'comment', body: '', on: today() });
+          setF({ kind: 'update', body: '', on: today() });
           onDone();
         },
       },
@@ -328,7 +328,7 @@ export function AddNoteDialog({
               {...p}
               value={f.kind}
               onValueChange={(v) => setF({ ...f, kind: v })}
-              options={(['comment', 'update', 'meeting_note'] as const).map((k) => ({
+              options={(['update', 'meeting_note'] as const).map((k) => ({
                 value: k,
                 label: t(`partners.note.kinds.${k}`),
               }))}

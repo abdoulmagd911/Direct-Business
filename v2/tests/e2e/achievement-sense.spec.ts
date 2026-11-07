@@ -2,9 +2,10 @@
  * The Architect's small ask of 16 Oct on Achievements, at phone (375 px) and desk (1,440 px) width:
  * (1) Log achievement's Deal value takes digits, one decimal point and commas only — anything else says "Enter a number"
  * in place and does not save; (2) the Achievements page has one title, one All (the category filter reads "All
- * categories", the Mine / All switch keeps "All") and no breadcrumb that repeats the title; (3) after Done on a task, one
- * tap offers "Log as achievement", pre-filled with the task's title, that can be waved off — and nothing is offered on
- * Cancelled. Every value is made up.
+ * categories", the Mine / All switch keeps "All") and no breadcrumb that repeats the title; (3) after Done on a task, the
+ * persistent strip offers "Log as achievement", pre-filled with the task's title, that can be waved off with
+ * "Not an achievement" — and nothing is offered on Cancelled. (The offer moved from the Done toast to the strip in
+ * Phase 0/1 of the lifecycle gaps build; the toast keeps Undo only.) Every value is made up.
  * Sabotage: tests/sabotage/achievement-sense.mjs "deal-value-takes-any-text", "achievements-title-repeats",
  * "two-all-filters", "done-offers-nothing", "cancel-offers-the-achievement".
  */
@@ -56,9 +57,10 @@ async function memberWithTask(title: string): Promise<{ me: TestPerson; number: 
   await sql(`update core.person set team_id = $1 where id = $2`, [team!.id, me.id]);
   const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
   await sql(
-    `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by)
+    `insert into work.task (number, title, owner_id, team_id, department_id, status_id, priority_id, work_type, created_by)
      values ($1, $2, $3, $4, (select department_id from core.team where id = $4),
-             (select id from work.task_status where is_default and deleted_at is null), 'internal', $3)`,
+             (select id from work.task_status where is_default and deleted_at is null),
+             (select id from work.priority where key = 'high'), 'internal', $3)`,
     [number, title, me.id, team!.id],
   );
   return { me, number };
@@ -124,7 +126,7 @@ for (const [label, width, height] of WIDTHS) {
     ).toContainText('All categories');
   });
 
-  test(`${label}: Done offers Log as achievement beside Undo, pre-filled and dismissible; Cancelled offers nothing`, async ({
+  test(`${label}: Done shows the Log achievement strip beside the Undo toast, pre-filled and dismissible; Cancelled shows no strip`, async ({
     page,
   }) => {
     const title = `Made-up signed the supplier ${randomUUID().slice(0, 8)}`;
@@ -139,16 +141,21 @@ for (const [label, width, height] of WIDTHS) {
       await page.locator(`[data-move="${meaning}"]`).click();
     };
     const toast = page.locator('[data-sonner-toast][data-front="true"]');
-    const offer = toast.getByRole('button', { name: 'Log achievement' });
+    const strip = page.locator('[data-achievement-strip]');
+    const stripLog = strip.getByRole('button', { name: 'Log achievement' });
 
-    // Done: one toast with Undo and the offer, and a way to wave it off
+    // Done: the toast comes with Undo, and the strip offers the achievement
     await move('done');
     await expect(toast).toBeVisible();
     await expect(toast.getByRole('button', { name: 'Undo' }), 'Undo is still on the toast').toBeVisible();
-    await expect(offer, 'Done offers the achievement').toBeVisible();
-    await toast.hover();
-    await toast.locator('[data-close-button]').click();
-    await expect(toast, 'the offer can be waved off, well before it lapses').toHaveCount(0, { timeout: 1500 });
+    await expect(strip, 'Done shows the strip').toBeVisible();
+    await expect(stripLog, 'Done offers the achievement').toBeVisible();
+    // waving it off shows the dismissed line, with Undo to bring it back
+    await strip.getByRole('button', { name: 'Not an achievement' }).click();
+    await expect(page.locator('[data-achievement-strip-dismissed]'), 'the offer can be waved off').toBeVisible();
+    await expect(strip, 'the strip is gone once waved off').toHaveCount(0);
+    await page.locator('[data-strip-restore]').click();
+    await expect(strip, 'Undo brings the strip back').toBeVisible();
 
     // a second Done on a fresh task: taking the offer pre-fills the title
     const second = await memberWithTask(title);
@@ -159,14 +166,13 @@ for (const [label, width, height] of WIDTHS) {
     await page.goto(`/tasks/${second.number}`);
     await hydrated(page);
     await move('done');
-    await expect(offer).toBeVisible();
-    await toast.hover();
-    await offer.click();
+    await expect(stripLog).toBeVisible();
+    await stripLog.click();
     await expect(page).toHaveURL(/\/kpis\/achievements\/new\?title=/);
     await hydrated(page);
     await expect(page.getByLabel('What'), 'the task’s words start the title').toHaveValue(title);
 
-    // Cancelled: the toast comes, with Undo, and no offer
+    // Cancelled: the toast comes, with Undo, and no strip
     await page.context().clearCookies();
     await signIn(page, other.me.email, `/tasks/${other.number}`);
     await hydrated(page);
@@ -176,6 +182,6 @@ for (const [label, width, height] of WIDTHS) {
     await page.locator('[data-reason-save]').click();
     await expect(toast.getByRole('button', { name: 'Undo' }), 'the move was made').toBeVisible();
     // counted at once: waiting for something to go proves nothing about something that was never there
-    expect(await offer.count(), 'Cancelled offers nothing').toBe(0);
+    expect(await strip.count(), 'Cancelled offers nothing').toBe(0);
   });
 }

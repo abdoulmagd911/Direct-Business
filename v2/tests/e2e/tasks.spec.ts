@@ -403,52 +403,61 @@ for (const w of WIDTHS) {
   });
 }
 
-// ---- P5-2's second PR: Escalate on the task page (V401) and the team's load on Tasks › Team (V91)
+// ---- P5-2's second PR: Need help on the task page (V401) and the team's load on Tasks › Team (V91)
 for (const w of WIDTHS) {
-  test(`${w.name}: Escalate tells a colleague about a task, with a note (V401)`, async ({ browser }) => {
+  test(`${w.name}: Need help tells the task owner's manager about it, with a note (V401)`, async ({ browser }) => {
     const member = await memberWithTeam();
-    const colleague = await memberWithTeam();
+    const manager = await memberWithTeam();
     const tag = randomUUID().slice(0, 6);
-    const colleagueName = `Ab Escalate to ${tag}`;
-    await sql(`update core.person set full_name_en = $1 where id = $2`, [colleagueName, colleague.id]);
-    const number = await taskIn('commercial', member.id, `Made-up escalated ${tag}`);
+    const managerName = `Ab Need help ${tag}`;
+    await sql(`update core.person set full_name_en = $1 where id = $2`, [managerName, manager.id]);
+    // the colleague is the member's direct manager: Need help tells them, with no picker
+    await sql(`update core.person set manager_id = $1 where id = $2`, [manager.id, member.id]);
+    const number = await taskIn('commercial', member.id, `Made-up need help ${tag}`);
     const { ctx, page } = await signedIn(browser, member, w.width, w.height, `/tasks/${number}`);
 
-    // Escalate is a labelled button on the task's header (E, 26 Oct; it was in the ⋯ menu)
+    // Need help is a labelled button on the task's header (E, 26 Oct; it was in the ⋯ menu)
     await page.locator('[data-escalate-open]').click();
     const form = page.locator('form[data-escalate]');
     await expect(form).toBeVisible();
-    // a person and a note are both required
-    await form.locator('button[type="submit"]').click();
-    await expect(form.getByRole('alert')).toHaveText('Pick who to tell');
-    await form.getByRole('combobox', { name: 'Escalate to' }).click();
-    await page.getByRole('option', { name: colleagueName, exact: true }).click();
+    // the dialog names the manager who will be told; only the note is asked for — no picker
+    await expect(form).toContainText(`Your manager ${managerName} will be told`);
+    await expect(form.getByRole('combobox')).toHaveCount(0);
+    // a note is required
     await form.locator('button[type="submit"]').click();
     await expect(form.getByRole('alert')).toHaveText('Write what they need to know');
     await form.locator('textarea[name="note"]').fill('Made-up: the client has not answered for a week');
-    await noSidewaysScroll(page, `${w.name} escalate`);
-    await page.screenshot({ path: shot(`tasks-escalate-${w.name}`), fullPage: true });
+    await noSidewaysScroll(page, `${w.name} need help`);
+    await page.screenshot({ path: shot(`tasks-need-help-${w.name}`), fullPage: true });
     await form.locator('button[type="submit"]').click();
-    await expect(page.locator('[data-sonner-toast]', { hasText: `Escalated to ${colleagueName}` })).toBeVisible();
+    await expect(
+      page.locator('[data-sonner-toast]', { hasText: `Your manager ${managerName} has been told` }),
+    ).toBeVisible();
 
-    // the colleague is told, follows the task, and the note is on its timeline
+    // the manager is told, follows the task, and the note is on its timeline — and the task is flagged
     const [told] = await sql<{ n: number }>(
       `select count(*)::int as n from notify.notification n join work.task t on t.id = n.entity_id
        where n.person_id = $1 and n.kind = 'escalated' and t.number = $2`,
-      [colleague.id, number],
+      [manager.id, number],
     );
-    expect(told!.n, 'the colleague is told').toBe(1);
+    expect(told!.n, 'the manager is told').toBe(1);
     const [follows] = await sql<{ n: number }>(
       `select count(*)::int as n from notify.follow f join work.task t on t.id = f.entity_id
        where f.person_id = $1 and t.number = $2`,
-      [colleague.id, number],
+      [manager.id, number],
     );
-    expect(follows!.n, 'the colleague follows the task').toBe(1);
+    expect(follows!.n, 'the manager follows the task').toBe(1);
     const [note] = await sql<{ body: string }>(
       `select c.body from core.note c join work.task t on t.id = c.entity_id where c.kind = 'escalation' and t.number = $1`,
       [number],
     );
     expect(note?.body).toBe('Made-up: the client has not answered for a week');
+    const [flag] = await sql<{ escalated: boolean; escalated_to: string }>(
+      `select escalated, escalated_to from work.task where number = $1`,
+      [number],
+    );
+    expect(flag!.escalated, 'the task is flagged').toBe(true);
+    expect(flag!.escalated_to, 'flagged to the manager').toBe(manager.id);
     await ctx.close();
   });
 

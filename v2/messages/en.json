@@ -258,6 +258,17 @@
         "reminders": "Reminders",
         "since": "What's new"
       },
+      "waiting": {
+        "onMe": "Waiting on me",
+        "onOthers": "Waiting on others",
+        "needHelp": "Need help",
+        "questions": "Open questions",
+        "askedBy": "Asked by {name}",
+        "askedTo": "Asked {name}",
+        "emptyQuestions": "No open questions.",
+        "emptyNeedHelp": "Nothing needs help right now."
+      },
+      "starred": "Starred",
       "more": "Show all",
       "fewer": "Show fewer",
       "empty": {
@@ -527,6 +538,8 @@
         "overview": "Overview",
         "activity": "Activity",
         "related": "Related",
+        "discussion": "Discussion",
+        "history": "History",
         "evidence": "Evidence"
       },
       "actions": {
@@ -706,7 +719,9 @@
         "helping": "You are not helping on any task",
         "team": "Your team has no tasks yet",
         "my_work": "No tasks yet.",
-        "past": "No past work yet. Add it from a report above."
+        "past": "No past work yet. Add it from a report above.",
+        "starred": "No starred tasks yet.",
+        "escalated": "Nothing needs help right now."
       },
       "noNotes": "No notes",
       "noOtherNotes": "No other notes",
@@ -714,6 +729,9 @@
       "noStatusChanges": "No status changes yet",
       "views": {
         "label": "Task views",
+        "all": "All",
+        "starred": "Starred",
+        "escalated": "Need help",
         "my_work": "My work",
         "owned": "Owned",
         "helping": "Helping",
@@ -755,7 +773,9 @@
         "activity": "Activity",
         "related": "Related",
         "items": "Action items",
-        "comments": "Comments"
+        "comments": "Comments",
+        "discussion": "Discussion",
+        "history": "History"
       },
       "flags": {
         "stale": "No update",
@@ -774,7 +794,6 @@
         "dueToday": "Today",
         "dueClear": "Clear",
         "duePlaceholder": "For example, 20 Oct 2026",
-        "dueCalendar": "Pick on a calendar",
         "owner_required": "Pick an owner"
       },
       "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
@@ -800,16 +819,21 @@
         "prospects": "{count, plural, one {# prospect} other {# prospects}}"
       },
       "escalate": {
-        "open": "Escalate",
-        "what": "Tell someone about this task, with a note. They get a notification and follow the task from then on.",
-        "title": "Escalate {number}",
+        "open": "Need help",
+        "what": "Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.",
+        "title": "Need help {number}",
         "to": "Escalate to",
         "to_required": "Pick who to tell",
         "to_yourself": "Pick someone other than yourself",
         "note": "What do they need to know?",
         "note_required": "Write what they need to know",
-        "send": "Escalate",
-        "done": "Escalated to {name}"
+        "notify": "Your manager {name} will be told",
+        "noManager": "This task's owner has no manager set, so there is no one to tell.",
+        "send": "Send",
+        "done": "Your manager {name} has been told",
+        "flag": "Needs help",
+        "acknowledge": "Acknowledge",
+        "acknowledged": "Acknowledged"
       },
       "status": {
         "change": "Status: {status}. Change",
@@ -833,6 +857,7 @@
         "added": "Added: {item}",
         "ticked": "Done: {item}",
         "unticked": "Reopened: {item}",
+        "removed": "Action item removed: {item}",
         "textRequired": "Write the action item",
         "textTooLong": "At most {max} characters"
       },
@@ -846,6 +871,9 @@
           "status_before_raised": "That day is before the task was raised",
           "status_unchanged": "The task already has this status",
           "created_closed": "A new task cannot start closed",
+          "delegate_cannot_see": "That person cannot see this task",
+          "delegate_note_required": "Write what they need to know",
+          "delegate_to_yourself": "Pick someone other than yourself",
           "client_work_needs_partner": "Client work needs a client or a project",
           "internal_has_no_partner": "Internal work has no client",
           "due_before_start": "The due day is before the start",
@@ -872,7 +900,8 @@
           "not_here": "This cannot be escalated",
           "note_required": "Write what they need to know",
           "to_yourself": "Pick someone other than yourself",
-          "cannot_see": "That person cannot see this task"
+          "cannot_see": "That person cannot see this task",
+          "not_escalated": "This task does not need help right now"
         },
         "person": {
           "unavailable": "That person cannot be given work here"
@@ -978,6 +1007,18 @@
         "delete": "Delete",
         "editAction": "Edit"
       },
+      "delegate": {
+        "open": "Delegate",
+        "what": "Give this task to someone else, with a note. They become the owner and are told at once.",
+        "title": "Delegate {number}",
+        "to": "Delegate to",
+        "to_required": "Pick who to hand it to",
+        "to_yourself": "Pick someone other than yourself",
+        "note": "What do they need to know?",
+        "note_required": "Write what they need to know",
+        "send": "Delegate",
+        "done": "Delegated to {name}"
+      },
       "star": {
         "mark": "Mark “{title}” as important",
         "unmark": "Remove the importance mark from “{title}”",
@@ -995,6 +1036,14 @@
       "actions": {
         "save": "Save",
         "cancel": "Cancel"
+      },
+      "achievementStrip": {
+        "text": "This task is done — log it as an achievement?",
+        "not": "Not an achievement",
+        "dismissed": "Not logged as an achievement.",
+        "undo": "Undo",
+        "dismissedDone": "Not logged as an achievement",
+        "restoredDone": "Back on the list"
       }
     },
     "weeklyReview": {
@@ -1035,6 +1084,7 @@
     "partner": "Organisation",
     "invoice": "Invoice",
     "task": "Task",
+    "comment": "Comment",
     "achievement": "Achievement",
     "kpi": "KPI",
     "reportLine": "Report line",
@@ -1270,9 +1320,71 @@
     "noActivity": "No changes yet",
     "lockedPerson": "A person's history is for admins, and for the person themselves",
     "lockedPartner": "An organisation's history is for the people who may open it",
-    "followUp": "Follow up",
-    "followUpOn": "Follow up · {when}",
-    "followUpsFailed": "Follow-ups · try again"
+    "followUp": "Remind me",
+    "followUpOn": "Remind me · {when}",
+    "followUpsFailed": "Follow-ups · try again",
+    "commentsCount": "{count, plural, one {# comment} other {# comments}}",
+    "filesCount": "{count, plural, one {# file} other {# files}}",
+    "discussion": "Discussion",
+    "history": "History",
+    "files": {
+      "title": "Files",
+      "upload": "Upload file",
+      "download": "Download",
+      "remove": "Remove",
+      "removeTitle": "Remove {name}?",
+      "kind": "Kind",
+      "none": "No files yet",
+      "addedOn": "Added {date}",
+      "uploader": "Added by",
+      "search": "Search files",
+      "record": "Record",
+      "uploadFailed": "The file could not be uploaded — try again",
+      "downloadFailed": "The file could not be opened — try again",
+      "chooseFile": "Choose files",
+      "chooseKind": "Choose a kind",
+      "reviewOn": "Review on",
+      "retryUpload": "Try again",
+      "uploadFailedPickAgain": "The upload did not finish — choose the file again",
+      "notStored": "Not uploaded yet",
+      "kinds": {
+        "evidence": "Evidence"
+      }
+    },
+    "comments": {
+      "empty": "No comments yet",
+      "readOnly": "You can read the comments on this record.",
+      "write": "Write a comment",
+      "add": "Add comment",
+      "edit": "Edit your comment",
+      "edited": "edited",
+      "added": "Comment added",
+      "saved": "Comment saved",
+      "removed": "Comment deleted",
+      "removeTitle": "Delete the comment by {name}?",
+      "bodyRequired": "Write something first",
+      "tooLong": "At most {max} characters",
+      "delete": "Delete",
+      "editAction": "Edit",
+      "comment": "Comment",
+      "ask": "Ask someone",
+      "askNudge": "Ask / nudge",
+      "askedToRequired": "Pick who to ask",
+      "askAdded": "Question asked",
+      "question": "Question for {name}",
+      "reply": "Reply",
+      "answer": "Answer",
+      "answerPlaceholder": "Write your answer",
+      "answered": "Question answered",
+      "answerRequired": "Write your answer first",
+      "answeredBy": "Answered by {name}",
+      "filterAll": "All",
+      "filterFiles": "Files",
+      "filterQuestions": "Questions",
+      "jumpToLatest": "Jump to latest",
+      "newComments": "{count} new",
+      "askChip": "Asked {name}"
+    }
   },
   "activity": {
     "helper": "Helper",
@@ -1477,7 +1589,10 @@
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
       "alert_quiet_client": "A client of mine has gone quiet",
-      "task_commented": "A comment on a task of mine"
+      "task_commented": "A comment on a task of mine",
+      "commented": "A comment on a record of mine",
+      "asked": "A question asked of me",
+      "escalation_acknowledged": "A need for help I flagged was acknowledged"
     },
     "devices": {
       "label": "Device",
@@ -1802,6 +1917,15 @@
       "year_taken": "That department already has a plan for that year",
       "year_invalid": "A plan can be opened for 2025 up to next year"
     },
+    "comment": {
+      "body_required": "Write something first",
+      "too_long": "A comment can be at most 4,000 characters",
+      "not_yours": "Only the person who wrote a comment can change it",
+      "ask_yourself": "Pick someone other than yourself",
+      "asked_cannot_see": "That person cannot see this record",
+      "not_open": "This question is already answered",
+      "not_asked": "Only the person asked can answer this question"
+    },
     "overview": {
       "period_invalid": "The period ends before it starts",
       "unknown_period": "Choose month, quarter or year to date, or your own dates"
@@ -2090,6 +2214,7 @@
     "unread": "Unread",
     "markAllRead": "Mark all read",
     "groupUnread": "{count} unread",
+    "commentGroup": "{count, plural, one {# comment} other {# comments}}",
     "markRead": "Mark as read",
     "snooze": "Snooze",
     "snoozeTomorrow": "Until tomorrow 08:00",
@@ -2115,6 +2240,9 @@
       "escalated": "{actor} escalated {record} to you",
       "alert_quiet_client": "{record} has gone quiet",
       "task_commented": "{actor} commented on {record}",
+      "commented": "{actor} commented on {record}",
+      "asked": "{actor} asked you about {record}",
+      "escalation_acknowledged": "{actor} acknowledged your need for help on {record}",
       "alert_project_no_update": "{record} has no health update",
       "alert_activity_stale": "{record} has had no activity",
       "alert_file_review": "A file on {record} is due for review",
@@ -2243,7 +2371,9 @@
       "activity": "Activity",
       "related": "Related",
       "codes": "Codes",
-      "finance": "Finance"
+      "finance": "Finance",
+      "discussion": "Discussion",
+      "history": "History"
     },
     "companyFiles": {
       "title": "Partner files",
@@ -2323,11 +2453,58 @@
     },
     "archive": {
       "title": "All files",
-      "none": "No files match",
+      "none": "No files yet",
       "partner": "Partner",
       "allCompanies": "All partners",
       "allKinds": "All kinds",
-      "showAll": "Show all partners"
+      "showAll": "Show all partners",
+      "search": "Search files",
+      "recordType": "Record type",
+      "addedBy": "Added by",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "kind": "Kind",
+      "purpose": "Purpose",
+      "side": "Side",
+      "status": "Status",
+      "sort": "Sort",
+      "sortAdded": "Newest first",
+      "sortName": "Name",
+      "sortSize": "Size",
+      "groupBy": "Group by",
+      "groupNone": "No grouping",
+      "groupCompany": "By partner",
+      "groupType": "By record type",
+      "all": "All",
+      "filters": "Filters",
+      "clearFilters": "Clear filters",
+      "prevPage": "Previous",
+      "nextPage": "Next",
+      "showing": "Showing {from}–{to} of {total}",
+      "recordTypes": {
+        "task": "Task",
+        "achievement": "Achievement",
+        "note": "Note",
+        "partner": "Partner",
+        "importBatch": "Import batch",
+        "campaignCode": "Discount code"
+      },
+      "purposes": {
+        "evidence": "Evidence",
+        "contract": "Contract",
+        "agreement": "Agreement",
+        "attachment": "Attachment",
+        "iban_letter": "IBAN letter",
+        "render": "Render",
+        "logo": "Logo",
+        "avatar": "Photo",
+        "travel_policy": "Travel policy",
+        "tender": "Tender"
+      },
+      "statuses": {
+        "stored": "Stored",
+        "pending": "Upload not finished"
+      }
     },
     "activity": {
       "who": "Who was it with?",
@@ -2757,6 +2934,8 @@
     "existingFailed": "What is already imported could not be read.",
     "keep": "Keep this duplicate",
     "startOver": "Start over",
+    "sourceFile": "Source file",
+    "sourceFileFailed": "The source file was not stored",
     "signature": {
       "invoice_export": "Invoice export (non-simplified, the spine)",
       "transaction_expense_export": "Transaction Expense Export (the only cost source)",

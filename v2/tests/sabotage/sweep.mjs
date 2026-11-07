@@ -8,9 +8,7 @@ export const sabotages = [
     name: 'overview-tab-repeats-the-timeline',
     breaks: [E2E],
     expect: 'Overview does not repeat the timeline',
-    edits: [
-      { file: RECORD, find: "{tab === 'activity' ? (", replace: "{tab === 'activity' || tab === 'overview' ? (" },
-    ],
+    edits: [{ file: RECORD, find: "{tab === 'history' ? (", replace: "{tab === 'history' || tab === 'overview' ? (" }],
   },
   {
     name: 'activity-tab-repeats-the-details',

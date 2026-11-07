@@ -1,6 +1,6 @@
 /**
- * Follow up on a record (V632 Stage 2, V282, V283; the oversight's production walk of 14 Oct, findings 1–5). On a client
- * and on a task, Follow up is a visible action with the page's others; it opens the one Capture sheet (#242) on the
+ * Remind me on a record (V632 Stage 2, V282, V283; the oversight's production walk of 14 Oct, findings 1–5). On a client
+ * and on a task, Remind me is a visible action with the page's others; it opens the one Capture sheet (#242) on the
  * record, which names it and starts with no words. Save makes ONE follow-up — one note carrying one reminder, about the
  * record, titled "Follow-up" and never with the record's name (QA-560) — and My day lists it once, as a reminder above
  * My notes, tagged with its record, never again as a plain note. The record page then shows its author the follow-up
@@ -48,7 +48,7 @@ async function signedIn(browser: Browser, person: TestPerson, width: number, hei
 }
 
 /**
- * Follow up is a visible action; the sheet names the record and starts empty; Save makes exactly one note carrying
+ * Remind me is a visible action; the sheet names the record and starts empty; Save makes exactly one note carrying
  * exactly one reminder, about the record and titled "Follow-up" — and the record page then shows its chip.
  */
 async function followUpOnce(
@@ -59,14 +59,14 @@ async function followUpOnce(
   label: string,
   behindTheDots = false,
 ) {
-  const button = page.getByRole('button', { name: 'Follow up', exact: true });
+  const button = page.getByRole('button', { name: 'Remind me', exact: true });
   if (behindTheDots) {
-    // a phone's task page keeps Done and the dots on one row: Follow up is the dots' second entry (V641)
-    await expect(button, 'on a phone Follow up is not on the row').toBeHidden();
+    // a phone's task page keeps Done and the dots on one row: Remind me is the dots' second entry (V641)
+    await expect(button, 'on a phone Remind me is not on the row').toBeHidden();
     await page.locator('[data-task-more]').click();
-    await page.getByRole('menuitem', { name: 'Follow up', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Remind me', exact: true }).click();
   } else {
-    await expect(button, 'Follow up is a visible action on the record').toBeVisible();
+    await expect(button, 'Remind me is a visible action on the record').toBeVisible();
     await button.click();
   }
   const sheet = page.locator('[data-quick-capture]');
@@ -87,7 +87,7 @@ async function followUpOnce(
   expect(notes[0]!.visibility, 'private (V454)').toBe('private');
   expect(notes[0]!.title, "neutral, never the record's name").toBe('Follow-up');
   await expect(page.locator('[data-follow-up-chip]'), 'the record shows its author the follow-up').toHaveCount(1);
-  await expect(page.locator('[data-follow-up-chip]')).toContainText('Follow up ·');
+  await expect(page.locator('[data-follow-up-chip]')).toContainText('Remind me ·');
   return notes[0]!.id;
 }
 
@@ -114,7 +114,7 @@ async function listedOnceOnMyDay(page: Page, noteId: string, label: string) {
 }
 
 for (const w of WIDTHS) {
-  test(`${w.name}: on a client Follow up is visible, saves one follow-up, and Watch is named Watch`, async ({
+  test(`${w.name}: on a client Remind me is visible, saves one follow-up, and Watch is named Watch`, async ({
     browser,
   }) => {
     const admin = await adminWithTeam();
@@ -132,7 +132,7 @@ for (const w of WIDTHS) {
       /^Watch(ing)?$/,
     );
     await page.locator('[data-partner-more]').click();
-    await expect(page.getByRole('menuitem', { name: 'Follow up' }), 'no second Follow up in the menu').toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Remind me' }), 'no second Remind me in the menu').toHaveCount(0);
     await page.keyboard.press('Escape');
     const [watch, more] = await Promise.all([
       page.locator('[data-follow]').boundingBox(),
@@ -144,7 +144,7 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
-  test(`${w.name}: on a task Follow up is visible, saves one follow-up, and Escalate is its own labelled button`, async ({
+  test(`${w.name}: on a task Remind me is visible, saves one follow-up, and Need help is its own labelled button`, async ({
     browser,
   }) => {
     const admin = await adminWithTeam();
@@ -158,19 +158,24 @@ for (const w of WIDTHS) {
     await hydrated(page);
     await expect(page.locator('[data-mark-done]'), 'Mark done stays the main action').toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Escalate', exact: true }),
-      'Escalate is a labelled button (E)',
+      page.getByRole('button', { name: 'Need help', exact: true }),
+      'Need help is a labelled button (E)',
     ).toBeVisible();
     const phone = w.width < 640;
+    // Remind me is behind the ⋯ on both widths now (Phase 0.1): on a phone the menu holds Edit and Remind me,
+    // on a desk it holds Remind me (Edit is a visible button there, its menu item is phone-only).
+    await page.locator('[data-task-more]').click();
     if (phone) {
-      await page.locator('[data-task-more]').click();
-      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit and Follow up').toHaveText(['Edit', 'Follow up']);
-      await page.keyboard.press('Escape');
+      await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit and Remind me').toHaveText(['Edit', 'Remind me']);
     } else {
-      await expect(page.locator('[data-task-more]'), 'on a desk there is no ⋯ left to open').toBeHidden();
+      await expect(
+        page.getByRole('menuitem', { name: 'Remind me', exact: true }),
+        'Remind me is behind the ⋯ on a desk',
+      ).toBeVisible();
     }
+    await page.keyboard.press('Escape');
     await expect(page.locator('[data-no-notes]')).toHaveText('No notes');
-    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`, phone);
+    const noteId = await followUpOnce(page, admin, 'work.task', id, `${number} · ${title}`, true);
     await expect(page.locator('[data-no-notes]'), 'beside a follow-up, an empty Notes says No other notes').toHaveText(
       'No other notes',
     );

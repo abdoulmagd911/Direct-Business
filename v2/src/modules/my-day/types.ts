@@ -121,6 +121,25 @@ export type AboutRecord = { entity: 'partner' | 'task' | 'invoice'; id: string; 
 /** What a wrap-up carried to today and is still open (`api.my_day` `carried_over`). */
 export type CarriedItem = { kind: 'task' | 'note'; id: string; from: string | null; times: number };
 
+/** One open question, as api.open_asks serves it (Phase 2): the question, who asked and who is asked, and the record it sits on. */
+export type OpenAsk = {
+  id: string;
+  entity: string;
+  entity_id: string;
+  record: string | null;
+  body: string;
+  author_id: string;
+  author_name: string | null;
+  author_name_ar: string | null;
+  asked_to: string;
+  asked_to_name: string | null;
+  asked_to_name_ar: string | null;
+  created_at: string;
+};
+
+/** The open questions asked to me and the ones I asked, as api.open_asks serves them. */
+export type OpenAsks = { to_me: OpenAsk[]; by_me: OpenAsk[] };
+
 export type MyDayAnswer = {
   scope: Scope;
   day: string;

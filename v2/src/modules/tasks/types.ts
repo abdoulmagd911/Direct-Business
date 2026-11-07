@@ -33,6 +33,14 @@ export type TaskRow = {
   blocked_reason: string | null;
   blocked_on: string | null;
   cancelled_reason: string | null;
+  starred: boolean;
+  dismissed_from_nudge: boolean;
+  has_achievement: boolean;
+  /** Phase 5: the task needs help — flagged until its manager acknowledges it. */
+  escalated: boolean;
+  escalated_at: string | null;
+  escalated_by: string | null;
+  escalated_to: string | null;
   version: number;
   can_edit: boolean;
   open_action_items: number;
@@ -114,16 +122,5 @@ export type TeamLoad = {
   prospects_assigned: number;
 };
 
-/** api.task_comments(task) (V657): a task's comments, oldest first (newest last), and whether the reader may write one. */
-export type TaskComment = {
-  id: string;
-  body: string;
-  author_id: string;
-  created_at: string;
-  edited_at: string | null;
-  version: number;
-  mine: boolean;
-  can_edit: boolean;
-  can_remove: boolean;
-};
-export type TaskComments = { read_at: string; can_write: boolean; comments: TaskComment[] };
+/** api.comments('task', id) (V657; Phase 2: the generic record comments in core.comment): a task's comments, oldest first (newest last), and whether the reader may write one. */
+export type { RecordComment as TaskComment, RecordComments as TaskComments } from '@/ui/record/Comments';

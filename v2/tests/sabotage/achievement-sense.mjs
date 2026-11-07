@@ -2,7 +2,8 @@
 // its title and its All once, and Done (never Cancelled) offers the achievement.
 const E2E = 'e2e:tests/e2e/achievement-sense.spec.ts';
 const LIST = 'src/modules/perf/screens/AchievementList.tsx';
-const STATUS = 'src/modules/tasks/screens/StatusControl.tsx';
+// the strip offer lives in the task rules (Phase 1), not in the status control
+const RULES = 'src/modules/tasks/rules.ts';
 
 export const sabotages = [
   {
@@ -36,26 +37,28 @@ export const sabotages = [
     edits: [{ file: LIST, find: "label: t('filters.allCategories')", replace: "label: t('filters.all')" }],
   },
   {
+    // the offer lives in the strip rule now (Phase 1): hiding it there offers nothing on Done
     name: 'done-offers-nothing',
     breaks: [E2E],
     expect: 'Done offers the achievement',
     edits: [
       {
-        file: STATUS,
-        find: '      finished && canLog\n',
-        replace: '      false && finished && canLog\n',
+        file: RULES,
+        find: "return task.dismissed_from_nudge ? 'dismissed' : 'show';",
+        replace: "return 'hide';",
       },
     ],
   },
   {
+    // the offer lives in the strip rule now (Phase 1): loosening its done-only guard offers it on Cancelled too
     name: 'cancel-offers-the-achievement',
     breaks: [E2E],
     expect: 'Cancelled offers nothing',
     edits: [
       {
-        file: STATUS,
-        find: "move.kind === 'status' && move.status.meaning === 'done');",
-        replace: "move.kind === 'status');",
+        file: RULES,
+        find: "if (task.meaning !== 'done') return 'hide';",
+        replace: "if (task.meaning !== 'done' && task.meaning !== 'cancelled') return 'hide';",
       },
     ],
   },

@@ -21,6 +21,7 @@ import { PartnerLogo } from '@/ui/PartnerLogo';
 import { PersonChip } from '@/ui/PersonChip';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { Comments, RecordHeaderCounts, type RecordComments } from '@/ui/record/Comments';
 import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
@@ -58,12 +59,16 @@ export type PartnerRecordData = {
   me: Me;
   side: Side;
   tab: string;
+  /** The Discussion filter the record opened with ('files' from the header's files count). */
+  filter?: string;
   card: PartnerCard | null;
   refused: boolean;
   org: OrgAnswer;
   notes: Note[];
   contracts: Contract[];
   history: HistoryRow[] | null;
+  /** The Discussion's comments; null when they could not be read. */
+  comments: RecordComments | null;
   /** The company's files (null when the read failed) and its Codes/Finance summary (same). */
   files: CompanyFile[] | null;
   summary: CompanySummary | null;
@@ -79,25 +84,37 @@ export type PartnerRecordData = {
   };
 };
 
-const TABS = ['overview', 'codes', 'finance', 'activity', 'related'] as const;
+const TABS = ['overview', 'discussion', 'codes', 'finance', 'history', 'related'] as const;
+/** The old tab address still lands on the right tab: ?tab=activity is the History. */
+const TAB_ALIASES: Record<string, string> = { activity: 'history' };
 /** The header figures until the setting is read for everyone (its registry default — V95; see the PR's NEED). */
 const FIGURES = ['last_activity', 'next_step', 'contracts', 'contacts', 'files'] as const;
 
 /**
  * An organisation's record page (V95 template; V98, V146–V154): the trade name with its number, the sides as chips
  * with type and status, up to five figures, Log activity · Edit · Follow and the ⋯ door for the sides (on, off,
- * status, owner). Tabs Overview (notes and activities, the sides) · Activity (the change log with Undo) · Related.
- * The rail: each side's type, tier, owner, status and fields; identifiers; contacts with roles; Direct references;
- * contracts. Every figure is the database's; nothing is added up here.
+ * status, owner). Tabs Overview (notes and activities, the sides) · Discussion · Codes · Finance · History (the change
+ * log with Undo, and the client-work notes — the old comment-kind notes are not listed here; new internal talk goes
+ * in Discussion) · Related. The rail: each side's type, tier, owner, status and fields; identifiers; contacts with
+ * roles; Direct references; contracts. Every figure is the database's; nothing is added up here.
  */
 export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const words = useWords();
-  const { me, side, card, refused, org, notes, contracts, history, files, summary, lists } = data;
-  const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
+  const { me, side, card, refused, org, notes, contracts, history, comments, files, summary, lists } = data;
+  const tab = (TABS as readonly string[]).includes(TAB_ALIASES[data.tab] ?? data.tab)
+    ? (TAB_ALIASES[data.tab] ?? data.tab)
+    : 'overview';
+  const discussionFilter =
+    data.filter === 'files' || data.filter === 'questions' ? (data.filter as 'files' | 'questions') : undefined;
   const refresh = () => router.refresh();
+  // The Discussion tab's own count while it is open, so the tab's number follows an add or a delete at once.
+  const [commentCount, setCommentCount] = useState<number | null>(null);
+  // History shows the client-work notes only: comment-kind notes are internal talk, which lives in Discussion now.
+  // The old comment-kind rows stay in the notes data, unmoved; they are simply not listed here any more.
+  const historyNotes = notes.filter((n) => n.kind !== 'comment');
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
   const personOf = (id: string | null | undefined) => (id ? org.people.find((p) => p.id === id) : undefined);
   const nameOfPerson = (id: string) => (personOf(id) ? personName(personOf(id)!, locale) : undefined);
@@ -665,6 +682,11 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             ))}
             {card.archived_at ? <StatusChip tone="neutral">{t('partners.archived')}</StatusChip> : null}
             <FollowUpChips entity="partner" id={card.id} />
+            <RecordHeaderCounts
+              comments={commentCount ?? comments?.comments.length ?? null}
+              files={files?.length ?? null}
+              href={(f) => `${base}/${card.id}?tab=discussion${f === 'files' ? '&filter=files' : ''}`}
+            />
           </>
         }
         figures={figures}
@@ -672,14 +694,16 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         tabs={TABS.map((k) => ({
           key: k,
           label: t(`partners.tabs.${k}`),
-          // The Activity tab shows notes plus the change log, so its count
+          // The History tab shows notes plus the change log, so its count
           // must count both, not only the change log (it said 1, listed 5).
           count:
-            k === 'activity' && history
-              ? notes.length + history.length
-              : k === 'codes'
-                ? card.identifiers.filter((i) => i.kind === 'discount_code').length
-                : undefined,
+            k === 'history' && history
+              ? historyNotes.length + history.length
+              : k === 'discussion'
+                ? (commentCount ?? comments?.comments.length ?? undefined)
+                : k === 'codes'
+                  ? card.identifiers.filter((i) => i.kind === 'discount_code').length
+                  : undefined,
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
@@ -693,9 +717,33 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             <FilesSection partnerId={card.id} files={files} mayWrite={mayWrite} onDone={refresh} />
           </>
         ) : null}
+        {tab === 'discussion' ? (
+          comments ? (
+            <Comments
+              entity="partner"
+              id={card.id}
+              data={comments}
+              locale={locale}
+              personName={nameOfPerson(me.person.id) ?? ''}
+              people={org.people.map((p) => ({ id: p.id, name: personName(p, locale) }))}
+              label={t('partners.tabs.discussion')}
+              onCount={setCommentCount}
+              files={files}
+              onFilesRetry={refresh}
+              initialFilter={discussionFilter}
+            />
+          ) : (
+            <DataState
+              kind="failed"
+              message={t('state.failed', { what: t('partners.tabs.discussion') })}
+              onRetry={refresh}
+              retryLabel={t('common.tryAgain')}
+            />
+          )
+        ) : null}
         {tab === 'codes' ? <CodesTab card={card} summary={summary} /> : null}
         {tab === 'finance' ? <FinanceTab card={card} summary={summary} onRetry={refresh} /> : null}
-        {tab === 'activity' ? (
+        {tab === 'history' ? (
           <>
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
               <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
@@ -711,8 +759,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                   </span>
                 ) : null}
               </div>
-              {notes.length ? (
-                <ul className="divide-y divide-border">{notes.map(noteLine)}</ul>
+              {historyNotes.length ? (
+                <ul className="divide-y divide-border">{historyNotes.map(noteLine)}</ul>
               ) : (
                 <DataState kind="empty" message={t('partners.activity.none')} />
               )}
@@ -727,7 +775,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                 }}
               />
             ) : (
-              <DataState kind="no-access" what={t('record.activity')} message={t('record.lockedPartner')} />
+              <DataState kind="no-access" what={t('partners.tabs.history')} message={t('record.lockedPartner')} />
             )}
           </>
         ) : null}

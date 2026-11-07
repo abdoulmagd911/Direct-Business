@@ -37,6 +37,7 @@ function api.action_items_remove(p_ids uuid[], p_reason text) execute authentica
 function api.activities_inside(p_limit integer, p_offset integer) execute authenticated
 function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[], p_ticket_ref text, p_internal text, p_share_team boolean) execute authenticated
+function api.all_files(p_entity text, p_record uuid, p_kind text, p_uploader uuid, p_from date, p_to date, p_purpose text, p_side text, p_status text, p_search text, p_sort text, p_limit integer, p_offset integer) execute authenticated
 function api.app_settings() execute authenticated
 function api.app_settings() execute service_role
 function api.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
@@ -57,6 +58,11 @@ function api.codes_attribution_remove(p_id uuid, p_reason text) execute authenti
 function api.codes_by_company() execute authenticated
 function api.codes_detail(p_code uuid) execute authenticated
 function api.codes_list() execute authenticated
+function api.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid) execute authenticated
+function api.comment_answer(p_id uuid, p_answer text) execute authenticated
+function api.comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
+function api.comment_remove(p_id uuid, p_reason text) execute authenticated
+function api.comments(p_entity text, p_id uuid) execute authenticated
 function api.company_files(p_partner uuid, p_kind text) execute authenticated
 function api.company_summary(p_partner uuid) execute authenticated
 function api.contact_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer) execute authenticated
@@ -71,6 +77,8 @@ function api.device_sign_out(p_device uuid) execute authenticated
 function api.device_sign_out_others() execute authenticated
 function api.device_touch() execute authenticated
 function api.escalate(p_entity text, p_id uuid, p_to uuid, p_note text) execute authenticated
+function api.escalate_acknowledge(p_id uuid) execute authenticated
+function api.escalated_tasks() execute authenticated
 function api.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
 function api.file_download(p_id uuid, p_locale text) execute authenticated
 function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
@@ -119,10 +127,10 @@ function api.hover_person(p_id uuid) execute authenticated
 function api.identifier_add(p_partner uuid, p_kind text, p_value text, p_reason text, p_subkind text, p_valid_from date, p_valid_to date, p_note text, p_second_code boolean) execute authenticated
 function api.identifier_block_add(p_kind text, p_match text, p_value text, p_reason text) execute authenticated
 function api.identifier_remove(p_id uuid, p_reason text) execute authenticated
-function api.individual_add(p_name text, p_reason text) execute authenticated
 function api.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions jsonb) execute authenticated
 function api.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function api.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
+function api.individual_add(p_name text, p_reason text) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
 function api.list_remove(p_list text, p_id uuid, p_reason text) execute authenticated
 function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
@@ -152,6 +160,7 @@ function api.notifications(p_tab text, p_before timestamp with time zone, p_limi
 function api.notifications_mark_read(p_ids uuid[]) execute authenticated
 function api.notifications_snooze(p_ids uuid[], p_until timestamp with time zone) execute authenticated
 function api.notifications_unread() execute authenticated
+function api.open_asks() execute authenticated
 function api.opportunity_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.opportunity_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.org() execute authenticated
@@ -235,8 +244,10 @@ function api.task_comment_remove(p_id uuid, p_reason text) execute authenticated
 function api.task_comments(p_task uuid) execute authenticated
 function api.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function api.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function api.task_delegate(p_id uuid, p_to uuid, p_note text) execute authenticated
 function api.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function api.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
+function api.task_nudge_dismiss(p_id uuid, p_dismissed boolean) execute authenticated
 function api.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function api.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.task_star(p_id uuid, p_starred boolean) execute authenticated
@@ -254,9 +265,9 @@ function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text
 function api.templates_offered(p_event text, p_partner uuid) execute authenticated
 function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
-function api.test_tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.test_switch_end() execute authenticated
 function api.test_switch_start(p_person uuid) execute authenticated
+function api.test_tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.undo(p_request uuid) execute authenticated
 function api.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
 function api.view_default_set(p_page text, p_view uuid) execute authenticated
@@ -292,6 +303,7 @@ function core.access_set_role_capability(p_role uuid, p_capability text, p_grant
 function core.access_set_role_level(p_role uuid, p_page text, p_level core.level, p_reason text) execute authenticated
 function core.access_set_team_level(p_team uuid, p_page text, p_level core.level, p_reason text) execute authenticated
 function core.activities_inside(p_limit integer, p_offset integer) execute authenticated
+function core.all_files(p_entity text, p_record uuid, p_kind text, p_uploader uuid, p_from date, p_to date, p_purpose text, p_side text, p_status text, p_search text, p_sort text, p_limit integer, p_offset integer) execute authenticated
 function core.app_settings() execute authenticated
 function core.app_settings() execute service_role
 function core.auth_ticket_issue(p_kind text, p_target text, p_person uuid) execute service_role
@@ -512,10 +524,18 @@ function work.action_item_update(p_id uuid, p_values jsonb, p_version integer) e
 function work.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.backfill_keys_held(p_keys text[]) execute authenticated
 function work.backfill_tasks(p_request jsonb) execute authenticated
+function work.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid) execute authenticated
+function work.comment_answer(p_id uuid, p_answer text) execute authenticated
+function work.comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
+function work.comment_remove(p_id uuid, p_reason text) execute authenticated
+function work.comments(p_entity text, p_id uuid) execute authenticated
 function work.contract_renewal_task(p_contract uuid) execute authenticated
+function work.escalated_tasks() execute authenticated
+function work.escalation_acknowledge(p_id uuid) execute authenticated
 function work.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions jsonb) execute authenticated
 function work.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
+function work.open_asks() execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
 function work.project_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
@@ -528,10 +548,12 @@ function work.task_comment_remove(p_id uuid, p_reason text) execute authenticate
 function work.task_comments(p_task uuid) execute authenticated
 function work.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function work.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
+function work.task_delegate(p_id uuid, p_to uuid, p_note text) execute authenticated
 function work.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function work.task_get(p_id uuid) execute authenticated
 function work.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function work.task_list(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
+function work.task_nudge_dismiss(p_id uuid, p_dismissed boolean) execute authenticated
 function work.task_ref_add(p_task uuid, p_system text, p_value text) execute authenticated
 function work.task_refs_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_star(p_id uuid, p_starred boolean) execute authenticated

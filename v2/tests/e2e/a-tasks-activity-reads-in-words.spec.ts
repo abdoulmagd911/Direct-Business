@@ -1,5 +1,5 @@
 /**
- * B (26 Oct): a task's Activity tab reads in words.
+ * B (26 Oct): a task's History tab reads in words.
  * - People by name, never an id ("Owner: <name> → <name>").
  * - Days as "2 Nov 2026", never "2026-11-02".
  * - A line when a helper is added, naming them.
@@ -14,7 +14,7 @@ import { callAs, makePerson, signIn, sql } from './support/stack';
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
 for (const width of [1280, 375]) {
-  test(`a task's Activity tab says who and when in words, with Undo on the reader's newest action only — at ${width} px`, async ({
+  test(`a task's History tab says who and when in words, with Undo on the reader's newest action only — at ${width} px`, async ({
     page,
     browser,
   }) => {

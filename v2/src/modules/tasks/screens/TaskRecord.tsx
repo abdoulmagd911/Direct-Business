@@ -1,12 +1,12 @@
 'use client';
-import { AlarmClockPlus, Check, Megaphone, Pencil, Trash2 } from 'lucide-react';
+import { AlarmClockPlus, Check, Megaphone, Pencil, Trash2, Trophy, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
-import { formatDate } from '@/core/i18n/format';
+import { clip, formatDate } from '@/core/i18n/format';
 import { avatarOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -17,18 +17,22 @@ import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { OpenAskChips, RecordHeaderCounts } from '@/ui/record/Comments';
+import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
-import { FollowUpButton, FollowUpChips } from '@/ui/record/FollowUp';
+import { FollowUpChips } from '@/ui/record/FollowUp';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import type { TaskLookups } from '../load';
-import { STATUS_TONE, TITLE_MAX, dueState, riyadhDay, statusView, taskIsTestOwned } from '../rules';
+import { STATUS_TONE, TITLE_MAX, achievementStrip, dueState, riyadhDay, statusView, taskIsTestOwned } from '../rules';
 import type { TaskComments as Comments, TaskDetail } from '../types';
 import { Checklist } from './Checklist';
+import { Delegate } from './Delegate';
 import { TaskComments } from './TaskComments';
 import { Escalate } from './Escalate';
+import { StarMark, StarToggle } from './StarToggle';
 import { DATE_MAX } from './DueDayPicker';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
 import { HelpersField, OwnerPicker } from './TaskPeople';
@@ -37,25 +41,36 @@ import { useCommandWords, useNames } from './words';
 export type TaskRecordData = {
   task: TaskDetail;
   tab: string;
+  /** The Discussion filter the record opened with ('files' from the header's files count). */
+  filter?: string;
   history: HistoryRow[] | null;
   /** The comments (V657); null when they could not be read. */
   comments: Comments | null;
+  /** The task's files (null when they could not be read); the header's files count and the Discussion stream read them. */
+  files: RecordFile[] | null;
   lookups: TaskLookups;
 };
 
-const TABS = ['overview', 'comments', 'activity', 'related', 'items'] as const;
+const TABS = ['overview', 'discussion', 'history', 'items'] as const;
+/** The old tab addresses still land on the right tab: ?tab=comments is the Discussion, ?tab=activity is the History. */
+const TAB_ALIASES: Record<string, string> = { comments: 'discussion', activity: 'history' };
 
 /**
  * A task's record (V95): the title, its number and where it belongs; its status (a menu of moves — V401) and flags;
- * three key figures; Done and Edit. Tabs Overview · Comments · Activity · Related · Action items; the rail holds every property.
+ * three key figures; Done and Edit. Tabs Overview · Discussion · History · Action items; the rail holds every property.
+ * Related lives in Overview as a section (Phase 4, the one layout: at most one record-specific tab — Items).
  */
 export function TaskRecord({ data }: { data: TaskRecordData }) {
   const t = useTranslations();
   const router = useRouter();
   const me = useMe();
-  const { task, history, comments, lookups } = data;
+  const { task, history, comments, files, lookups } = data;
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
-  const tab = (TABS as readonly string[]).includes(data.tab) ? data.tab : 'overview';
+  const tab = (TABS as readonly string[]).includes(TAB_ALIASES[data.tab] ?? data.tab)
+    ? (TAB_ALIASES[data.tab] ?? data.tab)
+    : 'overview';
+  const discussionFilter =
+    data.filter === 'files' || data.filter === 'questions' ? (data.filter as 'files' | 'questions') : undefined;
   const today = riyadhDay(new Date());
   const view = statusView(task);
   const due = dueState(task, today);
@@ -66,6 +81,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  const [delegating, setDelegating] = useState(false);
   const [removing, setRemoving] = useState(false);
   // how many of my follow-ups the chip row shows: with one there, an empty Notes says "No other notes"
   const [followUps, setFollowUps] = useState(0);
@@ -93,21 +109,47 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
 
   const chips = (
     <>
+      {/* the importance star (Phase 1): a 44 px tap for whoever may change the task, a plain mark for one who
+          only helps — the row now carries it (work.task_row 'starred'). */}
+      {task.can_edit ? (
+        <StarToggle id={task.id} door="task_star" starred={task.starred} title={task.title} number={task.number} />
+      ) : (
+        <StarMark starred={task.starred} />
+      )}
       <StatusMenu task={task} statuses={lookups.statuses} label={statusLabel} canEdit={task.can_edit} />
       {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
       {task.stale ? <StatusChip tone="warning">{t('pages.tasks.flags.stale')}</StatusChip> : null}
+      {task.escalated ? <StatusChip tone="warning">{t('pages.tasks.escalate.flag')}</StatusChip> : null}
       {task.past_work ? <StatusChip tone="neutral">{t('pages.tasks.flags.pastWork')}</StatusChip> : null}
       {task.executive_directive ? (
         <StatusChip tone="info">{names.locale === 'ar' ? task.priority_ar : task.priority_en}</StatusChip>
       ) : null}
       <FollowUpChips entity="task" id={task.id} onCount={setFollowUps} />
+      <OpenAskChips
+        items={(comments?.comments ?? []).filter((c) => c.question_open)}
+        personName={names.person}
+        href={`/tasks/${task.number}?tab=discussion`}
+      />
+      <RecordHeaderCounts
+        comments={commentCount ?? comments?.comments.length ?? null}
+        files={files?.length ?? null}
+        href={(f) => `/tasks/${task.number}?tab=discussion${f === 'files' ? '&filter=files' : ''}`}
+      />
     </>
   );
-  // Mark done stays the one main action (V630). Follow up is a visible action for anyone who sees the task — a private
-  // Reminder about it (V632 Stage 2, V282; the oversight's walk of 14 Oct). Escalate (V401) is a labelled button for
-  // whoever may change an open task, its one line of what it does as its title (E, 26 Oct): no longer in the ⋯ menu.
+  // Mark done stays the one main action (V630). Done and Edit are the visible buttons; Follow up, Delegate,
+  // Remove and Log achievement sit behind one ⋯ menu that exists on desktop and on phone (Phase 0.1).
+  // Need help (Phase 5, Escalate renamed in place) is a labelled button for whoever may change an open task, its
+  // one line of what it does as its title (E, 26 Oct): no longer in the ⋯ menu.
   const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
   const escalatable = task.can_edit && !closed;
+  // Log achievement is offered on a done task only, to whoever may log achievements (the kpis level, as the
+  // Done toast used to check); it opens the same form address the strip uses (Phase 1).
+  const canLog = ['own', 'full'].includes(me.levels.kpis ?? 'none');
+  // The persistent strip (Phase 1, CUJ 7): a done, nudge-eligible task closed after this build ships shows it
+  // until its achievement is logged or it is dismissed; a dismissed one shows its Undo line instead.
+  const strip = canLog ? achievementStrip(task) : 'hide';
+  const logAchievementUrl = `/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}&task=${task.id}`;
   // Remove is test-only: the task's owner or creator is a TEST user. The server refuses
   // anything else, so this only hides the control on real tasks; it never decides access.
   const words = useCommandWords();
@@ -128,6 +170,24 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       { after: () => router.push('/tasks') },
     );
   };
+  // Dismiss the task from the achievement nudge, or bring it back (Phase 1): one request, Undo offered.
+  const dismissStrip = async (dismissed: boolean) => {
+    await command(
+      words(t(dismissed ? 'pages.tasks.achievementStrip.dismissedDone' : 'pages.tasks.achievementStrip.restoredDone')),
+      () =>
+        rpc('task_nudge_dismiss', { p_id: task.id, p_dismissed: dismissed }) as Promise<{
+          request_id?: string | null;
+        }>,
+    );
+  };
+  // Acknowledge the flag (Phase 5): only the manager the task was flagged to sees this; it clears the flag and
+  // tells the person who flagged it. One request, Undo offered.
+  const acknowledge = async () => {
+    await command(
+      words(t('pages.tasks.escalate.acknowledged')),
+      () => rpc('escalate_acknowledge', { p_id: task.id }) as Promise<{ request_id?: string | null }>,
+    );
+  };
   const actions = (
     <>
       {task.can_edit && !closed && move.markDone ? (
@@ -141,19 +201,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('pages.tasks.markDoneShort')}
         </Button>
       ) : null}
-      {/* On a phone the row holds Done and the ⋯ only: Edit and Follow up go behind the dots (V641, V633), since four
+      {/* On a phone the row holds Done, Need help and the ⋯: Edit goes behind the dots (V641, V633), since four
           buttons do not fit one row at 375 px and the dots would sit alone on a second one. */}
       {task.can_edit ? (
         <Button icon={<Pencil />} className="max-sm:hidden" onClick={() => setEditing(true)} data-edit-task-open>
           {t('common.edit')}
         </Button>
       ) : null}
-      {mayRemove ? (
-        <Button icon={<Trash2 />} className="max-sm:hidden" onClick={() => setRemoving(true)} data-remove-task-open>
-          {t('common.remove')}
-        </Button>
-      ) : null}
-      <FollowUpButton about={follow} className="max-sm:hidden" />
       {escalatable ? (
         <Button
           icon={<Megaphone />}
@@ -164,9 +218,14 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           {t('pages.tasks.escalate.open')}
         </Button>
       ) : null}
+      {task.escalated && me.person.id === task.escalated_to ? (
+        <Button icon={<Check />} onClick={() => void acknowledge()} data-escalate-acknowledge>
+          {t('pages.tasks.escalate.acknowledge')}
+        </Button>
+      ) : null}
       <Menu>
         <MenuTrigger asChild>
-          <Button aria-label={t('common.more')} className="sm:hidden" data-task-more>
+          <Button aria-label={t('common.more')} data-task-more>
             ⋯
           </Button>
         </MenuTrigger>
@@ -176,16 +235,21 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
               {t('common.edit')}
             </MenuItem>
           ) : null}
-          <MenuItem
-            icon={<AlarmClockPlus />}
-            className="sm:hidden"
-            onSelect={() => openQuickCapture({ about: follow })}
-            data-menu-follow-up
-          >
+          <MenuItem icon={<AlarmClockPlus />} onSelect={() => openQuickCapture({ about: follow })} data-menu-follow-up>
             {t('record.followUp')}
           </MenuItem>
+          {mayAssign ? (
+            <MenuItem icon={<UserPlus />} onSelect={() => setDelegating(true)} data-menu-delegate>
+              {t('pages.tasks.delegate.open')}
+            </MenuItem>
+          ) : null}
+          {task.meaning === 'done' && canLog ? (
+            <MenuItem icon={<Trophy />} onSelect={() => router.push(logAchievementUrl)} data-menu-log-achievement>
+              {t('pages.achievements.offerAction')}
+            </MenuItem>
+          ) : null}
           {mayRemove ? (
-            <MenuItem icon={<Trash2 />} className="sm:hidden" onSelect={() => setRemoving(true)} data-menu-remove>
+            <MenuItem icon={<Trash2 />} onSelect={() => setRemoving(true)} data-menu-remove>
               {t('common.remove')}
             </MenuItem>
           ) : null}
@@ -266,7 +330,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           count:
             k === 'items'
               ? task.action_items.length
-              : k === 'comments'
+              : k === 'discussion'
                 ? (commentCount ?? comments?.comments.length ?? undefined)
                 : undefined,
         }))}
@@ -277,6 +341,31 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       >
         {tab === 'overview' ? (
           <div className="flex flex-col gap-6" data-overview>
+            {strip === 'show' ? (
+              <div
+                className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-raised px-4 py-3"
+                data-achievement-strip
+              >
+                <p className="min-w-0 flex-1 text-base">{t('pages.tasks.achievementStrip.text')}</p>
+                <Button variant="primary" onClick={() => router.push(logAchievementUrl)} data-strip-log>
+                  {t('pages.achievements.offerAction')}
+                </Button>
+                <Button variant="ghost" onClick={() => void dismissStrip(true)} data-strip-dismiss>
+                  {t('pages.tasks.achievementStrip.not')}
+                </Button>
+              </div>
+            ) : null}
+            {strip === 'dismissed' ? (
+              <div
+                className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface px-4 py-3"
+                data-achievement-strip-dismissed
+              >
+                <p className="min-w-0 flex-1 text-base text-muted">{t('pages.tasks.achievementStrip.dismissed')}</p>
+                <Button variant="ghost" onClick={() => void dismissStrip(false)} data-strip-restore>
+                  {t('pages.tasks.achievementStrip.undo')}
+                </Button>
+              </div>
+            ) : null}
             {view === 'blocked' ? (
               <div className="rounded-md border border-warning/40 bg-warning-soft px-4 py-3" data-blocked-reason>
                 <p className="text-sm font-semibold">
@@ -323,27 +412,62 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="text-base text-muted">{t('pages.tasks.noStatusChanges')}</p>
               )}
             </section>
+            {/* Related lives here now (Phase 4, the one layout): its own tab is gone. */}
+            <div className="flex flex-col gap-4" data-related>
+              <RailSection title={t('pages.tasks.tabs.related')}>
+                <RailField
+                  label={t('pages.tasks.fields.client')}
+                  empty={!task.partner_id}
+                  add={<span>{t('pages.tasks.internalWork')}</span>}
+                >
+                  {names.partner(task.partner_id)}
+                </RailField>
+                <RailField label={t('pages.tasks.fields.project')} empty={!task.project_id} add={<span>—</span>}>
+                  {names.project(task.project_id)}
+                </RailField>
+                <RailField label={t('pages.tasks.fields.references')} empty={!task.refs.length} add={<span>—</span>}>
+                  {task.refs
+                    .map((r) => `${names.locale === 'ar' && r.system_ar ? r.system_ar : r.system_en} ${r.value}`)
+                    .join(', ')}
+                </RailField>
+              </RailSection>
+            </div>
           </div>
         ) : null}
-        {tab === 'comments' ? (
-          comments ? (
-            <TaskComments
-              task={task}
-              data={comments}
-              personName={names.person}
-              locale={names.locale}
-              onCount={setCommentCount}
+        {tab === 'discussion' ? (
+          <div className="flex flex-col gap-6" data-discussion>
+            {comments ? (
+              <TaskComments
+                task={task}
+                data={comments}
+                personName={names.person}
+                locale={names.locale}
+                people={(lookups.org?.people ?? []).map((p) => ({ id: p.id, name: names.person(p.id) }))}
+                onCount={setCommentCount}
+                files={files}
+                onFilesRetry={() => router.refresh()}
+                initialFilter={discussionFilter}
+              />
+            ) : (
+              <DataState
+                kind="failed"
+                message={t('state.failed', { what: t('pages.tasks.tabs.discussion') })}
+                onRetry={() => router.refresh()}
+                retryLabel={t('common.tryAgain')}
+              />
+            )}
+            <FilesSection
+              entity="task"
+              recordId={task.id}
+              kinds={[{ kind: 'evidence', purpose: 'evidence', label: t('record.files.kinds.evidence') }]}
+              files={files}
+              mayWrite={task.can_edit}
+              onDone={() => router.refresh()}
+              title={t('record.files.title')}
             />
-          ) : (
-            <DataState
-              kind="failed"
-              message={t('state.failed', { what: t('pages.tasks.tabs.comments') })}
-              onRetry={() => router.refresh()}
-              retryLabel={t('common.tryAgain')}
-            />
-          )
+          </div>
         ) : null}
-        {tab === 'activity' ? (
+        {tab === 'history' ? (
           history ? (
             history.length ? (
               <ActivityTimeline
@@ -367,37 +491,17 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           ) : (
             <DataState
               kind="failed"
-              message={t('state.failed', { what: t('pages.tasks.tabs.activity') })}
+              message={t('state.failed', { what: t('pages.tasks.tabs.history') })}
               onRetry={() => router.refresh()}
               retryLabel={t('common.tryAgain')}
             />
           )
         ) : null}
-        {tab === 'related' ? (
-          <div className="flex flex-col gap-4" data-related>
-            <RailSection title={t('pages.tasks.tabs.related')}>
-              <RailField
-                label={t('pages.tasks.fields.client')}
-                empty={!task.partner_id}
-                add={<span>{t('pages.tasks.internalWork')}</span>}
-              >
-                {names.partner(task.partner_id)}
-              </RailField>
-              <RailField label={t('pages.tasks.fields.project')} empty={!task.project_id} add={<span>—</span>}>
-                {names.project(task.project_id)}
-              </RailField>
-              <RailField label={t('pages.tasks.fields.references')} empty={!task.refs.length} add={<span>—</span>}>
-                {task.refs
-                  .map((r) => `${names.locale === 'ar' && r.system_ar ? r.system_ar : r.system_en} ${r.value}`)
-                  .join(', ')}
-              </RailField>
-            </RailSection>
-          </div>
-        ) : null}
         {tab === 'items' ? <Checklist task={task} personName={names.person} locale={names.locale} /> : null}
       </RecordPage>
       <EditTask open={editing} onOpenChange={setEditing} task={task} />
       <Escalate open={escalating} onOpenChange={setEscalating} task={task} org={lookups.org} />
+      <Delegate open={delegating} onOpenChange={setDelegating} task={task} org={lookups.org} />
     </>
   );
 }

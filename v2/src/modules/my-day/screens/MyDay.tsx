@@ -1,8 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
+import { rpc } from '@/core/db/rpc';
 import { clip, formatDate } from '@/core/i18n/format';
 import { nameOf as personName, type OrgPerson } from '@/modules/org/types';
 import { useWords } from '@/modules/partners/screens/record/words';
@@ -12,17 +14,18 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
+import { entityRoute } from '@/ui/entity-route';
 import { BLOCK_ROWS } from '../logic';
 import { CAPTURE_KINDS, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
-import { SCOPES, type MyDayAnswer, type PendingReminder, type Scope } from '../types';
+import { SCOPES, type MyDayAnswer, type OpenAsk, type OpenAsks, type PendingReminder, type Scope } from '../types';
 import { CaptureShortcut } from './CaptureShortcut';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
-import type { TaskStatus } from '@/modules/tasks/types';
+import type { TaskRow, TaskStatus } from '@/modules/tasks/types';
 import { WrapUpDialog } from './WrapUpDialog';
 import { WeekDoor } from '@/modules/weekly-review/screens/WeekDoor';
 
@@ -39,6 +42,10 @@ export type MyDayData = {
   statuses: TaskStatus[];
   /** My reminders whose time has come (`api.reminders_due`); null when it could not be read. */
   due: DueAnswer | null;
+  /** The open questions asked to me and the ones I asked (`api.open_asks`); null when it could not be read. */
+  asks: OpenAsks | null;
+  /** The tasks flagged as needing help and addressed to me (`api.escalated_tasks`); null when it could not be read. */
+  escalated: TaskRow[] | null;
 };
 
 const tabHref = (s: Scope) => (s === 'me' ? '/my-day' : `/my-day?tab=${s}`);
@@ -52,11 +59,29 @@ const kindHref = (k?: CaptureKind) => (k ? `/my-day?kind=${k}` : '/my-day');
 export function MyDay({ data }: { data: MyDayData }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
+  const router = useRouter();
   const words = useWords();
   const { scope, answer, all, kind } = data;
   const [wrapping, setWrapping] = useState(false);
   // "Shared with me": a client-side filter over the already-loaded team rows, not a fourth tab or a new read.
   const [sharedWithMe, setSharedWithMe] = useState(false);
+  // Acknowledge a flagged task from the "Waiting on me" section (Phase 5): the flag clears and the person who
+  // flagged it is told; the section re-reads with the rest of the page
+  const acknowledge = (id: string) =>
+    command(
+      words(t('pages.tasks.escalate.acknowledged')),
+      () => rpc('escalate_acknowledge', { p_id: id }) as Promise<{ request_id?: string | null }>,
+    );
+  // Where a question's row leads: the record, on its Discussion tab — the answer box lives there, not on this page
+  const askHref = (a: OpenAsk) => {
+    const base = entityRoute(a.entity, a.entity_id);
+    if (!base) return null;
+    return a.entity === 'task' || a.entity === 'achievement' || a.entity === 'partner'
+      ? `${base}?tab=discussion`
+      : base;
+  };
+  // A person's name in this page's language, from an ask's two name fields
+  const askPerson = (en: string | null, ar: string | null) => (locale === 'ar' ? (ar ?? en) : (en ?? ar)) ?? '';
   // Done on a reminder for a later day, as on the alert and in the Today block (W-daily 14): it is put away, Undo brings it back
   const done = (r: PendingReminder) =>
     command(
@@ -66,6 +91,8 @@ export function MyDay({ data }: { data: MyDayData }) {
   // what falls today or is overdue is in the Today block; this block keeps only the reminders for later days
   const later = laterReminders(answer.reminders, answer.day);
   const people = new Map(data.people.map((p) => [p.id, p]));
+  // my starred tasks, from the Today list (Phase 5): the star already carries undated tasks there
+  const starred = (answer.tasks ?? []).filter((task) => task.starred);
   const authorOf = (id: string) => {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;
@@ -93,6 +120,151 @@ export function MyDay({ data }: { data: MyDayData }) {
         value={scope}
         tabs={SCOPES.map((s) => ({ value: s, label: t(`pages.myDay.tabs.${s}`), href: tabHref(s) }))}
       />
+      {/* Phase 5, at the top of My day: what waits on me (tasks flagged as needing help, addressed to me, plus the
+          open questions asked to me) and what waits on others (the questions I asked). Rows link to the record; the
+          answer box lives on the record, in the Discussion tab — there is no inline answer box here. */}
+      {scope === 'me' ? (
+        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-me>
+          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onMe')}</h2>
+          <h3 className="pt-2.5 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
+          {data.escalated === null ? (
+            <DataState
+              kind="failed"
+              className="my-2"
+              message={t('state.failed', { what: t('pages.myDay.waiting.needHelp') })}
+              onRetry={() => router.refresh()}
+              retryLabel={t('common.tryAgain')}
+            />
+          ) : data.escalated.length ? (
+            <ul className="divide-y divide-border">
+              {data.escalated.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                  data-waiting-need-help={r.id}
+                >
+                  <span className="min-w-0 flex-1">
+                    <Link href={`/tasks/${r.number}`} className="break-words text-base font-medium hover:underline">
+                      {r.title}
+                    </Link>
+                    <span className="block text-sm text-muted">
+                      {r.number}
+                      {r.escalated_at ? ` · ${formatDate(r.escalated_at, locale, { dateStyle: 'medium' })}` : ''}
+                    </span>
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ms-auto sm:ms-0"
+                    onClick={() => void acknowledge(r.id)}
+                    data-acknowledge={r.id}
+                  >
+                    {t('pages.tasks.escalate.acknowledge')}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyNeedHelp')}</p>
+          )}
+          <h3 className="border-t border-border pt-2.5 text-sm font-semibold text-muted">
+            {t('pages.myDay.waiting.questions')}
+          </h3>
+          {data.asks === null ? (
+            <DataState
+              kind="failed"
+              className="my-2"
+              message={t('state.failed', { what: t('pages.myDay.waiting.questions') })}
+              onRetry={() => router.refresh()}
+              retryLabel={t('common.tryAgain')}
+            />
+          ) : data.asks.to_me.length ? (
+            <ul className="divide-y divide-border">
+              {data.asks.to_me.map((a) => {
+                const href = askHref(a);
+                return (
+                  <li
+                    key={a.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                    data-waiting-ask={a.id}
+                  >
+                    <span className="min-w-0 flex-1">
+                      {href ? (
+                        <Link href={href} className="break-words text-base font-medium hover:underline">
+                          {a.body}
+                        </Link>
+                      ) : (
+                        <span className="break-words text-base font-medium">{a.body}</span>
+                      )}
+                      <span className="block text-sm text-muted">
+                        {[
+                          a.record,
+                          t('pages.myDay.waiting.askedBy', {
+                            name: askPerson(a.author_name, a.author_name_ar),
+                          }),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyQuestions')}</p>
+          )}
+        </section>
+      ) : null}
+      {scope === 'me' ? (
+        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-others>
+          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onOthers')}</h2>
+          {data.asks === null ? (
+            <DataState
+              kind="failed"
+              className="my-2"
+              message={t('state.failed', { what: t('pages.myDay.waiting.questions') })}
+              onRetry={() => router.refresh()}
+              retryLabel={t('common.tryAgain')}
+            />
+          ) : data.asks.by_me.length ? (
+            <ul className="divide-y divide-border">
+              {data.asks.by_me.map((a) => {
+                const href = askHref(a);
+                return (
+                  <li
+                    key={a.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                    data-waiting-ask={a.id}
+                  >
+                    <span className="min-w-0 flex-1">
+                      {href ? (
+                        <Link href={href} className="break-words text-base font-medium hover:underline">
+                          {a.body}
+                        </Link>
+                      ) : (
+                        <span className="break-words text-base font-medium">{a.body}</span>
+                      )}
+                      <span className="block text-sm text-muted">
+                        {[
+                          a.record,
+                          t('pages.myDay.waiting.askedTo', {
+                            name: askPerson(a.asked_to_name, a.asked_to_name_ar),
+                          }),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyQuestions')}</p>
+          )}
+        </section>
+      ) : null}
       {scope === 'me' ? (
         <TodayBlock
           tasks={answer.tasks ?? []}
@@ -104,6 +276,32 @@ export function MyDay({ data }: { data: MyDayData }) {
         />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} /> : null}
+      {/* Phase 5: my starred tasks, from the Today list — the star already carries undated tasks there. */}
+      {scope === 'me' ? (
+        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-starred>
+          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.starred')}</h2>
+          {starred.length ? (
+            <ul className="divide-y divide-border">
+              {starred.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                  data-starred-task={task.id}
+                >
+                  <span className="min-w-0 flex-1">
+                    <Link href={`/tasks/${task.number}`} className="break-words text-base font-medium hover:underline">
+                      {task.title}
+                    </Link>
+                    <span className="block text-sm text-muted">{task.number}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <DataState kind="empty" message={t('pages.tasks.empty.starred')} />
+          )}
+        </section>
+      ) : null}
       {scope === 'me' ? <CaptureShortcut /> : null}
       {/* narrowed to one kind, My notes is the list: the Reminders block would list the same reminders again */}
       {scope === 'me' && !kind && later.length ? (

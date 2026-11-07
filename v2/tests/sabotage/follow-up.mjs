@@ -1,7 +1,7 @@
-// Sabotages for Follow up on a record (V632 Stage 2, V282, V283, builder D): each breaks one promise of its spec.
+// Sabotages for Remind me on a record (V632 Stage 2, V282, V283, builder D): each breaks one promise of its spec.
 const E2E = 'e2e:tests/e2e/follow-up-on-a-record.spec.ts';
-const CLIENT = 'on a client Follow up is visible, saves one follow-up, and Watch is named Watch';
-const TASK = 'on a task Follow up is visible, saves one follow-up, and Escalate is its own labelled button';
+const CLIENT = 'on a client Remind me is visible, saves one follow-up, and Watch is named Watch';
+const TASK = 'on a task Remind me is visible, saves one follow-up, and Need help is its own labelled button';
 const CHIP = "on My day a task's client chip opens the client";
 
 export const sabotages = [
@@ -19,14 +19,15 @@ export const sabotages = [
     ],
   },
   {
-    // finding 2: Follow up is a visible action on the task, not hidden away
+    // finding 2: Remind me is a visible action on the task, not hidden away
+    // (retargeted 7 Nov 2026 by the coordinator: Phase 0 replaced the FollowUpButton with FollowUpChips)
     name: 'task-follow-up-not-on-the-header',
     breaks: [E2E],
     expect: TASK,
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskRecord.tsx',
-        find: '      <FollowUpButton about={follow} className="max-sm:hidden" />\n',
+        find: '      <FollowUpChips entity="task" id={task.id} onCount={setFollowUps} />\n',
         replace: '',
       },
     ],
@@ -45,7 +46,7 @@ export const sabotages = [
     ],
   },
   {
-    // finding 3: watching a record is named Watch, so it is never confused with Follow up
+    // finding 3: watching a record is named Watch, so it is never confused with Remind me
     name: 'watch-is-named-follow-again',
     breaks: [E2E],
     expect: CLIENT,

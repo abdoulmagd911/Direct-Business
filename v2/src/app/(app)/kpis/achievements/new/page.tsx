@@ -20,8 +20,10 @@ export default async function NewAchievementPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [me, t, locale, q] = await Promise.all([requireMe(), getTranslations(), getLocale(), searchParams]);
-  // a task marked Done offers its title as the starting words (the Architect's ask of 16 Oct)
+  // a task marked Done offers its title as the starting words (the Architect's ask of 16 Oct), and its id as the
+  // link the achievement is logged from (Phase 1)
   const fromTask = (typeof q.title === 'string' ? q.title : '').trim().slice(0, 300);
+  const fromTaskId = typeof q.task === 'string' ? q.task.trim() : '';
   const lang = locale as 'en' | 'ar';
   const level = me.levels.kpis ?? 'none';
   const title = t('pages.achievements.log');
@@ -54,6 +56,7 @@ export default async function NewAchievementPage({
         systems={(systems as ListEntry[]).map((s) => ({ key: s.key, name: lang === 'ar' ? s.name_ar : s.name_en }))}
         meId={me.person.id}
         initialTitle={fromTask}
+        sourceTaskId={fromTaskId}
         full={level === 'full'}
         department={{
           id: me.person.department_id,

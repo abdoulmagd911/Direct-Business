@@ -293,6 +293,8 @@
         "overview": "نظرة عامة",
         "activity": "النشاط",
         "related": "ذات صلة",
+        "discussion": "مناقشة",
+        "history": "السجل",
         "evidence": "الأدلة"
       },
       "actions": {
@@ -430,6 +432,17 @@
         "reminders": "التذكيرات",
         "since": "منذ زيارتك الأخيرة"
       },
+      "waiting": {
+        "onMe": "بانتظاري",
+        "onOthers": "بانتظار الآخرين",
+        "needHelp": "يحتاج مساعدة",
+        "questions": "أسئلة مفتوحة",
+        "askedBy": "سأل {name}",
+        "askedTo": "سألت {name}",
+        "emptyQuestions": "لا أسئلة مفتوحة.",
+        "emptyNeedHelp": "لا شيء يحتاج مساعدة الآن."
+      },
+      "starred": "المميزة بنجمة",
       "more": "عرض الكل",
       "fewer": "عرض أقل",
       "empty": {
@@ -706,7 +719,9 @@
         "helping": "لا تساعد في أي مهمة",
         "team": "لا مهام لفريقك بعد",
         "my_work": "لا مهام بعد.",
-        "past": "لا عمل سابق بعد. أضفه من تقرير في الأعلى."
+        "past": "لا عمل سابق بعد. أضفه من تقرير في الأعلى.",
+        "starred": "لا مهام مميزة بنجمة بعد.",
+        "escalated": "لا شيء يحتاج مساعدة الآن."
       },
       "noNotes": "لا ملاحظات",
       "noOtherNotes": "لا ملاحظات أخرى",
@@ -714,6 +729,9 @@
       "noStatusChanges": "لا تغييرات في الحالة بعد",
       "views": {
         "label": "عروض المهام",
+        "all": "الكل",
+        "starred": "المميزة بنجمة",
+        "escalated": "يحتاج مساعدة",
         "my_work": "عملي",
         "owned": "ما أملكه",
         "helping": "ما أساعد فيه",
@@ -755,7 +773,9 @@
         "activity": "النشاط",
         "related": "ذات صلة",
         "items": "بنود العمل",
-        "comments": "التعليقات"
+        "comments": "التعليقات",
+        "discussion": "مناقشة",
+        "history": "السجل"
       },
       "flags": {
         "stale": "بلا تحديث",
@@ -774,7 +794,6 @@
         "dueToday": "اليوم",
         "dueClear": "مسح",
         "duePlaceholder": "على سبيل المثال، 20 أكتوبر 2026",
-        "dueCalendar": "اختر من التقويم",
         "owner_required": "اختر مالكًا"
       },
       "edit": {
@@ -811,6 +830,7 @@
         "added": "أُضيف: {item}",
         "ticked": "تم إنجاز: {item}",
         "unticked": "أُعيد فتح: {item}",
+        "removed": "حُذف بند العمل: {item}",
         "textRequired": "اكتب بند العمل",
         "textTooLong": "الحد الأقصى للأحرف: {max}"
       },
@@ -824,6 +844,9 @@
           "status_before_raised": "هذا اليوم قبل إنشاء المهمة",
           "status_unchanged": "المهمة في هذه الحالة بالفعل",
           "created_closed": "لا يمكن أن تبدأ مهمة جديدة وهي مغلقة",
+          "delegate_cannot_see": "هذا الشخص لا يمكنه رؤية هذه المهمة",
+          "delegate_note_required": "اكتب ما يجب أن يعرفه",
+          "delegate_to_yourself": "اختر شخصًا غير نفسك",
           "client_work_needs_partner": "عمل العميل يحتاج إلى عميل أو مشروع",
           "internal_has_no_partner": "العمل الداخلي لا عميل له",
           "due_before_start": "يوم الاستحقاق قبل البداية",
@@ -856,7 +879,8 @@
           "not_here": "لا يمكن تصعيد هذا",
           "note_required": "اكتب ما يجب أن يعرفه",
           "to_yourself": "اختر شخصًا غير نفسك",
-          "cannot_see": "لا يستطيع هذا الشخص رؤية هذه المهمة"
+          "cannot_see": "لا يستطيع هذا الشخص رؤية هذه المهمة",
+          "not_escalated": "هذه المهمة لا تحتاج مساعدة الآن"
         }
       },
       "past": {
@@ -933,16 +957,21 @@
         "prospects": "{count, plural, one {عميل محتمل واحد} two {عميلان محتملان} few {# عملاء محتملين} many {# عميلًا محتملًا} other {# عميل محتمل}}"
       },
       "escalate": {
-        "open": "تصعيد",
-        "what": "أبلغ شخصًا عن هذه المهمة مع ملاحظة. يصله إشعار ويتابع المهمة من الآن فصاعدًا.",
-        "title": "تصعيد {number}",
+        "open": "أحتاج مساعدة",
+        "what": "أبلغ مديرك عن هذه المهمة مع ملاحظة. يصله إشعار وتبقى المهمة مميزة حتى يؤكد اطلاعه عليها.",
+        "title": "أحتاج مساعدة {number}",
         "to": "تصعيد إلى",
         "to_required": "اختر من تُبلغه",
         "to_yourself": "اختر شخصًا غير نفسك",
         "note": "ما الذي يجب أن يعرفه؟",
         "note_required": "اكتب ما يجب أن يعرفه",
-        "send": "تصعيد",
-        "done": "تم التصعيد إلى {name}"
+        "notify": "سيتم إخبار مديرك {name}",
+        "noManager": "لم يتم تحديد مدير لمالك هذه المهمة، فلا يوجد من نُخبره.",
+        "send": "إرسال",
+        "done": "تم إخبار مديرك {name}",
+        "flag": "يحتاج مساعدة",
+        "acknowledge": "تأكيد",
+        "acknowledged": "تم التأكيد"
       },
       "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق.",
       "layout": {
@@ -978,6 +1007,18 @@
         "delete": "حذف",
         "editAction": "تعديل"
       },
+      "delegate": {
+        "open": "تفويض",
+        "what": "أعطِ هذه المهمة لشخص آخر مع ملاحظة. يصبح مالكها ويُبلَّغ فورًا.",
+        "title": "تفويض {number}",
+        "to": "تفويض إلى",
+        "to_required": "اختر من تسلّمها له",
+        "to_yourself": "اختر شخصًا غير نفسك",
+        "note": "ما الذي يجب أن يعرفه؟",
+        "note_required": "اكتب ما يجب أن يعرفه",
+        "send": "تفويض",
+        "done": "تم التفويض إلى {name}"
+      },
       "star": {
         "mark": "تمييز «{title}» كمهم",
         "unmark": "إزالة تمييز الأهمية عن «{title}»",
@@ -995,6 +1036,14 @@
       "actions": {
         "save": "حفظ",
         "cancel": "إلغاء"
+      },
+      "achievementStrip": {
+        "text": "أُنجزت هذه المهمة — سجّلها كإنجاز؟",
+        "not": "ليس إنجازًا",
+        "dismissed": "لم تُسجَّل كإنجاز.",
+        "undo": "تراجع",
+        "dismissedDone": "لم تُسجَّل كإنجاز",
+        "restoredDone": "عادت إلى القائمة"
       }
     },
     "weeklyReview": {
@@ -1035,6 +1084,7 @@
     "partner": "شريك",
     "invoice": "فاتورة",
     "task": "مهمة",
+    "comment": "تعليق",
     "achievement": "إنجاز",
     "kpi": "مؤشر",
     "reportLine": "بند تقرير",
@@ -1460,7 +1510,10 @@
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
       "alert_quiet_client": "عميل لي توقف عن الشراء",
-      "task_commented": "تعليق على مهمة لي"
+      "task_commented": "تعليق على مهمة لي",
+      "commented": "تعليق على سجل لي",
+      "asked": "سؤال وُجّه إليّ",
+      "escalation_acknowledged": "تم التأكيد على طلب مساعدة أشرت إليه"
     },
     "badge": "الشارة",
     "badgeKind": {
@@ -1795,6 +1848,15 @@
       "year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",
       "year_invalid": "يمكن فتح خطة من سنة 2025 حتى السنة القادمة"
     },
+    "comment": {
+      "body_required": "اكتب شيئًا أولًا",
+      "too_long": "أقصى طول للتعليق 4000 حرف",
+      "not_yours": "لا يعدّل التعليق إلا من كتبه",
+      "ask_yourself": "اختر شخصًا غير نفسك",
+      "asked_cannot_see": "هذا الشخص لا يمكنه رؤية هذا السجل",
+      "not_open": "هذا السؤال مجاب عنه بالفعل",
+      "not_asked": "لا يجيب عن هذا السؤال إلا الشخص الذي سُئل"
+    },
     "kind": {
       "PermissionDenied": "ليست لديك صلاحية للقيام بذلك",
       "Conflict": "تغيّر هذا منذ فتحته. أعد التحميل وحاول مرة أخرى.",
@@ -2087,6 +2149,9 @@
       "escalated": "صعّد {actor} {record} إليك",
       "alert_quiet_client": "توقف التواصل مع {record}",
       "task_commented": "علّق {actor} على {record}",
+      "commented": "علّق {actor} على {record}",
+      "asked": "وجّه {actor} إليك سؤالًا عن {record}",
+      "escalation_acknowledged": "أكّد {actor} الاطلاع على طلب المساعدة في {record}",
       "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
       "alert_activity_stale": "لا نشاط على {record}",
       "alert_file_review": "يحين موعد مراجعة ملف على {record}",
@@ -2100,6 +2165,7 @@
       "other": "{actor} · {record}"
     },
     "groupUnread": "{count} غير مقروء",
+    "commentGroup": "{count, plural, one {تعليق واحد} two {تعليقان} few {# تعليقات} many {# تعليقًا} other {# تعليق}}",
     "snoozeTomorrow": "حتى الغد 08:00",
     "snoozeDay": "حتى {day} 08:00",
     "snoozeWeek": "لمدة أسبوع · {when}",
@@ -2206,7 +2272,9 @@
       "activity": "النشاط",
       "related": "ذات صلة",
       "codes": "الرموز",
-      "finance": "المالية"
+      "finance": "المالية",
+      "discussion": "مناقشة",
+      "history": "السجل"
     },
     "companyFiles": {
       "title": "ملفات الشركة",
@@ -2286,11 +2354,58 @@
     },
     "archive": {
       "title": "كل الملفات",
-      "none": "لا ملفات مطابقة",
+      "none": "لا توجد ملفات بعد",
       "partner": "الشريك",
       "allCompanies": "كل الشركاء",
       "allKinds": "كل الأنواع",
-      "showAll": "عرض كل الشركاء"
+      "showAll": "عرض كل الشركاء",
+      "search": "ابحث في الملفات",
+      "recordType": "نوع السجل",
+      "addedBy": "أضافها",
+      "dateFrom": "من",
+      "dateTo": "إلى",
+      "kind": "النوع",
+      "purpose": "الغرض",
+      "side": "الجهة",
+      "status": "الحالة",
+      "sort": "الترتيب",
+      "sortAdded": "الأحدث أولًا",
+      "sortName": "الاسم",
+      "sortSize": "الحجم",
+      "groupBy": "التجميع",
+      "groupNone": "بدون تجميع",
+      "groupCompany": "حسب الشريك",
+      "groupType": "حسب نوع السجل",
+      "all": "الكل",
+      "filters": "عوامل التصفية",
+      "clearFilters": "مسح عوامل التصفية",
+      "prevPage": "السابق",
+      "nextPage": "التالي",
+      "showing": "عرض {from}–{to} من {total}",
+      "recordTypes": {
+        "task": "مهمة",
+        "achievement": "إنجاز",
+        "note": "ملاحظة",
+        "partner": "شريك",
+        "importBatch": "دفعة استيراد",
+        "campaignCode": "كود خصم"
+      },
+      "purposes": {
+        "evidence": "دليل",
+        "contract": "عقد",
+        "agreement": "اتفاقية",
+        "attachment": "مرفق",
+        "iban_letter": "خطاب آيبان",
+        "render": "عرض",
+        "logo": "شعار",
+        "avatar": "صورة",
+        "travel_policy": "سياسة سفر",
+        "tender": "مناقصة"
+      },
+      "statuses": {
+        "stored": "محفوظ",
+        "pending": "لم يكتمل الرفع"
+      }
     },
     "activity": {
       "who": "مع من كان ذلك؟",
@@ -2486,9 +2601,13 @@
   "record": {
     "lockedPerson": "سجل الشخص لمسؤولي النظام وللشخص نفسه",
     "lockedPartner": "سجل الجهة لمن يحق لهم فتحها",
-    "followUp": "متابعة",
-    "followUpOn": "متابعة · {when}",
+    "followUp": "ذكّرني",
+    "followUpOn": "ذكّرني · {when}",
     "followUpsFailed": "المتابعات · حاول مرة أخرى",
+    "commentsCount": "{count, plural, one {تعليق واحد} two {تعليقان} few {# تعليقات} many {# تعليق} other {# تعليق}}",
+    "filesCount": "{count, plural, one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفًا} other {# ملف}}",
+    "discussion": "مناقشة",
+    "history": "السجل",
     "overview": "نظرة عامة",
     "activity": "النشاط",
     "related": "المرتبط",
@@ -2497,7 +2616,65 @@
     "tabs": "أقسام السجل",
     "back": "رجوع",
     "details": "التفاصيل",
-    "noActivity": "لا تغييرات بعد"
+    "noActivity": "لا تغييرات بعد",
+    "files": {
+      "title": "الملفات",
+      "upload": "رفع ملف",
+      "download": "تنزيل",
+      "remove": "إزالة",
+      "removeTitle": "إزالة {name}؟",
+      "kind": "النوع",
+      "none": "لا توجد ملفات بعد",
+      "addedOn": "أُضيف {date}",
+      "uploader": "أضافها",
+      "search": "ابحث في الملفات",
+      "record": "السجل",
+      "uploadFailed": "تعذّر رفع الملف — حاول مرة أخرى",
+      "downloadFailed": "تعذّر فتح الملف — حاول مرة أخرى",
+      "chooseFile": "اختر ملفات",
+      "chooseKind": "اختر النوع",
+      "reviewOn": "تاريخ المراجعة",
+      "retryUpload": "حاول مرة أخرى",
+      "uploadFailedPickAgain": "لم يكتمل الرفع — اختر الملف مرة أخرى",
+      "notStored": "لم يُرفع بعد",
+      "kinds": {
+        "evidence": "دليل"
+      }
+    },
+    "comments": {
+      "empty": "لا تعليقات بعد",
+      "readOnly": "يمكنك قراءة التعليقات على هذا السجل.",
+      "write": "اكتب تعليقًا",
+      "add": "إضافة تعليق",
+      "edit": "عدّل تعليقك",
+      "edited": "معدّل",
+      "added": "أُضيف التعليق",
+      "saved": "حُفظ التعليق",
+      "removed": "حُذف التعليق",
+      "removeTitle": "حذف تعليق {name}؟",
+      "bodyRequired": "اكتب شيئًا أولًا",
+      "tooLong": "الحد الأقصى {max} حرف",
+      "delete": "حذف",
+      "editAction": "تعديل",
+      "comment": "تعليق",
+      "ask": "اسأل شخصًا",
+      "askNudge": "اسأل / ذكّر",
+      "askedToRequired": "اختر من تسأله",
+      "askAdded": "طُرح السؤال",
+      "question": "سؤال إلى {name}",
+      "reply": "ردّ",
+      "answer": "أجب",
+      "answerPlaceholder": "اكتب إجابتك",
+      "answered": "أُجيب السؤال",
+      "answerRequired": "اكتب إجابتك أولًا",
+      "answeredBy": "أجاب {name}",
+      "filterAll": "الكل",
+      "filterFiles": "الملفات",
+      "filterQuestions": "الأسئلة",
+      "jumpToLatest": "انتقل إلى الأحدث",
+      "newComments": "{count} جديدة",
+      "askChip": "سؤال إلى {name}"
+    }
   },
   "follow": {
     "follow": "مراقبة",
@@ -2740,6 +2917,8 @@
     "existingFailed": "تعذّرت قراءة ما سبق استيراده.",
     "keep": "أبقِ هذا المكرر",
     "startOver": "ابدأ من جديد",
+    "sourceFile": "ملف المصدر",
+    "sourceFileFailed": "لم يُحفظ ملف المصدر",
     "signature": {
       "invoice_export": "تصدير الفواتير (غير المبسّط، الأساس)",
       "transaction_expense_export": "تصدير مصاريف المعاملات (مصدر التكلفة الوحيد)",

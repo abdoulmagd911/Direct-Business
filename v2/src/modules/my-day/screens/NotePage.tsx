@@ -29,6 +29,12 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { TITLE_MAX } from '@/modules/tasks/rules';
 import { QuickAdd } from '@/modules/tasks/screens/QuickAdd';
 import type { NamePick } from '@/modules/tasks/types';
+import type { AvatarPerson } from '@/ui/Avatar';
+import { DataState } from '@/ui/DataState';
+import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { Comments, RecordHeaderCounts, type RecordComments } from '@/ui/record/Comments';
+import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
+import type { HistoryRow } from '@/ui/record/history';
 
 type Draft = {
   title: string;
@@ -58,6 +64,9 @@ const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
  * A note's own page (V433; the canvas's "My day / My notes / …"): the title, the words, a checklist's rows or a
  * meeting's points, and beside them who sees it, the organisation and the day; Turn into, Finish meeting for a meeting,
  * and what the note became — each chip opens it. Only its author edits it; a colleague reading a shared note reads.
+ * Below the body, in order: Discussion (comments, with the note's file entries in the stream, and the Files section)
+ * then History. An idea is a note with capture_kind='idea', so it uses this same screen. A private note stays
+ * author-only, including its comments; QuickCapture stays text-only (a file is attached after the note exists).
  */
 export function NotePage({
   note,
@@ -66,6 +75,11 @@ export function NotePage({
   outcomes,
   taskLookups,
   colleagues = [],
+  comments,
+  files,
+  history,
+  people,
+  meName,
 }: {
   note: MyNote;
   author?: string;
@@ -75,6 +89,16 @@ export function NotePage({
   taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
   types: ListEntry[];
   outcomes: ListEntry[];
+  /** The Discussion's comments; null when they could not be read. */
+  comments: RecordComments | null;
+  /** The note's files (null when they could not be read); the header's files count and the Discussion stream read them. */
+  files: RecordFile[] | null;
+  /** The note's change log; null when it could not be read. */
+  history: HistoryRow[] | null;
+  /** Who is who, for the History chips: from api.org(). */
+  people: Record<string, AvatarPerson>;
+  /** The reader's own display name, for the optimistic comment row. */
+  meName: string;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -95,6 +119,8 @@ export function NotePage({
   const [busy, setBusy] = useState(false);
   const [turning, setTurning] = useState<TurnKind | 'finish' | null>(null);
   const [removing, setRemoving] = useState(false);
+  // The Discussion's own count while it is open, so the header's comments count follows an add or a delete at once.
+  const [commentCount, setCommentCount] = useState<number | null>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(fresh());
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
   const Icon = KIND_ICON[note.kind];
@@ -205,6 +231,11 @@ export function NotePage({
             </>
           ) : null
         }
+      />
+      <RecordHeaderCounts
+        comments={commentCount ?? comments?.comments.length ?? null}
+        files={files?.length ?? null}
+        href={(f) => (f === 'files' ? '#note-files' : '#note-discussion')}
       />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5">
@@ -431,6 +462,58 @@ export function NotePage({
           ) : null}
         </aside>
       </div>
+      <section className="flex flex-col gap-4" id="note-discussion" data-note-discussion>
+        <h2 className="text-lg font-semibold">{t('record.discussion')}</h2>
+        {comments ? (
+          <Comments
+            entity="my_note"
+            id={note.id}
+            data={comments}
+            locale={locale}
+            personName={meName}
+            people={colleagues.map((c) => ({ id: c.id, name: c.name }))}
+            label={t('record.discussion')}
+            onCount={setCommentCount}
+            files={files}
+            onFilesRetry={() => router.refresh()}
+          />
+        ) : (
+          <DataState
+            kind="failed"
+            message={t('state.failed', { what: t('record.discussion') })}
+            onRetry={() => router.refresh()}
+            retryLabel={t('common.tryAgain')}
+          />
+        )}
+        <div id="note-files">
+          <FilesSection
+            entity="my_note"
+            recordId={note.id}
+            kinds={[{ kind: 'evidence', purpose: 'evidence', label: t('record.files.kinds.evidence') }]}
+            files={files}
+            mayWrite={note.mine}
+            onDone={() => router.refresh()}
+            title={t('record.files.title')}
+          />
+        </div>
+      </section>
+      <section className="flex flex-col gap-4" data-note-history>
+        <h2 className="text-lg font-semibold">{t('record.history')}</h2>
+        {history ? (
+          history.length ? (
+            <ActivityTimeline rows={history} people={people} onChanged={() => router.refresh()} />
+          ) : (
+            <DataState kind="empty" message={t('record.noActivity')} />
+          )
+        ) : (
+          <DataState
+            kind="failed"
+            message={t('state.failed', { what: t('record.history') })}
+            onRetry={() => router.refresh()}
+            retryLabel={t('common.tryAgain')}
+          />
+        )}
+      </section>
       {mine ? (
         <>
           <LogFromNoteDialog

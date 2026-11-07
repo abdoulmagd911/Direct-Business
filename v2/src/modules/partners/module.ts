@@ -35,6 +35,16 @@ export default defineModule({
       levels: ['none', 'full'],
       defaults: { admin: 'full' },
     },
+    {
+      // All files (Phase 3): one archive of every file, read-only in itself — a file is opened, downloaded or
+      // removed from its own record. No nav entry of its own: the drawer entry is the "All files" link, and
+      // Ctrl K lists it. Role defaults as for the Tasks page.
+      key: 'files',
+      route: '/files',
+      label: 'nav.files',
+      built: true,
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
+    },
   ],
   entities: [
     // An organisation's records go by the pages of its sides (partner.row_level — V98): the whole record by the sides

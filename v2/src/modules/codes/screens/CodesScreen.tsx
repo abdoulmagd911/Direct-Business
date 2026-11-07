@@ -18,6 +18,7 @@ import { Select } from '@/ui/Select';
 import { toast } from '@/ui/Toast';
 import { filterCodes, sortCodes } from '../state';
 import type { CodeDetail, CodeRow, CompanyCodeRow, CodeState, PartnerOption } from '../types';
+import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
 
 type Locale = 'en' | 'ar';
 
@@ -37,6 +38,8 @@ const dateOrDash = (value: string | null, locale: Locale) =>
  * created date, its counted revenue, cost and profit from the Finance report's own units, and its stored
  * Direct link — with uses that are not counted listed apart, never in the totals. The per-company view is
  * promo attribution only, apart from a company's own totals. Only Full records a use or an attribution.
+ * The detail also holds the code's own files (Phase 4): the approval file belongs to the code itself, not
+ * to a use — a use is a transaction.
  */
 export function CodesScreen({
   rows,
@@ -48,6 +51,8 @@ export function CodesScreen({
   listFailed,
   detailFailed,
   companiesFailed,
+  files,
+  filesFailed,
 }: {
   rows: CodeRow[];
   detail: CodeDetail | null;
@@ -58,6 +63,9 @@ export function CodesScreen({
   listFailed: boolean;
   detailFailed: boolean;
   companiesFailed: boolean;
+  /** The selected code's files; null when the read failed (a failed read says so, never an empty section). */
+  files: RecordFile[] | null;
+  filesFailed: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -357,6 +365,15 @@ export function CodesScreen({
                 </Button>
               </div>
             ) : null}
+            <FilesSection
+              entity="campaign_code"
+              recordId={detail.id}
+              kinds={[{ kind: 'evidence', purpose: 'evidence', label: t('record.files.kinds.evidence') }]}
+              files={filesFailed ? null : files}
+              mayWrite={full}
+              onDone={() => router.refresh()}
+              title={t('record.files.title')}
+            />
           </section>
         )
       ) : null}

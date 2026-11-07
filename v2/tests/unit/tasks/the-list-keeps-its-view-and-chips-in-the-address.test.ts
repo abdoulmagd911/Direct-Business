@@ -51,4 +51,29 @@ describe('the Tasks list: My work, Owned, Helping, Team; chips status, due, part
     expect(keepRow(row({ due_on: null }), f('none'), ME, today)).toBe(true);
     expect(keepRow(row({ due_on: today }), f('none'), ME, today)).toBe(false);
   });
+
+  it('Phase 5: the Starred and Need-help views live in the address and ask the door for their flag', () => {
+    const starred = parseFilters({ starred: '1' });
+    expect(starred.starred).toBe(true);
+    expect(starred.escalated).toBeUndefined();
+    expect(filtersHref(starred)).toBe('/tasks?starred=1');
+    expect(parseFilters(Object.fromEntries(new URL(`http://x${filtersHref(starred)}`).searchParams))).toEqual(starred);
+    expect(apiFilter(starred)).toMatchObject({ starred: true });
+    const flagged = parseFilters({ escalated: '1' });
+    expect(flagged.escalated).toBe(true);
+    expect(filtersHref(flagged)).toBe('/tasks?escalated=1');
+    expect(apiFilter(flagged)).toMatchObject({ escalated: true });
+    expect(parseFilters({ starred: 'yes', escalated: '0' })).toMatchObject({
+      starred: undefined,
+      escalated: undefined,
+    });
+  });
+
+  it('Phase 5: the Starred and Need-help views keep only their own rows', () => {
+    const today = '2026-10-10';
+    expect(keepRow(row({ starred: true }), { scope: 'my_work', starred: true }, ME, today)).toBe(true);
+    expect(keepRow(row({ starred: false }), { scope: 'my_work', starred: true }, ME, today)).toBe(false);
+    expect(keepRow(row({ escalated: true }), { scope: 'my_work', escalated: true }, ME, today)).toBe(true);
+    expect(keepRow(row({ escalated: false }), { scope: 'my_work', escalated: true }, ME, today)).toBe(false);
+  });
 });

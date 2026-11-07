@@ -11,6 +11,8 @@ import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
+import type { RecordComments } from '@/ui/record/Comments';
+import type { RecordFile } from '@/ui/record/FilesSection';
 
 export const generateMetadata = pageTitle('pages.achievements.title');
 
@@ -22,9 +24,9 @@ export default async function AchievementPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; filter?: string | string[] }>;
 }) {
-  const [{ id }, { tab }, me, locale] = await Promise.all([params, searchParams, requireMe(), getLocale()]);
+  const [{ id }, { tab, filter }, me, locale] = await Promise.all([params, searchParams, requireMe(), getLocale()]);
   const lang = locale as 'en' | 'ar';
   const failed: string[] = [];
   const a = await maybe<AchievementDetail>('achievement', failed, () => serverRpc('achievement', { p_id: id }));
@@ -43,7 +45,7 @@ export default async function AchievementPage({
       </Page>
     );
   }
-  const [org, history, categories, systems, partner, fromNote] = await Promise.all([
+  const [org, history, categories, systems, partner, fromNote, comments, files] = await Promise.all([
     maybe<OrgAnswer>('org', failed, () => serverRpc('org', {} as never)),
     maybe<RecordChange[]>('history', failed, () => serverRpc('record_history', { p_entity: 'achievement', p_id: id })),
     maybe<Category[]>('categories', failed, () => serverRpc('achievement_categories', { p_plan: a.plan_id })),
@@ -54,13 +56,19 @@ export default async function AchievementPage({
         )
       : Promise.resolve(null),
     maybe<FromNote | null>('from_note', failed, () => serverRpc('from_note', { p_entity: 'achievement', p_id: id })),
+    // The Discussion's comments and the header's files count, read live beside the rest.
+    maybe<RecordComments>('comments', failed, () => serverRpc('comments', { p_entity: 'achievement', p_id: id })),
+    maybe<RecordFile[]>('files', failed, () => serverRpc('files', { p_entity: 'achievement', p_id: id })),
   ]);
   const data: AchievementRecordData = {
     a,
     tab: typeof tab === 'string' ? tab : 'overview',
+    filter: typeof filter === 'string' ? filter : undefined,
     org,
     partnerName: partner ? (lang === 'ar' && partner.trade_name_ar) || partner.trade_name_en : null,
     history: history ? historyRows(history, 'achievement', id) : null,
+    comments,
+    files,
     categories: categories ?? [],
     systems: (systems ?? []).map((s) => ({ key: s.key, name: lang === 'ar' ? s.name_ar : s.name_en })),
     full: (me.levels.kpis ?? 'none') === 'full',

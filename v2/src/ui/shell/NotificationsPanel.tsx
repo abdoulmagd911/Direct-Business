@@ -59,7 +59,7 @@ export function NotificationsPanel({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
-  const [picking, setPicking] = useState<string | null>(null);
+  const [picking, setPicking] = useState<string[] | null>(null);
   const [day, setDay] = useState('');
   const fail = (e: unknown) => {
     const { key, detail } = errorKey(e, (k) => t.has(k));
@@ -102,10 +102,68 @@ export function NotificationsPanel({
     n.label_key && t.has(`activity.labels.${n.label_key}`)
       ? t(`activity.labels.${n.label_key}`, (n.label_args ?? {}) as Record<string, string | number>)
       : null;
-  const openItem = async (n: Notification, href: string) => {
-    if (!n.read_at) await act(() => markRead([n.id]));
+  const openItem = async (ids: string[], href: string) => {
+    if (ids.length) await act(() => markRead(ids));
     onOpenChange(false);
     router.push(href);
+  };
+  // Comment notices collapse to one item per record per day: the newest row's line, a count and the latest
+  // comment's preview, one unread dot when any of them is unread; mark-read and snooze take them all together.
+  const previewOf = (n: Notification) =>
+    typeof n.label_args?.preview === 'string' ? (n.label_args.preview as string) : null;
+  type Shown = {
+    key: string;
+    ids: string[];
+    unreadIds: string[];
+    newest: Notification;
+    count: number;
+    preview: string | null;
+    unread: boolean;
+  };
+  const collapse = (rows: Notification[]): Shown[] => {
+    const out: Shown[] = [];
+    const byKey = new Map<string, Shown>();
+    for (const n of rows) {
+      if (n.kind !== 'commented' || !n.entity || !n.entity_id) {
+        out.push({
+          key: n.id,
+          ids: [n.id],
+          unreadIds: n.read_at ? [] : [n.id],
+          newest: n,
+          count: 1,
+          preview: null,
+          unread: !n.read_at,
+        });
+        continue;
+      }
+      const key = `commented:${n.entity}:${n.entity_id}:${riyadhDay(new Date(n.created_at))}`;
+      const g = byKey.get(key);
+      if (!g) {
+        const s: Shown = {
+          key,
+          ids: [n.id],
+          unreadIds: n.read_at ? [] : [n.id],
+          newest: n,
+          count: 1,
+          preview: previewOf(n),
+          unread: !n.read_at,
+        };
+        byKey.set(key, s);
+        out.push(s);
+      } else {
+        g.ids.push(n.id);
+        if (!n.read_at) {
+          g.unreadIds.push(n.id);
+          g.unread = true;
+        }
+        g.count += 1;
+        if (n.created_at > g.newest.created_at) {
+          g.newest = n;
+          g.preview = previewOf(n);
+        }
+      }
+    }
+    return out;
   };
   // the server's clock, as the gate read it for this page load: the day groups and the snooze days come from it
   const now = new Date(useMe().session.last_seen_at);
@@ -187,25 +245,31 @@ export function NotificationsPanel({
                         ) : null}
                       </h3>
                       <ul className="flex flex-col">
-                        {g.rows.map((n) => {
+                        {collapse(g.rows).map((s) => {
+                          const n = s.newest;
                           const href = entityRoute(n.entity, n.entity_id);
                           const line = wordsOf(n, now);
-                          const detail = detailOf(n);
+                          const detail =
+                            n.kind === 'commented'
+                              ? [t('notifications.commentGroup', { count: s.count }), s.preview]
+                                  .filter(Boolean)
+                                  .join(' · ')
+                              : detailOf(n);
                           return (
                             <li
-                              key={n.id}
+                              key={s.key}
                               className={cn(
                                 'flex items-start gap-2.5 rounded-md px-3 py-2.5 text-sm',
-                                !n.read_at && 'bg-accent-soft/40',
+                                s.unread && 'bg-accent-soft/40',
                               )}
                               data-notification={n.id}
-                              data-unread={n.read_at ? undefined : ''}
+                              data-unread={s.unread ? '' : undefined}
                             >
                               <span
                                 aria-hidden="true"
                                 className={cn(
                                   'mt-1.5 size-2 shrink-0 rounded-pill',
-                                  n.read_at ? 'bg-transparent' : 'bg-primary',
+                                  s.unread ? 'bg-primary' : 'bg-transparent',
                                 )}
                               />
                               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -215,7 +279,7 @@ export function NotificationsPanel({
                                     className="font-medium hover:underline"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      void openItem(n, href);
+                                      void openItem(s.unreadIds, href);
                                     }}
                                     data-notification-link
                                   >
@@ -236,15 +300,15 @@ export function NotificationsPanel({
                                     .join(' · ')}
                                 </span>
                               </span>
-                              {n.read_at ? null : (
+                              {s.unread ? (
                                 <IconButton
                                   label={t('notifications.markRead')}
                                   icon={<Check />}
                                   size="sm"
-                                  onClick={() => void act(() => markRead([n.id]))}
+                                  onClick={() => void act(() => markRead(s.ids))}
                                   data-notification-mark-read
                                 />
-                              )}
+                              ) : null}
                               <Menu>
                                 <MenuTrigger asChild>
                                   <IconButton
@@ -255,12 +319,12 @@ export function NotificationsPanel({
                                   />
                                 </MenuTrigger>
                                 <MenuContent>
-                                  <MenuItem onSelect={() => void act(() => snooze([n.id], snoozeUntilTomorrow(now)))}>
+                                  <MenuItem onSelect={() => void act(() => snooze(s.ids, snoozeUntilTomorrow(now)))}>
                                     {tomorrowName
                                       ? t('notifications.snoozeDay', { day: tomorrowName })
                                       : t('notifications.snoozeTomorrow')}
                                   </MenuItem>
-                                  <MenuItem onSelect={() => void act(() => snooze([n.id], snoozeForAWeek(now)))}>
+                                  <MenuItem onSelect={() => void act(() => snooze(s.ids, snoozeForAWeek(now)))}>
                                     {t('notifications.snoozeWeek', {
                                       when: formatDate(weekOutDay(riyadhDay(now)), locale, {
                                         weekday: 'short',
@@ -273,7 +337,7 @@ export function NotificationsPanel({
                                   <MenuItem
                                     onSelect={() => {
                                       setDay('');
-                                      setPicking(n.id);
+                                      setPicking(s.ids);
                                     }}
                                   >
                                     {t('notifications.snoozeDate')}
@@ -304,9 +368,9 @@ export function NotificationsPanel({
               variant="primary"
               disabled={!day}
               onClick={() => {
-                const id = picking!;
+                const ids = picking!;
                 setPicking(null);
-                void act(() => snooze([id], new Date(`${day}T08:00:00+03:00`)));
+                void act(() => snooze(ids, new Date(`${day}T08:00:00+03:00`)));
               }}
               data-notification-snooze-save
             >

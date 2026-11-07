@@ -91,6 +91,24 @@ export type Database = {
         };
         Returns: Json;
       };
+      all_files: {
+        Args: {
+          p_entity?: string;
+          p_from?: string;
+          p_kind?: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_purpose?: string;
+          p_record?: string;
+          p_search?: string;
+          p_side?: string;
+          p_sort?: string;
+          p_status?: string;
+          p_to?: string;
+          p_uploader?: string;
+        };
+        Returns: Json;
+      };
       app_settings: { Args: Record<PropertyKey, never>; Returns: Json };
       auth_ticket_issue: { Args: { p_kind: string; p_person: string; p_target: string }; Returns: string };
       auth_user_of: { Args: { p_email: string }; Returns: string };
@@ -144,6 +162,11 @@ export type Database = {
       codes_by_company: { Args: Record<PropertyKey, never>; Returns: Json };
       codes_detail: { Args: { p_code: string }; Returns: Json };
       codes_list: { Args: Record<PropertyKey, never>; Returns: Json };
+      comment_add: { Args: { p_asked_to?: string; p_body: string; p_entity: string; p_id: string }; Returns: Json };
+      comment_answer: { Args: { p_answer: string; p_id: string }; Returns: Json };
+      comment_edit: { Args: { p_body: string; p_id: string; p_version: number }; Returns: Json };
+      comment_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };
+      comments: { Args: { p_entity: string; p_id: string }; Returns: Json };
       company_files: { Args: { p_kind?: string; p_partner?: string }; Returns: Json };
       company_summary: { Args: { p_partner: string }; Returns: Json };
       contact_save: { Args: { p_id: string; p_partner: string; p_values: Json; p_version?: number }; Returns: Json };
@@ -181,6 +204,8 @@ export type Database = {
       device_sign_out_others: { Args: Record<PropertyKey, never>; Returns: number };
       device_touch: { Args: Record<PropertyKey, never>; Returns: string };
       escalate: { Args: { p_entity: string; p_id: string; p_note: string; p_to: string }; Returns: Json };
+      escalate_acknowledge: { Args: { p_id: string }; Returns: Json };
+      escalated_tasks: { Args: Record<PropertyKey, never>; Returns: Json };
       file_begin: {
         Args: {
           p_entity: string;
@@ -420,6 +445,7 @@ export type Database = {
       notifications_mark_read: { Args: { p_ids?: string[] }; Returns: number };
       notifications_snooze: { Args: { p_ids: string[]; p_until: string }; Returns: number };
       notifications_unread: { Args: Record<PropertyKey, never>; Returns: number };
+      open_asks: { Args: Record<PropertyKey, never>; Returns: Json };
       opportunity_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       opportunity_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };
       org: { Args: Record<PropertyKey, never>; Returns: Json };
@@ -585,8 +611,10 @@ export type Database = {
       task_comments: { Args: { p_task: string }; Returns: Json };
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
+      task_delegate: { Args: { p_id: string; p_note: string; p_to: string }; Returns: Json };
       task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
+      task_nudge_dismiss: { Args: { p_dismissed: boolean; p_id: string }; Returns: Json };
       task_ref_add: { Args: { p_system: string; p_task: string; p_value: string }; Returns: Json };
       task_refs_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       task_star: { Args: { p_id: string; p_starred: boolean }; Returns: Json };

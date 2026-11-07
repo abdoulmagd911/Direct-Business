@@ -1,18 +1,10 @@
 'use client';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
-import { browserDb } from '@/core/db/client';
-import { rpc } from '@/core/db/rpc';
 import { formatDate, formatMoney } from '@/core/i18n/format';
-import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
-import { Field } from '@/ui/Field';
-import { Input } from '@/ui/Input';
 import { Money } from '@/ui/Money';
-import { ReasonDialog } from '@/ui/ReasonDialog';
-import { Select } from '@/ui/Select';
+import { FilesSection as SharedFilesSection } from '@/ui/record/FilesSection';
 import type { CompanyFile, CompanySummary, Identifier, PartnerCard } from '../../types';
 
 /** The file kinds the company Files section offers, and the purpose each is stored under. */
@@ -24,25 +16,8 @@ const FILE_KINDS = [
   { kind: 'tender_document', purpose: 'tender' },
 ] as const;
 
-function sizeOf(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-async function sha256Hex(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  const hash = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-/**
- * A company's files: the four company kinds plus the letter of award, uploaded through the existing file
- * doors (register, store, finish) and listed from them. A file whose upload never finished stays listed as
- * pending — removing it and uploading again is the way back.
- */
+/** A company's files, through the shared Files section (Phase 3): the same five kinds, the same words, the
+ *  same rendering — the section itself now lives in src/ui/record/FilesSection.tsx. */
 export function FilesSection({
   partnerId,
   files,
@@ -55,177 +30,23 @@ export function FilesSection({
   onDone: () => void;
 }) {
   const t = useTranslations();
-  const locale = useLocale() as 'en' | 'ar';
-  const [kind, setKind] = useState<string>('');
-  const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<CompanyFile | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const upload = async () => {
-    if (!file || !kind) return;
-    const purpose = FILE_KINDS.find((k) => k.kind === kind)?.purpose ?? 'attachment';
-    setBusy(true);
-    setError(null);
-    try {
-      const begun = (await rpc('file_begin', {
-        p_entity: 'partner',
-        p_id: partnerId,
-        p_kind: kind,
-        p_purpose: purpose,
-        p_original_name: file.name,
-        p_size: file.size,
-        p_mime: file.type || 'application/octet-stream',
-      })) as unknown as { id: string; bucket: string; path: string };
-      const stored = await browserDb().storage.from(begun.bucket).upload(begun.path, file);
-      if (stored.error) throw stored.error;
-      await rpc('file_finish', { p_id: begun.id, p_sha256: await sha256Hex(file) });
-      setFile(null);
-      setKind('');
-      if (inputRef.current) inputRef.current.value = '';
-      onDone();
-    } catch {
-      setError(t('partners.companyFiles.uploadFailed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const download = async (f: CompanyFile) => {
-    setError(null);
-    try {
-      const info = (await rpc('file_download', { p_id: f.id, p_locale: locale })) as unknown as {
-        bucket: string;
-        path: string;
-        download_name: string;
-        expires_in: number;
-      };
-      const signed = await browserDb()
-        .storage.from(info.bucket)
-        .createSignedUrl(info.path, info.expires_in, { download: info.download_name });
-      if (signed.error || !signed.data) throw signed.error ?? new Error('no url');
-      window.open(signed.data.signedUrl, '_blank', 'noreferrer');
-    } catch {
-      setError(t('partners.companyFiles.downloadFailed'));
-    }
-  };
-
   return (
-    <section className="rounded-lg border border-border bg-raised p-5" data-partner-files>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">{t('partners.companyFiles.title')}</h2>
-        <Link href={`/files?company=${partnerId}`} className="text-sm text-link hover:underline">
-          {t('partners.companyFiles.allFiles')}
-        </Link>
-      </div>
-      <p className="mb-4 text-sm text-muted">{t('partners.companyFiles.allFilesHint')}</p>
-      {mayWrite ? (
-        <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end">
-          <Field label={t('partners.companyFiles.kind')} className="sm:w-64">
-            {({ id }) => (
-              <Select
-                id={id}
-                value={kind || undefined}
-                onValueChange={setKind}
-                placeholder={t('partners.companyFiles.chooseKind')}
-                options={FILE_KINDS.map((k) => ({
-                  value: k.kind,
-                  label: t(`partners.companyFiles.kinds.${k.kind}`),
-                }))}
-              />
-            )}
-          </Field>
-          <Field label={t('partners.companyFiles.chooseFile')} className="flex-1">
-            {({ id }) => (
-              <Input id={id} ref={inputRef} type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-            )}
-          </Field>
-          <Button variant="primary" loading={busy} disabled={!file || !kind} onClick={upload} data-file-upload>
-            {t('partners.companyFiles.upload')}
-          </Button>
-        </div>
-      ) : null}
-      {error ? (
-        <p role="alert" className="mb-3 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-      {files === null ? (
-        <DataState
-          kind="failed"
-          what={t('partners.companyFiles.title')}
-          onRetry={onDone}
-          retryLabel={t('common.tryAgain')}
-        />
-      ) : files.length ? (
-        <ul className="divide-y divide-border">
-          {files.map((f) => {
-            const name = locale === 'ar' && f.display_name_ar ? f.display_name_ar : f.display_name_en;
-            return (
-              <li
-                key={f.id}
-                className="flex flex-wrap items-center justify-between gap-2 py-2.5"
-                data-company-file={f.id}
-              >
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">{name ?? f.original_name}</span>
-                  <span className="text-xs text-muted">
-                    {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {sizeOf(f.size_bytes)} ·{' '}
-                    {t('partners.companyFiles.addedOn', {
-                      date: formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-                    })}
-                  </span>
-                  {f.status !== 'stored' ? (
-                    <StatusChip tone="warning" className="mt-1 w-fit">
-                      {t('partners.companyFiles.notStored')}
-                    </StatusChip>
-                  ) : null}
-                </span>
-                <span className="flex gap-2">
-                  {f.status === 'stored' ? (
-                    <Button size="xs" onClick={() => download(f)} data-file-download>
-                      {t('partners.companyFiles.download')}
-                    </Button>
-                  ) : null}
-                  {mayWrite ? (
-                    <Button size="xs" variant="ghost" onClick={() => setRemoving(f)} data-file-remove>
-                      {t('partners.companyFiles.remove')}
-                    </Button>
-                  ) : null}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <DataState kind="empty" message={t('partners.companyFiles.none')} />
-      )}
-      <ReasonDialog
-        open={removing !== null}
-        onOpenChange={(o) => !o && setRemoving(null)}
-        title={t('partners.companyFiles.removeTitle', {
-          name: removing
-            ? locale === 'ar' && removing.display_name_ar
-              ? removing.display_name_ar
-              : (removing.display_name_en ?? removing.original_name ?? '')
-            : '',
-        })}
-        destructive
-        onSave={async (reason) => {
-          const f = removing!;
-          setRemoving(null);
-          await rpc('files_remove', { p_ids: [f.id], p_reason: reason });
-          onDone();
-        }}
-        words={{
-          reason: t('common.reason'),
-          save: t('common.remove'),
-          cancel: t('common.cancel'),
-          reasonRequired: t('settings.form.reasonRequired'),
-        }}
-      />
-    </section>
+    <SharedFilesSection
+      entity="partner"
+      recordId={partnerId}
+      kinds={FILE_KINDS.map((k) => ({
+        kind: k.kind,
+        purpose: k.purpose,
+        label: t(`partners.companyFiles.kinds.${k.kind}`),
+      }))}
+      files={files}
+      mayWrite={mayWrite}
+      onDone={onDone}
+      title={t('partners.companyFiles.title')}
+      allFilesHref={`/files?company=${partnerId}`}
+      allFilesLabel={t('partners.companyFiles.allFiles')}
+      intro={t('partners.companyFiles.allFilesHint')}
+    />
   );
 }
 

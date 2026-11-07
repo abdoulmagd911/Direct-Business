@@ -6,6 +6,7 @@ import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { PartnerRecord, type PartnerRecordData } from './PartnerRecord';
 import type { CompanyFile, CompanySummary, Contract, ListEntry, Note, PartnerCard, Side } from '../types';
+import type { RecordComments } from '@/ui/record/Comments';
 
 /** What the reader may not read is left out, never faked (the database refuses; the screen shows no-access). */
 async function maybe<T>(read: () => Promise<unknown>): Promise<T | null> {
@@ -24,9 +25,9 @@ export async function PartnerRecordPage({
 }: {
   side: Side;
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; filter?: string | string[] }>;
 }) {
-  const [{ id }, { tab }, me] = await Promise.all([params, searchParams, requireMe()]);
+  const [{ id }, { tab, filter }, me] = await Promise.all([params, searchParams, requireMe()]);
   let card: PartnerCard | null = null;
   let refused = false;
   try {
@@ -41,6 +42,7 @@ export async function PartnerRecordPage({
     notes,
     contracts,
     history,
+    comments,
     files,
     summary,
     types,
@@ -56,6 +58,8 @@ export async function PartnerRecordPage({
     card ? maybe<Note[]>(() => serverRpc('notes', { p_entity: 'partner', p_id: id, p_limit: 100 })) : null,
     card ? maybe<Contract[]>(() => serverRpc('contracts', { p_partner: id })) : null,
     card ? maybe<RecordChange[]>(() => serverRpc('record_history', { p_entity: 'partner', p_id: id } as never)) : null,
+    // The Discussion's comments, read live beside the files.
+    card ? maybe<RecordComments>(() => serverRpc('comments', { p_entity: 'partner', p_id: id } as never)) : null,
     // The company page's Files section (existing file doors) and its Codes/Finance tabs (one summary
     // read). Either failing leaves its tab saying so, never an invented figure.
     card ? maybe<CompanyFile[]>(() => serverRpc('files', { p_entity: 'partner', p_id: id })) : null,
@@ -73,12 +77,14 @@ export async function PartnerRecordPage({
     me,
     side,
     tab: typeof tab === 'string' ? tab : 'overview',
+    filter: typeof filter === 'string' ? filter : undefined,
     card,
     refused,
     org,
     notes: notes ?? [],
     contracts: contracts ?? [],
     history: history ? historyRows(history, 'partner', id) : null,
+    comments,
     files,
     summary,
     lists: { types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities },

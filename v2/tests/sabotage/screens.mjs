@@ -1937,9 +1937,7 @@ export const sabotages = [
     name: 'bell-mark-read-button-is-gone',
     breaks: ['unit:tests/unit/shell/the-bell-says-names-and-dates.test.tsx'],
     expect: 'has a Mark as read button on each unread row',
-    edits: [
-      { file: 'src/ui/shell/NotificationsPanel.tsx', find: '{n.read_at ? null : (', replace: '{true ? null : (' },
-    ],
+    edits: [{ file: 'src/ui/shell/NotificationsPanel.tsx', find: '{s.unread ? (', replace: '{false ? (' }],
   },
   {
     name: 'bell-mark-read-marks-everything',
@@ -1948,7 +1946,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/NotificationsPanel.tsx',
-        find: 'onClick={() => void act(() => markRead([n.id]))}\n                                  data-notification-mark-read',
+        find: 'onClick={() => void act(() => markRead(s.ids))}\n                                  data-notification-mark-read',
         replace:
           'onClick={() => void act(() => markRead())}\n                                  data-notification-mark-read',
       },

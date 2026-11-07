@@ -118,28 +118,31 @@ export function SavedViewsBar({
             ) : null}
             {v.name}
           </button>
-          <Menu>
-            <MenuTrigger asChild>
-              <IconButton
-                label={t('views.menu', { name: v.name })}
-                icon={<MoreHorizontal />}
-                size="sm"
-                data-view-menu
-              />
-            </MenuTrigger>
-            <MenuContent>
-              {!v.default ? (
-                <MenuItem icon={<Check />} onSelect={() => void setDefault(v.id)} data-view-default>
-                  {t('views.setDefault')}
-                </MenuItem>
-              ) : null}
-              {v.mine || admin ? (
-                <MenuItem onSelect={() => setRemoving(v)} data-view-remove>
-                  {t('common.remove')}
-                </MenuItem>
-              ) : null}
-            </MenuContent>
-          </Menu>
+          {/* a built-in view comes with the page, so it has no menu: nobody removes it or sets it as a default */}
+          {v.builtIn ? null : (
+            <Menu>
+              <MenuTrigger asChild>
+                <IconButton
+                  label={t('views.menu', { name: v.name })}
+                  icon={<MoreHorizontal />}
+                  size="sm"
+                  data-view-menu
+                />
+              </MenuTrigger>
+              <MenuContent>
+                {!v.default ? (
+                  <MenuItem icon={<Check />} onSelect={() => void setDefault(v.id)} data-view-default>
+                    {t('views.setDefault')}
+                  </MenuItem>
+                ) : null}
+                {v.mine || admin ? (
+                  <MenuItem onSelect={() => setRemoving(v)} data-view-remove>
+                    {t('common.remove')}
+                  </MenuItem>
+                ) : null}
+              </MenuContent>
+            </Menu>
+          )}
         </span>
       ))}
       {failed ? (

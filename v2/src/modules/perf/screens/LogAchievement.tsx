@@ -53,6 +53,7 @@ export function LogAchievement({
   department,
   canOpenPlan,
   initialTitle = '',
+  sourceTaskId = '',
 }: {
   categories: Category[];
   year: number;
@@ -66,6 +67,8 @@ export function LogAchievement({
   canOpenPlan: boolean;
   /** Words to start the title with (a task marked Done offers its own). */
   initialTitle?: string;
+  /** The task this achievement came from (the strip or the Done row passes ?task=): stored as source_task_id. */
+  sourceTaskId?: string;
 }) {
   const t = useTranslations('pages.achievements');
   const locale = useLocale() as 'en' | 'ar';
@@ -165,6 +168,7 @@ export function LogAchievement({
             ...(owner !== meId ? { owner_id: owner } : {}),
             ...(needsSide && side ? { side } : {}),
             ...(repeatOf ? { repeat_of: repeatOf } : {}),
+            ...(sourceTaskId ? { source_task_id: sourceTaskId } : {}),
           },
           p_refs: refs,
         }) as Promise<{ id: string; request_id?: string | null }>,

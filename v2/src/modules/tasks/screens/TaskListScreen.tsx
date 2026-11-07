@@ -28,12 +28,14 @@ import {
   riyadhDay,
   statusView,
   type Layout,
+  type Scope,
   type TaskFilters,
 } from '../rules';
 import type { TaskList, TaskRow, TeamLoad } from '../types';
 import type { TaskLookups } from '../load';
 import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
+import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { TaskBoard } from './TaskBoard';
 import { TaskCalendar } from './TaskCalendar';
 import { TeamLoadPanel } from './TeamLoadPanel';
@@ -71,6 +73,24 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const layout = f.layout ?? 'list';
   const go = (change: Partial<TaskFilters>) => router.push(filtersHref(f, change));
   const retry = () => router.refresh();
+  // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
+  // in the address with the filters, so Back and refresh keep it
+  const [view, setView] = useState(f.escalated ? 'escalated' : f.starred ? 'starred' : 'all');
+  const openView = (v: { key: string; query?: Record<string, unknown> }) => {
+    setView(v.key);
+    if (v.key === 'all') return go({ starred: undefined, escalated: undefined });
+    if (v.key === 'starred') return go({ starred: true, escalated: undefined });
+    if (v.key === 'escalated') return go({ escalated: true, starred: undefined });
+    // a saved view: its starred / escalated flags and its scope apply on this list
+    go({
+      scope:
+        typeof v.query?.scope === 'string' && (SCOPES as readonly string[]).includes(v.query.scope)
+          ? (v.query.scope as Scope)
+          : undefined,
+      starred: v.query?.starred === true || undefined,
+      escalated: v.query?.escalated === true || undefined,
+    });
+  };
 
   const chipMenu = (field: string, options: { key: string; label: string; href: string }[]) => (
     <Menu>
@@ -132,6 +152,15 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           href: filtersHref(f, { scope: s }),
           more: !phoneScopes(me.capabilities).includes(s),
         }))}
+      />
+      <SavedViewsBar
+        page="tasks"
+        fixed={[{ key: 'all', label: t('pages.tasks.views.all') }]}
+        current={view}
+        query={{ ...f } as unknown as Record<string, unknown>}
+        onOpen={openView}
+        canShare={me.levels.tasks === 'full'}
+        saveHint={t('views.saveHint')}
       />
       <div className="flex flex-wrap items-center gap-2" data-task-chips>
         <PhoneFilter label={t('common.filter')} count={filterCount(f)}>
@@ -215,7 +244,15 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       ) : rows.length === 0 && layout === 'list' ? (
         <DataState
           kind="empty"
-          message={t(isFiltered(f) ? 'pages.tasks.emptyFiltered' : `pages.tasks.empty.${f.scope}`)}
+          message={t(
+            f.escalated
+              ? 'pages.tasks.empty.escalated'
+              : f.starred
+                ? 'pages.tasks.empty.starred'
+                : isFiltered(f)
+                  ? 'pages.tasks.emptyFiltered'
+                  : `pages.tasks.empty.${f.scope}`,
+          )}
         />
       ) : (
         // Board and Calendar keep their own shape when there are no tasks,

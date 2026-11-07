@@ -428,13 +428,13 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
 
 // ---- V657: a task's comments in Arabic, at 375 px
 
-test('in Arabic at 375 px: the Comments tab, the box and the comment say the catalog’s words', async ({
+test('in Arabic at 375 px: the Discussion tab, the box and the comment say the catalog’s words', async ({
   page,
   context,
 }) => {
   await withArabic(async () => {
     const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
-      pages: { tasks: { tabs: { comments: string }; comments: { write: string; add: string; added: string } } };
+      pages: { tasks: { tabs: { discussion: string }; comments: { write: string; add: string; added: string } } };
     };
     const w = ar.pages.tasks;
     const me = await makePerson({ admin: true });
@@ -462,7 +462,7 @@ test('in Arabic at 375 px: the Comments tab, the box and the comment say the cat
     await page.goto(`/tasks/${number}?tab=comments`);
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.comments);
+    await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.discussion);
     await page.locator('[data-add-comment] textarea').fill('تعليق تجريبي');
     await expect(page.getByRole('button', { name: w.comments.add })).toBeVisible();
     await page.getByRole('button', { name: w.comments.add }).click();

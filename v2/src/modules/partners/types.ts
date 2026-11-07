@@ -235,6 +235,39 @@ export type ArchiveFile = {
   added_at: string;
 };
 
+/** One row of the All files archive, as api.all_files answers it. */
+export type AllFilesRow = {
+  id: string;
+  link_id: string;
+  display_name: string | null;
+  display_name_ar: string | null;
+  original_name: string | null;
+  kind: string;
+  kind_en: string;
+  kind_ar: string | null;
+  purpose: string;
+  side: Side | null;
+  size: number;
+  sensitivity: string;
+  status: string;
+  review_on: string | null;
+  added_by: string | null;
+  added_by_name: string | null;
+  added_at: string;
+  record_label: string | null;
+  record_link: string | null;
+  entity_table: string;
+  entity_id: string;
+};
+
+/** api.all_files: the filtered rows with the total before paging, and the live filter options. */
+export type AllFilesAnswer = {
+  total: number;
+  rows: AllFilesRow[];
+  facets: { sides: string[]; purposes: string[]; statuses: string[] };
+  uploaders: { id: string; name: string | null }[];
+};
+
 /** A company's wallet roll-up, as api.company_summary answers it. Held and available stay null: no workspace
  *  table records a hold, so they are shown empty rather than guessed. */
 export type CompanyWallet = {

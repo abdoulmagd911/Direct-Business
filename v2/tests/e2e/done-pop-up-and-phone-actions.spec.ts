@@ -3,8 +3,8 @@
  *  (A) the round Done tick on a task row (My day's Today block and the Tasks list) asks "Mark done?" first — Done and
  *      Cancel, Done focused so Enter confirms, the Undo toast after; Cancel and Escape change nothing; a checklist
  *      item's own tick stays one tap;
- *  (B) on a phone the task page's action row holds Done and the ⋯ only — Edit and Follow up sit behind the dots, which
- *      never sit alone on a second row (V633); on a desk all four sit on one row.
+ *  (B) on a phone the task page's action row holds Done, Need help and the ⋯ only — Edit and Remind me sit behind
+ *      the dots, which never sit alone on a second row (V633); on a desk all four sit on one row.
  * Sabotages: tests/sabotage/done-pop-up.mjs.
  */
 import { randomUUID } from 'node:crypto';
@@ -132,7 +132,7 @@ for (const [width, height] of [
   });
 }
 
-test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edit and Follow up are behind the dots', async ({
+test('phone 375: the task page keeps Done, Need help and the dots on one row; Edit and Remind me are behind the dots', async ({
   browser,
 }) => {
   const member = await memberWithTeam();
@@ -145,13 +145,15 @@ test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edi
   const row = page.locator('[data-record-actions]');
   await expect(row.locator('[data-mark-done]')).toBeVisible();
   await expect(row.locator('[data-task-more]')).toBeVisible();
-  await expect(row.locator('[data-escalate-open]'), 'Escalate is a labelled button on the row').toHaveText('Escalate');
+  await expect(row.locator('[data-escalate-open]'), 'Need help is a labelled button on the row').toHaveText(
+    'Need help',
+  );
   await expect(row.locator('[data-escalate-open]'), 'with its one line of what it does').toHaveAttribute(
     'title',
-    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
+    'Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.',
   );
   await expect(row.locator('[data-edit-task-open]'), 'Edit is not on the row').toBeHidden();
-  await expect(row.locator('[data-follow-up]'), 'Follow up is not on the row').toBeHidden();
+  await expect(row.locator('[data-follow-up]'), 'Remind me is not on the row').toBeHidden();
 
   // every action that shows sits on the first row: the dots never sit alone on a second one
   const tops = await row.evaluate((el) =>
@@ -159,22 +161,22 @@ test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edi
       .filter((c) => (c as HTMLElement).offsetParent !== null)
       .map((c) => Math.round(c.getBoundingClientRect().top)),
   );
-  expect(tops.length, 'Done, Escalate and the dots show').toBeGreaterThanOrEqual(3);
+  expect(tops.length, 'Done, Need help and the dots show').toBeGreaterThanOrEqual(3);
   expect(new Set(tops).size, 'the actions all sit on one row').toBe(1);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
     'no sideways scroll',
   ).toBe(true);
 
-  // behind the dots: Edit and Follow up, each working; Escalate is no longer there
+  // behind the dots: Edit and Remind me, each working; Need help is no longer there
   await row.locator('[data-task-more]').click();
   await expect(page.locator('[data-menu-edit]')).toBeVisible();
   await expect(page.locator('[data-menu-follow-up]')).toBeVisible();
-  await expect(page.getByRole('menuitem'), 'the dots hold Edit and Follow up only').toHaveCount(2);
+  await expect(page.getByRole('menuitem'), 'the dots hold Edit and Remind me only').toHaveCount(2);
   await page.keyboard.press('Escape');
   await row.locator('[data-escalate-open]').click();
-  await expect(page.getByRole('dialog'), 'Escalate opens, its line read out with it').toHaveAccessibleDescription(
-    'Tell someone about this task, with a note. They get a notification and follow the task from then on.',
+  await expect(page.getByRole('dialog'), 'Need help opens, its line read out with it').toHaveAccessibleDescription(
+    'Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.',
   );
   await page.keyboard.press('Escape');
   await row.locator('[data-task-more]').click();
@@ -183,11 +185,11 @@ test('phone 375: the task page keeps Done, Escalate and the dots on one row; Edi
   await page.keyboard.press('Escape');
   await row.locator('[data-task-more]').click();
   await page.locator('[data-menu-follow-up]').click();
-  await expect(page.locator('[data-quick-capture]'), 'Follow up opens Capture').toBeVisible();
+  await expect(page.locator('[data-quick-capture]'), 'Remind me opens Capture').toBeVisible();
   await ctx.close();
 });
 
-test('phone 375: a closed task still keeps its dots on the row with Follow up behind them', async ({ browser }) => {
+test('phone 375: a closed task still keeps its dots on the row with Remind me behind them', async ({ browser }) => {
   const owner = await memberWithTeam();
   const number = await taskFor(owner, `Made-up closed ${randomUUID().slice(0, 6)}`);
   await sql(
@@ -211,7 +213,9 @@ test('phone 375: a closed task still keeps its dots on the row with Follow up be
   await ctx.close();
 });
 
-test('desk 1440: Done, Edit, Follow up and Escalate all sit on one row, with no ⋯', async ({ browser }) => {
+test('desk 1440: Done, Edit and Need help sit on one row; Remind me is behind the ⋯ (Phase 0.1)', async ({
+  browser,
+}) => {
   const member = await memberWithTeam();
   const number = await taskFor(member, `Made-up desk actions ${randomUUID().slice(0, 6)}`);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -219,15 +223,20 @@ test('desk 1440: Done, Edit, Follow up and Escalate all sit on one row, with no 
   await signIn(page, member.email, `/tasks/${number}`);
   await hydrated(page);
   const row = page.locator('[data-record-actions]');
-  for (const sel of ['[data-mark-done]', '[data-edit-task-open]', '[data-follow-up]', '[data-escalate-open]'])
+  for (const sel of ['[data-mark-done]', '[data-edit-task-open]', '[data-escalate-open]', '[data-task-more]'])
     await expect(row.locator(sel), `${sel} shows on a desk`).toBeVisible();
-  await expect(row.locator('[data-escalate-open]'), 'Escalate says what it is').toHaveText('Escalate');
-  await expect(row.locator('[data-task-more]'), 'a ⋯ that held only Escalate is gone').toBeHidden();
+  await expect(row.locator('[data-escalate-open]'), 'Need help says what it is').toHaveText('Need help');
+  await expect(row.locator('[data-follow-up]'), 'Remind me is behind the ⋯, not on the row').toBeHidden();
   const tops = await row.evaluate((el) =>
     Array.from(el.children)
       .filter((c) => (c as HTMLElement).offsetParent !== null)
       .map((c) => Math.round(c.getBoundingClientRect().top)),
   );
   expect(new Set(tops).size, 'one row').toBe(1);
+
+  // behind the dots: Remind me only (the task is open, not done, and not test-owned for Remove)
+  await row.locator('[data-task-more]').click();
+  await expect(page.getByRole('menuitem'), 'the dots hold Remind me only').toHaveText(['Remind me']);
+  await page.keyboard.press('Escape');
   await ctx.close();
 });

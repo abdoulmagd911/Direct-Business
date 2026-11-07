@@ -1,7 +1,6 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { nameOf, type OrgAnswer } from '@/modules/org/types';
@@ -9,15 +8,14 @@ import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Textarea } from '@/ui/Input';
-import { Select } from '@/ui/Select';
-import { escalateTargets, escalateValues } from '../rules';
 import type { TaskDetail } from '../types';
 import { useCommandWords } from './words';
 
 /**
- * Escalate (V401): tell someone else about this task, with a note. They are told at once, follow the task from then on,
- * and the note is the task's timeline entry. Whoever may change the task escalates it; the door checks the person can
- * see it.
+ * Need help (Phase 5 — Escalate renamed in place): tell the task owner's direct manager about this task, with a
+ * note. The manager is told at once, follows the task from then on, and the task is flagged until they acknowledge
+ * it. It does not change ownership, status, or priority. Whoever may change the task flags it; the door checks the
+ * manager can see it, and resolves the manager itself when none is named.
  */
 export function Escalate({
   open,
@@ -27,7 +25,7 @@ export function Escalate({
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  task: Pick<TaskDetail, 'id' | 'number'>;
+  task: Pick<TaskDetail, 'id' | 'number' | 'owner_id'>;
   org: OrgAnswer | null;
 }) {
   const t = useTranslations();
@@ -50,37 +48,32 @@ function EscalateForm({
   org,
   onClose,
 }: {
-  task: Pick<TaskDetail, 'id' | 'number'>;
+  task: Pick<TaskDetail, 'id' | 'number' | 'owner_id'>;
   org: OrgAnswer | null;
   onClose: () => void;
 }) {
   const t = useTranslations();
-  const me = useMe();
   const words = useCommandWords();
   const locale = useLocale() as 'en' | 'ar';
-  const [to, setTo] = useState<string | undefined>();
   const [note, setNote] = useState('');
-  const [toError, setToError] = useState<string | undefined>();
   const [noteError, setNoteError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  const people = escalateTargets(org?.people ?? [], me.person.id)
-    .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  // the owner's direct manager is the one told — no picker; the dialog shows who that is
+  const owner = org?.people.find((p) => p.id === task.owner_id);
+  const manager = owner?.manager_id ? org?.people.find((p) => p.id === owner.manager_id) : undefined;
+  const managerName = manager ? nameOf(manager, locale) : null;
 
   const send = async () => {
-    const r = escalateValues({ to, note }, me.person.id);
-    if ('error' in r) {
-      const said = t(`pages.tasks.escalate.${r.error}`);
-      if (r.error === 'note_required') setNoteError(said);
-      else setToError(said);
-      return;
-    }
-    const name = people.find((p) => p.value === r.values.p_to)?.label ?? '';
+    const trimmed = note.trim();
+    if (!trimmed) return setNoteError(t('pages.tasks.escalate.note_required'));
+    if (!manager) return;
     setBusy(true);
     await command(
-      words(t('pages.tasks.escalate.done', { name })),
+      words(t('pages.tasks.escalate.done', { name: managerName ?? '' })),
       () =>
-        rpc('escalate', { p_entity: 'task', p_id: task.id, ...r.values }) as Promise<{ request_id?: string | null }>,
+        rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: manager.id, p_note: trimmed }) as Promise<{
+          request_id?: string | null;
+        }>,
       { after: onClose },
     );
     setBusy(false);
@@ -95,20 +88,9 @@ function EscalateForm({
       }}
       data-escalate
     >
-      <Field label={t('pages.tasks.escalate.to')} error={toError}>
-        {(p) => (
-          <Select
-            id={p.id}
-            value={to ?? ''}
-            placeholder={t('pages.tasks.escalate.to_required')}
-            onValueChange={(v) => {
-              setToError(undefined);
-              setTo(v);
-            }}
-            options={people}
-          />
-        )}
-      </Field>
+      <p className="text-base">
+        {managerName ? t('pages.tasks.escalate.notify', { name: managerName }) : t('pages.tasks.escalate.noManager')}
+      </p>
       <Field label={t('pages.tasks.escalate.note')} error={noteError}>
         {(p) => (
           <Textarea
@@ -127,7 +109,7 @@ function EscalateForm({
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button variant="primary" type="submit" loading={busy}>
+        <Button variant="primary" type="submit" loading={busy} disabled={!manager}>
           {t('pages.tasks.escalate.send')}
         </Button>
       </div>

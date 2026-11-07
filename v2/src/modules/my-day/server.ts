@@ -1,9 +1,10 @@
 import 'server-only';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { ListEntry } from '@/modules/partners/types';
+import type { TaskRow } from '@/modules/tasks/types';
 import type { CaptureKind } from './quick-capture';
 import type { DueAnswer } from './reminder-alert';
-import type { MyDayAnswer, MyNote, Scope } from './types';
+import type { MyDayAnswer, MyNote, OpenAsks, Scope } from './types';
 
 /** My day's page (api.my_day). */
 export async function myDay(scope: Scope, limit: number, kind?: CaptureKind): Promise<MyDayAnswer> {
@@ -35,6 +36,24 @@ export const activityOutcomes = async () =>
 export async function remindersDue(): Promise<DueAnswer | null> {
   try {
     return (await serverRpc('reminders_due', {} as never)) as unknown as DueAnswer;
+  } catch {
+    return null;
+  }
+}
+
+/** The open questions asked to me and the ones I asked (api.open_asks); null when it cannot be read — the Waiting sections say so and the rest of My day still draws. */
+export async function openAsks(): Promise<OpenAsks | null> {
+  try {
+    return (await serverRpc('open_asks', {} as never)) as unknown as OpenAsks;
+  } catch {
+    return null;
+  }
+}
+
+/** The tasks flagged as needing help and addressed to me (api.escalated_tasks); null when it cannot be read. */
+export async function escalatedToMe(): Promise<TaskRow[] | null> {
+  try {
+    return (await serverRpc('escalated_tasks', {} as never)) as unknown as TaskRow[];
   } catch {
     return null;
   }

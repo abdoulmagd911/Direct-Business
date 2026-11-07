@@ -81,6 +81,9 @@ export type TaskFilters = {
   partner?: string;
   project?: string;
   q?: string;
+  /** Phase 5: the Starred saved view (starred tasks only) and the Need-help saved view (flagged tasks only). */
+  starred?: boolean;
+  escalated?: boolean;
 };
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -103,6 +106,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     partner: partner && UUID.test(partner) ? partner : undefined,
     project: project && UUID.test(project) ? project : undefined,
     q: q || undefined,
+    starred: one(params.starred) === '1' || undefined,
+    escalated: one(params.escalated) === '1' || undefined,
   };
 }
 
@@ -118,6 +123,8 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
   if (next.partner) p.set('partner', next.partner);
   if (next.project) p.set('project', next.project);
   if (next.q) p.set('q', next.q);
+  if (next.starred) p.set('starred', '1');
+  if (next.escalated) p.set('escalated', '1');
   const s = p.toString();
   return s ? `/tasks?${s}` : '/tasks';
 }
@@ -139,12 +146,17 @@ export function apiFilter(f: TaskFilters): Record<string, unknown> {
   if (f.partner) out.partner_id = f.partner;
   if (f.project) out.project_id = f.project;
   if (f.q) out.q = f.q;
+  if (f.starred) out.starred = true;
+  if (f.escalated) out.escalated = true;
   return out;
 }
 
-/** The part of the filter judged on the rows: Helping is My work I do not own; due today, this week, or none. */
+/** The part of the filter judged on the rows: Helping is My work I do not own; due today, this week, or none;
+ * the Starred and Need-help views keep only their own rows. */
 export function keepRow(row: TaskRow, f: TaskFilters, me: string, today: string): boolean {
   if (f.scope === 'helping' && row.owner_id === me) return false;
+  if (f.starred && !row.starred) return false;
+  if (f.escalated && !row.escalated) return false;
   if (f.due === 'today' && row.due_on !== today) return false;
   if (f.due === 'week' && !(row.due_on && row.due_on >= today && row.due_on <= addDays(today, 6))) return false;
   if (f.due === 'none' && row.due_on) return false;
@@ -338,6 +350,41 @@ export function escalateValues(
   const note = input.note.trim();
   if (!note) return { error: 'note_required' };
   return { values: { p_to: input.to, p_note: note } };
+}
+
+// ---------------------------------------------------------------- Delegate (Phase 1, CUJ 5)
+
+// Delegate picks from the same people as Escalate (V465) and sends the same shape — a person and a note, both
+// required, never myself — to api.task_delegate instead of api.escalate.
+export const delegateTargets = escalateTargets;
+export const delegateValues = escalateValues;
+
+// ---------------------------------------------------------------- the achievement strip (Phase 1, CUJ 7)
+
+/**
+ * The strip never appears on a task closed before this build ships: the Phase 1 migration's timestamp, 12:00 Riyadh
+ * on 7 November 2026. A task closed after that, done (a cancelled task is not an achievement), nudge-eligible
+ * (linked to a partner, or top priority "High" — "has a KPI" is dropped, no task→KPI link exists), with no
+ * achievement linked yet, shows the strip until it is logged or dismissed.
+ */
+export const ACHIEVEMENT_STRIP_CUTOVER = '2026-11-07T09:00:00.000Z';
+
+export type AchievementStrip = 'show' | 'dismissed' | 'hide';
+
+export function achievementStrip(task: {
+  meaning: Meaning;
+  closed_at: string | null;
+  partner_id: string | null;
+  priority: string | null;
+  dismissed_from_nudge: boolean;
+  has_achievement: boolean;
+}): AchievementStrip {
+  if (task.meaning !== 'done') return 'hide';
+  if (task.closed_at === null || Number.isNaN(Date.parse(task.closed_at))) return 'hide';
+  if (Date.parse(task.closed_at) < Date.parse(ACHIEVEMENT_STRIP_CUTOVER)) return 'hide';
+  if (task.partner_id === null && task.priority !== 'high') return 'hide';
+  if (task.has_achievement) return 'hide';
+  return task.dismissed_from_nudge ? 'dismissed' : 'show';
 }
 
 // ---------------------------------------------------------------- the team's load (V91)

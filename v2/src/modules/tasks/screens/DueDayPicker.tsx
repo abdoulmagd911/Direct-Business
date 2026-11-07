@@ -1,12 +1,11 @@
 'use client';
-import { CalendarDays, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { formatDate } from '@/core/i18n/format';
 import { whenChip } from '@/modules/my-day/screens/WhenPicker';
 import { nextWeek, riyadhNow, tomorrow, tomorrowDayName } from '@/modules/my-day/when';
 import { Button } from '@/ui/Button';
-import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { parseDueDay } from '../rules';
 
@@ -15,10 +14,12 @@ export const DATE_MAX = '9999-12-31';
 
 /**
  * Due on the task form (V286): the When chips' Today, Tomorrow and Next week (the same Riyadh days My day's When gives),
- * a box that reads a typed day ("20261020", "2026-10-20", "20/10/2026") and says it back in words, the browser's calendar
- * behind a button, and Clear. Typed text is read here, not by the browser's date box, whose parts follow the computer's
- * own settings — typed digits landed in the wrong parts and left junk. Due stays optional: nothing typed saves no due
- * day. What is typed but is not a day goes up as typed, so the form says "Pick a date" under Due.
+ * a box that reads a typed day ("20261020", "2026-10-20", "20/10/2026") and says it back in words, and Clear. Typed
+ * text is read here, not by the browser's date box, whose parts follow the computer's own settings — typed digits
+ * landed in the wrong parts and left junk. The hidden native date input is gone (Phase 0.4): its calendar popup was
+ * the browser's own, and its month arrow was browser chrome, not app code — so the chips and the typed box are the
+ * only date entry. Due stays optional: nothing typed saves no due day. What is typed but is not a day goes up as
+ * typed, so the form says "Pick a date" under Due.
  */
 export function DueDayPicker({
   id,
@@ -39,7 +40,6 @@ export function DueDayPicker({
   // a day is shown the one way the app writes it (`20 Oct 2026`), never as 2026-10-20 (W-daily 13)
   const written = (d: string) => formatDate(`${d}T12:00:00+03:00`, locale);
   const [text, setText] = useState(() => (value && parseDueDay(value) ? written(parseDueDay(value)!) : (value ?? '')));
-  const calendar = useRef<HTMLInputElement>(null);
   const day = parseDueDay(text);
   const set = (typed: string) => {
     setText(typed);
@@ -86,27 +86,6 @@ export function DueDayPicker({
           onBlur={() => day && setText(written(day))}
           name="due"
           className="min-w-0 flex-1"
-        />
-        <IconButton
-          label={t('pages.tasks.add.dueCalendar')}
-          icon={<CalendarDays />}
-          onClick={() => {
-            const box = calendar.current;
-            if (!box) return;
-            if (typeof box.showPicker === 'function') box.showPicker();
-            else box.click();
-          }}
-          data-due-calendar
-        />
-        <input
-          ref={calendar}
-          type="date" /* check-allow: one-date-format — never seen: it only opens the browser's calendar; the day is shown in words below */
-          max={DATE_MAX}
-          tabIndex={-1}
-          aria-hidden
-          className="sr-only"
-          value={day ?? ''}
-          onChange={(e) => pick(e.target.value)}
         />
         {text ? (
           <Button type="button" variant="ghost" onClick={() => set('')} data-due-clear>

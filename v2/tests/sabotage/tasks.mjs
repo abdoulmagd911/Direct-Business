@@ -319,12 +319,12 @@ export const sabotages = [
   {
     name: 'e2e-tasks-escalate-sends-no-note',
     breaks: [e2e],
-    expect: 'Escalate tells a colleague about a task, with a note',
+    expect: "Need help tells the task owner's manager about it, with a note",
     edits: [
       {
         file: 'src/modules/tasks/screens/Escalate.tsx',
-        find: "rpc('escalate', { p_entity: 'task', p_id: task.id, ...r.values })",
-        replace: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: r.values.p_to, p_note: '' })",
+        find: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: manager.id, p_note: trimmed })",
+        replace: "rpc('escalate', { p_entity: 'task', p_id: task.id, p_to: manager.id, p_note: '' })",
       },
     ],
   },

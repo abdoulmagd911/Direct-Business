@@ -1,4 +1,5 @@
 'use client';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
@@ -7,8 +8,10 @@ import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
+import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { cn } from '@/ui/cn';
 import { canTick } from '../rules';
@@ -38,6 +41,7 @@ export function Checklist({
   const [due, setDue] = useState('');
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<{ id: string; text: string } | null>(null);
   const items = task.action_items;
   const open = items.filter((i) => !i.done_on).length;
 
@@ -46,6 +50,18 @@ export function Checklist({
     await command(
       words(t(done ? 'pages.tasks.items.ticked' : 'pages.tasks.items.unticked', { item: label })),
       () => rpc('action_item_done', { p_id: id, p_done: done }) as Promise<{ request_id?: string | null }>,
+    );
+    setBusy(null);
+  };
+  // Delete one line (Phase 0.2): the same Confirm + Undo as the task Remove control, through the existing
+  // api.action_items_remove — the server only lets the task's editors do it, so the control shows for them
+  // alone. No reason is asked: the reason is optional, and the dialog offers none.
+  const remove = async (item: { id: string; text: string }) => {
+    setBusy(item.id);
+    await command(
+      words(t('pages.tasks.items.removed', { item: item.text })),
+      () => rpc('action_items_remove', { p_ids: [item.id] }) as Promise<{ request_id?: string | null }>,
+      { undoDirect: true },
     );
     setBusy(null);
   };
@@ -118,6 +134,17 @@ export function Checklist({
                 ) : (
                   <StarMark starred={!!i.starred} />
                 )}
+                {task.can_edit ? (
+                  <IconButton
+                    label={`${t('common.remove')} ${i.text}`}
+                    icon={<Trash2 />}
+                    size="sm"
+                    onClick={() => setRemoving(i)}
+                    disabled={busy === i.id}
+                    data-item-remove={i.text}
+                    className="-me-2.5 -mt-2 -mb-2.5"
+                  />
+                ) : null}
               </li>
             );
           })}
@@ -153,6 +180,18 @@ export function Checklist({
           </Button>
         </form>
       ) : null}
+      <Confirm
+        open={!!removing}
+        onOpenChange={(o) => {
+          if (!o) setRemoving(null);
+        }}
+        title={t('confirm.title', { item: removing?.text ?? '' })}
+        body={t('confirm.body', { item: removing?.text ?? '' })}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('confirm.confirm')}
+        busy={!!removing && busy === removing.id}
+        onConfirm={() => (removing ? remove(removing) : undefined)}
+      />
     </section>
   );
 }

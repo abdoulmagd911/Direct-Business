@@ -21,6 +21,8 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { Comments, RecordHeaderCounts, type RecordComments } from '@/ui/record/Comments';
+import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
 import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
@@ -30,15 +32,23 @@ import { Marks } from './AchievementList';
 import { riyadhToday } from './LogAchievement';
 import { useCommandWords } from './words';
 
-const TABS = ['overview', 'activity', 'related', 'evidence'] as const;
+const TABS = ['overview', 'discussion', 'history', 'evidence'] as const;
 export type AchievementTab = (typeof TABS)[number];
+/** The old tab addresses still land on the right tab: ?tab=activity is the History; ?tab=related is the Overview, where Related lives now. */
+const TAB_ALIASES: Record<string, string> = { activity: 'history', related: 'overview' };
 
 export type AchievementRecordData = {
   a: AchievementDetail;
   tab: string;
+  /** The Discussion filter the record opened with ('files' from the header's files count). */
+  filter?: string;
   org: OrgAnswer | null;
   partnerName: string | null;
   history: HistoryRow[] | null;
+  /** The Discussion's comments; null when they could not be read. */
+  comments: RecordComments | null;
+  /** The achievement's files (null when they could not be read); the header's files count and the Discussion stream read them. */
+  files: RecordFile[] | null;
   categories: Category[];
   systems: { key: string; name: string }[];
   /** Full on KPIs for this record: move it, give it an owner, change anyone's (with a reason). */
@@ -51,9 +61,10 @@ export type AchievementRecordData = {
 
 /**
  * An achievement's record page (V95 template, GC-4): its own line as the name, category and owner under it, its marks;
- * up to four key figures — deal value ("not revenue", V505), count, date, evidence; tabs Overview · Activity · Related
- * · Evidence (the type tab: references with their links, V99). Edit for its own people (a manager says why when it is
- * not theirs), Move to an earlier period and Give owner for Full, Remove with a reason — each with Undo.
+ * up to four key figures — deal value ("not revenue", V505), count, date, evidence; tabs Overview · Discussion ·
+ * History · Evidence (the type tab: the uploaded files on top, URL references below, V99). Related lives in Overview
+ * as a section (Phase 4, the one layout). Edit for its own people (a manager says why when it is not theirs), Move to
+ * an earlier period and Give owner for Full, Remove with a reason — each with Undo.
  */
 export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   const t = useTranslations('pages.achievements');
@@ -63,7 +74,13 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   const words = useCommandWords();
   const refresh = () => router.refresh();
   const { a, org, full, meId } = data;
-  const tab = (TABS as readonly string[]).includes(data.tab) ? (data.tab as AchievementTab) : 'overview';
+  const tab = (TABS as readonly string[]).includes(TAB_ALIASES[data.tab] ?? data.tab)
+    ? ((TAB_ALIASES[data.tab] ?? data.tab) as AchievementTab)
+    : 'overview';
+  const discussionFilter =
+    data.filter === 'files' || data.filter === 'questions' ? (data.filter as 'files' | 'questions') : undefined;
+  // The Discussion tab's own count while it is open, so the tab's number follows an add or a delete at once.
+  const [commentCount, setCommentCount] = useState<number | null>(null);
   const person = (id: string | null) => (id && org ? org.people.find((p) => p.id === id) : undefined);
   const nameFor = (id: string | null) => {
     const p = person(id);
@@ -180,6 +197,11 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           <>
             <Marks row={a} />
             {data.fromNote ? <FromNoteChip note={data.fromNote} /> : null}
+            <RecordHeaderCounts
+              comments={commentCount ?? data.comments?.comments.length ?? null}
+              files={data.files?.length ?? null}
+              href={(f) => `/kpis/achievements/${a.id}?tab=discussion${f === 'files' ? '&filter=files' : ''}`}
+            />
           </>
         }
         figures={figures}
@@ -211,6 +233,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         tabs={TABS.map((k) => ({
           key: k,
           label: k === 'evidence' ? `${t('tabs.evidence')} (${formatNumber(a.refs.length, locale)})` : t(`tabs.${k}`),
+          count: k === 'discussion' ? (commentCount ?? data.comments?.comments.length ?? undefined) : undefined,
         }))}
         tab={tab}
         tabHref={(k) => `/kpis/achievements/${a.id}?tab=${k}`}
@@ -266,9 +289,53 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             >
               {locale === 'ar' ? a.line_en : a.line_ar}
             </p>
+            {/* Related lives here now (Phase 4, the one layout): its own tab is gone. */}
+            <div className="flex flex-col gap-2" data-tab="related">
+              <h2 className="text-lg font-semibold">{t('tabs.related')}</h2>
+              <RailField label={t('fields.organisation')} empty={!data.partnerName}>
+                {a.partner_id && data.partnerName ? (
+                  <Link
+                    href={`/partners/${a.partner_id}`}
+                    className="text-link hover:underline"
+                    data-achievement-organisation
+                  >
+                    {data.partnerName}
+                  </Link>
+                ) : null}
+              </RailField>
+              <RailField label={t('fields.participants')} empty={!a.participants.length}>
+                {a.participants.map((id) => nameFor(id)).join(' · ')}
+              </RailField>
+              {source ? <RailField label={t('fields.source')}>{source}</RailField> : null}
+            </div>
           </section>
         ) : null}
-        {tab === 'activity' ? (
+        {tab === 'discussion' ? (
+          data.comments ? (
+            <Comments
+              entity="achievement"
+              id={a.id}
+              data={data.comments}
+              locale={locale}
+              personName={nameFor(meId)}
+              people={(org?.people ?? []).map((p) => ({ id: p.id, name: nameOf(p, locale) }))}
+              label={t('tabs.discussion')}
+              onCount={setCommentCount}
+              files={data.files}
+              onFilesRetry={refresh}
+              initialFilter={discussionFilter}
+            />
+          ) : (
+            <DataState
+              kind="failed"
+              what={t('tabs.discussion')}
+              message={tc('state.failed', { what: t('tabs.discussion') })}
+              onRetry={refresh}
+              retryLabel={tc('common.tryAgain')}
+            />
+          )
+        ) : null}
+        {tab === 'history' ? (
           data.history ? (
             <ActivityTimeline
               rows={data.history}
@@ -279,31 +346,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           ) : (
             <DataState
               kind="failed"
-              what={tc('record.activity')}
-              message={tc('state.failed', { what: tc('record.activity') })}
+              what={t('tabs.history')}
+              message={tc('state.failed', { what: t('tabs.history') })}
               onRetry={refresh}
               retryLabel={tc('common.tryAgain')}
             />
           )
-        ) : null}
-        {tab === 'related' ? (
-          <section className="flex flex-col gap-2" data-tab="related">
-            <RailField label={t('fields.organisation')} empty={!data.partnerName}>
-              {a.partner_id && data.partnerName ? (
-                <Link
-                  href={`/partners/${a.partner_id}`}
-                  className="text-link hover:underline"
-                  data-achievement-organisation
-                >
-                  {data.partnerName}
-                </Link>
-              ) : null}
-            </RailField>
-            <RailField label={t('fields.participants')} empty={!a.participants.length}>
-              {a.participants.map((id) => nameFor(id)).join(' · ')}
-            </RailField>
-            {source ? <RailField label={t('fields.source')}>{source}</RailField> : null}
-          </section>
         ) : null}
         {tab === 'evidence' ? <Evidence data={data} /> : null}
       </RecordPage>
@@ -469,9 +517,10 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   );
 }
 
-/** The type tab (V99): the references with their links; Add reference and Remove for its editors. */
+/** The type tab (V99): the uploaded files on top, the references with their links below; Add reference and Remove for its editors. */
 function Evidence({ data }: { data: AchievementRecordData }) {
   const t = useTranslations('pages.achievements');
+  const tc = useTranslations();
   const router = useRouter();
   const words = useCommandWords();
   const { a } = data;
@@ -502,6 +551,15 @@ function Evidence({ data }: { data: AchievementRecordData }) {
   };
   return (
     <section className="flex flex-col gap-4" data-tab="evidence">
+      <FilesSection
+        entity="achievement"
+        recordId={a.id}
+        kinds={[{ kind: 'evidence', purpose: 'evidence', label: tc('record.files.kinds.evidence') }]}
+        files={data.files}
+        mayWrite={a.can_edit}
+        onDone={() => router.refresh()}
+        title={tc('record.files.title')}
+      />
       {a.refs.length ? (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border" data-refs>
           {a.refs.map((r) => (

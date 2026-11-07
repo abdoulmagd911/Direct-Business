@@ -40,6 +40,14 @@
       "levels": ["none", "view", "own", "full"]
     },
     {
+      "key": "files",
+      "module": "partners",
+      "route": "/files",
+      "nav_group": null,
+      "nav_order": null,
+      "levels": ["none", "view", "own", "full"]
+    },
+    {
       "key": "finance",
       "module": "finance",
       "route": "/finance",
@@ -474,7 +482,10 @@
             "alert_project_no_update",
             "alert_due_tomorrow",
             "alert_quiet_client",
-            "task_commented"
+            "task_commented",
+            "commented",
+            "asked",
+            "escalation_acknowledged"
           ]
         }
       },
@@ -501,7 +512,10 @@
         "alert_project_no_update",
         "alert_due_tomorrow",
         "alert_quiet_client",
-        "task_commented"
+        "task_commented",
+        "commented",
+        "asked",
+        "escalation_acknowledged"
       ],
       "effective_dated": false
     },
@@ -960,6 +974,18 @@
       "private": false,
       "visible": null,
       "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
+      "key": "comment",
+      "table": "core.comment",
+      "page": null,
+      "owners": "core.comment_owners",
+      "list": false,
+      "private": false,
+      "visible": "core.comment_visible",
+      "level": "core.comment_level",
       "history": false,
       "rule_only": false
     },
@@ -2085,6 +2111,7 @@
     { "role": "admin", "page": "appraisal", "level": "full" },
     { "role": "admin", "page": "clients", "level": "full" },
     { "role": "admin", "page": "codes", "level": "full" },
+    { "role": "admin", "page": "files", "level": "full" },
     { "role": "admin", "page": "finance", "level": "full" },
     { "role": "admin", "page": "kpis", "level": "full" },
     { "role": "admin", "page": "my_day", "level": "full" },
@@ -2105,6 +2132,7 @@
     { "role": "head", "page": "appraisal", "level": "own" },
     { "role": "head", "page": "clients", "level": "full" },
     { "role": "head", "page": "codes", "level": "full" },
+    { "role": "head", "page": "files", "level": "full" },
     { "role": "head", "page": "finance", "level": "full" },
     { "role": "head", "page": "kpis", "level": "full" },
     { "role": "head", "page": "my_day", "level": "full" },
@@ -2125,6 +2153,7 @@
     { "role": "manager", "page": "appraisal", "level": "own" },
     { "role": "manager", "page": "clients", "level": "full" },
     { "role": "manager", "page": "codes", "level": "view" },
+    { "role": "manager", "page": "files", "level": "full" },
     { "role": "manager", "page": "finance", "level": "full" },
     { "role": "manager", "page": "kpis", "level": "full" },
     { "role": "manager", "page": "my_day", "level": "full" },
@@ -2145,6 +2174,7 @@
     { "role": "member", "page": "appraisal", "level": "own" },
     { "role": "member", "page": "clients", "level": "full" },
     { "role": "member", "page": "codes", "level": "view" },
+    { "role": "member", "page": "files", "level": "own" },
     { "role": "member", "page": "finance", "level": "own" },
     { "role": "member", "page": "kpis", "level": "own" },
     { "role": "member", "page": "my_day", "level": "own" },
@@ -2165,6 +2195,7 @@
     { "role": "viewer", "page": "appraisal", "level": "none" },
     { "role": "viewer", "page": "clients", "level": "view" },
     { "role": "viewer", "page": "codes", "level": "view" },
+    { "role": "viewer", "page": "files", "level": "view" },
     { "role": "viewer", "page": "finance", "level": "view" },
     { "role": "viewer", "page": "kpis", "level": "view" },
     { "role": "viewer", "page": "my_day", "level": "view" },

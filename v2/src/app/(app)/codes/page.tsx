@@ -4,6 +4,7 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { CodesScreen } from '@/modules/codes/screens/CodesScreen';
 import type { CodeDetail, CompanyCodeRow, CodeRow, PartnerOption } from '@/modules/codes/types';
 import { tradeName, type PartnersAnswer } from '@/modules/partners/types';
+import type { RecordFile } from '@/ui/record/FilesSection';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
 
@@ -26,7 +27,7 @@ export default async function CodesPage({
   const level = me.levels.codes ?? 'none';
   const rawCode = typeof q.code === 'string' ? q.code : undefined;
   const codeId = rawCode && UUID.test(rawCode) ? rawCode : null;
-  const [rows, companies, detail, clients] = await Promise.all([
+  const [rows, companies, detail, clients, files] = await Promise.all([
     level === 'none' ? null : (serverRpc('codes_list', {}) as Promise<unknown>).catch(() => null),
     level === 'none' ? null : (serverRpc('codes_by_company', {}) as Promise<unknown>).catch(() => null),
     level === 'none' || !codeId
@@ -35,6 +36,10 @@ export default async function CodesPage({
     (serverRpc('partners', { p_filters: { side: 'client' } as never, p_limit: 500 }) as Promise<unknown>).catch(
       () => null,
     ),
+    // The selected code's own files (a failed read says so on the detail, never an empty section).
+    level === 'none' || !codeId
+      ? null
+      : (serverRpc('files', { p_entity: 'campaign_code', p_id: codeId }) as Promise<unknown>).catch(() => null),
   ]);
   const lang = (await getLocale()) as 'en' | 'ar';
   const partners: PartnerOption[] = ((clients as PartnersAnswer | null)?.rows ?? []).map((p) => ({
@@ -53,6 +58,8 @@ export default async function CodesPage({
         listFailed={level !== 'none' && rows === null}
         detailFailed={level !== 'none' && codeId !== null && detail === null}
         companiesFailed={level !== 'none' && companies === null}
+        files={(files as RecordFile[] | null) ?? null}
+        filesFailed={level !== 'none' && codeId !== null && files === null}
       />
     </Page>
   );

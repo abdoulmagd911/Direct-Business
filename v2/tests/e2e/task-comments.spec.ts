@@ -1,5 +1,5 @@
 /**
- * V657 (Stage L, L-5): comments on a task, at 375 and 1,440 px. The Comments tab sits beside Overview and Activity and
+ * V657 (Stage L, L-5): comments on a task, at 375 and 1,440 px. The Discussion tab sits beside Overview and History and
  * says how many there are; the box at the bottom adds one (it shows at once, newest last, with its author and a 24-hour
  * time, and the toast offers Undo); the author edits their own comment (it shows as edited) and deletes it after the
  * app's own question that names whose comment it is, and Undo brings it back; a colleague who only sees the task reads
@@ -58,9 +58,9 @@ for (const [label, width, height] of [
     await signIn(page, writer.email, `/tasks/${number}`);
     await hydrated(page);
 
-    // the tab, beside Overview and Activity, and the empty line
+    // the tab, beside Overview and History, and the empty line
     const tabs = page.locator('[data-record-header] [data-tabs]');
-    await expect(tabs).toContainText('Comments');
+    await expect(tabs).toContainText('Discussion');
     await page.goto(`/tasks/${number}?tab=comments`);
     await hydrated(page);
     await expect(page.getByText('No comments yet')).toBeVisible();
@@ -73,7 +73,7 @@ for (const [label, width, height] of [
     await expect(first.locator('[data-comment-body]')).toHaveText('Made-up first remark\nsecond line');
     await expect(first.locator('[data-comment-author]')).toHaveText(writer.name);
     await expect(first.locator('[data-comment-time]')).toHaveText(/\d{1,2} \w{3} \d{4}.*\d{2}:\d{2}/);
-    await expect(tabs).toContainText('Comments');
+    await expect(tabs).toContainText('Discussion');
     await expect(page.getByText('Comment added')).toBeVisible();
     await expect(box, 'the box is emptied').toHaveValue('');
 
@@ -140,7 +140,7 @@ for (const [label, width, height] of [
       await route.continue();
     });
     // and so is the screen's own read of the list after a write
-    await page.route('**/rpc/task_comments', async (route) => {
+    await page.route('**/rpc/comments', async (route) => {
       await new Promise((r) => setTimeout(r, 1500));
       await route.continue();
     });

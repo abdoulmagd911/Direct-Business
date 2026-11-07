@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { command, type CommandWords } from '@/core/commands/command';
 import { onRefetch } from '@/core/commands/refetch';
 import { rpc } from '@/core/db/rpc';
@@ -17,6 +18,20 @@ export type SavedView = {
   mine: boolean;
   default: boolean;
   version: number;
+  /** Phase 5: a view that comes with the page, not one anyone saved — shown with the saved ones, never removable. */
+  builtIn?: boolean;
+};
+
+/**
+ * The views that come with a page (Phase 5): on Tasks, Starred (starred tasks) and Need help (flagged tasks, newest
+ * flag first). They are seeded here, in the hook, so every screen that reads the page's views shows them; they are
+ * not rows in api.views, so nobody can remove them or set one as their default by accident.
+ */
+export const BUILT_IN_VIEWS: Record<string, { key: string; query: Record<string, unknown> }[]> = {
+  tasks: [
+    { key: 'starred', query: { starred: true } },
+    { key: 'escalated', query: { escalated: true } },
+  ],
 };
 
 /**
@@ -24,6 +39,7 @@ export type SavedView = {
  * (soft, restorable from Recently deleted — one request, one Undo).
  */
 export function useSavedViews(page: string, words: CommandWords) {
+  const t = useTranslations();
   const [views, setViews] = useState<SavedView[] | null>(null);
   const [failed, setFailed] = useState(false);
   const load = useCallback(async () => {
@@ -77,5 +93,18 @@ export function useSavedViews(page: string, words: CommandWords) {
       ),
     [words],
   );
-  return { views, failed, reload: load, save, setDefault, remove };
+  // the page's own views first, then the ones anyone saved (a built-in is never removable, so it carries no menu)
+  const builtIn: SavedView[] = (BUILT_IN_VIEWS[page] ?? []).map((b, i) => ({
+    id: b.key,
+    name: t(`pages.${page}.views.${b.key}`),
+    query: b.query,
+    shared: true,
+    sort: -100 + i,
+    owner_id: '',
+    mine: false,
+    default: false,
+    version: 0,
+    builtIn: true,
+  }));
+  return { views: views === null ? null : [...builtIn, ...views], failed, reload: load, save, setDefault, remove };
 }

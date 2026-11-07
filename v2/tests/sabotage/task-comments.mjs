@@ -6,7 +6,7 @@ export const sabotages = [
     name: 'comment-box-shows-to-a-reader',
     breaks: [E2E],
     expect: 'a reader has no box',
-    edits: [{ file: 'src/modules/tasks/screens/TaskComments.tsx', find: '{list.can_write ? (', replace: '{true ? (' }],
+    edits: [{ file: 'src/ui/record/Comments.tsx', find: '{list.can_write ? (', replace: '{true ? (' }],
   },
   {
     name: 'comment-delete-asks-nothing',
@@ -14,7 +14,7 @@ export const sabotages = [
     expect: 'alertdialog',
     edits: [
       {
-        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        file: 'src/ui/record/Comments.tsx',
         find: 'onClick={() => setRemoving(c)}',
         replace: 'onClick={() => void remove(c)}',
       },
@@ -27,7 +27,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskRecord.tsx',
-        find: "{tab === 'comments' ? (",
+        find: "{tab === 'discussion' ? (",
         replace: "{tab === 'comments-off' ? (",
       },
     ],
@@ -38,7 +38,7 @@ export const sabotages = [
     expect: 'the comment shows at once',
     edits: [
       {
-        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        file: 'src/ui/record/Comments.tsx',
         find: '[...list.comments, ...added.filter((a) => !list.comments.some((c) => c.id === a.id))]',
         replace: '[...list.comments]',
       },
@@ -62,7 +62,7 @@ export const sabotages = [
     expect: 'a message at once, while the Undo works',
     edits: [
       {
-        file: 'src/modules/tasks/screens/words.ts',
+        file: 'src/ui/record/words.ts',
         find: "undoing: t('common.undoing'),",
         replace: '',
       },
@@ -74,7 +74,7 @@ export const sabotages = [
     expect: 'the comment is back on the screen',
     edits: [
       {
-        file: 'src/modules/tasks/screens/TaskComments.tsx',
+        file: 'src/ui/record/Comments.tsx',
         find: 'const list = mine ? newer(mine, data) : data;',
         replace: 'const list = data;',
       },

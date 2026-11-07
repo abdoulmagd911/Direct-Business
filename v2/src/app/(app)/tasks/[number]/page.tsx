@@ -7,6 +7,7 @@ import { loadLookups } from '@/modules/tasks/load';
 import { TaskRecord } from '@/modules/tasks/screens/TaskRecord';
 import type { TaskComments, TaskDetail, TaskList } from '@/modules/tasks/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
+import type { RecordFile } from '@/ui/record/FilesSection';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
 
@@ -38,9 +39,14 @@ export default async function TaskPage({
   searchParams,
 }: {
   params: Promise<{ number: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; filter?: string | string[] }>;
 }) {
-  const [{ number }, { tab }, me, t] = await Promise.all([params, searchParams, requireMe(), getTranslations()]);
+  const [{ number }, { tab, filter }, me, t] = await Promise.all([
+    params,
+    searchParams,
+    requireMe(),
+    getTranslations(),
+  ]);
   if ((me.levels.tasks ?? 'none') === 'none')
     return (
       <Page page="tasks" title={t('nav.tasks')}>
@@ -50,7 +56,7 @@ export default async function TaskPage({
   const id = await idOf(decodeURIComponent(number));
   if (!id) notFound();
   const failed: string[] = [];
-  const [task, history, comments, lookups] = await Promise.all([
+  const [task, history, comments, files, lookups] = await Promise.all([
     serverRpc('task', { p_id: id }).then(
       (r) => r as unknown as TaskDetail,
       (e: { kind?: string }) => {
@@ -61,7 +67,9 @@ export default async function TaskPage({
     maybe<RecordChange[]>('history', failed, () =>
       serverRpc('record_history', { p_entity: 'task', p_id: id } as never),
     ),
-    maybe<TaskComments>('comments', failed, () => serverRpc('task_comments', { p_task: id } as never) as never),
+    maybe<TaskComments>('comments', failed, () => serverRpc('comments', { p_entity: 'task', p_id: id } as never)),
+    // The header's files count and the Discussion stream's file entries read live, beside the comments.
+    maybe<RecordFile[]>('files', failed, () => serverRpc('files', { p_entity: 'task', p_id: id })),
     loadLookups(me, failed),
   ]);
   return (
@@ -70,8 +78,10 @@ export default async function TaskPage({
         data={{
           task,
           tab: typeof tab === 'string' ? tab : 'overview',
+          filter: typeof filter === 'string' ? filter : undefined,
           history: history ? historyRows(history, 'task', id) : null,
           comments,
+          files,
           lookups,
         }}
       />
