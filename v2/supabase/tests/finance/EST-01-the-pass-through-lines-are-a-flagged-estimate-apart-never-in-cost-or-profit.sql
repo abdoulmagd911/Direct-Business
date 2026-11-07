@@ -46,6 +46,13 @@ select test.eq((select jsonb_object_agg(i.ref, jsonb_build_object('estimate', c.
     "TX-9104": {"estimate": 80, "basis": "line_estimate", "cost": 0, "status": "provisional"}}'::jsonb,
   'the pass-through lines are the estimate; a commission is never estimated; an unclassed part gives none');
 
+-- the rows themselves carry no cost until an expense is approved: the estimate lives apart in its own column.
+-- Phase 7 note: the period figures leave provisional units out of cost and profit (rulebook §16), so the period
+-- assertion alone can no longer see an estimate folded into a row's cost; this row assertion keeps that visible.
+select test.eq((select jsonb_object_agg(ref, cost) from finance.money_row where ref like 'TX-91%'),
+  '{"TX-9101": 0, "TX-9102": 0, "TX-9103": 0, "TX-9104": 0}'::jsonb,
+  'the estimate is apart: cost stays 0 and profit never uses it (V419) — the rows themselves carry no cost until an expense is approved');
+
 select test.as_person(current_setting('t.head')::uuid);
 select test.eq((api.finance_period(current_setting('t.d')::date, current_setting('t.d')::date)
                 - 'from' - 'to' - 'months' - 'provisional' - 'losses' - 'units'),
