@@ -123,7 +123,7 @@ test('Finance and Settings are in the menu of the people whose access opens them
   for (const [who, finance, settings] of [
     [admin, true, true],
     [manager, true, false],
-    [member, true, false], // a member's Finance is Own: the page opens, so the menu carries it (V238)
+    [member, false, false], // FIX-03 F179: Finance is refused whole to Members and Viewers — no level, no page
   ] as const) {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -137,16 +137,14 @@ test('Finance and Settings are in the menu of the people whose access opens them
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/my-day');
     await hydrated(page);
-    // the bar is the menu's first four and More the rest: Finance may sit in either (QA3-002 left fewer entries)
+    // the bar is the menu's first four and More the rest: Finance may sit in either (QA3-002 left fewer entries) —
+    // checked for every person now, so a refusal is proven on the phone too, not only in the drawer
     const bar = await links('[data-bottom-bar] a');
     const more = page.locator('[data-bottom-more]');
-    if (finance || settings) {
-      await more.click();
-      const phone = [...bar, ...(await links('[data-more-sheet] a'))];
-      expect(phone.includes('/finance'), `the bar or More carries Finance for ${who.name}: ${finance}`).toBe(finance);
-      expect(phone.includes('/settings'), `the bar or More carries Settings for ${who.name}: ${settings}`).toBe(
-        settings,
-      );
-    }
+    await more.click();
+    const phone = [...bar, ...(await links('[data-more-sheet] a'))];
+    expect(phone.includes('/finance'), `the bar or More carries Finance for ${who.name}: ${finance}`).toBe(finance);
+    expect(phone.includes('/settings'), `the bar or More carries Settings for ${who.name}: ${settings}`).toBe(settings);
+    await page.keyboard.press('Escape');
   }
 });

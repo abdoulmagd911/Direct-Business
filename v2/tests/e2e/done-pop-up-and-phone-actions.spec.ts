@@ -168,12 +168,19 @@ test('phone 375: the task page keeps Done, Need help and the dots on one row; Ed
     'no sideways scroll',
   ).toBe(true);
 
-  // behind the dots: Edit and Remind me, each working; Need help is no longer there
+  // behind the dots: Edit and Remind me, each working, plus Delegate — the member owns this task, so P1b
+  // (tasks.assign_own) lets them give it away; Need help is no longer there
   await row.locator('[data-task-more]').click();
   await expect(page.locator('[data-menu-edit]')).toBeVisible();
   await expect(page.locator('[data-menu-follow-up]')).toBeVisible();
-  await expect(page.getByRole('menuitem'), 'the dots hold Edit and Remind me only').toHaveCount(2);
-  await page.keyboard.press('Escape');
+  await expect(
+    page.locator('[data-menu-delegate]'),
+    'Delegate shows: the member may give away their own task',
+  ).toBeVisible();
+  await expect(page.getByRole('menuitem'), 'the dots hold Edit, Remind me and Delegate').toHaveCount(3);
+  await page.locator('[data-menu-delegate]').click();
+  await expect(page.locator('form[data-delegate]'), 'Delegate opens its form').toBeVisible();
+  await page.keyboard.press('Escape'); // the dialog; the dots menu already closed when Delegate was picked
   await row.locator('[data-escalate-open]').click();
   await expect(page.getByRole('dialog'), 'Need help opens, its line read out with it').toHaveAccessibleDescription(
     'Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.',
@@ -234,9 +241,13 @@ test('desk 1440: Done, Edit and Need help sit on one row; Remind me is behind th
   );
   expect(new Set(tops).size, 'one row').toBe(1);
 
-  // behind the dots: Remind me only (the task is open, not done, and not test-owned for Remove)
+  // behind the dots: Remind me and Delegate — the member owns this task, so P1b (tasks.assign_own) lets
+  // them give it away (the task is open, not done, and not test-owned for Remove)
   await row.locator('[data-task-more]').click();
-  await expect(page.getByRole('menuitem'), 'the dots hold Remind me only').toHaveText(['Remind me']);
+  await expect(page.getByRole('menuitem'), 'the dots hold Remind me and Delegate').toHaveText([
+    'Remind me',
+    'Delegate',
+  ]);
   await page.keyboard.press('Escape');
   await ctx.close();
 });

@@ -138,10 +138,13 @@ for (const who of ['admin', 'Commercial member'] as const) {
     if (who === 'admin') expect(wide.at(-1), 'Settings sits at the foot for an admin').toBe('Settings');
     else expect(wide, 'no Settings for a member').not.toContain('Settings');
 
-    // the pages a plain member's access opens are the pages in their menu
-    if (who === 'Commercial member')
-      for (const name of ['Finance', 'Achievements'])
+    // the pages a plain member's access opens are the pages in their menu; Finance is refused whole to members
+    // (FIX-03 F179), so it is in no member menu
+    if (who === 'Commercial member') {
+      for (const name of ['Achievements'])
         expect(wide, `${name} is in the menu where the access opens it`).toContain(name);
+      expect(wide, 'no Finance for a member (FIX-03 F179)').not.toContain('Finance');
+    }
     await desktop.context().close();
     await phone.context().close();
   });

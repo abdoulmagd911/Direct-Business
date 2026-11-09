@@ -13,7 +13,6 @@ import { DataState } from '@/ui/DataState';
 import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
-import { Input } from '@/ui/Input';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
 import { useCommandWords } from './words';
@@ -37,6 +36,8 @@ export type RecordFile = {
   review_on: string | null;
   review_due: boolean;
   added_by: string | null;
+  /** The uploader's name, in English (FIX-46): the files read names the uploader, as /files does. */
+  added_by_name: string | null;
   added_at: string;
   version: number;
 };
@@ -96,7 +97,9 @@ type PendingUpload = {
 /**
  * A record's files (Phase 3, the generic form of the company Files section): upload through the existing file
  * doors (register, store, finish) and listed from them. Several files at once, by choosing, dropping or
- * pasting them; a phone's camera comes through the native file input. The kind defaults to the first kind
+ * pasting them; a phone's camera comes through the native file input, which the translated button opens — the
+ * browser's own "Choose files / No file chosen" words are never shown, they are not in the app's language (F070).
+ * A file row names its uploader, as /files does (FIX-46). The kind defaults to the first kind
  * offered (evidence on a task or an achievement); the company page keeps the kind picker. A review date is
  * asked only for a kind that needs one (a travel policy), at upload time. A file whose upload never finished
  * shows a retry button while the upload is still in memory; after a reload the row says the upload failed and
@@ -277,7 +280,20 @@ export function FilesSection({
           ) : null}
           <Field label={t('record.files.chooseFile')} className="flex-1">
             {({ id }) => (
-              <Input id={id} ref={inputRef} type="file" multiple onChange={(e) => addPicked(e.target.files)} />
+              <>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  multiple
+                  onChange={(e) => addPicked(e.target.files)}
+                  className="hidden"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+                <Button id={id} variant="secondary" onClick={() => inputRef.current?.click()}>
+                  {t('record.files.chooseFile')}
+                </Button>
+              </>
             )}
           </Field>
           <Button variant="primary" loading={busy} disabled={!canUpload} onClick={uploadPicked} data-file-upload>
@@ -327,9 +343,8 @@ export function FilesSection({
                   <span className="truncate text-sm font-medium">{name}</span>
                   <span className="text-xs text-muted">
                     {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
-                    {t('record.files.addedOn', {
-                      date: formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-                    })}
+                    {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
+                    {formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     {f.review_on ? (
                       <>
                         {' · '}

@@ -5,12 +5,14 @@ import type { Me } from '@/core/auth/me';
 import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { Button } from '../Button';
 
-/** "TEST user: [name] (you are [owner name])" in the language of the screen, the English name where there is no Arabic. */
+/** "TEST user: [name] (you are [owner name])" in the language of the screen. The test user's name is always the English
+ * name: a test account is named in English, and its stored Arabic name is a translation of that proper name, never
+ * used (F212/U2). The owner's name is a real person's name, so it follows the screen's language. */
 export function testSwitchNames(me: Me, locale: 'en' | 'ar') {
   const by = me.test_switch;
   const ar = locale === 'ar';
   return {
-    name: (ar && me.person.full_name_ar) || me.person.full_name_en,
+    name: me.person.full_name_en,
     owner: by ? (ar && by.by_name_ar) || by.by_name_en : '',
   };
 }

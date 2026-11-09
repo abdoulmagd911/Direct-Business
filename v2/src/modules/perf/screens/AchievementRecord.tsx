@@ -191,7 +191,16 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   return (
     <>
       <RecordPage
-        crumbs={[{ label: t('title'), href: '/kpis/achievements' }, { label: `${a.number} · ${a.title}` }]}
+        crumbs={[
+          { label: t('title'), href: '/kpis/achievements' },
+          {
+            label: (
+              <>
+                {a.number} · <bdi>{a.title}</bdi>
+              </>
+            ),
+          },
+        ]}
         // a phone has the back arrow and the title, no trail; the title takes three lines, then a "more" tap
         crumbsClass="max-lg:hidden"
         titleMore={{ more: t('titleMore'), less: t('titleLess') }}
@@ -311,7 +320,9 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
       >
         {tab === 'overview' ? (
           <section className="flex flex-col gap-3" data-tab="overview">
-            <p className="text-text">{a.title}</p>
+            <p className="text-text">
+              <bdi>{a.title}</bdi>
+            </p>
             {a.notes ? <p className="whitespace-pre-wrap text-muted">{a.notes}</p> : null}
             <p
               className="text-sm text-muted"

@@ -43,17 +43,21 @@ const rings = {
 /**
  * Photo or initials, with the person's optional badge. `ring` names the surface
  * the avatar sits on, so it stays visible when its colour equals that surface (c3 is the Direct slate).
+ * `decorative` is for an avatar beside the person's name (a chip or a link that already names them): the image
+ * then carries no name of its own, so a screen reader hears the name once, not twice (F105/F155).
  */
 export function Avatar({
   person,
   size = 'md',
   className,
   ring = 'raised',
+  decorative = false,
 }: {
   person: AvatarPerson;
   size?: keyof typeof sizes;
   className?: string;
   ring?: keyof typeof rings;
+  decorative?: boolean;
 }) {
   const title = person.fullName ?? person.displayName;
   const badge = person.badge && person.badge.kind !== 'none' && person.badge.value ? person.badge : null;
@@ -61,11 +65,16 @@ export function Avatar({
   return (
     <span className={cn('relative inline-flex shrink-0', className)} data-avatar>
       {person.avatarUrl ? (
-        <img src={person.avatarUrl} alt={title} className={cn('rounded-full object-cover', sizes[size], rings[ring])} />
+        <img
+          src={person.avatarUrl}
+          alt={decorative ? '' : title}
+          className={cn('rounded-full object-cover', sizes[size], rings[ring])}
+        />
       ) : (
         <span
-          role="img"
-          aria-label={title}
+          role={decorative ? undefined : 'img'}
+          aria-label={decorative ? undefined : title}
+          aria-hidden={decorative || undefined}
           className={cn(
             'inline-grid place-items-center rounded-full font-semibold leading-none tracking-[.02em] text-text',
             tint,

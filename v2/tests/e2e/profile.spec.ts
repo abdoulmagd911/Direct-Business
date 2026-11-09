@@ -28,10 +28,23 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await expect(page.getByText('Profile saved').first()).toBeVisible();
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
 
-  // no colour to pick and no badge, start page or drawer on the screen (V217, cut 6; V636: no profile colour)
+  // no colour to pick and no badge or drawer on the screen (V217, cut 6; V636: no profile colour). Start page (F207)
+  // IS here — the pages this person can see, plus Default — and it offers no Finance to a member (FIX-03 F179)
   await expect(page.locator('[data-colour]'), 'no colour swatches on My profile').toHaveCount(0);
-  for (const gone of ['Badge', 'Start page', 'Drawer', 'Nickname', 'Colour'])
+  for (const gone of ['Badge', 'Drawer', 'Nickname', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
+  await expect(page.getByLabel('Start page', { exact: true }), 'Start page is on My profile').toHaveCount(1);
+  await page.getByLabel('Start page', { exact: true }).click();
+  await expect(page.getByRole('option')).toHaveText([
+    'Default',
+    'My day',
+    'Tasks',
+    'Clients',
+    'Achievements',
+    'Reports',
+    'Discount codes',
+  ]);
+  await page.getByRole('option', { name: 'Default' }).click();
 
   // Theme: Light, Dark and Direct, and nothing else (V636)
   await page.getByLabel('Theme', { exact: true }).click();

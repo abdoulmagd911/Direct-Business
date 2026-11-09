@@ -165,7 +165,8 @@ export function CodesScreen({
           retryLabel={t('common.tryAgain')}
         />
       ) : visible.length === 0 ? (
-        <DataState kind="empty" message={t('pages.codes.empty')} />
+        // A filter with no matches says so; only a list with no codes at all says none exist yet (F166).
+        <DataState kind="empty" message={t(rows.length === 0 ? 'pages.codes.empty' : 'pages.codes.emptyFiltered')} />
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
           {visible.map((row) => (

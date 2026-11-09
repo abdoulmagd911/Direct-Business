@@ -281,6 +281,7 @@
         "askedTo": "Asked {name}",
         "emptyQuestions": "No open questions.",
         "emptyNeedHelp": "Nothing needs help right now.",
+        "emptyWaitingOnOthers": "Nothing waiting on others.",
         "emptyNeedHelpOthers": "No tasks you flagged are still waiting."
       },
       "starred": "Starred",
@@ -500,7 +501,7 @@
         "all": "All",
         "mine": "Mine",
         "month": "Month",
-        "backfilled": "Backfilled",
+        "backfilled": "Added later",
         "past": "Past work",
         "needsOwner": "Needs owner",
         "clear": "Clear filters",
@@ -523,10 +524,10 @@
         "category": "Category",
         "owner": "Owner",
         "date": "Date",
-        "value": "Deal value"
+        "value": "Value"
       },
       "marks": {
-        "backfilled": "Backfilled",
+        "backfilled": "Added later",
         "draft": "Draft",
         "noEvidence": "No evidence",
         "moved": "Moved",
@@ -539,14 +540,14 @@
         "title": "What",
         "date": "Date",
         "organisation": "Organisation",
-        "value": "Deal value",
+        "value": "Value",
         "valueLabel": "Value",
         "notes": "Notes",
         "count": "Count",
         "owner": "Owner",
         "participants": "Participants",
         "reference": "Reference",
-        "system": "System",
+        "system": "Where the reference came from",
         "source": "Source report",
         "logged": "Logged",
         "movedFrom": "Moved from",
@@ -591,7 +592,7 @@
       "back": "Achievements",
       "backTo": "Back to Achievements",
       "figures": {
-        "value": "Deal value",
+        "value": "Value",
         "valuePlain": "Value",
         "count": "Count",
         "date": "Date"
@@ -660,7 +661,7 @@
       "anyMonth": "Any month",
       "clearMonth": "Clear month",
       "total": "Total",
-      "dealValue": "Deal value",
+      "dealValue": "Value",
       "withDealValue": "with a deal value",
       "byCategory": "By category",
       "byOwner": "By owner",
@@ -729,9 +730,10 @@
         "none": "No code is shown under a partner yet",
         "promo": "Promo",
         "codes": "Codes"
-      }
+      },
+      "emptyFiltered": "No codes match this filter."
     },
-    "beingBuilt": "Not ready yet. Use Tasks or Achievements for now.",
+    "beingBuilt": "Being built — use Tasks or Achievements for now.",
     "tasks": {
       "unknownOwner": "Unknown",
       "blocked": "Blocked",
@@ -1074,13 +1076,13 @@
         "done": "Delegated to {name}"
       },
       "star": {
-        "mark": "Mark “{title}” as important",
-        "unmark": "Remove the importance mark from “{title}”",
-        "markHint": "Mark as important",
-        "unmarkHint": "Important — tap to remove",
-        "marked": "Marked as important · {number}",
-        "unmarked": "Importance mark removed · {number}",
-        "important": "Important"
+        "mark": "Star “{title}”",
+        "unmark": "Unstar “{title}”",
+        "markHint": "Star",
+        "unmarkHint": "Starred — tap to remove",
+        "marked": "Starred · {number}",
+        "unmarked": "Star removed · {number}",
+        "important": "Starred"
       },
       "dialogs": {
         "remove": "Remove task",
@@ -1255,7 +1257,8 @@
     "import_map": "Import column",
     "item_service": "Item service",
     "item_class": "Item class",
-    "my_carry": "Wrap-up move"
+    "my_carry": "Wrap-up move",
+    "achievement_ref": "Evidence reference"
   },
   "status": {
     "done": "Done",
@@ -1469,7 +1472,9 @@
       "filterQuestions": "Questions",
       "jumpToLatest": "Jump to latest",
       "newComments": "{count} new",
-      "askChip": "Asked {name}"
+      "askChip": "Asked {name}",
+      "removedQuestion": "Question deleted",
+      "removeQuestionTitle": "Delete the question?"
     }
   },
   "activity": {
@@ -1572,7 +1577,11 @@
       "none": "Nothing removed recently",
       "searchPlaceholder": "Search removed records",
       "count": "{count} removed",
-      "showing": "Showing {shown} of {total}"
+      "showing": "Showing {shown} of {total}",
+      "reasons": {
+        "replaced": "Replaced",
+        "undo": "Undone"
+      }
     },
     "fields": {
       "full_name_en": "Full name",
@@ -1625,7 +1634,19 @@
       "side": "Side",
       "on": "On",
       "since": "Since",
-      "until": "Until"
+      "until": "Until",
+      "done_on": "Done on",
+      "due_on": "Due on",
+      "happened_on": "Happened on",
+      "title": "Title",
+      "body": "Body",
+      "visibility": "Visibility",
+      "deleted_at": "Deleted at",
+      "deleted_by": "Deleted by",
+      "delete_reason": "Delete reason",
+      "city": "City",
+      "sha256": "Sha256",
+      "stored_at": "Stored at"
     },
     "moreFields": "+{count} more",
     "fieldsCount": "{count, plural, one {# field} other {# fields}}",
@@ -1753,7 +1774,9 @@
       "values": {
         "true": "On",
         "false": "Off"
-      }
+      },
+      "invalidValue": "That value is not valid for this setting.",
+      "invalidTime": "Enter a time like 11:00."
     },
     "list": {
       "add": "Add entry",
@@ -1872,6 +1895,8 @@
       "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
       "accessShowAll": "Show all",
       "accessHide": "Show less",
+      "emailInvalid": "Enter a valid email address.",
+      "noMatch": "No people match this search.",
       "handover": "Hand over to",
       "handoverPlaceholder": "Choose a person",
       "openWorkMove": "{count} open items will move to the person chosen below",
@@ -1902,7 +1927,8 @@
       "head": "Head",
       "saved": "Department saved",
       "edit": "Edit {name}",
-      "noHead": "No head"
+      "noHead": "No head",
+      "people": "People"
     },
     "roles": {
       "name": "Name",
@@ -2029,7 +2055,8 @@
       "ask_yourself": "Pick someone other than yourself",
       "asked_cannot_see": "That person cannot see this record",
       "not_open": "This question is already answered",
-      "not_asked": "Only the person asked can answer this question"
+      "not_asked": "Only the person asked can answer this question",
+      "already_asked": "You already have an open question with {detail}."
     },
     "backfill": {
       "no_match": "That task and achievement no longer match"
@@ -2402,7 +2429,8 @@
     "renameTitle": "Rename “{name}”",
     "renamed": "{name} renamed",
     "menu": "{name}: more",
-    "label": "Views"
+    "label": "Views",
+    "saveHint": "Save keeps these filters under a name."
   },
   "partners": {
     "count": "{count, plural, one {# organisation} other {# organisations}}",
@@ -2471,7 +2499,8 @@
       "address": "Address",
       "notes": "Notes",
       "clientSince": "Client since",
-      "number": "Number"
+      "number": "Number",
+      "supplierSince": "Supplier since"
     },
     "figures": {
       "last_activity": "Last activity",
@@ -2504,7 +2533,7 @@
         "cr_certificate": "Commercial registration",
         "vat_certificate": "VAT certificate",
         "national_address": "National address",
-        "tender_document": "Letter of award"
+        "tender_document": "Tender document"
       },
       "chooseKind": "Choose a kind",
       "chooseFile": "Choose a file",
@@ -2568,7 +2597,9 @@
       "state": {
         "applied": "Applied",
         "signed": "Signed"
-      }
+      },
+      "supplierIds": "Supplier IDs",
+      "supplierIdsNone": "No supplier IDs on this partner yet"
     },
     "archive": {
       "title": "All files",
@@ -2686,18 +2717,18 @@
       }
     },
     "sideDialog": {
-      "onTitle": "Switch the {side} side on",
-      "editTitle": "Change the {side} side",
-      "on": "{side} side switched on",
-      "changed": "{side} side changed",
-      "offTitle": "Switch the {side} side off?",
-      "off": "{side} side switched off",
-      "switchOff": "Switch off",
+      "onTitle": "Add as {side}",
+      "editTitle": "Change {side} details",
+      "on": "{side} added",
+      "changed": "{side} details changed",
+      "offTitle": "Remove as {side}?",
+      "off": "{side} removed",
+      "switchOff": "Remove",
       "since": "Since",
       "until": "Until",
-      "switchOn": "Switch the {side} side on",
-      "switchOffAction": "Switch the {side} side off",
-      "change": "Change the {side} side"
+      "switchOn": "Add as {side}",
+      "switchOffAction": "Remove as {side}",
+      "change": "Change {side} details"
     },
     "statusDialog": {
       "title": "Set the {side} side's status",
@@ -2735,7 +2766,8 @@
         "phone": "Phone",
         "payments_client_id": "Client ID",
         "discount_code": "Discount code",
-        "name": "Other name"
+        "name": "Other name",
+        "supplier_id": "Supplier ID"
       },
       "subkinds": {
         "prepaid": "Prepaid",
@@ -2944,8 +2976,6 @@
       "kind": "Invoice type",
       "allKinds": "All types",
       "code": "Discount code",
-      "project": "Project",
-      "projectSoon": "Project linking lands later — this box does not change the numbers yet.",
       "apply": "Apply",
       "clear": "Clear",
       "saveHint": "Save keeps these filters under a name.",

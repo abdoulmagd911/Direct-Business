@@ -15,10 +15,10 @@ import { FinanceReport } from './FinanceReport';
 type Locale = 'en' | 'ar';
 
 /**
- * The Finance page's ledger section (workstream B): the filters (company, client ID, invoice type, code,
- * project) beside the period the page already has, the saved views over them, and the report itself. The
- * address carries the filters, so a saved view is just a named address and the Codes page can link here with
- * `code` already set. The project box is kept for when its link lands (see finance.ledger) and says so.
+ * The Finance page's ledger section (workstream B): the filters (company, client ID, invoice type, code)
+ * beside the period the page already has, the saved views over them, and the report itself. The address
+ * carries the filters, so a saved view is just a named address and the Codes page can link here with `code`
+ * already set. The Project filter was removed whole (F175, FIX-32).
  */
 export function FinanceLedgerSection({
   ask,
@@ -42,9 +42,10 @@ export function FinanceLedgerSection({
   const [clientId, setClientId] = useState(initial.clientId ?? '');
   const [kind, setKind] = useState(initial.kind ?? '');
   const [code, setCode] = useState(initial.code ?? '');
-  const [project, setProject] = useState(initial.project ?? '');
   // The boxes follow the address (F171): opening a saved view changes `initial`, and the boxes must show the
   // view's filters, not the ones typed before it. Same render-phase sync as the task list (FIX-34 R2a).
+  // No project box: the ledger's Project filter was removed whole (F175, FIX-32) — the draft, the open view
+  // and Clear never carry it again.
   const [seenInitial, setSeenInitial] = useState(initial);
   if (initial !== seenInitial) {
     setSeenInitial(initial);
@@ -52,7 +53,6 @@ export function FinanceLedgerSection({
     setClientId(initial.clientId ?? '');
     setKind(initial.kind ?? '');
     setCode(initial.code ?? '');
-    setProject(initial.project ?? '');
   }
   // The open view, lit the moment it is pressed (F172): the pill must not wait for the server round-trip.
   // It follows the address too, so Back and refresh keep it.
@@ -68,7 +68,6 @@ export function FinanceLedgerSection({
     ...(clientId ? { clientId } : {}),
     ...(kind ? { kind: kind as LedgerFilter['kind'] } : {}),
     ...(code ? { code } : {}),
-    ...(project ? { project } : {}),
   };
   const go = (f: LedgerFilter, v = '') => {
     const q = new URLSearchParams({ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(f) });
@@ -85,7 +84,6 @@ export function FinanceLedgerSection({
       ...(typeof q.client === 'string' && q.client ? { clientId: q.client } : {}),
       ...(typeof q.kind === 'string' && q.kind ? { kind: q.kind as LedgerFilter['kind'] } : {}),
       ...(typeof q.code === 'string' && q.code ? { code: q.code } : {}),
-      ...(typeof q.project === 'string' && q.project ? { project: q.project } : {}),
     };
     const period = typeof q.period === 'string' ? q.period : ask.key;
     const from = typeof q.from === 'string' ? q.from : ask.from;
@@ -179,16 +177,6 @@ export function FinanceLedgerSection({
             data-finance-filter-code
           />
         </label>
-        <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 text-sm font-medium">
-          {t('finance.ledger.project')}
-          <Input
-            value={project}
-            onChange={(e) => setProject(e.target.value)}
-            aria-label={t('finance.ledger.project')}
-            data-finance-filter-project
-          />
-          <span className="text-xs font-normal text-muted">{t('finance.ledger.projectSoon')}</span>
-        </label>
         <div className="flex gap-2">
           <Button type="submit" variant="primary" data-finance-filter-apply>
             {t('finance.ledger.apply')}
@@ -201,7 +189,6 @@ export function FinanceLedgerSection({
               setClientId('');
               setKind('');
               setCode('');
-              setProject('');
               go({});
             }}
             data-finance-filter-clear

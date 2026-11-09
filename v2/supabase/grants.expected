@@ -179,6 +179,7 @@ function api.partner_client_counts(p_on date) execute authenticated
 function api.partner_create(p_partner jsonb, p_reason text) execute authenticated
 function api.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute authenticated
 function api.partner_owner_set(p_id uuid, p_side text, p_person uuid, p_from date, p_reason text) execute authenticated
+function api.partner_page(p_id uuid) execute authenticated
 function api.partner_pipeline(p_partner uuid) execute authenticated
 function api.partner_references(p_partner uuid) execute authenticated
 function api.partner_remove(p_id uuid, p_reason text) execute authenticated

@@ -30,7 +30,7 @@ export function PersonChip({
         className,
       )}
     >
-      <Avatar person={person} size={size} />
+      <Avatar person={person} size={size} decorative />
       {nameless ? null : <span className="name">{person.displayName}</span>}
     </Link>
   );

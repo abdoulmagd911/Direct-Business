@@ -26,6 +26,9 @@ const FILE_TYPES: Record<string, string> = {
  * and written the one way the whole app writes a date. */
 export const DAY_PATTERN = '^(\\d{4}-\\d{2}-\\d{2})?$';
 
+/** A time of day (the weekly review nudge time): 24-hour HH:MM, as the setting's schema holds it (F223). */
+export const TIME_PATTERN = '^([01]\\d|2[0-3]):[0-5]\\d$';
+
 /** The catalog key of a field's name inside an object setting ("account_manager"), when it has one. */
 export const keyWordKey = (k: string): string => `settings.fields.${k}`;
 

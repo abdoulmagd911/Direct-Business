@@ -170,7 +170,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
 });
 
-test('a member sees the month is not closed and has no Close month; the Provisional part is never left out', async ({
+test('a member is refused Finance whole and sees no month, no Close month, no figures (FIX-03 F179)', async ({
   page,
 }) => {
   const ym = await oldMonth();
@@ -187,10 +187,12 @@ test('a member sees the month is not closed and has no Close month; the Provisio
   await page.goto(addressOf(ym));
   await hydrated(page);
   await blocksSettled(page);
-  const row = page.locator(`[data-finance-month="${ym}-01"]`);
-  await expect(row, 'a member sees the month is not closed').toContainText('Not closed');
+  // FIX-03 F179: the month exists — the admin seeded it above — and the member is still refused the whole page:
+  // no month row, no Close month, no figures
+  await expect(page.locator('[data-state="no-access"]'), 'a member is refused Finance whole').toHaveCount(1);
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'no month row for a refused member').toHaveCount(0);
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);
-  await expect(tile(page, 'cost').locator('[data-finance-provisional]')).toContainText('of which Provisional');
+  await expect(page.locator('[data-finance-tile]'), 'no figures for a refused member').toHaveCount(0);
 });
 
 test('phone 390: nothing scrolls sideways, the Provisional part is directly under its figure, every target is 44 px', async ({

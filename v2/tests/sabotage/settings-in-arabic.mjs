@@ -167,8 +167,10 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/ar.json',
-        find: '    },\n    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط."\n',
-        replace: '    }\n',
+        // The line used to be the last key of its object, so the plant also closed the object before it;
+        // "email" and more were added after it, so the plant now removes just the line.
+        find: '    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط.",\n',
+        replace: '',
       },
     ],
   },

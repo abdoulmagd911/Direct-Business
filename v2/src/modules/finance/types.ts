@@ -74,8 +74,6 @@ export type LedgerFilter = {
   clientId?: string;
   kind?: 'transaction' | 'standalone' | 'billing' | 'credit_note' | 'wallet_topup';
   code?: string;
-  /** Accepted and kept in saved views; no project link exists yet, so it changes nothing (see finance.ledger). */
-  project?: string;
 };
 
 /** One company the filtered view can pick, as finance.ledger lists it (never the company filter applied). */

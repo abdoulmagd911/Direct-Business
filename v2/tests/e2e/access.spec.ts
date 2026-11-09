@@ -5,7 +5,8 @@
  *  · ACC-127 — My profile is reached from the avatar menu at the top, its one place (daily use 10).
  *  · ACC-091 — the root goes to the person's start page (their choice, else the admin's default, else My day).
  *  · ACC-090 — a person without their own theme or density gets the admin's defaults.
- *  · ACC-129/139 — the language switch shows only while Arabic is on; a cookie saying Arabic is ignored while it is off.
+ *  · ACC-129/139 — in-app Arabic stays gated: a cookie saying Arabic is ignored while it is off. The door is the
+ *    exception (F205, Landing 4): nobody is signed in there, so the cookie stands and the switch always shows.
  * The promises that change the admin's App settings reach everyone, so they run alone, after every other spec:
  * app-settings.alone.spec.ts. Sabotages: tests/sabotage/screens.mjs "none-gets-an-empty-page", "root-ignores-the-start-page",
  * "arabic-cookie-wins-while-off", "profile-back-in-the-drawer".
@@ -105,17 +106,25 @@ test('the root goes to the start page the person chose (ACC-091)', async ({ page
   await expect(page).toHaveURL(/\/my-day$/);
 });
 
-test('a locale cookie saying Arabic is ignored while Arabic is off, and no switch shows (ACC-129/139)', async ({
+test('the door honours an Arabic cookie while Arabic is off (F205); signed in, the cookie is ignored (ACC-129/139)', async ({
   page,
   context,
 }) => {
   const member = await makePerson();
   await setPrefs(context, { locale: 'ar' });
   await page.goto('/sign-in');
-  await expect(page.locator('html'), 'the door stays English').toHaveAttribute('lang', 'en');
-  await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
-  await expect(page.locator('[data-door-language]'), 'no language button while Arabic is off').toHaveCount(0);
+  // the door is the F205 exception: nobody is signed in, so the cookie stands whatever the Arabic switch says
+  await expect(page.locator('html'), 'the door follows the cookie').toHaveAttribute('lang', 'ar');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('[data-door-language]:visible'), 'the language button shows on the door').toHaveCount(1);
+  // back to English through the door's own switch, so the shared sign-in (English labels) runs; the signed-in
+  // half below sets the Arabic cookie again and proves the switch still rules in-app
+  await page.locator('[data-door-language]:visible').click();
+  await expect(page.locator('html'), 'the switch turns the door back to English').toHaveAttribute('lang', 'en');
   await signIn(page, member.email, '/my-day');
+  await hydrated(page);
+  await setPrefs(context, { locale: 'ar' });
+  await page.goto('/my-day');
   await hydrated(page);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');

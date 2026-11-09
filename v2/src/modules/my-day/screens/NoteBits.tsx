@@ -207,7 +207,11 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
             {t(`pages.myDay.quick.kinds.${captured}`)}
           </span>
           <VisibilityChip visibility={note.visibility} />
-          {org ? <span className={chipClass}>{tradeName(org, locale)}</span> : null}
+          {org ? (
+            <span className={chipClass}>
+              <bdi>{tradeName(org, locale)}</bdi>
+            </span>
+          ) : null}
           {note.kind === 'meeting' ? (
             <span className={chipClass} data-meeting-state>
               {note.finished_at

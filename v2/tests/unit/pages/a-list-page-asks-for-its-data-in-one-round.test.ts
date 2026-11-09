@@ -76,8 +76,8 @@ describe('a list page asks for all its data in one round after me', () => {
     expect(round).toEqual(expect.arrayContaining(['tasks', 'list', 'org', 'partners', 'projects']));
     expect(round.filter((f) => f === 'org')).toHaveLength(1);
   });
-  it("Clients: the list, the lookups and the other side's count together", async () => {
+  it('Clients: the list and the lookups together — the other side is read when its tab opens, not up front (FIX-45: the second partners call, otherCount, only filled a count the tab shows when opened)', async () => {
     const round = await oneRound(() => PartnersListPage({ side: 'client', searchParams: Promise.resolve({}) }));
-    expect(round.sort()).toEqual(['list', 'list', 'list', 'org', 'partners', 'partners']);
+    expect(round.sort()).toEqual(['list', 'list', 'list', 'org', 'partners']);
   });
 });

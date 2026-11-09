@@ -171,7 +171,13 @@ export function MyProfile({
         if (changes.drawer_pinned !== undefined) setPref('drawer', changes.drawer_pinned ? 'pinned' : 'collapsed');
         return r;
       },
-      () => router.refresh(),
+      // a saved language re-renders the page in it at once (F125/F167, U3): the words come from the server in the
+      // cookie's language, and a refresh leaves the client translator on the old language — so the page is asked
+      // for again, as PrefsSync does when the server's language differs from the cookie's.
+      () => {
+        if (changes.locale && changes.locale !== locale) window.location.reload();
+        else router.refresh();
+      },
     );
   // a display name's box shows what the database kept (one's own e-mail is kept empty — QA-567); undefined when the
   // save did not go through, so the box keeps what was typed

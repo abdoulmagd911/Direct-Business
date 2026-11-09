@@ -18,6 +18,7 @@ import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { StatusChip } from '@/ui/Chip';
+import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -344,6 +345,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
           );
         })}
       </ul>
+      {q.trim() !== '' && rows.length === 0 ? <DataState kind="empty" message={t('settings.people.noMatch')} /> : null}
       <AddPersonDialog open={adding} onOpenChange={setAdding} org={org} onDone={(id) => router.push(`/people/${id}`)} />
     </section>
   );
@@ -419,6 +421,9 @@ function AddPersonDialog({
   });
   const [busy, setBusy] = useState(false);
   const teams = org.teams.filter((x) => x.active && x.department_id === f.department_id);
+  // an email that is typed but not an email address is said in words, in place (F220, D36(e)): Save stays disabled
+  // and the field alone never explains itself
+  const emailBad = f.email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email);
   const ok =
     f.full_name_en.trim().length > 0 && !!f.department_id && (!f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email));
   const save = async () => {
@@ -539,7 +544,11 @@ function AddPersonDialog({
             />
           )}
         </Field>
-        <Field label={t('settings.people.email')} className="sm:col-span-2">
+        <Field
+          label={t('settings.people.email')}
+          className="sm:col-span-2"
+          error={emailBad ? t('settings.people.emailInvalid') : undefined}
+        >
           {(p) => (
             <Input
               {...p}
@@ -868,7 +877,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                     <dd>{names.person(x.head_person_id) || t('settings.departments.noHead')}</dd>
                   </div>
                   <div className="flex gap-2">
-                    <dt className="text-muted">{t('settings.people.people', { count: 0 }).replace(/^0\s*/, '')}</dt>
+                    <dt className="text-muted">{t('settings.departments.people')}</dt>
                     <dd className="font-data">{org.people.filter((p) => p.department_id === x.id).length}</dd>
                   </div>
                 </dl>
@@ -895,7 +904,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                     {t('settings.departments.head')}
                   </th>
                   <th className="px-4 py-2.5 text-end font-medium [overflow-wrap:break-word]">
-                    {t('settings.people.people', { count: 0 }).replace(/^0\s*/, '')}
+                    {t('settings.departments.people')}
                   </th>
                   <th className="px-4 py-2.5" />
                 </tr>

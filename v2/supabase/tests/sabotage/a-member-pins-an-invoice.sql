@@ -2,15 +2,20 @@
 -- Breaks: sql:MPN-01
 -- Expect: a member cannot pin an invoice to an organisation
 -- A member with Own on Finance pins an imported invoice to any organisation, moving its revenue and credit (QA-535).
+-- (FIX-03 F179: Members hold no level on Finance now, so the old 'own' gate still refused the test's member;
+-- the plant drops the level gate whole — anyone signed in may pin.)
 create or replace function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
-  me uuid := authz.require('finance', 'own');
+  me uuid := authz.me();
   u record;
   req uuid;
   pid uuid;
 begin
+  if me is null then
+    raise exception using errcode = '42501', message = 'auth.no_active_person';
+  end if;
   if p_kind not in ('entry', 'decision') then
     raise exception using errcode = 'P0001', message = 'match.unknown_pin_kind', detail = coalesce(p_kind, '');
   end if;

@@ -302,7 +302,7 @@ export function MyDay({ data }: { data: MyDayData }) {
               })}
             </ul>
           ) : (
-            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyQuestions')}</p>
+            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyWaitingOnOthers')}</p>
           )}
         </section>
       ) : null}

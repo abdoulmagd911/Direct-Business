@@ -202,7 +202,7 @@ export function PartnersList({
                 data-entity="partner"
                 data-partner-link={row.original.id}
               >
-                {tradeName(row.original, locale)}
+                <bdi>{tradeName(row.original, locale)}</bdi>
               </Link>
             </PartnerHover>
             {row.original.key_partner ? <StatusChip tone="info">{t('partners.keyPartner')}</StatusChip> : null}
@@ -470,7 +470,7 @@ export function PartnersList({
                       data-entity="partner"
                       data-partner-link={r.id}
                     >
-                      {tradeName(r, locale)}
+                      <bdi>{tradeName(r, locale)}</bdi>
                     </Link>
                   </span>
                   <span className="font-data text-xs text-muted">
@@ -638,7 +638,10 @@ function ColumnsMenu({
   );
 }
 
-/** A filter chip whose click opens a picker of several values (M102: dashed while empty, solid with its value and ✕). */
+/** A filter chip whose click opens a picker of several values (M102: dashed while empty, solid with its value and ✕).
+ * FIX-45: the picker holds a draft and applies it once, when it closes — a checkbox toggle used to navigate on every
+ * click, so ticking three filters cost three full page renders. The ✕ on the chip itself still applies at once
+ * (one action, one navigation). */
 function ChipPicker({
   idPrefix,
   field,
@@ -659,8 +662,23 @@ function ChipPicker({
   words: (key: string, values?: Record<string, string | number>) => string;
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string[]>(picked);
+  const [openedFor, setOpenedFor] = useState<string[] | null>(null);
+  // the draft is seeded from the applied values each time the picker opens (the render-phase sync the codebase
+  // uses for mount-once state, e.g. NotePage) — while it is open the draft is the picker's own, not the page's
+  if (open && openedFor !== picked) {
+    setOpenedFor(picked);
+    setDraft(picked);
+  }
+  const changeOpen = (o: boolean) => {
+    setOpen(o);
+    if (!o && openedFor !== null) {
+      setOpenedFor(null);
+      if (draft.join(',') !== picked.join(',')) onChange(draft);
+    }
+  };
   return (
-    <RP.Root open={open} onOpenChange={setOpen}>
+    <RP.Root open={open} onOpenChange={changeOpen}>
       {/* an anchor, not a trigger: a trigger would put aria-expanded on the span (axe: aria-allowed-attr) */}
       <RP.Anchor asChild>
         <span data-chip={field}>
@@ -689,8 +707,8 @@ function ChipPicker({
                   <Checkbox
                     id={`${idPrefix}-${o.value}`}
                     label={o.label}
-                    checked={picked.includes(o.value)}
-                    onCheckedChange={(v) => onChange(v ? [...picked, o.value] : picked.filter((x) => x !== o.value))}
+                    checked={draft.includes(o.value)}
+                    onCheckedChange={(v) => setDraft(v ? [...draft, o.value] : draft.filter((x) => x !== o.value))}
                   />
                   <label htmlFor={`${idPrefix}-${o.value}`} className="text-sm">
                     {o.label}

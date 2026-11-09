@@ -5,7 +5,7 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Money } from '@/ui/Money';
 import { FilesSection as SharedFilesSection } from '@/ui/record/FilesSection';
-import type { CompanyFile, CompanySummary, Identifier, ListEntry, PartnerCard } from '../../types';
+import type { CompanyFile, CompanySummary, Identifier, ListEntry, PartnerCard, Side } from '../../types';
 
 /** The file kinds the company Files section offers, and the purpose each is stored under. */
 const FILE_KINDS = [
@@ -151,10 +151,13 @@ export function FinanceTab({
   card,
   summary,
   onRetry,
+  side,
 }: {
   card: PartnerCard;
   summary: CompanySummary | null;
   onRetry: () => void;
+  /** The record's side: its identifiers are client IDs on a client, supplier IDs on a supplier (F140). */
+  side: Side;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -189,7 +192,9 @@ export function FinanceTab({
   return (
     <div className="flex flex-col gap-6" data-partner-finance>
       <section className="rounded-lg border border-border bg-raised p-5">
-        <h2 className="mb-3 text-base font-semibold">{t('partners.companyFinance.clientIds')}</h2>
+        <h2 className="mb-3 text-base font-semibold">
+          {side === 'client' ? t('partners.companyFinance.clientIds') : t('partners.companyFinance.supplierIds')}
+        </h2>
         {groups.some((g) => g.rows.length) || otherIds.length ? (
           <div className="flex flex-col gap-3">
             {groups.map((g) =>
@@ -208,7 +213,11 @@ export function FinanceTab({
             )}
             {otherIds.length ? (
               <div>
-                <h3 className="mb-1 text-sm font-medium">{t('partners.identifier.kinds.payments_client_id')}</h3>
+                <h3 className="mb-1 text-sm font-medium">
+                  {side === 'client'
+                    ? t('partners.identifier.kinds.payments_client_id')
+                    : t('partners.identifier.kinds.supplier_id')}
+                </h3>
                 <ul className="flex flex-col gap-1">
                   {otherIds.map((i) => (
                     <li key={i.id} className="font-data text-sm" data-client-id={i.id}>
@@ -225,7 +234,14 @@ export function FinanceTab({
             ) : null}
           </div>
         ) : (
-          <DataState kind="empty" message={t('partners.companyFinance.clientIdsNone')} />
+          <DataState
+            kind="empty"
+            message={
+              side === 'client'
+                ? t('partners.companyFinance.clientIdsNone')
+                : t('partners.companyFinance.supplierIdsNone')
+            }
+          />
         )}
       </section>
 

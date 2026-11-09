@@ -422,7 +422,11 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         {identifierGroups.map((g) => (
           <RailField
             key={g.kind}
-            label={t(`partners.identifier.kinds.${g.kind}`)}
+            label={
+              g.kind === 'payments_client_id' && side !== 'client'
+                ? t('partners.identifier.kinds.supplier_id')
+                : t(`partners.identifier.kinds.${g.kind}`)
+            }
             empty={!g.rows.length}
             add={
               mayIdentify ? (
@@ -438,7 +442,10 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                   <span className="font-data">
                     {i.value}
                     {i.subkind && g.kind !== 'name' ? (
-                      <span className="ms-1 text-xs text-muted">{t(`partners.identifier.subkinds.${i.subkind}`)}</span>
+                      <span className="text-xs text-muted">
+                        {' · '}
+                        {t(`partners.identifier.subkinds.${i.subkind}`)}
+                      </span>
                     ) : null}
                   </span>
                   {mayIdentify ? (
@@ -625,7 +632,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         ).map(([k, v]) => (
           <RailField
             key={k}
-            label={t(`partners.fields.${k}`)}
+            label={
+              k === 'clientSince' && side !== 'client' ? t('partners.fields.supplierSince') : t(`partners.fields.${k}`)
+            }
             empty={!v}
             add={
               mayWrite ? (
@@ -716,7 +725,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         crumbs={[{ label: side === 'client' ? t('nav.clients') : t('nav.suppliers_partners'), href: SIDE_ROUTE[side] }]}
         back={{ href: SIDE_ROUTE[side], label: t('record.back') }}
         avatar={<PartnerLogo name={card.trade_name_en} size="xl" />}
-        title={tradeName(card, locale)}
+        title={<bdi>{tradeName(card, locale)}</bdi>}
         subtitle={[card.number, locale === 'ar' ? card.trade_name_en : card.trade_name_ar].filter(Boolean).join(' · ')}
         chips={
           <>
@@ -800,7 +809,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           )
         ) : null}
         {tab === 'codes' ? <CodesTab card={card} summary={summary} /> : null}
-        {tab === 'finance' ? <FinanceTab card={card} summary={summary} onRetry={refresh} /> : null}
+        {tab === 'finance' ? <FinanceTab card={card} summary={summary} onRetry={refresh} side={side} /> : null}
         {tab === 'history' ? (
           <>
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>

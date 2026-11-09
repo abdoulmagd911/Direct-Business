@@ -79,30 +79,19 @@ export async function PartnersListPage({
   };
   const other: Side = side === 'client' ? 'supplier_partner' : 'client';
   const both = (me.levels[SIDE_PAGE[other]] ?? 'none') !== 'none';
-  // the other side's count (for its tab) goes out with the rest — one round after me, not one more after it (W47)
-  const otherCount = async (): Promise<number | null> => {
-    if (!both) return null;
-    try {
-      const a = (await serverRpc('partners', {
-        p_filters: { side: other } as never,
-        p_limit: 1,
-      })) as unknown as PartnersAnswer;
-      return a.total;
-    } catch {
-      return null;
-    }
-  };
-  const [org, types, tiers, priorities, { answer, failed }, otherTotal] = await Promise.all([
+  // FIX-45: the other side's count used to cost a second `partners` call on every list render, only to fill the
+  // other tab's number. It is omitted now — the tab shows no count until it is opened, when its own list read
+  // carries its total. One list render is one partners read.
+  const [org, types, tiers, priorities, { answer, failed }] = await Promise.all([
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     serverRpc('list', { p_list: 'side_type' }) as unknown as Promise<ListEntry[]>,
     serverRpc('list', { p_list: 'side_tier' }) as unknown as Promise<ListEntry[]>,
     serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,
     read(),
-    otherCount(),
   ]);
   const totals: Record<Side, number | null> = {
     [side]: answer?.total ?? null,
-    [other]: otherTotal,
+    [other]: null,
   } as Record<Side, number | null>;
   return (
     <Page bare>

@@ -52,7 +52,24 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
   const [person, setPerson] = useState('all');
   const [since, setSince] = useState('');
 
-  const kindOf = (entity: string) => (t.has(`entity.${entity}`) ? t(`entity.${entity}`) : entity);
+  // A dotted kind ("task.removed") reads by its first part — "Task" — never raw.
+  const kindOf = (entity: string) => {
+    if (t.has(`entity.${entity}`)) return t(`entity.${entity}`);
+    const first = entity.split('.')[0];
+    if (first && t.has(`entity.${first}`)) return t(`entity.${first}`);
+    return entity;
+  };
+  // A removed setting's label is its key ("app.arabic_enabled"); its name lives in the settings catalog.
+  const labelOf = (d: DeletedRow) => {
+    if (d.entity === 'setting' && d.label && t.has(`setting.${d.label}`)) return t(`setting.${d.label}`);
+    return d.label;
+  };
+  // A system removal reason ("replaced", "undo") reads in the language on screen; a person's own words stay as written.
+  const reasonOf = (d: DeletedRow) => {
+    if (!d.reason) return null;
+    if (t.has(`activity.deleted.reasons.${d.reason}`)) return t(`activity.deleted.reasons.${d.reason}`);
+    return d.reason;
+  };
   const types = useMemo(
     () => [...new Set(rows.map((r) => r.entity))].sort((a, b) => kindOf(a).localeCompare(kindOf(b))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +100,8 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
 
   const whatOf = (d: DeletedRow) => {
     const kind = kindOf(d.entity);
-    return d.label ? `${kind} · ${d.label}` : kind;
+    const label = labelOf(d);
+    return label ? `${kind} · ${label}` : kind;
   };
   const restore = (d: DeletedRow) =>
     command(
@@ -189,7 +207,7 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
                             .filter(Boolean)
                             .join(' · ')}
                         </span>
-                        {d.reason ? <span className="break-words text-xs text-muted">{d.reason}</span> : null}
+                        {reasonOf(d) ? <span className="break-words text-xs text-muted">{reasonOf(d)}</span> : null}
                       </span>
                       {d.can_restore === false ? (
                         <span className="text-xs text-muted" data-deleted-blocked>

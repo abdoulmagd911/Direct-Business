@@ -210,6 +210,8 @@ export type CompanyFile = {
   review_on: string | null;
   review_due: boolean;
   added_by: string | null;
+  /** The uploader's name, in English (FIX-46): the files read names the uploader, as /files does. */
+  added_by_name: string | null;
   added_at: string;
   version: number;
 };
@@ -356,8 +358,11 @@ export type ListEntry = {
   [column: string]: unknown;
 };
 
+/** A name is plain text: a seeded name that carries markup ("<b>…</b>") shows without it, never as literal tags (F106). */
+const stripTags = (s: string) => s.replace(/<[^>]*>/g, '');
+
 export const nameOf = (x: { name_en: string; name_ar?: string | null } | undefined, locale: 'en' | 'ar') =>
-  x ? (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en) : '';
+  x ? stripTags(locale === 'ar' && x.name_ar ? x.name_ar : x.name_en) : '';
 
 /**
  * The client priority scale (D16): High / Medium / Low. The work-priority words (an executive directive is a task
@@ -370,7 +375,7 @@ export const clientPriorities = (all: ListEntry[], includeId?: string | null) =>
   return stored && !scale.some((x) => x.id === stored.id) ? [...scale, stored] : scale;
 };
 export const tradeName = (p: { trade_name_en: string; trade_name_ar?: string | null }, locale: 'en' | 'ar') =>
-  locale === 'ar' && p.trade_name_ar ? p.trade_name_ar : p.trade_name_en;
+  stripTags(locale === 'ar' && p.trade_name_ar ? p.trade_name_ar : p.trade_name_en);
 export const statusTone = (s: Status | null): 'success' | 'warning' | 'danger' | 'neutral' | 'info' =>
   s === 'active'
     ? 'success'

@@ -123,7 +123,7 @@ for (const [label, width, height] of [
 
     // (3) the three switches say what they are and mean, and reach the address
     for (const [key, name, meaning] of [
-      ['backfilled', 'Backfilled', 'Added later from earlier records'],
+      ['backfilled', 'Added later', 'Added later from earlier records'],
       ['past', 'Past work', 'From before the app went live'],
       ['needsOwner', 'Needs owner', 'No owner is named yet'],
     ] as const) {

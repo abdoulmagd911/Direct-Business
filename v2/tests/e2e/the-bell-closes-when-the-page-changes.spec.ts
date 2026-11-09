@@ -16,10 +16,19 @@ for (const width of [375, 1440]) {
       context,
     }) => {
       const admin = await makePerson({ admin: true });
-      await setPrefs(context, { locale });
       await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
+      // Sign in first, while the door is still in English: setPrefs({ locale: 'ar' }) before signIn makes the door
+      // render in Arabic (F205/D12 honours the locale cookie), so signIn's getByLabel('Work email') can never match
+      // and times out. Same sign-in-first-then-locale pattern as
+      // dates-in-arabic-keep-their-letters-joined.alone.spec.ts.
       await signIn(page, admin.email, '/my-day');
       await hydrated(page);
+      if (locale !== 'en') {
+        await setPrefs(context, { locale });
+        await page.reload();
+        await hydrated(page);
+        await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+      }
       const panel = page.locator('[data-notifications-panel]');
       const bell = page.locator('[data-bell]');
 

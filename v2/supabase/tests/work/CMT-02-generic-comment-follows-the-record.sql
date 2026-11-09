@@ -163,8 +163,8 @@ select test.eq((select count(*)::int from notify.notification
   'and the person asked is put to it once');
 select test.as_person(current_setting('t.own')::uuid);
 select test.raises(format('select api.comment_add(%L, %L, %L, %L)', 'task', current_setting('t.t'),
-  'Made-up second question', current_setting('t.help')), '23505',
-  'one open question per record per person', '%comment_one_open_question%');
+  'Made-up second question', current_setting('t.help')), 'P0001',
+  'one open question per record per person', 'comment.already_asked');
 select set_config('t.q2', api.comment_add('task', current_setting('t.t')::uuid, 'Made-up question to a colleague',
   current_setting('t.peer')::uuid)::text, true);
 select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 3,

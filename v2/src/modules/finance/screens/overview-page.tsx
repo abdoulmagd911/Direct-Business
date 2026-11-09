@@ -36,7 +36,6 @@ export async function FinanceOverviewPage({ searchParams }: { searchParams: Prom
     client: one(q.client),
     kind: one(q.kind),
     code: one(q.code),
-    project: one(q.project),
   });
   return (
     <Page page="finance" title={t('nav.finance')}>

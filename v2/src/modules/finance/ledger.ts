@@ -13,7 +13,6 @@ export function ledgerFilterQuery(f: LedgerFilter): Record<string, string> {
   if (f.clientId) out.client = f.clientId;
   if (f.kind) out.kind = f.kind;
   if (f.code) out.code = f.code;
-  if (f.project) out.project = f.project;
   return out;
 }
 
@@ -23,7 +22,6 @@ export function ledgerFilterFromQuery(q: {
   client?: string;
   kind?: string;
   code?: string;
-  project?: string;
 }): LedgerFilter {
   const kind = (LEDGER_KINDS as readonly string[]).includes(q.kind ?? '')
     ? (q.kind as LedgerFilter['kind'])
@@ -33,7 +31,6 @@ export function ledgerFilterFromQuery(q: {
     ...(q.client ? { clientId: q.client } : {}),
     ...(kind ? { kind } : {}),
     ...(q.code ? { code: q.code } : {}),
-    ...(q.project ? { project: q.project } : {}),
   };
 }
 
@@ -49,7 +46,6 @@ export function ledgerReadArgs(
   p_client_id?: string;
   p_kind?: string;
   p_code?: string;
-  p_project?: string;
 } {
   return {
     p_from: from,
@@ -58,7 +54,6 @@ export function ledgerReadArgs(
     ...(f.clientId ? { p_client_id: f.clientId } : {}),
     ...(f.kind ? { p_kind: f.kind } : {}),
     ...(f.code ? { p_code: f.code } : {}),
-    ...(f.project ? { p_project: f.project } : {}),
   };
 }
 

@@ -471,6 +471,7 @@ export type Database = {
         Args: { p_from?: string; p_id: string; p_person: string; p_reason?: string; p_side: string };
         Returns: Json;
       };
+      partner_page: { Args: { p_id: string }; Returns: Json };
       partner_pipeline: { Args: { p_partner: string }; Returns: Json };
       partner_references: { Args: { p_partner: string }; Returns: Json };
       partner_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };

@@ -251,7 +251,7 @@
         "all": "الكل",
         "mine": "إنجازاتي",
         "month": "الشهر",
-        "backfilled": "بأثر رجعي",
+        "backfilled": "أُضيف لاحقًا",
         "past": "العمل السابق",
         "needsOwner": "بلا مالك",
         "clear": "مسح التصفيات",
@@ -274,10 +274,10 @@
         "category": "الفئة",
         "owner": "المالك",
         "date": "التاريخ",
-        "value": "قيمة الصفقة"
+        "value": "القيمة"
       },
       "marks": {
-        "backfilled": "بأثر رجعي",
+        "backfilled": "أُضيف لاحقًا",
         "draft": "مسودة",
         "noEvidence": "بلا دليل",
         "moved": "منقول",
@@ -290,14 +290,14 @@
         "title": "ما الذي تحقق",
         "date": "التاريخ",
         "organisation": "الجهة",
-        "value": "قيمة الصفقة",
+        "value": "القيمة",
         "valueLabel": "القيمة",
         "notes": "الملاحظات",
         "count": "العدد",
         "owner": "المالك",
         "participants": "المشاركون",
         "reference": "المرجع",
-        "system": "النظام",
+        "system": "مصدر المرجع",
         "source": "التقرير المصدر",
         "logged": "تاريخ التسجيل",
         "movedFrom": "نُقل من",
@@ -342,7 +342,7 @@
       "back": "الإنجازات",
       "backTo": "العودة إلى الإنجازات",
       "figures": {
-        "value": "قيمة الصفقة",
+        "value": "القيمة",
         "valuePlain": "القيمة",
         "count": "العدد",
         "date": "التاريخ"
@@ -411,7 +411,7 @@
       "anyMonth": "أي شهر",
       "clearMonth": "مسح الشهر",
       "total": "الإجمالي",
-      "dealValue": "قيمة الصفقة",
+      "dealValue": "القيمة",
       "withDealValue": "بقيمة صفقة",
       "byCategory": "حسب الفئة",
       "byOwner": "حسب المالك",
@@ -471,6 +471,7 @@
         "askedTo": "سألت {name}",
         "emptyQuestions": "لا أسئلة مفتوحة.",
         "emptyNeedHelp": "لا شيء يحتاج مساعدة الآن.",
+        "emptyWaitingOnOthers": "لا شيء بانتظار الآخرين.",
         "emptyNeedHelpOthers": "لا مهام طلبتَ المساعدة فيها بانتظار الرد."
       },
       "starred": "المميزة بنجمة",
@@ -729,9 +730,10 @@
         "none": "لا يوجد كود ظاهر تحت شريك بعد",
         "promo": "ترويجي",
         "codes": "الأكواد"
-      }
+      },
+      "emptyFiltered": "لا أكواد تطابق هذا المرشح."
     },
-    "beingBuilt": "ليست جاهزة بعد. استخدم المهام أو الإنجازات الآن.",
+    "beingBuilt": "قيد الإنشاء — استخدم المهام أو الإنجازات الآن.",
     "tasks": {
       "unknownOwner": "غير معروف",
       "blocked": "متوقفة",
@@ -1074,13 +1076,13 @@
         "done": "تم التفويض إلى {name}"
       },
       "star": {
-        "mark": "تمييز «{title}» كمهم",
-        "unmark": "إزالة تمييز الأهمية عن «{title}»",
-        "markHint": "تمييز كمهم",
-        "unmarkHint": "مهم — اضغط للإزالة",
-        "marked": "تم التمييز كمهم · {number}",
-        "unmarked": "أُزيل تمييز الأهمية · {number}",
-        "important": "مهم"
+        "mark": "أضف نجمة إلى «{title}»",
+        "unmark": "أزل النجمة عن «{title}»",
+        "markHint": "أضف نجمة",
+        "unmarkHint": "ذات نجمة — اضغط للإزالة",
+        "marked": "أُضيفت نجمة · {number}",
+        "unmarked": "أُزيلت النجمة · {number}",
+        "important": "ذات نجمة"
       },
       "dialogs": {
         "remove": "إزالة المهمة",
@@ -1255,7 +1257,8 @@
     "import_map": "عمود الاستيراد",
     "item_service": "خدمة البند",
     "item_class": "تصنيف البند",
-    "my_carry": "نقل في ختام اليوم"
+    "my_carry": "نقل في ختام اليوم",
+    "achievement_ref": "مرجع الإنجاز"
   },
   "status": {
     "done": "منجزة",
@@ -1395,7 +1398,11 @@
       "none": "لا شيء محذوف مؤخرًا",
       "searchPlaceholder": "ابحث في المحذوفات",
       "count": "محذوف: {count}",
-      "showing": "عرض {shown} من {total}"
+      "showing": "عرض {shown} من {total}",
+      "reasons": {
+        "replaced": "مستبدلة",
+        "undo": "تم التراجع عنه"
+      }
     },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
@@ -1468,7 +1475,19 @@
       "side": "الجانب",
       "on": "مفعّل",
       "since": "منذ",
-      "until": "حتى"
+      "until": "حتى",
+      "done_on": "تاريخ الإنجاز",
+      "due_on": "تاريخ الاستحقاق",
+      "happened_on": "تاريخ الحدوث",
+      "title": "العنوان",
+      "body": "النص",
+      "visibility": "من يراها",
+      "deleted_at": "تاريخ الحذف",
+      "deleted_by": "حذف بواسطة",
+      "delete_reason": "سبب الحذف",
+      "city": "المدينة",
+      "sha256": "Sha256",
+      "stored_at": "تاريخ الحفظ"
     },
     "moreFields": "{count, plural, one {+حقل واحد آخر} two {+حقلان آخران} few {+# حقول أخرى} many {+# حقلًا آخر} other {+# حقل آخر}}",
     "fieldsCount": "{count, plural, one {حقل واحد} two {حقلان} few {# حقول} many {# حقلًا} other {# حقل}}",
@@ -1689,7 +1708,9 @@
       "values": {
         "true": "مفعّل",
         "false": "غير مفعّل"
-      }
+      },
+      "invalidValue": "هذه القيمة غير صحيحة لهذا الإعداد.",
+      "invalidTime": "أدخل وقتًا مثل 11:00."
     },
     "list": {
       "side": "الجانب",
@@ -1808,6 +1829,8 @@
         "copy": "نسخ",
         "copied": "تم النسخ"
       },
+      "emailInvalid": "أدخل عنوان بريد إلكتروني صحيح.",
+      "noMatch": "لا أشخاص يطابقون هذا البحث.",
       "handover": "تسليم العمل إلى",
       "handoverPlaceholder": "اختر شخصًا",
       "openWorkMove": "سينتقل {count} من العناصر المفتوحة إلى الشخص المختار أدناه",
@@ -1910,7 +1933,8 @@
       "head": "رئيس الإدارة",
       "saved": "تم حفظ الإدارة",
       "edit": "تعديل {name}",
-      "noHead": "بلا رئيس"
+      "noHead": "بلا رئيس",
+      "people": "الأشخاص"
     },
     "roles": {
       "name": "الاسم (بالإنجليزية)",
@@ -1958,7 +1982,8 @@
       "ask_yourself": "اختر شخصًا غير نفسك",
       "asked_cannot_see": "هذا الشخص لا يمكنه رؤية هذا السجل",
       "not_open": "هذا السؤال مجاب عنه بالفعل",
-      "not_asked": "لا يجيب عن هذا السؤال إلا الشخص الذي سُئل"
+      "not_asked": "لا يجيب عن هذا السؤال إلا الشخص الذي سُئل",
+      "already_asked": "لديك سؤال مفتوح مع {detail}."
     },
     "backfill": {
       "no_match": "لم تعد هذه المهمة وهذا الإنجاز متطابقين"
@@ -2367,7 +2392,8 @@
       "address": "العنوان",
       "notes": "ملاحظات",
       "clientSince": "عميل منذ",
-      "number": "الرقم"
+      "number": "الرقم",
+      "supplierSince": "مورّد منذ"
     },
     "figures": {
       "last_activity": "آخر نشاط",
@@ -2391,7 +2417,7 @@
       "history": "السجل"
     },
     "companyFiles": {
-      "title": "ملفات الشركة",
+      "title": "ملفات الشريك",
       "allFiles": "كل الملفات",
       "none": "لا ملفات بعد",
       "kind": "النوع",
@@ -2400,7 +2426,7 @@
         "cr_certificate": "السجل التجاري",
         "vat_certificate": "شهادة ضريبة القيمة المضافة",
         "national_address": "العنوان الوطني",
-        "tender_document": "خطاب الترسية"
+        "tender_document": "وثيقة مناقصة"
       },
       "chooseKind": "اختر النوع",
       "chooseFile": "اختر ملفًا",
@@ -2464,7 +2490,9 @@
       "state": {
         "applied": "مقدَّمة",
         "signed": "موقَّعة"
-      }
+      },
+      "supplierIds": "أرقام المورّدين",
+      "supplierIdsNone": "لا أرقام مورّدين على هذه الشركة بعد"
     },
     "archive": {
       "title": "كل الملفات",
@@ -2582,18 +2610,18 @@
       }
     },
     "sideDialog": {
-      "onTitle": "تفعيل جانب {side}",
-      "editTitle": "تغيير جانب {side}",
-      "on": "تم تفعيل جانب {side}",
-      "changed": "تم تغيير جانب {side}",
-      "offTitle": "إيقاف جانب {side}؟",
-      "off": "تم إيقاف جانب {side}",
-      "switchOff": "إيقاف",
+      "onTitle": "إضافة كـ{side}",
+      "editTitle": "تغيير تفاصيل {side}",
+      "on": "تمت الإضافة كـ{side}",
+      "changed": "تم تغيير تفاصيل {side}",
+      "offTitle": "إزالة كـ{side}؟",
+      "off": "تمت الإزالة كـ{side}",
+      "switchOff": "إزالة",
       "since": "منذ",
       "until": "حتى",
-      "switchOn": "تفعيل جانب {side}",
-      "switchOffAction": "إيقاف جانب {side}",
-      "change": "تغيير جانب {side}"
+      "switchOn": "إضافة كـ{side}",
+      "switchOffAction": "إزالة كـ{side}",
+      "change": "تغيير تفاصيل {side}"
     },
     "statusDialog": {
       "title": "تحديد حالة جانب {side}",
@@ -2631,7 +2659,8 @@
         "phone": "الهاتف",
         "payments_client_id": "رقم العميل",
         "discount_code": "رمز الخصم",
-        "name": "اسم آخر"
+        "name": "اسم آخر",
+        "supplier_id": "رقم المورّد"
       },
       "subkinds": {
         "prepaid": "دفع مسبق",
@@ -2805,7 +2834,9 @@
       "filterQuestions": "الأسئلة",
       "jumpToLatest": "انتقل إلى الأحدث",
       "newComments": "{count} جديدة",
-      "askChip": "سؤال إلى {name}"
+      "askChip": "سؤال إلى {name}",
+      "removedQuestion": "تم حذف السؤال",
+      "removeQuestionTitle": "حذف السؤال؟"
     }
   },
   "follow": {
@@ -2878,8 +2909,6 @@
       "kind": "نوع الفاتورة",
       "allKinds": "كل الأنواع",
       "code": "رمز الخصم",
-      "project": "المشروع",
-      "projectSoon": "ربط المشاريع سيأتي لاحقاً — هذا الحقل لا يغيّر الأرقام بعد.",
       "apply": "تطبيق",
       "clear": "مسح",
       "saveHint": "الحفظ يحتفظ بهذه المرشحات تحت اسم.",
@@ -2892,8 +2921,8 @@
       "received": "المستلم",
       "remaining": "المتبقي",
       "withoutCost": "{count, plural, one {# صف ما زال بلا تكلفة} other {# صفوف ما زالت بلا تكلفة}}",
-      "byPartner": "حسب الشركة",
-      "partnerName": "الشركة",
+      "byPartner": "حسب الشريك",
+      "partnerName": "الشريك",
       "invoices": "الفواتير",
       "invoiceNumber": "رقم الفاتورة",
       "transactionNumber": "رقم العملية",
@@ -3014,7 +3043,7 @@
   },
   "import": {
     "title": "استيراد",
-    "choosePartner": "اختر الشركة أولاً",
+    "choosePartner": "اختر الشريك أولاً",
     "downloadTemplate": "حمّل القالب",
     "uploadReview": "ارفع وراجع",
     "confirm": "أكّد الاستيراد",
@@ -3115,7 +3144,8 @@
     "renameTitle": "إعادة تسمية “{name}”",
     "renamed": "تمت إعادة تسمية {name}",
     "menu": "{name}: المزيد",
-    "label": "العروض"
+    "label": "العروض",
+    "saveHint": "الحفظ يحتفظ بهذه المرشحات تحت اسم."
   },
   "testSwitch": {
     "bar": "مستخدم تجريبي: {name} (أنت {owner})",

@@ -122,8 +122,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     ) : null;
 
   const [editing, setEditing] = useState(false);
-  // the full access list is open for admins, one line for everyone else (V217, cut 7)
-  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);
+  // the access list starts closed for everyone (F217): open, it runs far past the short Overview main column and
+  // leaves the left two-thirds empty dark space; the summary line stays, and one tap shows the whole list (V217)
+  const [allAccess, setAllAccess] = useState(false);
   const [switching, setSwitching] = useState(false);
   /** The switch-off handover (D39): who takes the person's open work, and what they hold — the count loads when
       the dialog opens, and the picker is required while anything is open. */

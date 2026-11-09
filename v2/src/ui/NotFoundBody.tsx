@@ -10,7 +10,11 @@ export function NotFoundBody({ address }: { address: string }) {
     <div data-state="not-found" className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5">
       <p className="text-base text-text">
         {t.rich('errors.notFound.body', {
-          address: () => <span className="font-data">{address}</span>,
+          address: () => (
+            <bdi>
+              <span className="font-data">{address}</span>
+            </bdi>
+          ),
         })}
       </p>
       <div>

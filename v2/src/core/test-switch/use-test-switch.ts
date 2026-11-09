@@ -5,8 +5,10 @@
 // way no screen keeps the other person's data.
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import type { MeAnswer } from '@/core/auth/me';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
+import { readTheme, setPref } from '@/core/prefs';
 import { toast } from '@/ui/Toast';
 
 /** Where the app starts again after a switch: the start page, since the other person may not reach this one. */
@@ -22,15 +24,34 @@ const browser: Starter = {
   reload: () => window.location.reload(),
 };
 
+/** The test switch (V656, D36(d), FIX-48): after a switch the new person's prefs are re-read at once, so the
+ * switched-to user's theme applies on switch — the previous user's theme never survives into the new session. Only
+ * the theme and density are applied here; the locale is rendered by the next full load, which re-reads it from the
+ * server. A prefs read that fails never blocks the switch: the next load's PrefsSync is the fallback. */
+async function applySwitchedPrefs(): Promise<void> {
+  try {
+    const answer = (await rpc('me', {})) as unknown as MeAnswer;
+    if (answer.status !== 'ok' || !answer.profile) return;
+    const theme = readTheme(answer.profile.theme);
+    if (theme) setPref('theme', theme, { cache: true });
+    const density = answer.profile.density;
+    if (density === 'comfortable' || density === 'compact') setPref('density', density, { cache: true });
+  } catch {
+    // the switch still goes through; the next load re-reads the prefs from the server
+  }
+}
+
 /** Switch this device to a TEST user, then start over on the start page. Throws the server's refusal, changing nothing. */
 export async function switchStart(person: string, page: Starter = browser): Promise<void> {
   await rpc('test_switch_start', { p_person: person } as never);
+  await applySwitchedPrefs();
   page.go(AFTER_SWITCH_PATH);
 }
 
 /** Back to my account, then reload so nothing of the TEST user stays on screen. Throws the server's refusal. */
 export async function switchEnd(page: Starter = browser): Promise<void> {
   await rpc('test_switch_end', {} as never);
+  await applySwitchedPrefs();
   page.reload();
 }
 

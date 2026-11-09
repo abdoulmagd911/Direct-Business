@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * V656: while the owner is signed in as a TEST user, a bar at the top says "TEST user: [name] (you are [owner])" in the
  * language of the screen and offers Back to my account; the People page offers Sign in as test user to admins on TEST
@@ -33,7 +34,7 @@ describe('the bar at the top while signed in as a TEST user', () => {
       const line = t('testSwitch.bar', names);
       expect(line).toContain(names.name);
       expect(line).toContain(names.owner);
-      expect(names.name).toBe(locale === 'en' ? 'TEST Manager' : 'تجريبي مدير');
+      expect(names.name).toBe('TEST Manager');
       expect(names.owner).toBe(locale === 'en' ? 'Made-up Owner' : 'مالك تجريبي');
     }
     expect(tr('en')('testSwitch.bar', testSwitchNames(me(), 'en'))).toBe(
@@ -104,23 +105,31 @@ describe('a refusal of the switch is said in plain words', () => {
 });
 
 describe('the two presses call the server and start the page over', () => {
-  it('Sign in as test user calls test_switch_start for that person, then opens the start page', async () => {
+  it('Sign in as test user calls test_switch_start for that person, re-reads the new person’s prefs, then opens the start page', async () => {
     const calls: unknown[][] = [];
     const page = { went: [] as string[], reloaded: 0 };
     vi.resetModules();
     vi.doMock('../../../src/core/db/rpc', () => ({
       rpc: async (...args: unknown[]) => {
         calls.push(args);
+        if (args[0] === 'me') return { status: 'ok', profile: { theme: 'light', density: 'compact' } };
         return {};
       },
     }));
     const { switchStart, switchEnd } = await import('../../../src/core/test-switch/use-test-switch');
     const starter = { go: (p: string) => page.went.push(p), reload: () => (page.reloaded += 1) };
     await switchStart('person-1', starter);
-    expect(calls).toEqual([['test_switch_start', { p_person: 'person-1' }]]);
+    expect(calls).toEqual([
+      ['test_switch_start', { p_person: 'person-1' }],
+      ['me', {}],
+    ]);
     expect(page.went).toEqual(['/']);
+    // FIX-48: the switched-to user's theme and density apply on switch, before the page starts over
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(document.documentElement.dataset.density).toBe('compact');
     await switchEnd(starter);
-    expect(calls[1]?.[0]).toBe('test_switch_end');
+    expect(calls[2]?.[0]).toBe('test_switch_end');
+    expect(calls[3]?.[0]).toBe('me');
     expect(page.reloaded).toBe(1);
   });
   it('a refusal leaves the page where it is', async () => {

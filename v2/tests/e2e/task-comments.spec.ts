@@ -2,8 +2,9 @@
  * V657 (Stage L, L-5): comments on a task, at 375 and 1,440 px. The Discussion tab sits beside Overview and History and
  * says how many there are; the box at the bottom adds one (it shows at once, newest last, with its author and a 24-hour
  * time, and the toast offers Undo); the author edits their own comment (it shows as edited) and deletes it after the
- * app's own question that names whose comment it is, and Undo brings it back; a colleague who only sees the task reads
- * the comment and sees no box, only a line saying who can write. No sideways scroll. Every value is made up.
+ * app's own question that names whose comment it is, and Undo brings it back; a Viewer (View on Tasks) reads
+ * the comment and sees no box, only a line saying who can write — a Member holds Own on Tasks and may comment
+ * since FIX-03 (P1a), so the read-only colleague is a Viewer. No sideways scroll. Every value is made up.
  * Sabotage: tests/sabotage/task-comments.mjs "comment-box-shows-to-a-reader", "comment-delete-asks-nothing",
  * "comments-tab-shows-nothing".
  */
@@ -51,6 +52,11 @@ for (const [label, width, height] of [
     test.setTimeout(120_000);
     const writer = await makePerson({ admin: true });
     const reader = await makePerson();
+    // The read-only colleague is a Viewer: a plain Member holds Own on Tasks and may comment on a task they can
+    // open since FIX-03 (P1a), so only View stays read-only (the same role switch employee-view.spec.ts uses).
+    await sql(`update core.person set role_id = (select id from core.role where key = 'viewer') where id = $1`, [
+      reader.id,
+    ]);
     await withTeam(writer, 'test_cmt_e2e');
     await withTeam(reader, 'test_cmt_e2e');
     const number = await taskOf(writer);
@@ -88,7 +94,7 @@ for (const [label, width, height] of [
     await expect(first.locator('[data-comment-body]')).toHaveText('Made-up first remark, corrected');
     await expect(first.locator('[data-comment-edited]')).toHaveText('edited');
 
-    // a colleague who only sees the task reads it and has no box
+    // a Viewer reads it and has no box
     const ctx = await browser.newContext({ viewport: { width, height } });
     const other = await ctx.newPage();
     await signIn(other, reader.email, `/tasks/${number}?tab=comments`);

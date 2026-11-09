@@ -13,8 +13,9 @@ import { Tooltip } from '../Tooltip';
 import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 
 /**
- * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it
- * opens as an overlay on hover or focus and closes on Escape; below 640 px the bottom bar replaces it (V85)
+ * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it opens on hover
+ * or focus and closes on Escape or when the pointer leaves — and while it is open it reserves its width, so it
+ * never floats over the page's heading, tabs and search (FIX-47, D23); below 640 px the bottom bar replaces it (V85)
  * (oversight, 29 Sep). The entries come from the module registry (nav.ts); Settings at the foot for admins. My profile
  * is not here: it is in the avatar menu at the top, its one place (daily use 10).
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
@@ -143,11 +144,14 @@ export function Drawer() {
 
   return (
     <>
-      {/* ≥ 1024 px: the rail; its width is reserved when pinned, otherwise it overlays on hover */}
+      {/* ≥ 1024 px: the rail. FIX-47 (D23): the width the drawer reserves follows whether it is EXPANDED, not
+          whether it is pinned — an expanded-but-unpinned drawer used to float over the page and hide the heading,
+          tabs and search, and it stayed there. Now expanding it reflows the page to the right, exactly as pinning
+          does, so it can never cover the page; it still collapses when the pointer leaves (the nav's onMouseLeave). */}
       <div
         className={cn(
           'relative hidden h-full shrink-0 sm:block',
-          pinned ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
+          expanded ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
         )}
       >
         <div className={cn('absolute inset-y-0 start-0 z-30 h-full', !pinned && peek && 'shadow-2')}>{content}</div>

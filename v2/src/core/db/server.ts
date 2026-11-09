@@ -1,7 +1,9 @@
 import 'server-only';
 
 // The per-request client of server components, server actions and route handlers: it acts as the signed-in person
-// (their session cookie), so row rules and api.* functions see who is asking. One per request — never shared.
+// (their session cookie), so row rules and api.* functions see who is asking. One per request — never shared, and
+// never one per RPC: a page that makes 16 reads used to build 16 clients (FIX-45), one per call.
+import { cache } from 'react';
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -10,7 +12,7 @@ import { publishableKey, supabaseUrl } from './env';
 
 export type ServerDb = SupabaseClient<Database, 'api'>;
 
-export async function serverDb(): Promise<ServerDb> {
+export const serverDb = cache(async (): Promise<ServerDb> => {
   const store = await cookies();
   return createServerClient<Database, 'api'>(supabaseUrl(), publishableKey(), {
     db: { schema: 'api' },
@@ -25,4 +27,4 @@ export async function serverDb(): Promise<ServerDb> {
       },
     },
   });
-}
+});

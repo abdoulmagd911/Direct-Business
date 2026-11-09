@@ -80,10 +80,23 @@ export function NotificationsPanel({
   };
   const wordsOf = (n: Notification, now: Date) => {
     const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
-    const kindWord = n.entity && t.has(`entity.${n.entity}`) ? t(`entity.${n.entity}`) : (n.entity ?? '');
+    // A dotted kind ("task.removed", "contact.removed") reads by its first part — "Task", "Contact" — never raw.
+    const kindWord =
+      n.entity && t.has(`entity.${n.entity}`)
+        ? t(`entity.${n.entity}`)
+        : n.entity && t.has(`entity.${n.entity.split('.')[0]}`)
+          ? t(`entity.${n.entity.split('.')[0]}`)
+          : (n.entity ?? '');
     // the record's name: the server's, else the one the notice's label carries (a note's line, a task's title), else the kind's word
     const record = recordName(n, locale, kindWord);
-    const what = n.fields?.length ? n.fields.map(fieldWord).join(', ') : t('notifications.someDetails');
+    // The template already says "on" ("{actor} changed {what} on {record}"), so a field word ending in "on"
+    // ("Done on", "Left on") drops it here — the diff lines keep it (F069).
+    const what = n.fields?.length
+      ? n.fields
+          .map(fieldWord)
+          .map((w) => w.replace(/ on$/i, ''))
+          .join(', ')
+      : t('notifications.someDetails');
     // a notice whose label has words of its own: a note shared by name (it rides the note-mention kind and its
     // setting), and the due alert's second notice once the day has passed (D, 26 Oct)
     const byLabel: Record<string, string> = {

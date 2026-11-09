@@ -174,8 +174,8 @@ export function Comments({
         }),
     [list, added, gone, newWords, closed, personName],
   );
-  // One stream, in time order: the comments and the record's file-addition entries together. A file entry carries
-  // no author line — the files read names no uploader — only its kind, size and added date, with a download link.
+  // One stream, in time order: the comments and the record's file-addition entries together. A file entry names
+  // its uploader, as the files list does (FIX-46), with a download link.
   type StreamEntry =
     { at: string; kind: 'comment'; comment: RecordComment } | { at: string; kind: 'file'; file: RecordFile };
   const entries = useMemo<StreamEntry[]>(
@@ -315,7 +315,8 @@ export function Comments({
     setBusy(c.id);
     let first = true;
     await command(
-      words(t('record.comments.removed')),
+      // A question is deleted as a question, not as a comment (F094).
+      words(t(c.asked_to ? 'record.comments.removedQuestion' : 'record.comments.removed')),
       () => rpc('comment_remove', { p_id: c.id }) as Promise<{ request_id?: string | null }>,
       {
         undoDirect: true,
@@ -425,9 +426,8 @@ export function Comments({
                     </span>
                     <span>
                       {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
-                      {t('record.files.addedOn', {
-                        date: formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-                      })}
+                      {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
+                      {formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </p>
                   {f.status === 'stored' ? (
@@ -509,6 +509,7 @@ export function Comments({
                     </p>
                     <p className="text-sm text-muted" data-comment-answered-by>
                       {t('record.comments.answeredBy', { name: answeredName(c) })}
+                      {c.answered_at ? ` · ${when(c.answered_at)}` : null}
                     </p>
                   </div>
                 ) : null}
@@ -671,7 +672,11 @@ export function Comments({
         onOpenChange={(o) => {
           if (!o) setRemoving(null);
         }}
-        title={t('record.comments.removeTitle', { name: removing ? authorName(removing) : '' })}
+        title={
+          removing?.asked_to
+            ? t('record.comments.removeQuestionTitle')
+            : t('record.comments.removeTitle', { name: removing ? authorName(removing) : '' })
+        }
         body={removing ? <span className="line-clamp-3 break-words">{removing.body}</span> : undefined}
         cancelLabel={t('common.cancel')}
         confirmLabel={t('record.comments.delete')}

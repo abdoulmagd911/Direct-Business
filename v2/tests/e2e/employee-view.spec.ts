@@ -90,6 +90,8 @@ const tag = () => Math.random().toString(36).slice(2, 8);
 // Sabotage: nav-access.mjs "menu-shows-unbuilt-pages-on-screen".
 const UNBUILT = ['Overview', 'Pipeline', 'Projects', 'Appraisal'];
 
+// FIX-03 F179: Finance is refused whole to Members and Viewers — no level, no page, figures included — so it is
+// in no member/BD/viewer menu, bar or More, and /finance answers no-access. The lists below are the F179 lists.
 test('1 · a member: the drawer is every built page their access opens (V238, QA3-002); the phone bar is the first four and More', async ({
   page,
 }) => {
@@ -98,36 +100,23 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
     'My day',
     'Tasks',
     'Clients',
-    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual([
-    'Achievements',
-    'Reports',
-    'Discount codes',
-  ]);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Achievements', 'More', 'Create']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
 });
 
 test('2 · a Business Development member (Pipeline Own by a person change) gets no Pipeline entry while Pipeline is not built', async ({
   page,
 }) => {
   await openAs(page, 'bd_member');
-  expect(await drawerLabels(page)).toEqual([
-    'My day',
-    'Tasks',
-    'Clients',
-    'Finance',
-    'Achievements',
-    'Reports',
-    'Discount codes',
-  ]);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Achievements', 'Reports', 'Discount codes']);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
-  expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Achievements', 'More', 'Create']);
+  expect(await morePages(page)).toEqual(['Reports', 'Discount codes']);
 });
 
 test('3 · a manager: every built page their access opens, in order (Activity at View); the bar is the first four and More', async ({
@@ -174,42 +163,40 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   page,
 }) => {
   await openAs(page, 'viewer');
-  expect(await drawerLabels(page)).toEqual([
-    'My day',
-    'Clients',
-    'Finance',
-    'Achievements',
-    'Reports',
-    'Discount codes',
-  ]);
+  expect(await drawerLabels(page)).toEqual(['My day', 'Clients', 'Achievements', 'Reports', 'Discount codes']);
   // Capture and Idea are for anyone who can open My day, view-only included; Create's other items stay hidden
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
   await page.keyboard.press('Escape');
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'More', 'Create']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
+  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Achievements', 'Reports', 'More', 'Create']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Discount codes']);
   await page.locator('[data-create-bar]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
 });
 
-test('6 · a member opens KPIs and Finance from the menu; Reports is built, in the menu and in Ctrl K', async ({
+test('6 · a member opens KPIs from the menu; Finance is refused whole (FIX-03 F179); Reports is built, in the menu and in Ctrl K', async ({
   page,
 }) => {
   await openAs(page, 'member');
-  for (const [route, heading, title] of [
-    ['/kpis', 'Achievements', 'Achievements'], // the menu says Achievements (daily use 8); /kpis opens the list
-    ['/finance', 'Finance', 'Finance'],
-  ] as const) {
-    await page.goto(route);
-    await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-    await expect(page.locator('[data-state="no-access"]'), `${route} opens at the member's level`).toHaveCount(0);
-    await expect(
-      page.locator('[data-drawer]').getByRole('link', { name: title }),
-      `${title} is in the menu: the member's access opens it`,
-    ).toHaveCount(1);
-  }
+  // the menu says Achievements (daily use 8); /kpis opens the list
+  await page.goto('/kpis');
+  await hydrated(page);
+  await expect(page.getByRole('heading', { level: 1, name: 'Achievements' })).toBeVisible();
+  await expect(page.locator('[data-state="no-access"]'), "/kpis opens at the member's level").toHaveCount(0);
+  await expect(
+    page.locator('[data-drawer]').getByRole('link', { name: 'Achievements' }),
+    "Achievements is in the menu: the member's access opens it",
+  ).toHaveCount(1);
+  // FIX-03 F179: Finance is refused whole to Members and Viewers — no level, no page, figures included — so its
+  // address answers no-access and the menu carries no Finance entry
+  await page.goto('/finance');
+  await hydrated(page);
+  await expect(page.locator('[data-state="no-access"]'), '/finance is refused to a member').toHaveCount(1);
+  await expect(
+    page.locator('[data-drawer]').getByRole('link', { name: 'Finance' }),
+    'Finance is not in a member menu',
+  ).toHaveCount(0);
   // Reports is built now: its address answers, it is in the menu, and Ctrl K offers it
   await page.goto('/reports');
   await hydrated(page);
@@ -226,6 +213,11 @@ test('6 · a member opens KPIs and Finance from the menu; Reports is built, in t
     palette.getByRole('option', { name: 'Reports', exact: true }),
     'Ctrl K offers the built Reports page',
   ).toHaveCount(1);
+  await palette.getByPlaceholder('Go to a page or search…').fill('Finance');
+  await expect(
+    palette.getByRole('option', { name: 'Finance', exact: true }),
+    'Ctrl K offers no Finance to a member (FIX-03 F179)',
+  ).toHaveCount(0);
   await palette.getByPlaceholder('Go to a page or search…').fill('Achievements');
   await palette.getByRole('option', { name: 'Achievements', exact: true }).click();
   await expect(page).toHaveURL(/\/kpis(\/achievements)?$/);
@@ -400,8 +392,11 @@ test("12 · a member's My profile: five cards, eight notification switches, none
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-profile-card')));
   expect(cards).toEqual(['profile', 'preferences', 'notifications', 'password', 'devices']);
   await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(8);
-  for (const gone of ['Nickname', 'Badge', 'Start page', 'Drawer', 'Full name', 'Colour'])
+  for (const gone of ['Nickname', 'Badge', 'Drawer', 'Full name', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
+  // Start page (F207) IS on My profile: the pages this person can see, plus Default — the preference that decides
+  // where the root sends them, not a cut field
+  await expect(page.getByLabel('Start page', { exact: true }), 'Start page is on My profile').toHaveCount(1);
   // the owner's ruling of 14 Oct (V636): a member picks a theme of their own, so the Theme box is there
   await expect(page.getByLabel('Theme', { exact: true }), 'Theme is on My profile').toHaveCount(1);
 

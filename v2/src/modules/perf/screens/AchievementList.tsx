@@ -184,7 +184,7 @@ function Row({ row, owner, top }: { row: AchievementRow; owner: string | null; t
       >
         <span className="min-w-0 flex-1">
           <span className="line-clamp-3 break-words font-medium text-text" data-achievement-title>
-            {displayLine(locale === 'ar' ? row.line_ar : row.line_en)}
+            <bdi>{displayLine(locale === 'ar' ? row.line_ar : row.line_en)}</bdi>
           </span>
           <span className="block truncate text-sm text-muted">
             {parent ? `${locale === 'ar' ? parent.name_ar : parent.name_en} · ` : ''}

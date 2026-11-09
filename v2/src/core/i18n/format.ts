@@ -129,9 +129,13 @@ export function formatNumber(n: number, locale: 'en' | 'ar' = 'en', opts: Intl.N
 
 /**
  * A title as a toast or a short line names it: whole when it fits, otherwise cut at `max` characters with an ellipsis
- * (the supervisor's sweep of 15 Oct: a toast names the thing by its title, then its number).
+ * (the supervisor's sweep of 15 Oct: a toast names the thing by its title, then its number). The cut is at a word
+ * boundary, so a line never ends mid-word ("Th…").
  */
 export function clip(text: string, max = 60): string {
   const s = text.trim().replace(/\s+/g, ' ');
-  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const at = cut.lastIndexOf(' ');
+  return `${(at > 0 ? cut.slice(0, at) : cut).trimEnd()}…`;
 }

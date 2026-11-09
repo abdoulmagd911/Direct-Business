@@ -58,9 +58,10 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/test-switch/use-test-switch.ts',
-        find: "  await rpc('test_switch_start', { p_person: person } as never);\n  page.go(AFTER_SWITCH_PATH);",
+        // FIX-48: the switched-to person's prefs are re-read between the switch and the start-over.
+        find: "  await rpc('test_switch_start', { p_person: person } as never);\n  await applySwitchedPrefs();\n  page.go(AFTER_SWITCH_PATH);",
         replace:
-          "  try {\n    await rpc('test_switch_start', { p_person: person } as never);\n  } catch {\n    page.go(AFTER_SWITCH_PATH);\n    return;\n  }\n  page.go(AFTER_SWITCH_PATH);",
+          "  try {\n    await rpc('test_switch_start', { p_person: person } as never);\n  } catch {\n    page.go(AFTER_SWITCH_PATH);\n    return;\n  }\n  await applySwitchedPrefs();\n  page.go(AFTER_SWITCH_PATH);",
       },
     ],
   },

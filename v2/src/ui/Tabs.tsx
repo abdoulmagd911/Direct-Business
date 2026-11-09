@@ -1,7 +1,7 @@
 'use client';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from './cn';
 import { LinkPending } from './LinkPending';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from './Menu';
@@ -35,6 +35,16 @@ export function Tabs({
   className?: string;
 }) {
   const scroll = useScrollMore();
+  // A link tab's active state is read from the address, which only changes when the next page has arrived — so
+  // without this the new tab's content renders under the old tab's underline for the whole round trip (F218). The
+  // underline follows the click at once; the address takes over when it lands (the render-phase sync, as in
+  // MyProfile: the pressed tab is cleared the render the address's tab changes).
+  const [pressed, setPressed] = useState<string | null>(null);
+  const [seenValue, setSeenValue] = useState(value);
+  if (value !== seenValue) {
+    setSeenValue(value);
+    setPressed(null);
+  }
   const tabClass = (active: boolean) =>
     cn(
       '-mb-px inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap border-b-2 px-0 pb-3 pt-2.5 text-base transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
@@ -62,7 +72,8 @@ export function Tabs({
             key={t.value}
             href={t.href!}
             aria-current={t.value === value ? 'page' : undefined}
-            className={cn(tabClass(t.value === value), folded.includes(t) && 'max-sm:hidden')}
+            onClick={() => setPressed(t.value)}
+            className={cn(tabClass(t.value === value || t.value === pressed), folded.includes(t) && 'max-sm:hidden')}
           >
             {t.label}
             {count(t.count)}

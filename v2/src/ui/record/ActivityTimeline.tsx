@@ -81,6 +81,29 @@ export function ActivityTimeline({
     }
     if (typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return people[v]?.displayName ?? '—';
     if (typeof v === 'string' || typeof v === 'number') return String(v);
+    // A list reads as its items' words, never as JSON (F061): a checklist item by its text, marked done where it is.
+    if (Array.isArray(v)) {
+      if (!v.length) return '—';
+      const texts = v.map((it) => {
+        if (it && typeof it === 'object') {
+          const rec = it as Record<string, unknown>;
+          if (typeof rec.text === 'string' && rec.text.trim())
+            return rec.done === true ? `${rec.text.trim()} (${t('status.done')})` : rec.text.trim();
+          return null;
+        }
+        if (typeof it === 'string' || typeof it === 'number') return String(it);
+        return null;
+      });
+      const said = texts.filter((x): x is string => x !== null);
+      return said.length ? said.join(', ') : '—';
+    }
+    // A grouped value reads as its named parts, never as JSON.
+    if (v && typeof v === 'object') {
+      const parts = Object.entries(v as Record<string, unknown>).map(
+        ([k, val]) => `${fieldLabel(k)}: ${valueWords(k, val)}`,
+      );
+      return parts.length ? parts.join(', ') : '—';
+    }
     return JSON.stringify(v);
   };
   const record = (v: unknown): Record<string, unknown> | null =>
@@ -119,7 +142,12 @@ export function ActivityTimeline({
     if (!c) return t('activity.actions.request');
     const what =
       (c.entity && words[c.entity]) ||
-      (c.entity && t.has(`entity.${c.entity}`) ? t(`entity.${c.entity}`) : (c.entity ?? ''));
+      // A dotted kind ("task.removed", "achievement_ref" has its own word) reads by its first part, never raw.
+      (c.entity && t.has(`entity.${c.entity}`)
+        ? t(`entity.${c.entity}`)
+        : c.entity && t.has(`entity.${c.entity.split('.')[0]}`)
+          ? t(`entity.${c.entity.split('.')[0]}`)
+          : (c.entity ?? ''));
     if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
     return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
   };

@@ -107,10 +107,15 @@ for (const w of WIDTHS) {
     const page = await ownerCtx.newPage();
     await signIn(page, owner.email, `/tasks/${number}`);
     await hydrated(page);
+    // P1b (tasks.assign_own): a member may give away a task they own, so the Owner picker shows on their
+    // own task — it is own-delegation only, not giving others' work away
+    await expect(page.locator('[data-owner-picker]'), 'the owner has an Owner picker for their own task').toHaveCount(
+      1,
+    );
     await expect(
-      page.locator('[data-owner-picker]'),
-      'a member who may not give work to others has no Owner picker',
-    ).toHaveCount(0);
+      page.locator('[data-owner-picker]').getByRole('combobox', { name: 'Change owner' }),
+      'the picker shows the current owner',
+    ).toContainText(owner.name);
 
     const add = page.locator('[data-helper-add]').getByRole('combobox', { name: 'Add a helper' });
     await add.click();

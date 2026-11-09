@@ -39,9 +39,11 @@ sabotages.push(
     edits: [
       {
         file: 'src/app/(app)/activity/page.tsx',
-        find: "  const [org, read] = await Promise.all([serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, tabRead()]);",
+        // The priorities list joined the round since this sabotage was written, so the destructure is three
+        // reads now; the plant still pulls the organisation out in front of the rest.
+        find: "  const [org, priorities, read] = await Promise.all([\n    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,",
         replace:
-          "  const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;\n  const read = await tabRead();",
+          "  const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;\n  const [priorities, read] = await Promise.all([",
       },
     ],
   },

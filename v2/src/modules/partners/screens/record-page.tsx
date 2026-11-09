@@ -8,16 +8,14 @@ import { PartnerRecord, type PartnerRecordData } from './PartnerRecord';
 import type { CompanyFile, CompanySummary, Contract, ListEntry, Note, PartnerCard, Side } from '../types';
 import type { RecordComments } from '@/ui/record/Comments';
 
-/** What the reader may not read is left out, never faked (the database refuses; the screen shows no-access). */
-async function maybe<T>(read: () => Promise<unknown>): Promise<T | null> {
-  try {
-    return (await read()) as T;
-  } catch {
-    return null;
-  }
-}
-
-/** The organisation record (V95, V98, V149–V154), opened from the Clients or the Suppliers & partners list. */
+/**
+ * The organisation record (V95, V98, V149–V154), opened from the Clients or the Suppliers & partners list.
+ *
+ * FIX-45: the page used to make 16 separate serverRpc calls (the partner read awaited alone, then 15 more in a
+ * Promise.all) — 16 HTTPS round trips through the gateway, so two ordinary 10 s stalls on that spine cost ~20 s.
+ * It now makes ONE call, api.partner_page, which returns the card, the org, the six partner sections and the eight
+ * lists in a single round trip (the function guards the six sections the way the page's maybe<> used to).
+ */
 export async function PartnerRecordPage({
   side,
   params,
@@ -28,70 +26,65 @@ export async function PartnerRecordPage({
   searchParams: Promise<{ tab?: string | string[]; filter?: string | string[] }>;
 }) {
   const [{ id }, { tab, filter }, me] = await Promise.all([params, searchParams, requireMe()]);
-  let card: PartnerCard | null = null;
+  type PageAnswer = {
+    card: PartnerCard;
+    org: OrgAnswer;
+    notes: Note[] | null;
+    contracts: Contract[] | null;
+    history: RecordChange[] | null;
+    comments: RecordComments | null;
+    files: CompanyFile[] | null;
+    summary: CompanySummary | null;
+    lists: {
+      types: ListEntry[];
+      tiers: ListEntry[];
+      reasons: ListEntry[];
+      roles: ListEntry[];
+      activityTypes: ListEntry[];
+      outcomes: ListEntry[];
+      systems: ListEntry[];
+      priorities: ListEntry[];
+      fileKinds: ListEntry[];
+    };
+  };
+  let page: PageAnswer | null = null;
   let refused = false;
   try {
-    card = (await serverRpc('partner', { p_id: id })) as unknown as PartnerCard;
+    page = (await serverRpc('partner_page', { p_id: id })) as unknown as PageAnswer;
   } catch (e) {
     if ((e as { kind?: string }).kind === 'NotFound') notFound();
     refused = true;
   }
-  const lists = async (name: string) => (await serverRpc('list', { p_list: name })) as unknown as ListEntry[];
-  const [
-    org,
-    notes,
-    contracts,
-    history,
-    comments,
-    files,
-    summary,
-    types,
-    tiers,
-    reasons,
-    roles,
-    activityTypes,
-    outcomes,
-    systems,
-    priorities,
-    fileKinds,
-  ] = await Promise.all([
-    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
-    card ? maybe<Note[]>(() => serverRpc('notes', { p_entity: 'partner', p_id: id, p_limit: 100 })) : null,
-    card ? maybe<Contract[]>(() => serverRpc('contracts', { p_partner: id })) : null,
-    card ? maybe<RecordChange[]>(() => serverRpc('record_history', { p_entity: 'partner', p_id: id } as never)) : null,
-    // The Discussion's comments, read live beside the files.
-    card ? maybe<RecordComments>(() => serverRpc('comments', { p_entity: 'partner', p_id: id } as never)) : null,
-    // The company page's Files section (existing file doors) and its Codes/Finance tabs (one summary
-    // read). Either failing leaves its tab saying so, never an invented figure.
-    card ? maybe<CompanyFile[]>(() => serverRpc('files', { p_entity: 'partner', p_id: id })) : null,
-    card ? maybe<CompanySummary>(() => serverRpc('company_summary', { p_partner: id })) : null,
-    lists('side_type'),
-    lists('side_tier'),
-    lists('side_status_reason'),
-    lists('contact_role'),
-    lists('activity_type'),
-    lists('activity_outcome'),
-    lists('ref_system'),
-    lists('priority'),
-    // The file kinds with their review flags, so the Files section asks for a review date exactly when the
-    // kind requires one (FIX-15) — read live, never hard-coded, so an admin's change in Settings applies.
-    lists('file_kind'),
-  ]);
+  // The org is still read on the refused path, as the old page read it alongside the card: the record's no-access
+  // state needs the people it names. On the open path it rides inside partner_page — no second round trip.
+  // The file kinds ride inside partner_page too (FIX-15): the Files section asks for a review date exactly when
+  // the kind requires one, read live, never hard-coded, so an admin's change in Settings applies.
+  const org: OrgAnswer = page?.org ?? ((await serverRpc('org', {} as never)) as unknown as OrgAnswer);
   const data: PartnerRecordData = {
     me,
     side,
     tab: typeof tab === 'string' ? tab : 'overview',
     filter: typeof filter === 'string' ? filter : undefined,
-    card,
+    card: page?.card ?? null,
     refused,
     org,
-    notes: notes ?? [],
-    contracts: contracts ?? [],
-    history: history ? historyRows(history, 'partner', id) : null,
-    comments,
-    files,
-    summary,
-    lists: { types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities, fileKinds },
+    notes: page?.notes ?? [],
+    contracts: page?.contracts ?? [],
+    history: page?.history ? historyRows(page.history, 'partner', id) : null,
+    comments: page?.comments ?? null,
+    files: page?.files ?? null,
+    summary: page?.summary ?? null,
+    lists: page?.lists ?? {
+      types: [],
+      tiers: [],
+      reasons: [],
+      roles: [],
+      activityTypes: [],
+      outcomes: [],
+      systems: [],
+      priorities: [],
+      fileKinds: [],
+    },
   };
   return (
     <Page bare>

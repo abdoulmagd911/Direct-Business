@@ -18,15 +18,18 @@ export const sabotages = [
     ],
   },
   {
-    name: 'clients-counts-the-other-side-last',
+    // FIX-45: the other side's count is gone — the tab shows no count until it is opened, when its own list read
+    // carries its total, so the old plant (a late second partners call for the count) has nothing to delay. The
+    // sabotage now proves the same Clients case catches a second partners read in the round: the list read twice.
+    name: 'clients-reads-its-list-twice',
     breaks: [T],
-    expect:
-      "> a list page asks for all its data in one round after me > Clients: the list, the lookups and the other side's count together",
+    expect: '> a list page asks for all its data in one round after me > Clients: the list and the lookups together',
     edits: [
       {
         file: 'src/modules/partners/screens/list-page.tsx',
-        find: '    if (!both) return null;\n    try {',
-        replace: '    if (!both) return null;\n    await new Promise((r) => setTimeout(r, 1000));\n    try {',
+        find: "    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,\n    read(),",
+        replace:
+          "    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,\n    read(),\n    read(),",
       },
     ],
   },

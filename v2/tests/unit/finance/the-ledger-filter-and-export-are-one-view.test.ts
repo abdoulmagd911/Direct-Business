@@ -46,7 +46,7 @@ const report = (rows: LedgerReport['rows']): LedgerReport => ({
 
 describe('the ledger filter survives its address', () => {
   it('a filter written to the address reads back the same', () => {
-    const f = { partner: 'p1', clientId: '134', kind: 'billing' as const, code: 'SAVE10', project: 'launch' };
+    const f = { partner: 'p1', clientId: '134', kind: 'billing' as const, code: 'SAVE10' };
     expect(ledgerFilterFromQuery(ledgerFilterQuery(f))).toEqual(f);
     expect(sameLedgerFilter(ledgerFilterFromQuery(ledgerFilterQuery(f)), f)).toBe(true);
   });
