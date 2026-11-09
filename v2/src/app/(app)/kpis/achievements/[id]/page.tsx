@@ -1,3 +1,5 @@
+import { RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
@@ -8,6 +10,8 @@ import { AchievementRecord, type AchievementRecordData } from '@/modules/perf/sc
 import type { AchievementDetail, Category } from '@/modules/perf/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { DataState } from '@/ui/DataState';
+import { buttonVariants } from '@/ui/button-variants';
+import { cn } from '@/ui/cn';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
@@ -38,7 +42,23 @@ export default async function AchievementPage({
       <Page page="kpis" title={what}>
         <PageHeader title={what} />
         {failed.length ? (
-          <DataState kind="failed" what={what} message={t('state.failed', { what })} />
+          <DataState
+            kind="failed"
+            what={what}
+            message={t('state.failed', { what })}
+            // FIX-28: this page is a server page, so the retry is a link to the same record (read again) — the
+            // failed read used to show with no Try again at all.
+            action={
+              <Link
+                href={`/kpis/achievements/${id}`}
+                className={cn(buttonVariants({ size: 'sm' }), 'ms-auto')}
+                data-retry
+              >
+                <RefreshCw aria-hidden="true" />
+                {t('common.tryAgain')}
+              </Link>
+            }
+          />
         ) : (
           <DataState kind="no-access" what={what} message={t('state.noAccess', { what })} />
         )}

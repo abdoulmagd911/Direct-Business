@@ -23,5 +23,6 @@ select test.as_person(current_setting('t.am1')::uuid);
 select test.ok(authz.can('tasks.assign'), 'authz.can() answers for the signed-in person');
 select set_config('t.me', api.me()::text, true);
 select test.as_owner();
-select test.eq(current_setting('t.me')::jsonb -> 'capabilities', '["tasks.assign"]'::jsonb,
-  'api.me() lists exactly the capabilities held');
+select test.eq(current_setting('t.me')::jsonb -> 'capabilities',
+  '["clients.assign_own", "suppliers_partners.assign_own", "tasks.assign", "tasks.assign_own"]'::jsonb,
+  'api.me() lists exactly the capabilities held (P1b: a member holds the own-task and own-record assigns too)');

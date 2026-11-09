@@ -228,6 +228,14 @@ export default defineModule({
       },
       { key: `${page}.merge`, page, label: `cap.${page}.merge`, defaults: { head: true } },
       { key: `${page}.assign`, page, label: `cap.${page}.assign`, defaults: { head: true, manager: true } },
+      // P1b (FIX-01 F100/F138 — own records only): a Member may bulk-assign organisations they own on the side.
+      // The door checks the ownership per row (partner.bulk_assign); the per-record picker stays on `${page}.assign`.
+      {
+        key: `${page}.assign_own`,
+        page,
+        label: `cap.${page}.assign_own`,
+        defaults: { head: true, manager: true, member: true },
+      },
     ]),
     {
       key: 'finance.credit_control',

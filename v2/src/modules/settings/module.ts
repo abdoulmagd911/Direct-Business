@@ -28,6 +28,8 @@ export const NOTIFICATION_KINDS = [
   'task_commented',
   'commented',
   'asked',
+  // FIX-37 F008: an answer to a question I asked (00022 pushes it) — after 'asked', matching the constraint order.
+  'question_answered',
   'escalation_acknowledged',
   'alert_weekly_unlogged',
 ] as const;

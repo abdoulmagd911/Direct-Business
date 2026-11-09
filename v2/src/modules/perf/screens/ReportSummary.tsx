@@ -10,6 +10,7 @@ import { DataState } from '@/ui/DataState';
 import { MonthPicker } from '@/ui/MonthPicker';
 import { PageHeader } from '@/ui/PageHeader';
 import type { AchievementPage, AchievementRow } from '../types';
+import { displayLine } from '../types';
 
 type Group = { label: string; count: number; deal: number };
 
@@ -79,7 +80,7 @@ export function ReportSummary({
       [],
       ['Title', 'Category', 'Owner', 'Organisation', 'Date', 'Deal value', 'Number'],
       ...rows.map((r) => [
-        locale === 'ar' ? r.line_ar : r.line_en,
+        displayLine(locale === 'ar' ? r.line_ar : r.line_en),
         categoryName(r),
         r.owner_id ? (people[r.owner_id] ?? t('unknownOwner')) : t('unknownOwner'),
         r.partner_id ? (partners[r.partner_id] ?? t('unknownPartner')) : t('unknownPartner'),

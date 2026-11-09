@@ -25,6 +25,15 @@ export default defineModule({
   ],
   capabilities: [
     { key: 'tasks.assign', page: 'tasks', label: 'cap.tasks.assign', defaults: { head: true, manager: true } },
+    // P1b (FIX-05 F024, FIX-01 F100/F138 — own tasks only): a Member may give away a task they own or created,
+    // and a task they create. It unlocks nothing else: the Team view, backfilling for others and the load figures
+    // stay gated on `tasks.assign`, and the doors check the ownership (work.tasks_assign, api.task_create).
+    {
+      key: 'tasks.assign_own',
+      page: 'tasks',
+      label: 'cap.tasks.assign_own',
+      defaults: { head: true, manager: true, member: true },
+    },
   ],
   entities: [
     { key: 'priority', table: 'work.priority', page: 'settings.work', label: 'entity.priority', list: true },

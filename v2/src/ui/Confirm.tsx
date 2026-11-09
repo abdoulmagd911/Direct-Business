@@ -13,6 +13,7 @@ export function Confirm({
   onOpenChange,
   title,
   body,
+  extra,
   cancelLabel,
   confirmLabel,
   onConfirm,
@@ -25,6 +26,8 @@ export function Confirm({
   /** Must name the item, e.g. t('confirm.title', { item: 'INV-T-0001' }). */
   title: ReactNode;
   body?: ReactNode;
+  /** FIX-27: an extra choice inside the confirm, between the body and the buttons (e.g. "delete its reminder too"). */
+  extra?: ReactNode;
   cancelLabel: string;
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
@@ -59,6 +62,7 @@ export function Confirm({
           ) : (
             <RA.Description className="sr-only">{title}</RA.Description>
           )}
+          {extra ? <div className="flex flex-col gap-2">{extra}</div> : null}
           <div className="flex justify-end gap-2">
             <RA.Cancel asChild>
               <Button ref={cancelRef} variant="secondary" data-confirm-cancel>

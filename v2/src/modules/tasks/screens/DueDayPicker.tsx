@@ -30,6 +30,7 @@ export function DueDayPicker({
       invalid={invalid}
       chips="due"
       name="due"
+      testId="due"
     />
   );
 }

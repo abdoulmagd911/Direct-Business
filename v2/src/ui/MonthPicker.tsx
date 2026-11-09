@@ -14,8 +14,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export function parseMonth(typed: string): string | null {
   const s = typed
     .trim()
-    .replace(/[\\u0660-\\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
-    .replace(/[\\u06F0-\\u06F9]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
+    .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
   const ymd = /^(\d{4})(\d{2})$/.exec(s) ?? /^(\d{4})[-/.](\d{1,2})$/.exec(s);
   const mdy = ymd ? null : /^(\d{1,2})[-/.](\d{4})$/.exec(s);
   const word = ymd || mdy ? null : /^(\S+?)\.?,?\s+(\d{4})$/.exec(s);
@@ -54,6 +54,7 @@ export function MonthPicker({
   describedBy,
   invalid,
   className,
+  emptyLabel,
 }: {
   /** The input's id (the label points at it). When left out, one is made up. */
   id?: string;
@@ -63,6 +64,9 @@ export function MonthPicker({
   invalid?: true;
   /** Passed to the outer wrapper (width). */
   className?: string;
+  /** Said back as the result line while no month is set (the Achievements list's "Any month", FIX-02): a
+   * placeholder is not text content, so the list's hint has to be a real text node. */
+  emptyLabel?: string;
 }) {
   const autoId = useId();
   const id = idProp ?? autoId;
@@ -191,7 +195,14 @@ export function MonthPicker({
           </RP.Portal>
         </RP.Root>
         {text ? (
-          <Button type="button" variant="ghost" onClick={() => set('')} data-month-clear>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => set('')}
+            data-month-clear
+            data-clear-month
+            aria-label={t('datePicker.clearMonth')}
+          >
             <X aria-hidden className="size-4" />
             {t('datePicker.clear')}
           </Button>
@@ -200,6 +211,10 @@ export function MonthPicker({
       {month ? (
         <p className="text-sm text-muted" data-month-result>
           {written(month)}
+        </p>
+      ) : emptyLabel ? (
+        <p className="text-sm text-muted" data-month-result>
+          {emptyLabel}
         </p>
       ) : null}
     </div>

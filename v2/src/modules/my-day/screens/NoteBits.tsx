@@ -73,13 +73,15 @@ export function LinkChip({ link }: { link: NoteLink }) {
       ? t('pages.myDay.note.linkActionItem', { number: link.number, text: link.text ?? '' })
       : link.entity === 'task' && link.number
         ? t('pages.myDay.note.linkTask', { number: link.number, title: link.title ?? '' })
-        : link.entity === 'reminder' && link.remind_at
-          ? t('pages.myDay.note.linkReminder', {
-              when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
-            })
-          : name
-            ? t('pages.myDay.note.linkActivity', { type, name })
-            : type;
+        : link.entity === 'achievement' && link.number
+          ? t('pages.myDay.note.linkAchievement', { number: link.number, title: link.title ?? '' })
+          : link.entity === 'reminder' && link.remind_at
+            ? t('pages.myDay.note.linkReminder', {
+                when: formatDate(link.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
+              })
+            : name
+              ? t('pages.myDay.note.linkActivity', { type, name })
+              : type;
   const route = linkRoute(link);
   // a long title never widens the note page on a phone (K, 26 Oct): the chip is at most its row, its words cut short
   const cls = cn(chipClass, 'max-w-full border-accent/40 text-text');

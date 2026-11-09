@@ -143,8 +143,9 @@ function More({ count }: { count: number }) {
 /**
  * The Done section with the nudge (Phase 6): this week's done rows on top, then older unlogged closed tasks below —
  * one list, one row per task. A done task with no achievement logged from it carries the Log / "Not an achievement" /
- * "Later" actions on its row; the rest draw as before. The section says what the nudge hides (routine tasks, by
- * default) with a toggle to show them.
+ * "Later" actions on its row; one already logged (FIX-29) carries an "Already logged" chip instead and no actions.
+ * The section total counts only the actionable rows — the tasks still to log. The section says what the nudge hides
+ * (routine tasks, by default) with a toggle to show them.
  */
 function DoneSection({
   list,
@@ -202,7 +203,11 @@ function DoneSection({
         partner_name_ar: u.partner_name_ar,
       },
     });
-  const total = list.total + older.length;
+  // FIX-29: the section total counts only the actionable rows — the tasks still to log (this week and older,
+  // which the unlogged total already includes). When the unlogged read failed, the nudge actions are gone and
+  // the actionable count is unknowable, so the total falls back to the done rows shown.
+  const total = unlogged === null ? list.total : unlogged.total;
+  const shownActionable = rows.filter((r) => r.nudge !== null).length;
   return (
     <SectionFrame name="done" title={t('pages.weeklyReview.done.title')} total={total}>
       {(unlogged?.total ?? 0) > 0 ? (
@@ -234,12 +239,23 @@ function DoneSection({
             r.nudge ? (
               <NudgeItemRow key={r.key} item={r.item} task={r.nudge} categories={categories} />
             ) : (
-              <ItemRow key={r.key} item={r.item} section="done" />
+              <ItemRow
+                key={r.key}
+                item={r.item}
+                section="done"
+                logged={r.item.kind === 'task' && r.item.logged === true}
+              />
             ),
           )}
         </ul>
       )}
-      <More count={Math.max(0, total - rows.length)} />
+      <More
+        count={
+          // the rows not shown: the actionable ones still to log when the nudge read landed, else the done rows
+          // past the cap (the unlogged read failed, so no nudge rows are shown at all).
+          unlogged === null ? Math.max(0, list.total - rows.length) : Math.max(0, total - shownActionable)
+        }
+      />
     </SectionFrame>
   );
 }
@@ -264,7 +280,16 @@ function ItemSection({ section, list }: { section: Section; list: ReviewList<Rev
   );
 }
 
-function ItemRow({ item, section }: { item: ReviewItem; section: Section }) {
+function ItemRow({
+  item,
+  section,
+  logged,
+}: {
+  item: ReviewItem;
+  section: Section;
+  /** FIX-29: a done task already logged as an achievement says so on its row. */
+  logged?: boolean;
+}) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const partner = partnerName(item, locale);
@@ -278,6 +303,7 @@ function ItemRow({ item, section }: { item: ReviewItem; section: Section }) {
           <span className="block break-words">{item.title || t('pages.myDay.note.untitled')}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             {item.kind === 'note' ? <StatusChip tone="neutral">{t('pages.weeklyReview.note')}</StatusChip> : null}
+            {logged ? <StatusChip tone="success">{t('pages.weeklyReview.done.alreadyLogged')}</StatusChip> : null}
             {partner ? <StatusChip tone="neutral">{partner}</StatusChip> : null}
             {item.times > 0 ? (
               <StatusChip tone={section === 'slipped' && item.times > 1 ? 'warning' : 'neutral'}>

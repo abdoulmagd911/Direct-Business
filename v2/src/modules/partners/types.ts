@@ -43,6 +43,8 @@ export type PartnerRow = {
   flags: string[];
   archived: boolean;
   version: number;
+  /** FIX-01 (D28): the row's added-at, the stable tie-break when two rows sort the same. */
+  created_at: string;
 };
 
 export type PartnersAnswer = { total: number; rows: PartnerRow[] };

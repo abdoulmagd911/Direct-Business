@@ -50,3 +50,17 @@ select test.eq((select count(*)::int from partner.partner where priority_id is n
 select test.eq(partner.status_of(current_setting('t.p2')::uuid, 'client'), null::text, 'the statuses');
 select test.eq((select array_agg(x) from partner.owners(current_setting('t.p1')::uuid) x),
   array[current_setting('t.am2')::uuid], 'and the owners');
+
+-- P1b (FIX-01, F100/F138 — own records only): the member who owns the Client side bulk-assigns their own record
+select test.as_person(current_setting('t.am2')::uuid);
+select set_config('t.r2', api.partner_bulk_assign(array[current_setting('t.p1')::uuid], 'client',
+  current_setting('t.am1')::uuid, current_setting('t.high')::uuid, 'made up: my own record') ->> 'request_id', true);
+select test.as_owner();
+select test.eq((select count(*)::int from partner.partner where priority_id = current_setting('t.high')::uuid), 1,
+  'one organisation gets the priority');
+select test.eq((select array_agg(x) from partner.owners(current_setting('t.p1')::uuid) x),
+  array[current_setting('t.am1')::uuid], 'and the owner');
+select test.as_person(current_setting('t.am2')::uuid);
+select test.raises(format('select api.partner_bulk_assign(%L, %L, %L, %L)', array[current_setting('t.p1')],
+  'client', current_setting('t.am1'), current_setting('t.high')), '42501',
+  'but a member who no longer owns it cannot assign it', 'access.needs_capability');

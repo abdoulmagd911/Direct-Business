@@ -55,7 +55,16 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
         author={author ? personName(author, locale === 'ar' ? 'ar' : 'en') : undefined}
         types={types}
         outcomes={outcomes}
-        taskLookups={lookups ? { org: lookups.org, partners: lookups.partners, projects: lookups.projects } : undefined}
+        taskLookups={
+          lookups
+            ? {
+                org: lookups.org,
+                partners: lookups.partners,
+                projects: lookups.projects,
+                priorities: lookups.priorities,
+              }
+            : undefined
+        }
         comments={(comments as RecordComments | null) ?? null}
         files={(files as RecordFile[] | null) ?? null}
         history={historyRaw ? historyRows(historyRaw as RecordChange[], 'my_note', id) : null}

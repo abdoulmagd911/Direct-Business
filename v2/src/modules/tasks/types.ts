@@ -36,11 +36,17 @@ export type TaskRow = {
   starred: boolean;
   dismissed_from_nudge: boolean;
   has_achievement: boolean;
+  /** FIX-35: the earliest live achievement logged from this task (00014) — its number and title only when the reader may see it. */
+  achievement_id: string | null;
+  achievement_number: string | null;
+  achievement_title: string | null;
   /** Phase 5: the task needs help — flagged until its manager acknowledges it. */
   escalated: boolean;
   escalated_at: string | null;
   escalated_by: string | null;
   escalated_to: string | null;
+  /** FIX-26: the latest live flag note on the task (00015) — the note text, not just the flag. */
+  escalated_note: string | null;
   version: number;
   can_edit: boolean;
   open_action_items: number;

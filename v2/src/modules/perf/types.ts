@@ -1,6 +1,19 @@
 // What the achievements doors answer (migration 20261001210000_perf_achievements.sql): api.achievements,
 // api.achievement, api.achievement_categories. Plain types, no React.
 
+/**
+ * FIX-36 F073: a line's category prefix is not doubled at render — when the title already starts with the prefix
+ * the line template prepended, the stored line reads "Cost saving: Cost saving: …"; one copy is stripped for
+ * display. The stored line (and its sort order) is untouched.
+ */
+export function displayLine(line: string): string {
+  const i = line.indexOf(': ');
+  if (i < 0) return line;
+  const prefix = line.slice(0, i);
+  const rest = line.slice(i + 2);
+  return rest.startsWith(`${prefix}: `) ? `${prefix}: ${rest.slice(prefix.length + 2)}` : line;
+}
+
 export type ReportKind = 'bd_monthly' | 'partnerships' | 'commercial_quarterly' | 'improvements';
 
 export type AchievementRow = {
@@ -30,6 +43,9 @@ export type AchievementRow = {
   origin: 'person' | 'task' | 'report' | 'import' | 'backfill';
   source_kind: ReportKind | null;
   source_period: string | null;
+  /** FIX-35: the task this achievement was logged from (00014) — the number only when the reader may see the task. */
+  source_task_id: string | null;
+  source_task_number: string | null;
   date_from_report: boolean;
   use_as_example: boolean;
   version: number;
@@ -100,13 +116,52 @@ export type ListFilter = {
   backfilled?: boolean;
   past?: boolean;
   needsOwner?: boolean;
+  /** FIX-01: the list's sort; absent, the server's own order (newest logged first) stands. */
+  sort?: AchievementSortKey;
 };
+
+/** FIX-01: the achievements sort — newest or oldest logged, title, or the achievement's own date. */
+export const ACHIEVEMENT_SORTS = ['newest', 'oldest', 'title', 'date'] as const;
+export type AchievementSortKey = (typeof ACHIEVEMENT_SORTS)[number];
+
+/**
+ * FIX-01 (D28): one list sorted, stably — the tie-break is always added-at (`logged_at`) then id, so two rows in
+ * the same place never swap. Newest and oldest log by when the achievement was logged; date by the day it happened
+ * (an undated one sits last); title by the line as it reads on screen.
+ */
+export function sortAchievements(
+  rows: readonly AchievementRow[],
+  sort: AchievementSortKey | undefined,
+  locale: 'en' | 'ar',
+): AchievementRow[] {
+  if (!sort) return [...rows];
+  const byAdded = (a: AchievementRow, b: AchievementRow) =>
+    a.logged_at < b.logged_at ? 1 : a.logged_at > b.logged_at ? -1 : a.id < b.id ? -1 : 1;
+  const line = (r: AchievementRow) => (locale === 'ar' ? r.line_ar : r.line_en);
+  return [...rows].sort((a, b) => {
+    switch (sort) {
+      case 'oldest':
+        return a.logged_at < b.logged_at ? -1 : a.logged_at > b.logged_at ? 1 : a.id < b.id ? -1 : 1;
+      case 'title':
+        return line(a).localeCompare(line(b)) || byAdded(a, b);
+      case 'date': {
+        if (a.happened_on === null && b.happened_on === null) return byAdded(a, b);
+        if (a.happened_on === null) return 1;
+        if (b.happened_on === null) return -1;
+        return a.happened_on < b.happened_on ? 1 : a.happened_on > b.happened_on ? -1 : byAdded(a, b);
+      }
+      default:
+        return byAdded(a, b);
+    }
+  });
+}
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export function filterOf(q: Record<string, string | string[] | undefined>): ListFilter {
   const one = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
   const month = one('month');
+  const sort = one('sort');
   return {
     category: one('category')?.toUpperCase() || undefined,
     mine: one('mine') === '1' || undefined,
@@ -114,6 +169,7 @@ export function filterOf(q: Record<string, string | string[] | undefined>): List
     backfilled: one('backfilled') === '1' || undefined,
     past: one('past') === '1' || undefined,
     needsOwner: one('owner') === 'none' || undefined,
+    sort: sort && (ACHIEVEMENT_SORTS as readonly string[]).includes(sort) ? (sort as AchievementSortKey) : undefined,
   };
 }
 
@@ -138,6 +194,7 @@ export function hrefOf(f: ListFilter): string {
   if (f.backfilled) q.set('backfilled', '1');
   if (f.past) q.set('past', '1');
   if (f.needsOwner) q.set('owner', 'none');
+  if (f.sort) q.set('sort', f.sort);
   const s = q.toString();
   return `/kpis/achievements${s ? `?${s}` : ''}`;
 }

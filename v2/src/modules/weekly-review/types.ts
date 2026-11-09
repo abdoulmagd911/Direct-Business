@@ -22,6 +22,8 @@ export type ReviewItem = {
   partner_name_ar: string | null;
   /** How often I carried it over (tomorrow or next week). */
   times: number;
+  /** Done rows only (00017): an achievement is already logged from this task. */
+  logged?: boolean;
 };
 
 export type ReviewNote = {

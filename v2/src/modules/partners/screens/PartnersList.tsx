@@ -1,8 +1,8 @@
 'use client';
 import { CappedNote } from './CappedNote';
 import * as RP from '@radix-ui/react-popover';
-import type { RowSelectionState } from '@tanstack/react-table';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import type { RowSelectionState, SortingState, VisibilityState } from '@tanstack/react-table';
+import { Columns3, Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -11,7 +11,6 @@ import type { Me } from '@/core/auth/me';
 import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { assignablePeople } from '@/modules/org/pickers';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { BulkBar } from '@/ui/BulkBar';
 import { Button } from '@/ui/Button';
@@ -33,6 +32,7 @@ import { PageFrame } from '@/ui/shell/AppShell';
 import { useMediaQuery } from '@/ui/useMediaQuery';
 import { NewPartnerDialog } from './NewPartnerDialog';
 import { PartnerHover } from './PartnerHover';
+import { compareFlags, compareOwner } from '../sort';
 import {
   SIDE_PAGE,
   SIDE_ROUTE,
@@ -122,8 +122,16 @@ export function PartnersList({
   const page = SIDE_PAGE[side];
   const full = me.levels[page] === 'full';
   const canAssign = me.capabilities.includes(`${page}.assign`);
+  // FIX-01 (F100/F138, P1b): a member who owns records on this side bulk-assigns their own — the door checks each
+  // row is theirs; without either capability there is no selection at all.
+  const canAssignOwn = me.capabilities.includes(`${page}.assign_own`);
+  const canBulk = canAssign || canAssignOwn;
   const people = Object.fromEntries(org.people.map((p) => [p.id, p]));
   const [selected, setSelected] = useState<RowSelectionState>({});
+  // FIX-01: the table's sort and which columns show live in this list's state, so the team can change them; the
+  // sort is not in the address (a gap: refresh drops it — see the landing report).
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [assignIds, setAssignIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
   const [creating, setCreating] = useState(startCreating && full);
@@ -174,8 +182,12 @@ export function PartnersList({
     failed: (k, d) => t(k, { detail: d }),
   });
 
-  const columns = useMemo<ColumnDef<PartnerRow, unknown>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<PartnerRow, unknown>[]>(() => {
+    const ownerName = (r: PartnerRow) => {
+      const p = r.owner_id ? people[r.owner_id] : undefined;
+      return p ? personName(p, locale) : '';
+    };
+    return [
       {
         accessorKey: 'trade_name_en',
         header: t('partners.columns.name'),
@@ -220,7 +232,8 @@ export function PartnersList({
       {
         accessorKey: 'owner_id',
         header: t('partners.columns.owner'),
-        enableSorting: false,
+        // FIX-01: the owner sorts by name, not by id — two owners with the same name fall back to added-at, then id.
+        sortingFn: (a, b) => compareOwner(a.original, b.original, ownerName),
         cell: ({ row }) => {
           const p = row.original.owner_id ? people[row.original.owner_id] : undefined;
           return p ? (
@@ -246,7 +259,9 @@ export function PartnersList({
       {
         id: 'flags',
         header: t('partners.columns.flags'),
-        enableSorting: false,
+        // FIX-01: the flags sort by their joined words; two rows with the same flags fall back to added-at, then id.
+        accessorFn: (row) => row.flags.join(' '),
+        sortingFn: (a, b) => compareFlags(a.original, b.original),
         cell: ({ row }) => (
           <span className="flex flex-wrap gap-1">
             {row.original.flags.map((f) => (
@@ -258,9 +273,8 @@ export function PartnersList({
           </span>
         ),
       },
-    ],
-    [t, locale, types, sideTypes, people, base],
-  );
+    ];
+  }, [t, locale, types, sideTypes, people, base]);
 
   const activeFilters =
     [filters.q].filter(Boolean).length +
@@ -404,6 +418,17 @@ export function PartnersList({
             </Button>
           ) : null}
         </PhoneFilter>
+        <ColumnsMenu
+          columns={[
+            { id: 'type', label: t('partners.columns.type') },
+            { id: 'status', label: t('partners.columns.status') },
+            { id: 'owner_id', label: t('partners.columns.owner') },
+            { id: 'last_activity_on', label: t('partners.columns.lastActivity') },
+            { id: 'flags', label: t('partners.columns.flags') },
+          ]}
+          visibility={columnVisibility}
+          onChange={setColumnVisibility}
+        />
       </div>
 
       {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
@@ -464,16 +489,22 @@ export function PartnersList({
           columns={columns}
           data={rows}
           getRowId={(r) => r.id}
-          selectable={canAssign}
+          selectable={canBulk}
           rowSelection={selected}
           onRowSelectionChange={setSelected}
+          // FIX-01 (P1b): with only the own-task capability, only the rows this person owns may be picked.
+          canSelectRow={canAssign ? undefined : (r) => r.owner_id === me.person.id}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
           onRowClick={(r) => router.push(`${base}/${r.id}`)}
           labels={{ selectRow: t('table.selectRow'), selectAll: t('table.selectAll') }}
           emptyState={<DataState kind={answer ? 'empty' : 'loading'} message={t('partners.none')} />}
         />
       )}
 
-      {canAssign ? (
+      {canBulk ? (
         <BulkBar
           ids={ids}
           onClear={() => setSelected({})}
@@ -542,6 +573,54 @@ function empty(): ListFilters {
     archived: false,
     view: '',
   };
+}
+
+/** FIX-01: the columns chooser — every column but the name can be hidden; the choice is this list's state. */
+function ColumnsMenu({
+  columns,
+  visibility,
+  onChange,
+}: {
+  columns: { id: string; label: string }[];
+  visibility: VisibilityState;
+  onChange: (v: VisibilityState) => void;
+}) {
+  const t = useTranslations();
+  const [open, setOpen] = useState(false);
+  return (
+    <RP.Root open={open} onOpenChange={setOpen}>
+      {/* an anchor, not a trigger: a trigger would put aria-expanded on the span (axe: aria-allowed-attr) */}
+      <RP.Anchor asChild>
+        <span>
+          <Button size="sm" variant="ghost" icon={<Columns3 />} onClick={() => setOpen(true)} data-partners-columns>
+            {t('partners.columns.title')}
+          </Button>
+        </span>
+      </RP.Anchor>
+      <RP.Portal>
+        <RP.Content
+          align="start"
+          sideOffset={6}
+          className="z-50 max-h-[320px] w-[260px] overflow-y-auto rounded-lg border border-border bg-raised p-2 shadow-2"
+          data-columns-menu
+        >
+          <ul className="flex flex-col">
+            {columns.map((c) => (
+              <li key={c.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface">
+                <Checkbox
+                  id={`col-${c.id}`}
+                  label={c.label}
+                  checked={visibility[c.id] !== false}
+                  onCheckedChange={(v) => onChange({ ...visibility, [c.id]: v })}
+                />
+                <label htmlFor={`col-${c.id}`}>{c.label}</label>
+              </li>
+            ))}
+          </ul>
+        </RP.Content>
+      </RP.Portal>
+    </RP.Root>
+  );
 }
 
 /** A filter chip whose click opens a picker of several values (M102: dashed while empty, solid with its value and ✕). */
@@ -762,7 +841,10 @@ function AssignDialog({
               value={owner}
               onValueChange={setOwner}
               placeholder={t('partners.bulk.keepOwner')}
-              options={assignablePeople(org.people).map((x) => ({ value: x.id, label: personName(x, locale) }))}
+              // F101: the same user list as the per-record picker — everyone, the admin account included.
+              options={[...org.people]
+                .map((x) => ({ value: x.id, label: personName(x, locale) }))
+                .sort((a, b) => a.label.localeCompare(b.label))}
             />
           )}
         </Field>

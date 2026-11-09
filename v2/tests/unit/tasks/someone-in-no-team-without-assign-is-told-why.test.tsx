@@ -26,7 +26,7 @@ const html = (team: string | null, capabilities: string[]) => {
   me.current = { team, capabilities };
   return renderToStaticMarkup(
     <NextIntlClientProvider locale="en" messages={en} timeZone="Asia/Riyadh">
-      <QuickAddForm org={null} partners={[]} projects={[]} onClose={() => {}} />
+      <QuickAddForm org={null} partners={[]} projects={[]} priorities={[]} onClose={() => {}} />
     </NextIntlClientProvider>,
   );
 };

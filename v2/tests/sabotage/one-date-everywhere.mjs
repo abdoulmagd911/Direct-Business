@@ -97,9 +97,10 @@ export const sabotages = [
     expect: 'a day typed ISO is written back as 20 Oct 2026',
     edits: [
       {
-        file: 'src/modules/tasks/screens/DueDayPicker.tsx',
+        // `written` moved from DueDayPicker into the shared DatePicker (FIX-02); the sabotage is due-only via testId.
+        file: 'src/ui/DatePicker.tsx',
         find: 'const written = (d: string) => formatDate(`${d}T12:00:00+03:00`, locale);',
-        replace: 'const written = (d: string) => d;',
+        replace: "const written = (d: string) => (testId === 'due' ? d : formatDate(`${d}T12:00:00+03:00`, locale));",
       },
     ],
   },

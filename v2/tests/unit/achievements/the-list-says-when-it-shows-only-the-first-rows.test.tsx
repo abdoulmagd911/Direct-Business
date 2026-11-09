@@ -38,6 +38,8 @@ const row = (i: number): AchievementRow => ({
   origin: 'person',
   source_kind: null,
   source_period: null,
+  source_task_id: null,
+  source_task_number: null,
   date_from_report: false,
   use_as_example: false,
   version: 1,

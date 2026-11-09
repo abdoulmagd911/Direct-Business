@@ -58,6 +58,7 @@ export function DatePicker({
   max,
   chips = 'today',
   name,
+  testId = 'date',
   className,
   readOnly,
   disabled,
@@ -74,6 +75,9 @@ export function DatePicker({
   /** 'due' = Today / Tomorrow / Next week (the task due-date set); 'today' = Today only; 'none' = no chips. */
   chips?: 'due' | 'today' | 'none';
   name?: string;
+  /** The namespace of the test attributes (`data-<testId>-picker`, `-chip`, `-calendar`, `-clear`, `-result`):
+   * 'date' everywhere except the task form's Due, which is 'due' (the specs read `data-due-*` there, FIX-02). */
+  testId?: string;
   /** Passed to the typed box (width, font). */
   className?: string;
   /** The value is shown but cannot be changed (chips, calendar and Clear are off too). */
@@ -102,6 +106,8 @@ export function DatePicker({
   const id = idProp ?? autoId;
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
+  /** One test attribute, namespaced (`data-<testId>-<name>`); a plain string value renders as `data-…=""`. */
+  const at = (name: string, value = '') => ({ [`data-${testId}-${name}`]: value });
   const [now] = useState(() => new Date());
   const written = (d: string) => formatDate(`${d}T12:00:00+03:00`, locale);
   const [text, setText] = useState(() => (value && parseDueDay(value) ? written(parseDueDay(value)!) : (value ?? '')));
@@ -185,7 +191,7 @@ export function DatePicker({
           ]
         : [{ key: 'today', day: riyadhNow(now).day, label: t('common.today') }];
   return (
-    <div className="flex flex-col gap-2" data-date-picker>
+    <div className="flex flex-col gap-2" {...at('picker')}>
       {chipList.length ? (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.tasks.fields.due')}>
           {chipList.map((c) => (
@@ -197,7 +203,7 @@ export function DatePicker({
               disabled={locked || !inRange(c.day)}
               className={whenChip(day === c.day)}
               onClick={() => pick(c.day)}
-              data-date-chip={c.key}
+              {...at('chip', c.key)}
             >
               {c.label}
             </button>
@@ -229,7 +235,7 @@ export function DatePicker({
               variant="ghost"
               disabled={locked}
               aria-label={t('datePicker.openCalendar')}
-              data-date-calendar
+              {...at('calendar')}
             >
               <Calendar aria-hidden className="size-4" />
             </Button>
@@ -347,14 +353,14 @@ export function DatePicker({
           </RP.Portal>
         </RP.Root>
         {text && !locked ? (
-          <Button type="button" variant="ghost" onClick={() => set('')} data-date-clear>
+          <Button type="button" variant="ghost" onClick={() => set('')} {...at('clear')}>
             <X aria-hidden className="size-4" />
             {t('datePicker.clear')}
           </Button>
         ) : null}
       </div>
       {day ? (
-        <p className="text-sm text-muted" data-date-result>
+        <p className="text-sm text-muted" {...at('result')}>
           {formatDate(`${day}T12:00:00+03:00`, locale, { weekday: 'short', day: 'numeric', month: 'short' })}
         </p>
       ) : null}

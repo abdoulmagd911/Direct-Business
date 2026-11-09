@@ -6,7 +6,7 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { MyDay } from '@/modules/my-day/screens/MyDay';
 import { CAPTURE_KINDS } from '@/modules/my-day/quick-capture';
-import { myDay, escalatedToMe, openAsks, remindersDue } from '@/modules/my-day/server';
+import { myDay, escalatedByMe, escalatedToMe, openAsks, remindersDue } from '@/modules/my-day/server';
 import { weeklyUnlogged } from '@/modules/weekly-review/server';
 import { SCOPES, type Scope } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
@@ -36,20 +36,22 @@ export default async function MyDayPage({
   const all = sp.more === '1';
   // narrowed to one kind of capture (V641); an unknown word shows them all
   const kind = CAPTURE_KINDS.find((k) => k === sp.kind);
-  const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, unloggedRead] = await Promise.allSettled([
-    myDay(scope, all ? ALL : BLOCK + 1, kind),
-    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
-    scope === 'me'
-      ? (serverRpc('list', { p_list: 'task_status' }) as unknown as Promise<TaskStatus[]>).catch(
-          () => [] as TaskStatus[],
-        )
-      : Promise.resolve([] as TaskStatus[]),
-    scope === 'me' ? remindersDue() : Promise.resolve(null),
-    scope === 'me' ? openAsks() : Promise.resolve(null),
-    scope === 'me' ? escalatedToMe() : Promise.resolve(null),
-    // Phase 6: the weekly-review door's unlogged count (me only; null when the read failed, so no badge).
-    scope === 'me' ? weeklyUnlogged() : Promise.resolve(null),
-  ]);
+  const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, escalatedByMeRead, unloggedRead] =
+    await Promise.allSettled([
+      myDay(scope, all ? ALL : BLOCK + 1, kind),
+      serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+      scope === 'me'
+        ? (serverRpc('list', { p_list: 'task_status' }) as unknown as Promise<TaskStatus[]>).catch(
+            () => [] as TaskStatus[],
+          )
+        : Promise.resolve([] as TaskStatus[]),
+      scope === 'me' ? remindersDue() : Promise.resolve(null),
+      scope === 'me' ? openAsks() : Promise.resolve(null),
+      scope === 'me' ? escalatedToMe() : Promise.resolve(null),
+      scope === 'me' ? escalatedByMe() : Promise.resolve(null),
+      // Phase 6: the weekly-review door's unlogged count (me only; null when the read failed, so no badge).
+      scope === 'me' ? weeklyUnlogged() : Promise.resolve(null),
+    ]);
   const org = orgRead.status === 'fulfilled' ? orgRead.value : null;
   if (org && accountOfOrg(org, me.person.id) === 'admin_account')
     return (
@@ -80,14 +82,30 @@ export default async function MyDayPage({
   const people = orgRead.value.people;
   // remindersDue() answers null when it cannot be read: the Today block says so and the rest of My day still draws
   const due = dueRead.status === 'fulfilled' ? dueRead.value : null;
-  // openAsks() and escalatedToMe() answer null the same way: the Waiting sections say so
+  // openAsks(), escalatedToMe() and escalatedByMe() answer null the same way: the Waiting sections say so
   const asks = asksRead.status === 'fulfilled' ? asksRead.value : null;
   const escalated = escalatedRead.status === 'fulfilled' ? escalatedRead.value : null;
+  const flaggedByMe = escalatedByMeRead.status === 'fulfilled' ? escalatedByMeRead.value : null;
   // weeklyUnlogged() answers null when it cannot be read: the door simply shows no badge
   const unlogged = unloggedRead.status === 'fulfilled' ? (unloggedRead.value?.total ?? null) : null;
   return (
     <Page>
-      <MyDay data={{ title, scope, answer, all, kind, people, statuses, due, asks, escalated, unlogged }} />
+      <MyDay
+        data={{
+          title,
+          scope,
+          answer,
+          all,
+          kind,
+          people,
+          statuses,
+          due,
+          asks,
+          escalated,
+          escalatedByMe: flaggedByMe,
+          unlogged,
+        }}
+      />
     </Page>
   );
 }

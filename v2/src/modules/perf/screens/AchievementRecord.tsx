@@ -29,8 +29,9 @@ import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import type { AchievementDetail, Category } from '../types';
+import { displayLine } from '../types';
 import { Marks } from './AchievementList';
-import { riyadhToday } from './LogAchievement';
+import { readDealValue, riyadhToday } from './LogAchievement';
 import { useCommandWords } from './words';
 
 const TABS = ['overview', 'discussion', 'history', 'evidence'] as const;
@@ -159,6 +160,17 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           },
         ]
       : []),
+    // FIX-06: a value logged on a category without a deal value shows as a plain number (D29), never money.
+    ...(!a.has_deal_value && a.deal_value !== null
+      ? [
+          {
+            key: 'value',
+            label: t('figures.valuePlain'),
+            value: formatNumber(a.deal_value, locale),
+            note: t('notRevenue'),
+          },
+        ]
+      : []),
     { key: 'count', label: t('figures.count'), value: formatNumber(a.count, locale) },
     { key: 'date', label: t('figures.date'), value: a.happened_on ? formatDate(a.happened_on, locale) : null },
   ];
@@ -184,7 +196,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         crumbsClass="max-lg:hidden"
         titleMore={{ more: t('titleMore'), less: t('titleLess') }}
         back={{ href: '/kpis/achievements', label: t('backTo') }}
-        title={locale === 'ar' ? a.line_ar : a.line_en}
+        title={displayLine(locale === 'ar' ? a.line_ar : a.line_en)}
         subtitle={[
           a.number,
           a.happened_on ? formatDate(a.happened_on, locale) : t('noDate'),
@@ -233,7 +245,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         }
         tabs={TABS.map((k) => ({
           key: k,
-          label: k === 'evidence' ? `${t('tabs.evidence')} (${formatNumber(a.refs.length, locale)})` : t(`tabs.${k}`),
+          // FIX-36 F086/F085: the Evidence tab counts ALL evidence — files and references — and agrees with the
+          // header; when the files read failed (null) it falls back to the references alone.
+          label:
+            k === 'evidence'
+              ? `${t('tabs.evidence')} (${formatNumber((data.files?.length ?? 0) + a.refs.length, locale)})`
+              : t(`tabs.${k}`),
           count: k === 'discussion' ? (commentCount ?? data.comments?.comments.length ?? undefined) : undefined,
         }))}
         tab={tab}
@@ -249,6 +266,19 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
               <RailField label={t('fields.repeatOf')}>
                 <Link href={`/kpis/achievements/${a.repeat_of}`} className="font-data text-link hover:underline">
                   {a.repeat_of_number}
+                </Link>
+              </RailField>
+            ) : null}
+            {/* FIX-35: the task this achievement was logged from (source_task_id, stored by the form) — the number
+                only when the reader may see the task; without it there is no link to draw. */}
+            {a.source_task_number ? (
+              <RailField label={t('fields.task')}>
+                <Link
+                  href={`/tasks/${a.source_task_number}`}
+                  className="font-data text-link hover:underline"
+                  data-achievement-task
+                >
+                  {a.source_task_number}
                 </Link>
               </RailField>
             ) : null}
@@ -288,7 +318,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
               lang={locale === 'ar' ? 'en' : 'ar'}
               dir={locale === 'ar' ? 'ltr' : 'rtl'}
             >
-              {locale === 'ar' ? a.line_en : a.line_ar}
+              {displayLine(locale === 'ar' ? a.line_en : a.line_ar)}
             </p>
             {/* Related lives here now (Phase 4, the one layout): its own tab is gone. */}
             <div className="flex flex-col gap-2" data-tab="related">
@@ -304,9 +334,24 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
                   </Link>
                 ) : null}
               </RailField>
-              <RailField label={t('fields.participants')} empty={!a.participants.length}>
-                {a.participants.map((id) => nameFor(id)).join(' · ')}
-              </RailField>
+              {/* FIX-35: the source task, beside the organisation it was logged from. */}
+              {a.source_task_number ? (
+                <RailField label={t('fields.task')}>
+                  <Link
+                    href={`/tasks/${a.source_task_number}`}
+                    className="font-data text-link hover:underline"
+                    data-achievement-task
+                  >
+                    {a.source_task_number}
+                  </Link>
+                </RailField>
+              ) : null}
+              {/* FIX-36 F092: the Participants term only shows when someone took part — never an empty term. */}
+              {a.participants.length ? (
+                <RailField label={t('fields.participants')}>
+                  {a.participants.map((id) => nameFor(id)).join(' · ')}
+                </RailField>
+              ) : null}
               {source ? <RailField label={t('fields.source')}>{source}</RailField> : null}
             </div>
           </section>
@@ -370,7 +415,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             <Button
               variant="primary"
               loading={busy}
-              disabled={busy || !f.title.trim() || (reasonNeeded && !reason.trim())}
+              disabled={
+                busy ||
+                !f.title.trim() ||
+                (reasonNeeded && !reason.trim()) ||
+                (f.deal_value.trim() !== '' && readDealValue(f.deal_value) === null)
+              }
               onClick={() => void saveEdit()}
             >
               {t('actions.save')}
@@ -407,8 +457,17 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
               />
             )}
           </Field>
-          {data.categories.find((c) => c.code === f.category)?.has_deal_value ? (
-            <Field label={`${t('fields.value')} · ${t('notRevenue')}`}>
+          {/* FIX-06: the value is a plain number for every category (D29), labelled with the category's own
+              name as the unit — the record figure keeps "Deal value" until F095 (Landing 5). */}
+          {data.categories.find((c) => c.code === f.category) ? (
+            <Field
+              label={`${t('fields.valueLabel')} (${
+                locale === 'ar'
+                  ? data.categories.find((c) => c.code === f.category)!.name_ar
+                  : data.categories.find((c) => c.code === f.category)!.name_en
+              }) · ${t('notRevenue')}`}
+              error={f.deal_value.trim() && readDealValue(f.deal_value) === null ? t('valueNotNumber') : undefined}
+            >
               {(p) => (
                 <Input
                   {...p}

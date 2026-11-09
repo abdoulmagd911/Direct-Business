@@ -9,7 +9,8 @@ export type DataStateKind = 'loading' | 'failed' | 'empty' | 'no-access' | 'not-
 
 /**
  * Every read renders through this (spec §2.4 rule 5). Five distinct states: loading, failed (says
- * which read failed, with Try again — M27/M71), empty (a true zero — one line and its one action),
+ * which read failed, with Try again — M27/M71 — as a callback, or as a link `action` when the caller is a server
+ * page that cannot pass one, FIX-28), empty (a true zero — one line and its one action),
  * no access (M53) and not measured (M60). A figure that failed is never drawn as 0.
  */
 export function DataState({
@@ -72,6 +73,9 @@ export function DataState({
             {retryLabel}
           </Button>
         ) : null}
+        {/* FIX-28: a server page cannot pass a retry callback — it passes a link instead (the same address, read
+            again), rendered beside the button above. A failed read never shows without one of the two. */}
+        {action}
       </div>
     );
   }

@@ -83,6 +83,8 @@ export type MyNote = {
   capture_kind?: 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
   /** How many of the action items made from this checklist are done, out of how many (read live from the task); absent when none were made. */
   task_items?: { done: number; total: number } | null;
+  /** FIX-27: the note has a reminder of the reader's that has not been sent yet (00018). */
+  has_pending_reminder?: boolean;
 };
 
 export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number };
@@ -147,6 +149,8 @@ export type MyDayAnswer = {
   notes_total: number;
   /** More notes than this answer holds. */
   more: boolean;
+  /** FIX-27: my notes whose day — carried_to, else happened_on — is still ahead of today (00018). */
+  deferred?: MyNote[];
   /** Notes shared with the team or everyone since `p_since`. */
   since: SinceCount[];
   reminders: PendingReminder[];

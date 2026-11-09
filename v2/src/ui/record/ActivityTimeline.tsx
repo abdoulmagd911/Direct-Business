@@ -90,6 +90,9 @@ export function ActivityTimeline({
     if (c.action !== 'insert') return null;
     const after = record(c.after);
     if (!after) return summarize?.(c.entity, c.id) ?? null;
+    // FIX-26 F031: a flag note's own words are its summary — the need-for-help note reads in History, not just
+    // the flag. (Only the escalation kind: other notes keep the summary they already had.)
+    if (after.kind === 'escalation' && typeof after.body === 'string' && after.body) return after.body;
     const name = ['full_name_en', 'trade_name_en', 'name_en', 'title', 'email', 'key']
       .map((k) => after[k])
       .find(Boolean);

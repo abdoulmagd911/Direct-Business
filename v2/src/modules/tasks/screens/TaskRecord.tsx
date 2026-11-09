@@ -1,5 +1,6 @@
 'use client';
 import { AlarmClockPlus, Check, Megaphone, Pencil, Trash2, Trophy, UserPlus } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -144,7 +145,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
   const escalatable = task.can_edit && !closed;
   // Log achievement is offered on a done task only, to whoever may log achievements (the kpis level, as the
-  // Done toast used to check); it opens the same form address the strip uses (Phase 1).
+  // Done toast used to check) — and never once the task is already logged (FIX-35: has_achievement gates the
+  // menu, so a second achievement cannot be created for the same task); it opens the same form address the
+  // strip uses (Phase 1).
   const canLog = ['own', 'full'].includes(me.levels.kpis ?? 'none');
   // The persistent strip (Phase 1, CUJ 7): a done, nudge-eligible task closed after this build ships shows it
   // until its achievement is logged or it is dismissed; a dismissed one shows its Undo line instead.
@@ -243,7 +246,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
               {t('pages.tasks.delegate.open')}
             </MenuItem>
           ) : null}
-          {task.meaning === 'done' && canLog ? (
+          {task.meaning === 'done' && canLog && !task.has_achievement ? (
             <MenuItem icon={<Trophy />} onSelect={() => router.push(logAchievementUrl)} data-menu-log-achievement>
               {t('pages.achievements.offerAction')}
             </MenuItem>
@@ -380,6 +383,22 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="break-words text-base">{task.cancelled_reason}</p>
               </div>
             ) : null}
+            {/* FIX-26 F031: the flag note itself — who asked for help, when, and in their own words — so the
+                manager reads it on the task page, not just the flag. */}
+            {task.escalated ? (
+              <div className="rounded-md border border-warning/40 bg-warning-soft px-4 py-3" data-need-help-note>
+                <p className="text-sm font-semibold">
+                  {t('pages.myDay.waiting.needHelp')}
+                  {task.escalated_by ? ` · ${names.person(task.escalated_by)}` : ''}
+                  {task.escalated_at ? ` · ${date(task.escalated_at)}` : ''}
+                </p>
+                {task.escalated_note ? (
+                  <p className="break-words whitespace-pre-wrap text-base">{task.escalated_note}</p>
+                ) : (
+                  <p className="text-base text-muted">{t('pages.tasks.escalate.noNote')}</p>
+                )}
+              </div>
+            ) : null}
             <section className="flex flex-col gap-2">
               <h2 className="text-lg font-semibold">{t('pages.tasks.fields.notes')}</h2>
               {task.notes ? (
@@ -430,6 +449,19 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                     .map((r) => `${names.locale === 'ar' && r.system_ar ? r.system_ar : r.system_en} ${r.value}`)
                     .join(', ')}
                 </RailField>
+                {/* FIX-35: the achievement logged from this task, where the reader may see it. */}
+                {task.achievement_number ? (
+                  <RailField label={t('pages.tasks.fields.achievement')}>
+                    <Link
+                      href={`/kpis/achievements/${task.achievement_id}`}
+                      className="text-link hover:underline"
+                      data-task-achievement
+                    >
+                      <span className="font-data">{task.achievement_number}</span>
+                      {task.achievement_title ? ` · ${task.achievement_title}` : ''}
+                    </Link>
+                  </RailField>
+                ) : null}
               </RailSection>
             </div>
           </div>

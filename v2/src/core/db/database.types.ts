@@ -209,6 +209,7 @@ export type Database = {
       escalate: { Args: { p_entity: string; p_id: string; p_note: string; p_to: string }; Returns: Json };
       escalate_acknowledge: { Args: { p_id: string }; Returns: Json };
       escalated_tasks: { Args: Record<PropertyKey, never>; Returns: Json };
+      escalated_tasks_by_me: { Args: Record<PropertyKey, never>; Returns: Json };
       file_begin: {
         Args: {
           p_entity: string;
@@ -423,7 +424,7 @@ export type Database = {
         Args: { p_kind: string; p_limit?: number; p_offset?: number; p_scope: string };
         Returns: Json;
       };
-      my_notes_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      my_notes_remove: { Args: { p_delete_reminders?: boolean; p_ids: string[]; p_reason?: string }; Returns: Json };
       note_add: {
         Args: {
           p_body: string;
@@ -634,6 +635,7 @@ export type Database = {
       task_update: { Args: { p_id: string; p_values: Json; p_version: number }; Returns: Json };
       tasks: { Args: { p_filter?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       tasks_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
+      tasks_priority_set: { Args: { p_ids: string[]; p_priority: string; p_reason?: string }; Returns: Json };
       tasks_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       team_load: { Args: { p_people?: string[] }; Returns: Json };
       team_retire: { Args: { p_id: string; p_move_to: string; p_reason: string }; Returns: Json };
@@ -688,7 +690,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'api'>];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends

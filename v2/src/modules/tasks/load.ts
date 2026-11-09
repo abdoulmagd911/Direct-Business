@@ -4,11 +4,14 @@ import { atLeast } from '@/core/access/levels';
 import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
 import type { OrgAnswer } from '@/modules/org/types';
+import type { ListEntry } from '@/modules/partners/types';
 import type { NamePick, TaskStatus } from './types';
 
 /** What every Tasks screen names things with: the statuses, the people, the clients and the projects one may see. */
 export type TaskLookups = {
   statuses: TaskStatus[];
+  /** FIX-05 (F021): the task priorities, from the settings list — never hard-coded words. */
+  priorities: ListEntry[];
   org: OrgAnswer | null;
   partners: NamePick[];
   projects: NamePick[];
@@ -25,8 +28,9 @@ type ProjectRow = { id: string; number: string; name: string };
  */
 export async function loadLookups(me: Me, failed: string[] = []): Promise<TaskLookups> {
   const sees = (page: string) => atLeast(me.levels[page] ?? 'none', 'view');
-  const [statuses, org, partners, projects] = await Promise.all([
+  const [statuses, priorities, org, partners, projects] = await Promise.all([
     maybe<TaskStatus[]>('statuses', failed, () => serverRpc('list', { p_list: 'task_status' })),
+    maybe<ListEntry[]>('priorities', failed, () => serverRpc('list', { p_list: 'priority' })),
     maybe<OrgAnswer>('org', failed, () => serverRpc('org', {} as never)),
     sees('clients')
       ? maybe<{ rows: PartnerRow[] }>('partners', failed, () =>
@@ -41,6 +45,7 @@ export async function loadLookups(me: Me, failed: string[] = []): Promise<TaskLo
   ]);
   return {
     statuses: statuses ?? [],
+    priorities: (priorities ?? []).filter((p) => p.active),
     org,
     partners: (partners?.rows ?? []).map((p) => ({
       id: p.id,

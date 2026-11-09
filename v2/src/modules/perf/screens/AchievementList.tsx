@@ -13,7 +13,17 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { cn } from '@/ui/cn';
-import { hrefOf, type AchievementPage, type AchievementRow, type Category, type ListFilter } from '../types';
+import {
+  ACHIEVEMENT_SORTS,
+  hrefOf,
+  sortAchievements,
+  type AchievementPage,
+  type AchievementRow,
+  type AchievementSortKey,
+  type Category,
+  type ListFilter,
+} from '../types';
+import { displayLine } from '../types';
 
 const ALL = '__all';
 
@@ -43,6 +53,7 @@ export function AchievementList({
   const go = (next: ListFilter) => router.push(hrefOf(next));
   const toggle = (k: 'backfilled' | 'past' | 'needsOwner') => go({ ...filter, [k]: filter[k] ? undefined : true });
   const filtered = Object.values(filter).some(Boolean);
+  const rows = sortAchievements(page?.rows ?? [], filter.sort, locale);
   const top = categories.filter((c) => !c.parent_id);
   const options = [
     { value: ALL, label: t('filters.allCategories') },
@@ -73,6 +84,15 @@ export function AchievementList({
           options={options}
           onValueChange={(v) => go({ ...filter, category: v === ALL ? undefined : v })}
         />
+        {/* FIX-01: the sort menu — the columns are not sortable, so the order is a menu, kept in the address. */}
+        <Select
+          aria-label={t('filters.sort')}
+          className="w-44"
+          value={filter.sort ?? ''}
+          placeholder={t('filters.sort')}
+          options={ACHIEVEMENT_SORTS.map((k) => ({ value: k, label: t(`filters.sort_${k}`) }))}
+          onValueChange={(v) => go({ ...filter, sort: (v as AchievementSortKey) || undefined })}
+        />
         <div role="group" aria-label={t('filters.mine')} className="inline-flex rounded-md border border-border-strong">
           {[false, true].map((m) => (
             <button
@@ -95,6 +115,7 @@ export function AchievementList({
             id="month-filter"
             value={filter.month}
             onChange={(v) => go({ ...filter, month: v })}
+            emptyLabel={t('filters.anyMonth')}
             className="w-44"
           />
         </label>
@@ -140,7 +161,7 @@ export function AchievementList({
           className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
           data-achievement-list
         >
-          {page.rows.map((r) => (
+          {rows.map((r) => (
             <Row key={r.id} row={r} owner={r.owner_id ? (people[r.owner_id] ?? '') : null} top={top} />
           ))}
         </ul>
@@ -163,7 +184,7 @@ function Row({ row, owner, top }: { row: AchievementRow; owner: string | null; t
       >
         <span className="min-w-0 flex-1">
           <span className="line-clamp-3 break-words font-medium text-text" data-achievement-title>
-            {locale === 'ar' ? row.line_ar : row.line_en}
+            {displayLine(locale === 'ar' ? row.line_ar : row.line_en)}
           </span>
           <span className="block truncate text-sm text-muted">
             {parent ? `${locale === 'ar' ? parent.name_ar : parent.name_en} · ` : ''}

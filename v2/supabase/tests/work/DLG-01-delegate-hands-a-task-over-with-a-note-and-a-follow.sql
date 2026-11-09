@@ -40,6 +40,9 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
 select test.eq((select count(*)::int from notify.follow where person_id = current_setting('t.head')::uuid
                 and entity_table = 'work.task' and entity_id = current_setting('t.t')::uuid), 1,
   'the delegator follows the task from then on');
+select test.eq((select count(*)::int from work.task_helper where task_id = current_setting('t.t')::uuid
+                and person_id = current_setting('t.head')::uuid and deleted_at is null), 1,
+  'and is listed in the Helpers list (FIX-40)');
 select test.eq((select kind || ': ' || body from core.note
                 where id = (current_setting('t.d')::jsonb ->> 'note_id')::uuid),
   'update: Made-up: take this over, the client is waiting', 'the note is the task''s timeline entry');

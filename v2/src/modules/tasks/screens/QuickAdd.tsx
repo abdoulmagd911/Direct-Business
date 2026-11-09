@@ -7,11 +7,13 @@ import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
-import { Input } from '@/ui/Input';
+import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import type { OrgAnswer } from '@/modules/org/types';
+import type { ListEntry } from '@/modules/partners/types';
 import { nameOf } from '@/modules/org/types';
 import {
+  mayPickOwnerOnCreate,
   noTeamToWorkIn,
   quickAddOwners,
   quickAddRefusalKey,
@@ -32,10 +34,12 @@ const NONE = '__none';
 export type FromNote = { id: string; hasItems: boolean };
 
 /**
- * Quick add (§3.7, V464): a title, then optionally the owner, a due day and a client or a project — nothing else. The
- * owner is offered only to someone who may give work to others (`tasks.assign`); left at "Default", the database
- * names it (the project's owner, else the client's account manager, else me). Someone in no team gets no Default and
- * must pick an owner (V277).
+ * Quick add (§3.7, V464): a title, then optionally the owner, a due day, a client or a project, a priority and
+ * notes. The owner is offered to someone who may give work to others (`tasks.assign`) — and, since P1b (own tasks
+ * only, FIX-05 F024), to anyone creating their own task: the task is the creator's own work, so they may pick its
+ * owner; giving work to others still needs `tasks.assign` once the task exists and belongs to someone else. Left at
+ * "Default", the database names it (the project's owner, else the client's account manager, else me). Someone in no
+ * team gets no Default and must pick an owner (V277).
  */
 export function QuickAdd({
   open,
@@ -43,6 +47,7 @@ export function QuickAdd({
   org,
   partners,
   projects,
+  priorities,
   initial,
   fromNote,
   onAdded,
@@ -52,6 +57,8 @@ export function QuickAdd({
   org: OrgAnswer | null;
   partners: NamePick[];
   projects: NamePick[];
+  /** FIX-05 (F021): the task priorities, from the settings list. */
+  priorities: ListEntry[];
   initial?: Partial<QuickAddInput>;
   fromNote?: FromNote;
   onAdded?: (r: { id: string; number: string }) => void;
@@ -70,6 +77,7 @@ export function QuickAdd({
           org={org}
           partners={partners}
           projects={projects}
+          priorities={priorities}
           initial={initial}
           fromNote={fromNote}
           onClose={() => onOpenChange(false)}
@@ -84,6 +92,7 @@ export function QuickAddForm({
   org,
   partners,
   projects,
+  priorities,
   initial,
   fromNote,
   onClose,
@@ -92,6 +101,7 @@ export function QuickAddForm({
   org: OrgAnswer | null;
   partners: NamePick[];
   projects: NamePick[];
+  priorities: ListEntry[];
   initial?: Partial<QuickAddInput>;
   fromNote?: FromNote;
   onClose: () => void;
@@ -110,8 +120,11 @@ export function QuickAddForm({
   const typed = f.due ? null : readDateInTitle(f.title, new Date());
   const read = typed && typed.found !== dismissed ? typed : null;
   const canAssign = me.capabilities.includes('tasks.assign');
+  // FIX-05 (F024): the Owner picker on a task being created — the creator's own work (P1b, own tasks only).
+  const mayPickOwner = mayPickOwnerOnCreate(canAssign, me.person.team_id);
   const locale = useLocale() as 'en' | 'ar';
   const pick = (x: NamePick) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
+  const priorityName = (x: ListEntry) => (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en);
   const owners = quickAddOwners(me.person.team_id, org?.people ?? []);
   const ownerRequired = canAssign && !owners.offerDefault;
   const people = owners.people
@@ -199,7 +212,7 @@ export function QuickAddForm({
           />
         )}
       </Field>
-      {canAssign ? (
+      {mayPickOwner ? (
         <Field label={t('pages.tasks.fields.owner')} error={ownerError}>
           {(p) =>
             owners.offerDefault ? (
@@ -225,6 +238,22 @@ export function QuickAddForm({
         </Field>
       ) : null}
       {read ? <TitleDateChip read={read} what="due" onRemove={() => setDismissed(read.found)} /> : null}
+      {/* FIX-05 (F021): the task's priority, from the settings list — left unset, the task has none. */}
+      {priorities.length ? (
+        <Field label={t('pages.tasks.fields.priority')}>
+          {(p) => (
+            <Select
+              id={p.id}
+              value={f.priority ?? NONE}
+              onValueChange={(v) => setF({ ...f, priority: v === NONE ? undefined : v })}
+              options={[
+                { value: NONE, label: t('common.none') },
+                ...priorities.map((x) => ({ value: x.key, label: priorityName(x) })),
+              ]}
+            />
+          )}
+        </Field>
+      ) : null}
       <Field label={t('pages.tasks.fields.due')} error={dueError}>
         {(p) => (
           <DueDayPicker
@@ -269,6 +298,18 @@ export function QuickAddForm({
           )}
         </Field>
       ) : null}
+      {/* FIX-05 (F023): free notes, saved on the record. */}
+      <Field label={t('pages.tasks.fields.notes')}>
+        {(p) => (
+          <Textarea
+            {...p}
+            rows={3}
+            value={f.notes ?? ''}
+            onChange={(e) => setF({ ...f, notes: e.target.value })}
+            name="notes"
+          />
+        )}
+      </Field>
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}

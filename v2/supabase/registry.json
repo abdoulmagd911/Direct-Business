@@ -178,6 +178,7 @@
   ],
   "capabilities": [
     { "key": "clients.assign", "page": "clients" },
+    { "key": "clients.assign_own", "page": "clients" },
     { "key": "clients.identify", "page": "clients" },
     { "key": "clients.merge", "page": "clients" },
     { "key": "files.restricted", "page": "settings.app" },
@@ -187,9 +188,11 @@
     { "key": "org.sign_out", "page": "settings.org" },
     { "key": "pipeline.assign", "page": "pipeline" },
     { "key": "suppliers_partners.assign", "page": "suppliers_partners" },
+    { "key": "suppliers_partners.assign_own", "page": "suppliers_partners" },
     { "key": "suppliers_partners.identify", "page": "suppliers_partners" },
     { "key": "suppliers_partners.merge", "page": "suppliers_partners" },
-    { "key": "tasks.assign", "page": "tasks" }
+    { "key": "tasks.assign", "page": "tasks" },
+    { "key": "tasks.assign_own", "page": "tasks" }
   ],
   "settings": [
     {
@@ -485,6 +488,7 @@
             "task_commented",
             "commented",
             "asked",
+            "question_answered",
             "escalation_acknowledged",
             "alert_weekly_unlogged"
           ]
@@ -516,6 +520,7 @@
         "task_commented",
         "commented",
         "asked",
+        "question_answered",
         "escalation_acknowledged",
         "alert_weekly_unlogged"
       ],
@@ -2229,6 +2234,7 @@
   ],
   "role_capabilities": [
     { "role": "admin", "capability": "clients.assign", "granted": true },
+    { "role": "admin", "capability": "clients.assign_own", "granted": true },
     { "role": "admin", "capability": "clients.identify", "granted": true },
     { "role": "admin", "capability": "clients.merge", "granted": true },
     { "role": "admin", "capability": "files.restricted", "granted": true },
@@ -2238,10 +2244,13 @@
     { "role": "admin", "capability": "org.sign_out", "granted": true },
     { "role": "admin", "capability": "pipeline.assign", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.assign", "granted": true },
+    { "role": "admin", "capability": "suppliers_partners.assign_own", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "admin", "capability": "suppliers_partners.merge", "granted": true },
     { "role": "admin", "capability": "tasks.assign", "granted": true },
+    { "role": "admin", "capability": "tasks.assign_own", "granted": true },
     { "role": "head", "capability": "clients.assign", "granted": true },
+    { "role": "head", "capability": "clients.assign_own", "granted": true },
     { "role": "head", "capability": "clients.identify", "granted": true },
     { "role": "head", "capability": "clients.merge", "granted": true },
     { "role": "head", "capability": "files.restricted", "granted": true },
@@ -2251,10 +2260,13 @@
     { "role": "head", "capability": "org.sign_out", "granted": false },
     { "role": "head", "capability": "pipeline.assign", "granted": true },
     { "role": "head", "capability": "suppliers_partners.assign", "granted": true },
+    { "role": "head", "capability": "suppliers_partners.assign_own", "granted": true },
     { "role": "head", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "head", "capability": "suppliers_partners.merge", "granted": true },
     { "role": "head", "capability": "tasks.assign", "granted": true },
+    { "role": "head", "capability": "tasks.assign_own", "granted": true },
     { "role": "manager", "capability": "clients.assign", "granted": true },
+    { "role": "manager", "capability": "clients.assign_own", "granted": true },
     { "role": "manager", "capability": "clients.identify", "granted": true },
     { "role": "manager", "capability": "clients.merge", "granted": false },
     { "role": "manager", "capability": "files.restricted", "granted": true },
@@ -2264,10 +2276,13 @@
     { "role": "manager", "capability": "org.sign_out", "granted": false },
     { "role": "manager", "capability": "pipeline.assign", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.assign", "granted": true },
+    { "role": "manager", "capability": "suppliers_partners.assign_own", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.identify", "granted": true },
     { "role": "manager", "capability": "suppliers_partners.merge", "granted": false },
     { "role": "manager", "capability": "tasks.assign", "granted": true },
+    { "role": "manager", "capability": "tasks.assign_own", "granted": true },
     { "role": "member", "capability": "clients.assign", "granted": false },
+    { "role": "member", "capability": "clients.assign_own", "granted": true },
     { "role": "member", "capability": "clients.identify", "granted": false },
     { "role": "member", "capability": "clients.merge", "granted": false },
     { "role": "member", "capability": "files.restricted", "granted": false },
@@ -2277,10 +2292,13 @@
     { "role": "member", "capability": "org.sign_out", "granted": false },
     { "role": "member", "capability": "pipeline.assign", "granted": false },
     { "role": "member", "capability": "suppliers_partners.assign", "granted": false },
+    { "role": "member", "capability": "suppliers_partners.assign_own", "granted": true },
     { "role": "member", "capability": "suppliers_partners.identify", "granted": false },
     { "role": "member", "capability": "suppliers_partners.merge", "granted": false },
     { "role": "member", "capability": "tasks.assign", "granted": false },
+    { "role": "member", "capability": "tasks.assign_own", "granted": true },
     { "role": "viewer", "capability": "clients.assign", "granted": false },
+    { "role": "viewer", "capability": "clients.assign_own", "granted": false },
     { "role": "viewer", "capability": "clients.identify", "granted": false },
     { "role": "viewer", "capability": "clients.merge", "granted": false },
     { "role": "viewer", "capability": "files.restricted", "granted": false },
@@ -2290,8 +2308,10 @@
     { "role": "viewer", "capability": "org.sign_out", "granted": false },
     { "role": "viewer", "capability": "pipeline.assign", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.assign", "granted": false },
+    { "role": "viewer", "capability": "suppliers_partners.assign_own", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.identify", "granted": false },
     { "role": "viewer", "capability": "suppliers_partners.merge", "granted": false },
-    { "role": "viewer", "capability": "tasks.assign", "granted": false }
+    { "role": "viewer", "capability": "tasks.assign", "granted": false },
+    { "role": "viewer", "capability": "tasks.assign_own", "granted": false }
   ]
 }

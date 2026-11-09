@@ -42,6 +42,7 @@ const draw = (locale: 'en' | 'ar', a: MyDayAnswer = answer) =>
           due: { due: [], next_at: null },
           asks: { to_me: [], by_me: [] },
           escalated: [],
+          escalatedByMe: [],
           unlogged: null,
         }}
       />

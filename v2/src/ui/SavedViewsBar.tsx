@@ -1,5 +1,5 @@
 'use client';
-import { Bookmark, Check, MoreHorizontal, Star } from 'lucide-react';
+import { Bookmark, Check, MoreHorizontal, Star, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
@@ -69,6 +69,21 @@ export function SavedViewsBar({
   const [name, setName] = useState('');
   const [shared, setShared] = useState(false);
   const [removing, setRemoving] = useState<SavedView | null>(null);
+  // FIX-12: renaming a saved view — its name, in a dialog of its own.
+  const [renaming, setRenaming] = useState<SavedView | null>(null);
+  const [renameName, setRenameName] = useState('');
+  const submitRename = async () => {
+    const v = renaming;
+    if (!v || !renameName.trim()) return;
+    const r = await save(
+      { id: v.id, name: renameName.trim(), query: v.query, shared: v.shared, version: v.version },
+      t('views.renamed', { name: renameName.trim() }),
+    );
+    if (r) {
+      setRenaming(null);
+      setRenameName('');
+    }
+  };
   const pill = (active: boolean) =>
     cn(
       'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 whitespace-nowrap rounded-pill border px-3.5 text-sm transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
@@ -116,6 +131,13 @@ export function SavedViewsBar({
                 <span className="sr-only">{t('views.default')}</span>
               </>
             ) : null}
+            {/* FIX-12: a shared view carries its marker — a built-in is shared with everyone by design, so it has none. */}
+            {v.shared && !v.builtIn ? (
+              <>
+                <Users className="size-3.5" aria-hidden="true" data-view-shared-mark />
+                <span className="sr-only">{t('views.shared')}</span>
+              </>
+            ) : null}
             {v.name}
           </button>
           {/* a built-in view comes with the page, so it has no menu: nobody removes it or sets it as a default */}
@@ -133,6 +155,17 @@ export function SavedViewsBar({
                 {!v.default ? (
                   <MenuItem icon={<Check />} onSelect={() => void setDefault(v.id)} data-view-default>
                     {t('views.setDefault')}
+                  </MenuItem>
+                ) : null}
+                {v.mine || admin ? (
+                  <MenuItem
+                    onSelect={() => {
+                      setRenaming(v);
+                      setRenameName(v.name);
+                    }}
+                    data-view-rename
+                  >
+                    {t('views.rename')}
                   </MenuItem>
                 ) : null}
                 {v.mine || admin ? (
@@ -177,6 +210,33 @@ export function SavedViewsBar({
             {(p) => <Input {...p} value={name} onChange={(e) => setName(e.target.value)} autoFocus />}
           </Field>
           {canShare ? <Switch checked={shared} onCheckedChange={setShared} label={t('views.shared')} /> : null}
+        </div>
+      </Dialog>
+      <Dialog
+        open={renaming !== null}
+        onOpenChange={(o) => !o && setRenaming(null)}
+        title={t('views.renameTitle', { name: renaming?.name ?? '' })}
+        size="sm"
+        closeLabel={t('common.close')}
+        dirty={renameName !== (renaming?.name ?? '')}
+        footer={
+          <>
+            <Button onClick={() => setRenaming(null)}>{t('common.cancel')}</Button>
+            <Button
+              variant="primary"
+              disabled={!renameName.trim()}
+              onClick={() => void submitRename()}
+              data-view-rename-confirm
+            >
+              {t('common.save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Field label={t('views.name')}>
+            {(p) => <Input {...p} value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus />}
+          </Field>
         </div>
       </Dialog>
       <Confirm

@@ -1,6 +1,7 @@
 -- TSK-01 — who creates, assigns and changes a task (§3.7, §5; V96, V465). Anyone with Own on Tasks makes their own
--- task; giving one to someone else needs the capability (tasks.assign), and the new owner is told once. The whole team of
--- the task's department reads it; only its owner, its creator or Full changes it; another department does not see it.
+-- task; giving away one's own task needs tasks.assign_own (P1b, own tasks only), anyone else's needs tasks.assign,
+-- and the new owner is told once. The whole team of the task's department reads it; only its owner, its creator or
+-- Full changes it; another department does not see it.
 -- A switched-off person, the test account and the owner's admin account (QA-214) are never named. Every value is made
 -- up.
 -- Sabotages: supabase/tests/sabotage/a-member-assigns-to-anyone.sql, a-task-seen-by-another-department.sql,
@@ -10,14 +11,18 @@ values (test.department('commercial'), 'test_desk', 'Test Desk', 'فريق ال�
        (test.department('test_other_dept'), 'test_far', 'Test Far', 'فريق بعيد');
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Member', 'member')::text, true);
+select set_config('t.am3', test.person('Test Third Member', 'member')::text, true);
 select set_config('t.mgr', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.far', test.person('Test Far Member', 'member', 'test_other_dept')::text, true);
 select set_config('t.off', test.person('Test Switched Off', 'member')::text, true);
 update core.person set team_id = (select id from core.team where code = 'test_desk')
-where id in (current_setting('t.am1')::uuid, current_setting('t.am2')::uuid, current_setting('t.mgr')::uuid,
-             current_setting('t.off')::uuid);
+where id in (current_setting('t.am1')::uuid, current_setting('t.am2')::uuid, current_setting('t.am3')::uuid,
+             current_setting('t.mgr')::uuid, current_setting('t.off')::uuid);
 update core.person set team_id = (select id from core.team where code = 'test_far') where id = current_setting('t.far')::uuid;
 update core.person set active = false where id = current_setting('t.off')::uuid;
+-- am3 holds no own-task capability: the role's grant is taken back for this person alone
+insert into core.person_capability (person_id, capability_key, granted, reason)
+values (current_setting('t.am3')::uuid, 'tasks.assign_own', false, 'made up for a test');
 
 -- a member makes their own task
 select test.as_person(current_setting('t.am1')::uuid);
@@ -27,11 +32,6 @@ select test.eq(current_setting('t.made')::jsonb ->> 'owner_id', current_setting(
 select test.ok(current_setting('t.made')::jsonb ->> 'number' ~ '^TSK-[0-9]{4}-[0-9]{4}$', 'numbered TSK-year-number');
 select test.eq(api.task(current_setting('t.t')::uuid) ->> 'meaning', 'not_started', 'not started');
 select test.eq(api.task(current_setting('t.t')::uuid) ->> 'work_type', 'internal', 'internal work without an organisation');
-select test.raises(format('select api.task_create(%L::jsonb)', jsonb_build_object('title', 'Made up',
-  'owner_id', current_setting('t.am2'))), '42501', 'a member does not give a task to someone else',
-  'access.needs_capability');
-select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.am2')),
-  '42501', 'nor reassign one', 'access.needs_capability');
 
 -- the team reads it; only its owner, creator or Full changes it; another department does not see it
 select test.as_person(current_setting('t.am2')::uuid);
@@ -44,13 +44,35 @@ select test.raises(format('select api.task(%L)', current_setting('t.t')), 'P0002
   'another department does not see it', 'common.not_found');
 select test.eq((api.tasks() ->> 'total')::int, 0, 'nor list it');
 
--- a manager gives it to someone else, who is told once
-select test.as_person(current_setting('t.mgr')::uuid);
-select set_config('t.asg', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am2')::uuid)::text, true);
+-- P1b (own tasks only): a member names another owner for the work they create, and gives away a task they own
+select test.as_person(current_setting('t.am1')::uuid);
+select set_config('t.made2', api.task_create(jsonb_build_object('title', 'Made-up handover for a teammate',
+  'owner_id', current_setting('t.am2')))::text, true);
+select test.eq(current_setting('t.made2')::jsonb ->> 'owner_id', current_setting('t.am2'),
+  'a member names another owner for the work they create');
+select set_config('t.asg1', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am2')::uuid)::text, true);
 select test.as_owner();
 select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid), current_setting('t.am2')::uuid,
-  'a manager reassigns it');
+  'and gives away a task they own');
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am2')::uuid
+                and kind = 'assigned' and request_id = (current_setting('t.asg1')::jsonb ->> 'request_id')::uuid), 1,
+  'and the new owner is told once');
+-- but a task that is no longer theirs stays out of reach, with or without the capability
+select test.as_person(current_setting('t.am1')::uuid);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.mgr')),
+  '42501', 'a member who no longer owns the task cannot hand it to anyone else', 'access.needs_capability');
+select test.as_person(current_setting('t.am3')::uuid);
+select test.raises(format('select api.task_create(%L::jsonb)', jsonb_build_object('title', 'Made up',
+  'owner_id', current_setting('t.am1'))), '42501',
+  'a member without the own-task capability does not give a task to someone else', 'access.needs_capability');
+
+-- a manager gives it to someone else, who is told once
+select test.as_person(current_setting('t.mgr')::uuid);
+select set_config('t.asg', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am1')::uuid)::text, true);
+select test.as_owner();
+select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid), current_setting('t.am1')::uuid,
+  'a manager reassigns it');
+select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am1')::uuid
                 and kind = 'assigned' and request_id = (current_setting('t.asg')::jsonb ->> 'request_id')::uuid), 1,
   'and the new owner is told once');
 select test.eq((select team_id from work.task where id = current_setting('t.t')::uuid),

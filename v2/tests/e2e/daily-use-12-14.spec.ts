@@ -47,6 +47,9 @@ for (const width of WIDTHS) {
     const created = page.getByLabel('Created');
     const picker = created.locator('xpath=ancestor::div[@data-date-picker]');
     const result = picker.locator('[data-date-result]');
+    // Created starts as today (a new invoice is dated today), so the read-back shows before anything is typed:
+    // clear it first, then the read-back is hidden until a date is typed.
+    await picker.locator('[data-date-clear]').click();
     await expect(result, 'no date said back before one is typed').toBeHidden();
     await created.focus();
     await page.keyboard.type('20260309');

@@ -1,4 +1,5 @@
 'use client';
+import { X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -8,12 +9,14 @@ import { TIME_ZONE } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
+import { IconButton } from '@/ui/IconButton';
 import { Input, Textarea } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { Dialog } from '@/ui/Dialog';
 import { formatDate } from '@/core/i18n/format';
 import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
+import { PeoplePicker } from '@/modules/my-day/screens/PeoplePicker';
 import type { PartnerRef } from '@/modules/my-day/types';
 import type { Category, RepeatMatch } from '../types';
 import { useCommandWords } from './words';
@@ -84,6 +87,9 @@ export function LogAchievement({
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
   const [owner, setOwner] = useState(meId);
+  const [participants, setParticipants] = useState<string[]>([]);
+  /** FIX-06: the achievement just saved — the post-save dialog offers it (same) or another log (new). */
+  const [saved, setSaved] = useState<{ id: string; number: string } | null>(null);
   const [system, setSystem] = useState(systems[0]?.key ?? '');
   const [ref, setRef] = useState('');
   const [link, setLink] = useState('');
@@ -164,7 +170,9 @@ export function LogAchievement({
             title: title.trim(),
             happened_on: day || null,
             partner_id: partner?.id ?? null,
-            ...(cat?.has_deal_value && value.trim() ? { deal_value: readDealValue(value)! } : {}),
+            // FIX-06: the value is a plain number for every category (D29) — the unit is the category's own
+            // name, in the field's label; never Revenue/Cost/Profit, and the "not revenue" note stands.
+            ...(cat && value.trim() ? { deal_value: readDealValue(value)! } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
             ...(needsSide && side ? { side } : {}),
@@ -172,14 +180,37 @@ export function LogAchievement({
             ...(sourceTaskId ? { source_task_id: sourceTaskId } : {}),
           },
           p_refs: refs,
-        }) as Promise<{ id: string; request_id?: string | null }>,
-      { after: (r) => router.push(`/kpis/achievements/${r!.id}`) },
+          ...(participants.length ? { p_participants: participants } : {}),
+        }) as Promise<{ id: string; number?: string; request_id?: string | null }>,
+      // FIX-06: after save the form asks — view the record just saved (same), or log another (new) — instead
+      // of navigating straight to the record. The pre-save repeat dialog is untouched.
+      { after: (r) => setSaved({ id: r!.id, number: r!.number ?? '' }) },
     );
     setBusy(false);
   };
 
+  /** "Log another": a fresh form for a new achievement — the category and the day stay, the rest clears. */
+  const again = () => {
+    setSaved(null);
+    setTitle('');
+    setPartner(null);
+    setValue('');
+    setNotes('');
+    setOwner(meId);
+    setParticipants([]);
+    setRef('');
+    setLink('');
+    setSide('');
+  };
+
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
-  const valueBad = !!cat?.has_deal_value && !!value.trim() && readDealValue(value) === null;
+  // FIX-06: the value is a plain number for every category, not only the deal-value ones (D29).
+  const valueBad = !!cat && !!value.trim() && readDealValue(value) === null;
+  // FIX-06: the value's unit is the category's own name — no per-category unit field exists in the Category
+  // type, so the name is the unit (recorded in the build note).
+  const valueLabel = cat
+    ? `${t('fields.valueLabel')} (${locale === 'ar' ? cat.name_ar : cat.name_en}) · ${t('notRevenue')}`
+    : t('fields.valueLabel');
   const ready = !!code && !!title.trim() && (!needsRef || !!ref.trim()) && (!needsSide || !!side) && !valueBad;
   return (
     <form
@@ -256,8 +287,8 @@ export function LogAchievement({
           )}
         </Field>
       ) : null}
-      {cat?.has_deal_value ? (
-        <Field label={`${t('fields.value')} · ${t('notRevenue')}`} error={valueBad ? t('valueNotNumber') : undefined}>
+      {cat ? (
+        <Field label={valueLabel} error={valueBad ? t('valueNotNumber') : undefined}>
           {(p) => <Input {...p} inputMode="decimal" mono value={value} onChange={(e) => setValue(e.target.value)} />}
         </Field>
       ) : null}
@@ -296,6 +327,38 @@ export function LogAchievement({
           )}
         </Field>
       ) : null}
+      {/* FIX-06 F077: who else took part — the owner is already on the record, so they are not offered again. */}
+      <Field label={t('fields.participants')}>
+        {(p) => (
+          <div className="flex flex-col gap-2" data-log-participants>
+            {participants.length ? (
+              <ul className="flex flex-col gap-1">
+                {participants.map((id) => {
+                  const person = people.find((x) => x.id === id);
+                  return (
+                    <li key={id} className="flex items-center justify-between gap-2" data-log-participant={id}>
+                      <span className="min-w-0 break-words">{person?.name ?? '—'}</span>
+                      <IconButton
+                        size="sm"
+                        label={t('actions.removeParticipant', { name: person?.name ?? '' })}
+                        icon={<X />}
+                        onClick={() => setParticipants(participants.filter((x) => x !== id))}
+                        data-participant-remove={id}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            <PeoplePicker
+              id={p.id}
+              variant="mention"
+              options={people.filter((x) => x.id !== owner && !participants.includes(x.id))}
+              onPick={(v) => setParticipants([...participants, v])}
+            />
+          </div>
+        )}
+      </Field>
       <Field label={t('fields.notes')}>
         {(p) => <Textarea {...p} value={notes} onChange={(e) => setNotes(e.target.value)} />}
       </Field>
@@ -330,6 +393,32 @@ export function LogAchievement({
           <p className="text-text">
             {t('repeat.body', { number: repeats[0].number, date: formatDate(repeats[0].happened_on, locale) })}
             <span className="mt-1 block text-muted">{repeats[0].title}</span>
+          </p>
+        ) : null}
+      </Dialog>
+      {/* FIX-06 F079: after save — view the record just saved (same), or log another (new). */}
+      <Dialog
+        open={saved !== null}
+        onOpenChange={(o) => !o && setSaved(null)}
+        title={t('savedDialog.title')}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => again()} data-saved-new>
+              {t('savedDialog.new')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => saved && router.push(`/kpis/achievements/${saved.id}`)}
+              data-saved-same
+            >
+              {t('savedDialog.same')}
+            </Button>
+          </>
+        }
+      >
+        {saved ? (
+          <p className="text-text" data-post-save>
+            {saved.number ? t('savedDialog.body', { number: saved.number }) : t('savedDialog.bodyNoNumber')}
           </p>
         ) : null}
       </Dialog>

@@ -95,6 +95,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const partners = open && term.length >= 2 && found.term === term ? found.partners : [];
   const notes = open && term.length >= 2 && found.term === term ? found.notes : [];
   const tasks = open && term.length >= 2 && found.term === term ? found.tasks : [];
+  // FIX-13(a): while the search for the term as typed is still on its way, the palette says so — the "Nothing
+  // matches" empty state only shows once the answer for this term has settled.
+  const searching = open && term.length >= 2 && found.term !== term;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -144,6 +147,16 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               />
             </div>
             <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
+              {searching ? (
+                <Command.Item
+                  value="searching"
+                  disabled
+                  className="flex h-11 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base text-muted sm:h-10"
+                  data-palette-searching
+                >
+                  {t('palette.searching')}
+                </Command.Item>
+              ) : null}
               <Command.Empty className="px-3 py-6 text-center text-base text-muted">{t('palette.empty')}</Command.Empty>
               {pages.length ? (
                 <Command.Group heading={t('palette.pages')} className={groupClass}>

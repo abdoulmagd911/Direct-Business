@@ -8,6 +8,7 @@ import {
   type Row,
   type RowSelectionState,
   type SortingState,
+  type VisibilityState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -34,6 +35,10 @@ export function DataTable<T>({
   onRowSelectionChange,
   sorting,
   onSortingChange,
+  columnVisibility,
+  onColumnVisibilityChange,
+  /** FIX-01: which rows may be selected — absent, every row may be, as before. */
+  canSelectRow,
   labels,
   className,
   maxHeight = '70vh',
@@ -49,6 +54,9 @@ export function DataTable<T>({
   onRowSelectionChange?: (s: RowSelectionState) => void;
   sorting?: SortingState;
   onSortingChange?: (s: SortingState) => void;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (s: VisibilityState) => void;
+  canSelectRow?: (row: T) => boolean;
   labels: { selectRow: string; selectAll: string };
   className?: string;
   maxHeight?: string;
@@ -58,8 +66,10 @@ export function DataTable<T>({
   'use no memo';
   const [innerSorting, setInnerSorting] = useState<SortingState>([]);
   const [innerSel, setInnerSel] = useState<RowSelectionState>({});
+  const [innerVis, setInnerVis] = useState<VisibilityState>({});
   const sort = sorting ?? innerSorting;
   const sel = rowSelection ?? innerSel;
+  const vis = columnVisibility ?? innerVis;
 
   const selectionColumn: ColumnDef<T, unknown> = {
     id: '__select',
@@ -78,6 +88,7 @@ export function DataTable<T>({
           label={labels.selectRow}
           checked={row.getIsSelected()}
           onCheckedChange={(v) => row.toggleSelected(v)}
+          disabled={!row.getCanSelect()}
         />
       </span>
     ),
@@ -87,7 +98,7 @@ export function DataTable<T>({
     data,
     columns: selectable ? [selectionColumn, ...columns] : columns,
     getRowId,
-    state: { sorting: sort, rowSelection: sel },
+    state: { sorting: sort, rowSelection: sel, columnVisibility: vis },
     onSortingChange: (u) => {
       const next = typeof u === 'function' ? u(sort) : u;
       (onSortingChange ?? setInnerSorting)(next);
@@ -96,7 +107,11 @@ export function DataTable<T>({
       const next = typeof u === 'function' ? u(sel) : u;
       (onRowSelectionChange ?? setInnerSel)(next);
     },
-    enableRowSelection: selectable,
+    onColumnVisibilityChange: (u) => {
+      const next = typeof u === 'function' ? u(vis) : u;
+      (onColumnVisibilityChange ?? setInnerVis)(next);
+    },
+    enableRowSelection: canSelectRow ? (row) => canSelectRow(row.original) : selectable,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });

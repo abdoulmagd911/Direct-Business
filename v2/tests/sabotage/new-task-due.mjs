@@ -23,9 +23,9 @@ export const sabotages = [
     expect: 'Today is the Riyadh day',
     edits: [
       {
-        file: 'src/modules/tasks/screens/DueDayPicker.tsx',
-        find: "{ key: 'today', day: riyadhNow(now).day,",
-        replace: "{ key: 'today', day: tomorrow(now).day,",
+        file: 'src/ui/DatePicker.tsx',
+        find: "{ key: 'today', day: riyadhNow(now).day, label: t('pages.tasks.add.dueToday') },",
+        replace: "{ key: 'today', day: tomorrow(now).day, label: t('pages.tasks.add.dueToday') },",
       },
     ],
   },
@@ -36,9 +36,9 @@ export const sabotages = [
     expect: 'Clear empties Due',
     edits: [
       {
-        file: 'src/modules/tasks/screens/DueDayPicker.tsx',
-        find: "onClick={() => set('')} data-due-clear",
-        replace: 'onClick={() => undefined} data-due-clear',
+        file: 'src/ui/DatePicker.tsx',
+        find: "onClick={() => set('')} {...at('clear')}",
+        replace: "onClick={() => { if (testId === 'due') return; set(''); }} {...at('clear')}",
       },
     ],
   },

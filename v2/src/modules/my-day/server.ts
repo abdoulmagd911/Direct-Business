@@ -58,3 +58,12 @@ export async function escalatedToMe(): Promise<TaskRow[] | null> {
     return null;
   }
 }
+
+/** FIX-26: the tasks I flagged as needing help (api.escalated_tasks_by_me); null when it cannot be read. */
+export async function escalatedByMe(): Promise<TaskRow[] | null> {
+  try {
+    return (await serverRpc('escalated_tasks_by_me', {} as never)) as unknown as TaskRow[];
+  } catch {
+    return null;
+  }
+}

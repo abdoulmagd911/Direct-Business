@@ -123,6 +123,7 @@
     "pages": "الصفحات",
     "actions": "الإجراءات",
     "empty": "لا نتائج",
+    "searching": "جارٍ البحث…",
     "openInSettings": "فتح الإعدادات",
     "organisations": "الجهات",
     "notes": "الملاحظات",
@@ -209,6 +210,7 @@
   "datePicker": {
     "thisMonth": "هذا الشهر",
     "clear": "مسح",
+    "clearMonth": "مسح الشهر",
     "openCalendar": "فتح التقويم",
     "previousMonth": "الشهر السابق",
     "nextMonth": "الشهر التالي",
@@ -255,6 +257,11 @@
         "clear": "مسح التصفيات",
         "allCategories": "كل الفئات",
         "anyMonth": "أي شهر",
+        "sort": "ترتيب",
+        "sort_newest": "الأحدث أولًا",
+        "sort_oldest": "الأقدم أولًا",
+        "sort_title": "العنوان",
+        "sort_date": "التاريخ",
         "meaning": {
           "backfilled": "أُضيف لاحقًا من سجلات سابقة ولم يُسجَّل وقت حدوثه.",
           "past": "من قبل تشغيل التطبيق: كل ما أُضيف لاحقًا وكل ما يسبق ذلك التاريخ.",
@@ -284,6 +291,7 @@
         "date": "التاريخ",
         "organisation": "الجهة",
         "value": "قيمة الصفقة",
+        "valueLabel": "القيمة",
         "notes": "الملاحظات",
         "count": "العدد",
         "owner": "المالك",
@@ -298,6 +306,7 @@
         "link": "الرابط",
         "number": "الرقم",
         "repeatOf": "تكرار لـ",
+        "task": "المهمة",
         "side": "وُقّع مع"
       },
       "tabs": {
@@ -316,7 +325,8 @@
         "addRef": "إضافة دليل",
         "save": "حفظ",
         "cancel": "إلغاء",
-        "choose": "اختيار"
+        "choose": "اختيار",
+        "removeParticipant": "أزِل {name}"
       },
       "dialogs": {
         "edit": "تعديل الإنجاز",
@@ -333,6 +343,7 @@
       "backTo": "العودة إلى الإنجازات",
       "figures": {
         "value": "قيمة الصفقة",
+        "valuePlain": "القيمة",
         "count": "العدد",
         "date": "التاريخ"
       },
@@ -372,6 +383,13 @@
         "body": "{number} · {date} يبدو مطابقًا.",
         "new": "هذا إنجاز جديد",
         "same": "مطابق للإنجاز السابق"
+      },
+      "savedDialog": {
+        "title": "تم تسجيل الإنجاز",
+        "body": "تم حفظ {number}.",
+        "bodyNoNumber": "تم حفظ الإنجاز.",
+        "new": "تسجيل إنجاز آخر",
+        "same": "عرض السجل"
       },
       "plan": {
         "none": "لا توجد فئات بعد في {department} لعام {year}.",
@@ -441,6 +459,7 @@
         "team": "مشاركة مع فريقي",
         "workspace": "مشاركة مع الجميع",
         "reminders": "التذكيرات",
+        "deferred": "مؤجلة",
         "since": "منذ زيارتك الأخيرة"
       },
       "waiting": {
@@ -451,7 +470,8 @@
         "askedBy": "سأل {name}",
         "askedTo": "سألت {name}",
         "emptyQuestions": "لا أسئلة مفتوحة.",
-        "emptyNeedHelp": "لا شيء يحتاج مساعدة الآن."
+        "emptyNeedHelp": "لا شيء يحتاج مساعدة الآن.",
+        "emptyNeedHelpOthers": "لا مهام طلبتَ المساعدة فيها بانتظار الرد."
       },
       "starred": "المميزة بنجمة",
       "more": "عرض الكل",
@@ -485,6 +505,7 @@
         "remove": "حذف الملاحظة",
         "removeTitle": "حذف الملاحظة «{name}»؟",
         "removeBody": "ما تحوّلت إليه يبقى.",
+        "deleteReminderToo": "احذف التذكير أيضًا",
         "removed": "تم حذف الملاحظة",
         "notFound": "هذه الملاحظة غير موجودة، أو لا يحق لك قراءتها.",
         "details": "التفاصيل",
@@ -493,6 +514,7 @@
         "linkActivity": "{type} · {name}",
         "linkReminder": "تذكير · {when}",
         "linkTask": "مهمة {number} · {title}",
+        "linkAchievement": "إنجاز {number} · {title}",
         "linkActionItem": "بند عمل في {number} · {text}"
       },
       "turn": {
@@ -748,7 +770,24 @@
         "owned": "ما أملكه",
         "helping": "ما أساعد فيه",
         "team": "الفريق",
-        "past": "العمل السابق"
+        "past": "العمل السابق",
+        "mine": "مهامي"
+      },
+      "sort": {
+        "label": "ترتيب",
+        "newest": "الأحدث أولًا",
+        "oldest": "الأقدم أولًا",
+        "due": "تاريخ الاستحقاق",
+        "title": "العنوان",
+        "priority": "الأولوية"
+      },
+      "bulkAssign": {
+        "open": "إسناد المالك والأولوية",
+        "title": "إسناد {count} مهام",
+        "what": "أعطِ المهام المحددة لمالك واحد، أو حدد أولويتها، أو الاثنين معًا. ويمكن ترك أي خيار دون تغيير.",
+        "unchanged": "بدون تغيير",
+        "ownerDone": "تم إسناد {count} إلى {name}",
+        "priorityDone": "تم تعيين الأولوية {priority} لـ {count}"
       },
       "chips": {
         "status": {
@@ -768,6 +807,7 @@
         "title": "العنوان",
         "owner": "المالك",
         "helpers": "المساعدون",
+        "priority": "الأولوية",
         "due": "الاستحقاق",
         "start": "البداية",
         "status": "الحالة",
@@ -778,7 +818,8 @@
         "number": "الرقم",
         "notes": "الملاحظات",
         "lastActivity": "آخر تحديث",
-        "references": "المراجع"
+        "references": "المراجع",
+        "achievement": "الإنجاز"
       },
       "tabs": {
         "overview": "نظرة عامة",
@@ -888,7 +929,7 @@
           "date_in_future": "هذا اليوم بعد تاريخ اليوم"
         },
         "escalation": {
-          "not_here": "لا يمكن تصعيد هذا",
+          "not_here": "لا يمكن طلب المساعدة هنا",
           "note_required": "اكتب ما يجب أن يعرفه",
           "to_yourself": "اختر شخصًا غير نفسك",
           "cannot_see": "لا يستطيع هذا الشخص رؤية هذه المهمة",
@@ -972,7 +1013,7 @@
         "open": "أحتاج مساعدة",
         "what": "أبلغ مديرك عن هذه المهمة مع ملاحظة. يصله إشعار وتبقى المهمة مميزة حتى يؤكد اطلاعه عليها.",
         "title": "أحتاج مساعدة {number}",
-        "to": "تصعيد إلى",
+        "to": "أخبر",
         "to_required": "اختر من تُبلغه",
         "to_yourself": "اختر شخصًا غير نفسك",
         "note": "ما الذي يجب أن يعرفه؟",
@@ -983,7 +1024,8 @@
         "done": "تم إخبار مديرك {name}",
         "flag": "يحتاج مساعدة",
         "acknowledge": "تأكيد",
-        "acknowledged": "تم التأكيد"
+        "acknowledged": "تم التأكيد",
+        "noNote": "لم تُترك ملاحظة."
       },
       "noTeam": "لا تنتمي إلى فريق بعد. اطلب من مسؤول النظام إضافتك إلى فريق.",
       "layout": {
@@ -1064,7 +1106,8 @@
       "emptyWeek": "لا شيء منجز أو متأخر أو مستحق هذا الأسبوع بعد",
       "done": {
         "title": "أُنجز هذا الأسبوع",
-        "empty": "لم يُنجز شيء هذا الأسبوع بعد"
+        "empty": "لم يُنجز شيء هذا الأسبوع بعد",
+        "alreadyLogged": "مسجَّل كإنجاز"
       },
       "slipped": {
         "title": "تأخّر",
@@ -1084,6 +1127,7 @@
       "idea": "فكرة",
       "private": "لي وحدي",
       "reviewDay": "يوم المراجعة",
+      "dismiss": "تجاهل",
       "nudge": {
         "title": "أُنجز هذا الأسبوع — ولم يُسجَّل كإنجاز بعد",
         "count": "{count, plural, one {مهمة واحدة بقي تسجيلها} two {مهمتان بقي تسجيلهما} few {# مهام بقي تسجيلها} many {# مهمة بقي تسجيلها} other {# مهمة بقي تسجيلها}}",
@@ -1243,12 +1287,14 @@
     "clients": {
       "identify": "تغيير معرّفات العملاء وحسم المطابقات",
       "merge": "دمج الجهات",
-      "assign": "تحديد حالة جانب العميل ومسؤوله وأولويته"
+      "assign": "تحديد حالة جانب العميل ومسؤوله وأولويته",
+      "assign_own": "إسناد جماعي للعملاء الذين أملكهم"
     },
     "suppliers_partners": {
       "identify": "تغيير المعرّفات وحسم المطابقات",
       "merge": "دمج الجهات",
-      "assign": "تحديد حالة جانب المورد ومالكه وأولويته"
+      "assign": "تحديد حالة جانب المورد ومالكه وأولويته",
+      "assign_own": "إسناد جماعي للموردين الذين أملكهم"
     },
     "finance": {
       "credit_control": "حدود الائتمان والإحالة إلى الشؤون القانونية",
@@ -1256,7 +1302,8 @@
       "credit": "تقسيم الإيراد أو نقله"
     },
     "tasks": {
-      "assign": "إسناد المهام للآخرين"
+      "assign": "إسناد المهام للآخرين",
+      "assign_own": "إسناد مهمة أملكها أو أنشأتها"
     },
     "org": {
       "sign_out": "تسجيل خروج شخص من كل أجهزته"
@@ -1381,6 +1428,7 @@
       "joined_on": "تاريخ الالتحاق",
       "left_on": "تاريخ المغادرة",
       "active": "نشط",
+      "escalated": "يحتاج مساعدة",
       "email": "البريد الإلكتروني",
       "is_primary": "أساسي",
       "display_name_en": "اسم العرض",
@@ -1458,6 +1506,10 @@
       "import": {
         "started": "بدأ الاستيراد",
         "confirmed": "تم تأكيد الاستيراد"
+      },
+      "escalation": {
+        "raised": "طلب مساعدة",
+        "acknowledged": "تم تأكيد الاطلاع على طلب المساعدة"
       },
       "list": {
         "removed": "حُذف عنصر من القائمة",
@@ -1543,13 +1595,14 @@
       "alert_file_review": "ملف ينتظر المراجعة",
       "reminder": "تذكيراتي",
       "note_mention": "الإشارة إليّ في ملاحظة",
-      "escalated": "أمر تم تصعيده إليّ",
+      "escalated": "طلب أحدهم مساعدتي",
       "alert_project_no_update": "مشروع لي بلا تحديث للحالة",
       "alert_due_tomorrow": "مهمة لي يقترب موعد استحقاقها",
       "alert_quiet_client": "عميل لي توقف عن الشراء",
       "task_commented": "تعليق على مهمة لي",
       "commented": "تعليق على سجل لي",
       "asked": "سؤال وُجّه إليّ",
+      "question_answered": "تمت الإجابة عن سؤال طرحتُه",
       "escalation_acknowledged": "تم التأكيد على طلب مساعدة أشرت إليه",
       "alert_weekly_unlogged": "أسبوعي: مهام منجزة لم تُسجَّل كإنجازات بعد"
     },
@@ -2187,11 +2240,12 @@
       "alert_kpi_behind": "{record} متأخر عن الوتيرة",
       "alert_invoice_unpaid": "{record} غير مدفوعة بعد المهلة",
       "alert_kpi_checkin": "يوم مراجعة المؤشر: {record}",
-      "escalated": "صعّد {actor} {record} إليك",
+      "escalated": "طلب {actor} المساعدة في {record}",
       "alert_quiet_client": "توقف التواصل مع {record}",
       "task_commented": "علّق {actor} على {record}",
       "commented": "علّق {actor} على {record}",
       "asked": "وجّه {actor} إليك سؤالًا عن {record}",
+      "question_answered": "أجاب {actor} عن سؤالك في {record}",
       "escalation_acknowledged": "أكّد {actor} الاطلاع على طلب المساعدة في {record}",
       "alert_project_no_update": "لا يوجد تحديث لحالة {record}",
       "alert_activity_stale": "لا نشاط على {record}",
@@ -2256,7 +2310,8 @@
       "status": "الحالة",
       "owner": "المالك",
       "lastActivity": "آخر نشاط",
-      "flags": "العلامات"
+      "flags": "العلامات",
+      "title": "الأعمدة"
     },
     "side": {
       "client": "عميل",
@@ -2506,7 +2561,7 @@
         "update": "تحديث",
         "meeting_note": "محضر اجتماع",
         "activity": "نشاط",
-        "escalation": "تصعيد"
+        "escalation": "طلب مساعدة"
       }
     },
     "sideDialog": {
@@ -3029,6 +3084,9 @@
     "removed": "تمت إزالة {name}",
     "default": "العرض الافتراضي",
     "setDefault": "افتح هذا العرض أولًا",
+    "rename": "إعادة التسمية",
+    "renameTitle": "إعادة تسمية “{name}”",
+    "renamed": "تمت إعادة تسمية {name}",
     "menu": "{name}: المزيد",
     "label": "العروض"
   },

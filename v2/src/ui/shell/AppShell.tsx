@@ -1,6 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { Suspense, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import { QuickCapture } from '@/modules/my-day/screens/QuickCapture';
 import { LogActivityEntry } from '@/modules/partners/screens/LogActivityEntry';
 import { ReminderAlert } from '@/modules/my-day/screens/ReminderAlert';
@@ -27,6 +27,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [bell, setBell] = useState(false);
   const [tab, setTab] = useState<NotificationTab>('all');
   const notifications = useNotifications(tab);
+  // Opening the bell re-reads: a change made elsewhere (another person, another screen) lands after the last read,
+  // and the badge and the panel must say what the bell holds now, not what it held when the page opened (P3-7) —
+  // the panel opening is the moment the reader asks, and no other reload is scheduled for it. The reload itself
+  // is the hook's stable callback, so this runs only when the bell opens, never on a re-render.
+  const reloadNotifications = notifications.reload;
+  useEffect(() => {
+    if (bell) void reloadNotifications();
+  }, [bell, reloadNotifications]);
   // The bell's panel closes when the page changes — a link, Back or Forward — on a phone and on a PC (V654); an outside
   // tap and Escape already close it. Done while rendering: the page that was open when the panel opened is remembered.
   const pathname = usePathname();

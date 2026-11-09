@@ -67,6 +67,49 @@ export type StatusChipKey = (typeof STATUS_CHIPS)[number];
 export const DUE_CHIPS = ['overdue', 'today', 'week', 'none'] as const;
 export type DueChipKey = (typeof DUE_CHIPS)[number];
 
+/** FIX-01: the list's sort, a menu where the columns are not sortable — newest, oldest, due day, title, priority. */
+export const TASK_SORTS = ['newest', 'oldest', 'due', 'title', 'priority'] as const;
+export type TaskSortKey = (typeof TASK_SORTS)[number];
+
+/**
+ * FIX-01 (D28): one list sorted, stably — the tie-break is always added-at (`logged_at`) then id, so two rows in the
+ * same place never swap. Priority follows the settings list's own order (`sort`, low first); a task with no priority
+ * sits after every prioritised one, and one whose key the list no longer names after those it does.
+ */
+export function sortRows<
+  R extends { id: string; title: string; due_on: string | null; logged_at: string; priority: string | null },
+>(
+  rows: readonly R[],
+  sort: TaskSortKey | undefined,
+  priorities: readonly { key: string; sort: number | null }[] = [],
+): R[] {
+  if (!sort) return [...rows];
+  const rank = new Map(priorities.map((p) => [p.key, p.sort ?? Number.MAX_SAFE_INTEGER]));
+  const byAdded = (a: R, b: R) =>
+    a.logged_at < b.logged_at ? 1 : a.logged_at > b.logged_at ? -1 : a.id < b.id ? -1 : 1;
+  const byTitle = (a: R, b: R) => a.title.localeCompare(b.title) || byAdded(a, b);
+  return [...rows].sort((a, b) => {
+    switch (sort) {
+      case 'oldest':
+        return a.logged_at < b.logged_at ? -1 : a.logged_at > b.logged_at ? 1 : a.id < b.id ? -1 : 1;
+      case 'due':
+        if (a.due_on === null && b.due_on === null) return byAdded(a, b);
+        if (a.due_on === null) return 1;
+        if (b.due_on === null) return -1;
+        return a.due_on < b.due_on ? -1 : a.due_on > b.due_on ? 1 : byAdded(a, b);
+      case 'title':
+        return byTitle(a, b);
+      case 'priority': {
+        const ra = a.priority == null ? Number.MAX_SAFE_INTEGER : (rank.get(a.priority) ?? Number.MAX_SAFE_INTEGER);
+        const rb = b.priority == null ? Number.MAX_SAFE_INTEGER : (rank.get(b.priority) ?? Number.MAX_SAFE_INTEGER);
+        return ra - rb || byAdded(a, b);
+      }
+      default:
+        return byAdded(a, b);
+    }
+  });
+}
+
 /** List / Board by status / Calendar by due day (§8 Tasks): one view of the same rows, kept in the address. */
 export const LAYOUTS = ['list', 'board', 'calendar'] as const;
 export type Layout = (typeof LAYOUTS)[number];
@@ -84,10 +127,16 @@ export type TaskFilters = {
   /** Phase 5: the Starred saved view (starred tasks only) and the Need-help saved view (flagged tasks only). */
   starred?: boolean;
   escalated?: boolean;
+  /** FIX-01: the owner filter (a person id) and the priority filter (a key of the priority list). */
+  owner?: string;
+  priority?: string;
+  /** FIX-01: the list's sort; absent, the server's own order stands. */
+  sort?: TaskSortKey;
 };
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const KEY = /^[a-z][a-z0-9_-]*$/i;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 const oneOf = <T extends string>(list: readonly T[], v: string | undefined): T | undefined =>
   v !== undefined && (list as readonly string[]).includes(v) ? (v as T) : undefined;
@@ -97,6 +146,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
   const partner = one(params.partner);
   const project = one(params.project);
   const q = one(params.q)?.trim().slice(0, 100);
+  const owner = one(params.owner);
+  const priority = one(params.priority);
   return {
     scope: oneOf(SCOPES, one(params.view)) ?? 'my_work',
     layout: oneOf(LAYOUTS, one(params.layout)),
@@ -108,6 +159,34 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     q: q || undefined,
     starred: one(params.starred) === '1' || undefined,
     escalated: one(params.escalated) === '1' || undefined,
+    owner: owner && UUID.test(owner) ? owner : undefined,
+    priority: priority && KEY.test(priority) ? priority : undefined,
+    sort: oneOf(TASK_SORTS, one(params.sort)),
+  };
+}
+
+/**
+ * FIX-12 (D36(j)): a saved view's query, read back as this list's filters — anything unknown or out of shape is
+ * dropped, never guessed. A view saved from this list keeps its whole query, so opening it replaces the filters
+ * on screen, not just the scope and the flags.
+ */
+export function queryFilters(query: Record<string, unknown> | undefined): Partial<TaskFilters> {
+  if (!query) return {};
+  const q = typeof query.q === 'string' ? query.q.trim().slice(0, 100) || undefined : undefined;
+  return {
+    scope: typeof query.scope === 'string' ? oneOf(SCOPES, query.scope) : undefined,
+    layout: typeof query.layout === 'string' ? oneOf(LAYOUTS, query.layout) : undefined,
+    month: typeof query.month === 'string' && MONTH.test(query.month) ? query.month : undefined,
+    status: typeof query.status === 'string' ? oneOf(STATUS_CHIPS, query.status) : undefined,
+    due: typeof query.due === 'string' ? oneOf(DUE_CHIPS, query.due) : undefined,
+    partner: typeof query.partner === 'string' && UUID.test(query.partner) ? query.partner : undefined,
+    project: typeof query.project === 'string' && UUID.test(query.project) ? query.project : undefined,
+    q,
+    starred: query.starred === true || undefined,
+    escalated: query.escalated === true || undefined,
+    owner: typeof query.owner === 'string' && UUID.test(query.owner) ? query.owner : undefined,
+    priority: typeof query.priority === 'string' && KEY.test(query.priority) ? query.priority : undefined,
+    sort: typeof query.sort === 'string' ? oneOf(TASK_SORTS, query.sort) : undefined,
   };
 }
 
@@ -125,6 +204,9 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
   if (next.q) p.set('q', next.q);
   if (next.starred) p.set('starred', '1');
   if (next.escalated) p.set('escalated', '1');
+  if (next.owner) p.set('owner', next.owner);
+  if (next.priority) p.set('priority', next.priority);
+  if (next.sort) p.set('sort', next.sort);
   const s = p.toString();
   return s ? `/tasks?${s}` : '/tasks';
 }
@@ -145,6 +227,7 @@ export function apiFilter(f: TaskFilters): Record<string, unknown> {
   if (f.due === 'overdue') out.overdue = true;
   if (f.partner) out.partner_id = f.partner;
   if (f.project) out.project_id = f.project;
+  if (f.owner) out.owner_id = f.owner;
   if (f.q) out.q = f.q;
   if (f.starred) out.starred = true;
   if (f.escalated) out.escalated = true;
@@ -152,11 +235,12 @@ export function apiFilter(f: TaskFilters): Record<string, unknown> {
 }
 
 /** The part of the filter judged on the rows: Helping is My work I do not own; due today, this week, or none;
- * the Starred and Need-help views keep only their own rows. */
+ * the Starred and Need-help views keep only their own rows; FIX-01's priority filter keeps only its key. */
 export function keepRow(row: TaskRow, f: TaskFilters, me: string, today: string): boolean {
   if (f.scope === 'helping' && row.owner_id === me) return false;
   if (f.starred && !row.starred) return false;
   if (f.escalated && !row.escalated) return false;
+  if (f.priority && row.priority !== f.priority) return false;
   if (f.due === 'today' && row.due_on !== today) return false;
   if (f.due === 'week' && !(row.due_on && row.due_on >= today && row.due_on <= addDays(today, 6))) return false;
   if (f.due === 'none' && row.due_on) return false;
@@ -241,10 +325,30 @@ export function planMove(
 
 export const TITLE_MAX = 300;
 
-export type QuickAddInput = { title: string; ownerId?: string; due?: string; partnerId?: string; projectId?: string };
+export type QuickAddInput = {
+  title: string;
+  ownerId?: string;
+  due?: string;
+  partnerId?: string;
+  projectId?: string;
+  /** FIX-05 (F021): the task's priority, a key of the priority list (high / medium / low …). */
+  priority?: string;
+  /** FIX-05 (F023): free notes, shown on the record as Notes. */
+  notes?: string;
+};
 export type QuickAddResult =
   | { values: Record<string, unknown> }
   | { error: 'title_required' | 'title_too_long' | 'due_invalid' | 'owner_required' };
+
+/**
+ * The Owner picker on a task being created (FIX-05, F024; P1b, own tasks only): the task is the creator's own work,
+ * so anyone who may create one may pick its owner — with `tasks.assign`, or in a team without it. Giving work to
+ * others still needs `tasks.assign` once the task exists and belongs to someone else; the database refuses that
+ * (work.tasks_assign), and backfilling for others stays gated (PastWorkPanel).
+ */
+export function mayPickOwnerOnCreate(canAssign: boolean, myTeam: string | null): boolean {
+  return canAssign || myTeam !== null;
+}
 
 /**
  * Quick add's Owner choice (V277). A task's team is its owner's, else mine (V194, V464), so someone in no team — the
@@ -305,10 +409,10 @@ export function parseDueDay(typed: string): string | null {
 }
 
 /**
- * The values quick add sends api.task_create: the title, a due day, a partner or a project. The owner is sent only
- * when it is someone else — left out, the database names it (V464: the project's owner, else the client's account
- * manager, else me). A project wins over a partner: the task takes the project's organisation (V194). With
- * `ownerRequired` (no Default, V277) an owner must be picked.
+ * The values quick add sends api.task_create: the title, a due day, a partner or a project, a priority and notes.
+ * The owner is sent only when it is someone else — left out, the database names it (V464: the project's owner, else
+ * the client's account manager, else me). A project wins over a partner: the task takes the project's organisation
+ * (V194). With `ownerRequired` (no Default, V277) an owner must be picked.
  */
 export function quickAddValues(
   input: QuickAddInput,
@@ -327,6 +431,9 @@ export function quickAddValues(
   }
   if (input.projectId) values.project_id = input.projectId;
   else if (input.partnerId) values.partner_id = input.partnerId;
+  if (input.priority) values.priority = input.priority;
+  const notes = input.notes?.trim();
+  if (notes) values.notes = notes;
   return { values };
 }
 

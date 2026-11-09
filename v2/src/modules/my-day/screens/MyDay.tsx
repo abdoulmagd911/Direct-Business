@@ -46,6 +46,8 @@ export type MyDayData = {
   asks: OpenAsks | null;
   /** The tasks flagged as needing help and addressed to me (`api.escalated_tasks`); null when it could not be read. */
   escalated: TaskRow[] | null;
+  /** FIX-26: the tasks I flagged as needing help (`api.escalated_tasks_by_me`); null when it could not be read. */
+  escalatedByMe: TaskRow[] | null;
   /** My closed tasks with no achievement logged (Phase 6): null when the read failed, so the door shows no badge. */
   unlogged: number | null;
 };
@@ -221,6 +223,43 @@ export function MyDay({ data }: { data: MyDayData }) {
       {scope === 'me' ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-others>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onOthers')}</h2>
+          {/* FIX-26 F006: the tasks I flagged as needing help — newest flag first — with no Acknowledge on my
+              own flag; the Questions subsection keeps its own empty text (F041). */}
+          <h3 className="pt-2.5 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
+          {data.escalatedByMe === null ? (
+            <DataState
+              kind="failed"
+              className="my-2"
+              message={t('state.failed', { what: t('pages.myDay.waiting.needHelp') })}
+              onRetry={() => router.refresh()}
+              retryLabel={t('common.tryAgain')}
+            />
+          ) : data.escalatedByMe.length ? (
+            <ul className="divide-y divide-border">
+              {data.escalatedByMe.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+                  data-waiting-need-help-by-me={r.id}
+                >
+                  <span className="min-w-0 flex-1">
+                    <Link href={`/tasks/${r.number}`} className="break-words text-base font-medium hover:underline">
+                      {r.title}
+                    </Link>
+                    <span className="block text-sm text-muted">
+                      {r.number}
+                      {r.escalated_at ? ` · ${formatDate(r.escalated_at, locale, { dateStyle: 'medium' })}` : ''}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyNeedHelpOthers')}</p>
+          )}
+          <h3 className="border-t border-border pt-2.5 text-sm font-semibold text-muted">
+            {t('pages.myDay.waiting.questions')}
+          </h3>
           {data.asks === null ? (
             <DataState
               kind="failed"
@@ -428,6 +467,18 @@ export function MyDay({ data }: { data: MyDayData }) {
           </div>
         ) : null}
       </section>
+      {/* FIX-27: a deferred note is reachable here — a list within My day, not a new route. The main list never
+          shows it (its day is still ahead), and the kind filter never hides it. */}
+      {(answer.deferred?.length ?? 0) > 0 ? (
+        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block-deferred>
+          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.deferred')}</h2>
+          <ul className="divide-y divide-border" data-block-deferred-rows>
+            {answer.deferred!.map((n) => (
+              <NoteRow key={n.id} note={n} author={scope === 'me' ? undefined : authorOf(n.author_id)} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {scope === 'me' ? <WrapUpDialog day={answer.day} open={wrapping} onOpenChange={setWrapping} /> : null}
     </>
   );

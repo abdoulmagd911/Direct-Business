@@ -1,6 +1,6 @@
 -- Sabotage: a-member-assigns-to-anyone
 -- Breaks: sql:TSK-01
--- Expect: a member does not give a task to someone else
+-- Expect: a member without the own-task capability does not give a task to someone else
 -- Anyone with Own gives a new task to anyone, without the capability.
 create or replace function work.task_create(p_values jsonb, p_mentions uuid[] default null) returns jsonb
 language plpgsql volatile security definer set search_path = ''

@@ -26,11 +26,13 @@ export type SavedView = {
  * The views that come with a page (Phase 5): on Tasks, Starred (starred tasks) and Need help (flagged tasks, newest
  * flag first). They are seeded here, in the hook, so every screen that reads the page's views shows them; they are
  * not rows in api.views, so nobody can remove them or set one as their default by accident.
+ * FIX-12 (D42): Mine — the tasks I own or am helping on, across all scope tabs (the My work scope).
  */
 export const BUILT_IN_VIEWS: Record<string, { key: string; query: Record<string, unknown> }[]> = {
   tasks: [
     { key: 'starred', query: { starred: true } },
     { key: 'escalated', query: { escalated: true } },
+    { key: 'mine', query: { scope: 'my_work' } },
   ],
 };
 
@@ -56,9 +58,12 @@ export function useSavedViews(page: string, words: CommandWords) {
   }, [load]);
 
   const save = useCallback(
-    (v: { id?: string; name: string; query: Record<string, unknown>; shared: boolean; version?: number }) =>
+    (
+      v: { id?: string; name: string; query: Record<string, unknown>; shared: boolean; version?: number },
+      done?: string,
+    ) =>
       command(
-        words,
+        { ...words, done: done ?? words.done },
         () =>
           rpc('view_save', {
             p_id: (v.id ?? null) as unknown as string,

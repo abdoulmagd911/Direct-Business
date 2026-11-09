@@ -123,6 +123,7 @@
     "pages": "Pages",
     "actions": "Actions",
     "empty": "Nothing matches",
+    "searching": "Searching…",
     "openInSettings": "Open Settings",
     "people": "People",
     "organisations": "Organisations",
@@ -209,6 +210,7 @@
   "datePicker": {
     "thisMonth": "This month",
     "clear": "Clear",
+    "clearMonth": "Clear month",
     "openCalendar": "Open calendar",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
@@ -267,6 +269,7 @@
         "team": "Shared with my team",
         "workspace": "Shared with everyone",
         "reminders": "Reminders",
+        "deferred": "Deferred",
         "since": "What's new"
       },
       "waiting": {
@@ -277,7 +280,8 @@
         "askedBy": "Asked by {name}",
         "askedTo": "Asked {name}",
         "emptyQuestions": "No open questions.",
-        "emptyNeedHelp": "Nothing needs help right now."
+        "emptyNeedHelp": "Nothing needs help right now.",
+        "emptyNeedHelpOthers": "No tasks you flagged are still waiting."
       },
       "starred": "Starred",
       "more": "Show all",
@@ -311,6 +315,7 @@
         "remove": "Delete note",
         "removeTitle": "Delete the note “{name}”?",
         "removeBody": "What it was turned into stays.",
+        "deleteReminderToo": "Also delete its reminder",
         "removed": "Note deleted",
         "notFound": "This note is not there, or it is not yours to read.",
         "details": "Details",
@@ -319,6 +324,7 @@
         "linkActivity": "{type} · {name}",
         "linkReminder": "Reminder · {when}",
         "linkTask": "Task {number} · {title}",
+        "linkAchievement": "Achievement {number} · {title}",
         "linkActionItem": "Action item on {number} · {text}"
       },
       "turn": {
@@ -500,6 +506,11 @@
         "clear": "Clear filters",
         "allCategories": "All categories",
         "anyMonth": "Any month",
+        "sort": "Sort",
+        "sort_newest": "Newest first",
+        "sort_oldest": "Oldest first",
+        "sort_title": "Title",
+        "sort_date": "Date",
         "meaning": {
           "backfilled": "Added later from earlier records, not logged at the time.",
           "past": "From before the app went live: every backfilled entry and anything dated earlier.",
@@ -529,6 +540,7 @@
         "date": "Date",
         "organisation": "Organisation",
         "value": "Deal value",
+        "valueLabel": "Value",
         "notes": "Notes",
         "count": "Count",
         "owner": "Owner",
@@ -543,6 +555,7 @@
         "link": "Link",
         "number": "Number",
         "repeatOf": "Repeat of",
+        "task": "Task",
         "side": "Signed with"
       },
       "tabs": {
@@ -561,7 +574,8 @@
         "addRef": "Add evidence",
         "save": "Save",
         "cancel": "Cancel",
-        "choose": "Choose"
+        "choose": "Choose",
+        "removeParticipant": "Remove {name}"
       },
       "dialogs": {
         "edit": "Edit achievement",
@@ -578,6 +592,7 @@
       "backTo": "Back to Achievements",
       "figures": {
         "value": "Deal value",
+        "valuePlain": "Value",
         "count": "Count",
         "date": "Date"
       },
@@ -617,6 +632,13 @@
         "body": "{number} · {date} looks the same.",
         "new": "This is a new one",
         "same": "Same as the earlier one"
+      },
+      "savedDialog": {
+        "title": "Achievement logged",
+        "body": "{number} is saved.",
+        "bodyNoNumber": "The achievement is saved.",
+        "new": "Log another",
+        "same": "View record"
       },
       "plan": {
         "none": "No categories for {department} in {year} yet.",
@@ -748,7 +770,24 @@
         "owned": "Owned",
         "helping": "Helping",
         "team": "Team",
-        "past": "Past work"
+        "past": "Past work",
+        "mine": "Mine"
+      },
+      "sort": {
+        "label": "Sort",
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "due": "Due date",
+        "title": "Title",
+        "priority": "Priority"
+      },
+      "bulkAssign": {
+        "open": "Assign owner and priority",
+        "title": "Assign {count} tasks",
+        "what": "Give the selected tasks to one owner, set their priority, or both. Either choice may be left unchanged.",
+        "unchanged": "No change",
+        "ownerDone": "{count} assigned to {name}",
+        "priorityDone": "{count} set to {priority}"
       },
       "chips": {
         "status": {
@@ -768,6 +807,7 @@
         "title": "Title",
         "owner": "Owner",
         "helpers": "Helpers",
+        "priority": "Priority",
         "due": "Due",
         "start": "Start",
         "status": "Status",
@@ -778,7 +818,8 @@
         "number": "Number",
         "notes": "Notes",
         "lastActivity": "Last update",
-        "references": "References"
+        "references": "References",
+        "achievement": "Achievement"
       },
       "tabs": {
         "overview": "Overview",
@@ -834,7 +875,7 @@
         "open": "Need help",
         "what": "Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.",
         "title": "Need help {number}",
-        "to": "Escalate to",
+        "to": "Tell",
         "to_required": "Pick who to tell",
         "to_yourself": "Pick someone other than yourself",
         "note": "What do they need to know?",
@@ -845,7 +886,8 @@
         "done": "Your manager {name} has been told",
         "flag": "Needs help",
         "acknowledge": "Acknowledge",
-        "acknowledged": "Acknowledged"
+        "acknowledged": "Acknowledged",
+        "noNote": "No note was left."
       },
       "status": {
         "change": "Status: {status}. Change",
@@ -909,7 +951,7 @@
           "done_before_raised": "That day is before the item was added"
         },
         "escalation": {
-          "not_here": "This cannot be escalated",
+          "not_here": "You cannot ask for help here",
           "note_required": "Write what they need to know",
           "to_yourself": "Pick someone other than yourself",
           "cannot_see": "That person cannot see this task",
@@ -1064,7 +1106,8 @@
       "emptyWeek": "Nothing done, slipped or due this week yet",
       "done": {
         "title": "Done this week",
-        "empty": "Nothing done yet this week"
+        "empty": "Nothing done yet this week",
+        "alreadyLogged": "Already logged"
       },
       "slipped": {
         "title": "Slipped",
@@ -1084,6 +1127,7 @@
       "idea": "Idea",
       "private": "Only me",
       "reviewDay": "Review day",
+      "dismiss": "Dismiss",
       "nudge": {
         "title": "Done this week — not yet logged as an achievement",
         "count": "{count, plural, one {# task still to log} other {# tasks still to log}}",
@@ -1243,12 +1287,14 @@
     "clients": {
       "identify": "Change client identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Client side's status, owner and priority"
+      "assign": "Set the Client side's status, owner and priority",
+      "assign_own": "Bulk-assign clients I own"
     },
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Supplier side's status, owner and priority"
+      "assign": "Set the Supplier side's status, owner and priority",
+      "assign_own": "Bulk-assign suppliers I own"
     },
     "finance": {
       "credit_control": "Credit limits and Sent to legal",
@@ -1256,7 +1302,8 @@
       "credit": "Split or reassign credit"
     },
     "tasks": {
-      "assign": "Assign tasks to others"
+      "assign": "Assign tasks to others",
+      "assign_own": "Assign a task I own or created"
     },
     "org": {
       "sign_out": "Sign a person out of every device"
@@ -1488,7 +1535,9 @@
       "tender.signed": "Contract signed, from tender {number}",
       "import.started": "Import started",
       "import.confirmed": "Import confirmed",
-      "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}"
+      "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
+      "escalation.raised": "Asked for help",
+      "escalation.acknowledged": "Need for help acknowledged"
     },
     "signIn": {
       "at": "When",
@@ -1536,6 +1585,7 @@
       "joined_on": "Joined",
       "left_on": "Left on",
       "active": "Active",
+      "escalated": "Needs help",
       "email": "Email",
       "is_primary": "Primary",
       "display_name_en": "Display name",
@@ -1626,13 +1676,14 @@
       "alert_file_review": "A file waits for review",
       "reminder": "My reminders",
       "note_mention": "Mentioned in a note",
-      "escalated": "Something escalated to me",
+      "escalated": "Someone asked me for help",
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
       "alert_quiet_client": "A client of mine has gone quiet",
       "task_commented": "A comment on a task of mine",
       "commented": "A comment on a record of mine",
       "asked": "A question asked of me",
+      "question_answered": "A question I asked was answered",
       "escalation_acknowledged": "A need for help I flagged was acknowledged",
       "alert_weekly_unlogged": "Weekly: done tasks not yet logged as achievements"
     },
@@ -2282,11 +2333,12 @@
       "alert_kpi_behind": "{record} is behind pace",
       "alert_invoice_unpaid": "{record} is unpaid past its limit",
       "alert_kpi_checkin": "KPI check-in day: {record}",
-      "escalated": "{actor} escalated {record} to you",
+      "escalated": "{actor} asked for help on {record}",
       "alert_quiet_client": "{record} has gone quiet",
       "task_commented": "{actor} commented on {record}",
       "commented": "{actor} commented on {record}",
       "asked": "{actor} asked you about {record}",
+      "question_answered": "{actor} answered your question on {record}",
       "escalation_acknowledged": "{actor} acknowledged your need for help on {record}",
       "alert_project_no_update": "{record} has no health update",
       "alert_activity_stale": "{record} has had no activity",
@@ -2329,6 +2381,9 @@
     "removed": "{name} removed",
     "default": "Default view",
     "setDefault": "Open this view first",
+    "rename": "Rename",
+    "renameTitle": "Rename “{name}”",
+    "renamed": "{name} renamed",
     "menu": "{name}: more",
     "label": "Views"
   },
@@ -2359,7 +2414,8 @@
       "status": "Status",
       "owner": "Owner",
       "lastActivity": "Last activity",
-      "flags": "Flags"
+      "flags": "Flags",
+      "title": "Columns"
     },
     "side": {
       "client": "Client",
@@ -2609,7 +2665,7 @@
         "update": "Update",
         "meeting_note": "Meeting note",
         "activity": "Activity",
-        "escalation": "Escalation"
+        "escalation": "Need help"
       }
     },
     "sideDialog": {

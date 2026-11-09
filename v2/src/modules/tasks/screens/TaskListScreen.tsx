@@ -6,13 +6,17 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { formatDate } from '@/core/i18n/format';
+import { nameOf } from '@/modules/org/types';
+import { BulkBar } from '@/ui/BulkBar';
 import { Button } from '@/ui/Button';
+import { Checkbox } from '@/ui/Checkbox';
 import { FilterChip, StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PageHeader } from '@/ui/PageHeader';
 import { PhoneFilter } from '@/ui/PhoneFilter';
+import { Select } from '@/ui/Select';
 import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
 import {
@@ -21,15 +25,18 @@ import {
   SCOPES,
   STATUS_CHIPS,
   STATUS_TONE,
+  TASK_SORTS,
   dueState,
   filtersHref,
   keepRow,
   phoneScopes,
   riyadhDay,
+  queryFilters,
+  sortRows,
   statusView,
   type Layout,
-  type Scope,
   type TaskFilters,
+  type TaskSortKey,
 } from '../rules';
 import type { TaskList, TaskRow, TeamLoad } from '../types';
 import type { TaskLookups } from '../load';
@@ -37,6 +44,7 @@ import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { TaskBoard } from './TaskBoard';
+import { TaskBulkAssign } from './TaskBulkAssign';
 import { TaskCalendar } from './TaskCalendar';
 import { TeamLoadPanel } from './TeamLoadPanel';
 import { DoneTick } from './StatusControl';
@@ -76,8 +84,20 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
     setQ(f.q ?? '');
   }
   const today = riyadhDay(new Date());
-  const rows = (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today));
+  // FIX-01: the priority filter is judged on the rows, the sort re-orders them — the server's order stands when no
+  // sort is chosen.
+  const rows = sortRows(
+    (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today)),
+    f.sort,
+    lookups.priorities,
+  );
   const layout = f.layout ?? 'list';
+  // FIX-01 (F100/F138, P1b): row selection and the bulk bar stay with whoever may give work to others
+  // (`tasks.assign`) — a member's own-task bulk-assign is the partners lists', not this list's.
+  const canBulk = me.capabilities.includes('tasks.assign');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const toggleRow = (id: string, on: boolean) => setSelected((s) => (on ? [...s, id] : s.filter((x) => x !== id)));
   const go = (change: Partial<TaskFilters>) => router.push(filtersHref(f, change));
   const retry = () => router.refresh();
   // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
@@ -96,15 +116,10 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
     if (v.key === 'all') return go({ starred: undefined, escalated: undefined });
     if (v.key === 'starred') return go({ starred: true, escalated: undefined });
     if (v.key === 'escalated') return go({ escalated: true, starred: undefined });
-    // a saved view: its starred / escalated flags and its scope apply on this list
-    go({
-      scope:
-        typeof v.query?.scope === 'string' && (SCOPES as readonly string[]).includes(v.query.scope)
-          ? (v.query.scope as Scope)
-          : undefined,
-      starred: v.query?.starred === true || undefined,
-      escalated: v.query?.escalated === true || undefined,
-    });
+    // FIX-12 (D42): Mine — the tasks I own or am helping on, across all scope tabs.
+    if (v.key === 'mine') return go({ scope: 'my_work', starred: undefined, escalated: undefined });
+    // a saved view: its whole query applies on this list (FIX-12, D36(j))
+    go(queryFilters(v.query));
   };
 
   const chipMenu = (field: string, options: { key: string; label: string; href: string }[]) => (
@@ -138,6 +153,8 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const fDue = t('pages.tasks.fields.due');
   const fClient = t('pages.tasks.fields.client');
   const fProject = t('pages.tasks.fields.project');
+  const fOwner = t('pages.tasks.fields.owner');
+  const fPriority = t('pages.tasks.fields.priority');
 
   return (
     <div className="flex min-w-0 flex-col gap-5" data-tasks-list>
@@ -175,6 +192,8 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         query={{ ...f } as unknown as Record<string, unknown>}
         onOpen={openView}
         canShare={me.levels.tasks === 'full'}
+        // FIX-12 (F046): the labelled default opens first on a fresh load, as Finance and My day already do.
+        onDefault={openView}
         saveHint={t('views.saveHint')}
       />
       <div className="flex flex-wrap items-center gap-2" data-task-chips>
@@ -233,8 +252,46 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                   })),
                 )
               : null}
+          {f.owner
+            ? applied(fOwner, names.person(f.owner), { owner: undefined })
+            : lookups.org?.people.length
+              ? chipMenu(
+                  fOwner,
+                  [...(lookups.org?.people ?? [])]
+                    .map((p) => ({ id: p.id, label: nameOf(p, names.locale) }))
+                    .sort((a, b) => a.label.localeCompare(b.label))
+                    .map((p) => ({ key: p.id, label: p.label, href: filtersHref(f, { owner: p.id }) })),
+                )
+              : null}
+          {f.priority
+            ? applied(fPriority, priorityLabel(lookups.priorities, f.priority, names.locale), { priority: undefined })
+            : lookups.priorities.length
+              ? chipMenu(
+                  fPriority,
+                  lookups.priorities
+                    .filter((p) => p.active)
+                    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+                    .map((p) => ({
+                      key: p.key,
+                      label: names.locale === 'ar' && p.name_ar ? p.name_ar : p.name_en,
+                      href: filtersHref(f, { priority: p.key }),
+                    })),
+                )
+              : null}
         </PhoneFilter>
-        {f.scope === 'past' ? null : <LayoutSwitch filters={f} />}
+        {f.scope === 'past' ? null : (
+          <>
+            <Select
+              value={f.sort ?? ''}
+              placeholder={t('pages.tasks.sort.label')}
+              aria-label={t('pages.tasks.sort.label')}
+              onValueChange={(v) => go({ sort: (v as TaskSortKey) || undefined })}
+              options={TASK_SORTS.map((k) => ({ value: k, label: t(`pages.tasks.sort.${k}`) }))}
+              className="w-44"
+            />
+            <LayoutSwitch filters={f} />
+          </>
+        )}
       </div>
 
       {data.load !== undefined ? <TeamLoadPanel load={data.load} /> : null}
@@ -279,14 +336,35 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           ) : layout === 'calendar' ? (
             <TaskCalendar rows={rows} lookups={lookups} today={today} filters={f} />
           ) : (
-            <ul
-              className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
-              data-task-rows
-            >
-              {rows.map((r) => (
-                <TaskLine key={r.id} row={r} lookups={lookups} today={today} />
-              ))}
-            </ul>
+            <>
+              {canBulk && rows.length ? (
+                <div className="flex items-center gap-2 px-1 text-sm text-muted" data-task-select-all>
+                  <Checkbox
+                    checked={selected.length === 0 ? false : selected.length === rows.length ? true : 'indeterminate'}
+                    onCheckedChange={(on) => setSelected(on ? rows.map((r) => r.id) : [])}
+                    label={t('table.selectAll')}
+                    id="task-select-all"
+                  />
+                  <label htmlFor="task-select-all">{t('table.selectAll')}</label>
+                </div>
+              ) : null}
+              <ul
+                className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
+                data-task-rows
+              >
+                {rows.map((r) => (
+                  <TaskLine
+                    key={r.id}
+                    row={r}
+                    lookups={lookups}
+                    today={today}
+                    selectable={canBulk}
+                    selected={selected.includes(r.id)}
+                    onSelect={(on) => toggleRow(r.id, on)}
+                  />
+                ))}
+              </ul>
+            </>
           )}
           {list.more ? (
             <p className="text-sm text-muted">
@@ -295,6 +373,27 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           ) : null}
         </>
       )}
+      {canBulk ? (
+        <BulkBar
+          ids={selected}
+          actions={[
+            {
+              key: 'assign',
+              label: t('pages.tasks.bulkAssign.open'),
+              open: () => setBulkOpen(true),
+            },
+          ]}
+          onClear={() => setSelected([])}
+        />
+      ) : null}
+      <TaskBulkAssign
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        ids={selected}
+        org={lookups.org}
+        priorities={lookups.priorities}
+        onDone={() => setSelected([])}
+      />
       <QuickAdd
         open={adding}
         onOpenChange={(open) => {
@@ -317,6 +416,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         org={lookups.org}
         partners={lookups.partners}
         projects={lookups.projects}
+        priorities={lookups.priorities}
         initial={{ partnerId: f.partner, projectId: f.project }}
         onAdded={(r) => {
           if (closedOnAddress.current) router.replace(`/tasks/${r.number}`);
@@ -362,11 +462,36 @@ function LayoutSwitch({ filters }: { filters: TaskFilters }) {
 }
 
 const atLeastOwn = (l: string | undefined) => l === 'own' || l === 'full';
-const isFiltered = (f: TaskFilters) => !!(f.status || f.due || f.partner || f.project || f.q);
+const isFiltered = (f: TaskFilters) => !!(f.status || f.due || f.partner || f.project || f.q || f.owner || f.priority);
 /** How many filters are on, for the phone's one Filter button. */
-const filterCount = (f: TaskFilters) => [f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length;
+const filterCount = (f: TaskFilters) =>
+  [f.status, f.due, f.partner, f.project, f.q, f.owner, f.priority].filter(Boolean).length;
 
-function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups; today: string }) {
+/** A priority key in the language on screen, or the key itself when the list no longer names it. */
+function priorityLabel(
+  priorities: { key: string; name_en: string; name_ar: string | null }[],
+  key: string,
+  locale: 'en' | 'ar',
+): string {
+  const p = priorities.find((x) => x.key === key);
+  return p ? (locale === 'ar' && p.name_ar ? p.name_ar : p.name_en) : key;
+}
+
+function TaskLine({
+  row,
+  lookups,
+  today,
+  selectable,
+  selected,
+  onSelect,
+}: {
+  row: TaskRow;
+  lookups: TaskLookups;
+  today: string;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (on: boolean) => void;
+}) {
   const t = useTranslations();
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
   const view = statusView(row);
@@ -378,6 +503,14 @@ function TaskLine({ row, lookups, today }: { row: TaskRow; lookups: TaskLookups;
       data-task-row={row.number}
       data-due={due}
     >
+      {selectable ? (
+        <Checkbox
+          checked={selected ?? false}
+          onCheckedChange={(on) => onSelect?.(on)}
+          label={t('table.selectRow', { name: row.title })}
+          className="mt-1 shrink-0"
+        />
+      ) : null}
       {row.can_edit ? (
         <DoneTick task={row} statuses={lookups.statuses} title={row.title} />
       ) : (

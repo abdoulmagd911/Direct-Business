@@ -81,6 +81,7 @@ function api.device_touch() execute authenticated
 function api.escalate(p_entity text, p_id uuid, p_to uuid, p_note text) execute authenticated
 function api.escalate_acknowledge(p_id uuid) execute authenticated
 function api.escalated_tasks() execute authenticated
+function api.escalated_tasks_by_me() execute authenticated
 function api.file_begin(p_entity text, p_id uuid, p_kind text, p_purpose text, p_original_name text, p_size bigint, p_mime text, p_sensitivity text, p_side text, p_review_on date) execute authenticated
 function api.file_download(p_id uuid, p_locale text) execute authenticated
 function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
@@ -150,7 +151,7 @@ function api.my_devices() execute authenticated
 function api.my_follow_ups(p_entity text, p_id uuid) execute authenticated
 function api.my_note(p_id uuid) execute authenticated
 function api.my_notes_by_kind(p_scope text, p_kind text, p_limit integer, p_offset integer) execute authenticated
-function api.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.my_notes_remove(p_ids uuid[], p_reason text, p_delete_reminders boolean) execute authenticated
 function api.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
 function api.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
 function api.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
@@ -263,6 +264,7 @@ function api.task_templates_remove(p_ids uuid[], p_reason text) execute authenti
 function api.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.tasks(p_filter jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function api.tasks_priority_set(p_ids uuid[], p_priority text, p_reason text) execute authenticated
 function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.team_load(p_people uuid[]) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
@@ -447,7 +449,7 @@ function my.from_note_of(p_entity text, p_id uuid) execute authenticated
 function my.my_day(p_scope text, p_limit integer, p_offset integer, p_since timestamp with time zone) execute authenticated
 function my.my_follow_ups(p_entity text, p_id uuid) execute authenticated
 function my.my_notes_by_kind(p_scope text, p_kind text, p_limit integer, p_offset integer) execute authenticated
-function my.my_notes_remove(p_ids uuid[], p_reason text) execute authenticated
+function my.my_notes_remove(p_ids uuid[], p_reason text, p_delete_reminders boolean) execute authenticated
 function my.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
 function my.note_finish_meeting(p_note uuid, p_values jsonb) execute authenticated
 function my.note_get(p_id uuid) execute authenticated
@@ -539,6 +541,7 @@ function work.comment_remove(p_id uuid, p_reason text) execute authenticated
 function work.comments(p_entity text, p_id uuid) execute authenticated
 function work.contract_renewal_task(p_contract uuid) execute authenticated
 function work.escalated_tasks() execute authenticated
+function work.escalated_tasks_by_me() execute authenticated
 function work.escalation_acknowledge(p_id uuid) execute authenticated
 function work.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions jsonb) execute authenticated
 function work.import_batch_rows(p_batch uuid) execute authenticated
@@ -574,6 +577,7 @@ function work.task_templates() execute authenticated
 function work.task_templates_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.task_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
+function work.tasks_priority_set(p_ids uuid[], p_priority text, p_reason text) execute authenticated
 function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.team_load(p_people uuid[]) execute authenticated
 function work.templates_offered(p_event text, p_partner uuid) execute authenticated

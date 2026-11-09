@@ -87,7 +87,7 @@ export function NotePage({
   /** Whom the author may share the note with, by name (G, V524): every other active colleague. */
   colleagues?: { id: string; name: string; team_id?: string | null; is_admin?: boolean }[];
   /** The names a task from this note points at; absent for someone who may not make tasks (no Task in Turn into). */
-  taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[] };
+  taskLookups?: { org: OrgAnswer | null; partners: NamePick[]; projects: NamePick[]; priorities: ListEntry[] };
   types: ListEntry[];
   outcomes: ListEntry[];
   /** The Discussion's comments; null when they could not be read. */
@@ -120,6 +120,8 @@ export function NotePage({
   const [busy, setBusy] = useState(false);
   const [turning, setTurning] = useState<TurnKind | 'finish' | null>(null);
   const [removing, setRemoving] = useState(false);
+  /** FIX-27: "also delete its reminder" — off until ticked, and reset every time the remove dialog opens. */
+  const [deleteReminder, setDeleteReminder] = useState(false);
   // The Discussion's own count while it is open, so the header's comments count follows an add or a delete at once.
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(fresh());
@@ -174,7 +176,12 @@ export function NotePage({
     setBusy(true);
     await command(
       words(t('pages.myDay.note.removed')),
-      () => rpc('my_notes_remove', { p_ids: [note.id] }) as Promise<{ request_id?: string | null }>,
+      () =>
+        rpc('my_notes_remove', {
+          p_ids: [note.id],
+          // FIX-27: the reminder goes only when the person ticks the offer — never silently.
+          ...(deleteReminder ? { p_delete_reminders: true } : {}),
+        }) as Promise<{ request_id?: string | null }>,
       {
         after: () => router.push('/my-day'),
       },
@@ -546,6 +553,7 @@ export function NotePage({
               org={taskLookups.org}
               partners={taskLookups.partners}
               projects={taskLookups.projects}
+              priorities={taskLookups.priorities}
               initial={{
                 title: noteTitle(note).slice(0, TITLE_MAX),
                 partnerId: taskLookups.partners.some((p) => p.id === note.meeting_partner?.id)
@@ -564,12 +572,25 @@ export function NotePage({
             note={note}
             open={turning === 'achievement'}
             onOpenChange={(o) => setTurning(o ? 'achievement' : null)}
+            people={colleagues}
           />
           <Confirm
             open={removing}
-            onOpenChange={setRemoving}
+            onOpenChange={(o) => {
+              if (o) setDeleteReminder(false);
+              setRemoving(o);
+            }}
             title={t('pages.myDay.note.removeTitle', { name: title })}
             body={t('pages.myDay.note.removeBody')}
+            extra={
+              note.has_pending_reminder ? (
+                <Checkbox
+                  checked={deleteReminder}
+                  onCheckedChange={setDeleteReminder}
+                  label={t('pages.myDay.note.deleteReminderToo')}
+                />
+              ) : undefined
+            }
             cancelLabel={t('common.cancel')}
             confirmLabel={t('common.remove')}
             onConfirm={() => void remove()}
