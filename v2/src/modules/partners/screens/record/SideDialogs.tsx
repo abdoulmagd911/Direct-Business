@@ -6,9 +6,10 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
-import { Input, Textarea } from '@/ui/Input';
+import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { SIDE_PAGE, STATUSES, nameOf, type ListEntry, type Side, type SideFull, type Status } from '../../types';
 import { today, useWords } from './words';
@@ -145,11 +146,12 @@ export function SideDialog({
         ) : null}
         <Field label={t('partners.sideDialog.since')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.since}
-              onChange={(e) => setF({ ...f, since: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.since || undefined}
+              onChange={(v) => setF({ ...f, since: v ?? '' })}
               className="font-data"
             />
           )}
@@ -217,7 +219,14 @@ export function SideOffDialog({
       <div className="flex flex-col gap-4">
         <Field label={t('partners.sideDialog.until')}>
           {(p) => (
-            <Input {...p} type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="font-data" />
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={until || undefined}
+              onChange={(v) => setUntil(v ?? '')}
+              className="font-data"
+            />
           )}
         </Field>
         <Field label={`${t('common.reason')} (${t('common.optional')})`}>
@@ -309,11 +318,12 @@ export function StatusDialog({
         </Field>
         <Field label={t('partners.statusDialog.effectiveOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.on}
-              onChange={(e) => setF({ ...f, on: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.on || undefined}
+              onChange={(v) => setF({ ...f, on: v ?? '' })}
               className="font-data"
             />
           )}
@@ -420,11 +430,12 @@ export function OwnerDialog({
         </Field>
         <Field label={t('partners.ownerDialog.from')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.from}
-              onChange={(e) => setF({ ...f, from: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.from || undefined}
+              onChange={(v) => setF({ ...f, from: v ?? '' })}
               className="font-data"
             />
           )}

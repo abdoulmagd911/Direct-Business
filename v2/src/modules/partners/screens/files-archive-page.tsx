@@ -5,10 +5,11 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
-import { Input, inputClass } from '@/ui/Input';
+import { inputClass } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { FileDownloadButton } from './files-download-button';
+import { ArchiveDateRange } from './ArchiveDateRange';
 import type { AllFilesAnswer, AllFilesRow, ListEntry } from '../types';
 
 /** The record types the archive filters on: the entity tables api.all_files takes. */
@@ -222,14 +223,7 @@ export async function FilesArchivePage({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('partners.archive.dateFrom')}</span>
-        <Input type="date" name="from" defaultValue={from} />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted">{t('partners.archive.dateTo')}</span>
-        <Input type="date" name="to" defaultValue={to} />
-      </label>
+      <ArchiveDateRange from={from} to={to} />
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted">{t('partners.archive.purpose')}</span>
         <select name="purpose" defaultValue={purpose} className={inputClass}>

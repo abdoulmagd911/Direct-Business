@@ -22,7 +22,7 @@ select set_config('v2.test_now', current_setting('t.d1') || ' 10:05:00+03', true
 select test.eq(notify.send_reminders(), 2, 'both reminders go out');
 
 select test.as_person(current_setting('t.am')::uuid);
-select set_config('t.bell', api.notifications()::text, true);
+select set_config('t.bell', (api.notifications() -> 'rows')::text, true);
 select test.eq((select x ->> 'title' from jsonb_array_elements(current_setting('t.bell')::jsonb) x
                 where x ->> 'entity_id' = current_setting('t.r1')), 'Made-up ring the supplier',
   'a reminder on a titled note reads by the title');
@@ -38,6 +38,6 @@ select test.eq(notify.first_line('   '), null::text, 'and is nothing for nothing
 insert into notify.notification (person_id, kind, entity_table, entity_id, label_key)
 values (current_setting('t.other')::uuid, 'reminder', 'core.reminder', current_setting('t.r1')::uuid, 'notify.reminder');
 select test.as_person(current_setting('t.other')::uuid);
-select test.eq((select x ->> 'title' from jsonb_array_elements(api.notifications()) x
+select test.eq((select x ->> 'title' from jsonb_array_elements(api.notifications() -> 'rows') x
                 where x ->> 'entity_id' = current_setting('t.r1')), null::text,
   'another person''s reminder names nothing');

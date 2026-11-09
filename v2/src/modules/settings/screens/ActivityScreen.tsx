@@ -10,11 +10,11 @@ import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
 import { avatarOf, describeWith, nameOf, summarizeWith, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
+import { DatePicker } from '@/ui/DatePicker';
 import { ScrollCue } from '@/ui/ScrollCue';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
-import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
@@ -166,11 +166,12 @@ export function ActivityScreen({
           ) : null}
           <Field label={t('activity.filters.since')}>
             {(p) => (
-              <Input
-                {...p}
-                type="date"
-                value={filters.since}
-                onChange={(e) => setFilter({ since: e.target.value })}
+              <DatePicker
+                id={p.id}
+                describedBy={p['aria-describedby']}
+                invalid={p['aria-invalid']}
+                value={filters.since || undefined}
+                onChange={(v) => setFilter({ since: v ?? '' })}
                 className="font-data"
               />
             )}

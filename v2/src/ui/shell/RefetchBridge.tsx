@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { lastRefetchAt, onRefetch, refetchAll } from '@/core/commands/refetch';
+import { lastRefetchAt, commandBusy, onRefetch, refetchAll } from '@/core/commands/refetch';
 
 /** A window brought back after this long refetches (TECH-SPEC §2.4: focus refetch), never sooner. */
 const FOCUS_AFTER_MS = 15_000;
@@ -16,6 +16,9 @@ export function RefetchBridge() {
     const off = onRefetch(() => router.refresh());
     const onFocus = () => {
       if (document.visibilityState !== 'visible') return;
+      // a write is in flight: do not refresh under it (F131) — the focus refetch would re-read the record the
+      // write is still changing, and a slow read during it threw the whole page.
+      if (commandBusy()) return;
       if (Date.now() - lastRefetchAt() < FOCUS_AFTER_MS) return;
       refetchAll();
     };

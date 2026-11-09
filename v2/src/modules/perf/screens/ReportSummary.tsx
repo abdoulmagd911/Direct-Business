@@ -1,5 +1,5 @@
 'use client';
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -7,9 +7,8 @@ import { formatDate, formatMoney } from '@/core/i18n/format';
 import { CappedNote } from '@/modules/partners/screens/CappedNote';
 import { Button, buttonVariants } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
-import { Input } from '@/ui/Input';
+import { MonthPicker } from '@/ui/MonthPicker';
 import { PageHeader } from '@/ui/PageHeader';
-import { cn } from '@/ui/cn';
 import type { AchievementPage, AchievementRow } from '../types';
 
 type Group = { label: string; count: number; deal: number };
@@ -115,31 +114,7 @@ export function ReportSummary({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-0.5 text-sm text-muted" data-report-month>
           {t('month')}
-          <span className="relative">
-            <Input
-              type="month"
-              className={cn('w-44', !month && 'text-transparent')}
-              value={month ?? ''}
-              onChange={(e) => goMonth(e.target.value || undefined)}
-            />
-            {!month ? (
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-base text-muted"
-              >
-                {t('anyMonth')}
-              </span>
-            ) : (
-              <button
-                type="button"
-                aria-label={t('clearMonth')}
-                onClick={() => goMonth(undefined)}
-                className="absolute inset-y-0 end-9 inline-grid size-8 place-items-center text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
-          </span>
+          <MonthPicker id="report-month" value={month} onChange={goMonth} className="w-44" />
         </label>
         <Link
           href={month ? `/kpis/achievements?month=${encodeURIComponent(month)}` : '/kpis/achievements'}

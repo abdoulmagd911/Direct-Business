@@ -1,8 +1,10 @@
 'use client';
+import { useId } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import { cn } from '@/ui/cn';
-import { Input, TimeInput } from '@/ui/Input';
+import { DatePicker } from '@/ui/DatePicker';
+import { TimeInput } from '@/ui/Input';
 import {
   hasPassed,
   laterToday,
@@ -52,6 +54,7 @@ export function WhenPicker({
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
+  const dayId = useId();
   const keys = WHEN_KEYS.filter((k) => k !== 'later_today' || laterToday(now));
   const chosen = whenFor(value, now, pick);
   return (
@@ -77,11 +80,12 @@ export function WhenPicker({
           <div className="flex flex-wrap gap-3">
             <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
               {t('pages.myDay.quick.day')}
-              <Input
-                type="date"
-                value={pick.day}
-                onChange={(e) => e.target.value && onPick({ ...pick, day: e.target.value })}
-                data-when-day
+              <DatePicker
+                id={dayId}
+                value={pick.day || undefined}
+                onChange={(v) => v && onPick({ ...pick, day: v })}
+                chips="none"
+                inputProps={{ 'data-when-day': '' }}
               />
             </label>
             <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">

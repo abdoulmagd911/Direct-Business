@@ -7,9 +7,10 @@ import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
-import { Input, Textarea } from '@/ui/Input';
+import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { valid, type SettingDefRow, type SettingRow } from '../schema';
 import type { ChoiceNames } from '../words';
@@ -230,11 +231,12 @@ export function SettingCard({
           {def.effective_dated ? (
             <Field label={t('settings.setting.appliesFrom')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={from || undefined}
+                  onChange={(v) => setFrom(v ?? '')}
                   className="max-w-52 font-data"
                 />
               )}

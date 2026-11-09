@@ -57,10 +57,13 @@ test('the day the app went live is chosen in the date box and read back as 27 Oc
   await card.locator('[data-setting-change]').click();
   const dialog = page.getByRole('dialog');
   const box = dialog.getByLabel('New value');
-  await expect(box, 'a date box, not a text box').toHaveAttribute('type', 'date');
+  await expect(dialog.locator('[data-date-picker]'), 'a date box, not a text box').toBeVisible();
+  await expect(box).not.toHaveAttribute('type', 'date');
   await box.fill('2026-10-27');
   await expect(box).toHaveValue('2026-10-27');
-  await expect(dialog.locator('[data-date-text]')).toHaveText('27 Oct 2026');
+  await box.blur();
+  await expect(box).toHaveValue('27 Oct 2026');
+  await expect(dialog.locator('[data-date-result]')).toHaveText('Tue, 27 Oct 2026');
   await dialog.getByLabel('Reason').fill('Made-up reason: only looking');
   await expect(dialog.locator('[data-setting-preview]')).toContainText('27 Oct 2026');
   // nothing is saved: the day is a setting of the whole app, which other specs read

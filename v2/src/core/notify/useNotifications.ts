@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { onRefetch } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
@@ -36,37 +36,53 @@ export const tabHas = (tab: NotificationTab, kind: string) =>
     ? kind === 'mentioned' || kind === 'note_mention'
     : kind === 'assigned' || kind === 'helper_added');
 
+/** One api.notifications answer: the rows and the counts from the same read (D36(c)). */
+type NotificationsAnswer = {
+  rows: Notification[];
+  unread: number;
+  unread_mentions: number;
+  unread_assigned: number;
+};
+
 /**
- * The bell's data: the unread count (drawn in the top bar) and the list of the open tab, cut from ONE read of everything so the tabs' own counts and the badge come from the same rows
- * (the owner saw 14 and 15 with Mentions saying Nothing new). Both re-read after every
- * command (the global refetch), when the window comes back, when the panel opens or its tab changes — and live,
- * through Realtime on the person's own notifications when the deployment has it (NEXT_PUBLIC_REALTIME=1; the local
- * stacks run without the Realtime service). Never a timer (A's lint refuses polling).
+ * The bell's data: the unread counts (drawn in the top bar and on the tabs) and the list of the open tab, cut from
+ * ONE read (D36(c), F238/F237) — the badge, the All count and the tab counts all come from the same response as the
+ * rows, so they can never disagree, not even above the 100-row cap and not when a notification lands between two
+ * reads (the owner saw 14 and 15 with Mentions saying Nothing new). The read re-runs after every command (the
+ * global refetch), when the window comes back, when the panel opens or its tab changes — and live, through Realtime
+ * on the person's own notifications when the deployment has it (NEXT_PUBLIC_REALTIME=1; the local stacks run
+ * without the Realtime service). Never a timer (A's lint refuses polling).
  */
-export function useNotifications(open: boolean, tab: NotificationTab) {
+export function useNotifications(tab: NotificationTab) {
   const me = useMe();
   const [unread, setUnread] = useState<number | null>(null);
+  const [tabCounts, setTabCounts] = useState<{ mentions: number; assigned: number } | null>(null);
   const [all, setAll] = useState<Notification[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // The reloads are sequenced (the finance epoch guard, use-reads.ts): a reload that started later wins, and an
+  // answer asked for before a newer reload (or a write) is never kept — two overlapping reloads used to let the
+  // older one land last and show the counts as they stood before the write (F001).
+  const generation = useRef(0);
 
-  const loadUnread = useCallback(async () => {
+  const reload = useCallback(async () => {
+    const mine = ++generation.current;
     try {
-      setUnread((await rpc('notifications_unread', {})) ?? 0);
-    } catch {
-      setUnread(null);
-    }
-  }, []);
-  const loadList = useCallback(async () => {
-    try {
-      setAll(((await rpc('notifications', { p_tab: 'all', p_limit: 100 })) as unknown as Notification[]) ?? []);
+      // a pure read, so it is tried once more when it fails on its way (R1, as the server read is retried).
+      const res = (await rpc(
+        'notifications',
+        { p_tab: 'all', p_limit: 100 },
+        { retry: true },
+      )) as unknown as NotificationsAnswer;
+      if (generation.current !== mine) return;
+      setAll(res.rows ?? []);
+      setUnread(res.unread ?? 0);
+      setTabCounts({ mentions: res.unread_mentions ?? 0, assigned: res.unread_assigned ?? 0 });
       setFailed(false);
     } catch {
+      if (generation.current !== mine) return;
       setFailed(true);
     }
   }, []);
-  const reload = useCallback(async () => {
-    await Promise.all([loadUnread(), open ? loadList() : Promise.resolve()]);
-  }, [loadUnread, loadList, open]);
 
   useEffect(() => {
     // The first read runs after the paint (the compiler's rule: no state set inside the effect itself).
@@ -118,9 +134,11 @@ export function useNotifications(open: boolean, tab: NotificationTab) {
   );
 
   const items = all === null ? null : all.filter((n) => tabHas(tab, n.kind));
-  /** Unread per tab, from the same rows as the list; null until the list has been read. */
-  const tabUnread = (k: NotificationTab) =>
-    all === null ? null : all.filter((n) => !n.read_at && tabHas(k, n.kind)).length;
+  /** Unread per tab, from the same read as the list; null until the list has been read. */
+  const tabUnread = (k: NotificationTab) => {
+    if (unread === null || tabCounts === null) return null;
+    return k === 'all' ? unread : tabCounts[k];
+  };
 
   return { unread, items, tabUnread, failed, reload, markRead, snooze };
 }

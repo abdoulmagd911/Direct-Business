@@ -1,6 +1,7 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { Checkbox } from '@/ui/Checkbox';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
@@ -153,11 +154,11 @@ export function SchemaEditor({
   // a day (the day the app went live) is chosen in the date box, never typed as 2026-10-27
   if (schema.type === 'string' && schema.pattern === DAY_PATTERN)
     return (
-      <Input
+      <DatePicker
         id={id}
-        type="date"
-        value={typeof value === 'string' ? value : ''}
-        onChange={(e) => onChange(e.target.value)}
+        value={typeof value === 'string' ? value || undefined : undefined}
+        onChange={(v) => onChange(v ?? '')}
+        chips="none"
       />
     );
   return (

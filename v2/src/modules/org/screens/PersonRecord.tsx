@@ -13,6 +13,7 @@ import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { FollowButton } from '@/ui/FollowButton';
@@ -966,22 +967,24 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             )}
             <Field label={t('settings.people.joinedOn')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="date"
-                  value={f.joined_on}
-                  onChange={(e) => setF({ ...f, joined_on: e.target.value })}
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={f.joined_on || undefined}
+                  onChange={(v) => setF({ ...f, joined_on: v ?? '' })}
                   className="font-data"
                 />
               )}
             </Field>
             <Field label={t('settings.people.leftOn')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="date"
-                  value={f.left_on}
-                  onChange={(e) => setF({ ...f, left_on: e.target.value })}
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={f.left_on || undefined}
+                  onChange={(v) => setF({ ...f, left_on: v ?? '' })}
                   className="font-data"
                 />
               )}

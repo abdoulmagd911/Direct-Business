@@ -11,6 +11,7 @@ import { avatarOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
@@ -33,7 +34,6 @@ import { Delegate } from './Delegate';
 import { TaskComments } from './TaskComments';
 import { Escalate } from './Escalate';
 import { StarMark, StarToggle } from './StarToggle';
-import { DATE_MAX } from './DueDayPicker';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
 import { HelpersField, OwnerPicker } from './TaskPeople';
 import { useCommandWords, useNames } from './words';
@@ -575,22 +575,15 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
       </Field>
       <Field label={t('pages.tasks.fields.due')}>
         {(p) => (
-          <div className="flex items-center gap-2">
-            <Input
-              {...p}
-              type="date"
-              max={DATE_MAX}
-              value={f.due_on}
-              onChange={(e) => setF({ ...f, due_on: e.target.value })}
-              name="due"
-              className="min-w-0 flex-1"
-            />
-            {f.due_on ? (
-              <Button type="button" variant="ghost" onClick={() => setF({ ...f, due_on: '' })} data-edit-due-clear>
-                {t('pages.tasks.add.dueClear')}
-              </Button>
-            ) : null}
-          </div>
+          <DatePicker
+            id={p.id}
+            describedBy={p['aria-describedby']}
+            invalid={p['aria-invalid']}
+            value={f.due_on || undefined}
+            onChange={(v) => setF({ ...f, due_on: v ?? '' })}
+            chips="due"
+            name="due"
+          />
         )}
       </Field>
       <Field label={t('pages.tasks.fields.notes')}>

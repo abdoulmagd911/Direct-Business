@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isTransient, readTwice, type CallResult } from '@/core/db/retry';
+import { isTransient, readRetry, readTwice, type CallResult } from '@/core/db/retry';
 
 // W43: the first load of a Settings page answered 500 because the gateway gave up on one signed-in read (status 555,
 // "Internal server error.", no database code); the same read a moment later worked.
@@ -61,5 +61,32 @@ describe('a server read that failed on its way is tried once more before the err
     const wait = vi.fn(async () => {});
     await readTwice(calls(gaveUp, answered), wait);
     expect(wait).toHaveBeenCalledWith(250);
+  });
+});
+
+describe('the layout person read is tried up to three times (FIX-07)', () => {
+  it('a gateway that gave up twice, then an answer: the page gets the answer', async () => {
+    const call = calls(gaveUp, gaveUp, answered);
+    expect(await readRetry(call, 3, [250, 1000], noWait)).toBe(answered);
+    expect(call).toHaveBeenCalledTimes(3);
+  });
+  it('three failures is the retryable state: the third failure is answered, never a fourth try', async () => {
+    const call = calls(gaveUp, gaveUp, gaveUp, answered);
+    expect(await readRetry(call, 3, [250, 1000], noWait)).toBe(gaveUp);
+    expect(call).toHaveBeenCalledTimes(3);
+  });
+  it('backs off between tries', async () => {
+    const wait = vi.fn(async () => {});
+    await readRetry(calls(gaveUp, gaveUp, answered), 3, [250, 1000], wait);
+    expect(wait).toHaveBeenNthCalledWith(1, 250);
+    expect(wait).toHaveBeenNthCalledWith(2, 1000);
+  });
+  it('a refusal is an answer, never retried', async () => {
+    const call = calls({ error: { code: 'P0001', message: 'partner.archived' }, status: 400 }, answered);
+    expect(await readRetry(call, 3, [250, 1000], noWait)).toEqual({
+      error: { code: 'P0001', message: 'partner.archived' },
+      status: 400,
+    });
+    expect(call).toHaveBeenCalledTimes(1);
   });
 });

@@ -20,8 +20,8 @@ import { dueState, groupOf, recordName } from '../../../src/ui/shell/bell-words'
   disconnect() {}
 };
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
-// the server's clock for this page load: 26 Oct 2026, 12:00 in Riyadh
-vi.mock('@/core/auth/me-context', () => ({ useMe: () => ({ session: { last_seen_at: '2026-10-26T09:00:00Z' } }) }));
+// The panel groups by the current time (FIX-34): the panel test builds its items around today, not a fixed date.
+// The pure-function tests below still use the fixed 26 Oct 2026 clock.
 
 const { NotificationsPanel } = await import('../../../src/ui/shell/NotificationsPanel');
 
@@ -95,11 +95,20 @@ const draw = (items: Notification[], markRead: (ids?: string[]) => Promise<void>
 };
 
 describe('the panel', () => {
+  // today and yesterday, by the real clock the panel reads: two unread rows today (one of them a due notice past
+  // its day), one read row today, one row yesterday.
+  const nowISO = new Date().toISOString();
+  const yesterdayISO = new Date(Date.now() - 86_400_000).toISOString();
+  const yesterdayDay = yesterdayISO.slice(0, 10);
   const items = [
-    row('1', { title: 'TEST Task A' }),
-    row('2', { title: 'TEST Task B', read_at: '2026-10-26T08:30:00Z' }),
-    row('3', { kind: 'alert_due_tomorrow', label_args: { title: 'TEST Late task', due_on: '2026-10-25' } }),
-    row('4', { created_at: '2026-10-25T08:00:00Z', title: 'TEST Task C' }),
+    row('1', { title: 'TEST Task A', created_at: nowISO }),
+    row('2', { title: 'TEST Task B', read_at: nowISO, created_at: nowISO }),
+    row('3', {
+      kind: 'alert_due_tomorrow',
+      label_args: { title: 'TEST Late task', due_on: yesterdayDay },
+      created_at: nowISO,
+    }),
+    row('4', { created_at: yesterdayISO, title: 'TEST Task C' }),
   ];
 
   it('names the record, and says overdue for a task past its day', () => {

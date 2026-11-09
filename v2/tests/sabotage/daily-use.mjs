@@ -39,57 +39,34 @@ export const sabotages = [
     edits: [{ file: 'src/ui/Input.tsx', find: ' focus-visible:opacity-100', replace: '' }],
   },
   {
-    name: 'date-box-hides-the-field-while-typing-in-the-browser',
-    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
-    expect: 'the real date field shows while it has keyboard focus',
-    edits: [{ file: 'src/ui/Input.tsx', find: ' focus-visible:opacity-100', replace: '' }],
-  },
-  {
     name: 'date-box-writes-no-date-beside-the-field',
     breaks: [BOX],
     expect: '> writes the date beside the real field the app writes it, shown only while the field has keyboard focus',
     edits: [{ file: 'src/ui/Input.tsx', find: '<span dir="auto">{written}</span>', replace: '' }],
   },
   {
-    name: 'date-box-never-shows-the-date-beside-the-field',
+    // the shared date picker writes the day back the app way once the box is left (FIX-02)
+    name: 'date-picker-keeps-the-typed-digits',
     breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
-    expect: 'the date typed is written beside the field the app way',
-    edits: [{ file: 'src/ui/Input.tsx', find: ' shadow-2 peer-focus-visible:block', replace: ' shadow-2' }],
-  },
-  {
-    name: 'date-box-writes-the-date-below-and-moves-the-page',
-    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
-    expect: 'writing the day beside the field moves nothing below it',
+    expect: 'the box shows the date the way the app writes it',
     edits: [
       {
-        file: 'src/ui/Input.tsx',
-        find: 'pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm',
-        replace: 'hidden pt-1 text-sm',
+        file: 'src/ui/DatePicker.tsx',
+        find: 'onBlur={() => day && setText(written(day))}',
+        replace: 'onBlur={() => {}}',
       },
     ],
   },
   {
-    name: 'date-box-writes-the-date-over-the-browsers-own-text',
+    // the shared date picker says the day back in words under the box (FIX-02)
+    name: 'date-picker-says-the-stored-date-back',
     breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
-    expect: 'the written day is above the field, not on its text',
+    expect: 'the date typed is said back the app way',
     edits: [
       {
-        file: 'src/ui/Input.tsx',
-        find: 'absolute bottom-full end-0 z-30 mb-0.5 hidden',
-        replace: 'absolute inset-y-0 end-10 z-30 hidden items-center',
-      },
-    ],
-  },
-  {
-    // the chip takes its own text's direction, so on a right-to-left page it lands on the label's side (QA-572)
-    name: 'date-box-chip-lands-on-the-label-right-to-left',
-    breaks: ['e2e:tests/e2e/daily-use-12-14.spec.ts'],
-    expect: 'the written day is clear of the label row',
-    edits: [
-      {
-        file: 'src/ui/Input.tsx',
-        find: '        aria-hidden="true"\n        data-date-echo',
-        replace: '        aria-hidden="true"\n        dir="ltr"\n        data-date-echo',
+        file: 'src/ui/DatePicker.tsx',
+        find: "{formatDate(`${day}T12:00:00+03:00`, locale, { weekday: 'short', day: 'numeric', month: 'short' })}",
+        replace: '{day}',
       },
     ],
   },

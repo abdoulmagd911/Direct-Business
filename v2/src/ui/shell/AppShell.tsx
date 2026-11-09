@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [search, setSearch] = useState(false);
   const [bell, setBell] = useState(false);
   const [tab, setTab] = useState<NotificationTab>('all');
-  const notifications = useNotifications(bell, tab);
+  const notifications = useNotifications(tab);
   // The bell's panel closes when the page changes — a link, Back or Forward — on a phone and on a PC (V654); an outside
   // tap and Escape already close it. Done while rendering: the page that was open when the panel opened is remembered.
   const pathname = usePathname();

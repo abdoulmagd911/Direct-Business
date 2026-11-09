@@ -68,6 +68,13 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   // empty form (the supervisor's sweep of 15 Oct). Read when the form closes, so a later Add task stays on the list.
   const closedOnAddress = useRef(false);
   const [q, setQ] = useState(f.q ?? '');
+  // the box shows the search the address holds: a navigation that changes the search (Clear all, a saved view) must
+  // move the box too — a box that kept its mount-time text showed a search that was no longer running (F102).
+  const [seenQ, setSeenQ] = useState(f.q ?? '');
+  if ((f.q ?? '') !== seenQ) {
+    setSeenQ(f.q ?? '');
+    setQ(f.q ?? '');
+  }
   const today = riyadhDay(new Date());
   const rows = (list?.rows ?? []).filter((r) => keepRow(r, f, me.person.id, today));
   const layout = f.layout ?? 'list';
@@ -76,6 +83,14 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
   // in the address with the filters, so Back and refresh keep it
   const [view, setView] = useState(f.escalated ? 'escalated' : f.starred ? 'starred' : 'all');
+  // the open view follows the address, as the search box does above: a saved view opened by address must show as
+  // open, not keep the view the list mounted with.
+  const [seenView, setSeenView] = useState(f.escalated ? 'escalated' : f.starred ? 'starred' : 'all');
+  const currentView = f.escalated ? 'escalated' : f.starred ? 'starred' : 'all';
+  if (currentView !== seenView) {
+    setSeenView(currentView);
+    setView(currentView);
+  }
   const openView = (v: { key: string; query?: Record<string, unknown> }) => {
     setView(v.key);
     if (v.key === 'all') return go({ starred: undefined, escalated: undefined });

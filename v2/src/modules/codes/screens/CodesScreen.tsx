@@ -31,6 +31,13 @@ const moneyOrDash = (value: number | null, locale: Locale) =>
 const dateOrDash = (value: string | null, locale: Locale) =>
   value === null ? <span className="text-sm text-muted">—</span> : formatDate(`${value}T12:00:00Z`, locale);
 
+const percentOrDash = (value: number | null) =>
+  value === null ? (
+    <span className="text-sm text-muted">—</span>
+  ) : (
+    <span className="font-data text-sm tabular">{`${Number(value).toString()}%`}</span>
+  );
+
 /**
  * The Discount Codes page: every code on its own row, keyed by its id (the same text can repeat under
  * different ids, so the text is never the key), sorted by total discount first. The state filter is
@@ -208,6 +215,10 @@ export function CodesScreen({
             </div>
             <div className="flex flex-wrap gap-6">
               <span className="flex flex-col gap-1">
+                <span className="text-xs text-muted">{t('pages.codes.detail.configuredFee')}</span>
+                {percentOrDash(detail.fee_percent)}
+              </span>
+              <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.columns.totalDiscount')}</span>
                 {moneyOrDash(detail.totals.total_discount, locale)}
               </span>
@@ -366,7 +377,7 @@ export function CodesScreen({
               </div>
             ) : null}
             <FilesSection
-              entity="campaign_code"
+              entity="identifier"
               recordId={detail.id}
               kinds={[{ kind: 'evidence', purpose: 'evidence', label: t('record.files.kinds.evidence') }]}
               files={filesFailed ? null : files}

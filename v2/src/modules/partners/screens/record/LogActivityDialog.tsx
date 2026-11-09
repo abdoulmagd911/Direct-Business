@@ -7,6 +7,7 @@ import { rpc } from '@/core/db/rpc';
 import { lastActivityTypeKey, readLastActivityType, writeLastActivityType } from '@/core/prefs/last-activity-type';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
@@ -210,12 +211,13 @@ export function LogActivityDialog({
         </Field>
         <Field label={t('partners.activity.happenedOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.on}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.on || undefined}
               max={today()}
-              onChange={(e) => setF({ ...f, on: e.target.value })}
+              onChange={(v) => setF({ ...f, on: v ?? '' })}
               className="font-data"
             />
           )}
@@ -243,12 +245,13 @@ export function LogActivityDialog({
         ) : null}
         <Field label={demoSet ? t('partners.activity.demoDay') : t('partners.activity.nextStepOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.nextOn}
-              min={f.on}
-              onChange={(e) => setF({ ...f, nextOn: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.nextOn || undefined}
+              min={f.on || undefined}
+              onChange={(v) => setF({ ...f, nextOn: v ?? '' })}
               className="font-data"
             />
           )}
@@ -337,12 +340,13 @@ export function AddNoteDialog({
         </Field>
         <Field label={t('partners.activity.happenedOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.on}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.on || undefined}
               max={today()}
-              onChange={(e) => setF({ ...f, on: e.target.value })}
+              onChange={(v) => setF({ ...f, on: v ?? '' })}
               className="font-data"
             />
           )}

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useMe } from '@/core/auth/me-context';
 import { errorKey } from '@/core/db/words';
 import { formatDate } from '@/core/i18n/format';
 import { NOTIFICATION_TABS, type Notification, type NotificationTab } from '@/core/notify/useNotifications';
@@ -13,11 +12,11 @@ import { snoozeForAWeek, snoozeUntilTomorrow, tomorrowDayName, weekOutDay } from
 import { Button } from '../Button';
 import { cn } from '../cn';
 import { DataState } from '../DataState';
+import { DatePicker } from '../DatePicker';
 import { Dialog } from '../Dialog';
 import { entityRoute } from '../entity-route';
 import { Field } from '../Field';
 import { IconButton } from '../IconButton';
-import { Input } from '../Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 import { dueState, groupOf, recordName, riyadhDay } from './bell-words';
 import { Tabs } from '../Tabs';
@@ -165,8 +164,10 @@ export function NotificationsPanel({
     }
     return out;
   };
-  // the server's clock, as the gate read it for this page load: the day groups and the snooze days come from it
-  const now = new Date(useMe().session.last_seen_at);
+  // the current time, as the panel opens: the day groups and the snooze days come from it. Before, this was the
+  // session's last_seen_at — frozen at page load — so a page left open past midnight grouped today's notices under
+  // yesterday and snoozed until the wrong tomorrow (F237).
+  const now = new Date();
   const tomorrowName = tomorrowDayName(now, locale);
   const groups = (['today', 'yesterday', 'earlier'] as const)
     .map((g) => ({
@@ -381,14 +382,16 @@ export function NotificationsPanel({
       >
         <Field label={t('notifications.snoozeUntil')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={day}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={day || undefined}
               min={plusDays(now, 1)}
               max={plusDays(now, 30)}
-              onChange={(e) => setDay(e.target.value)}
-              autoFocus
+              onChange={(v) => setDay(v ?? '')}
+              chips="none"
+              inputProps={{ autoFocus: true }}
             />
           )}
         </Field>

@@ -14,14 +14,14 @@ insert into notify.notification (person_id, kind, actor_id, label_key, created_a
 update core.person set nickname_en = 'Admin Nick' where id = current_setting('t.admin')::uuid;
 
 select test.as_person(current_setting('t.am1')::uuid);
-select set_config('t.all', api.notifications()::text, true);
+select set_config('t.all', (api.notifications() -> 'rows')::text, true);
 select test.eq(jsonb_array_length(current_setting('t.all')::jsonb), 3,
   'my bell has my three; another person''s notifications are never in my bell');
 select test.eq(current_setting('t.all')::jsonb -> 0 ->> 'kind', 'changed_by_other', 'newest first');
 select test.eq(current_setting('t.all')::jsonb -> 0 ->> 'actor_name_en', 'Admin Nick',
   'with the current name of who caused it');
-select test.eq(jsonb_array_length(api.notifications('mentions')), 1, 'the Mentions tab');
-select test.eq(api.notifications('assigned') -> 0 ->> 'kind', 'assigned', 'the Assigned to me tab');
+select test.eq(jsonb_array_length(api.notifications('mentions') -> 'rows'), 1, 'the Mentions tab');
+select test.eq(api.notifications('assigned') -> 'rows' -> 0 ->> 'kind', 'assigned', 'the Assigned to me tab');
 select test.raises('select api.notifications(''elsewhere'')', 'P0001', 'an unknown tab', 'notify.unknown_tab');
 select test.eq(api.notifications_unread(), 3, 'three unread');
 
@@ -36,11 +36,11 @@ select test.eq(api.notifications_unread(), 2, 'still two unread');
 
 select test.eq(api.notifications_snooze(array[(current_setting('t.all')::jsonb -> 1 ->> 'id')::uuid],
   now() + interval '1 day'), 1, 'snooze one until tomorrow');
-select test.eq(jsonb_array_length(api.notifications()), 2, 'a snoozed notification leaves the bell');
+select test.eq(jsonb_array_length(api.notifications() -> 'rows'), 2, 'a snoozed notification leaves the bell');
 select test.eq(api.notifications_unread(), 1, 'and the count');
 select set_config('v2.test_now', (now() + interval '25 hours')::text, true);
 select test.as_person(current_setting('t.am1')::uuid);
-select test.eq(jsonb_array_length(api.notifications()), 3, 'and comes back at its time');
+select test.eq(jsonb_array_length(api.notifications() -> 'rows'), 3, 'and comes back at its time');
 select set_config('v2.test_now', '', true);
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.notifications_snooze(%L, %L)', array[(current_setting('t.all')::jsonb -> 2 ->> 'id')],

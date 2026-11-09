@@ -13,7 +13,7 @@ import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
-import { Input } from '@/ui/Input';
+import { DatePicker } from '@/ui/DatePicker';
 import { PageHeader } from '@/ui/PageHeader';
 import { toast } from '@/ui/Toast';
 import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm, type MonthRow } from '../figures';
@@ -201,21 +201,19 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             router.push(`/finance?period=custom&from=${from}&to=${to}`);
           }}
         >
-          <Input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            aria-label={t('finance.period.from')}
+          <DatePicker
+            id="finance-from"
+            value={from || undefined}
+            onChange={(v) => setFrom(v ?? '')}
             className="w-[10.5rem]"
-            data-finance-from
+            inputProps={{ 'aria-label': t('finance.period.from'), 'data-finance-from': '' }}
           />
-          <Input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            aria-label={t('finance.period.to')}
+          <DatePicker
+            id="finance-to"
+            value={to || undefined}
+            onChange={(v) => setTo(v ?? '')}
             className="w-[10.5rem]"
-            data-finance-to
+            inputProps={{ 'aria-label': t('finance.period.to'), 'data-finance-to': '' }}
           />
           <Button type="submit" variant="secondary" data-finance-apply>
             {t('finance.period.apply')}

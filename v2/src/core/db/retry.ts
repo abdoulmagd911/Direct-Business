@@ -38,3 +38,24 @@ export async function readTwice<R extends CallResult>(
   await wait(RETRY_DELAY_MS);
   return call();
 }
+
+/**
+ * Runs one read up to `attempts` times in all, waiting `delays` between tries (the last delay repeats when there
+ * are more tries than delays). For the layout's person read only (get-me.ts): the gateway sometimes holds a call
+ * for 5 s and gives up at 10 s, and a second try almost always lands — a third covers a stall that outlasts the
+ * second. The limit is honest: an outage of ~20 s cannot be retried through, and that is what the layout's
+ * retryable state is for. Only reads go through here, so a second try never does anything twice.
+ */
+export async function readRetry<R extends CallResult>(
+  call: () => PromiseLike<R>,
+  attempts = 3,
+  delays: number[] = [RETRY_DELAY_MS, 1000],
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms)),
+): Promise<R> {
+  let last = await call();
+  for (let i = 1; i < attempts && isTransient(last); i++) {
+    await wait(delays[Math.min(i - 1, delays.length - 1)] ?? RETRY_DELAY_MS);
+    last = await call();
+  }
+  return last;
+}

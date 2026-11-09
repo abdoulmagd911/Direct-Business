@@ -4,7 +4,7 @@ import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { toast } from '@/ui/Toast';
 import { askConflict, type ConflictChoice } from './conflict-store';
-import { refetchAll } from './refetch';
+import { commandFinished, commandStarted, refetchAll } from './refetch';
 
 export type CommandWords = {
   /** The done line, e.g. "Saved" or "Ahmed switched off". */
@@ -125,32 +125,39 @@ export async function command<T extends Written>(
   write: () => Promise<T>,
   opts: CommandOptions<T> = {},
 ): Promise<T | undefined> {
+  // the write is in flight: the focus refetch must not fire under it (F131), so the busy count is held for the
+  // whole command — write, conflict resolution and the refetch — and released in the finally, success or failure.
+  commandStarted();
   try {
-    const result = await write();
-    await done(words, result, opts.after, opts.extra, opts.undoDirect);
-    return result;
-  } catch (e) {
-    if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
-      let again: Awaited<ReturnType<typeof resolveConflict>>;
-      try {
-        again = await resolveConflict(e, opts.conflict, opts.nameOf);
-      } catch (e3) {
-        // the fresh read for the dialog failed: said in words, and the caller's busy state is released (QA-74)
-        refuse(words, e3);
-        return undefined;
+    try {
+      const result = await write();
+      await done(words, result, opts.after, opts.extra, opts.undoDirect);
+      return result;
+    } catch (e) {
+      if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
+        let again: Awaited<ReturnType<typeof resolveConflict>>;
+        try {
+          again = await resolveConflict(e, opts.conflict, opts.nameOf);
+        } catch (e3) {
+          // the fresh read for the dialog failed: said in words, and the caller's busy state is released (QA-74)
+          refuse(words, e3);
+          return undefined;
+        }
+        if (again === 'cancelled') return undefined;
+        try {
+          const result = (await again()) as T;
+          await done(words, result, opts.after, opts.extra, opts.undoDirect);
+          return result;
+        } catch (e2) {
+          refuse(words, e2);
+          return undefined;
+        }
       }
-      if (again === 'cancelled') return undefined;
-      try {
-        const result = (await again()) as T;
-        await done(words, result, opts.after, opts.extra, opts.undoDirect);
-        return result;
-      } catch (e2) {
-        refuse(words, e2);
-        return undefined;
-      }
+      refuse(words, e);
+      return undefined;
     }
-    refuse(words, e);
-    return undefined;
+  } finally {
+    commandFinished();
   }
 }
 

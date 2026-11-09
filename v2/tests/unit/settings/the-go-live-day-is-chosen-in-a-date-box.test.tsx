@@ -1,7 +1,8 @@
 /**
- * The day the app went live (app.go_live_on) is chosen in the date box — with the real calendar behind it, never typed as
- * 2026-10-27 — and the card writes it the one way the app writes a date (27 Oct 2026; in Arabic its own month). Nothing
- * chosen yet reads as not set. Made-up day. Sabotages: tests/sabotage/go-live-day.mjs.
+ * The day the app went live (app.go_live_on) is chosen in the shared date picker — typed as a date the app writes
+ * (27 Oct 2026) or picked from the calendar, never typed as 2026-10-27 — and the card writes it the one way the app
+ * writes a date (27 Oct 2026; in Arabic its own month). Nothing chosen yet reads as not set. Made-up day.
+ * Sabotages: tests/sabotage/go-live-day.mjs.
  */
 import { NextIntlClientProvider } from 'next-intl';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -24,10 +25,10 @@ describe('the day the app went live', () => {
     const html = draw(
       <SchemaEditor settingKey="app.go_live_on" schema={schema} value="2026-10-27" onChange={() => {}} label="Day" />,
     );
-    expect(html).toContain('data-date-box');
-    expect(html).toContain('type="date"');
-    expect(html).toContain('value="2026-10-27"');
-    expect(html).toMatch(/data-date-text[^>]*>27 Oct 2026</);
+    expect(html).toContain('data-date-picker');
+    expect(html).not.toContain('type="date"');
+    expect(html).toContain('value="27 Oct 2026"');
+    expect(html).toMatch(/data-date-result[^>]*>Tue, 27 Oct 2026</);
   });
   it('is written 27 Oct 2026 on the card, and with the Arabic month in Arabic', () => {
     expect(draw(<SchemaValue settingKey="app.go_live_on" value="2026-10-27" />)).toBe('27 Oct 2026');
@@ -38,7 +39,8 @@ describe('the day the app went live', () => {
     const html = draw(
       <SchemaEditor settingKey="app.go_live_on" schema={schema} value="" onChange={() => {}} label="Day" />,
     );
-    expect(html).toContain('type="date"');
+    expect(html).toContain('data-date-picker');
+    expect(html).not.toContain('type="date"');
     expect(html).toContain('value=""');
   });
   it('leaves other text settings as plain text boxes', () => {
@@ -52,5 +54,6 @@ describe('the day the app went live', () => {
       />,
     );
     expect(html).not.toContain('data-date-box');
+    expect(html).not.toContain('data-date-picker');
   });
 });

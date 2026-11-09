@@ -7,6 +7,7 @@ import { withRefusal } from '@/core/commands/refusal';
 import { formatDate } from '@/core/i18n/format';
 import { nameOf, tradeName, type ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
+import { DatePicker } from '@/ui/DatePicker';
 import { BUILT } from '@/ui/shell/CreateMenu';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
@@ -81,6 +82,13 @@ export function LogFromNoteDialog({
     body: noteText(note),
   });
   const [f, setF] = useState(fresh);
+  // the form is prefilled from the note as it stands when the dialog opens, not as it stood when the page mounted
+  // (the dialog stays mounted while the note is edited — the same mount-time prefill as F059).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setF(fresh());
+  }
   const [busy, setBusy] = useState(false);
   const choices = types.filter((x) => CALL_OR_MEETING.includes(x.key));
   const type = types.find((x) => x.key === f.type);
@@ -167,12 +175,13 @@ export function LogFromNoteDialog({
         </Field>
         <Field label={t('pages.myDay.note.happenedOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.on}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.on || undefined}
               max={today()}
-              onChange={(e) => setF({ ...f, on: e.target.value })}
+              onChange={(v) => setF({ ...f, on: v ?? '' })}
               className="font-data"
             />
           )}
@@ -206,6 +215,13 @@ export function ReminderDialog({
   const words = useWords();
   const fresh = () => ({ ...tomorrowAtNine(), text: noteTitle(note) });
   const [f, setF] = useState(fresh);
+  // the form is prefilled from the note as it stands when the dialog opens, not as it stood when the page mounted
+  // (the dialog stays mounted while the note is edited — the same mount-time prefill as F059).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setF(fresh());
+  }
   const [busy, setBusy] = useState(false);
   // the time box holds what was typed; f.time keeps the last readable time, so whether the box reads as a time is held here
   const [timeOk, setTimeOk] = useState(true);
@@ -264,12 +280,13 @@ export function ReminderDialog({
         <div className="flex flex-wrap gap-3" data-reminder-when>
           <Field label={t('pages.myDay.quick.day')} className="min-w-0 flex-1">
             {(p) => (
-              <Input
-                {...p}
-                type="date"
-                value={f.day}
-                onChange={(e) => e.target.value && setF({ ...f, day: e.target.value })}
-                data-reminder-day
+              <DatePicker
+                id={p.id}
+                describedBy={p['aria-describedby']}
+                invalid={p['aria-invalid']}
+                value={f.day || undefined}
+                onChange={(v) => v && setF({ ...f, day: v })}
+                inputProps={{ 'data-reminder-day': '' }}
               />
             )}
           </Field>

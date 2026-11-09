@@ -21,7 +21,7 @@ export function TopBar({
   onOpenSearch: () => void;
   onOpenBell?: () => void;
   bellOpen?: boolean;
-  /** api.notifications_unread, kept live by the shell (P3-7). */
+  /** The bell's unread count, from the same read as its list (D36(c)), kept live by the shell (P3-7). */
   unread?: number;
 }) {
   const t = useTranslations('top');

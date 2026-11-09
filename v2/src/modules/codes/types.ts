@@ -45,6 +45,8 @@ export type CodeDetail = {
   valid_from: string | null;
   valid_to: string | null;
   state: CodeState;
+  /** The configured discount value (the latest code_terms row's fee_percent); empty when no terms row exists, never 0. */
+  fee_percent: number | null;
   totals: {
     total_discount: number | null;
     total_collected: number | null;

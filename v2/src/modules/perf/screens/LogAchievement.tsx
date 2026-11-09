@@ -6,6 +6,7 @@ import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { TIME_ZONE } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
@@ -228,7 +229,14 @@ export function LogAchievement({
       </Field>
       <Field label={t('fields.date')}>
         {(p) => (
-          <Input {...p} type="date" value={day} max={riyadhToday()} onChange={(e) => void onDay(e.target.value)} />
+          <DatePicker
+            id={p.id}
+            describedBy={p['aria-describedby']}
+            invalid={p['aria-invalid']}
+            value={day || undefined}
+            max={riyadhToday()}
+            onChange={(v) => void onDay(v ?? '')}
+          />
         )}
       </Field>
       <Field label={t('fields.organisation')}>

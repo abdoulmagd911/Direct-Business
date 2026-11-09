@@ -389,7 +389,7 @@ test('11 · the avatar menu holds exactly My profile and Sign out', async ({ pag
   await expect(page.getByRole('menuitem')).toHaveText(['My profile', 'Sign out']);
 });
 
-test("12 · a member's My profile: five cards, seven notification switches, none of the cut fields; a manager's twenty-seven", async ({
+test("12 · a member's My profile: five cards, eight notification switches, none of the cut fields; a manager's twenty-seven", async ({
   page,
   browser,
 }) => {
@@ -399,7 +399,7 @@ test("12 · a member's My profile: five cards, seven notification switches, none
     .locator('[data-profile-card]')
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-profile-card')));
   expect(cards).toEqual(['profile', 'preferences', 'notifications', 'password', 'devices']);
-  await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(7);
+  await expect(page.locator('[data-profile-card="notifications"] [role="switch"]')).toHaveCount(8);
   for (const gone of ['Nickname', 'Badge', 'Start page', 'Drawer', 'Full name', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
   // the owner's ruling of 14 Oct (V636): a member picks a theme of their own, so the Theme box is there

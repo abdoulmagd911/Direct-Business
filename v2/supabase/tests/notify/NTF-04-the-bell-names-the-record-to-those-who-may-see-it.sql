@@ -32,7 +32,7 @@ insert into notify.notification (person_id, kind, actor_id, entity_table, entity
    current_setting('t.t')::uuid, 'task.changed', now());
 
 select test.as_person(current_setting('t.am')::uuid);
-select set_config('t.bell', api.notifications()::text, true);
+select set_config('t.bell', (api.notifications() -> 'rows')::text, true);
 select test.eq((select x ->> 'title' from jsonb_array_elements(current_setting('t.bell')::jsonb) x
                 where x ->> 'entity_id' = current_setting('t.t') and x ->> 'kind' = 'assigned'),
   (current_setting('t.made')::jsonb ->> 'number') || ' · Made-up hotel call', 'a task reads as its number and title');
@@ -47,4 +47,4 @@ select test.as_owner();
 select test.ok(not authz.can_see_as(current_setting('t.far')::uuid, 'work.task', current_setting('t.t')::uuid),
   'the far head may not see the task');
 select test.as_person(current_setting('t.far')::uuid);
-select test.eq(api.notifications() -> 0 -> 'title', 'null'::jsonb, 'so their bell gives no name for it');
+select test.eq(api.notifications() -> 'rows' -> 0 -> 'title', 'null'::jsonb, 'so their bell gives no name for it');

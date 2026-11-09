@@ -8,6 +8,7 @@ import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
 import type { MyNote } from '@/modules/my-day/types';
 import type { PartnerRef } from '@/modules/my-day/types';
 import { Button } from '@/ui/Button';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
@@ -49,6 +50,13 @@ export function AchievementFromNoteDialog({
     ref: '',
   });
   const [f, setF] = useState(fresh);
+  // the form is prefilled from the note as it stands when the dialog opens, not as it stood when the page mounted:
+  // the dialog stays mounted while the note is edited, so a mount-time prefill showed the old title (F059).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setF(fresh());
+  }
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [systems, setSystems] = useState<System[]>([]);
   const [busy, setBusy] = useState(false);
@@ -155,12 +163,13 @@ export function AchievementFromNoteDialog({
         </Field>
         <Field label={t('fields.date')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.on}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.on || undefined}
               max={riyadhToday()}
-              onChange={(e) => setF({ ...f, on: e.target.value })}
+              onChange={(v) => setF({ ...f, on: v ?? '' })}
               className="font-data"
             />
           )}

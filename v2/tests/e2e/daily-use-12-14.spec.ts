@@ -22,11 +22,15 @@ for (const width of WIDTHS) {
     const created = page.getByLabel('Created');
     await created.fill('2026-09-03');
     await expect(created).toHaveValue('2026-09-03');
-    const shown = created.locator('xpath=..').locator('[data-date-text]');
-    await expect(shown).toHaveText('3 Sep 2026');
-    const text = await page.locator('[data-date-text]').allTextContents();
-    for (const t of text)
-      expect(t, 'one format for every date box').toMatch(/^(—|dd mmm yyyy|\d{1,2} [A-Z][a-z]{2} \d{4})$/);
+    await created.blur();
+    await expect(created, 'the box shows the date the way the app writes it').toHaveValue('3 Sep 2026');
+    const picker = created.locator('xpath=ancestor::div[@data-date-picker]');
+    await expect(picker.locator('[data-date-result]')).toHaveText('Thu, 3 Sep 2026');
+    // one format for every date box on the page: a written day, or nothing yet
+    const values = await page
+      .locator('[data-date-picker] input')
+      .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
+    for (const v of values) expect(v, 'one format for every date box').toMatch(/^$|^\d{1,2} [A-Z][a-z]{2} \d{4}$/);
     const box = await created.boundingBox();
     expect(box!.height, 'a 44 px target').toBeGreaterThanOrEqual(40);
     expect(
@@ -41,85 +45,37 @@ for (const width of WIDTHS) {
     await signIn(page, me.email, '/finance/new');
     await hydrated(page);
     const created = page.getByLabel('Created');
-    const shown = created.locator('xpath=..').locator('[data-date-text]');
-    await expect(created, 'the real field stays out of sight until it is reached').toHaveCSS('opacity', '0');
-    const box = created.locator('xpath=..');
-    const height = (await box.boundingBox())!.height;
+    const picker = created.locator('xpath=ancestor::div[@data-date-picker]');
+    const result = picker.locator('[data-date-result]');
+    await expect(result, 'no date said back before one is typed').toBeHidden();
     await created.focus();
-    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.type('20260309');
+    await expect(created).toHaveValue('20260309');
+    await expect(result, 'the date typed is said back the app way').toHaveText('Mon, 9 Mar 2026');
+    await expect(result).toBeVisible();
     await page.keyboard.press('Tab');
-    await expect(created, 'the real date field shows while it has keyboard focus').toHaveCSS('opacity', '1');
-    await expect(shown, 'the written date steps aside while it has keyboard focus').toHaveCSS('visibility', 'hidden');
-    const echo = created.locator('xpath=..').locator('[data-date-echo]');
-    await page.keyboard.type('03092026');
-    await expect(created).toHaveValue('2026-03-09');
-    await expect(echo, 'the date typed is written beside the field the app way').toHaveText('9 Mar 2026');
-    await expect(echo).toBeVisible();
-    expect((await box.boundingBox())!.height, 'writing the day beside the field moves nothing below it').toBe(height);
-    await page.keyboard.press('Tab');
-    await expect(created).toHaveCSS('opacity', '0');
-    await expect(shown).toHaveText('9 Mar 2026');
-    await expect(echo, 'and steps away when the field is left').toBeHidden();
+    await expect(created, 'the box keeps the date the app way once it is left').toHaveValue('9 Mar 2026');
+    await expect(result).toHaveText('Mon, 9 Mar 2026');
   });
 
-  for (const rtl of [false, true]) {
-    test(`the day written for a focused date box never meets the browser's own text — at ${width} px${rtl ? ', right to left' : ''}`, async ({
-      page,
-      context,
-      baseURL,
-    }) => {
-      const me = await makePerson({ admin: true });
-      if (rtl) await context.addCookies([{ name: 'v2.dir', value: 'rtl', url: baseURL! }]);
-      await page.setViewportSize({ width, height: 900 });
-      await signIn(page, me.email, '/finance/new');
-      await hydrated(page);
-      if (rtl) expect(await page.evaluate(() => document.documentElement.dir)).toBe('rtl');
-
-      // the box with a date, and (below) the reminder's Day box: for each, focused by keyboard with a value
-      const check = async (field: ReturnType<Page['getByLabel']>, what: string) => {
-        await field.focus();
-        await page.keyboard.press('Shift+Tab');
-        await page.keyboard.press('Tab');
-        const echo = field.locator('xpath=..').locator('[data-date-echo]');
-        await expect(echo, `${what}: the written day shows while the field has focus`).toBeVisible();
-        const [e, f] = [await echo.boundingBox(), await field.boundingBox()];
-        expect(e!.y + e!.height, `${what}: the written day is above the field, not on its text`).toBeLessThanOrEqual(
-          f!.y + 0.5,
-        );
-        expect(e!.x, `${what}: and inside the screen on the left`).toBeGreaterThanOrEqual(0);
-        expect(e!.x + e!.width, `${what}: and on the right`).toBeLessThanOrEqual(width);
-        // and clear of the field's label row ("Created", "Required"): on the side away from the label in both directions
-        const row = await field.evaluate((el) => {
-          const label = document.querySelector(`label[for="${el.id}"]`);
-          return Array.from(label?.parentElement?.children ?? []).map((c) => {
-            const r = c.getBoundingClientRect();
-            return { x: r.x, y: r.y, w: r.width, h: r.height };
-          });
-        });
-        expect(row.length, `${what}: the label row was found`).toBeGreaterThan(0);
-        for (const l of row) {
-          const meets = e!.x < l.x + l.w && l.x < e!.x + e!.width && e!.y < l.y + l.h && l.y < e!.y + e!.height;
-          expect(meets, `${what}: the written day is clear of the label row`).toBe(false);
-        }
-      };
-      await page.getByLabel('Created').fill('2026-10-09');
-      await check(page.getByLabel('Created'), 'a date');
-
-      // a note's Turn into → Reminder has the Day box (its time is the app's own 24-hour box since #378)
-      const made = await callAs(page.context(), 'note_capture', {
-        p_kind: 'sticky',
-        p_values: { title: `Made-up reminder box ${tag()}`, visibility: 'private' },
-      });
-      expect(made.status, JSON.stringify(made.body)).toBe(200);
-      await page.goto(`/my-day/notes/${(made.body as { id: string }).id}`);
-      await hydrated(page);
-      await page.locator('[data-turn-into]').click();
-      await page.locator('[data-turn-kind="reminder"]').click();
-      const when = page.locator('[data-reminder-form] [data-reminder-day]');
-      await when.fill('2026-10-09');
-      await check(when, "the reminder's day");
+  test(`Today sets the date, and the calendar opens — at ${width} px`, async ({ page }) => {
+    const me = await makePerson({ admin: true });
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page, me.email, '/finance/new');
+    await hydrated(page);
+    const created = page.getByLabel('Created');
+    const picker = created.locator('xpath=ancestor::div[@data-date-picker]');
+    const todayWritten = await page.evaluate(() => {
+      const [y, m, d] = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' }).split('-').map(Number);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${d} ${months[m! - 1]} ${y}`;
     });
-  }
+    await picker.locator('[data-date-chip="today"]').click();
+    await expect(created).toHaveValue(todayWritten);
+    await picker.locator('[data-date-calendar]').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
 
   test(`a reminder for a later day says Done and wraps its title — at ${width} px`, async ({ page }) => {
     const me = await makePerson({ admin: true });

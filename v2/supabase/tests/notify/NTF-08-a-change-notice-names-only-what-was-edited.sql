@@ -23,7 +23,7 @@ select test.as_person(current_setting('t.admin')::uuid);
 select api.task_status_set(current_setting('t.t')::uuid, 'done');
 
 select test.as_person(current_setting('t.am')::uuid);
-select set_config('t.bell', api.notifications()::text, true);
+select set_config('t.bell', (api.notifications() -> 'rows')::text, true);
 select test.eq((select x -> 'fields' from jsonb_array_elements(current_setting('t.bell')::jsonb) x
                 where x ->> 'label_key' = 'task.created'), '[]'::jsonb,
   'a record someone added names no fields: not its id, keys or every column the insert wrote');

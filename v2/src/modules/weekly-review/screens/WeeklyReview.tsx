@@ -10,6 +10,7 @@ import { TIME_ZONE, formatDate } from '@/core/i18n/format';
 import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
@@ -471,7 +472,16 @@ function QuickLogForm({ task, categories, onClose }: { task: NudgeTask; categori
           {(p) => <Input {...p} inputMode="numeric" value={number} onChange={(e) => setNumber(e.target.value)} />}
         </Field>
         <Field label={t('pages.achievements.fields.date')}>
-          {(p) => <Input {...p} type="date" value={day} max={riyadhToday()} onChange={(e) => setDay(e.target.value)} />}
+          {(p) => (
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={day || undefined}
+              max={riyadhToday()}
+              onChange={(v) => setDay(v ?? '')}
+            />
+          )}
         </Field>
       </div>
       {cat?.has_deal_value ? <p className="text-sm text-muted">{t('pages.achievements.notRevenue')}</p> : null}

@@ -10,6 +10,7 @@ import { today, useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { Confirm } from '@/ui/Confirm';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { IconButton } from '@/ui/IconButton';
 import { Input, Textarea } from '@/ui/Input';
@@ -410,13 +411,14 @@ export function NotePage({
           ) : null}
           <Field label={t('pages.myDay.note.happenedOn')}>
             {(p) => (
-              <Input
-                {...p}
-                type="date"
-                value={d.happened_on}
+              <DatePicker
+                id={p.id}
+                describedBy={p['aria-describedby']}
+                invalid={p['aria-invalid']}
+                value={d.happened_on || undefined}
                 max={today()}
                 readOnly={!mine}
-                onChange={(e) => setD({ ...d, happened_on: e.target.value })}
+                onChange={(v) => setD({ ...d, happened_on: v ?? '' })}
                 className="font-data"
               />
             )}
@@ -438,12 +440,13 @@ export function NotePage({
               </Field>
               <Field label={t('pages.myDay.note.meetingOn')}>
                 {(p) => (
-                  <Input
-                    {...p}
-                    type="date"
-                    value={d.meeting_on}
+                  <DatePicker
+                    id={p.id}
+                    describedBy={p['aria-describedby']}
+                    invalid={p['aria-invalid']}
+                    value={d.meeting_on || undefined}
                     readOnly={!mine}
-                    onChange={(e) => setD({ ...d, meeting_on: e.target.value })}
+                    onChange={(v) => setD({ ...d, meeting_on: v ?? '' })}
                     className="font-data"
                   />
                 )}

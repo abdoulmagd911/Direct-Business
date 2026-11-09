@@ -21,7 +21,7 @@ select set_config('t.t', current_setting('t.made')::jsonb ->> 'id', true);
 select api.task_status_set(current_setting('t.t')::uuid, 'done');
 
 select test.as_person(current_setting('t.am')::uuid);
-select set_config('t.bell', api.notifications()::text, true);
+select set_config('t.bell', (api.notifications() -> 'rows')::text, true);
 select set_config('t.n', (select x::text from jsonb_array_elements(current_setting('t.bell')::jsonb) x
                           where x ->> 'kind' = 'changed_by_other'), true);
 select test.eq(current_setting('t.n')::jsonb ->> 'entity', 'task',
@@ -43,7 +43,7 @@ values (current_setting('t.far')::uuid, 'followed_change', current_setting('t.ad
         current_setting('t.t')::uuid, (current_setting('t.n')::jsonb ->> 'request_id')::uuid, 'task.status_set');
 select test.as_person(current_setting('t.far')::uuid);
 select test.eq((select jsonb_build_object('title', x -> 'title', 'fields', x -> 'fields')
-                from jsonb_array_elements(api.notifications()) x where x ->> 'entity_id' = current_setting('t.t')),
+                from jsonb_array_elements(api.notifications() -> 'rows') x where x ->> 'entity_id' = current_setting('t.t')),
   jsonb_build_object('title', null, 'fields', '[]'::jsonb),
   'a reader who may not see the task gets neither its name nor what changed');
 
@@ -53,5 +53,5 @@ insert into notify.notification (person_id, kind, actor_id, entity_table, entity
 values (current_setting('t.am')::uuid, 'changed_by_other', current_setting('t.admin')::uuid, 'core.person',
         current_setting('t.am')::uuid, 'person.updated');
 select test.as_person(current_setting('t.am')::uuid);
-select test.eq((select x ->> 'title' from jsonb_array_elements(api.notifications()) x
+select test.eq((select x ->> 'title' from jsonb_array_elements(api.notifications() -> 'rows') x
                 where x ->> 'label_key' = 'person.updated'), 'Test Bell Owner', 'a person reads by their name');

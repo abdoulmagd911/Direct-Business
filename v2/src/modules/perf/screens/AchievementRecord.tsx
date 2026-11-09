@@ -13,6 +13,7 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { avatarOf, describeWith, nameOf } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { IconButton } from '@/ui/IconButton';
@@ -396,12 +397,13 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           </Field>
           <Field label={t('fields.date')}>
             {(p) => (
-              <Input
-                {...p}
-                type="date"
+              <DatePicker
+                id={p.id}
+                describedBy={p['aria-describedby']}
+                invalid={p['aria-invalid']}
                 max={riyadhToday()}
-                value={f.happened_on}
-                onChange={(e) => setF({ ...f, happened_on: e.target.value })}
+                value={f.happened_on || undefined}
+                onChange={(v) => setF({ ...f, happened_on: v ?? '' })}
               />
             )}
           </Field>
@@ -468,7 +470,15 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         }}
       >
         <Field label={t('fields.date')}>
-          {(p) => <Input {...p} type="date" value={moveTo} onChange={(e) => setMoveTo(e.target.value)} />}
+          {(p) => (
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={moveTo || undefined}
+              onChange={(v) => setMoveTo(v ?? '')}
+            />
+          )}
         </Field>
       </ReasonDialog>
 

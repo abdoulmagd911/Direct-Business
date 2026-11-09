@@ -10,6 +10,7 @@ import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
@@ -173,7 +174,17 @@ export function Checklist({
             )}
           </Field>
           <Field label={t('pages.tasks.fields.due')} className="sm:w-44">
-            {(p) => <Input {...p} type="date" value={due} onChange={(e) => setDue(e.target.value)} name="item-due" />}
+            {(p) => (
+              <DatePicker
+                id={p.id}
+                describedBy={p['aria-describedby']}
+                invalid={p['aria-invalid']}
+                value={due || undefined}
+                onChange={(v) => setDue(v ?? '')}
+                chips="due"
+                name="item-due"
+              />
+            )}
           </Field>
           <Button type="submit" loading={busy === 'add'}>
             {t('common.add')}

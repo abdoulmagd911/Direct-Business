@@ -36,10 +36,12 @@ export default async function CodesPage({
     (serverRpc('partners', { p_filters: { side: 'client' } as never, p_limit: 500 }) as Promise<unknown>).catch(
       () => null,
     ),
-    // The selected code's own files (a failed read says so on the detail, never an empty section).
+    // The selected code's own files (a failed read says so on the detail, never an empty section). The entity is
+    // 'identifier': the id is a partner.identifier row, and the codes-level carve-out in 20261109000000 lets a
+    // codes reader see it (F157 — 'campaign_code' is the short-trial code table, which never holds it).
     level === 'none' || !codeId
       ? null
-      : (serverRpc('files', { p_entity: 'campaign_code', p_id: codeId }) as Promise<unknown>).catch(() => null),
+      : (serverRpc('files', { p_entity: 'identifier', p_id: codeId }) as Promise<unknown>).catch(() => null),
   ]);
   const lang = (await getLocale()) as 'en' | 'ar';
   const partners: PartnerOption[] = ((clients as PartnersAnswer | null)?.rows ?? []).map((p) => ({

@@ -136,6 +136,13 @@ export function PartnersList({
     if (wantsNew && full) setCreating(true);
   }
   const [q, setQ] = useState(filters.q);
+  // the box shows the search the address holds: "Clear all" (and any navigation) changes the address, so the box
+  // follows it — a box that kept its mount-time text after a clear showed a search that was no longer running (F102).
+  const [seenQ, setSeenQ] = useState(filters.q);
+  if (filters.q !== seenQ) {
+    setSeenQ(filters.q);
+    setQ(filters.q);
+  }
   const go = (f: ListFilters) => router.push(addressOf(base, f));
   const set = (patch: Partial<ListFilters>) => go({ ...filters, ...patch, view: '' });
 

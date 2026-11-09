@@ -1,5 +1,5 @@
 'use client';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { CappedNote } from '@/modules/partners/screens/CappedNote';
 import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
-import { Input } from '@/ui/Input';
+import { MonthPicker } from '@/ui/MonthPicker';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
@@ -91,33 +91,12 @@ export function AchievementList({
         </div>
         <label className="flex flex-col gap-0.5 text-sm text-muted" data-month-filter>
           {t('filters.month')}
-          <span className="relative">
-            <Input
-              type="month"
-              className={cn('w-44', !filter.month && 'text-transparent')}
-              value={filter.month ?? ''}
-              onChange={(e) => go({ ...filter, month: e.target.value || undefined })}
-            />
-            {/* an empty month box draws only dashes on some phones: say what it means instead */}
-            {!filter.month ? (
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 start-3 flex items-center text-base text-muted"
-              >
-                {t('filters.anyMonth')}
-              </span>
-            ) : (
-              <button
-                type="button"
-                aria-label={t('filters.clearMonth')}
-                data-clear-month
-                onClick={() => go({ ...filter, month: undefined })}
-                className="absolute inset-y-0 end-9 inline-grid size-8 place-items-center text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
-          </span>
+          <MonthPicker
+            id="month-filter"
+            value={filter.month}
+            onChange={(v) => go({ ...filter, month: v })}
+            className="w-44"
+          />
         </label>
         {filtered && page?.rows.length !== 0 ? (
           <Button size="sm" variant="ghost" onClick={() => go({})} data-clear-filters-row>

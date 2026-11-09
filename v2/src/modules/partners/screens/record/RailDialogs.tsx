@@ -5,6 +5,7 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { DatePicker } from '@/ui/DatePicker';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
@@ -128,22 +129,24 @@ export function IdentifierDialog({
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('partners.identifier.validFrom')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="date"
-                  value={f.from}
-                  onChange={(e) => setF({ ...f, from: e.target.value })}
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={f.from || undefined}
+                  onChange={(v) => setF({ ...f, from: v ?? '' })}
                   className="font-data"
                 />
               )}
             </Field>
             <Field label={t('partners.identifier.validTo')}>
               {(p) => (
-                <Input
-                  {...p}
-                  type="date"
-                  value={f.to}
-                  onChange={(e) => setF({ ...f, to: e.target.value })}
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={f.to || undefined}
+                  onChange={(v) => setF({ ...f, to: v ?? '' })}
                   className="font-data"
                 />
               )}
@@ -627,23 +630,25 @@ export function ContractDialog({
         </Field>
         <Field label={t('partners.contract.startOn')}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.start_on}
-              onChange={(e) => setF({ ...f, start_on: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.start_on || undefined}
+              onChange={(v) => setF({ ...f, start_on: v ?? '' })}
               className="font-data"
             />
           )}
         </Field>
         <Field label={`${t('partners.contract.endOn')} (${t('common.optional')})`}>
           {(p) => (
-            <Input
-              {...p}
-              type="date"
-              value={f.end_on}
-              min={f.start_on}
-              onChange={(e) => setF({ ...f, end_on: e.target.value })}
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={f.end_on || undefined}
+              min={f.start_on || undefined}
+              onChange={(v) => setF({ ...f, end_on: v ?? '' })}
               className="font-data"
             />
           )}

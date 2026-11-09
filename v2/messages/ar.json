@@ -206,6 +206,17 @@
     "datePlaceholder": "يوم شهر سنة",
     "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة"
   },
+  "datePicker": {
+    "thisMonth": "هذا الشهر",
+    "clear": "مسح",
+    "openCalendar": "فتح التقويم",
+    "previousMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "previousYear": "السنة السابقة",
+    "nextYear": "السنة التالية",
+    "placeholder": "على سبيل المثال، 20 أكتوبر 2026",
+    "monthPlaceholder": "على سبيل المثال، أكتوبر 2026"
+  },
   "state": {
     "failed": "تعذّر تحميل {what}",
     "noAccess": "ليس لديك صلاحية الوصول إلى {what}",
@@ -668,7 +679,8 @@
         "remove": "إزالة",
         "removeTitle": "إزالة هذا الاستخدام؟",
         "removed": "تمت إزالة الاستخدام",
-        "viewInFinance": "عرض في المالية"
+        "viewInFinance": "عرض في المالية",
+        "configuredFee": "الخصم المُعد"
       },
       "addUse": {
         "invoiceNumber": "رقم الفاتورة",
@@ -2649,6 +2661,7 @@
       "download": "تنزيل",
       "remove": "إزالة",
       "removeTitle": "إزالة {name}؟",
+      "removed": "تمت إزالة الملف",
       "kind": "النوع",
       "none": "لا توجد ملفات بعد",
       "addedOn": "أُضيف {date}",

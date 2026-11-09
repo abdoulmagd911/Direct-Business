@@ -9,6 +9,7 @@ import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { StatusChip } from '@/ui/Chip';
 import { Field } from '@/ui/Field';
 import { IconButton } from '@/ui/IconButton';
@@ -243,10 +244,26 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                 )}
               </Field>
               <Field label={t('finance.number.created')} error={problem('created')} required={t('common.required')}>
-                {(p) => <Input {...p} type="date" value={d.created} onChange={(e) => set('created', e.target.value)} />}
+                {(p) => (
+                  <DatePicker
+                    id={p.id}
+                    describedBy={p['aria-describedby']}
+                    invalid={p['aria-invalid']}
+                    value={d.created || undefined}
+                    onChange={(v) => set('created', v ?? '')}
+                  />
+                )}
               </Field>
               <Field label={t('finance.number.paid')} error={problem('paid')}>
-                {(p) => <Input {...p} type="date" value={d.paid} onChange={(e) => set('paid', e.target.value)} />}
+                {(p) => (
+                  <DatePicker
+                    id={p.id}
+                    describedBy={p['aria-describedby']}
+                    invalid={p['aria-invalid']}
+                    value={d.paid || undefined}
+                    onChange={(v) => set('paid', v ?? '')}
+                  />
+                )}
               </Field>
               {showMoney ? (
                 <Field label={t('finance.number.total')} error={problem('total')}>

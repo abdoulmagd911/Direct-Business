@@ -1,17 +1,20 @@
 'use client';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
+import { command } from '@/core/commands/run';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
+import { useCommandWords } from './words';
 
 /** One file on a record, as api.files answers it (the CompanyFile shape, generalised). */
 export type RecordFile = {
@@ -126,6 +129,7 @@ export function FilesSection({
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
+  const words = useCommandWords();
   const [kind, setKind] = useState<string>(kinds[0]?.kind ?? '');
   const [reviewOn, setReviewOn] = useState('');
   const [picked, setPicked] = useState<File[]>([]);
@@ -133,6 +137,19 @@ export function FilesSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<RecordFile | null>(null);
+  // a removal is in flight from the confirm until the refreshed list is triggered: the row's actions stay locked
+  // so no second remove runs against the list as it stood before the removal (F145).
+  const [removingBusy, setRemovingBusy] = useState(false);
+  const removingBusyRef = useRef(false);
+  // the removal unlocks when the refreshed list lands: the files prop is a fresh read after the refetch, so a
+  // new files array means the list on screen is no longer the pre-removal one. The ref (not the state) is the
+  // trigger guard, so setting the flag does not itself fire this effect.
+  useEffect(() => {
+    if (removingBusyRef.current) {
+      removingBusyRef.current = false;
+      setRemovingBusy(false);
+    }
+  }, [files]);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -179,7 +196,9 @@ export function FilesSection({
     if (inputRef.current) inputRef.current.value = '';
     if (failed.length) setError(t('record.files.uploadFailed'));
     setBusy(false);
-    onDone();
+    // only refresh when at least one file landed: on a total failure the pending retry rows stay on the page,
+    // and a refresh would throw the record away into the full-page crash (F163).
+    if (failed.length < picked.length) onDone();
   };
 
   const retry = async (p: PendingUpload) => {
@@ -257,7 +276,7 @@ export function FilesSection({
           ) : null}
           {needsReview ? (
             <Field label={t('record.files.reviewOn')} className="sm:w-48">
-              {({ id }) => <Input id={id} type="date" value={reviewOn} onChange={(e) => setReviewOn(e.target.value)} />}
+              {({ id }) => <DatePicker id={id} value={reviewOn || undefined} onChange={(v) => setReviewOn(v ?? '')} />}
             </Field>
           ) : null}
           <Field label={t('record.files.chooseFile')} className="flex-1">
@@ -289,7 +308,13 @@ export function FilesSection({
         </ul>
       ) : null}
       {files === null ? (
-        <DataState kind="failed" what={title} onRetry={onDone} retryLabel={t('common.tryAgain')} />
+        <DataState
+          kind="failed"
+          what={title}
+          message={t('state.failed', { what: title })}
+          onRetry={onDone}
+          retryLabel={t('common.tryAgain')}
+        />
       ) : files.length ? (
         <ul className="divide-y divide-border">
           {files.map((f) => {
@@ -320,12 +345,18 @@ export function FilesSection({
                 </span>
                 <span className="flex gap-2">
                   {f.status === 'stored' ? (
-                    <Button size="xs" onClick={() => download(f)} data-file-download>
+                    <Button size="xs" onClick={() => download(f)} disabled={removingBusy} data-file-download>
                       {t('record.files.download')}
                     </Button>
                   ) : null}
                   {mayWrite ? (
-                    <Button size="xs" variant="ghost" onClick={() => setRemoving(f)} data-file-remove>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => setRemoving(f)}
+                      disabled={removingBusy}
+                      data-file-remove
+                    >
                       {t('record.files.remove')}
                     </Button>
                   ) : null}
@@ -351,8 +382,23 @@ export function FilesSection({
         onSave={async (reason) => {
           const f = removing!;
           setRemoving(null);
-          await rpc('files_remove', { p_ids: [f.id], p_reason: reason });
-          onDone();
+          removingBusyRef.current = true;
+          setRemovingBusy(true);
+          // through command(): a toast with Undo on success, a refusal in words on failure, and the global
+          // refetch — the bare rpc + onDone() before it showed nothing on failure and refreshed on it (F145).
+          const result = await command(
+            words(t('record.files.removed')),
+            () =>
+              rpc('files_remove', { p_ids: [f.id], p_reason: reason }) as Promise<{
+                request_id?: string | null;
+              }>,
+          );
+          if (result === undefined) {
+            // the write failed: the list is unchanged, so unlock at once. On success the flag clears when the
+            // refreshed files prop lands (the effect above).
+            removingBusyRef.current = false;
+            setRemovingBusy(false);
+          }
         }}
         words={{
           reason: t('common.reason'),
