@@ -208,7 +208,7 @@ export function MyProfile({
   const density = state.profile?.density ?? 'comfortable';
   // a profile saved while Colorful was offered reads as Light (V636); with none saved, what the screen shows now
   const theme = readTheme(state.profile?.theme) ?? prefs.theme;
-  // a work-tier person sees the five that are about their own work; Manager, Head and Admin see every kind (V217)
+  // a work-tier person sees the eight that are about their own work; Manager, Head and Admin see every kind (V217)
   const notifyKinds = isManageTier(me) ? NOTIFICATION_KINDS : WORK_NOTIFICATION_KINDS;
 
   return (

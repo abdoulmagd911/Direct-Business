@@ -1612,7 +1612,7 @@
       "commented": "A comment on a record of mine",
       "asked": "A question asked of me",
       "escalation_acknowledged": "A need for help I flagged was acknowledged",
-      "alert_weekly_unlogged": "Done tasks not yet logged as achievements"
+      "alert_weekly_unlogged": "Weekly: done tasks not yet logged as achievements"
     },
     "devices": {
       "label": "Device",
