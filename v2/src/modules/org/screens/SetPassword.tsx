@@ -9,7 +9,7 @@ import { DoorFrame } from './DoorFrame';
  * Choose a new password (owner, 29 Sep 13:50): the first sign-in, or after an admin's reset. The rule is one line of
  * fact (at least ten characters) — no strength meter. Drawn in the door frame, like sign-in (V213).
  */
-export function SetPassword({ next, arabicEnabled = false }: { next: string; arabicEnabled?: boolean }) {
+export function SetPassword({ next }: { next: string }) {
   const t = useTranslations();
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
@@ -31,11 +31,7 @@ export function SetPassword({ next, arabicEnabled = false }: { next: string; ara
   };
   const line = error ? t(`sign_in.password.error.${error}`) : null;
   return (
-    <DoorFrame
-      arabicEnabled={arabicEnabled}
-      footer={t('sign_in.footer', { year: new Date().getFullYear() })}
-      data-set-password
-    >
+    <DoorFrame footer={t('sign_in.footer', { year: new Date().getFullYear() })} data-set-password>
       <div className="flex flex-col gap-2 pb-8">
         <h1 className="font-display text-2xl font-semibold leading-8 sm:text-[28px] sm:leading-9">
           {t('sign_in.password.setTitle')}

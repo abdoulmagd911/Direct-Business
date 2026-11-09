@@ -10,7 +10,8 @@ select set_config('t.am', test.person('Test Quiet Member', 'member')::text, true
 select set_config('t.am2', test.person('Test Quiet Colleague', 'member')::text, true);
 select set_config('t.admin', test.person('Test Quiet Admin', 'admin')::text, true);
 insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.am')::uuid, 'finance', 'none', 'made up: no Finance');
+values (current_setting('t.am')::uuid, 'finance', 'none', 'made up: no Finance'),
+       (current_setting('t.am2')::uuid, 'finance', 'view', 'made up: View on Finance — they author the shared note');
 
 select test.as_person(current_setting('t.am')::uuid);
 select api.note_capture('reminder', jsonb_build_object('title', 'Zebracorn private call',

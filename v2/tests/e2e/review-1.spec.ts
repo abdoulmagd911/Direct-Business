@@ -103,11 +103,12 @@ test('the person record: Arabic name, a second email added and one removed with 
   await expect(change.locator('[data-history-field="nickname_en"]'), 'the field in words').toHaveText(
     /^Nickname: — → Nick$/,
   );
-  // the whole change log names the field too, never the column (api.activity carries the names only)
+  // the whole change log names the field too, never the column (api.activity carries the names only); the chip
+  // says the field with its before and after, like the record's own Activity above — never the bare label
   await page.goto('/activity');
   await hydrated(page);
   await expect(page.locator('[data-activity-changes] [data-history-field="nickname_en"]').first()).toHaveText(
-    'Nickname',
+    /^Nickname: — → Nick$/,
   );
   await expect(page.locator('[data-activity-changes]')).not.toContainText('nickname_en');
 });

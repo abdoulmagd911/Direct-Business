@@ -64,7 +64,8 @@ describe('a tab asks for all its data in one round after me', () => {
     ] as const) {
       started.length = 0;
       const round = await oneRound(() => ActivityPage({ searchParams: Promise.resolve({ tab }) }));
-      expect(round.sort(), tab).toEqual(['org', read].sort());
+      // the priority list rides in the same round (FIX-14 F119: the history diff names old and new priorities)
+      expect(round.sort(), tab).toEqual(['org', 'list', read].sort());
     }
   });
   it('Settings: the settings, the organisation and every list together', async () => {

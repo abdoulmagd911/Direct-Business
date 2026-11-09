@@ -1098,7 +1098,8 @@
         "undo": "تراجع",
         "dismissedDone": "لم تُسجَّل كإنجاز",
         "restoredDone": "عادت إلى القائمة"
-      }
+      },
+      "unblock": "استئناف"
     },
     "weeklyReview": {
       "title": "مراجعة الأسبوع",
@@ -1391,7 +1392,10 @@
         "not_allowed": "لا تملك صلاحية استعادته",
         "other": "لا يمكن استعادته"
       },
-      "none": "لا شيء محذوف مؤخرًا"
+      "none": "لا شيء محذوف مؤخرًا",
+      "searchPlaceholder": "ابحث في المحذوفات",
+      "count": "محذوف: {count}",
+      "showing": "عرض {shown} من {total}"
     },
     "groupedChanges": "{count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
     "signIn": {
@@ -1641,7 +1645,10 @@
       "signedOut": "سُجّل خروج الجهاز",
       "thisDevice": "هذا الجهاز"
     },
-    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط."
+    "densityHint": "المريح يمنح مساحة أكبر، والمضغوط يعرض صفوفًا أكثر في الشاشة. وعلى الهاتف يضيّق المسافات فقط.",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "startPageDefault": "الافتراضي"
   },
   "settings": {
     "tabs": {
@@ -1800,7 +1807,12 @@
         "temporaryBody": "سلّمها له مباشرة أو بالهاتف، فهي تظهر الآن فقط. تعمل حتى يختار كلمة مرور خاصة به، وهذا أول ما يُطلب منه عند دخوله التالي.",
         "copy": "نسخ",
         "copied": "تم النسخ"
-      }
+      },
+      "handover": "تسليم العمل إلى",
+      "handoverPlaceholder": "اختر شخصًا",
+      "openWorkMove": "سينتقل {count} من العناصر المفتوحة إلى الشخص المختار أدناه",
+      "openWorkNone": "لا يوجد عمل مفتوح — لا شيء للتسليم",
+      "headNeedsSuccessor": "{name} يرأس {department} — اختر رئيسًا جديدًا أولًا"
     },
     "values": {
       "partner": {
@@ -2048,7 +2060,8 @@
       "unknown_side_entry": "بند غير معروف لهذا الجانب: {detail}",
       "side_field_required": "الحقل {detail} مطلوب",
       "side_field_invalid": "قيمة الحقل {detail} غير صالحة",
-      "unknown_side_field": "حقل غير معروف: {detail}"
+      "unknown_side_field": "حقل غير معروف: {detail}",
+      "not_archived": "هذا الشريك ليس مؤرشفًا."
     },
     "identifier": {
       "not_closed": "معرّف العميل هذا ليس مغلقًا",
@@ -2062,7 +2075,8 @@
     },
     "contact": {
       "unknown_field": "حقل غير معروف: {detail}",
-      "unknown_role": "دور جهة اتصال غير معروف"
+      "unknown_role": "دور جهة اتصال غير معروف",
+      "one_primary": "يمكن أن تكون جهة اتصال واحدة فقط هي الرئيسية."
     },
     "contract": {
       "term_takes_numbers": "يأخذ هذا الشرط أرقامًا لا كلمات",
@@ -2222,6 +2236,9 @@
       "product_unknown": "منتج غير معروف: {detail}",
       "status_unknown": "حالة غير معروفة: {detail}",
       "unknown_entry": "بند غير معروف: {detail}"
+    },
+    "follow": {
+      "not_allowed": "المراقبة غير متاحة لدورك."
     }
   },
   "notifications": {
@@ -2685,7 +2702,16 @@
     "nextStepDue": "الخطوة التالية {date}",
     "noAccess": "لا تملك صلاحية الوصول إلى هذه الجهة",
     "capped": "يظهر {shown} من {total} — ابحث أو صفِّ لتضييق القائمة",
-    "chooseType": "اختر النوع"
+    "chooseType": "اختر النوع",
+    "remove": "إزالة",
+    "removeTitle": "إزالة {name}؟",
+    "removed": "تمت إزالة {name}",
+    "archivePartner": "أرشفة",
+    "archivedDone": "تمت أرشفة {name}",
+    "unarchivePartner": "إلغاء الأرشفة",
+    "unarchivedDone": "تم إلغاء أرشفة {name}",
+    "archivedView": "عرض الشركاء المؤرشفين فقط",
+    "showActive": "عرض الشركاء النشطين"
   },
   "createNew": {
     "task": "مهمة جديدة",
@@ -2727,7 +2753,7 @@
       "downloadNotFound": "هذا الملف غير متاح",
       "remove": "إزالة",
       "removeTitle": "إزالة {name}؟",
-      "removed": "تمت إزالة الملف",
+      "removed": "تمت إزالة {name}",
       "kind": "النوع",
       "none": "لا توجد ملفات بعد",
       "addedOn": "أُضيف {date}",
@@ -2983,7 +3009,8 @@
       "profit": "الربح",
       "revenue": "الإيراد"
     },
-    "title": "المالية"
+    "title": "المالية",
+    "locked": "المالية للمديرين ورؤساء الإدارات ومسؤولي النظام"
   },
   "import": {
     "title": "استيراد",

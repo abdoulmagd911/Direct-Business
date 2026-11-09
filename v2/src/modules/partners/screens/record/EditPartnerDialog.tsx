@@ -11,7 +11,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
-import { nameOf, type ListEntry, type PartnerCard } from '../../types';
+import { clientPriorities, nameOf, type ListEntry, type PartnerCard } from '../../types';
 import { useWords } from './words';
 
 const FIELDS = [
@@ -203,18 +203,30 @@ export function EditPartnerDialog({
           {(p) => (
             <Select
               {...p}
-              value={String(f.priority_id)}
-              onValueChange={(v) => setF({ ...f, priority_id: v })}
+              value={typeof f.priority_id === 'string' && f.priority_id ? f.priority_id : 'none'}
+              onValueChange={(v) => setF({ ...f, priority_id: v === 'none' ? '' : v })}
               placeholder={t('common.none')}
-              options={priorities.map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
+              options={[
+                { value: 'none', label: t('common.none') },
+                ...clientPriorities(priorities, typeof f.priority_id === 'string' ? f.priority_id : null).map((x) => ({
+                  value: x.id,
+                  label: nameOf(x, locale),
+                })),
+              ]}
             />
           )}
         </Field>
-        <Switch
-          checked={f.key_partner === true}
-          onCheckedChange={(v) => setF({ ...f, key_partner: v })}
-          label={labels.key_partner}
-        />
+        <span className="flex items-center gap-2">
+          <Switch
+            id="edit-key-partner"
+            checked={f.key_partner === true}
+            onCheckedChange={(v) => setF({ ...f, key_partner: v })}
+            label={labels.key_partner}
+          />
+          <label htmlFor="edit-key-partner" className="text-sm">
+            {labels.key_partner}
+          </label>
+        </span>
       </div>
     </Dialog>
   );

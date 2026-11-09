@@ -19,6 +19,7 @@ import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
 import { personOf } from '@/ui/person';
+import { navFor } from '@/ui/shell/nav';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { toast } from '@/ui/Toast';
@@ -234,6 +235,7 @@ export function MyProfile({
             dir="rtl"
           />
         </div>
+        <ProfileFacts me={me} />
       </Section>
 
       <Section title={t('profile.sections.preferences')} data-profile-card="preferences">
@@ -280,6 +282,27 @@ export function MyProfile({
               )}
             </Field>
           ) : null}
+          {/* Start page (F207): the pages this person can see (navFor — the same list startRoute honours), plus
+              Default, which clears the choice (the admin's default, else My day). A stored page outside the menu
+              reads as Default, because that is what startRoute does with it. */}
+          <Field label={t('profile.startPage')}>
+            {(p) => {
+              const pages = navFor(me);
+              const stored = state.profile?.start_page ?? null;
+              const value = stored && pages.some((e) => e.page === stored) ? stored : '';
+              return (
+                <Select
+                  {...p}
+                  value={value}
+                  onValueChange={(v) => void save({ start_page: v === '' ? null : v })}
+                  options={[
+                    { value: '', label: t('profile.startPageDefault') },
+                    ...pages.map((e) => ({ value: e.page, label: t(e.label) })),
+                  ]}
+                />
+              );
+            }}
+          </Field>
           {dev ? (
             <Field label={t('profileMenu.direction')}>
               {(p) => (
@@ -361,8 +384,37 @@ export function MyProfile({
   );
 }
 
+/**
+ * Email and role are facts, not settings: shown as they stand, in both languages, whatever the language (F208) —
+ * they never vanish on a language switch, because nothing here is keyed on the locale.
+ */
+export function ProfileFacts({ me }: { me: Me }) {
+  const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
+  return (
+    <div className="grid gap-4 sm:grid-cols-2" data-profile-facts>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-text">{t('profile.email')}</span>
+        <p className="font-data" dir="ltr" data-profile-email>
+          {me.session.email}
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-text">{t('profile.role')}</span>
+        <p data-profile-role>
+          {me.person.role
+            ? locale === 'ar' && me.person.role.name_ar
+              ? me.person.role.name_ar
+              : me.person.role.name_en
+            : '—'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** Change password (owner, 29 Sep 13:50): the new password twice; the rule is one line — at least ten characters. */
-function PasswordSection() {
+export function PasswordSection() {
   const t = useTranslations();
   const me = useMe();
   const [current, setCurrent] = useState('');
@@ -383,6 +435,9 @@ function PasswordSection() {
     setBusy(false);
   };
   const onCurrent = error === 'wrong_current' || error === 'not_signed_in';
+  // Live validation (F209, D36(e)): the mismatch is said as it is typed, in the field's error slot, not only after
+  // submit — and Change stays off while the two do not match. The server refuses the same way on submit.
+  const mismatch = password.length > 0 && again.length > 0 && password !== again;
   return (
     <Section title={t('profile.sections.password')} data-profile-card="password">
       <p className="text-sm text-muted">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
@@ -431,7 +486,7 @@ function PasswordSection() {
             />
           )}
         </Field>
-        <Field label={t('sign_in.password.again')}>
+        <Field label={t('sign_in.password.again')} error={mismatch ? t('sign_in.password.error.mismatch') : undefined}>
           {(p) => (
             <Input
               {...p}
@@ -447,7 +502,7 @@ function PasswordSection() {
       <div>
         <Button
           variant="primary"
-          disabled={!current || password.length < MIN_PASSWORD || again.length < MIN_PASSWORD}
+          disabled={!current || password.length < MIN_PASSWORD || again.length < MIN_PASSWORD || mismatch}
           loading={busy}
           onClick={() => void save()}
           data-password-save

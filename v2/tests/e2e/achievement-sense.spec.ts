@@ -81,7 +81,9 @@ for (const [label, width, height] of WIDTHS) {
     await page.getByRole('option', { name: 'Contract signed' }).click();
     await page.getByLabel('What').fill(what);
     await page.getByLabel('Reference', { exact: true }).fill(`MADE-UP-${what.slice(-8)}`);
-    const value = page.getByLabel('Deal value · Not revenue');
+    // FIX-06 (D29): the value is a plain number for every category, labelled with the category's own name as
+    // the unit — so the field reads "Value (Contract signed) · Not revenue", not "Deal value · Not revenue".
+    const value = page.getByLabel('Value (Contract signed) · Not revenue');
     const save = page.getByRole('button', { name: 'Save' });
     const saved = () => sql<{ n: number }>(`select count(*)::int as n from perf.achievement where title = $1`, [what]);
 
@@ -102,6 +104,8 @@ for (const [label, width, height] of WIDTHS) {
     }
     await value.fill('1,250.50');
     await save.click();
+    // FIX-06: saving opens the post-save dialog instead of navigating straight to the record.
+    await page.getByRole('button', { name: 'View record' }).click();
     await expect(page).toHaveURL(/\/kpis\/achievements\/[0-9a-f-]{36}/);
     const [row] = await sql<{ deal_value: string }>(`select deal_value::text from perf.achievement where title = $1`, [
       what,

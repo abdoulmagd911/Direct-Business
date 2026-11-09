@@ -10,9 +10,10 @@ export const sabotages = [
     edits: [
       {
         file: 'src/app/(app)/my-day/page.tsx',
-        find: 'const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, unloggedRead] = await Promise.allSettled([',
+        // Landing 3 added escalatedByMeRead, so the destructure now wraps over two lines.
+        find: 'const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, escalatedByMeRead, unloggedRead] =\n    await Promise.allSettled([',
         replace:
-          "await serverRpc('org', {} as never);\n  const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, unloggedRead] = await Promise.allSettled([",
+          "await serverRpc('org', {} as never);\n  const [answerRead, orgRead, statusesRead, dueRead, asksRead, escalatedRead, escalatedByMeRead, unloggedRead] =\n    await Promise.allSettled([",
       },
     ],
   },

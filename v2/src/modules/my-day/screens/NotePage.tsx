@@ -9,8 +9,8 @@ import type { ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
-import { Confirm } from '@/ui/Confirm';
 import { DatePicker } from '@/ui/DatePicker';
+import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Field } from '@/ui/Field';
 import { IconButton } from '@/ui/IconButton';
 import { Input, Textarea } from '@/ui/Input';
@@ -172,18 +172,20 @@ export function NotePage({
     );
     setBusy(false);
   };
-  const remove = async () => {
+  const remove = async (reason: string) => {
     setBusy(true);
     await command(
       words(t('pages.myDay.note.removed')),
       () =>
         rpc('my_notes_remove', {
           p_ids: [note.id],
+          p_reason: reason,
           // FIX-27: the reminder goes only when the person ticks the offer — never silently.
           ...(deleteReminder ? { p_delete_reminders: true } : {}),
         }) as Promise<{ request_id?: string | null }>,
       {
-        after: () => router.push('/my-day'),
+        // The note stays open with the Undo in place (D22): the re-read renders the note's "not there" state.
+        after: () => router.refresh(),
       },
     );
     setBusy(false);
@@ -574,7 +576,7 @@ export function NotePage({
             onOpenChange={(o) => setTurning(o ? 'achievement' : null)}
             people={colleagues}
           />
-          <Confirm
+          <ReasonDialog
             open={removing}
             onOpenChange={(o) => {
               if (o) setDeleteReminder(false);
@@ -582,20 +584,23 @@ export function NotePage({
             }}
             title={t('pages.myDay.note.removeTitle', { name: title })}
             body={t('pages.myDay.note.removeBody')}
-            extra={
-              note.has_pending_reminder ? (
-                <Checkbox
-                  checked={deleteReminder}
-                  onCheckedChange={setDeleteReminder}
-                  label={t('pages.myDay.note.deleteReminderToo')}
-                />
-              ) : undefined
-            }
-            cancelLabel={t('common.cancel')}
-            confirmLabel={t('common.remove')}
-            onConfirm={() => void remove()}
-            busy={busy}
-          />
+            destructive
+            onSave={(reason) => remove(reason)}
+            words={{
+              reason: t('common.reason'),
+              save: t('common.remove'),
+              cancel: t('common.cancel'),
+              reasonRequired: t('settings.form.reasonRequired'),
+            }}
+          >
+            {note.has_pending_reminder ? (
+              <Checkbox
+                checked={deleteReminder}
+                onCheckedChange={setDeleteReminder}
+                label={t('pages.myDay.note.deleteReminderToo')}
+              />
+            ) : undefined}
+          </ReasonDialog>
         </>
       ) : null}
     </div>

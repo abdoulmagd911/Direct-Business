@@ -40,6 +40,8 @@ export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string)
     ...raw,
     theme: own('theme') ? raw.theme : eff.theme,
     density: own('density') ? raw.density : eff.density,
-    locale: effectiveLocale(raw.locale, app),
+    // the door (nobody signed in) has no profile, so the cookie's language stands there whatever the Arabic
+    // switch says (F205); signed in, the switch still rules (ACC-139)
+    locale: me ? effectiveLocale(raw.locale, app) : raw.locale,
   };
 }

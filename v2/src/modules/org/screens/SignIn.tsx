@@ -18,7 +18,8 @@ import { PasswordDoor } from './PasswordDoor';
  * (owner, 29 Sep 13:50: no emails are sent; "Forgot your password? Ask your admin." is plain text), run on the server
  * (core/auth/password-actions.ts; the form is PasswordDoor). The emailed-code door (Send code, then the 6-digit step
  * with Resend and Change; core/auth/actions.ts, P3-2) stays in the code behind SIGN_IN_METHOD=code. Devices stay
- * signed in until sign-out (V74); every refusal is said in words, in place. The language button waits for Arabic (V122).
+ * signed in until sign-out (V74); every refusal is said in words, in place. The language button always shows on the
+ * door (F205): the door honours the cookie whatever the Arabic switch says.
  */
 const RESEND_AFTER_S = 60;
 const EMPTY = ['', '', '', '', '', ''];
@@ -26,19 +27,16 @@ const EMPTY = ['', '', '', '', '', ''];
 export function SignIn({
   next,
   refusal,
-  arabicEnabled = false,
   method = 'password',
 }: {
   next: string | null;
   refusal: string | null;
-  /** The language button shows once the owner switches Arabic on (`app.arabic_enabled`, P6-7; V122). */
-  arabicEnabled?: boolean;
   method?: SignInMethod;
 }) {
   const t = useTranslations();
   const year = new Date().getFullYear();
   return (
-    <DoorFrame arabicEnabled={arabicEnabled} footer={t('sign_in.footer', { year })} data-sign-in>
+    <DoorFrame footer={t('sign_in.footer', { year })} data-sign-in>
       <div className="flex flex-col gap-2 pb-8">
         <h1 className="font-display text-2xl font-semibold leading-8 sm:text-[28px] sm:leading-9">{t('app.name')}</h1>
         <p className="door-muted text-[15px] leading-[22px]">{t('sign_in.password.subtitle')}</p>

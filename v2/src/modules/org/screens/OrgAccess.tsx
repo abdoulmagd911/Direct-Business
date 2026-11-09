@@ -165,15 +165,19 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
   const names = useNames(org);
   const router = useRouter();
   const [q, setQ] = useState('');
+  const [dept, setDept] = useState('all');
   const [adding, setAdding] = useState(false);
   const sw = useTestSwitch();
+  // the search reads the department and team names too (both languages), so a name typed in either language finds
+  // its people; the department picker narrows the same rows (one change covers the table and the phone cards)
+  const hay = (p: PersonRow) => {
+    const d = org.departments.find((x) => x.id === p.department_id);
+    const tm = p.team_id ? org.teams.find((x) => x.id === p.team_id) : undefined;
+    return `${p.full_name_en} ${p.full_name_ar ?? ''} ${p.nickname_en ?? ''} ${p.emails.map((e) => e.email).join(' ')} ${d?.name_en ?? ''} ${d?.name_ar ?? ''} ${tm?.name_en ?? ''} ${tm?.name_ar ?? ''}`;
+  };
   const rows = people
     .filter(
-      (p) =>
-        !q ||
-        `${p.full_name_en} ${p.full_name_ar ?? ''} ${p.nickname_en ?? ''} ${p.emails.map((e) => e.email).join(' ')}`
-          .toLowerCase()
-          .includes(q.toLowerCase()),
+      (p) => (dept === 'all' || p.department_id === dept) && (!q || hay(p).toLowerCase().includes(q.toLowerCase())),
     )
     .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
   // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it
@@ -186,17 +190,30 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
   return (
     <section className="flex flex-col gap-4" data-people data-wide>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="relative flex items-center">
-          <Search className="pointer-events-none absolute start-3 size-4 text-muted" aria-hidden="true" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label={t('common.search')}
-            placeholder={t('settings.people.searchPlaceholder')}
-            autoComplete="off"
-            className="ps-9 sm:w-72"
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="relative flex items-center">
+            <Search className="pointer-events-none absolute start-3 size-4 text-muted" aria-hidden="true" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label={t('common.search')}
+              placeholder={t('settings.people.searchPlaceholder')}
+              autoComplete="off"
+              className="ps-9 sm:w-72"
+            />
+          </label>
+          <Select
+            aria-label={t('settings.people.department')}
+            value={dept}
+            onValueChange={setDept}
+            options={[
+              { value: 'all', label: t('common.all') },
+              ...org.departments.filter((d) => d.active).map((d) => ({ value: d.id, label: names.pick(d) })),
+            ]}
+            className="sm:w-56"
+            data-people-department
           />
-        </label>
+        </div>
         <Button variant="primary" onClick={() => setAdding(true)} data-person-add>
           {t('settings.people.add')}
         </Button>

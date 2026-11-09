@@ -51,6 +51,7 @@ export function ActivityScreen({
   signIns,
   deleted,
   filters,
+  priorities,
 }: {
   me: Me;
   tab: string;
@@ -59,6 +60,8 @@ export function ActivityScreen({
   signIns: SignInRow[];
   deleted: DeletedRow[];
   filters: { actor: string; entity: string; since: string; person: string };
+  /** The priority list, for the History diff (F119, D36(a)): a priority id reads as its name, never as an id. */
+  priorities: { id: string; name_en: string; name_ar: string | null }[];
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -66,7 +69,15 @@ export function ActivityScreen({
   const pathname = usePathname();
   const current = (TABS as readonly string[]).includes(tab) ? tab : 'changes';
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
-  const describe = describeWith(org, locale);
+  const orgDescribe = describeWith(org, locale);
+  const describe = (field: string, value: unknown) => {
+    // a lookup id in words, never the id itself: the priority's name for its id (F119, D36(a))
+    if (field === 'priority_id' && typeof value === 'string' && value) {
+      const p = priorities.find((x) => x.id === value);
+      return p ? (locale === 'ar' && p.name_ar ? p.name_ar : p.name_en) : null;
+    }
+    return orgDescribe(field, value);
+  };
   const summarize = summarizeWith(org, locale, (name) => t('activity.reportsTo', { name }));
   const entities: { key: string; label: string }[] = [];
   for (const m of modules)

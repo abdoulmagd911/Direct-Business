@@ -64,7 +64,8 @@ export async function PartnersListPage({
   if (filters.priorities.length) p_filters.priorities = filters.priorities;
   if (filters.key_partner) p_filters.key_partner = true;
   if (filters.stale) p_filters.stale = true;
-  if (filters.archived) p_filters.include_archived = true;
+  // The archived view shows only archived partners (FIX-31): archived_only, not the mixed include_archived.
+  if (filters.archived) p_filters.archived_only = true;
   const read = async (): Promise<{ answer: PartnersAnswer | null; failed: boolean }> => {
     try {
       const answer = (await serverRpc('partners', {

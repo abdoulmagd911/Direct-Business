@@ -1,10 +1,11 @@
 -- DLG-01 — Delegate, the nudge dismissal, and the task row's new fields (Phase 1, CUJ 5/7).
 -- A manager delegates a task to a member with a note: the member becomes the owner
 -- and is told, the note is the task's timeline entry, and the delegator follows the
--- task — one request. Refused: no note, to oneself, to someone who cannot see the
--- task, by someone who may not give work to others. A closed task is dismissed from
--- the nudge and restored again; the row carries its star, its dismissal and whether
--- an achievement already links to it. Every value is made up.
+-- task — one request. A member delegates their OWN task the same way (FIX-03 P1b).
+-- Refused: no note, to oneself, to someone who cannot see the task, by a member who
+-- does not own the task. A closed task is dismissed from the nudge and restored
+-- again; the row carries its star, its dismissal and whether an achievement already
+-- links to it. Every value is made up.
 select set_config('v2.test_now', '2026-10-01 09:00:00+03', true);
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
@@ -49,7 +50,7 @@ select test.eq((select kind || ': ' || body from core.note
 select test.eq((select count(distinct c.request_id)::int from audit.change c
                 where c.row_id = (current_setting('t.d')::jsonb ->> 'note_id')::uuid), 1, 'one request');
 
--- refused: no note, to oneself, to someone who cannot see the task, by a member
+-- refused: no note, to oneself, to someone who cannot see the task, by a member who does not own it
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
   current_setting('t.am1'), ' '), 'P0001', 'a delegation says why', 'task.delegate_note_required');
@@ -62,6 +63,23 @@ select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
   current_setting('t.am2'), 'Made up'), '42501', 'giving work to others needs the capability',
   'access.needs_capability');
+
+-- a member delegates their OWN task (P1b): the new owner is told, the delegator follows it
+select test.as_person(current_setting('t.am1')::uuid);
+select set_config('t.t2', api.task_create(jsonb_build_object('title', 'Made-up own handover task',
+  'work_type', 'internal')) ->> 'id', true);
+select set_config('t.d2', api.task_delegate(current_setting('t.t2')::uuid, current_setting('t.am2')::uuid,
+  'Made-up: take this over, I am handing it to you')::text, true);
+select test.as_owner();
+select test.eq((select owner_id from work.task where id = current_setting('t.t2')::uuid)::text,
+  current_setting('t.am2'), 'the new owner owns the member''s task too');
+select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am2')::uuid
+                and kind = 'assigned' and entity_id = current_setting('t.t2')::uuid
+                and request_id = (current_setting('t.d2')::jsonb ->> 'request_id')::uuid), 1,
+  'the new owner is told, in the same request');
+select test.eq((select count(*)::int from notify.follow where person_id = current_setting('t.am1')::uuid
+                and entity_table = 'work.task' and entity_id = current_setting('t.t2')::uuid), 1,
+  'the delegating member follows it from then on');
 
 -- the row carries the star, the dismissal and the achievement link
 select test.as_person(current_setting('t.am2')::uuid);

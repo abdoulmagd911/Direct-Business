@@ -37,6 +37,7 @@ import {
   SIDE_PAGE,
   SIDE_ROUTE,
   STATUSES,
+  clientPriorities,
   nameOf,
   statusTone,
   tradeName,
@@ -343,6 +344,7 @@ export function PartnersList({
             />
           </form>
           <ChipPicker
+            idPrefix="type"
             field={t('partners.columns.type')}
             value={chipLabel(
               filters.types,
@@ -359,6 +361,7 @@ export function PartnersList({
             words={t}
           />
           <ChipPicker
+            idPrefix="owner"
             field={t('partners.columns.owner')}
             value={chipLabel(filters.owners, (k) => (people[k] ? personName(people[k]!, locale) : k))}
             count={filters.owners.length ? answer?.total : undefined}
@@ -368,6 +371,7 @@ export function PartnersList({
             words={t}
           />
           <ChipPicker
+            idPrefix="status"
             field={t('partners.columns.status')}
             value={chipLabel(filters.statuses, (k) =>
               k === 'none' ? t('partners.status.none') : t(`partners.status.${k}`),
@@ -431,6 +435,17 @@ export function PartnersList({
         />
       </div>
 
+      {filters.archived ? (
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+          data-archived-banner
+        >
+          <span>{t('partners.archivedView')}</span>
+          <Button size="sm" variant="link" onClick={() => set({ archived: false })} data-archived-clear>
+            {t('partners.showActive')}
+          </Button>
+        </div>
+      ) : null}
       {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
       {failed ? (
         <DataState kind="failed" what={title} onRetry={() => router.refresh()} retryLabel={t('common.tryAgain')} />
@@ -625,6 +640,7 @@ function ColumnsMenu({
 
 /** A filter chip whose click opens a picker of several values (M102: dashed while empty, solid with its value and ✕). */
 function ChipPicker({
+  idPrefix,
   field,
   value,
   count,
@@ -633,6 +649,7 @@ function ChipPicker({
   onChange,
   words,
 }: {
+  idPrefix: string;
   field: string;
   value: string | undefined;
   count?: number;
@@ -668,11 +685,17 @@ function ChipPicker({
           <ul className="flex flex-col">
             {options.map((o) => (
               <li key={o.value} className="rounded-md px-2 py-1.5 hover:bg-surface">
-                <Checkbox
-                  label={o.label}
-                  checked={picked.includes(o.value)}
-                  onCheckedChange={(v) => onChange(v ? [...picked, o.value] : picked.filter((x) => x !== o.value))}
-                />
+                <span className="flex items-center gap-2">
+                  <Checkbox
+                    id={`${idPrefix}-${o.value}`}
+                    label={o.label}
+                    checked={picked.includes(o.value)}
+                    onCheckedChange={(v) => onChange(v ? [...picked, o.value] : picked.filter((x) => x !== o.value))}
+                  />
+                  <label htmlFor={`${idPrefix}-${o.value}`} className="text-sm">
+                    {o.label}
+                  </label>
+                </span>
               </li>
             ))}
           </ul>
@@ -726,10 +749,13 @@ function MoreFiltersDialog({
           {(p) => (
             <Select
               {...p}
-              value={draft.tiers[0] ?? ''}
-              onValueChange={(v) => setDraft({ ...draft, tiers: v ? [v] : [] })}
+              value={draft.tiers[0] ?? 'all'}
+              onValueChange={(v) => setDraft({ ...draft, tiers: v === 'all' ? [] : [v] })}
               placeholder={t('common.all')}
-              options={tiers.map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
+              options={[
+                { value: 'all', label: t('common.all') },
+                ...tiers.map((x) => ({ value: x.id, label: nameOf(x, locale) })),
+              ]}
             />
           )}
         </Field>
@@ -737,28 +763,49 @@ function MoreFiltersDialog({
           {(p) => (
             <Select
               {...p}
-              value={draft.priorities[0] ?? ''}
-              onValueChange={(v) => setDraft({ ...draft, priorities: v ? [v] : [] })}
+              value={draft.priorities[0] ?? 'all'}
+              onValueChange={(v) => setDraft({ ...draft, priorities: v === 'all' ? [] : [v] })}
               placeholder={t('common.all')}
-              options={priorities.map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
+              options={[
+                { value: 'all', label: t('common.all') },
+                ...clientPriorities(priorities).map((x) => ({ value: x.id, label: nameOf(x, locale) })),
+              ]}
             />
           )}
         </Field>
-        <Switch
-          checked={draft.key_partner}
-          onCheckedChange={(v) => setDraft({ ...draft, key_partner: v })}
-          label={t('partners.keyPartnerOnly')}
-        />
-        <Switch
-          checked={draft.stale}
-          onCheckedChange={(v) => setDraft({ ...draft, stale: v })}
-          label={t('partners.staleOnly')}
-        />
-        <Switch
-          checked={draft.archived}
-          onCheckedChange={(v) => setDraft({ ...draft, archived: v })}
-          label={t('partners.showArchived')}
-        />
+        <span className="flex items-center gap-2">
+          <Switch
+            id="more-key-partner"
+            checked={draft.key_partner}
+            onCheckedChange={(v) => setDraft({ ...draft, key_partner: v })}
+            label={t('partners.keyPartnerOnly')}
+          />
+          <label htmlFor="more-key-partner" className="text-sm">
+            {t('partners.keyPartnerOnly')}
+          </label>
+        </span>
+        <span className="flex items-center gap-2">
+          <Switch
+            id="more-stale"
+            checked={draft.stale}
+            onCheckedChange={(v) => setDraft({ ...draft, stale: v })}
+            label={t('partners.staleOnly')}
+          />
+          <label htmlFor="more-stale" className="text-sm">
+            {t('partners.staleOnly')}
+          </label>
+        </span>
+        <span className="flex items-center gap-2">
+          <Switch
+            id="more-archived"
+            checked={draft.archived}
+            onCheckedChange={(v) => setDraft({ ...draft, archived: v })}
+            label={t('partners.showArchived')}
+          />
+          <label htmlFor="more-archived" className="text-sm">
+            {t('partners.showArchived')}
+          </label>
+        </span>
       </div>
     </Dialog>
   );
@@ -855,7 +902,7 @@ function AssignDialog({
               value={priority}
               onValueChange={setPriority}
               placeholder={t('partners.bulk.keepPriority')}
-              options={priorities.map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
+              options={clientPriorities(priorities).map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
             />
           )}
         </Field>

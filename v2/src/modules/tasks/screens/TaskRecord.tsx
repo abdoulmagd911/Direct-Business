@@ -77,9 +77,14 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   const due = dueState(task, today);
   const closed = task.meaning === 'done' || task.meaning === 'cancelled';
   const move = useStatusMove(task, lookups.statuses);
-  // Details' pickers (V287): helpers by whoever may edit the task, the owner by whoever gives work (`tasks.assign`)
+  // Details' pickers (V287): helpers by whoever may edit the task, the owner by whoever gives work (`tasks.assign` —
+  // or `tasks.assign_own` on a task of their own, FIX-03 P1b). The wider capability unlocks nothing else: the Team
+  // view, backfill-for-others and the load figures still ask for `tasks.assign` (rules.ts).
   const mayHelp = task.can_edit && !closed;
-  const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');
+  const mayAssign =
+    mayHelp &&
+    (me.capabilities.includes('tasks.assign') ||
+      (me.capabilities.includes('tasks.assign_own') && task.owner_id === me.person.id));
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
   const [delegating, setDelegating] = useState(false);
@@ -89,6 +94,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // the Comments tab's own count while it is open, so the tab's number follows an add or a delete at once
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const status = lookups.statuses.find((s) => s.key === task.status);
+  const inProgressStatus = lookups.statuses.find((s) => s.meaning === 'in_progress' && s.active);
   const statusLabel =
     view === 'blocked' ? t('pages.tasks.blocked') : status ? statusName(status, names.locale) : names.status(task);
   const date = (d: string | null) => (d ? formatDate(d, names.locale) : '');
@@ -375,6 +381,20 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                   {t('pages.tasks.blockedSince', { date: date(task.blocked_on) })}
                 </p>
                 <p className="break-words text-base">{task.blocked_reason}</p>
+                {/* Unblock is resuming it (F019, D47): the In progress move, which clears the blocked reason — not
+                    a generic Try-again on whatever blocked it. */}
+                {task.can_edit && inProgressStatus ? (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="mt-2"
+                    loading={move.busy}
+                    onClick={() => void move.choose({ kind: 'status', status: inProgressStatus })}
+                    data-task-unblock
+                  >
+                    {t('pages.tasks.unblock')}
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {task.meaning === 'cancelled' && task.cancelled_reason ? (

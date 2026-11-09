@@ -20,17 +20,18 @@ async function personWithTeam() {
     [me.id, `wr_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
   );
   await sql(`update core.person set team_id = $2 where id = $1`, [me.id, team!.id]);
-  /** A task of mine due `due` (SQL, Riyadh days); closed as Done when `done`. */
-  const make = async (title: string, due: string, done = false) => {
+  /** A task of mine due `due` (SQL, Riyadh days); closed as Done when `done`; High priority when `high`. */
+  const make = async (title: string, due: string, done = false, high = false) => {
     const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
     await sql(
       `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by, due_on,
-                              closed_at, closed_by)
+                              closed_at, closed_by, priority_id)
        values ($1, $2, $3, $4, (select department_id from core.team where id = $4),
                (select id from work.task_status where deleted_at is null
                   and case when $5::boolean then meaning = 'done' else is_default end limit 1),
-               'internal', $3, ${due}, case when $5::boolean then now() end, case when $5::boolean then $3::uuid end)`,
-      [number, title, me.id, team!.id, done],
+               'internal', $3, ${due}, case when $5::boolean then now() end, case when $5::boolean then $3::uuid end,
+               case when $6::boolean then (select id from work.priority where key = 'high' limit 1) end)`,
+      [number, title, me.id, team!.id, done, high],
     );
     const [row] = await sql<{ id: string }>(`select id from work.task where number = $1`, [number]);
     return { number, id: row!.id };
@@ -43,7 +44,9 @@ for (const width of [375, 1440]) {
     page,
   }) => {
     const { me, t, make } = await personWithTeam();
-    await make(`Finished call ${t}`, 'core.riyadh_today()', true);
+    // FIX-29: the Done count is the still-to-log count, not the done-rows count — so the done task is High
+    // priority (nudge-eligible, not routine) for the count to be 1.
+    await make(`Finished call ${t}`, 'core.riyadh_today()', true, true);
     const late = await make(`Late visit ${t}`, 'core.riyadh_today() - 9');
     const moved = await make(`Moved quote ${t}`, 'core.riyadh_today()');
     await make(`Next week offer ${t}`, 'my.week_start(core.riyadh_today()) + 8');

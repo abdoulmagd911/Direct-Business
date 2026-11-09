@@ -1098,7 +1098,8 @@
         "undo": "Undo",
         "dismissedDone": "Not logged as an achievement",
         "restoredDone": "Back on the list"
-      }
+      },
+      "unblock": "Unblock"
     },
     "weeklyReview": {
       "title": "Weekly review",
@@ -1416,7 +1417,7 @@
       "downloadNotFound": "This file is not available",
       "remove": "Remove",
       "removeTitle": "Remove {name}?",
-      "removed": "File removed",
+      "removed": "File {name} removed",
       "kind": "Kind",
       "none": "No files yet",
       "addedOn": "Added {date}",
@@ -1568,7 +1569,10 @@
         "not_allowed": "You can't restore this",
         "other": "Can't be restored"
       },
-      "none": "Nothing removed recently"
+      "none": "Nothing removed recently",
+      "searchPlaceholder": "Search removed records",
+      "count": "{count} removed",
+      "showing": "Showing {shown} of {total}"
     },
     "fields": {
       "full_name_en": "Full name",
@@ -1703,7 +1707,10 @@
       "change": "Change password",
       "changed": "Password changed"
     },
-    "densityHint": "Comfortable gives more room; Compact fits more rows on the screen. On a phone it only tightens the spacing."
+    "densityHint": "Comfortable gives more room; Compact fits more rows on the screen. On a phone it only tightens the spacing.",
+    "email": "Email",
+    "role": "Role",
+    "startPageDefault": "Default"
   },
   "settings": {
     "title": "Settings",
@@ -1864,7 +1871,12 @@
       "accessStandard": "{role} (standard)",
       "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
       "accessShowAll": "Show all",
-      "accessHide": "Show less"
+      "accessHide": "Show less",
+      "handover": "Hand over to",
+      "handoverPlaceholder": "Choose a person",
+      "openWorkMove": "{count} open items will move to the person chosen below",
+      "openWorkNone": "No open work — nothing to hand over",
+      "headNeedsSuccessor": "{name} heads {department} — choose a new head first"
     },
     "teams": {
       "add": "Add team",
@@ -2190,7 +2202,8 @@
       "unknown_side_entry": "Unknown entry for this side: {detail}",
       "side_field_required": "The field {detail} is required",
       "side_field_invalid": "The field {detail} has an invalid value",
-      "unknown_side_field": "Unknown field: {detail}"
+      "unknown_side_field": "Unknown field: {detail}",
+      "not_archived": "This partner is not archived."
     },
     "identifier": {
       "name_follows_partner": "Names change from the record's names; add an alias instead",
@@ -2204,7 +2217,8 @@
     },
     "contact": {
       "unknown_field": "Unknown field: {detail}",
-      "unknown_role": "Unknown contact role"
+      "unknown_role": "Unknown contact role",
+      "one_primary": "Only one contact can be primary."
     },
     "contract": {
       "term_takes_words": "This term takes words, not numbers",
@@ -2293,6 +2307,9 @@
       "not_a_test_user": "This person is not a test user.",
       "already_switched": "You are already signed in as a test user. Go back to your account first.",
       "no_access_change": "Access and settings cannot be changed while you are signed in as a test user."
+    },
+    "follow": {
+      "not_allowed": "Watching is not available for your role."
     }
   },
   "notifications": {
@@ -2787,7 +2804,16 @@
     "since": "Since",
     "stale": "Stale since {date}",
     "nextStepDue": "Next step {date}",
-    "noAccess": "You do not have access to this organisation"
+    "noAccess": "You do not have access to this organisation",
+    "remove": "Remove",
+    "removeTitle": "Remove {name}?",
+    "removed": "{name} removed",
+    "archivePartner": "Archive",
+    "archivedDone": "{name} archived",
+    "unarchivePartner": "Unarchive",
+    "unarchivedDone": "{name} unarchived",
+    "archivedView": "Showing archived partners only",
+    "showActive": "Show active partners"
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
@@ -2997,7 +3023,8 @@
       "noFigures": "In no figures"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
-    "periodEmpty": "Nothing in this period ({from} – {to})."
+    "periodEmpty": "Nothing in this period ({from} – {to}).",
+    "locked": "Finance is for managers, heads of department and admins"
   },
   "import": {
     "title": "Import",

@@ -7,7 +7,8 @@ select set_config('t.head', test.person('Test Finance Head', 'head')::text, true
 select set_config('t.am', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
 insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.am')::uuid, 'finance', 'none', 'made up: no Finance access');
+values (current_setting('t.am')::uuid, 'finance', 'none', 'made up: no Finance access'),
+       (current_setting('t.am2')::uuid, 'finance', 'view', 'made up: View on Finance');
 select set_config('t.t', core.riyadh_today()::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);

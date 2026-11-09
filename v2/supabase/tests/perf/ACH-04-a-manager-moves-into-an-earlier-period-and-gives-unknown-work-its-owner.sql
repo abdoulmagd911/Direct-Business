@@ -1,7 +1,8 @@
 -- ACH-04 — a manager or admin moves an achievement into an earlier period with a reason, and it carries the "moved"
--- mark (V400); a member may not, and nothing moves forward. An Unknown owner is past work only (V491): a live
--- achievement without an owner is refused by the database; a manager gives backfilled work its owner (Needs an owner),
--- logged and undoable, telling nobody; a member cannot. Every value is made up.
+-- mark (V400); a member moves their own (FIX-03 F088) but not another person's, and nothing moves forward. An Unknown
+-- owner is past work only (V491): a live achievement without an owner is refused by the database; a manager gives
+-- backfilled work its owner (Needs an owner), logged and undoable, telling nobody; a member cannot. Every value is
+-- made up.
 -- Sabotage: supabase/tests/sabotage/a-live-achievement-without-an-owner.sql.
 select set_config('v2.test_now', '2026-10-01 09:00:00+03', true);
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
@@ -13,23 +14,36 @@ select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.a', api.achievement_log(jsonb_build_object('category', 'MOU', 'title', 'Made-up MoU',
   'happened_on', '2026-09-02')) ->> 'id', true);
 select set_config('t.v', api.achievement(current_setting('t.a')::uuid) ->> 'version', true);
-
-select test.raises(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.a'), '2026-08-28',
-  'Made-up reason', current_setting('t.v')), '42501', 'a member does not move it', 'access.needs_level');
+-- the manager's own, for the member-may-not-move-another's leg and the manager legs below
 select test.as_person(current_setting('t.mgr')::uuid);
-select test.raises(format('select api.achievement_move(%L, %L, null, %s)', current_setting('t.a'), '2026-08-28',
-  current_setting('t.v')), 'P0001', 'a move says why', 'common.reason_required');
-select test.raises(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.a'), '2026-09-20',
-  'Made-up reason', current_setting('t.v')), 'P0001', 'only into an earlier period', 'achievement.move_earlier_only');
+select set_config('t.b', api.achievement_log(jsonb_build_object('category', 'MOU', 'title', 'Made-up second MoU',
+  'happened_on', '2026-09-02')) ->> 'id', true);
+select set_config('t.bv', api.achievement(current_setting('t.b')::uuid) ->> 'version', true);
+
+-- a member moves their own (F088) ...
+select test.as_person(current_setting('t.am1')::uuid);
 select test.runs(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.a'), '2026-08-28',
-  'Signed in August, made up', current_setting('t.v')), 'a manager moves it');
-select set_config('t.row', api.achievement(current_setting('t.a')::uuid)::text, true);
+  'Signed in August, made up', current_setting('t.v')), 'a member moves their own');
+select set_config('t.arow', api.achievement(current_setting('t.a')::uuid)::text, true);
+select test.eq((current_setting('t.arow')::jsonb ->> 'happened_on'), '2026-08-28', 'into August');
+select test.eq((current_setting('t.arow')::jsonb ->> 'moved_by'), current_setting('t.am1'), 'who moved it');
+-- ... but not another person's
+select test.raises(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.b'), '2026-08-28',
+  'Made-up reason', current_setting('t.bv')), '42501', 'a member does not move another\u2019s', 'access.needs_level');
+select test.as_person(current_setting('t.mgr')::uuid);
+select test.raises(format('select api.achievement_move(%L, %L, null, %s)', current_setting('t.b'), '2026-08-28',
+  current_setting('t.bv')), 'P0001', 'a move says why', 'common.reason_required');
+select test.raises(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.b'), '2026-09-20',
+  'Made-up reason', current_setting('t.bv')), 'P0001', 'only into an earlier period', 'achievement.move_earlier_only');
+select test.runs(format('select api.achievement_move(%L, %L, %L, %s)', current_setting('t.b'), '2026-08-28',
+  'Signed in August, made up', current_setting('t.bv')), 'a manager moves it');
+select set_config('t.row', api.achievement(current_setting('t.b')::uuid)::text, true);
 select test.eq((current_setting('t.row')::jsonb ->> 'happened_on'), '2026-08-28', 'into August');
 select test.eq((current_setting('t.row')::jsonb ->> 'moved')::boolean, true, 'with the moved mark');
 select test.eq((current_setting('t.row')::jsonb ->> 'moved_from'), '2026-09-02', 'saying where it was');
 select test.eq((current_setting('t.row')::jsonb ->> 'moved_by'), current_setting('t.mgr'), 'who moved it');
 select test.eq((current_setting('t.row')::jsonb ->> 'move_reason'), 'Signed in August, made up', 'and why');
-select test.eq((api.achievements(jsonb_build_object('month', '2026-08')) ->> 'total')::int, 1, 'August counts it now');
+select test.eq((api.achievements(jsonb_build_object('month', '2026-08')) ->> 'total')::int, 2, 'August counts both now');
 select test.eq((api.achievements(jsonb_build_object('month', '2026-09')) ->> 'total')::int, 0, 'September no longer');
 
 -- an Unknown owner: past work only

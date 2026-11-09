@@ -358,6 +358,17 @@ export type ListEntry = {
 
 export const nameOf = (x: { name_en: string; name_ar?: string | null } | undefined, locale: 'en' | 'ar') =>
   x ? (locale === 'ar' && x.name_ar ? x.name_ar : x.name_en) : '';
+
+/**
+ * The client priority scale (D16): High / Medium / Low. The work-priority words (an executive directive is a task
+ * word) are not client levels, so the client pickers show only this scale — plus a priority already stored on the
+ * record, so an existing value never vanishes from its own picker.
+ */
+export const clientPriorities = (all: ListEntry[], includeId?: string | null) => {
+  const scale = all.filter((x) => x.key === 'high' || x.key === 'medium' || x.key === 'low');
+  const stored = includeId ? all.find((x) => x.id === includeId) : undefined;
+  return stored && !scale.some((x) => x.id === stored.id) ? [...scale, stored] : scale;
+};
 export const tradeName = (p: { trade_name_en: string; trade_name_ar?: string | null }, locale: 'en' | 'ar') =>
   locale === 'ar' && p.trade_name_ar ? p.trade_name_ar : p.trade_name_en;
 export const statusTone = (s: Status | null): 'success' | 'warning' | 'danger' | 'neutral' | 'info' =>

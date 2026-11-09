@@ -229,7 +229,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
                   <IconButton label={tc('common.more')} icon={<MoreHorizontal />} />
                 </MenuTrigger>
                 <MenuContent>
-                  {full && a.happened_on ? (
+                  {a.can_edit && a.happened_on ? (
                     <MenuItem onSelect={() => setMoving(true)}>{t('actions.move')}</MenuItem>
                   ) : null}
                   {full && a.needs_owner ? (

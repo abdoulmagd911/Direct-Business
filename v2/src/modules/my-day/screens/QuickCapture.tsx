@@ -144,7 +144,6 @@ export function QuickCapture() {
                   className={pill(kind === k)}
                   onClick={() => {
                     setKind(k);
-                    if (k === 'idea' && visibility === 'private') setVisibility('team');
                   }}
                   data-quick-kind={k}
                 >
@@ -170,14 +169,9 @@ export function QuickCapture() {
           ) : null}
           {about ? null : (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.visibility.label')}>
-              {/* a Reminder is only ever told to its owner: the one choice offered is Only me; an idea is never
-                  private-only: Only me is not offered for ideas */}
-              {(kind === 'reminder'
-                ? VISIBILITIES.filter((v) => v === 'private')
-                : kind === 'idea'
-                  ? VISIBILITIES.filter((v) => v !== 'private')
-                  : VISIBILITIES
-              ).map((v) => (
+              {/* a Reminder is only ever told to its owner: the one choice offered is Only me; an idea offers
+                  every visibility, Only me included (FIX-03 F241) */}
+              {(kind === 'reminder' ? VISIBILITIES.filter((v) => v === 'private') : VISIBILITIES).map((v) => (
                 <button
                   key={v}
                   type="button"

@@ -1,4 +1,6 @@
 'use client';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -7,6 +9,9 @@ import { restoreRecord } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
+import { Field } from '@/ui/Field';
+import { Input } from '@/ui/Input';
+import { Select } from '@/ui/Select';
 import { entityRoute } from '@/ui/entity-route';
 import type { AvatarPerson } from '@/ui/Avatar';
 
@@ -35,13 +40,49 @@ const BLOCKED: Record<string, string> = {
  * Recently deleted (V401, V141): what the viewer may see, inside audit.recently_deleted_days; Restore brings a record
  * back as one logged request (api.restore), with Undo. Everyone reaches it from the profile menu (QA-71) — a member
  * restores their own saved view or note there; Activity shows the same list to those who may see Activity.
+ * The filters are client-side, over the loaded rows; the count says how many of the loaded rows are shown (D36(c)).
+ * A removal reason is shown in full on its own line — it wraps, it is never cut off mid-word (F227).
  */
 export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: Record<string, AvatarPerson> }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('all');
+  const [person, setPerson] = useState('all');
+  const [since, setSince] = useState('');
+
+  const kindOf = (entity: string) => (t.has(`entity.${entity}`) ? t(`entity.${entity}`) : entity);
+  const types = useMemo(
+    () => [...new Set(rows.map((r) => r.entity))].sort((a, b) => kindOf(a).localeCompare(kindOf(b))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows],
+  );
+  const removers = useMemo(
+    () =>
+      Object.entries(people)
+        .filter(([id]) => rows.some((r) => r.deleted_by === id))
+        .map(([id, p]) => ({ id, displayName: p.displayName }))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName)),
+    [rows, people],
+  );
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (type !== 'all' && r.entity !== type) return false;
+      if (person !== 'all' && r.deleted_by !== person) return false;
+      if (since && r.deleted_at.slice(0, 10) < since) return false;
+      if (needle && !`${r.label ?? ''} ${r.reason ?? ''} ${kindOf(r.entity)}`.toLowerCase().includes(needle)) {
+        return false;
+      }
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, q, type, person, since]);
+  const filtering = q.trim() !== '' || type !== 'all' || person !== 'all' || since !== '';
+
   const whatOf = (d: DeletedRow) => {
-    const kind = t.has(`entity.${d.entity}`) ? t(`entity.${d.entity}`) : d.entity;
+    const kind = kindOf(d.entity);
     return d.label ? `${kind} · ${d.label}` : kind;
   };
   const restore = (d: DeletedRow) =>
@@ -57,53 +98,118 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
       { after: () => router.refresh() },
     );
   return (
-    <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
-      {rows.length ? (
-        <ul className="divide-y divide-border">
-          {rows.map((d) => {
-            const href = entityRoute(d.entity, d.id);
-            return (
-              <li
-                key={`${d.entity}:${d.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
-                data-deleted-row={d.id}
-              >
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-medium">
-                    {href ? (
-                      <Link href={href} className="hover:underline">
-                        {whatOf(d)}
-                      </Link>
-                    ) : (
-                      whatOf(d)
-                    )}
-                  </span>
-                  <span className="text-xs text-muted">
-                    {[
-                      d.deleted_by && people[d.deleted_by] ? people[d.deleted_by]!.displayName : null,
-                      formatDate(new Date(d.deleted_at), locale, { dateStyle: 'medium', timeStyle: 'short' }),
-                      d.reason,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                </span>
-                {d.can_restore === false ? (
-                  <span className="text-xs text-muted" data-deleted-blocked>
-                    {t(`activity.deleted.blocked.${(d.restore_blocked && BLOCKED[d.restore_blocked]) || 'other'}`)}
-                  </span>
-                ) : (
-                  <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
-                    {t('activity.deleted.restore')}
-                  </Button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-end gap-3" data-deleted-filters>
+        <label className="relative flex items-center">
+          <Search className="pointer-events-none absolute start-3 size-4 text-muted" aria-hidden="true" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label={t('common.search')}
+            placeholder={t('activity.deleted.searchPlaceholder')}
+            autoComplete="off"
+            className="ps-9 sm:w-72"
+          />
+        </label>
+        <Field label={t('activity.filters.what')}>
+          {(p) => (
+            <Select
+              {...p}
+              value={type}
+              onValueChange={setType}
+              placeholder={t('activity.filters.anything')}
+              options={[
+                { value: 'all', label: t('common.all') },
+                ...types.map((e) => ({ value: e, label: kindOf(e) })),
+              ]}
+            />
+          )}
+        </Field>
+        <Field label={t('activity.filters.who')}>
+          {(p) => (
+            <Select
+              {...p}
+              value={person}
+              onValueChange={setPerson}
+              placeholder={t('activity.filters.anyone')}
+              options={[
+                { value: 'all', label: t('common.all') },
+                ...removers.map((p) => ({ value: p.id, label: p.displayName })),
+              ]}
+            />
+          )}
+        </Field>
+        <Field label={t('activity.filters.since')}>
+          {(p) => (
+            <Input {...p} type="date" value={since} onChange={(e) => setSince(e.target.value)} className="font-data" />
+          )}
+        </Field>
+      </div>
+      {rows.length === 0 ? (
+        <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+          <DataState kind="empty" message={t('activity.deleted.none')} />
+        </section>
       ) : (
-        <DataState kind="empty" message={t('activity.deleted.none')} />
+        <>
+          <p className="text-xs text-muted" data-deleted-count>
+            {filtering
+              ? t('activity.deleted.showing', { shown: filtered.length, total: rows.length })
+              : t('activity.deleted.count', { count: rows.length })}
+          </p>
+          {filtered.length === 0 ? (
+            <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+              <DataState kind="empty" message={t('activity.deleted.none')} />
+            </section>
+          ) : (
+            <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+              <ul className="divide-y divide-border">
+                {filtered.map((d) => {
+                  const href = entityRoute(d.entity, d.id);
+                  return (
+                    <li
+                      key={`${d.entity}:${d.id}`}
+                      className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
+                      data-deleted-row={d.id}
+                    >
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="font-medium">
+                          {href ? (
+                            <Link href={href} className="hover:underline">
+                              {whatOf(d)}
+                            </Link>
+                          ) : (
+                            whatOf(d)
+                          )}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {[
+                            d.deleted_by && people[d.deleted_by] ? people[d.deleted_by]!.displayName : null,
+                            formatDate(new Date(d.deleted_at), locale, { dateStyle: 'medium', timeStyle: 'short' }),
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                        {d.reason ? <span className="break-words text-xs text-muted">{d.reason}</span> : null}
+                      </span>
+                      {d.can_restore === false ? (
+                        <span className="text-xs text-muted" data-deleted-blocked>
+                          {t(
+                            `activity.deleted.blocked.${(d.restore_blocked && BLOCKED[d.restore_blocked]) || 'other'}`,
+                          )}
+                        </span>
+                      ) : (
+                        <Button size="xs" onClick={() => void restore(d)} data-deleted-restore>
+                          {t('activity.deleted.restore')}
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+        </>
       )}
-    </section>
+    </div>
   );
 }

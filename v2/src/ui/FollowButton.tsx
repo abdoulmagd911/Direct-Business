@@ -2,6 +2,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useMaybeMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { Button } from './Button';
@@ -10,10 +11,12 @@ import { toast } from './Toast';
 /**
  * Follow / Following on any record (V61, §3.3): a follower is told of every change to it by someone else
  * (`followed_change`). Reads api.following on mount; one click flips it through api.follow. Not a logged request, so
- * no Undo: the button itself goes back.
+ * no Undo: the button itself goes back. A Viewer (the read-only role, FIX-03 F137) sees the button disabled —
+ * watching is not available to their role — and the server refuses a follow all the same.
  */
 export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: string; size?: 'sm' | 'md' }) {
   const t = useTranslations();
+  const viewer = useMaybeMe()?.person.role?.key === 'viewer';
   // null: still reading; 'hidden': the record's own rule refuses this person (authz.can_see) or the record is gone,
   // so no button; 'failed': the read did not answer (the network, the server) — said, with Try again (QA-74).
   const [on, setOn] = useState<boolean | null | 'hidden' | 'failed'>(null);
@@ -57,7 +60,7 @@ export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: 
       size={size}
       icon={on ? <EyeOff /> : <Eye />}
       onClick={() => void flip()}
-      disabled={on === null}
+      disabled={on === null || viewer}
       loading={busy}
       aria-pressed={on === true}
       data-follow

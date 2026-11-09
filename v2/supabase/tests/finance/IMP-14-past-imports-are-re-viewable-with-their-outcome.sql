@@ -75,8 +75,12 @@ select test.raises($$select api.import_batches('00000000-0000-0000-0000-00000000
 select test.raises($$select api.import_batch_rows('00000000-0000-0000-0000-000000000000'::uuid)$$,
   'P0002', 'a missing batch is not found');
 
--- a member who views Finance reads them too (the gate is finance view, the same as the ledger)
+-- a member who views Finance reads them too (the gate is finance view, the same as the ledger). The member holds
+-- View by an explicit override, now that the member default on Finance is none (FIX-03 F179)
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'view', 'made up: View on Finance');
 select test.as_person(current_setting('t.mem')::uuid);
 select test.eq(jsonb_array_length(api.import_batches(current_setting('t.p')::uuid)), 2,
   'a member who views Finance reads the past batches');

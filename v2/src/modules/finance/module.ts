@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
-// Finance — Own is entering invoices and editing your own entries (owner decision 4). Levels: TECH-SPEC §8.
+// Finance — Members and Viewers hold no level on it (FIX-03 F179, P2): the whole Finance page is refused to them,
+// figures included. Own used to be entering invoices and editing your own entries (owner decision 4); that work
+// is now refused with the page. Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'finance',
   pages: [
@@ -13,7 +15,7 @@ export default defineModule({
       nav: { group: 'main', order: 70, tier: 'manage' },
       // The screens are built (Overview, New invoice): Create, the phone + and Ctrl K may offer New invoice (QA-556)
       built: true,
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
+      defaults: { admin: 'full', head: 'full', manager: 'full' },
     },
     {
       key: 'settings.finance',

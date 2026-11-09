@@ -173,6 +173,7 @@ function api.overview(p_period text, p_from date, p_to date, p_segment text) exe
 function api.own_password_set(p_auth_user uuid, p_keep_session uuid) execute service_role
 function api.page_seen(p_page text) execute authenticated
 function api.partner(p_id uuid) execute authenticated
+function api.partner_archive(p_id uuid, p_reason text) execute authenticated
 function api.partner_bulk_assign(p_ids uuid[], p_side text, p_owner uuid, p_priority uuid, p_reason text) execute authenticated
 function api.partner_client_counts(p_on date) execute authenticated
 function api.partner_create(p_partner jsonb, p_reason text) execute authenticated
@@ -180,9 +181,11 @@ function api.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute au
 function api.partner_owner_set(p_id uuid, p_side text, p_person uuid, p_from date, p_reason text) execute authenticated
 function api.partner_pipeline(p_partner uuid) execute authenticated
 function api.partner_references(p_partner uuid) execute authenticated
+function api.partner_remove(p_id uuid, p_reason text) execute authenticated
 function api.partner_side_off(p_id uuid, p_side text, p_until date, p_reason text) execute authenticated
 function api.partner_side_set(p_id uuid, p_side text, p_values jsonb, p_reason text) execute authenticated
 function api.partner_status_set(p_id uuid, p_side text, p_status text, p_effective_on date, p_reason_id uuid, p_note text) execute authenticated
+function api.partner_unarchive(p_id uuid, p_reason text) execute authenticated
 function api.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function api.partners(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function api.password_changed(p_auth_user uuid) execute service_role
@@ -484,9 +487,12 @@ function partner.hover(p_id uuid) execute authenticated
 function partner.identifier_add(p_partner uuid, p_kind text, p_value text, p_reason text, p_subkind text, p_valid_from date, p_valid_to date, p_note text, p_second_code boolean) execute authenticated
 function partner.identifier_remove(p_id uuid, p_reason text) execute authenticated
 function partner.individual_add(p_name text, p_reason text) execute authenticated
+function partner.partner_archive(p_id uuid, p_reason text) execute authenticated
 function partner.partner_create(p_partner jsonb, p_reason text) execute authenticated
 function partner.partner_get(p_id uuid) execute authenticated
 function partner.partner_merge(p_kept uuid, p_merged uuid, p_reason text) execute authenticated
+function partner.partner_remove(p_id uuid, p_reason text) execute authenticated
+function partner.partner_unarchive(p_id uuid, p_reason text) execute authenticated
 function partner.partner_update(p_id uuid, p_changes jsonb, p_version integer, p_reason text) execute authenticated
 function partner.partners_list(p_filters jsonb, p_limit integer, p_offset integer) execute authenticated
 function partner.reference_save(p_partner uuid, p_id uuid, p_values jsonb, p_version integer, p_reason text) execute authenticated

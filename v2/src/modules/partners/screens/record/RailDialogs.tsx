@@ -331,19 +331,30 @@ export function ContactDialog({
         <div className="flex flex-col gap-2">
           <span className="text-xs text-muted">{t('partners.contact.sides')}</span>
           {SIDES.map((s) => (
-            <Checkbox
-              key={s}
-              label={t(`partners.side.${s}`)}
-              checked={f.sides.includes(s)}
-              onCheckedChange={(v) => setF({ ...f, sides: v ? [...f.sides, s] : f.sides.filter((x) => x !== s) })}
-            />
+            <span key={s} className="flex items-center gap-2">
+              <Checkbox
+                id={`contact-side-${s}`}
+                label={t(`partners.side.${s}`)}
+                checked={f.sides.includes(s)}
+                onCheckedChange={(v) => setF({ ...f, sides: v ? [...f.sides, s] : f.sides.filter((x) => x !== s) })}
+              />
+              <label htmlFor={`contact-side-${s}`} className="text-sm">
+                {t(`partners.side.${s}`)}
+              </label>
+            </span>
           ))}
         </div>
-        <Switch
-          checked={f.is_primary}
-          onCheckedChange={(v) => setF({ ...f, is_primary: v })}
-          label={t('partners.contact.primary')}
-        />
+        <span className="flex items-center gap-2">
+          <Switch
+            id="contact-primary"
+            checked={f.is_primary}
+            onCheckedChange={(v) => setF({ ...f, is_primary: v })}
+            label={t('partners.contact.primary')}
+          />
+          <label htmlFor="contact-primary" className="text-sm">
+            {t('partners.contact.primary')}
+          </label>
+        </span>
       </div>
     </Dialog>
   );

@@ -5,6 +5,10 @@
 -- Sabotage: supabase/tests/sabotage/the-as-of-day-is-the-newest-file.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Member', 'member')::text, true);
+-- the last leg reads the stamp as a Finance viewer: the member holds View by an explicit override, now that the
+-- member default on Finance is none (FIX-03 F179)
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am')::uuid, 'finance', 'view', 'made up: View on Finance');
 select set_config('t.d', (core.riyadh_today() - 20)::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);

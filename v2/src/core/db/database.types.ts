@@ -459,6 +459,7 @@ export type Database = {
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
+      partner_archive: { Args: { p_id: string; p_reason?: string }; Returns: Json };
       partner_bulk_assign: {
         Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };
         Returns: Json;
@@ -472,6 +473,7 @@ export type Database = {
       };
       partner_pipeline: { Args: { p_partner: string }; Returns: Json };
       partner_references: { Args: { p_partner: string }; Returns: Json };
+      partner_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };
       partner_side_off: { Args: { p_id: string; p_reason?: string; p_side: string; p_until?: string }; Returns: Json };
       partner_side_set: { Args: { p_id: string; p_reason?: string; p_side: string; p_values: Json }; Returns: Json };
       partner_status_set: {
@@ -485,6 +487,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      partner_unarchive: { Args: { p_id: string; p_reason?: string }; Returns: Json };
       partner_update: { Args: { p_changes: Json; p_id: string; p_reason?: string; p_version: number }; Returns: Json };
       partners: { Args: { p_filters?: Json; p_limit?: number; p_offset?: number }; Returns: Json };
       password_changed: { Args: { p_auth_user: string }; Returns: Json };

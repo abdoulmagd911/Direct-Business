@@ -1,13 +1,12 @@
 -- CMT-02 — generic comments follow the record (Phase 2). A comment is read by whoever can see its record and by
 -- nobody else, on a task and on an achievement alike: a head of another department reads none of a task's comments,
--- and a member of another department reads none of an achievement's. An achievement keeps its per-type writer list
--- (the pre-step: the whole department sees it, but only Full on KPIs, or Own on KPIs and one of its own people, may
--- write — a colleague who merely sees it reads only). Only the author edits a comment (an admin never does); the
--- author or an admin removes one, and Undo brings it back. A new comment tells the record's owners once each, never
--- its author; a question is also put to the person asked. One open question per record per person; only an explicit
--- reply by the person asked closes it — a casual comment by them does not — and a closed question cannot be
--- re-answered, only re-asked as a new question. A private note takes no comment from anyone but its author. Every
--- value is made up.
+-- and a member of another department reads none of an achievement's. Whoever may see the record and holds Own or more
+-- on its page writes one (FIX-03 P1a) — a colleague who merely sees it writes too, a Viewer reads only. Only the
+-- author edits a comment (an admin never does); the author or an admin removes one, and Undo brings it back. A new
+-- comment tells the record's owners once each, never its author; a question is also put to the person asked. One open
+-- question per record per person; only an explicit reply by the person asked closes it — a casual comment by them does
+-- not — and a closed question cannot be re-answered, only re-asked as a new question. A private note takes no comment
+-- from anyone but its author. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-comment-reads-without-the-task-rule.sql, a-viewer-may-comment.sql,
 -- a-comment-tells-the-whole-team.sql, an-admin-edits-any-comment.sql, a-comment-on-past-work-tells-the-team.sql,
 -- a-viewer-who-helps-may-comment.sql, an-admin-removal-tells-the-author.sql.
@@ -55,26 +54,37 @@ select test.eq(api.comments('task', current_setting('t.t')::uuid) -> 'comments' 
   'Made-up first remark', 'oldest first');
 select test.ok((api.comments('task', current_setting('t.t')::uuid) ->> 'read_at') is not null,
   'and the read carries its own time');
-select test.eq((api.comments('task', current_setting('t.t')::uuid) ->> 'can_write')::boolean, false,
-  'but may not write: neither owner, creator nor helper');
+select test.eq((api.comments('task', current_setting('t.t')::uuid) ->> 'can_write')::boolean, true,
+  'and may write: Own on Tasks is enough (P1a)');
+select set_config('t.cp', api.comment_add('task', current_setting('t.t')::uuid, 'Made-up peer remark')::text, true);
+select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 2,
+  'the colleague adds a comment');
+select api.comment_remove((current_setting('t.cp')::jsonb ->> 'id')::uuid);
+select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 1,
+  'and removes their own again');
 select test.as_person(current_setting('t.far')::uuid);
 select test.raises(format('select api.comments(%L, %L)', 'task', current_setting('t.t')), '42501',
   'a person who cannot see the task reads none of its comments', 'access.needs_level');
 select test.raises(format('select api.comment_add(%L, %L, %L)', 'task', current_setting('t.t'), 'Made up'), '42501',
   'and writes none', 'access.needs_level');
 
--- and on an achievement: the whole department reads, nobody of another department; only the achievement's own people
--- write (the pre-step's per-type writer list) — a colleague who merely sees it reads only
+-- and on an achievement: the whole department reads, nobody of another department; a colleague who sees it writes
+-- too (P1a: Own on KPIs is enough)
 select test.as_person(current_setting('t.admin')::uuid);
 select set_config('t.ca', api.comment_add('achievement', current_setting('t.a')::uuid,
   'Made-up remark on the work')::text, true);
 select test.as_person(current_setting('t.peer')::uuid);
 select test.eq(jsonb_array_length(api.comments('achievement', current_setting('t.a')::uuid) -> 'comments'), 1,
   'a colleague in the department reads the achievement''s comments');
-select test.eq((api.comments('achievement', current_setting('t.a')::uuid) ->> 'can_write')::boolean, false,
-  'but may not write on it: not one of its own people');
-select test.raises(format('select api.comment_add(%L, %L, %L)', 'achievement', current_setting('t.a'), 'Made up'),
-  '42501', 'and an add is refused', 'access.needs_level');
+select test.eq((api.comments('achievement', current_setting('t.a')::uuid) ->> 'can_write')::boolean, true,
+  'and may write on it: Own on KPIs is enough (P1a)');
+select set_config('t.cpa', api.comment_add('achievement', current_setting('t.a')::uuid,
+  'Made-up peer remark')::text, true);
+select test.eq(jsonb_array_length(api.comments('achievement', current_setting('t.a')::uuid) -> 'comments'), 2,
+  'the colleague adds a comment');
+select api.comment_remove((current_setting('t.cpa')::jsonb ->> 'id')::uuid);
+select test.eq(jsonb_array_length(api.comments('achievement', current_setting('t.a')::uuid) -> 'comments'), 1,
+  'and removes their own again');
 select test.as_person(current_setting('t.ops')::uuid);
 select test.raises(format('select api.comments(%L, %L)', 'achievement', current_setting('t.a')), '42501',
   'a member of another department reads none of them', 'access.needs_level');

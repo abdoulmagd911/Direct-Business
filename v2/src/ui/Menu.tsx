@@ -1,7 +1,7 @@
 'use client';
 import * as RM from '@radix-ui/react-dropdown-menu';
 import { Check } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { cn } from './cn';
 
 /** A dropdown menu (the ⋯ menu, the Create menu, the profile menu). Radix handles focus and Escape. */
@@ -9,6 +9,10 @@ export const Menu = RM.Root;
 export const MenuTrigger = RM.Trigger;
 
 export function MenuContent({ children, className, align = 'end', ...rest }: RM.DropdownMenuContentProps) {
+  // An empty menu is a blank white box (F110): never render one — when every item is gated away, there is no menu.
+  // Call sites hide the button too when they know nothing is behind it; this is the backstop for any menu whose
+  // items are all conditional.
+  if (Children.toArray(children).filter(Boolean).length === 0) return null;
   return (
     <RM.Portal>
       <RM.Content

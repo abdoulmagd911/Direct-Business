@@ -2,7 +2,8 @@
  * Turn a note into an achievement (V379, QA-517; builder E). A member captures a note on My day, opens it, chooses Turn
  * into → Achievement, picks the category (the title comes from the note) and saves: the toast says it is logged, the note
  * shows "turned into" with the achievement, and its chip opens the achievement's record page, which says "From note" and
- * leads back. Every value is made up (rule 7).
+ * leads back. Every value is made up (rule 7). Saving opens the FIX-06 saved dialog first ("View record" /
+ * "Log another") on top of the turn dialog, so the spec closes both before it can reach the note's chip.
  * Sabotages: tests/sabotage/achievements.mjs "note-turns-into-no-achievement", "achievement-forgets-its-note".
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -65,6 +66,12 @@ test('a note turned into an achievement says so, and the achievement says where 
   await page.getByRole('option', { name: 'Problem solving' }).click();
   await dialog.locator('[data-achievement-from-note-save]').click();
   await expect(toast(page, 'Achievement logged')).toBeVisible();
+  // FIX-06 (Landing 3): saving no longer closes the turn dialog — a saved dialog ("{number} is saved") opens on top
+  // of it, and the two open dialogs' overlay covers the note page, so the chip below cannot be clicked. "Log another"
+  // returns to the turn form; Cancel closes that, back on the note, where the refetch after the save has put the chip.
+  const saved = page.getByRole('dialog', { name: 'Achievement logged' });
+  await saved.locator('[data-saved-new]').click();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
 
   // the note says what it became; its chip opens the achievement, which says where it came from and leads back
   const chip = page.locator('[data-note-links] [data-turned-into="achievement"]');

@@ -1,9 +1,9 @@
 -- CMT-01 — comments on a task (V657, Stage L, L-5; Phase 2: the comments live in core.comment, read through
 -- api.comments). Whoever sees the task reads its comments, and a comment never widens
--- who sees the task: a head of another department reads nothing of it. Whoever may change the task or helps on it writes
--- one; a viewer, and a colleague who only sees the task, read and add nothing. A new comment tells the task's owner and
--- creator and its helpers, once each, never its author, and nobody about past work. Only the author edits a comment (an
--- admin never does); the author or an admin removes one, and Undo brings it back. A blank or very long comment is
+-- who sees the task: a head of another department reads nothing of it. Whoever may see the task and holds Own or more
+-- on Tasks writes one (FIX-03 P1a); a viewer reads only, even one named a helper. A new comment tells the task's owner
+-- and creator and its helpers, once each, never its author, and nobody about past work. Only the author edits a comment
+-- (an admin never does); the author or an admin removes one, and Undo brings it back. A blank or very long comment is
 -- refused. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-comment-reads-without-the-task-rule.sql, a-viewer-may-comment.sql,
 -- a-comment-tells-the-whole-team.sql, an-admin-edits-any-comment.sql, a-comment-on-past-work-tells-the-team.sql, a-viewer-who-helps-may-comment.sql, an-admin-removal-tells-the-author.sql.
@@ -71,14 +71,18 @@ select test.eq(api.comments('task', current_setting('t.t')::uuid) -> 'comments' 
   'newest last');
 select test.eq((api.comments('task', current_setting('t.t')::uuid) ->> 'can_write')::boolean, true, 'the owner may write');
 
--- a colleague who only sees the task, and a viewer, read and add nothing
+-- a colleague who only sees the task may write now (P1a: Own on Tasks is enough), and a viewer reads only
 select test.as_person(current_setting('t.peer')::uuid);
 select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 2,
   'a colleague who sees the task reads its comments');
-select test.eq((api.comments('task', current_setting('t.t')::uuid) ->> 'can_write')::boolean, false,
-  'but may not write: neither owner, creator nor helper');
-select test.raises(format('select api.comment_add(%L, %L, %L)', 'task', current_setting('t.t'), 'Made up'), '42501',
-  'a colleague who is not on the task adds no comment', 'access.needs_level');
+select test.eq((api.comments('task', current_setting('t.t')::uuid) ->> 'can_write')::boolean, true,
+  'and may write: Own on Tasks is enough');
+select set_config('t.cp2', api.comment_add('task', current_setting('t.t')::uuid, 'Made-up peer remark')::text, true);
+select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 3,
+  'the colleague adds a comment');
+select api.comment_remove((current_setting('t.cp2')::jsonb ->> 'id')::uuid);
+select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 2,
+  'and removes their own again');
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.eq(jsonb_array_length(api.comments('task', current_setting('t.t')::uuid) -> 'comments'), 2,
   'a viewer reads the comments');

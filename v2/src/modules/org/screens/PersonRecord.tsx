@@ -41,6 +41,16 @@ import {
 import type { Device } from './MyProfile';
 import { isAccount } from './OrgAccess';
 import { describeWith, summarizeWith } from '../types';
+import { assignablePeople } from '../pickers';
+
+/** What a person holds, as api.person_open_work answers it: the open counts, and the departments they head. */
+type OpenWork = {
+  tasks: number;
+  projects: number;
+  action_items: number;
+  sides: number;
+  heads: { id: string; name_en: string; name_ar: string | null }[];
+};
 
 export type PersonRecordData = {
   me: Me;
@@ -115,6 +125,22 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   // the full access list is open for admins, one line for everyone else (V217, cut 7)
   const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);
   const [switching, setSwitching] = useState(false);
+  /** The switch-off handover (D39): who takes the person's open work, and what they hold — the count loads when
+      the dialog opens, and the picker is required while anything is open. */
+  const [handover, setHandover] = useState('');
+  const [openWork, setOpenWork] = useState<OpenWork | null>(null);
+  const switchingOff = switching && (row?.can_sign_in ?? false);
+  const openCount = openWork ? openWork.tasks + openWork.projects + openWork.action_items + openWork.sides : 0;
+  /** Open the switch dialog (D39): the count of what the person holds loads with it, and the handover picker is
+      required while anything is open. The server still refuses a switch-off that holds work unnamed. */
+  const openSwitch = () => {
+    setSwitching(true);
+    setOpenWork(null);
+    if (row?.can_sign_in)
+      rpc('person_open_work', { p_id: person.id })
+        .then((w) => setOpenWork(w as unknown as OpenWork))
+        .catch(() => undefined);
+  };
   const [signingOut, setSigningOut] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [temporary, setTemporary] = useState<string | null>(null);
@@ -302,7 +328,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     await run(
       words(t(on ? 'settings.people.switchedOn' : 'settings.people.switchedOff', { name: shownName })),
       async () => {
-        const r = (await rpc('person_switch', { p_id: person.id, p_on: on, p_reason: reason } as never)) as {
+        const r = (await rpc('person_switch', {
+          p_id: person.id,
+          p_on: on,
+          p_reason: reason,
+          // Switching on takes no handover (the server refuses one); switching off hands the open work to the
+          // person named in the dialog, or to nobody when there is none.
+          p_reassign_to: on ? null : handover || null,
+        } as never)) as {
           request_id?: string | null;
         } | null;
         await fetch('/auth/admin/sync', {
@@ -314,6 +347,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       },
       () => {
         setSwitching(false);
+        setHandover('');
+        setOpenWork(null);
         refresh();
       },
     );
@@ -663,7 +698,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           {t('common.edit')}
         </Button>
         {follow}
-        <Button onClick={() => setSwitching(true)} data-person-switch>
+        <Button onClick={openSwitch} data-person-switch>
           {row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn')}
         </Button>
         <Menu>
@@ -994,7 +1029,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       ) : null}
       <ReasonDialog
         open={switching}
-        onOpenChange={setSwitching}
+        onOpenChange={(o) => {
+          if (!o) {
+            setHandover('');
+            setOpenWork(null);
+          }
+          setSwitching(o);
+        }}
         title={
           row?.can_sign_in
             ? t('settings.people.switchOffTitle', { name: shownName })
@@ -1003,13 +1044,43 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         body={row?.can_sign_in ? t('settings.people.switchOffBody', { name: shownName }) : undefined}
         onSave={doSwitch}
         destructive={row?.can_sign_in ?? false}
+        saveDisabled={switchingOff && openWork !== null && ((openCount > 0 && !handover) || openWork.heads.length > 0)}
         words={{
           reason: t('common.reason'),
           save: row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn'),
           cancel: t('common.cancel'),
           reasonRequired: t('settings.form.reasonRequired'),
         }}
-      />
+      >
+        {switchingOff && openWork !== null && openWork.heads.length > 0 ? (
+          <p className="text-sm text-muted">
+            {t('settings.people.headNeedsSuccessor', {
+              name: shownName,
+              department: openWork.heads.map((h) => pick(h)).join(', '),
+            })}
+          </p>
+        ) : null}
+        {switchingOff && openWork !== null ? (
+          openCount > 0 ? (
+            <p className="text-sm text-muted">{t('settings.people.openWorkMove', { count: openCount })}</p>
+          ) : (
+            <p className="text-sm text-muted">{t('settings.people.openWorkNone')}</p>
+          )
+        ) : null}
+        {switchingOff ? (
+          <Field label={t('settings.people.handover')}>
+            {(p) => (
+              <Select
+                {...p}
+                value={handover}
+                onValueChange={setHandover}
+                placeholder={t('settings.people.handoverPlaceholder')}
+                options={assignablePeople(teammates).map((p) => ({ value: p.id, label: nameOf(p, locale) }))}
+              />
+            )}
+          </Field>
+        ) : null}
+      </ReasonDialog>
       <ReasonDialog
         open={removingEmail !== null}
         onOpenChange={(o) => !o && setRemovingEmail(null)}

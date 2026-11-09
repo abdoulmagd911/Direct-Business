@@ -3,7 +3,9 @@
  * and lands on its record page, the reference on the Evidence tab; the list shows it; a colleague in the same
  * department sees it, someone in another department does not (V96); at 390 px the form fits the phone; the same award
  * logged again for the same organisation asks "This is a new one" or "Same as the earlier one", and the new one carries
- * its number and names the earlier one (V531). The form offers the department's seven starting categories; a
+ * its number and names the earlier one (V531). Saving opens the FIX-06 saved dialog first ("View record" /
+ * "Log another") instead of navigating, so each log in the repeat test goes through "View record" to reach the record.
+ * The form offers the department's seven starting categories; a
  * department with no plan for the year says so in one sentence, and an admin opens the plan from there (V380). Every
  * value is made up (rule 7).
  * Sabotages: tests/sabotage/achievements.mjs "log-sends-no-reference", "log-skips-the-repeat-check",
@@ -51,11 +53,18 @@ test('a member logs an achievement with a reference and finds it on its page and
   await page.getByRole('combobox', { name: 'Category' }).click();
   await page.getByRole('option', { name: 'Contract signed' }).click();
   await page.getByLabel('What').fill(`Made-up deal ${tag}`);
-  await expect(page.getByText('Deal value · Not revenue'), 'Contract signed carries a deal value').toBeVisible();
-  await page.getByLabel('Deal value · Not revenue').fill('125000');
+  // FIX-06 (D29): the value is a plain number for every category, labelled with the category's own name as
+  // the unit — so the field reads "Value (Contract signed) · Not revenue", not "Deal value · Not revenue".
+  await expect(
+    page.getByText('Value (Contract signed) · Not revenue'),
+    'Contract signed carries a deal value',
+  ).toBeVisible();
+  await page.getByLabel('Value (Contract signed) · Not revenue').fill('125000');
   await page.getByLabel('Reference', { exact: true }).fill(`MADE-UP-${tag}`);
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(toast(page, 'Achievement logged')).toBeVisible();
+  // FIX-06: saving opens the post-save dialog instead of navigating straight to the record.
+  await page.getByRole('button', { name: 'View record' }).click();
   await expect(page).toHaveURL(/\/kpis\/achievements\/[0-9a-f-]{36}/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(`Made-up deal ${tag}`);
   await expect(page.getByText('Not revenue').first()).toBeVisible();
@@ -186,6 +195,10 @@ test('logging the same award again for an organisation offers the one-tap repeat
   };
   await log();
   await expect(toast(page, 'Achievement logged')).toBeVisible();
+  // FIX-06 (Landing 3): saving no longer navigates to the record — a saved dialog ("{number} is saved") opens on
+  // /kpis/achievements/new instead. "View record" takes us to the record, where the header carries the number.
+  await page.getByRole('dialog', { name: 'Achievement logged' }).locator('[data-saved-same]').click();
+  await expect(page).toHaveURL(/\/kpis\/achievements\/[0-9a-f-]{36}/);
   const first = page.url();
   const number = (await page.locator('[data-record-header]').innerText()).match(/ACH-\d{4}-\d{4,}/)?.[0];
   expect(number, 'the record shows its number').toBeTruthy();
@@ -195,6 +208,9 @@ test('logging the same award again for an organisation offers the one-tap repeat
   await expect(dialog).toContainText(number!);
   await dialog.locator('[data-repeat-new]').click();
   await expect(toast(page, 'Achievement logged')).toBeVisible();
+  // the repeat save ends the same way: the saved dialog, then "View record" to the new record.
+  await page.getByRole('dialog', { name: 'Achievement logged' }).locator('[data-saved-same]').click();
+  await expect(page).toHaveURL(/\/kpis\/achievements\/[0-9a-f-]{36}/);
   await expect(page).not.toHaveURL(first);
   await expect(page.getByRole('link', { name: number! }), 'the new one names the earlier one').toBeVisible();
 

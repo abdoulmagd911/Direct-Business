@@ -29,7 +29,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // one api.me() per request (cached; null on the door) — the profile's theme and density stand in for a missing cookie
   const [store, app, answer] = await Promise.all([cookies(), getAppSettings(), getMe().catch(() => null)]);
   const me = answer?.status === 'ok' ? answer : null;
-  // the language follows the Arabic switch (ACC-139): a cookie saying Arabic is ignored while it is off
+  // signed in, the language follows the Arabic switch (ACC-139): a cookie saying Arabic is ignored while it is off;
+  // on the door the cookie stands (F205)
   const prefs = serverPrefs(me, app, (n) => store.get(n)?.value);
   const locale = await getLocale();
   const messages = await getMessages();

@@ -10,23 +10,22 @@ import { BrandLogo } from '@/ui/BrandLogo';
  * and a 24×3 orange rule under it — no motif, no tagline, no copyright. Below 1024 px the panel is gone: a 56 px slate
  * bar with a 24 px logo and the language button, then the content with 16 px gutters. The content side is light
  * (`color-scheme: light`, its own `--door-*` tokens) whatever the person's theme, a 400 px column at the inline start,
- * its heading at max(96 px, 22 vh) — never vertically centred. The language button shows once Arabic is on (V122).
+ * its heading at max(96 px, 22 vh) — never vertically centred. The language button always shows on the door (F205):
+ * nobody is signed in here, so the cookie stands whatever the Arabic switch says; in-app Arabic stays gated (ACC-139).
  */
 export function DoorFrame({
   children,
-  arabicEnabled = false,
   footer,
   ...rest
 }: {
   children: ReactNode;
-  arabicEnabled?: boolean;
   footer?: ReactNode;
   [key: `data-${string}`]: unknown;
 }) {
   const t = useTranslations();
   const locale = useLocale();
   const other = locale === 'ar' ? 'en' : 'ar';
-  const language = arabicEnabled ? (
+  const language = (
     <button
       type="button"
       lang={other}
@@ -40,7 +39,7 @@ export function DoorFrame({
     >
       {other === 'ar' ? 'العربية' : 'English'}
     </button>
-  ) : null;
+  );
   return (
     <div className="door flex min-h-dvh flex-col lg:flex-row" {...rest}>
       <aside className="door-panel hidden w-[400px] shrink-0 lg:block" data-brand-panel>
@@ -54,7 +53,7 @@ export function DoorFrame({
         {language}
       </header>
       <main className="door-page relative flex min-w-0 flex-1 flex-col px-4 pb-8 sm:px-12">
-        {language ? <div className="absolute end-4 top-3 hidden lg:block">{language}</div> : null}
+        <div className="absolute end-4 top-3 hidden lg:block">{language}</div>
         <div className="door-column flex w-full max-w-[400px] flex-1 flex-col pt-[max(96px,22vh)]">
           {children}
           <p className="door-footer mt-auto pt-10 text-xs">{footer}</p>

@@ -155,11 +155,12 @@ export const sabotages = [
     edits: [{ file: OVERVIEW, find: '        {data.asOf === null ? (', replace: '        {false ? (' }],
   },
   {
-    // V622: before any import the Overview is one empty state, never "as of —" over three zeros
+    // V622: before any import the Overview is one empty state, never "as of —" over three zeros.
+    // The flag was renamed notImported -> neverImported in Landing 3, when periodEmpty split off.
     name: 'finance-before-import-shows-zeros',
     breaks: [FAILED],
     expect: 'never a dash and zeros',
-    edits: [{ file: OVERVIEW, find: '  const notImported =\n', replace: '  const notImported = false &&\n' }],
+    edits: [{ file: OVERVIEW, find: '  const neverImported =\n', replace: '  const neverImported = false &&\n' }],
   },
   {
     name: 'attention-strip-hides-when-closed-months-fail',

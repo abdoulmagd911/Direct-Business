@@ -246,7 +246,15 @@ test('Wrap up carries the open captures to the next working day, keeping the day
   }
   await dialog.locator('[data-wrap-save]').click();
   await expect(toast(page, 'Day wrapped up')).toBeVisible();
-  await expect(page.locator('[data-my-note]', { hasText: t }), 'carried notes wait for their day').toHaveCount(0);
+  // FIX-27: carried notes leave the main list (their day is still ahead) but stay reachable in Deferred.
+  await expect(
+    page.locator('[data-block="me"] [data-my-note]', { hasText: t }),
+    'carried notes wait for their day',
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-block-deferred] [data-my-note]', { hasText: t }),
+    'carried notes stay reachable in Deferred',
+  ).toHaveCount(2);
   const rows = await sql<{ happened_on: string; carried_to: string | null }>(
     `select happened_on::text, carried_to::text from my.note where id = any($1)`,
     [ids],

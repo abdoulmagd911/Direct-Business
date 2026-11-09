@@ -73,11 +73,26 @@ export default async function ActivityPage({
         })) as unknown as HistoryRow[]) ?? [],
     };
   };
-  const [org, read] = await Promise.all([serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, tabRead()]);
+  const [org, priorities, read] = await Promise.all([
+    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
+    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<
+      { id: string; name_en: string; name_ar: string | null }[]
+    >,
+    tabRead(),
+  ]);
   const { rows = [], signIns = [], deleted = [] } = read;
   return (
     <Page bare>
-      <ActivityScreen me={me} tab={tab} org={org} rows={rows} signIns={signIns} deleted={deleted} filters={filters} />
+      <ActivityScreen
+        me={me}
+        tab={tab}
+        org={org}
+        rows={rows}
+        signIns={signIns}
+        deleted={deleted}
+        filters={filters}
+        priorities={priorities}
+      />
     </Page>
   );
 }

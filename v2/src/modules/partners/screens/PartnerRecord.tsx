@@ -138,6 +138,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const [removingRef, setRemovingRef] = useState<Reference | null>(null);
   const [contract, setContract] = useState<Contract | null | 'new'>(null);
   const [removingContract, setRemovingContract] = useState<Contract | null>(null);
+  const [removingPartner, setRemovingPartner] = useState(false);
 
   if (!card) {
     const title = side === 'client' ? t('nav.clients') : t('nav.suppliers_partners');
@@ -158,9 +159,20 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const sidesOn = card.sides.filter((s) => s.on);
   const sideOf = (k: Side) => card.sides.find((s) => s.side === k && s.on) ?? null;
   const fullOn = (k: Side) => me.levels[SIDE_PAGE[k]] === 'full';
+  /** Full on any side the record has on: the record-level Remove / Archive / Unarchive gate. */
+  const full = sidesOn.some((s) => fullOn(s.side));
   const canAssign = (k: Side) => me.capabilities.includes(`${SIDE_PAGE[k]}.assign`);
   const isOwner = (s: SideFull | null) => !!s && s.owner_id === me.person.id;
   const mayWrite = sidesOn.some((s) => fullOn(s.side) || (me.levels[SIDE_PAGE[s.side]] === 'own' && isOwner(s)));
+  /** Anything behind the ⋯ menu (F110): Full on a side, the side's owner or assigner, or a writer. A reader with
+      none of these gets no More button at all — the menu would be empty, a blank white box. */
+  const hasMoreActions =
+    full ||
+    mayWrite ||
+    SIDES.some((k) => {
+      const s = sideOf(k);
+      return fullOn(k) || (s !== null && (isOwner(s) || canAssign(k)));
+    });
   const mayIdentify =
     me.capabilities.includes('clients.identify') || me.capabilities.includes('suppliers_partners.identify');
   const listName = (list: ListEntry[], key: string | null | undefined, byId = false) =>
@@ -173,6 +185,19 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
     command(
       words(done),
       () => rpc(fn as 'contacts_remove', { p_ids: ids }) as Promise<{ request_id?: string | null } | null>,
+      { after: refresh },
+    );
+  /** Archive / Unarchive are one request, one Undo; the record re-reads and shows (or drops) its Archived chip. */
+  const archive = () =>
+    command(
+      words(t('partners.archivedDone', { name: tradeName(card, locale) })),
+      () => rpc('partner_archive', { p_id: card.id }) as Promise<{ request_id?: string | null } | null>,
+      { after: refresh },
+    );
+  const unarchive = () =>
+    command(
+      words(t('partners.unarchivedDone', { name: tradeName(card, locale) })),
+      () => rpc('partner_unarchive', { p_id: card.id }) as Promise<{ request_id?: string | null } | null>,
       { after: refresh },
     );
 
@@ -204,7 +229,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
       case 'contacts':
         return { key: k, label: t('partners.figures.contacts'), value: String(card.contacts.length) };
       case 'files':
-        return { key: k, label: t('partners.figures.files'), value: String(card.counts.files) };
+        // the header figure is the list on screen (D36(c)): the loaded files, falling back to the card's count
+        // only when the list read failed — the card's count excludes logos, the list does not (F117)
+        return { key: k, label: t('partners.figures.files'), value: String(files ? files.length : card.counts.files) };
     }
   });
 
@@ -225,55 +252,77 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
       {/* Watch and ⋯ stay together on one line when the actions wrap on a phone */}
       <span className="inline-flex shrink-0 items-center gap-2" data-partner-watch-more>
         <FollowButton entity="partner" id={card.id} />
-        <Menu>
-          <MenuTrigger asChild>
-            <Button aria-label={t('common.more')} data-partner-more>
-              ⋯
-            </Button>
-          </MenuTrigger>
-          <MenuContent>
-            {SIDES.map((k) => {
-              const s = sideOf(k);
-              const label = t(`partners.side.${k}`);
-              if (!s)
-                return fullOn(k) ? (
-                  <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
-                    {t('partners.sideDialog.switchOn', { side: label })}
-                  </MenuItem>
-                ) : null;
-              return (
-                <div key={k}>
-                  {fullOn(k) ? (
-                    <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
-                      {t('partners.sideDialog.change', { side: label })}
+        {hasMoreActions ? (
+          <Menu>
+            <MenuTrigger asChild>
+              <Button aria-label={t('common.more')} data-partner-more>
+                ⋯
+              </Button>
+            </MenuTrigger>
+            <MenuContent>
+              {SIDES.map((k) => {
+                const s = sideOf(k);
+                const label = t(`partners.side.${k}`);
+                // A side with nothing behind it contributes no item at all (F110): not even its separator, so the
+                // menu is never a list of separators for a reader who may do nothing here.
+                if (!fullOn(k) && (s === null || (!isOwner(s) && !canAssign(k)))) return null;
+                if (!s)
+                  return fullOn(k) ? (
+                    <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
+                      {t('partners.sideDialog.switchOn', { side: label })}
                     </MenuItem>
-                  ) : null}
-                  {isOwner(s) || canAssign(k) ? (
-                    <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
-                      {t('partners.statusDialog.action')} · {label}
-                    </MenuItem>
-                  ) : null}
-                  {canAssign(k) ? (
-                    <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
-                      {t('partners.ownerDialog.action')} · {label}
-                    </MenuItem>
-                  ) : null}
-                  {fullOn(k) && sidesOn.length > 1 ? (
-                    <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
-                      {t('partners.sideDialog.switchOffAction', { side: label })}
-                    </MenuItem>
-                  ) : null}
+                  ) : null;
+                return (
+                  <div key={k}>
+                    {fullOn(k) ? (
+                      <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
+                        {t('partners.sideDialog.change', { side: label })}
+                      </MenuItem>
+                    ) : null}
+                    {isOwner(s) || canAssign(k) ? (
+                      <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
+                        {t('partners.statusDialog.action')} · {label}
+                      </MenuItem>
+                    ) : null}
+                    {canAssign(k) ? (
+                      <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
+                        {t('partners.ownerDialog.action')} · {label}
+                      </MenuItem>
+                    ) : null}
+                    {fullOn(k) && sidesOn.length > 1 ? (
+                      <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
+                        {t('partners.sideDialog.switchOffAction', { side: label })}
+                      </MenuItem>
+                    ) : null}
+                    <MenuSeparator />
+                  </div>
+                );
+              })}
+              {mayWrite ? (
+                <MenuItem onSelect={() => setNoting(true)} data-note-add>
+                  {t('partners.note.add')}
+                </MenuItem>
+              ) : null}
+              {full ? (
+                <>
                   <MenuSeparator />
-                </div>
-              );
-            })}
-            {mayWrite ? (
-              <MenuItem onSelect={() => setNoting(true)} data-note-add>
-                {t('partners.note.add')}
-              </MenuItem>
-            ) : null}
-          </MenuContent>
-        </Menu>
+                  {card.archived_at ? (
+                    <MenuItem onSelect={() => void unarchive()} data-partner-unarchive>
+                      {t('partners.unarchivePartner')}
+                    </MenuItem>
+                  ) : (
+                    <MenuItem onSelect={() => void archive()} data-partner-archive>
+                      {t('partners.archivePartner')}
+                    </MenuItem>
+                  )}
+                  <MenuItem onSelect={() => setRemovingPartner(true)} data-partner-remove>
+                    {t('partners.remove')}
+                  </MenuItem>
+                </>
+              ) : null}
+            </MenuContent>
+          </Menu>
+        ) : null}
       </span>
     </>
   );
@@ -779,6 +828,13 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                 rows={history}
                 people={people}
                 onChanged={refresh}
+                describe={(field, v) => {
+                  // a lookup id in words, never the id itself: the priority's name for its id (F119, D36(a))
+                  if (field === 'priority_id' && typeof v === 'string' && v) {
+                    return listName(lists.priorities, v, true) || null;
+                  }
+                  return null;
+                }}
                 entityWords={{
                   partner: side === 'client' ? t('partners.side.client') : t('partners.side.supplier_partner'),
                 }}
@@ -943,6 +999,30 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             words(t('partners.identifier.removed')),
             () =>
               rpc('identifier_remove', { p_id: id, p_reason: reason }) as Promise<{
+                request_id?: string | null;
+              } | null>,
+            { after: refresh },
+          );
+        }}
+        words={{
+          reason: t('common.reason'),
+          save: t('common.remove'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <ReasonDialog
+        open={removingPartner}
+        onOpenChange={(o) => !o && setRemovingPartner(false)}
+        title={t('partners.removeTitle', { name: tradeName(card, locale) })}
+        destructive
+        onSave={async (reason) => {
+          setRemovingPartner(false);
+          // The record stays open with the Undo in place (D22): the re-read renders the record's "not there" state.
+          await command(
+            words(t('partners.removed', { name: tradeName(card, locale) })),
+            () =>
+              rpc('partner_remove', { p_id: card.id, p_reason: reason }) as Promise<{
                 request_id?: string | null;
               } | null>,
             { after: refresh },

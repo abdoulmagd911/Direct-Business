@@ -1,7 +1,10 @@
 -- Sabotage: a-voided-invoice-is-still-owed
 -- Breaks: sql:COL-01
--- Expect: only the published invoices are owed; voided, cancelled and credit notes never are
--- A voided invoice stays in what is owed (V416).
+-- Expect: an invoice voided by a newer file leaves what is owed
+-- A voided invoice stays in what is owed (V416). The red comes from the second assertion, not the first: the first
+-- import's 'Voided' spelling was retired in Landing 2 (20261109000008), so finance.status_of no longer resolves it
+-- and that row is held as status_unknown — it never becomes a receivable at all, sabotage or not. The sabotage bites
+-- on the live 'Void' spelling, when the newer file voids SA-C5 and it stays owed.
 create or replace view finance.receivable with (security_invoker = true) as
 with inv as (
   select f.id as invoice_id, f.ref, f.kind, f.partner_id, f.pay_state, f.total_sar,

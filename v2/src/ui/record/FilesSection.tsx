@@ -66,10 +66,23 @@ export async function sha256HexFile(file: File): Promise<string> {
     .join('');
 }
 
-// A file's download is a real link to the re-checking route (FIX-16, core/files/download-url.ts): the route
-// re-checks the presser may still see the file on every GET and redirects to a freshly minted short-lived
-// signed URL. Minting a raw signed URL in the browser is gone: it was bearer and unsharing never revoked it,
-// so a re-pressed link kept serving until its expiry (600 s for documents, 24 h for images).
+/**
+ * Download one stored file: a real link to the re-checking route (FIX-16, core/files/download-url.ts) — the
+ * route re-checks the presser may still see the file on every GET and redirects to a freshly minted short-lived
+ * signed URL, so unsharing revokes the link where a raw signed URL minted in the browser would keep serving
+ * until its expiry. Delivered through a programmatic link click: after the awaits the click's transient
+ * activation is gone, window.open is swallowed by the popup blocker and returns null — no throw, no toast, a
+ * silent nothing (F248). The route's redirect carries the save-as name, so no download attribute is needed;
+ * a refusal comes back as a words page (FIX-39), never a silent failure.
+ */
+export async function downloadRecordFile(fileId: string, locale: 'en' | 'ar'): Promise<void> {
+  const a = document.createElement('a');
+  a.href = recordFileDownloadUrl(fileId, locale);
+  a.rel = 'noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 /** One upload that failed while this screen still holds the file: it can be tried again from memory. */
 type PendingUpload = {
@@ -141,6 +154,9 @@ export function FilesSection({
   }, [files]);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const fileName = (f: RecordFile) =>
+    locale === 'ar' && f.display_name_ar ? f.display_name_ar : (f.display_name_en ?? f.original_name ?? '');
 
   const selected = kinds.find((k) => k.kind === kind) ?? kinds[0];
   const needsReview = selected?.reviewRequired === true;
@@ -381,8 +397,10 @@ export function FilesSection({
           setRemovingBusy(true);
           // through command(): a toast with Undo on success, a refusal in words on failure, and the global
           // refetch — the bare rpc + onDone() before it showed nothing on failure and refreshed on it (F145).
+          // The toast names the file (F027, D22): files_remove soft-deletes the file and its links, so Undo
+          // brings it back.
           const result = await command(
-            words(t('record.files.removed')),
+            words(t('record.files.removed', { name: fileName(f) })),
             () =>
               rpc('files_remove', { p_ids: [f.id], p_reason: reason }) as Promise<{
                 request_id?: string | null;

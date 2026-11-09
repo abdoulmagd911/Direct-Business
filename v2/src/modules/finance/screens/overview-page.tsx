@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
+import { DataState } from '@/ui/DataState';
 import { Page } from '@/ui/shell/Page';
 import { ledgerFilterFromQuery } from '../ledger';
 import { periodAsk, riyadhDay } from '../period';
@@ -15,6 +16,18 @@ const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : u
  */
 export async function FinanceOverviewPage({ searchParams }: { searchParams: Promise<Q> }) {
   const [q, me, t] = await Promise.all([searchParams, requireMe(), getTranslations()]);
+  // FIX-03 F179 (P2): Finance is refused whole to Members and Viewers — no level, no page, figures included.
+  if ((me.levels.finance ?? 'none') === 'none')
+    return (
+      <Page page="finance" title={t('nav.finance')}>
+        <DataState
+          kind="no-access"
+          what={t('nav.finance')}
+          message={t('finance.locked')}
+          goHome={t('errors.notFound.goMyDay')}
+        />
+      </Page>
+    );
   const today = riyadhDay();
   const ask = periodAsk({ period: one(q.period), from: one(q.from), to: one(q.to) }, today);
   // The ledger's filters ride the same address as the period, so a saved view is a named address (workstream B).

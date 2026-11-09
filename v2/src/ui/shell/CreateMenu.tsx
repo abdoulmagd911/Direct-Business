@@ -36,7 +36,7 @@ export const CREATE_ACTIONS: {
   at: Level[];
   /** Opens the Quick capture sheet where the person stands instead of going to a page (productivity stage 1). */
   sheet?: boolean;
-  /** Opens the sheet on this kind instead of a plain note (Idea: one tap to share an idea, never private-only). */
+  /** Opens the sheet on this kind instead of a plain note (Idea: one tap to share an idea, shared with the team unless the person picks Only me). */
   kind?: CaptureKind;
   /** Opens a dialog in the shell where the person stands instead of going to a page (Log activity, V646). */
   dialog?: () => void;
@@ -69,8 +69,9 @@ export const CREATE_ACTIONS: {
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
-  // One tap to share an idea: the sheet opens on Idea, shared with the team, never private-only; the shared list is
-  // My day narrowed to Ideas (Workspace or My team tab, Idea filter). Last, so existing Create order is untouched.
+  // One tap to share an idea: the sheet opens on Idea, shared with the team by default — Only me is offered too
+  // (FIX-03 F241); the shared list is My day narrowed to Ideas (Workspace or My team tab, Idea filter). Last, so
+  // existing Create order is untouched.
   { key: 'idea', page: 'my_day', route: '', icon: Lightbulb, at: ['view', 'own', 'full'], sheet: true, kind: 'idea' },
 ];
 
