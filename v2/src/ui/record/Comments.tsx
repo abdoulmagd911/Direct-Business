@@ -5,8 +5,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { recordFileDownloadUrl } from '@/core/files/download-url';
 import { formatDate } from '@/core/i18n/format';
-import { Button } from '@/ui/Button';
+import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
@@ -14,7 +15,8 @@ import { Field } from '@/ui/Field';
 import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { useCommandWords } from './words';
-import { downloadRecordFile, formatFileSize, type RecordFile } from './FilesSection';
+import { formatFileSize, type RecordFile } from './FilesSection';
+import { FileLinkButton } from './FileLinkButton';
 
 export const COMMENT_MAX = 4000;
 
@@ -122,7 +124,6 @@ export function Comments({
     setLinkedFilter(initialFilter);
     setFilter(initialFilter ?? 'all');
   }
-  const [fileError, setFileError] = useState(false);
   // The newest read of the list wins, whichever way it came: the page's own re-read (it can be late, and then older than
   // the read made right after a write) or the read this screen makes itself after each write and Undo. A late, older
   // read never puts the list back; what shows ahead of a read (below) is dropped when a newer read arrives.
@@ -393,11 +394,6 @@ export function Comments({
           </Button>
         ))}
       </div>
-      {fileError ? (
-        <p role="alert" className="text-sm text-danger">
-          {t('record.files.downloadFailed')}
-        </p>
-      ) : null}
       {visible.length === 0 ? (
         filter === 'files' && files === null ? (
           <DataState
@@ -414,7 +410,8 @@ export function Comments({
           {visible.map((e, i) => {
             if (e.kind === 'file') {
               const f = e.file;
-              const name = locale === 'ar' && f.display_name_ar ? f.display_name_ar : f.display_name_en;
+              // The entry's name is the stored uploaded filename (FIX-38), never the generated display name.
+              const name = f.original_name;
               return (
                 <li
                   key={`file-${f.id}`}
@@ -424,7 +421,7 @@ export function Comments({
                 >
                   <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
                     <span className="font-semibold text-text" data-comment-file-name>
-                      {name ?? f.original_name}
+                      {name}
                     </span>
                     <span>
                       {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
@@ -434,17 +431,17 @@ export function Comments({
                     </span>
                   </p>
                   {f.status === 'stored' ? (
-                    <div>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setFileError(false);
-                          void downloadRecordFile(f.id, locale).catch(() => setFileError(true));
-                        }}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={recordFileDownloadUrl(f.id, locale)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ size: 'sm' })}
                         data-file-download
                       >
                         {t('record.files.download')}
-                      </Button>
+                      </a>
+                      <FileLinkButton fileId={f.id} size="sm" />
                     </div>
                   ) : null}
                 </li>

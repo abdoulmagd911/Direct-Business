@@ -15,12 +15,14 @@ export function riyadhDay(now = new Date()): string {
 /** The first day of the month a day is in. */
 export const monthStart = (day: string) => `${day.slice(0, 7)}-01`;
 
-/** The period an address asks for; anything unreadable is the year to date, never an error page. */
+/** The period an address asks for; anything unreadable is the year to date, never an error page. An explicit
+ * pair of dates is honoured whatever the period key says (F171): a saved view that stores mtd with from/to
+ * 1–4 Nov asks for 1–4 Nov, not the whole month recomputed from today. The key is kept for the switch's
+ * highlight only. */
 export function periodAsk(q: { period?: string; from?: string; to?: string }, today: string): PeriodAsk {
   const year = today.slice(0, 4);
   const month = Number(today.slice(5, 7));
-  if (q.period === 'custom' && q.from && q.to && real(q.from) && real(q.to) && q.from <= q.to)
-    return { key: 'custom', from: q.from, to: q.to };
+  if (q.from && q.to && real(q.from) && real(q.to) && q.from <= q.to) return { key: 'custom', from: q.from, to: q.to };
   if (q.period === 'mtd') return { key: 'mtd', from: monthStart(today), to: today };
   if (q.period === 'qtd') {
     const first = Math.floor((month - 1) / 3) * 3 + 1;

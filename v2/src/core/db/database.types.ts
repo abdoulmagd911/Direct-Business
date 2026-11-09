@@ -97,6 +97,7 @@ export type Database = {
           p_from?: string;
           p_kind?: string;
           p_limit?: number;
+          p_locale?: string;
           p_offset?: number;
           p_purpose?: string;
           p_record?: string;
@@ -378,10 +379,12 @@ export type Database = {
       };
       identifier_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
       import_apply: { Args: { p_batch: string; p_decisions?: Json; p_held?: Json; p_rows: Json }; Returns: Json };
+      import_batch_rows: { Args: { p_batch: string }; Returns: Json };
       import_batch_start: {
         Args: { p_file_name: string; p_partner: string; p_signature: string; p_source_promo?: string };
         Returns: Json;
       };
+      import_batches: { Args: { p_partner: string }; Returns: Json };
       import_ledger: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };
@@ -685,7 +688,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'api'>];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends

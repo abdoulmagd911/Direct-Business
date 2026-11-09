@@ -154,6 +154,20 @@ describe('the period', () => {
     expect(periodAsk({ period: 'custom', from: 'x', to: 'y' }, '2026-10-11').key).toBe('ytd');
   });
 
+  it('keeps a saved view\u2019s dates whatever the period key says (F171)', () => {
+    // A view saved as mtd for 1–4 Nov asks for 1–4 Nov, not the whole month recomputed from today.
+    expect(periodAsk({ period: 'mtd', from: '2026-11-01', to: '2026-11-04' }, '2026-11-08')).toEqual({
+      key: 'custom',
+      from: '2026-11-01',
+      to: '2026-11-04',
+    });
+    expect(periodAsk({ period: 'qtd', from: '2026-10-01', to: '2026-10-15' }, '2026-11-08')).toEqual({
+      key: 'custom',
+      from: '2026-10-01',
+      to: '2026-10-15',
+    });
+  });
+
   it('lists every month it covers', () => {
     expect(monthsBetween('2025-11-01', '2026-02-15')).toEqual(['2025-11-01', '2025-12-01', '2026-01-01', '2026-02-01']);
   });

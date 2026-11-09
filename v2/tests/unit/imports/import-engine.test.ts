@@ -360,6 +360,52 @@ describe('duplicate re-import idempotence', () => {
     const kept = buildPreview([], records, [], { 3: 'keep' });
     expect(kept.rows.map((r) => r.outcome)).toEqual(['needs_linking', 'needs_linking']);
   });
+
+  it('an updated row names the stored record it matched and the change, old to new (F182)', () => {
+    // 'Fully Paid as receivable' is not a wording the file normaliser names yet (it holds the row), so the
+    // before-status here is the other Fully Paid wording the normaliser does name.
+    const first = normaliseFile('invoice_export', INVOICE_HEADER, [
+      [
+        'invoice',
+        '1160000133',
+        'A company',
+        '',
+        'DPIN-T-100',
+        '2026-01-05',
+        '',
+        '',
+        'Fully Paid (Audit Required)',
+        '',
+        '1000.00',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    const existing = toExisting(first.records);
+    const second = normaliseFile('invoice_export', INVOICE_HEADER, [
+      [
+        'invoice',
+        '1160000133',
+        'A company',
+        '',
+        'DPIN-T-100',
+        '2026-01-05',
+        '',
+        '',
+        'Fully Paid',
+        '',
+        '1000.00',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    const preview = buildPreview(existing, second.records, second.held);
+    const row = preview.rows[0]!;
+    expect(row.matched?.invoice_ref).toBe('1160000133');
+    expect(row.changes).toEqual([{ field: 'status', before: 'Fully Paid (Audit Required)', after: 'Fully Paid' }]);
+  });
 });
 
 describe('progressive fill', () => {

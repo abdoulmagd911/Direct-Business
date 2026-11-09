@@ -73,9 +73,18 @@ export function FinanceOverview({
   const asOf = data.asOf ? data.asOf.as_of : undefined;
   // Nothing imported from Payments yet and nothing in the period (V622): the page is one clear note under the period and
   // the stamp — no tiles of zeros, no months of dashes. A read that failed is never this — it says which read failed.
-  const notImported =
+  // An empty period after imports exist is a different thing (F173): the Overview shows its zero tiles and says the
+  // period has nothing — never the import prompt.
+  const neverImported =
     !!data.asOf &&
     !data.asOf.as_of &&
+    !!data.period &&
+    data.period.units === 0 &&
+    data.period.revenue === 0 &&
+    data.period.cost === 0;
+  const periodEmpty =
+    !!data.asOf &&
+    !!data.asOf.as_of &&
     !!data.period &&
     data.period.units === 0 &&
     data.period.revenue === 0 &&
@@ -109,12 +118,20 @@ export function FinanceOverview({
         )}
       </div>
 
-      {notImported ? (
+      {neverImported ? (
         <div data-finance-not-imported>
           <DataState kind="empty" message={t('finance.notImported')} />
         </div>
       ) : (
         <>
+          {periodEmpty ? (
+            <p className="text-sm text-muted" data-finance-period-empty>
+              {t('finance.periodEmpty', {
+                from: formatDate(`${ask.from}T12:00:00Z`, locale),
+                to: formatDate(`${ask.to}T12:00:00Z`, locale),
+              })}
+            </p>
+          ) : null}
           {data.period ? <Tiles period={data.period} /> : missing('period', t('finance.failed.figures'))}
 
           <div className="flex flex-col gap-1 text-sm" data-finance-lines>
@@ -170,6 +187,18 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
   const keys: PeriodKey[] = ['mtd', 'qtd', 'ytd', 'custom'];
   const [from, setFrom] = useState(ask.from);
   const [to, setTo] = useState(ask.to);
+  // The boxes follow the address (F171): opening a saved view changes `ask`, and the boxes must show the view's
+  // dates, not the ones typed before it. Same render-phase sync as the task list (FIX-34 R2a).
+  const [seenFrom, setSeenFrom] = useState(ask.from);
+  if (ask.from !== seenFrom) {
+    setSeenFrom(ask.from);
+    setFrom(ask.from);
+  }
+  const [seenTo, setSeenTo] = useState(ask.to);
+  if (ask.to !== seenTo) {
+    setSeenTo(ask.to);
+    setTo(ask.to);
+  }
   const router = useRouter();
   return (
     <div className="flex flex-wrap items-center gap-2" data-finance-period>

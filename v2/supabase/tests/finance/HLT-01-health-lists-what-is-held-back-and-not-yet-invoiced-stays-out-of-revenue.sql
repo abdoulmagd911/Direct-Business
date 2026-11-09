@@ -11,7 +11,7 @@ select set_config('t.rows', jsonb_build_array(
   jsonb_build_object('ref', 'TX-7102', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'paid_on', current_setting('t.d'),
                      'total_sar', 200),
   jsonb_build_object('ref', 'TX-7103', 'status', 'Draft', 'created_on', current_setting('t.d'), 'total_sar', 150),
-  jsonb_build_object('ref', 'TX-7104', 'status', 'Pending Payment', 'created_on', current_setting('t.d'), 'total_sar', 90),
+  jsonb_build_object('ref', 'TX-7104', 'status', 'Pending', 'created_on', current_setting('t.d'), 'total_sar', 90),
   jsonb_build_object('ref', 'TX-7105', 'status', 'Made Up Word', 'created_on', current_setting('t.d'), 'total_sar', 40))::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);

@@ -75,7 +75,7 @@ select test.eq((select string_agg(p.full_name_en, ', ' order by p.full_name_en) 
 -- an agreement is restricted whatever the upload asks (D10)
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.ag', api.file_begin('partner', current_setting('t.p')::uuid, 'agreement', 'agreement', 'a.pdf',
-  1000, 'application/pdf', 'normal', 'client') ->> 'id', true);
+  1000, 'application/pdf', 'normal', 'client', core.riyadh_today() + 30) ->> 'id', true);
 select set_config('t.ag2', api.file_begin('partner', current_setting('t.p')::uuid, 'other', 'agreement', 'b.pdf',
   1000, 'application/pdf', 'normal', 'client') ->> 'id', true);
 select test.as_owner();

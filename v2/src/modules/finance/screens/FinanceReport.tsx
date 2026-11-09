@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { formatMoney } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
+import { EntityLink } from '@/ui/EntityLink';
 import { ledgerRowsToCsv } from '../ledger';
 import type { LedgerReport } from '../types';
 
@@ -44,6 +45,17 @@ export function FinanceReport({
     const c = report.companies.find((x) => x.partner_id === partnerId);
     if (!c) return t('finance.ledger.noPartner');
     return locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? c.partner_number ?? '');
+  };
+  // A partner's name as a link to its record (F170): /partners/{id} lands on the side the reader may see.
+  // No partner on the row, or no company in the report, stays plain text — never a link to nowhere.
+  // The transaction and invoice numbers stay plain text: no invoice record page exists to link them to.
+  const partnerCell = (partnerId: string | null) => {
+    if (!partnerId || !report.companies.some((x) => x.partner_id === partnerId)) return nameOf(partnerId);
+    return (
+      <EntityLink kind="partner" href={`/partners/${partnerId}`}>
+        {nameOf(partnerId)}
+      </EntityLink>
+    );
   };
   const download = () => {
     const csv = ledgerRowsToCsv(
@@ -172,7 +184,7 @@ export function FinanceReport({
               <tbody>
                 {report.by_company.map((c) => (
                   <tr key={c.partner_id ?? 'none'} className="border-b border-border last:border-b-0">
-                    <td className="px-4 py-2.5 font-medium">{nameOf(c.partner_id)}</td>
+                    <td className="px-4 py-2.5 font-medium">{partnerCell(c.partner_id)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(c.revenue, locale)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(c.cost, locale)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(c.profit, locale)}</td>
@@ -209,7 +221,7 @@ export function FinanceReport({
                 {report.invoices.map((v) => (
                   <tr key={v.invoice_id} className="border-b border-border last:border-b-0">
                     <td className="px-4 py-2.5 font-data tabular">{v.invoice_number ?? t('finance.ledger.noCost')}</td>
-                    <td className="px-4 py-2.5">{nameOf(v.partner_id)}</td>
+                    <td className="px-4 py-2.5">{partnerCell(v.partner_id)}</td>
                     <td className="px-4 py-2.5 font-data tabular">{v.transactions.join(', ') || '—'}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(v.received_sar, locale)}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{money(v.remaining_sar)}</td>
@@ -235,6 +247,7 @@ export function FinanceReport({
               <thead>
                 <tr className="border-b border-border bg-surface text-xs text-muted">
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.partnerName')}</th>
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
                   <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.source')}</th>
@@ -248,6 +261,7 @@ export function FinanceReport({
                 {report.rows.map((r) => (
                   <tr key={`${r.invoice_id}-${r.unit_kind}`} className="border-b border-border last:border-b-0">
                     <td className="px-4 py-2.5 font-data tabular">{r.created_on}</td>
+                    <td className="px-4 py-2.5">{partnerCell(r.partner_id)}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.transaction_number ?? '—'}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.invoice_number ?? '—'}</td>
                     <td className="px-4 py-2.5 text-muted">

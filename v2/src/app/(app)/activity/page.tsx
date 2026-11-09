@@ -66,7 +66,10 @@ export default async function ActivityPage({
           p_actor: filters.actor || undefined,
           p_entity: tab === 'settings' ? 'setting' : filters.entity || undefined,
           p_since: filters.since ? new Date(filters.since).toISOString() : undefined,
-          p_limit: 100,
+          // "Show all" shows all entries (FIX-18, F192): the read takes the function's whole cap (500), so
+          // the Since filter reaches older entries instead of the 100 newest cutting them off. Beyond 500
+          // would need cursor paging (p_before) — out of scope for this fix.
+          p_limit: 500,
         })) as unknown as HistoryRow[]) ?? [],
     };
   };

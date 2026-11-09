@@ -67,7 +67,7 @@ select test.runs(format('insert into storage.objects (bucket_id, name) values (%
   'partner file uploaded');
 select api.file_finish((current_setting('t.fp')::jsonb ->> 'id')::uuid, repeat('4', 64));
 select set_config('t.fag', api.file_begin('partner', current_setting('t.p')::uuid, 'agreement', 'agreement',
-  'agreement.pdf', 5000, 'application/pdf')::text, true);
+  'agreement.pdf', 5000, 'application/pdf', null, null, core.riyadh_today() + 30)::text, true);
 select test.runs(format('insert into storage.objects (bucket_id, name) values (%L, %L)',
   current_setting('t.fag')::jsonb ->> 'bucket', current_setting('t.fag')::jsonb ->> 'path'),
   'agreement uploaded');
@@ -265,7 +265,7 @@ select test.eq((api.all_files(p_limit => 2) ->> 'total')::int, 11,
 select test.eq(jsonb_array_length(api.all_files(p_limit => 2) -> 'rows'), 2,
   'and returns only the page asked for');
 select test.eq(api.all_files(p_sort => 'name', p_limit => 1) -> 'rows' -> 0 ->> 'original_name',
-  'achievement proof.pdf', 'sorted by name, the first is the achievement''s');
+  'agreement.pdf', 'sorted by name, the first is the agreement''s (its displayed name starts with Agreement)');
 select test.eq((api.all_files(p_sort => 'size', p_limit => 1) -> 'rows' -> 0 ->> 'size')::int, 5000,
   'sorted by size, the first is the biggest');
 select test.eq(api.all_files() -> 'rows' -> 0 ->> 'status', 'stored',

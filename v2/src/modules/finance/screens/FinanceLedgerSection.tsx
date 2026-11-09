@@ -43,6 +43,25 @@ export function FinanceLedgerSection({
   const [kind, setKind] = useState(initial.kind ?? '');
   const [code, setCode] = useState(initial.code ?? '');
   const [project, setProject] = useState(initial.project ?? '');
+  // The boxes follow the address (F171): opening a saved view changes `initial`, and the boxes must show the
+  // view's filters, not the ones typed before it. Same render-phase sync as the task list (FIX-34 R2a).
+  const [seenInitial, setSeenInitial] = useState(initial);
+  if (initial !== seenInitial) {
+    setSeenInitial(initial);
+    setPartner(initial.partner ?? '');
+    setClientId(initial.clientId ?? '');
+    setKind(initial.kind ?? '');
+    setCode(initial.code ?? '');
+    setProject(initial.project ?? '');
+  }
+  // The open view, lit the moment it is pressed (F172): the pill must not wait for the server round-trip.
+  // It follows the address too, so Back and refresh keep it.
+  const [currentView, setCurrentView] = useState(view || 'all');
+  const [seenView, setSeenView] = useState(view || 'all');
+  if ((view || 'all') !== seenView) {
+    setSeenView(view || 'all');
+    setCurrentView(view || 'all');
+  }
 
   const draft: LedgerFilter = {
     ...(partner ? { partner } : {}),
@@ -57,6 +76,8 @@ export function FinanceLedgerSection({
     router.push(`/finance?${q.toString()}`);
   };
   const openView = (v: { key: string; query?: Record<string, unknown> }) => {
+    // Light the pill at once (F172), before the server round-trip lands.
+    setCurrentView(v.key);
     if (!v.query) return go({}, v.key === 'all' ? '' : v.key);
     const q = v.query;
     const f: LedgerFilter = {
@@ -102,7 +123,7 @@ export function FinanceLedgerSection({
       <SavedViewsBar
         page="finance"
         fixed={[{ key: 'all', label: t('common.all') }]}
-        current={view || 'all'}
+        current={currentView}
         query={{ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(draft) }}
         onOpen={openView}
         canShare={full}

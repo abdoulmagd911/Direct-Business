@@ -39,6 +39,13 @@ export type ExistingRecord = {
 
 export type PreviewOutcome = 'new' | 'updated' | 'unchanged' | 'excluded' | 'needs_linking';
 
+/** One changed field on a matched row, with its stored value and the incoming one (F182). */
+export type PreviewChange = {
+  field: string;
+  before: unknown;
+  after: unknown;
+};
+
 export type PreviewRow = {
   row_no: number;
   row_nos: number[];
@@ -48,6 +55,11 @@ export type PreviewRow = {
   duplicate: boolean;
   transaction_ref: string | null;
   invoice_ref: string | null;
+  /** The stored record this row matched, or null for a new row — so the reviewer can see which record the
+   * preview is talking about and what changes on it. Held rows carry neither: they matched nothing. */
+  matched: ExistingRecord | null;
+  /** The changed fields as old → new pairs (empty when nothing changed). */
+  changes: PreviewChange[];
 };
 
 export type PreviewCounts = {
@@ -134,9 +146,9 @@ export function mergedRecord(existing: ExistingRecord | null, incoming: Normalis
   return merged;
 }
 
-function fieldsChanged(before: ExistingRecord | null, after: ExistingRecord): string[] {
+function fieldsChanged(before: ExistingRecord | null, after: ExistingRecord): PreviewChange[] {
   if (before === null) return [];
-  const changed: string[] = [];
+  const changed: PreviewChange[] = [];
   const checks: [string, unknown, unknown][] = [
     ['amount', before.amount, after.amount],
     ['wallet part', before.wallet_topup, after.wallet_topup],
@@ -149,8 +161,8 @@ function fieldsChanged(before: ExistingRecord | null, after: ExistingRecord): st
     ['discount code', before.source_promo, after.source_promo],
     ['service', before.product, after.product],
   ];
-  for (const [name, oldValue, newValue] of checks) {
-    if (!same(oldValue, newValue)) changed.push(name);
+  for (const [field, oldValue, newValue] of checks) {
+    if (!same(oldValue, newValue)) changed.push({ field, before: oldValue, after: newValue });
   }
   return changed;
 }
@@ -240,6 +252,8 @@ export function buildPreview(
           duplicate: true,
           transaction_ref: row.transaction_ref,
           invoice_ref: row.invoice_ref,
+          matched: null,
+          changes: [],
         });
         counts.unchanged += 1;
         continue;
@@ -301,6 +315,8 @@ export function buildPreview(
         duplicate,
         transaction_ref: row.transaction_ref,
         invoice_ref: row.invoice_ref,
+        matched: match,
+        changes: fieldsChanged(match, merged),
       });
       counts.unchanged += 1;
       continue;
@@ -321,10 +337,10 @@ export function buildPreview(
       outcome = 'unchanged';
     } else if (incompleteAfterMerge(row.kind, merged, true)) {
       outcome = 'needs_linking';
-      reasons.push(`Changed (${changed.join(', ')}), still missing its other half`);
+      reasons.push(`Changed (${changed.map((c) => c.field).join(', ')}), still missing its other half`);
     } else {
       outcome = 'updated';
-      reasons.push(`Changed: ${changed.join(', ')}`);
+      reasons.push(`Changed: ${changed.map((c) => c.field).join(', ')}`);
     }
     rows.push({
       row_no: rowNo,
@@ -335,6 +351,8 @@ export function buildPreview(
       duplicate,
       transaction_ref: row.transaction_ref,
       invoice_ref: row.invoice_ref,
+      matched: match,
+      changes: changed,
     });
     counts[outcome] += 1;
   }
@@ -349,6 +367,8 @@ export function buildPreview(
       duplicate: false,
       transaction_ref: null,
       invoice_ref: null,
+      matched: null,
+      changes: [],
     });
     counts.excluded += 1;
   }

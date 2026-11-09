@@ -5,7 +5,7 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Money } from '@/ui/Money';
 import { FilesSection as SharedFilesSection } from '@/ui/record/FilesSection';
-import type { CompanyFile, CompanySummary, Identifier, PartnerCard } from '../../types';
+import type { CompanyFile, CompanySummary, Identifier, ListEntry, PartnerCard } from '../../types';
 
 /** The file kinds the company Files section offers, and the purpose each is stored under. */
 const FILE_KINDS = [
@@ -17,17 +17,21 @@ const FILE_KINDS = [
 ] as const;
 
 /** A company's files, through the shared Files section (Phase 3): the same five kinds, the same words, the
- *  same rendering — the section itself now lives in src/ui/record/FilesSection.tsx. */
+ *  same rendering — the section itself now lives in src/ui/record/FilesSection.tsx. Whether a kind needs a
+ *  review date comes from the live file_kind list (FIX-15), never hard-coded, so an admin's change in
+ *  Settings applies; a kind missing from the live list simply asks for no review date. */
 export function FilesSection({
   partnerId,
   files,
   mayWrite,
   onDone,
+  fileKinds,
 }: {
   partnerId: string;
   files: CompanyFile[] | null;
   mayWrite: boolean;
   onDone: () => void;
+  fileKinds: ListEntry[];
 }) {
   const t = useTranslations();
   return (
@@ -37,6 +41,7 @@ export function FilesSection({
       kinds={FILE_KINDS.map((k) => ({
         kind: k.kind,
         purpose: k.purpose,
+        reviewRequired: fileKinds.find((x) => x.key === k.kind)?.review_required === true,
         label: t(`partners.companyFiles.kinds.${k.kind}`),
       }))}
       files={files}

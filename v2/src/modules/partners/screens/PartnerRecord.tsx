@@ -81,12 +81,15 @@ export type PartnerRecordData = {
     outcomes: ListEntry[];
     systems: ListEntry[];
     priorities: ListEntry[];
+    /** The file kinds with their review flags (FIX-15) — read live, so the Files section asks for a review
+     *  date exactly when the kind requires one. */
+    fileKinds: ListEntry[];
   };
 };
 
 const TABS = ['overview', 'discussion', 'codes', 'finance', 'history', 'related'] as const;
 /** The old tab address still lands on the right tab: ?tab=activity is the History. */
-const TAB_ALIASES: Record<string, string> = { activity: 'history' };
+const TAB_ALIASES: Record<string, string> = { activity: 'history', comments: 'discussion' };
 /** The header figures until the setting is read for everyone (its registry default — V95; see the PR's NEED). */
 const FIGURES = ['last_activity', 'next_step', 'contracts', 'contacts', 'files'] as const;
 
@@ -714,7 +717,13 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
               {rail}
             </section>
-            <FilesSection partnerId={card.id} files={files} mayWrite={mayWrite} onDone={refresh} />
+            <FilesSection
+              partnerId={card.id}
+              files={files}
+              mayWrite={mayWrite}
+              onDone={refresh}
+              fileKinds={lists.fileKinds}
+            />
           </>
         ) : null}
         {tab === 'discussion' ? (

@@ -53,6 +53,7 @@ export async function PartnerRecordPage({
     outcomes,
     systems,
     priorities,
+    fileKinds,
   ] = await Promise.all([
     serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
     card ? maybe<Note[]>(() => serverRpc('notes', { p_entity: 'partner', p_id: id, p_limit: 100 })) : null,
@@ -72,6 +73,9 @@ export async function PartnerRecordPage({
     lists('activity_outcome'),
     lists('ref_system'),
     lists('priority'),
+    // The file kinds with their review flags, so the Files section asks for a review date exactly when the
+    // kind requires one (FIX-15) — read live, never hard-coded, so an admin's change in Settings applies.
+    lists('file_kind'),
   ]);
   const data: PartnerRecordData = {
     me,
@@ -87,7 +91,7 @@ export async function PartnerRecordPage({
     comments,
     files,
     summary,
-    lists: { types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities },
+    lists: { types, tiers, reasons, roles, activityTypes, outcomes, systems, priorities, fileKinds },
   };
   return (
     <Page bare>

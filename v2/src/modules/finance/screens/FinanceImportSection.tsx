@@ -1,11 +1,13 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { refetchAll } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
-import { downloadRecordFile, sha256HexFile } from '@/ui/record/FilesSection';
+import { formatDate } from '@/core/i18n/format';
+import { recordFileDownloadUrl } from '@/core/files/download-url';
+import { sha256HexFile } from '@/ui/record/FilesSection';
 import {
   buildPreview,
   detectSignature,
@@ -24,10 +26,11 @@ import {
 } from '@/modules/imports';
 import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
 import type { PartnerRef } from '@/modules/my-day/types';
-import { Button } from '@/ui/Button';
+import { Button, buttonVariants } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
+import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { Input } from '@/ui/Input';
 import { toast } from '@/ui/Toast';
 
@@ -40,6 +43,49 @@ const OUTCOME_KEY = {
   excluded: 'excluded',
   needs_linking: 'needsLinking',
 } as const;
+
+/** One past import batch, as api.import_batches answers it (F177): the outcome snapshot the apply step wrote. */
+type PastBatch = {
+  id: string;
+  file_name: string;
+  signature: string;
+  source_promo: string | null;
+  status: string;
+  counts: PreviewCounts;
+  problems: { row_no: number; reason: string }[];
+  created_at: string;
+  created_by_name: string | null;
+  source_file_id: string | null;
+  source_file_name: string | null;
+};
+
+/** One record a past batch first wrote, as api.import_batch_rows answers it — as it stands now, after any later
+ * import that updated it; the batch's counts snapshot is the reliable per-batch totals record. */
+type PastBatchRow = {
+  kind: string;
+  transaction_ref: string | null;
+  invoice_ref: string | null;
+  record_date: string | null;
+  amount_sar: number | null;
+  status_text: string | null;
+};
+
+/** The preview's changed-field names, as import.change.* message keys (F182). */
+const CHANGE_KEY: Record<string, string> = {
+  amount: 'amount',
+  'wallet part': 'walletPart',
+  cost: 'cost',
+  status: 'status',
+  'tax number': 'taxNumber',
+  date: 'date',
+  'transaction number': 'transactionNumber',
+  'invoice number': 'invoiceNumber',
+  'discount code': 'discountCode',
+  service: 'service',
+};
+
+/** A changed value, as shown: empty stays a dash, never a blank or a guessed 0. */
+const changeValue = (v: unknown) => (v === null || v === undefined ? '—' : String(v));
 
 /**
  * Importing a Direct export, on the Finance page (the imports module's page is Finance, where the import preview
@@ -78,9 +124,20 @@ export function FinanceImportSection() {
   const [fileProblem, setFileProblem] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState<PreviewCounts | null>(null);
+  // Past imports for the picked partner (F177): the batches this partner already confirmed, re-viewable with
+  // their counts, held rows and source file. Null until read; a failed read shows a line, never blocks the import.
+  const [batches, setBatches] = useState<PastBatch[] | null>(null);
+  const [batchesFailed, setBatchesFailed] = useState(false);
+  const [openBatch, setOpenBatch] = useState<string | null>(null);
+  const [batchRows, setBatchRows] = useState<PastBatchRow[] | null>(null);
+  const [batchRowsFailed, setBatchRowsFailed] = useState(false);
+  // The preview read's generation (F180): a Start over, a partner change or a newer preview supersedes a read
+  // still in flight, and its late answer must not resurrect the cleared preview.
+  const previewGen = useRef(0);
 
-  const resetFile = () => {
-    if (fileRef.current) fileRef.current.value = '';
+  // The derived import state, without touching the file input element (F181): picking a file must not wipe the
+  // control that shows its name. Start over and partner change use resetFile, which clears the input too.
+  const resetDerived = () => {
     setFileName('');
     setSourceFile(null);
     setBatchId(null);
@@ -105,17 +162,64 @@ export function FinanceImportSection() {
     setStage('pick');
   };
 
+  const resetFile = () => {
+    previewGen.current += 1;
+    if (fileRef.current) fileRef.current.value = '';
+    resetDerived();
+  };
+
+  const loadBatches = async (partnerId: string) => {
+    try {
+      const answer = (await rpc('import_batches', { p_partner: partnerId }, { retry: true })) as unknown as PastBatch[];
+      setBatches(Array.isArray(answer) ? answer : []);
+    } catch {
+      setBatchesFailed(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!partner) return;
+    // The first read runs after the paint (the compiler's rule: no state set inside the effect itself).
+    queueMicrotask(() => void loadBatches(partner.id));
+    // The partner's id only: the picker hands a fresh object per pick, and the batches belong to the partner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partner?.id]);
+
+  const toggleBatch = async (batch: PastBatch) => {
+    if (openBatch === batch.id) {
+      setOpenBatch(null);
+      setBatchRows(null);
+      return;
+    }
+    setOpenBatch(batch.id);
+    setBatchRows(null);
+    setBatchRowsFailed(false);
+    try {
+      const answer = (await rpc(
+        'import_batch_rows',
+        { p_batch: batch.id },
+        { retry: true },
+      )) as unknown as PastBatchRow[];
+      setBatchRows(Array.isArray(answer) ? answer : []);
+    } catch {
+      setBatchRowsFailed(true);
+    }
+  };
+
   const runPreview = async (sig: Signature, header: string[], rows: string[][], codeText: string | null) => {
     if (!partner) return;
+    const gen = ++previewGen.current;
     setLoading(true);
     setExistingFailed(false);
     try {
       const answer = await rpc('import_ledger', { p_partner: partner.id });
+      // A Start over (or a newer preview) landed while this read was in flight: its answer is stale, and
+      // applying it would resurrect the cleared preview (F180). Drop it silently.
+      if (gen !== previewGen.current) return;
       const stored = existingFromImportLedger(answer);
       const norm = normaliseFile(sig.key, header, rows, { sourcePromo: codeText });
       if (norm.fileProblem) {
         setFileProblem(norm.fileProblem);
-        setLoading(false);
         return;
       }
       setExisting(stored);
@@ -125,9 +229,9 @@ export function FinanceImportSection() {
       setPreview(buildPreview(stored, norm.records, norm.held, {}));
       setStage('preview');
     } catch {
-      setExistingFailed(true);
+      if (gen === previewGen.current) setExistingFailed(true);
     } finally {
-      setLoading(false);
+      if (gen === previewGen.current) setLoading(false);
     }
   };
 
@@ -159,18 +263,11 @@ export function FinanceImportSection() {
     }
   };
 
-  const downloadSourceFile = async () => {
-    if (!storedFile) return;
-    try {
-      await downloadRecordFile(storedFile.id, locale);
-    } catch {
-      toast.failed(t('record.files.downloadFailed'));
-    }
-  };
-
   const onFile = async (file: File | null) => {
     if (!file || !partner) return;
-    resetFile();
+    // Reset the derived state only (F181): clearing the input element here would wipe the just-picked file out
+    // of the control, which would read "No file chosen" although the file was accepted.
+    resetDerived();
     setFileName(file.name);
     setSourceFile(file);
     const text = await file.text();
@@ -267,6 +364,12 @@ export function FinanceImportSection() {
     </ul>
   );
 
+  // A changed field's label (F182): the message key when one exists, else the field's own plain name.
+  const changeLabel = (field: string) => {
+    const key = CHANGE_KEY[field];
+    return key && t.has(`import.change.${key}`) ? t(`import.change.${key}`) : field;
+  };
+
   return (
     <section className="flex flex-col gap-4" aria-labelledby="finance-import" data-finance-import-section>
       <h2 id="finance-import" className="font-display text-lg font-semibold">
@@ -282,6 +385,11 @@ export function FinanceImportSection() {
               value={partner}
               onChange={(p) => {
                 resetFile();
+                // The past batches belong to the picked partner: a cleared or changed partner clears them.
+                setBatches(null);
+                setBatchesFailed(false);
+                setOpenBatch(null);
+                setBatchRows(null);
                 setPartner(p);
               }}
             />
@@ -301,6 +409,119 @@ export function FinanceImportSection() {
           )}
         </Field>
       </div>
+
+      {partner ? (
+        <div className="flex flex-col gap-2" data-import-past>
+          <h3 className="text-sm font-semibold">{t('import.pastTitle')}</h3>
+          {batchesFailed ? (
+            <p role="alert" className="text-sm text-danger">
+              {t('import.pastFailed')}{' '}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setBatchesFailed(false);
+                  void loadBatches(partner.id);
+                }}
+              >
+                {t('state.tryAgain')}
+              </Button>
+            </p>
+          ) : null}
+          {batches === null && !batchesFailed ? (
+            <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastTitle') })}</p>
+          ) : null}
+          {batches?.length === 0 ? <p className="text-sm text-muted">{t('import.pastNone')}</p> : null}
+          {batches?.map((batch) => (
+            <div key={batch.id} className="rounded border border-line p-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void toggleBatch(batch)}
+                aria-expanded={openBatch === batch.id}
+              >
+                {batch.file_name} · {formatDate(batch.created_at, locale)} ·{' '}
+                {batch.status === 'confirmed' ? t('import.confirmed') : t('import.pastDraft')}
+                {batch.created_by_name ? ` · ${batch.created_by_name}` : ''}
+              </Button>
+              {openBatch === batch.id ? (
+                <div className="mt-2 flex flex-col gap-2 text-sm">
+                  <p className="text-muted">
+                    {t(`import.signature.${batch.signature}`)}
+                    {batch.source_promo ? ` · ${batch.source_promo}` : ''}
+                  </p>
+                  {counts(batch.counts)}
+                  {batch.problems.length > 0 ? (
+                    <div>
+                      <p className="font-medium">{t('import.held')}</p>
+                      <ul className="list-disc ps-5 text-muted">
+                        {batch.problems.map((p) => (
+                          <li key={p.row_no}>
+                            {t('import.row')} {p.row_no}: {p.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {batch.source_file_id ? (
+                    <p className="flex flex-wrap items-center gap-3">
+                      <span className="text-muted">{t('import.sourceFile')}:</span>
+                      <a
+                        href={recordFileDownloadUrl(batch.source_file_id!, locale)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                      >
+                        {t('record.files.download')}
+                      </a>
+                      <FileLinkButton fileId={batch.source_file_id} size="sm" />
+                    </p>
+                  ) : null}
+                  {batchRowsFailed ? (
+                    <p role="alert" className="text-sm text-danger">
+                      {t('import.pastRowsFailed')}
+                    </p>
+                  ) : null}
+                  {batchRows === null && !batchRowsFailed ? (
+                    <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastRows') })}</p>
+                  ) : null}
+                  {batchRows && batchRows.length > 0 ? (
+                    <div>
+                      <p className="font-medium">{t('import.pastRows')}</p>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-line text-start text-muted">
+                            <th className="px-2 py-1 font-medium">{t('import.reference')}</th>
+                            <th className="px-2 py-1 font-medium">{t('import.pastDate')}</th>
+                            <th className="px-2 py-1 font-medium">{t('import.pastAmount')}</th>
+                            <th className="px-2 py-1 font-medium">{t('import.pastStatus')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {batchRows.map((row, i) => (
+                            <tr key={`${row.transaction_ref ?? row.invoice_ref ?? i}`} className="border-b border-line">
+                              <td className="px-2 py-1 font-data tabular">
+                                {row.transaction_ref ?? row.invoice_ref ?? '—'}
+                              </td>
+                              <td className="px-2 py-1">
+                                {row.record_date ? formatDate(row.record_date, locale) : '—'}
+                              </td>
+                              <td className="px-2 py-1 font-data tabular">
+                                {row.amount_sar === null ? '—' : row.amount_sar}
+                              </td>
+                              <td className="px-2 py-1">{row.status_text ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? <DataState kind="loading" what={t('import.title')} /> : null}
 
@@ -350,7 +571,7 @@ export function FinanceImportSection() {
             {fileName ? <span className="font-data">{fileName}</span> : null}
           </p>
 
-          {signature.kind === 'promo' && !preview ? (
+          {signature.kind === 'promo' ? (
             <div className="flex flex-wrap items-end gap-3">
               <Field
                 label={t('import.code')}
@@ -413,7 +634,23 @@ export function FinanceImportSection() {
                         <td className="px-4 py-2.5 font-data tabular">{r.row_no}</td>
                         <td className="px-4 py-2.5 font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</td>
                         <td className="px-4 py-2.5">{t(`import.${OUTCOME_KEY[r.outcome]}`)}</td>
-                        <td className="px-4 py-2.5 text-muted">{r.reasons.join(' · ') || '—'}</td>
+                        <td className="px-4 py-2.5 text-muted">
+                          {r.reasons.join(' · ') || '—'}
+                          {r.matched ? (
+                            <span className="mt-1 block text-xs">
+                              <span className="block font-medium text-text">
+                                {t('import.matchedRow', {
+                                  ref: r.matched.transaction_ref ?? r.matched.invoice_ref ?? '—',
+                                })}
+                              </span>
+                              {r.changes.map((c) => (
+                                <span key={c.field} className="block">
+                                  {changeLabel(c.field)}: {changeValue(c.before)} → {changeValue(c.after)}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-2.5">
                           {r.duplicate ? (
                             <Checkbox
@@ -462,9 +699,16 @@ export function FinanceImportSection() {
             <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file>
               <span className="text-muted">{t('import.sourceFile')}: </span>
               <span className="font-data">{storedFile.name}</span>
-              <Button size="xs" onClick={() => void downloadSourceFile()} data-import-source-download>
+              <a
+                href={recordFileDownloadUrl(storedFile.id, locale)}
+                target="_blank"
+                rel="noreferrer"
+                className={buttonVariants({ size: 'xs' })}
+                data-import-source-download
+              >
                 {t('record.files.download')}
-              </Button>
+              </a>
+              <FileLinkButton fileId={storedFile.id} />
             </p>
           ) : sourceFileFailed ? (
             <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file-failed role="alert">

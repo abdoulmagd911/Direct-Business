@@ -14,6 +14,14 @@ export type { PaidVerdict } from './paid';
 export { normaliseFile } from './normalise';
 export type { HeldRow, NormaliseOptions, NormaliseResult, NormalisedRow } from './normalise';
 export { buildPreview, mergedRecord } from './preview';
-export type { ExistingRecord, Preview, PreviewCounts, PreviewDecisions, PreviewOutcome, PreviewRow } from './preview';
+export type {
+  ExistingRecord,
+  Preview,
+  PreviewChange,
+  PreviewCounts,
+  PreviewDecisions,
+  PreviewOutcome,
+  PreviewRow,
+} from './preview';
 export { deriveFigures, ledgerBuckets } from './ledger';
 export type { LedgerFigures, LedgerRecord, LedgerTotals } from './ledger';

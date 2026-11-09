@@ -1455,6 +1455,10 @@
       "department": {
         "saved": "حُفظت الإدارة"
       },
+      "import": {
+        "started": "بدأ الاستيراد",
+        "confirmed": "تم تأكيد الاستيراد"
+      },
       "list": {
         "removed": "حُذف عنصر من القائمة",
         "retired": "أُرشف عنصر من القائمة",
@@ -2412,8 +2416,9 @@
       "sortSize": "الحجم",
       "groupBy": "التجميع",
       "groupNone": "بدون تجميع",
-      "groupCompany": "حسب الشريك",
+      "groupCompany": "حسب السجل",
       "groupType": "حسب نوع السجل",
+      "pageSize": "حجم الصفحة",
       "all": "الكل",
       "filters": "عوامل التصفية",
       "clearFilters": "مسح عوامل التصفية",
@@ -2659,6 +2664,12 @@
       "title": "الملفات",
       "upload": "رفع ملف",
       "download": "تنزيل",
+      "copyLink": "نسخ الرابط",
+      "openLink": "فتح الرابط",
+      "linkCopied": "تم نسخ الرابط",
+      "linkChecksAccess": "يتحقق هذا الرابط من إمكانية وصولك إلى الملف في كل مرة تفتحه",
+      "downloadRefused": "لم يعد بإمكانك تنزيل هذا الملف — لم يعد مشاركًا معك",
+      "downloadNotFound": "هذا الملف غير متاح",
       "remove": "إزالة",
       "removeTitle": "إزالة {name}؟",
       "removed": "تمت إزالة الملف",
@@ -2673,6 +2684,7 @@
       "chooseFile": "اختر ملفات",
       "chooseKind": "اختر النوع",
       "reviewOn": "تاريخ المراجعة",
+      "reviewOnDate": "تاريخ المراجعة {date}",
       "retryUpload": "حاول مرة أخرى",
       "uploadFailedPickAgain": "لم يكتمل الرفع — اختر الملف مرة أخرى",
       "notStored": "لم يُرفع بعد",
@@ -2724,6 +2736,7 @@
   "finance": {
     "stampNone": "المدفوعات · لم تُستورد بعد",
     "notImported": "لم يُستورد شيء بعد. تظهر الأرقام هنا بعد أول استيراد من المدفوعات.",
+    "periodEmpty": "لا شيء في هذه الفترة ({from} – {to}).",
     "attention": {
       "checks": "فحوصات فاشلة",
       "late": "تغييرات متأخرة",
@@ -2783,7 +2796,7 @@
       "clientId": "رقم العميل",
       "kind": "نوع الفاتورة",
       "allKinds": "كل الأنواع",
-      "code": "الرمز",
+      "code": "رمز الخصم",
       "project": "المشروع",
       "projectSoon": "ربط المشاريع سيأتي لاحقاً — هذا الحقل لا يغيّر الأرقام بعد.",
       "apply": "تطبيق",
@@ -2959,6 +2972,28 @@
     "startOver": "ابدأ من جديد",
     "sourceFile": "ملف المصدر",
     "sourceFileFailed": "لم يُحفظ ملف المصدر",
+    "matchedRow": "السجل المخزّن المطابق {ref}",
+    "change": {
+      "amount": "المبلغ",
+      "walletPart": "جزء المحفظة",
+      "cost": "التكلفة",
+      "status": "الحالة",
+      "taxNumber": "الرقم الضريبي",
+      "date": "التاريخ",
+      "transactionNumber": "رقم المعاملة",
+      "invoiceNumber": "رقم الفاتورة",
+      "discountCode": "رمز الخصم",
+      "service": "الخدمة"
+    },
+    "pastTitle": "عمليات الاستيراد السابقة",
+    "pastNone": "لا توجد عمليات استيراد سابقة لهذا الشريك.",
+    "pastFailed": "تعذّرت قراءة عمليات الاستيراد السابقة.",
+    "pastDraft": "مسودة — لم تُؤكَّد بعد",
+    "pastRows": "الصفوف التي كتبها هذا الاستيراد أولًا (كما هي الآن)",
+    "pastRowsFailed": "تعذّرت قراءة صفوف هذا الاستيراد.",
+    "pastDate": "التاريخ",
+    "pastAmount": "المبلغ",
+    "pastStatus": "الحالة",
     "signature": {
       "invoice_export": "تصدير الفواتير (غير المبسّط، الأساس)",
       "transaction_expense_export": "تصدير مصاريف المعاملات (مصدر التكلفة الوحيد)",

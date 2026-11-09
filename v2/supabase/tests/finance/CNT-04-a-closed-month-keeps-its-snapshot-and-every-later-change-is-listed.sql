@@ -12,7 +12,7 @@ select test.as_person(current_setting('t.head')::uuid);
 select api.finance_import('invoices', jsonb_build_array(
   jsonb_build_object('ref', 'TX-41', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 700),
   jsonb_build_object('ref', 'TX-42', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 300),
-  jsonb_build_object('ref', 'TX-43', 'status', 'Pending Payment', 'created_on', current_setting('t.d'), 'total_sar', 450)),
+  jsonb_build_object('ref', 'TX-43', 'status', 'Pending', 'created_on', current_setting('t.d'), 'total_sar', 450)),
   now() - interval '3 days');
 
 select test.as_person(current_setting('t.mem')::uuid);
@@ -26,7 +26,7 @@ select test.raises(format($$select api.finance_month_close(%L)$$, current_settin
 
 -- after the close: TX-43 is paid, TX-42 is voided, TX-41's expense is approved — each by a newer export
 select api.finance_import('invoices', jsonb_build_array(
-  jsonb_build_object('ref', 'TX-42', 'status', 'Voided', 'created_on', current_setting('t.d'), 'total_sar', 300),
+  jsonb_build_object('ref', 'TX-42', 'status', 'Void', 'created_on', current_setting('t.d'), 'total_sar', 300),
   jsonb_build_object('ref', 'TX-43', 'status', 'Fully Paid', 'created_on', current_setting('t.d'), 'total_sar', 450)),
   now() - interval '1 day');
 select api.finance_import('expenses', jsonb_build_array(

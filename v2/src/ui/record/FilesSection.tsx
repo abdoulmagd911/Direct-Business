@@ -5,12 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
 import { command } from '@/core/commands/run';
+import { recordFileDownloadUrl } from '@/core/files/download-url';
 import { formatDate } from '@/core/i18n/format';
-import { Button } from '@/ui/Button';
+import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
+import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { Input } from '@/ui/Input';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
@@ -64,23 +66,10 @@ export async function sha256HexFile(file: File): Promise<string> {
     .join('');
 }
 
-/**
- * Open one stored file for download: the signed URL from file_download, opened in a new tab. The server refuses a
- * file its reader may not see, so a download link never leaks a file (the URL itself is short-lived).
- */
-export async function downloadRecordFile(fileId: string, locale: 'en' | 'ar'): Promise<void> {
-  const info = (await rpc('file_download', { p_id: fileId, p_locale: locale })) as unknown as {
-    bucket: string;
-    path: string;
-    download_name: string;
-    expires_in: number;
-  };
-  const signed = await browserDb()
-    .storage.from(info.bucket)
-    .createSignedUrl(info.path, info.expires_in, { download: info.download_name });
-  if (signed.error || !signed.data) throw signed.error ?? new Error('no url');
-  window.open(signed.data.signedUrl, '_blank', 'noreferrer');
-}
+// A file's download is a real link to the re-checking route (FIX-16, core/files/download-url.ts): the route
+// re-checks the presser may still see the file on every GET and redirects to a freshly minted short-lived
+// signed URL. Minting a raw signed URL in the browser is gone: it was bearer and unsharing never revoked it,
+// so a re-pressed link kept serving until its expiry (600 s for documents, 24 h for images).
 
 /** One upload that failed while this screen still holds the file: it can be tried again from memory. */
 type PendingUpload = {
@@ -217,15 +206,6 @@ export function FilesSection({
     }
   };
 
-  const download = async (f: RecordFile) => {
-    setError(null);
-    try {
-      await downloadRecordFile(f.id, locale);
-    } catch {
-      setError(t('record.files.downloadFailed'));
-    }
-  };
-
   const addPicked = (list: FileList | null) => {
     if (!list) return;
     setPicked((prev) => [...prev, ...Array.from(list)]);
@@ -318,7 +298,8 @@ export function FilesSection({
       ) : files.length ? (
         <ul className="divide-y divide-border">
           {files.map((f) => {
-            const name = locale === 'ar' && f.display_name_ar ? f.display_name_ar : f.display_name_en;
+            // The row's name is the stored uploaded filename (FIX-38), never the generated display name.
+            const name = f.original_name;
             return (
               <li
                 key={f.id}
@@ -327,12 +308,20 @@ export function FilesSection({
                 {...(entity === 'partner' ? { 'data-company-file': f.id } : {})}
               >
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">{name ?? f.original_name}</span>
+                  <span className="truncate text-sm font-medium">{name}</span>
                   <span className="text-xs text-muted">
                     {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
                     {t('record.files.addedOn', {
                       date: formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
                     })}
+                    {f.review_on ? (
+                      <>
+                        {' · '}
+                        {t('record.files.reviewOnDate', {
+                          date: formatDate(f.review_on, locale, { dateStyle: 'medium' }),
+                        })}
+                      </>
+                    ) : null}
                   </span>
                   {f.status !== 'stored' ? (
                     <>
@@ -345,9 +334,18 @@ export function FilesSection({
                 </span>
                 <span className="flex gap-2">
                   {f.status === 'stored' ? (
-                    <Button size="xs" onClick={() => download(f)} disabled={removingBusy} data-file-download>
-                      {t('record.files.download')}
-                    </Button>
+                    <>
+                      <a
+                        href={recordFileDownloadUrl(f.id, locale)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ size: 'xs' })}
+                        data-file-download
+                      >
+                        {t('record.files.download')}
+                      </a>
+                      <FileLinkButton fileId={f.id} />
+                    </>
                   ) : null}
                   {mayWrite ? (
                     <Button
@@ -372,11 +370,8 @@ export function FilesSection({
         open={removing !== null}
         onOpenChange={(o) => !o && setRemoving(null)}
         title={t('record.files.removeTitle', {
-          name: removing
-            ? locale === 'ar' && removing.display_name_ar
-              ? removing.display_name_ar
-              : (removing.display_name_en ?? removing.original_name ?? '')
-            : '',
+          // The stored uploaded filename (FIX-38), never the generated display name.
+          name: removing?.original_name ?? '',
         })}
         destructive
         onSave={async (reason) => {

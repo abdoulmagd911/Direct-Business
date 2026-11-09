@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -6,6 +7,7 @@ import { useMaybeMe } from '@/core/auth/me-context';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
 import { formatDate, formatStoredDate } from '@/core/i18n/format';
+import { entityRoute } from '@/ui/entity-route';
 import { Button } from '../Button';
 import { StatusChip } from '../Chip';
 import { PersonChip } from '../PersonChip';
@@ -151,7 +153,19 @@ export function ActivityTimeline({
         <div className="mt-1 size-2 shrink-0 rounded-pill bg-border-strong" aria-hidden="true" />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="font-medium text-text">{label(r)}</span>
+            {(() => {
+              // The row title opens its record (FIX-18, F193 — D36(f)): the first change names the record.
+              // An entity with no record page yet (invoice, contract) stays plain text until its screen
+              // lands — FIX-09's ledger links use the same entityRoute, so the two agree.
+              const href = entityRoute(r.changes[0]?.entity, r.changes[0]?.id);
+              return href ? (
+                <Link href={href} className="font-medium text-link hover:underline">
+                  {label(r)}
+                </Link>
+              ) : (
+                <span className="font-medium text-text">{label(r)}</span>
+              );
+            })()}
             {r.grouped ? (
               <StatusChip tone="neutral">{t('activity.groupedChanges', { count: r.grouped })}</StatusChip>
             ) : null}
@@ -203,15 +217,20 @@ export function ActivityTimeline({
                 if (!seen.includes(said)) seen.push(said);
                 byField.set(f, seen);
               }
-            const chips = [...byField].map(([f, values]) => {
-              const said = values.filter(Boolean).join(' · ');
-              return (
-                <li key={f} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
-                  {fieldLabel(f)}
-                  {said ? `: ${said}` : ''}
-                </li>
-              );
-            });
+            const chips = [...byField]
+              .map(([f, values]) => {
+                const said = values.filter(Boolean).join(' · ');
+                // A pill with no value is dropped, not shown bare (FIX-18, F202 — D23): the /activity read
+                // used to carry no before/after, so every pill was bare; a pill that still has nothing to
+                // show after the read fix is dropped the same way.
+                if (!said) return null;
+                return (
+                  <li key={f} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
+                    {fieldLabel(f)}: {said}
+                  </li>
+                );
+              })
+              .filter(Boolean);
             return (
               <ul className="flex flex-wrap gap-1.5 pt-0.5 text-xs text-muted">
                 {chips.slice(0, MAX_CHIPS)}

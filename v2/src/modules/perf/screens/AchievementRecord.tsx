@@ -36,7 +36,7 @@ import { useCommandWords } from './words';
 const TABS = ['overview', 'discussion', 'history', 'evidence'] as const;
 export type AchievementTab = (typeof TABS)[number];
 /** The old tab addresses still land on the right tab: ?tab=activity is the History; ?tab=related is the Overview, where Related lives now. */
-const TAB_ALIASES: Record<string, string> = { activity: 'history', related: 'overview' };
+const TAB_ALIASES: Record<string, string> = { activity: 'history', related: 'overview', comments: 'discussion' };
 
 export type AchievementRecordData = {
   a: AchievementDetail;

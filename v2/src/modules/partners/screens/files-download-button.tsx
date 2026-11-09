@@ -1,54 +1,31 @@
 'use client';
 import { useLocale } from 'next-intl';
-import { useState } from 'react';
-import { browserDb } from '@/core/db/client';
-import { rpc } from '@/core/db/rpc';
-import { Button } from '@/ui/Button';
+import { recordFileDownloadUrl } from '@/core/files/download-url';
+import { buttonVariants } from '@/ui/Button';
+import { FileLinkButton } from '@/ui/record/FileLinkButton';
 
-/** One archive row's download: the signed URL for the file, through the file_download door. */
-export function FileDownloadButton({
-  fileId,
-  label,
-  failedLabel,
-}: {
-  fileId: string;
-  label: string;
-  failedLabel: string;
-}) {
+/**
+ * One archive row's download: a real link to the re-checking route (FIX-16), which checks the presser may still
+ * see the file on every GET and redirects to a freshly minted short-lived signed URL. A genuine click on a real
+ * link — no async window.open, so no popup-blocked silence (F248) — and a refusal opens the route's page with
+ * words, never silence. A copy-link action sits beside it, on the same route address.
+ */
+export function FileDownloadButton({ fileId, label }: { fileId: string; label: string }) {
   const locale = useLocale() as 'en' | 'ar';
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const download = async () => {
-    setBusy(true);
-    setFailed(false);
-    try {
-      const info = (await rpc('file_download', { p_id: fileId, p_locale: locale })) as unknown as {
-        bucket: string;
-        path: string;
-        download_name: string;
-        expires_in: number;
-      };
-      const signed = await browserDb()
-        .storage.from(info.bucket)
-        .createSignedUrl(info.path, info.expires_in, { download: info.download_name });
-      if (signed.error || !signed.data) throw signed.error ?? new Error('no url');
-      window.open(signed.data.signedUrl, '_blank', 'noreferrer');
-    } catch {
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
     <span className="flex flex-col items-end gap-1">
-      <Button size="xs" loading={busy} onClick={download} data-file-download>
-        {label}
-      </Button>
-      {failed ? (
-        <span role="alert" className="text-xs text-danger">
-          {failedLabel}
-        </span>
-      ) : null}
+      <span className="flex flex-wrap items-center gap-2">
+        <a
+          href={recordFileDownloadUrl(fileId, locale)}
+          target="_blank"
+          rel="noreferrer"
+          className={buttonVariants({ size: 'xs' })}
+          data-file-download
+        >
+          {label}
+        </a>
+        <FileLinkButton fileId={fileId} />
+      </span>
     </span>
   );
 }
