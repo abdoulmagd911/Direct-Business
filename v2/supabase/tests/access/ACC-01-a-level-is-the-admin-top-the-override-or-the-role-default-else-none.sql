@@ -7,8 +7,12 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.off', test.person('Test Switched Off', 'member', 'commercial', false)::text, true);
+-- The override below is 'own', not 'view': since Landing 7's F179 overturn the member role default on Finance
+-- is 'view', so a 'view' override would be indistinguishable from the default and the sabotage
+-- levels-ignore-overrides would stay green (CI #1578). 'own' differs from the default, so the override is
+-- what the test proves is read.
 insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.am1')::uuid, 'finance', 'view', 'made up for a test'),
+values (current_setting('t.am1')::uuid, 'finance', 'own', 'made up for a test'),
        (current_setting('t.off')::uuid, 'finance', 'full', 'made up for a test');
 
 select test.eq(authz.level_of(current_setting('t.admin')::uuid, 'finance'), 'full'::core.level, 'an admin: the top level');
@@ -28,7 +32,7 @@ select test.raises($$update core.role_page_level set level = 'full' where page_k
   'access.settings_admins_only');
 select test.eq(authz.level_of(current_setting('t.am1')::uuid, 'tasks'), 'own'::core.level,
   'a team member starts at Own on Tasks');
-select test.eq(authz.level_of(current_setting('t.am1')::uuid, 'finance'), 'view'::core.level,
+select test.eq(authz.level_of(current_setting('t.am1')::uuid, 'finance'), 'own'::core.level,
   'the person''s override wins over the role');
 select test.eq(authz.level_of(current_setting('t.am1')::uuid, 'overview'), 'none'::core.level,
   'no starting level: none');
@@ -40,10 +44,10 @@ select test.eq(authz.level_of(current_setting('t.admin')::uuid, 'pipeline'), 'no
 update core.page set active = true where key = 'pipeline';
 
 select test.as_person(current_setting('t.am1')::uuid);
-select test.eq(authz.level('finance'), 'view'::core.level, 'authz.level() answers for the signed-in person');
+select test.eq(authz.level('finance'), 'own'::core.level, 'authz.level() answers for the signed-in person');
 select set_config('t.me', api.me()::text, true);
 select test.as_owner();
-select test.eq(current_setting('t.me')::jsonb -> 'levels' ->> 'finance', 'view', 'api.me() gives the same answer');
+select test.eq(current_setting('t.me')::jsonb -> 'levels' ->> 'finance', 'own', 'api.me() gives the same answer');
 select test.eq(current_setting('t.me')::jsonb -> 'levels' ->> 'settings.profile', 'own', 'My profile is always one''s own');
 select test.eq((select count(*) from jsonb_object_keys(current_setting('t.me')::jsonb -> 'levels'))::int,
   (select count(*) from core.page where active)::int, 'api.me() names a level for every page');

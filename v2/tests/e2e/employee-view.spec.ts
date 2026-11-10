@@ -512,6 +512,9 @@ test('14 · no title, tab, crumb or menu item says Organization, Suppliers & par
 test('15 · at 390 px every page of the member menu fits: no sideways scroll, 44 px targets, the + clear of the last row', async ({
   page,
 }) => {
+  // Landing 8 (#1578 triage): a 5-page walk at 390 px under full-suite parallel load takes ~19 s alone
+  // and times out at the 60 s default when the runner is loaded — 120 s is the budget, not the product.
+  test.setTimeout(120_000);
   const member = await openAs(page, 'member', '/my-day', PHONE);
   void member;
   const id = await organisation(page.context(), `Test Phone Org ${tag()}`, ['client'], '+966 50 000 0000');

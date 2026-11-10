@@ -78,7 +78,9 @@ for (const width of [375, 320, 1440]) {
 }
 
 test('the + clears the last row on every page and the list searches are 44 px — at 375 px', async ({ page }) => {
-  test.setTimeout(120_000);
+  // Landing 8 (#1578 triage): 90 s of the 120 s budget under load, never an assertion failure — 180 s
+  // is the budget, not the product.
+  test.setTimeout(180_000);
   const me = await makePerson({ admin: true });
   await page.setViewportSize({ width: 375, height: 667 });
   await signIn(page, me.email, '/my-day');

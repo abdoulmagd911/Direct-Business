@@ -37,6 +37,9 @@ const measure = (page: Page) =>
 
 for (const width of WIDTHS) {
   test(`no tab row scrolls up and down or shows a scrollbar — at ${width} px`, async ({ page }) => {
+    // Landing 8 (#1578 triage): 54 s of the 60 s budget under load at 1440 px, and 60 s timeouts at
+    // hydrated() under load at both widths — 120 s is the budget, not the product.
+    test.setTimeout(120_000);
     const me = await makePerson({ admin: true });
     await page.setViewportSize({ width, height: 900 });
     await signIn(page, me.email, '/my-day');

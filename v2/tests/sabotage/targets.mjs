@@ -45,7 +45,9 @@ export const sabotages = [
     expect: 'reads an unrenamed plan in the page language',
     edits: [
       {
-        file: 'src/modules/perf/screens/TargetsScreen.tsx',
+        // Landing 8 (#1578 triage): planTitle moved out of TargetsScreen.tsx into the server-safe
+        // src/modules/perf/types.ts by Landing 7 (settings-targets:52) — the plant follows it.
+        file: 'src/modules/perf/types.ts',
         find: 'return d && p.name === `${d.name_en} ${p.year}` ?',
         replace: 'return false && d && p.name === `${d.name_en} ${p.year}` ?',
       },

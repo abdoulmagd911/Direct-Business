@@ -69,6 +69,9 @@ const heights = (page: Page, selector: string) =>
 test('phone 375: a done-circle, the chips, the layout switch, Save view and the client page are 44 px targets', async ({
   page,
 }) => {
+  // Landing 8 (#1578 triage): 39 s of the 60 s budget under load, never an assertion failure — 120 s
+  // is the budget, not the product.
+  test.setTimeout(120_000);
   const member = await memberWithTeam();
   const t = Math.random().toString(36).slice(2, 6);
   const title = `Made-up phone target task ${t}`;

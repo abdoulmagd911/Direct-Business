@@ -7,8 +7,11 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/finance/module.ts',
-        find: "      built: true,\n      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },",
-        replace: "      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },",
+        // Landing 8 (#1578 triage): the find named the pre-F179-refusal defaults (member 'own'); Landing 7's
+        // F179 overturn made the member default 'view', so the plant never applied. The replace keeps the
+        // current defaults and only drops the built flag, as the plant always meant.
+        find: "      built: true,\n      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'view', viewer: 'view' },",
+        replace: "      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'view', viewer: 'view' },",
       },
     ],
   },
