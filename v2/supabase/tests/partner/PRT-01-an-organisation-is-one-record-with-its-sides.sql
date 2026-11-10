@@ -77,7 +77,7 @@ select test.eq((select count(*)::int from jsonb_array_elements(api.partner(curre
 
 select api.partner_update(current_setting('t.pid')::uuid, '{"city": "Made-up City"}', 1);
 select test.raises(format('select api.partner_update(%L, %L, 1)', current_setting('t.pid'), '{"city": "From a stale screen"}'),
-  '40001', 'a change from a stale screen is refused', 'common.conflict');
+  'P0001', 'a change from a stale screen is refused', 'common.conflict');
 
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.raises($$select api.partner_create('{"trade_name_en": "Made Up Viewer", "sides": [{"side": "client", "type": "corporate"}]}')$$,

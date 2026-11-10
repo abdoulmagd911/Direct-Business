@@ -43,7 +43,7 @@ select test.raises(format('select api.person_create(%L)', jsonb_build_object('fu
 
 select api.person_update(current_setting('t.pid')::uuid, '{"job_title_en": "Senior Made-up Title"}', 1, 'made up');
 select test.raises(format('select api.person_update(%L, %L, 1)', current_setting('t.pid'),
-  '{"job_title_en": "From a stale screen"}'), '40001', 'a change from a stale screen is refused', 'common.conflict');
+  '{"job_title_en": "From a stale screen"}'), 'P0001', 'a change from a stale screen is refused', 'common.conflict');
 select test.raises(format('select api.person_update(%L, %L, 2)', current_setting('t.pid'),
   jsonb_build_object('team_id', current_setting('t.far_team'))), 'P0001',
   'a team outside the person''s department is refused', 'person.team_outside_department');

@@ -107,7 +107,7 @@ export function wordingOf(a: { code?: string; key?: string }): {
       ? 'PermissionDenied'
       : code === 'P0002'
         ? 'NotFound'
-        : code === '40001'
+        : code === '40001' || key === 'common.conflict' || key === 'undo.changed_since'
           ? 'Conflict'
           : code === 'P0001' || code.startsWith('23')
             ? 'RuleBroken'

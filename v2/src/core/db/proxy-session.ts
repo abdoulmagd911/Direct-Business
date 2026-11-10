@@ -41,9 +41,16 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(list, headers) {
-        for (const { name, value } of list) request.cookies.set(name, value);
+        // A session Auth no longer accepts is never cleared here: the cookie still carries the token the
+        // sign-out route needs to ask the database why (a background request — a prefetch, a page's data —
+        // would otherwise clear it unseen, and the person's next real visit would arrive with no session and
+        // never be told why: an admin signed them out, or another device did). The /auth/sign-out route owns
+        // clearing, once it has read the reason; a refresh still sets its new values through here.
+        const kept = list.filter(({ name, value }) => !(AUTH_COOKIE.test(name) && !value));
+        if (!kept.length) return;
+        for (const { name, value } of kept) request.cookies.set(name, value);
         response = forward();
-        for (const { name, value, options } of list) response.cookies.set(name, value, options);
+        for (const { name, value, options } of kept) response.cookies.set(name, value, options);
         for (const [key, value] of Object.entries(headers ?? {})) response.headers.set(key, value);
       },
     },

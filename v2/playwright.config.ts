@@ -17,7 +17,11 @@ export default defineConfig<ClockOptions>({
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  timeout: 60_000,
+  // Landing 9 (#1579 triage): the 60 s default is too tight under parallel load — the local full suite
+  // found 59 timeouts across 15+ spec files, all at/over this budget (the screens/axe tests take
+  // 1.2–1.3 m alone), while CI's 4-vCPU runner is faster than this 1.5-CPU VM. 120 s is the budget,
+  // not the product: no spec assertion changed. The 4 drawer specs keep their L8 raises (120/180 s).
+  timeout: 120_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL,

@@ -13,7 +13,7 @@ select test.done();
 select core.check_version('core.department', current_setting('t.dep')::uuid, current_setting('t.v1')::int,
   array['name_en']);
 select test.raises(format('select core.check_version(%L, %L, %s, %L)', 'core.department', current_setting('t.dep'),
-  current_setting('t.v1'), '{name_en,name_ar}'), '40001',
+  current_setting('t.v1'), '{name_en,name_ar}'), 'P0001',
   'a stale version is refused when someone changed the same field since', 'common.conflict');
 do $$
 declare
@@ -21,7 +21,7 @@ declare
 begin
   perform core.check_version('core.department', current_setting('t.dep')::uuid, current_setting('t.v1')::int,
                              array['name_ar']);
-exception when serialization_failure then
+exception when raise_exception then
   get stacked diagnostics d = pg_exception_detail;
   perform set_config('t.detail', d, true);
 end $$;

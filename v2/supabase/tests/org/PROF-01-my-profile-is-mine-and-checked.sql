@@ -38,7 +38,7 @@ select test.raises($$select api.profile_update('{"full_name_en": " "}', 1, 1)$$,
   'a full name cannot be blank', 'person.full_name_required');
 select test.eq((api.profile_update('{"notify": {"mentioned": {"in_app": false}}, "theme": "dark"}', 1)
   ->> 'version')::int, 2, 'the next change names the version it read');
-select test.raises($$select api.profile_update('{"theme": "light"}', 1)$$, '40001',
+select test.raises($$select api.profile_update('{"theme": "light"}', 1)$$, 'P0001',
   'a change from a stale screen to a field changed since is refused', 'common.conflict');
 select test.eq((api.me() -> 'person' ->> 'version')::int > 1, true, 'api.me() gives the person''s version too');
 

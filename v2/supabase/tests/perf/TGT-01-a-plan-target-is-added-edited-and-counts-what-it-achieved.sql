@@ -80,7 +80,7 @@ select test.eq((select x ->> 'target_count' from jsonb_array_elements(api.target
 select test.eq((select x ->> 'version' from jsonb_array_elements(api.targets(current_setting('t.p26')::uuid)) x
                 where x ->> 'id' = current_setting('t.t1')), '2', 'with the version moved on');
 select test.raises(format('select api.target_save(%L, null, %L::jsonb, 1)', current_setting('t.t1'),
-  '{"target_count": 9}'), '40001', 'a stale version is refused', 'common.conflict');
+  '{"target_count": 9}'), 'P0001', 'a stale version is refused', 'common.conflict');
 select test.eq(api.plan(current_setting('t.p26')::uuid) ->> 'year', '2026', 'the plan reads back');
 select test.eq(api.plan(current_setting('t.p26')::uuid) ->> 'categories', '7', 'with its categories counted');
 select test.eq(api.plan('00000000-0000-0000-0000-000000000000'), null::jsonb, 'no such plan reads as nothing');

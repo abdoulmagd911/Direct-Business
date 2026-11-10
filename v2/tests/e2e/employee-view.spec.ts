@@ -521,6 +521,10 @@ test('15 · at 390 px every page of the member menu fits: no sideways scroll, 44
   for (const route of ['/my-day', '/tasks', '/clients', `/clients/${id}`, '/profile']) {
     await page.goto(route);
     await hydrated(page);
+    // The page's own content, not just the shell: /clients renders a loading state with no PageFrame and no
+    // scroll container, so measuring then reads padding 0 for a container that does not exist yet — the wait below
+    // is for the container itself, and the padding assertion is unchanged.
+    await page.locator('#main [class*="overflow-y-auto"]').first().waitFor({ state: 'attached', timeout: 30_000 });
     const fit = await page.evaluate(() => {
       const main = document.querySelector('#main [class*="overflow-y-auto"]') as HTMLElement | null;
       return {

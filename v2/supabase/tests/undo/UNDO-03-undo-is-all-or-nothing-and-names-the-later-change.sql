@@ -17,14 +17,14 @@ update core.team set name_en = 'Desk Renamed Again' where id = current_setting('
 select test.done();
 
 select test.as_person(current_setting('t.admin')::uuid);
-select test.raises(format('select api.undo(%L)', current_setting('t.r1')), '40001',
+select test.raises(format('select api.undo(%L)', current_setting('t.r1')), 'P0001',
   'undo refuses when a later change touched the same field', 'undo.changed_since');
 do $$
 declare
   d text;
 begin
   perform api.undo(current_setting('t.r1')::uuid);
-exception when serialization_failure then
+exception when raise_exception then
   get stacked diagnostics d = pg_exception_detail;
   perform set_config('t.detail', d, true);
 end $$;

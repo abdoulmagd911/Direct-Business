@@ -115,16 +115,71 @@ async function meStatus(db: Awaited<ReturnType<typeof serverDb>>): Promise<strin
 
 /**
  * After Auth took a person's new password: the server records it, clears "must change password" (V166) and signs
- * every other device of the person out in the same logged request — this one stays in (ACC-021).
+ * every other device of the person out in the same logged request — this one stays in (ACC-021). The session to
+ * keep may be passed in: Auth deletes every session when the password is updated, so after the change there is no
+ * session left to read it from — the caller captures it first, or signs in again and passes the fresh one.
  */
-async function recordChange(db: Awaited<ReturnType<typeof serverDb>>, authUserId: string): Promise<boolean> {
-  const { data } = await db.auth.getClaims();
-  const session = (data?.claims as { session_id?: string } | undefined)?.session_id;
+async function recordChange(
+  db: Awaited<ReturnType<typeof serverDb>>,
+  authUserId: string,
+  keepSession?: string,
+): Promise<boolean> {
+  let session = keepSession;
+  if (!session) {
+    const { data } = await db.auth.getClaims();
+    session = (data?.claims as { session_id?: string } | undefined)?.session_id;
+  }
   const { error } = await serviceDb().rpc('own_password_set', {
     p_auth_user: authUserId,
     p_keep_session: session ?? '00000000-0000-0000-0000-000000000000',
   });
   return !error;
+}
+
+/**
+ * The session_id inside a session's access token (the JWT's own claim — read locally, no Auth call: getClaims
+ * would ask Auth each time, and this action already makes enough round-trips to stay inside the screen's wait).
+ */
+function sessionIdOf(session: { access_token?: string } | null | undefined): string | undefined {
+  const token = session?.access_token;
+  if (!token) return undefined;
+  try {
+    const part = token.split('.')[1];
+    if (!part) return undefined;
+    const payload = JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as {
+      session_id?: unknown;
+    };
+    return typeof payload.session_id === 'string' ? payload.session_id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Auth deletes every session when a password is updated — the device that changed it included — so after the change
+ * the device signs in again with the new password and registers that fresh session as its device. Returns the fresh
+ * session's id, or null when the fresh sign-in did not land (then the caller records the change keeping the device
+ * the request came from instead, and the person signs in again). A half-landed sign-in is ended, so no session
+ * without a device is left behind in the cookie.
+ */
+async function reSignIn(
+  db: Awaited<ReturnType<typeof serverDb>>,
+  email: string,
+  password: string,
+): Promise<string | null> {
+  const signed = await db.auth.signInWithPassword({ email, password });
+  if (signed.error || !signed.data.session) return null;
+  const ua = (await headers()).get('user-agent');
+  const done = await db.rpc('sign_in_complete', {
+    p_provider: 'email',
+    p_device_label: deviceLabel(ua) ?? undefined,
+    p_user_agent: ua ?? undefined,
+  });
+  if (done.error || done.data !== 'ok') {
+    await db.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    return null;
+  }
+  return sessionIdOf(signed.data.session) ?? null;
 }
 
 /**
@@ -139,16 +194,25 @@ export async function setOwnPassword(
 ): Promise<PasswordResult> {
   const password = String(rawPassword ?? '');
   const db = await serverDb();
-  const { data: who } = await db.auth.getUser();
-  if (!who.user) return { ok: false, error: 'not_signed_in' };
+  // The person is read from the session cookie here, not asked of Auth: the proxy verified this session with Auth
+  // on this same request (getClaims), and the change itself is made on that session — the action already makes
+  // enough round-trips to stay inside the screen's wait.
+  const { data: sessionNow } = await db.auth.getSession();
+  const who = sessionNow.session?.user;
+  if (!who) return { ok: false, error: 'not_signed_in' };
   const status = await meStatus(db);
   if (status === 'ok') return { ok: false, error: 'not_needed' };
   if (status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };
-  const refused = refusal(password, String(rawAgain ?? ''), who.user.email);
+  const refused = refusal(password, String(rawAgain ?? ''), who.email);
   if (refused) return { ok: false, error: refused };
+  // The session to keep is captured before the change (see changePassword): the update deletes every session.
+  const keepBefore = sessionIdOf(sessionNow.session);
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
+  const email = who.email;
+  if (!email) return { ok: false, error: 'unavailable' };
+  const fresh = await reSignIn(db, email, password);
+  if (!(await recordChange(db, who.id, fresh ?? keepBefore))) return { ok: false, error: 'unavailable' };
   redirect(safeNext(next));
 }
 
@@ -164,17 +228,25 @@ export async function changePassword(
 ): Promise<PasswordResult> {
   const password = String(rawPassword ?? '');
   const db = await serverDb();
-  const { data: who } = await db.auth.getUser();
-  const email = who.user?.email;
-  if (!who.user || !email) return { ok: false, error: 'not_signed_in' };
-  const status = await meStatus(db);
+  // The person is read from the session cookie here, not asked of Auth: the proxy verified this session with Auth
+  // on this same request (getClaims), and the change itself is authorised by signing in with the current password
+  // below — the action already makes enough round-trips to stay inside the screen's wait.
+  const { data: sessionNow } = await db.auth.getSession();
+  const who = sessionNow.session?.user;
+  const email = who?.email;
+  if (!who || !email) return { ok: false, error: 'not_signed_in' };
+  // The two pre-checks are independent reads, so they go together instead of one after the other.
+  const [status, limited] = await Promise.all([meStatus(db), serviceDb().rpc('sign_in_limited', { p_email: email })]);
   if (status !== 'ok' && status !== 'must_change_password') return { ok: false, error: 'not_signed_in' };
   const refused = refusal(password, String(rawAgain ?? ''), email);
   if (refused) return { ok: false, error: refused };
   // A wrong current password counts as a wrong password (V172): an unlocked computer cannot guess its way through.
-  const limited = await serviceDb().rpc('sign_in_limited', { p_email: email });
   if (limited.error) return { ok: false, error: 'unavailable' };
   if (limited.data) return { ok: false, error: 'rate_limited' };
+  // The session to keep is captured before the change: Auth deletes every session when the password is updated,
+  // so after the change there is no session left to read it from (the record then fell back to none, and every
+  // device — this one included — was signed out).
+  const keepBefore = sessionIdOf(sessionNow.session);
   const check = await changeWithCurrent(email, String(rawCurrent ?? ''), password);
   if (check === 'wrong') {
     const ua = (await headers()).get('user-agent');
@@ -186,6 +258,11 @@ export async function changePassword(
     return { ok: false, error: counted.data === 'locked' ? 'rate_limited' : 'wrong_current' };
   }
   if (check !== 'ok') return { ok: false, error: 'unavailable' };
-  if (!(await recordChange(db, who.user.id))) return { ok: false, error: 'unavailable' };
+  // The change deleted every session, this device's included: sign in again with the new password, so the device
+  // stays in (ACC-021) instead of landing on the sign-in page. When that fresh sign-in does not land, the change
+  // is still recorded keeping the device this request came from (captured below, before the change — after it there
+  // is no session left to read it from): the person signs in again, the other devices go.
+  const fresh = await reSignIn(db, email, password);
+  if (!(await recordChange(db, who.id, fresh ?? keepBefore))) return { ok: false, error: 'unavailable' };
   return { ok: true };
 }

@@ -43,7 +43,7 @@ select set_config('t.saved', api.view_save(current_setting('t.v1')::uuid, 'tasks
   '{"filters": {"due": "overdue"}, "group": "partner"}', false, 0, 1)::text, true);
 select test.eq((current_setting('t.saved')::jsonb ->> 'version')::int, 2, 'the owner changes their view');
 select test.raises(format('select api.view_save(%L, %L, %L, %L, false, 0, 1)', current_setting('t.v1'), 'tasks',
-  'Renamed from a stale screen', '{"filters": {"due": "overdue"}, "group": "partner"}'), '40001',
+  'Renamed from a stale screen', '{"filters": {"due": "overdue"}, "group": "partner"}'), 'P0001',
   'a change from a stale screen to the same field is refused', 'common.conflict');
 select test.eq(api.view_default_set('tasks', current_setting('t.v1')::uuid), current_setting('t.v1')::uuid,
   'the owner picks their own view');

@@ -15,7 +15,7 @@ do $$
 begin
   perform api.undo((current_setting('t.r1')::jsonb ->> 'request_id')::uuid);
   perform set_config('t.undid', 'undone', true);
-exception when serialization_failure then
+exception when raise_exception then
   perform set_config('t.undid', 'refused', true);
 end $$;
 select test.eq(current_setting('t.undid'), 'undone',
@@ -30,7 +30,7 @@ select set_config('t.r3', api.list_save('contact_role', null,
   '{"key": "made_up_other", "name_en": "Made up other", "name_ar": "دور آخر مختلق"}')::text, true);
 select set_config('t.r4', api.list_save('contact_role', (current_setting('t.r3')::jsonb ->> 'id')::uuid,
   '{"name_en": "Made up other renamed"}', (current_setting('t.r3')::jsonb ->> 'version')::int)::text, true);
-select test.raises(format('select api.undo(%L)', current_setting('t.r3')::jsonb ->> 'request_id'), '40001',
+select test.raises(format('select api.undo(%L)', current_setting('t.r3')::jsonb ->> 'request_id'), 'P0001',
   'a later rename still in force blocks undoing the add', 'undo.changed_since');
 
 -- undone and redone, the rename is in force again and blocks
@@ -40,5 +40,5 @@ select test.as_owner();
 select test.eq((select name_en from partner.contact_role where id = (current_setting('t.r3')::jsonb ->> 'id')::uuid),
   'Made up other renamed', 'the rename is redone');
 select test.as_person(current_setting('t.admin')::uuid);
-select test.raises(format('select api.undo(%L)', current_setting('t.r3')::jsonb ->> 'request_id'), '40001',
+select test.raises(format('select api.undo(%L)', current_setting('t.r3')::jsonb ->> 'request_id'), 'P0001',
   'and blocks undoing the add again', 'undo.changed_since');

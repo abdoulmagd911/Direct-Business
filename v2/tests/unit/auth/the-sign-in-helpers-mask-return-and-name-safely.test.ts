@@ -84,6 +84,18 @@ describe('the sign-in helpers mask, return and name safely', () => {
     expect(toDbError({ code: 'PGRST202', message: 'Could not find the function' })).toMatchObject({
       kind: 'Unavailable',
     });
+    // A conflict is named by its message now (L9): the database raises it as P0001, not 40001, because
+    // PostgREST retries a 40001 forever instead of answering it. The 40001 mapping stays for a database
+    // that has not applied that change yet.
+    expect(toDbError({ code: 'P0001', message: 'common.conflict' })).toMatchObject({
+      kind: 'Conflict',
+      key: 'common.conflict',
+    });
+    expect(toDbError({ code: 'P0001', message: 'undo.changed_since' })).toMatchObject({
+      kind: 'Conflict',
+      key: 'undo.changed_since',
+    });
+    expect(toDbError({ code: '40001', message: 'common.conflict' })).toMatchObject({ kind: 'Conflict' });
   });
 
   it('shows the right line for each refusal the gate reports', () => {

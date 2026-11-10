@@ -32,7 +32,11 @@ export function toDbError(e: PostgrestLikeError): DbError {
   const detail = e.details ?? undefined;
   if (code === '42501') return new DbError('PermissionDenied', KEY.test(message) ? message : 'access.denied', detail);
   if (code === 'P0002') return new DbError('NotFound', KEY.test(message) ? message : 'common.not_found', detail);
-  if (code === '40001') return new DbError('Conflict', KEY.test(message) ? message : 'common.conflict', detail);
+  // A conflict is named by its message now: the database used to raise it as 40001 (serialization_failure),
+  // which PostgREST retries forever instead of answering (L9) — it raises P0001 instead, and the 40001 branch
+  // stays for a database that has not applied that change yet.
+  if (code === '40001' || message === 'common.conflict' || message === 'undo.changed_since')
+    return new DbError('Conflict', KEY.test(message) ? message : 'common.conflict', detail);
   if (code === 'P0001' || code.startsWith('23')) return new DbError('RuleBroken', key, detail);
   return new DbError('Unavailable', 'common.unavailable', [code, message].filter(Boolean).join(' '));
 }

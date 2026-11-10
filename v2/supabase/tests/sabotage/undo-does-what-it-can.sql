@@ -37,7 +37,7 @@ begin
     for c in select * from audit.change x where x.request_id = q.id order by x.id desc loop
       begin
         perform audit.revert_change(c, q.id, req, me);
-      exception when serialization_failure then
+      exception when raise_exception then
         null; -- the sabotage: a field changed since is skipped, the rest is undone
       end;
     end loop;
