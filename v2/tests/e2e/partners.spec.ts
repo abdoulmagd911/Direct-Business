@@ -64,7 +64,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await page.locator('[data-side-form="client"]').getByLabel('Type').click();
   await page.getByRole('option', { name: 'Corporate' }).click();
   await page.locator('[data-side-save]').click();
-  await expect(toast(page, 'Client side switched on')).toBeVisible();
+  await expect(toast(page, 'Client added')).toBeVisible();
 
   // At risk needs a reason: refused in place until one is chosen
   await page.locator('[data-partner-more]').click();

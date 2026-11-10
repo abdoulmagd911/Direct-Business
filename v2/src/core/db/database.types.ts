@@ -44,10 +44,12 @@ export type Database = {
       achievement: { Args: { p_id: string }; Returns: Json };
       achievement_categories: { Args: { p_department?: string; p_plan?: string; p_year?: number }; Returns: Json };
       achievement_categories_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      achievement_category_retire: { Args: { p_id: string; p_reason: string; p_replacement: string }; Returns: Json };
       achievement_category_save: {
         Args: { p_id: string; p_plan: string; p_values: Json; p_version?: number };
         Returns: Json;
       };
+      achievement_category_usage: { Args: { p_id: string }; Returns: Json };
       achievement_line: { Args: { p_id: string; p_locale?: string }; Returns: string };
       achievement_log: { Args: { p_participants?: string[]; p_refs?: Json; p_values: Json }; Returns: Json };
       achievement_move: { Args: { p_id: string; p_reason: string; p_to: string; p_version: number }; Returns: Json };
@@ -545,6 +547,7 @@ export type Database = {
         Returns: Json;
       };
       pipeline_remove: { Args: { p_entity: string; p_ids: string[]; p_reason?: string }; Returns: Json };
+      plan: { Args: { p_id: string }; Returns: Json };
       plan_open: { Args: { p_department: string; p_name?: string; p_year: number }; Returns: Json };
       plans: { Args: { p_department?: string }; Returns: Json };
       profile_update: { Args: { p_changes: Json; p_person_version?: number; p_version?: number }; Returns: Json };
@@ -610,6 +613,8 @@ export type Database = {
       sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
       sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
+      target_save: { Args: { p_id: string; p_plan: string; p_values: Json; p_version?: number }; Returns: Json };
+      targets: { Args: { p_plan: string }; Returns: Json };
       task: { Args: { p_id: string }; Returns: Json };
       task_add_meeting: {
         Args: { p_body: string; p_happened_on: string; p_items?: Json; p_mentions?: string[]; p_task: string };

@@ -100,8 +100,29 @@ export type Category = {
   /** An MoU (V521): logged with an organisation, it names the side it was signed with. */
   sets_prospect: boolean;
   required_ref_system: string | null;
+  /** The sentences a report line is drafted from (V76); the database defaults them to '{title}'. */
+  line_template_en: string;
+  line_template_ar: string;
   sort: number;
   active: boolean;
+  version: number;
+};
+
+/** One target of a plan (FIX-23, api.targets): the month, the count and deal-value total expected, and what the
+ * month has achieved so far (read, never stored). */
+export type TargetRow = {
+  id: string;
+  plan_id: string;
+  category_id: string;
+  category_code: string;
+  category_name_en: string;
+  category_name_ar: string;
+  /** The first of the month, YYYY-MM-01. */
+  month: string;
+  target_count: number;
+  target_value: number | null;
+  achieved_count: number;
+  achieved_value: number;
   version: number;
 };
 

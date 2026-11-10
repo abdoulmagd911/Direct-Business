@@ -93,7 +93,8 @@ test('the person record: Arabic name, a second email added and one removed with 
   );
   expect(gone?.banned, 'its auth user is banned').toBe(true);
 
-  // Access: pages and settings sections apart (item 8)
+  // Access: pages and settings sections apart (item 8) — the list starts closed (FIX-41 F217)
+  await page.locator('[data-access-all]').click();
   await expect(page.locator('[data-access-group="pages"]')).toBeVisible();
   await expect(page.locator('[data-access-group="settings"]')).toBeVisible();
 
@@ -181,7 +182,7 @@ test('an unknown address is Not found; an unbuilt page says it is not ready yet;
     await page.goto(route);
     await hydrated(page);
     await expect(page.locator('[data-state="empty"]'), `${route} says it is not ready yet`).toContainText(
-      'Not ready yet. Use Tasks or Achievements for now.',
+      'Being built — use Tasks or Achievements for now.',
     );
     await expect(page.locator('[data-state="empty"]')).not.toContainText('Nothing here yet');
   }

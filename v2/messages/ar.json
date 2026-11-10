@@ -1571,7 +1571,8 @@
       "view": {
         "removed": "حُذف العرض",
         "saved": "حُفظ العرض"
-      }
+      },
+      "achievement_category.retired": "أُرشفت الفئة"
     },
     "loadMore": "عرض الأقدم",
     "none": "لا تغييرات بعد",
@@ -1889,7 +1890,35 @@
       "none": "لم تُفتح أي خطة بعد.",
       "everyYear": "لهذه الإدارة خطة لكل سنة.",
       "noDepartment": "أضف إدارة أولًا.",
-      "everyDepartmentEveryYear": "لكل إدارة خطة لكل سنة بالفعل."
+      "everyDepartmentEveryYear": "لكل إدارة خطة لكل سنة بالفعل.",
+      "backToPlans": "عودة إلى الخطط",
+      "targetsTitle": "الأهداف",
+      "targetsNone": "لا أهداف بعد.",
+      "addTarget": "أضف هدفًا",
+      "editTarget": "عدّل الهدف",
+      "targetMonth": "الشهر",
+      "targetCategory": "الفئة",
+      "targetCount": "الإنجازات المتوقعة",
+      "targetValue": "قيمة الصفقات المتوقعة",
+      "targetAchievedValue": "قيمة الصفقات المنجزة",
+      "achievedCount": "المنجز",
+      "targetSaved": "تم حفظ الهدف",
+      "categoriesTitle": "فئات الإنجازات",
+      "categoriesNone": "لا فئات بعد.",
+      "categoryCode": "الرمز",
+      "categoryParent": "تحت",
+      "categoryTopLevel": "فئة رئيسية",
+      "categoryLineEn": "سطر التقرير (بالإنجليزية)",
+      "categoryLineAr": "سطر التقرير (بالعربية)",
+      "categoryDealValue": "تحمل قيمة صفقة",
+      "categorySetsProspect": "مذكرة التفاهم تجعل الطرف عميلًا محتملًا",
+      "categoryRefSystem": "يجب أن تكون المرجعية في",
+      "categoryRefSystemNone": "لا يلزم نظام",
+      "categorySaved": "تم حفظ الفئة",
+      "childrenBlock": "يجب نقل فئاتها الفرعية أولًا.",
+      "categoryCodeHint": "الرمز يبدأ بحرف كبير، ثم حروف كبيرة أو أرقام أو _ أو -",
+      "templateRequired": "سطر التقرير مطلوب",
+      "achieved": "تم تحقيق"
     },
     "fields": {
       "width": "عدد الخانات",
@@ -1974,6 +2003,22 @@
     "plan": {
       "year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",
       "year_invalid": "يمكن فتح خطة من سنة 2025 حتى السنة القادمة"
+    },
+    "achievement_category": {
+      "code_taken": "هذا الرمز مستخدم بالفعل في هذه الخطة",
+      "code_fixed": "الرمز لا يتغير أبدًا",
+      "parent_invalid": "الفئة الفرعية تكون تحت فئة رئيسية من نفس الخطة",
+      "invalid": "هذه القيمة غير مسموحة: {detail}",
+      "deal_values_held": "سبق إدخال قيم صفقات تحت هذه الفئة"
+    },
+    "achievement": {
+      "no_deal_value": "هذه الفئة لا تحمل قيمة صفقة",
+      "category_retired": "هذه الفئة مؤرشفة"
+    },
+    "target": {
+      "taken": "لهذه الفئة هدف في هذا الشهر بالفعل",
+      "invalid": "قيمة الهدف هذه غير مسموحة: {detail}",
+      "category_invalid": "هذه ليست فئة من فئات هذه الخطة"
     },
     "comment": {
       "body_required": "اكتب شيئًا أولًا",
@@ -2171,7 +2216,8 @@
       "invalid": "هذه القيمة غير مسموحة: {detail}",
       "unknown_field": "حقل غير معروف: {detail}",
       "retire_blocked_by_duplicate": "يحمل سجل آخر البديل هناك، فلم يُستبدل شيء",
-      "retire_blocked_by_rule": "يخالف البديل قاعدة في سجل يستخدمه، فلم يُستبدل شيء"
+      "retire_blocked_by_rule": "يخالف البديل قاعدة في سجل يستخدمه، فلم يُستبدل شيء",
+      "in_use": "ما زال مستخدمًا: {detail}"
     },
     "undo": {
       "changed_since": "غيّر أحدهم هذا بعد ذلك، فلا يمكن التراجع",

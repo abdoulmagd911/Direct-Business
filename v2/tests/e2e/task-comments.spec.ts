@@ -52,11 +52,15 @@ for (const [label, width, height] of [
     test.setTimeout(120_000);
     const writer = await makePerson({ admin: true });
     const reader = await makePerson();
-    // The read-only colleague is a Viewer: a plain Member holds Own on Tasks and may comment on a task they can
-    // open since FIX-03 (P1a), so only View stays read-only (the same role switch employee-view.spec.ts uses).
-    await sql(`update core.person set role_id = (select id from core.role where key = 'viewer') where id = $1`, [
-      reader.id,
-    ]);
+    // The read-only colleague is a Member with a person-level override tasks = 'view': a plain Member holds Own
+    // on Tasks and may comment on a task they can open since FIX-03 (P1a), so only View stays read-only — and a
+    // Viewer holds none on Tasks (brief E / employee-view test 5), so a Viewer colleague cannot open the task at
+    // all. The override is the established pattern (employee-view.spec.ts:31).
+    await sql(
+      `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+       values ($1, 'tasks', 'view', 'Made up: a read-only colleague on this task', $1)`,
+      [reader.id],
+    );
     await withTeam(writer, 'test_cmt_e2e');
     await withTeam(reader, 'test_cmt_e2e');
     const number = await taskOf(writer);

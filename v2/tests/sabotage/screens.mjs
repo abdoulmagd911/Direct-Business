@@ -691,6 +691,9 @@ export const sabotages = [
     ],
   },
 
+  // Rewritten in Landing 6 (CI #1576 triage): FIX-41 made closed-by-default the product behaviour, so the old
+  // find string (open for admins) no longer exists — the sabotage now plants the old line instead, and the
+  // updated employee-view :411 / review-1 :53 tests (click Show all first) catch it.
   {
     name: 'access-list-closed-for-admins',
     breaks: ['e2e:tests/e2e/employee-view.spec.ts'],
@@ -698,8 +701,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/PersonRecord.tsx',
-        find: '  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);',
-        replace: '  const [allAccess, setAllAccess] = useState(false);',
+        find: '  const [allAccess, setAllAccess] = useState(false);',
+        replace: '  const [allAccess, setAllAccess] = useState(me.person.role?.is_admin === true);',
       },
     ],
   },

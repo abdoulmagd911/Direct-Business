@@ -1933,6 +1933,18 @@
       "rule_only": false
     },
     {
+      "key": "target",
+      "table": "perf.target",
+      "page": "settings.performance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "task",
       "table": "work.task",
       "page": "tasks",

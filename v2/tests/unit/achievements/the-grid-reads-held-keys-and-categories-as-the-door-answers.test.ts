@@ -18,6 +18,8 @@ const cat = (code: string, deal = false, active = true): Category => ({
   has_deal_value: deal,
   sets_prospect: false,
   required_ref_system: null,
+  line_template_en: '{title}',
+  line_template_ar: '{title}',
   sort: 0,
   active,
   version: 1,

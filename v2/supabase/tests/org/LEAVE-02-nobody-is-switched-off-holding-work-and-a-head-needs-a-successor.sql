@@ -71,6 +71,8 @@ select test.raises(format('select api.person_leave(%L, %L, null, %L)', current_s
   current_setting('t.am2')), 'P0001', 'nor marked as left', 'person.head_needs_successor');
 select test.eq(api.person_open_work(current_setting('t.head')::uuid) -> 'heads' -> 0 ->> 'id',
   test.department('commercial')::text, 'the dialog names the department they head');
+select test.eq(api.person_open_work(current_setting('t.am1')::uuid) -> 'heads',
+  '[]'::jsonb, 'a person heading nothing answers an empty list, not null (CI #1576 org:14)');
 select test.as_owner();
 select set_config('t.dep', (select row_to_json(d)::text from core.department d where d.code = 'commercial'), true);
 select test.as_person(current_setting('t.admin')::uuid);

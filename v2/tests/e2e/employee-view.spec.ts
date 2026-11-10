@@ -257,7 +257,9 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
     const tabs = page.locator('[data-side-tabs] a');
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(0)).toHaveText(/^Clients\s*\d+$/);
-    await expect(tabs.nth(1)).toHaveText(/^Suppliers\s*\d+$/);
+    // FIX-45: the tab shows no count until it is opened, when its own list read carries its total — the other
+    // tab carries none until then.
+    await expect(tabs.nth(1)).toHaveText('Suppliers');
     await expect(tabs.nth(0)).toHaveAttribute('aria-current', 'page');
     if (size === PHONE) {
       // two equal tabs across the width, 44 px tall
@@ -274,6 +276,11 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
     page.getByRole('heading', { level: 1, name: 'Suppliers' }),
     'the title is the page on screen',
   ).toBeVisible();
+  // the mirror of the Clients leg (FIX-45): on Suppliers the Suppliers tab carries the count, Clients is bare.
+  const supTabs = page.locator('[data-side-tabs] a');
+  await expect(supTabs).toHaveCount(2);
+  await expect(supTabs.nth(0)).toHaveText('Clients');
+  await expect(supTabs.nth(1)).toHaveText(/^Suppliers\s*\d+$/);
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
   await page.goto(`/suppliers?q=${encodeURIComponent(`Test Supplier ${t}`)}`);
   await hydrated(page);
@@ -427,6 +434,8 @@ test("13 · a person's Access is never the full list for a manager, and open wit
   const admin = await ctx.newPage();
   await openAs(admin, 'admin', `/people/${someone.id}`);
   await expect(admin.locator('[data-access-line]')).toHaveText('Member (standard)');
+  // the access list starts closed for everyone (FIX-41 F217) — one tap opens it, and the button reads Show less.
+  await admin.locator('[data-access-all]').click();
   await expect(admin.locator('[data-access-group="pages"]'), 'open for an admin').toBeVisible();
   await expect(admin.locator('[data-access-all]')).toHaveText('Show less');
   await ctx.close();

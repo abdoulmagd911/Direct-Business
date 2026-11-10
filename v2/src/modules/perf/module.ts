@@ -26,6 +26,8 @@ export default defineModule({
     // A department's plan for a year and its achievement categories: edited by admins in Settings → Targets (§3.8).
     // Their labels reuse words both catalogs hold until builder C's Arabic for their own arrives (V376).
     { key: 'plan', table: 'perf.plan', page: 'settings.performance', label: 'nav.settings.performance' },
+    // A plan's target for one category in one month (FIX-23): the targets screen's rows, read and written there.
+    { key: 'target', table: 'perf.target', page: 'settings.performance', label: 'nav.settings.performance' },
     {
       key: 'achievement_category',
       table: 'perf.achievement_category',

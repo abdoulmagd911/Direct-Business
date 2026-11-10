@@ -17,7 +17,9 @@ function api.access_set_team_level(p_team uuid, p_page text, p_level core.level,
 function api.achievement(p_id uuid) execute authenticated
 function api.achievement_categories(p_plan uuid, p_year integer, p_department uuid) execute authenticated
 function api.achievement_categories_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.achievement_category_retire(p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function api.achievement_category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
+function api.achievement_category_usage(p_id uuid) execute authenticated
 function api.achievement_line(p_id uuid, p_locale text) execute authenticated
 function api.achievement_log(p_values jsonb, p_refs jsonb, p_participants uuid[]) execute authenticated
 function api.achievement_move(p_id uuid, p_to date, p_reason text, p_version integer) execute authenticated
@@ -212,6 +214,7 @@ function api.pipeline_board(p_entity text, p_filter jsonb) execute authenticated
 function api.pipeline_card(p_entity text, p_id uuid) execute authenticated
 function api.pipeline_move(p_entity text, p_id uuid, p_stage text, p_happened_on date, p_values jsonb, p_version integer) execute authenticated
 function api.pipeline_remove(p_entity text, p_ids uuid[], p_reason text) execute authenticated
+function api.plan(p_id uuid) execute authenticated
 function api.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function api.plans(p_department uuid) execute authenticated
 function api.profile_update(p_changes jsonb, p_version integer, p_person_version integer) execute authenticated
@@ -245,6 +248,8 @@ function api.sign_in_log(p_person uuid, p_before timestamp with time zone, p_lim
 function api.sign_in_methods() execute service_role
 function api.sign_in_password_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
+function api.target_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
+function api.targets(p_plan uuid) execute authenticated
 function api.task(p_id uuid) execute authenticated
 function api.task_add_meeting(p_task uuid, p_happened_on date, p_body text, p_items jsonb, p_mentions uuid[]) execute authenticated
 function api.task_comment_add(p_task uuid, p_body text) execute authenticated
@@ -520,9 +525,14 @@ function perf.backfill_achievements(p_request jsonb) execute authenticated
 function perf.backfill_keys_held(p_keys text[]) execute authenticated
 function perf.categories(p_plan uuid, p_year integer, p_department uuid) execute authenticated
 function perf.categories_remove(p_ids uuid[], p_reason text) execute authenticated
+function perf.category_retire(p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function perf.category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
+function perf.category_usage(p_id uuid) execute authenticated
+function perf.plan_get(p_id uuid) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function perf.plans(p_department uuid) execute authenticated
+function perf.target_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
+function perf.targets(p_plan uuid) execute authenticated
 function pipeline.board(p_entity text, p_filter jsonb) execute authenticated
 function pipeline.bulk_assign(p_entity text, p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function pipeline.card(p_entity text, p_id uuid) execute authenticated

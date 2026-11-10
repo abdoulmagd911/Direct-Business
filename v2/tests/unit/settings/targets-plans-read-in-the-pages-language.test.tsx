@@ -22,8 +22,8 @@ const dept = {
   version: 1,
 };
 const plans = [
-  { id: 'p1', department_id: 'd1', year: 2026, name: 'Made-up sales 2026', categories: 7 },
-  { id: 'p2', department_id: 'd1', year: 2025, name: 'Our own name', categories: 3 },
+  { id: 'p1', department_id: 'd1', year: 2026, name: 'Made-up sales 2026', status: 'active', categories: 7 },
+  { id: 'p2', department_id: 'd1', year: 2025, name: 'Our own name', status: 'draft', categories: 3 },
 ];
 const draw = (locale: 'en' | 'ar', departments = [dept]) =>
   renderToStaticMarkup(
@@ -52,6 +52,7 @@ const full = ['2025', '2026', '2027'].map((y, i) => ({
   department_id: 'd1',
   year: Number(y),
   name: `Plan ${y}`,
+  status: 'active',
   categories: 1,
 }));
 const buttonOf = (html: string) => /<button[^>]*data-plan-open[^>]*>/.exec(html)![0];

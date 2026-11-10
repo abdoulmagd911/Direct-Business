@@ -1,6 +1,7 @@
 // Settings → Targets: the plans that are open are listed, and a year a department already has a plan for is not offered again.
 const E2E = 'e2e:tests/e2e/settings-targets-and-go-live.spec.ts';
 const UNIT = 'unit:tests/unit/settings/targets-plans-read-in-the-pages-language.test.tsx';
+const UNIT_DETAIL = 'unit:tests/unit/settings/plan-detail-targets-and-categories.test.tsx';
 export const sabotages = [
   {
     name: 'targets-offers-a-year-that-has-a-plan',
@@ -95,6 +96,55 @@ export const sabotages = [
         file: 'messages/ar.json',
         find: '"year_taken": "لهذه الإدارة خطة لهذه السنة بالفعل",',
         replace: '',
+      },
+    ],
+  },
+  {
+    name: 'targets-plan-row-does-not-open',
+    breaks: [E2E],
+    expect: 'toHaveURL',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/TargetsScreen.tsx',
+        find: "<Link href={entityRoute('plan', p.id) ?? '/settings/performance'} className=\"flex flex-col gap-0.5\">",
+        replace: '<Link href="/settings/performance" className="flex flex-col gap-0.5">',
+      },
+    ],
+  },
+  {
+    name: 'targets-target-save-never-lands',
+    breaks: [E2E],
+    expect: 'Target saved',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/PlanDetailScreen.tsx',
+        find: "rpc('target_save', {",
+        replace: "rpc('targets', {",
+      },
+    ],
+  },
+  {
+    name: 'targets-category-save-never-lands',
+    breaks: [E2E],
+    expect: 'Category saved',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/PlanDetailScreen.tsx',
+        find: "rpc('achievement_category_save', {\n          p_id: (editingCategory === null ? null : editingCategory.id) as unknown as string,",
+        replace:
+          "rpc('achievement_categories', {\n          p_id: (editingCategory === null ? null : editingCategory.id) as unknown as string,",
+      },
+    ],
+  },
+  {
+    name: 'targets-month-picker-offers-one-month',
+    breaks: [UNIT_DETAIL],
+    expect: 'twelve months',
+    edits: [
+      {
+        file: 'src/modules/perf/screens/PlanDetailScreen.tsx',
+        find: 'Array.from({ length: 12 }, (_, i) => {',
+        replace: 'Array.from({ length: 1 }, (_, i) => {',
       },
     ],
   },

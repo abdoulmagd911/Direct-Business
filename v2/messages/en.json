@@ -1543,7 +1543,8 @@
       "import.confirmed": "Import confirmed",
       "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
       "escalation.raised": "Asked for help",
-      "escalation.acknowledged": "Need for help acknowledged"
+      "escalation.acknowledged": "Need for help acknowledged",
+      "achievement_category.retired": "Category archived"
     },
     "signIn": {
       "at": "When",
@@ -2021,7 +2022,35 @@
       "none": "No plan has been opened yet.",
       "everyYear": "This department has a plan for every year.",
       "noDepartment": "Add a department first.",
-      "everyDepartmentEveryYear": "Every department already has a plan for every year."
+      "everyDepartmentEveryYear": "Every department already has a plan for every year.",
+      "achieved": "Achieved",
+      "achievedCount": "Achieved",
+      "addTarget": "Add target",
+      "backToPlans": "Back to plans",
+      "categoriesNone": "No categories yet.",
+      "categoriesTitle": "Achievement categories",
+      "categoryCode": "Code",
+      "categoryCodeHint": "A code starts with a capital letter, then capitals, digits, _ or -",
+      "categoryDealValue": "Carries a deal value",
+      "categoryLineAr": "Report line (Arabic)",
+      "categoryLineEn": "Report line (English)",
+      "categoryParent": "Under",
+      "categoryRefSystem": "Reference must point into",
+      "categoryRefSystemNone": "No system required",
+      "categorySaved": "Category saved",
+      "categorySetsProspect": "An MoU sets the side to Prospect",
+      "categoryTopLevel": "Top level",
+      "childrenBlock": "Its sub-categories must move first.",
+      "editTarget": "Edit target",
+      "targetAchievedValue": "Deal value achieved",
+      "targetCategory": "Category",
+      "targetCount": "Achievements expected",
+      "targetMonth": "Month",
+      "targetSaved": "Target saved",
+      "targetValue": "Deal value expected",
+      "targetsNone": "No targets yet.",
+      "targetsTitle": "Targets",
+      "templateRequired": "A report line is required"
     },
     "fields": {
       "width": "Digits",
@@ -2154,7 +2183,8 @@
       "invalid": "That value is not allowed: {detail}",
       "unknown_field": "Unknown field: {detail}",
       "retire_blocked_by_duplicate": "Another record already holds the replacement there, so nothing was replaced",
-      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced"
+      "retire_blocked_by_rule": "The replacement breaks a rule on a record that uses it, so nothing was replaced",
+      "in_use": "That one is still in use: {detail}"
     },
     "profile": {
       "invalid": "That value is not allowed: {detail}",
@@ -2337,6 +2367,22 @@
     },
     "follow": {
       "not_allowed": "Watching is not available for your role."
+    },
+    "achievement": {
+      "category_retired": "That category is retired",
+      "no_deal_value": "That category does not carry a deal value"
+    },
+    "achievement_category": {
+      "code_fixed": "A code never changes",
+      "code_taken": "That code is already used in this plan",
+      "deal_values_held": "Deal values are already typed under this category",
+      "invalid": "That value is not allowed: {detail}",
+      "parent_invalid": "A sub-category sits under a top-level category of the same plan"
+    },
+    "target": {
+      "category_invalid": "That is not a category of this plan",
+      "invalid": "That target value is not allowed: {detail}",
+      "taken": "That category already has a target for that month"
     }
   },
   "notifications": {
@@ -2965,7 +3011,6 @@
       "paid": "Paid",
       "total": "Total"
     },
-    "channel": {},
     "ledger": {
       "title": "Ledger",
       "filter": "Filters",

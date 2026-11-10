@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Fragment, useState } from 'react';
@@ -11,9 +12,26 @@ import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Select } from '@/ui/Select';
+import { entityRoute } from '@/ui/entity-route';
 
 /** api.plans(): one plan of a department for a calendar year, with its categories counted. */
-export type PlanRow = { id: string; department_id: string; year: number; name: string; categories: number };
+export type PlanRow = {
+  id: string;
+  department_id: string;
+  year: number;
+  name: string;
+  status: string;
+  categories: number;
+};
+
+/** A plan's name as it reads on the page: an unrenamed plan ("Department Year", in English when it was opened) reads
+ * in the page's language, while a plan someone renamed keeps its name. */
+export function planTitle(p: PlanRow, departments: OrgDepartment[], locale: 'en' | 'ar'): string {
+  const d = departments.find((x) => x.id === p.department_id);
+  const name = (x: { name_en: string; name_ar: string | null }) =>
+    locale === 'ar' && x.name_ar ? x.name_ar : x.name_en;
+  return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
+}
 
 /** The earliest year a plan may be opened for, and the latest is next year (perf.plan_open). */
 const FIRST_YEAR = 2025;
@@ -77,10 +95,7 @@ export function TargetsScreen({
     return out;
   };
   // a plan is named "Department Year" in English when it is opened; until someone renames it, it reads in the page's language
-  const title = (p: PlanRow): string => {
-    const d = byId.get(p.department_id);
-    return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
-  };
+  const title = (p: PlanRow): string => planTitle(p, departments, locale);
   const freeYears = (department: string) => freeYearsOf(plans, department, year);
   // Open a plan is greyed while there is nothing to open — no department, or every department has every year — and says why
   const anyFree = live.some((d) => freeYears(d.id).length > 0);
@@ -126,15 +141,18 @@ export function TargetsScreen({
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised" data-plans>
           {plans.map((p) => (
             <li key={p.id} className="flex flex-col gap-0.5 px-4 py-3 [overflow-wrap:anywhere]" data-plan-row={p.id}>
-              <span className="font-medium">{title(p)}</span>
-              <span className="text-sm text-muted">
-                {detail(p).map((part, i, all) => (
-                  <Fragment key={i}>
-                    <bdi>{part}</bdi>
-                    {i < all.length - 1 ? ' · ' : null}
-                  </Fragment>
-                ))}
-              </span>
+              {/* FIX-23: a plan row opens its targets screen (the row was dead — no handler, no route). */}
+              <Link href={entityRoute('plan', p.id) ?? '/settings/performance'} className="flex flex-col gap-0.5">
+                <span className="font-medium hover:underline">{title(p)}</span>
+                <span className="text-sm text-muted">
+                  {detail(p).map((part, i, all) => (
+                    <Fragment key={i}>
+                      <bdi>{part}</bdi>
+                      {i < all.length - 1 ? ' · ' : null}
+                    </Fragment>
+                  ))}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

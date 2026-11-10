@@ -1045,7 +1045,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         body={row?.can_sign_in ? t('settings.people.switchOffBody', { name: shownName }) : undefined}
         onSave={doSwitch}
         destructive={row?.can_sign_in ?? false}
-        saveDisabled={switchingOff && openWork !== null && ((openCount > 0 && !handover) || openWork.heads.length > 0)}
+        saveDisabled={
+          switchingOff && openWork !== null && ((openCount > 0 && !handover) || (openWork.heads ?? []).length > 0)
+        }
         words={{
           reason: t('common.reason'),
           save: row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn'),
@@ -1053,11 +1055,11 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           reasonRequired: t('settings.form.reasonRequired'),
         }}
       >
-        {switchingOff && openWork !== null && openWork.heads.length > 0 ? (
+        {switchingOff && openWork !== null && (openWork.heads ?? []).length > 0 ? (
           <p className="text-sm text-muted">
             {t('settings.people.headNeedsSuccessor', {
               name: shownName,
-              department: openWork.heads.map((h) => pick(h)).join(', '),
+              department: (openWork.heads ?? []).map((h) => pick(h)).join(', '),
             })}
           </p>
         ) : null}
