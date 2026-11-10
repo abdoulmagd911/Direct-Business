@@ -202,7 +202,7 @@ export function PartnersList({
                 data-entity="partner"
                 data-partner-link={row.original.id}
               >
-                <bdi>{tradeName(row.original, locale)}</bdi>
+                <bdi className="min-w-0 truncate">{tradeName(row.original, locale)}</bdi>
               </Link>
             </PartnerHover>
             {row.original.key_partner ? <StatusChip tone="info">{t('partners.keyPartner')}</StatusChip> : null}
@@ -470,7 +470,7 @@ export function PartnersList({
                       data-entity="partner"
                       data-partner-link={r.id}
                     >
-                      <bdi>{tradeName(r, locale)}</bdi>
+                      <bdi className="min-w-0 truncate">{tradeName(r, locale)}</bdi>
                     </Link>
                   </span>
                   <span className="font-data text-xs text-muted">

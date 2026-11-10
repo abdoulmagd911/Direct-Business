@@ -4,10 +4,8 @@
 -- Sabotage: supabase/tests/sabotage/a-quiet-client-tells-nobody.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Account Manager', 'member')::text, true);
--- F179 (Landing 4): a member starts with no Finance, so the account manager holds View on Finance by override —
--- the alerts reach only a person who can see the invoice (see FAL-02).
-insert into core.person_page_level (person_id, page_key, level, reason)
-values (current_setting('t.am')::uuid, 'finance', 'view', 'made up: View on Finance');
+-- Landing 7, F179 overturn: a member starts at View on Finance, so the account manager reads the invoice — the
+-- alerts reach only a person who can see the invoice (see FAL-02). No override needed.
 select set_config('t.t', core.riyadh_today()::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);

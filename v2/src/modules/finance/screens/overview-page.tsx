@@ -16,7 +16,9 @@ const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : u
  */
 export async function FinanceOverviewPage({ searchParams }: { searchParams: Promise<Q> }) {
   const [q, me, t] = await Promise.all([searchParams, requireMe(), getTranslations()]);
-  // FIX-03 F179 (P2): Finance is refused whole to Members and Viewers — no level, no page, figures included.
+  // Finance follows the person's level on it (owner decision 10 Nov 2026 — the level is a setting in
+  // Settings › People & access › Access, not a hard-coded refusal; the old FIX-03 F179 refusal is overturned).
+  // A level of none — set in Settings, or by a person override — still refuses the whole page, figures included.
   if ((me.levels.finance ?? 'none') === 'none')
     return (
       <Page page="finance" title={t('nav.finance')}>

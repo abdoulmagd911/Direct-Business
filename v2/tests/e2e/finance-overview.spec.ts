@@ -170,7 +170,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
 });
 
-test('a member is refused Finance whole and sees no month, no Close month, no figures (FIX-03 F179)', async ({
+test('a member reads Finance at View and sees the month and its figures, but no Close month (Landing 7, F179 overturn)', async ({
   page,
 }) => {
   const ym = await oldMonth();
@@ -187,12 +187,14 @@ test('a member is refused Finance whole and sees no month, no Close month, no fi
   await page.goto(addressOf(ym));
   await hydrated(page);
   await blocksSettled(page);
-  // FIX-03 F179: the month exists — the admin seeded it above — and the member is still refused the whole page:
-  // no month row, no Close month, no figures
-  await expect(page.locator('[data-state="no-access"]'), 'a member is refused Finance whole').toHaveCount(1);
-  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'no month row for a refused member').toHaveCount(0);
+  // Landing 7, F179 overturn: Finance follows the access each person has — Members start at View — so the month
+  // exists (the admin seeded it above) and the member reads it: the month row and the figures are there, and the
+  // write controls stay Full-gated, so there is no Close month button and no New invoice link
+  await expect(page.locator('[data-state="no-access"]'), 'a member reads Finance').toHaveCount(0);
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the month row for a member reader').toHaveCount(1);
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);
-  await expect(page.locator('[data-finance-tile]'), 'no figures for a refused member').toHaveCount(0);
+  await expect(page.locator('[data-finance-tile]'), 'figures for a member reader').not.toHaveCount(0);
+  await expect(page.locator('[data-new-invoice-link]'), 'no New invoice for a View reader').toHaveCount(0);
 });
 
 test('phone 390: nothing scrolls sideways, the Provisional part is directly under its figure, every target is 44 px', async ({

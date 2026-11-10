@@ -115,7 +115,8 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   context,
 }) => {
   // The menu rule (V238): a member's menu is every page their access opens — Pipeline is none for a member (brief E) —
-  // and Settings is the admin's door. Finance is refused whole to members (FIX-03 F179), so it is in no member menu.
+  // and Settings is the admin's door. Finance follows the access (Landing 7, F179 overturn): Members start at View,
+  // so it is in a member menu.
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   const member = await makePerson();
@@ -126,6 +127,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
     'My day',
     'Tasks',
     'Clients',
+    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',

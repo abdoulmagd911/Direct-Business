@@ -53,7 +53,7 @@ for (const width of [375, 1440]) {
         if (width >= 640) {
           await bell.click();
           await expect(panel).toBeVisible();
-          await page.mouse.click(100, 400);
+          await page.mouse.click(locale === 'ar' ? width - 100 : 100, 400);
           await expect(panel, 'closed by an outside tap').toHaveCount(0);
         }
 

@@ -123,7 +123,7 @@ test('Finance and Settings are in the menu of the people whose access opens them
   for (const [who, finance, settings] of [
     [admin, true, true],
     [manager, true, false],
-    [member, false, false], // FIX-03 F179: Finance is refused whole to Members and Viewers — no level, no page
+    [member, true, false], // Landing 7, F179 overturn: Finance follows the access — Members start at View
   ] as const) {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 1440, height: 900 });

@@ -1,6 +1,8 @@
 // What the achievements doors answer (migration 20261001210000_perf_achievements.sql): api.achievements,
 // api.achievement, api.achievement_categories. Plain types, no React.
 
+import type { OrgDepartment } from '@/modules/org/types';
+
 /**
  * FIX-36 F073: a line's category prefix is not doubled at render — when the title already starts with the prefix
  * the line template prepended, the stored line reads "Cost saving: Cost saving: …"; one copy is stripped for
@@ -125,6 +127,30 @@ export type TargetRow = {
   achieved_value: number;
   version: number;
 };
+
+/** api.plans(): one plan of a department for a calendar year, with its categories counted. */
+export type PlanRow = {
+  id: string;
+  department_id: string;
+  year: number;
+  name: string;
+  status: string;
+  categories: number;
+};
+
+/**
+ * A plan's name as it reads on the page: an unrenamed plan ("Department Year", in English when it was opened) reads
+ * in the page's language, while a plan someone renamed keeps its name. Lives here, not in TargetsScreen, because the
+ * targets screen is a client module and the plan page is a server component — a server component cannot call a
+ * function from a client module (CI #1577, settings-targets:52: the page crashed and "[data-plan-targets]" never
+ * drew). Pure, no hooks, no client-only API.
+ */
+export function planTitle(p: PlanRow, departments: OrgDepartment[], locale: 'en' | 'ar'): string {
+  const d = departments.find((x) => x.id === p.department_id);
+  const name = (x: { name_en: string; name_ar: string | null }) =>
+    locale === 'ar' && x.name_ar ? x.name_ar : x.name_en;
+  return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
+}
 
 /** The list's filters, kept in the address (`?category=…&mine=1&month=2026-09&backfilled=1&past=1&owner=none`). */
 /** A possible repeat (V531), from api.achievement_repeats. */

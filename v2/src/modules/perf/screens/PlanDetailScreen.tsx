@@ -20,8 +20,7 @@ import { ScrollCue } from '@/ui/ScrollCue';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { useMediaQuery } from '@/ui/useMediaQuery';
-import type { Category, TargetRow } from '../types';
-import type { PlanRow } from './TargetsScreen';
+import type { Category, PlanRow, TargetRow } from '../types';
 
 /** api.achievement_category_usage(): what a category is used by — achievements, and the sub-categories under it. */
 type CategoryUsage = { total: number; uses: { table: string; column: string; count: number }[] };
@@ -132,12 +131,12 @@ export function PlanDetailScreen({
     setBusy(true);
     const values: Record<string, unknown> = {};
     if (editingTarget === null) {
-      values.category_id = targetCat;
+      values.category = targetCat;
       values.month = targetMonth;
       values.target_count = Number(targetCount);
       values.target_value = chosenTargetCategory?.has_deal_value && targetValue !== '' ? targetValue : null;
     } else {
-      if (targetCat !== editingTarget.category_id) values.category_id = targetCat;
+      if (targetCat !== editingTarget.category_id) values.category = targetCat;
       if (targetMonth !== editingTarget.month) values.month = targetMonth;
       if (Number(targetCount) !== editingTarget.target_count) values.target_count = Number(targetCount);
       if (chosenTargetCategory?.has_deal_value) {

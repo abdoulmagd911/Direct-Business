@@ -3099,7 +3099,7 @@
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
     "periodEmpty": "Nothing in this period ({from} – {to}).",
-    "locked": "Finance is for managers, heads of department and admins"
+    "locked": "You do not have access to Finance"
   },
   "import": {
     "title": "Import",

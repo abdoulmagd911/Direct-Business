@@ -2,8 +2,8 @@
 -- Breaks: sql:MPN-01
 -- Expect: a member cannot pin an invoice to an organisation
 -- A member with Own on Finance pins an imported invoice to any organisation, moving its revenue and credit (QA-535).
--- (FIX-03 F179: Members hold no level on Finance now, so the old 'own' gate still refused the test's member;
--- the plant drops the level gate whole — anyone signed in may pin.)
+-- (Landing 7, F179 overturn: Members start at View on Finance now, so the old 'own' gate no longer refuses the
+-- test's member on level alone; the plant drops the level gate whole — anyone signed in may pin.)
 create or replace function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$

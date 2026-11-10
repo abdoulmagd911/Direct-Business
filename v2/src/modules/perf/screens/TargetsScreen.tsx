@@ -7,31 +7,13 @@ import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { useWords } from '@/modules/partners/screens/record/words';
 import type { OrgDepartment } from '@/modules/org/types';
+import { planTitle, type PlanRow } from '@/modules/perf/types';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Select } from '@/ui/Select';
 import { entityRoute } from '@/ui/entity-route';
-
-/** api.plans(): one plan of a department for a calendar year, with its categories counted. */
-export type PlanRow = {
-  id: string;
-  department_id: string;
-  year: number;
-  name: string;
-  status: string;
-  categories: number;
-};
-
-/** A plan's name as it reads on the page: an unrenamed plan ("Department Year", in English when it was opened) reads
- * in the page's language, while a plan someone renamed keeps its name. */
-export function planTitle(p: PlanRow, departments: OrgDepartment[], locale: 'en' | 'ar'): string {
-  const d = departments.find((x) => x.id === p.department_id);
-  const name = (x: { name_en: string; name_ar: string | null }) =>
-    locale === 'ar' && x.name_ar ? x.name_ar : x.name_en;
-  return d && p.name === `${d.name_en} ${p.year}` ? `${name(d)} ${p.year}` : p.name;
-}
 
 /** The earliest year a plan may be opened for, and the latest is next year (perf.plan_open). */
 const FIRST_YEAR = 2025;

@@ -58,7 +58,7 @@ test('phone: a long title wraps to two lines, and the way back is 24 px or more 
   await page.setViewportSize(PHONE);
   await signIn(page, member.email, '/clients');
   await hydrated(page);
-  const name = `Test Org Phone Wrap ${Math.random().toString(36).slice(2, 6)}`;
+  const name = `Test Org Phone Wrap Long ${Math.random().toString(36).slice(2, 6)}`;
   const created = await callAs(page.context(), 'partner_create', {
     p_partner: {
       trade_name_en: name,
