@@ -116,7 +116,7 @@ export function AchievementList({
             value={filter.month}
             onChange={(v) => go({ ...filter, month: v })}
             emptyLabel={t('filters.anyMonth')}
-            className="w-44"
+            className="w-64"
           />
         </label>
         {filtered && page?.rows.length !== 0 ? (

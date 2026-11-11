@@ -35,6 +35,28 @@ const measure = (page: Page) =>
       }),
   );
 
+/** The rows, once they have settled: a row measured while its tabs are still laying out (font loading, late tab
+ * render) can show a transient vertical overflow, so poll until every visible row is clean (30 s). If the poll
+ * times out, fall through — the caller's one-shot expects below then fail with the row's own message, so a
+ * genuine overflow is still reported precisely. (Landing 11, #1581 triage: the one-shot measure right after
+ * hydrated() is the same class as :512 — hydrated() gates only on the root-layout marker.) */
+const measureSettled = async (page: Page, must: boolean) => {
+  try {
+    await expect
+      .poll(
+        async () => {
+          const rows = await measure(page);
+          return rows.every((r) => r.overflowY <= 0 && r.bar <= 0) && (!must || rows.length > 0);
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+  } catch {
+    // fall through to the one-shot expects, which fail with the row's own message
+  }
+  return measure(page);
+};
+
 for (const width of WIDTHS) {
   test(`no tab row scrolls up and down or shows a scrollbar — at ${width} px`, async ({ page }) => {
     // Landing 8 (#1578 triage): 54 s of the 60 s budget under load at 1440 px, and 60 s timeouts at
@@ -60,7 +82,7 @@ for (const width of WIDTHS) {
     for (const p of pages) {
       await page.goto(p.path);
       await hydrated(page);
-      const found = await measure(page);
+      const found = await measureSettled(page, p.must);
       if (p.must) expect(found.length, `${p.path} has a tab row`).toBeGreaterThan(0);
       rows += found.length;
       for (const r of found) {
@@ -73,7 +95,7 @@ for (const width of WIDTHS) {
     await hydrated(page);
     await page.locator('[data-bell]').click();
     await expect(page.locator('[data-notifications-panel] [data-tabs]')).toBeVisible();
-    const bell = await measure(page);
+    const bell = await measureSettled(page, true);
     expect(bell.length, 'the bell panel has a tab row').toBeGreaterThan(0);
     for (const r of bell) {
       expect(r.overflowY, `the "${r.name}" tab row in the bell panel does not scroll up and down`).toBeLessThanOrEqual(

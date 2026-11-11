@@ -113,8 +113,9 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: 'className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card',
-        replace: 'className="hidden" data-finance-month-card',
+        find: '          <MonthChips row={row} full={full} onClose={onClose} />\n        </div>\n        <div className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card',
+        replace:
+          '          <MonthChips row={row} full={full} onClose={onClose} />\n        </div>\n        <div className="hidden" data-finance-month-card',
       },
     ],
   },
@@ -287,7 +288,13 @@ export const sabotages = [
     name: 'month-row-sits-under-the-add-button',
     breaks: [E2E],
     expect: 'the month rows stay clear of the + button',
-    edits: [{ file: OVERVIEW, find: 'last:border-b-0 max-sm:pe-20', replace: 'last:border-b-0' }],
+    edits: [
+      {
+        file: OVERVIEW,
+        find: 'border-border px-4 py-3 last:border-b-0 max-sm:pe-20',
+        replace: 'border-border px-4 py-3 last:border-b-0',
+      },
+    ],
   },
   {
     name: 'finance-reads-all-at-once',

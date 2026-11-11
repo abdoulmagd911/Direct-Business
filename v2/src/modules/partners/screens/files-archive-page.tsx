@@ -10,7 +10,8 @@ import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { FileDownloadButton } from './files-download-button';
 import { ArchiveDateRange } from './ArchiveDateRange';
-import { ArchiveFilters, DEFAULT_PAGE_SIZE, PAGE_SIZES } from './files-archive-filters';
+import { ArchiveFilters } from './files-archive-filters';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from './files-archive-constants';
 import type { AllFilesAnswer, AllFilesRow, ListEntry } from '../types';
 
 /** The message key for a record type (the tables carry dots, which the catalogue reads as nesting). */

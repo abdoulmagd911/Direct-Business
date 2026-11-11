@@ -172,12 +172,12 @@ export const sabotages = [
   {
     name: 'record-trail-repeats-the-list',
     breaks: ['e2e:tests/e2e/achievement-record.spec.ts'],
-    expect: 'two parts: the list and this record',
+    expect: 'the second part is this record: its number and title',
     edits: [
       {
         file: 'src/modules/perf/screens/AchievementRecord.tsx',
-        find: '{ label: `${a.number} · ${a.title}` }]}',
-        replace: "{ label: t('title'), href: '/kpis/achievements' }]}",
+        find: '          {\n            label: (\n              <>\n                {a.number} · <bdi>{a.title}</bdi>\n              </>\n            ),\n          },',
+        replace: "          { label: t('title'), href: '/kpis/achievements' },",
       },
     ],
   },

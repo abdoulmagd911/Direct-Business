@@ -2,10 +2,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { inputClass } from '@/ui/Input';
 import type { ListEntry } from '../types';
-
-/** The page sizes the archive offers: 10 / 25 / 50 / 100, default 25 (FIX-08 F151). */
-export const PAGE_SIZES = [10, 25, 50, 100] as const;
-export const DEFAULT_PAGE_SIZE = 25;
+import { PAGE_SIZES } from './files-archive-constants';
 
 const RECORD_TYPES = [
   'work.task',

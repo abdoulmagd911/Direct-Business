@@ -68,6 +68,10 @@ test('phone: a long title wraps to two lines, and the way back is 24 px or more 
   expect(created.status, JSON.stringify(created.body)).toBe(200);
   await page.goto(`/clients/${(created.body as { id: string }).id}`);
   await hydrated(page);
+  // Landing 11 (#1581 triage): wait for the record's own content before measuring — hydrated() gates only on
+  // the root-layout marker, so a slow load can read 0 breadcrumb links (evaluateAll never waits).
+  await expect(page.locator('[data-record-title]')).toBeVisible();
+  await expect(page.locator('[data-record-header] nav[aria-label="Breadcrumb"] a').first()).toBeAttached();
   const title = await page.locator('[data-record-title]').evaluate((h) => {
     const cs = getComputedStyle(h);
     return { h: h.clientHeight, scroll: h.scrollHeight, line: parseFloat(cs.lineHeight), text: h.textContent };
@@ -84,6 +88,7 @@ test('phone: a long title wraps to two lines, and the way back is 24 px or more 
   // the KPI pages' header breadcrumb is the same rule
   await page.goto('/kpis/achievements/new');
   await hydrated(page);
+  await expect(page.locator('nav[aria-label="Breadcrumb"] a').first()).toBeAttached();
   const kpiCrumbs = await page
     .locator('nav[aria-label="Breadcrumb"] a')
     .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));

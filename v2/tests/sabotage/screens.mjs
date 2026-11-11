@@ -1227,8 +1227,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: "{f.scope === 'past' ? null : <LayoutSwitch filters={f} />}",
-        replace: '<LayoutSwitch filters={f} />',
+        find: "        {f.scope === 'past' ? null : (",
+        replace:
+          "        {f.scope === 'past' ? (\n          <>\n            <LayoutSwitch filters={f} />\n          </>\n        ) : (",
       },
     ],
   },

@@ -13,7 +13,7 @@ import { formatClock, formatDate, parseClock } from '@/core/i18n/format';
 import { cn } from './cn';
 
 export const inputClass =
-  'w-full rounded-md border border-border-strong bg-raised px-3 text-base text-text placeholder:text-muted disabled:bg-surface disabled:text-muted focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger';
+  'min-h-[var(--control-h)] w-full rounded-md border border-border-strong bg-raised px-3 text-base text-text placeholder:text-muted disabled:bg-surface disabled:text-muted focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
 
