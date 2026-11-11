@@ -3,7 +3,7 @@ import * as RP from '@radix-ui/react-popover';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, monthNumber } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
 import { cn } from '@/ui/cn';
@@ -33,12 +33,6 @@ export function parseMonth(typed: string): string | null {
   const month = Number(mo);
   if (year < 2000 || year > 2099 || month < 1 || month > 12) return null;
   return `${year}-${pad(month)}`;
-}
-
-function monthNumber(name: string): number | null {
-  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-  const at = months.indexOf(name.slice(0, 3).toLowerCase());
-  return at === -1 ? null : at + 1;
 }
 
 /**

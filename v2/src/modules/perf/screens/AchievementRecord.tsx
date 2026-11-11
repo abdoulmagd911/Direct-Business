@@ -119,7 +119,9 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
     if (f.category !== stored.category) out.category = f.category;
     if (f.happened_on !== stored.happened_on) out.happened_on = f.happened_on || null;
     if (f.deal_value.trim() !== stored.deal_value)
-      out.deal_value = f.deal_value.trim() ? Number(f.deal_value.replace(/,/g, '')) : null;
+      // Read through readDealValue, not Number(): Arabic digits pass the check above but Number() reads
+      // them as NaN, which becomes null and clears the value.
+      out.deal_value = f.deal_value.trim() ? readDealValue(f.deal_value) : null;
     if (f.notes.trim() !== stored.notes) out.notes = f.notes.trim() || null;
     return out;
   };

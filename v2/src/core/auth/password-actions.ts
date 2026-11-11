@@ -99,6 +99,21 @@ export async function signInWithPassword(
   redirect(target);
 }
 
+/**
+ * Who the signed-in person is, from a verified token: getSession() only decodes the session cookie as stored,
+ * so an edited cookie could name a colleague — getClaims() verifies the token's signature, and the id and
+ * email below are the token's own. The session id comes from the same claims, so the change can still be
+ * recorded keeping this device.
+ */
+async function verifiedWho(
+  db: Awaited<ReturnType<typeof serverDb>>,
+): Promise<{ id: string; email?: string; sessionId?: string } | null> {
+  const { data } = await db.auth.getClaims();
+  const claims = data?.claims as { sub?: string; email?: string; session_id?: string } | undefined;
+  if (!claims?.sub) return null;
+  return { id: claims.sub, email: claims.email, sessionId: claims.session_id };
+}
+
 /** The rules a new password meets (at least ten characters, at most 72 bytes, never the e-mail), or the refusal. */
 function refusal(password: string, again: string, email: string | undefined): PasswordError | null {
   const problem = passwordProblem(password, email);
@@ -198,11 +213,8 @@ export async function setOwnPassword(
 ): Promise<PasswordResult> {
   const password = String(rawPassword ?? '');
   const db = await serverDb();
-  // The person is read from the session cookie here, not asked of Auth: the proxy verified this session with Auth
-  // on this same request (getClaims), and the change itself is made on that session — the action already makes
-  // enough round-trips to stay inside the screen's wait.
-  const { data: sessionNow } = await db.auth.getSession();
-  const who = sessionNow.session?.user;
+  // The person is read from a verified token (verifiedWho), not the session cookie as stored.
+  const who = await verifiedWho(db);
   if (!who) return { ok: false, error: 'not_signed_in' };
   const status = await meStatus(db);
   if (status === 'ok') return { ok: false, error: 'not_needed' };
@@ -210,7 +222,7 @@ export async function setOwnPassword(
   const refused = refusal(password, String(rawAgain ?? ''), who.email);
   if (refused) return { ok: false, error: refused };
   // The session to keep is captured before the change (see changePassword): the update deletes every session.
-  const keepBefore = sessionIdOf(sessionNow.session);
+  const keepBefore = who.sessionId;
   const changed = await db.auth.updateUser({ password });
   if (changed.error) return { ok: false, error: 'unavailable' };
   const email = who.email;
@@ -232,11 +244,9 @@ export async function changePassword(
 ): Promise<PasswordResult> {
   const password = String(rawPassword ?? '');
   const db = await serverDb();
-  // The person is read from the session cookie here, not asked of Auth: the proxy verified this session with Auth
-  // on this same request (getClaims), and the change itself is authorised by signing in with the current password
-  // below — the action already makes enough round-trips to stay inside the screen's wait.
-  const { data: sessionNow } = await db.auth.getSession();
-  const who = sessionNow.session?.user;
+  // The person is read from a verified token (verifiedWho), not the session cookie as stored. The change
+  // itself is authorised by signing in with the current password below.
+  const who = await verifiedWho(db);
   const email = who?.email;
   if (!who || !email) return { ok: false, error: 'not_signed_in' };
   // The two pre-checks are independent reads, so they go together instead of one after the other.
@@ -250,7 +260,7 @@ export async function changePassword(
   // The session to keep is captured before the change: Auth deletes every session when the password is updated,
   // so after the change there is no session left to read it from (the record then fell back to none, and every
   // device — this one included — was signed out).
-  const keepBefore = sessionIdOf(sessionNow.session);
+  const keepBefore = who.sessionId;
   const check = await changeWithCurrent(email, String(rawCurrent ?? ''), password);
   if (check === 'wrong') {
     const ua = (await headers()).get('user-agent');

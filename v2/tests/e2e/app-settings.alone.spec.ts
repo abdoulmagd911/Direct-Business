@@ -406,10 +406,15 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
       r.setEnd(node, 3);
       const n = r.getBoundingClientRect();
       const box = span.getBoundingClientRect();
-      return { text: node.data.slice(0, 3), inside: n.left >= box.left - 1 && n.right <= box.right + 1 };
+      return {
+        text: node.data.slice(0, 3),
+        inside: n.left >= box.left - 1 && n.right <= box.right + 1,
+        lead: Math.round((n.left - box.left) * 10) / 10,
+      };
     });
     expect(seen.text, 'the crumb starts with the ACH number').toBe('ACH');
     expect(seen.inside, 'the last crumb keeps its ACH number in view').toBe(true);
+    expect(seen.lead, 'the last crumb keeps its ACH number in view').toBeLessThanOrEqual(2);
 
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto('/kpis/achievements?mine=1&month=2000-01');

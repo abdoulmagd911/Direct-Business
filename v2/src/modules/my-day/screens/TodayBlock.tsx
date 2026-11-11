@@ -283,7 +283,9 @@ function TodayRow({
     status: '',
     meaning: 'not_started',
     blocked_reason: null,
-    open_action_items: 0,
+    // The real open-item count, from the Today read — the stub's 0 sent Done straight through and the
+    // database refused it, so the tick looked refused instead of asking about the open items first.
+    open_action_items: task.open_action_items ?? 0,
   } as unknown as Parameters<typeof DoneTick>[0]['task'];
   return (
     <li

@@ -5,7 +5,7 @@ import { callAs, makePerson, signIn, sql } from './stack';
 export const small = (page: Page) =>
   page.evaluate(() => {
     const tappable =
-      'a[href], button, summary, [role=button], [role=tab], [role=link], [role=menuitem], [role=checkbox], [role=switch], [role=option], input:not([type=hidden]):not(.sr-only), select:not([aria-hidden="true"]), textarea';
+      'a[href], button, summary, [role=button], [role=tab], [role=link], [role=menuitem], [role=checkbox], [role=switch], [role=option], input:not([type=hidden]):not(.sr-only):not([aria-hidden="true"]), select:not([aria-hidden="true"]), textarea';
     const found: string[] = [];
     for (const el of Array.from(document.querySelectorAll<HTMLElement>(tappable))) {
       const r = el.getBoundingClientRect();

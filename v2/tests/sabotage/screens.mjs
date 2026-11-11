@@ -536,7 +536,7 @@ export const sabotages = [
   {
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
-    expect: 'the door stays English',
+    expect: 'signed in, the page stays English',
     edits: [
       {
         file: 'src/core/prefs/effective.ts',

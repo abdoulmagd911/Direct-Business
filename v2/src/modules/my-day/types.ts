@@ -108,6 +108,8 @@ export type TodayTask = {
   partner_name: string | null;
   group: 'overdue' | 'today' | 'next' | 'helping';
   role: 'owner' | 'helper';
+  /** How many of the task's checklist items are still open — the Done tick asks about them first (review #14). */
+  open_action_items?: number;
   /** The importance star (V661). */
   starred?: boolean;
   /** How many times a wrap-up carried it over. */

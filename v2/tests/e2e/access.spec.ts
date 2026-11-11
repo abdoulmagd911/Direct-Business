@@ -124,6 +124,11 @@ test('the door honours an Arabic cookie while Arabic is off (F205); signed in, t
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
   await setPrefs(context, { locale: 'ar' });
+  // the server's own answer, before any page load lets PrefsSync correct the cookie and reload: with Arabic
+  // off, a signed-in page is served English whatever the cookie says (ACC-139). Asked before the goto below
+  // — after it, the cookie is already back to English and the server's answer says nothing.
+  const served = await context.request.get('/my-day');
+  expect(await served.text(), 'signed in, the page stays English').toContain('<html lang="en"');
   await page.goto('/my-day');
   await hydrated(page);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');

@@ -6,10 +6,11 @@ export const sabotages = [
   {
     name: 'e2e-a-page-forgets-its-level',
     breaks: [e2e('a-page-with-no-level-shows-no-access-by-address')],
-    expect: '/finance refuses by address',
+    expect: 'refuses by address',
     edits: [
       {
-        // the rule lives in the screens' shared <Page page=…> (V214); the area pages hold no copy of it
+        // the rule lives in the screens' shared <Page page=…> (V214); /finance holds its own copy of it
+        // (FinanceOverviewPage), so the first page this breaks is /kpis
         file: 'src/ui/shell/Page.tsx',
         find: "if (page && (me.levels[page] ?? 'none') === 'none') {",
         replace: 'if (page && !me) {',

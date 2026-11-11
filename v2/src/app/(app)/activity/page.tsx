@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { OrgAnswer } from '@/modules/org/types';
+import { parseDueDay } from '@/modules/tasks/rules';
 import { ActivityScreen, type DeletedRow, type SignInRow } from '@/modules/settings/screens/ActivityScreen';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
@@ -60,12 +61,16 @@ export default async function ActivityPage({
         })[]) ?? [];
       return { rows: log.map(({ undone_by, ...r }) => ({ ...r, undone: undone_by !== null })) };
     }
+    // A half-typed Since ("2026-1", "20 Oct") is not a date yet: new Date() on it throws on toISOString()
+    // and the whole page falls — only a full YYYY-MM-DD reaches the read, and the box keeps its text so the
+    // half-typed date is not lost.
+    const since = parseDueDay(filters.since);
     return {
       rows:
         ((await serverRpc('activity', {
           p_actor: filters.actor || undefined,
           p_entity: tab === 'settings' ? 'setting' : filters.entity || undefined,
-          p_since: filters.since ? new Date(filters.since).toISOString() : undefined,
+          p_since: since ? new Date(`${since}T12:00:00+03:00`).toISOString() : undefined,
           // "Show all" shows all entries (FIX-18, F192): the read takes the function's whole cap (500), so
           // the Since filter reaches older entries instead of the 100 newest cutting them off. Beyond 500
           // would need cursor paging (p_before) — out of scope for this fix.

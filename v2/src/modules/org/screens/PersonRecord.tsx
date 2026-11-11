@@ -1078,7 +1078,10 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 value={handover}
                 onValueChange={setHandover}
                 placeholder={t('settings.people.handoverPlaceholder')}
-                options={assignablePeople(teammates).map((p) => ({ value: p.id, label: nameOf(p, locale) }))}
+                options={assignablePeople(org.people.filter((p) => p.id !== person.id)).map((p) => ({
+                  value: p.id,
+                  label: nameOf(p, locale),
+                }))}
               />
             )}
           </Field>
