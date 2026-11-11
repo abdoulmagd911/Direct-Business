@@ -99,7 +99,10 @@ export const sabotages = [
       {
         file: 'src/modules/partners/screens/PartnersList.tsx',
         find: 'className="h-[var(--control-h-sm)] w-[220px]"',
-        replace: 'className="h-9 w-[220px]"',
+        // Landing 12 (#1582 triage): the search is the shared Input, and Landing 11's tap-sizes fix gave it
+        // min-h-[var(--control-h)] (44 px on a phone), so h-9 alone no longer shrinks it — a zero minimum
+        // (the same pattern as period-links-short-on-a-phone) lets the short height show.
+        replace: 'className="h-9 min-h-0 w-[220px]"',
       },
     ],
   },
