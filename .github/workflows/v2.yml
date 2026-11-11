@@ -185,7 +185,7 @@ jobs:
     # one build per sabotage: on a single runner the sweep alone took 105 minutes at #211 (12 Oct) and kept growing
     # with every PR, so it runs as three shards side by side (V631). On a pull request only the sabotages of what the
     # PR touches run (V634 (2), V281 — the rule is in scripts/sabotage-select.mjs); a push to v2/main runs them all.
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
