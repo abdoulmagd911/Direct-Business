@@ -88,6 +88,11 @@ test('the + clears the last row on every page and the list searches are 44 px �
   for (const path of ['/my-day', '/tasks', '/clients', '/suppliers', '/finance', '/kpis', '/profile']) {
     await page.goto(path);
     await hydrated(page);
+    // Landing 10 (#1580 triage): the scroll container and the + bar render only once the page loads —
+    // hydrated() gates on the root-layout marker — so wait for both before measuring the gap, or the
+    // evaluate reads null mid-load (the L9 :512 pattern, applied to every route in this loop).
+    await page.locator('#main [class*="overflow-y-auto"]').first().waitFor({ state: 'attached', timeout: 30_000 });
+    await page.locator('[data-create-bar]').waitFor({ state: 'attached', timeout: 30_000 });
     const gap = await page.evaluate(() => {
       const main = document.querySelector('#main [class*="overflow-y-auto"]') as HTMLElement | null;
       const plus = document.querySelector('[data-create-bar]') as HTMLElement | null;

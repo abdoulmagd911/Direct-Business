@@ -28,8 +28,8 @@ export const sabotages = [
       },
       {
         file: 'src/core/auth/password-actions.ts',
-        find: "const done = await db.rpc('sign_in_complete', {",
-        replace: "const done = await serviceDb().rpc('sign_in_complete', {",
+        find: "  }\n  const done = await db.rpc('sign_in_complete', {",
+        replace: "  }\n  const done = await serviceDb().rpc('sign_in_complete', {",
       },
     ],
   },

@@ -93,6 +93,28 @@ for (const w of WIDTHS) {
     await ctx.close();
   });
 
+  test(`${w.name}: a member who may not give work to others has no Owner picker`, async ({ browser }) => {
+    const tag = randomUUID().slice(0, 6);
+    const owner = await memberWithTeam(`Ab No Assign Owner ${tag}`);
+    const number = await taskFor(owner, `Made-up no-assign task ${tag}`);
+    // Take away the owner's own-delegation capability: they still own the task and may change it, but
+    // giving it to someone else is not theirs (a person-level denial beats the member default).
+    await sql(
+      `insert into core.person_capability (person_id, capability_key, granted, reason)
+       values ($1, 'tasks.assign_own', false, 'made up: no own delegation')`,
+      [owner.id],
+    );
+    const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
+    const page = await ctx.newPage();
+    await signIn(page, owner.email, `/tasks/${number}`);
+    await hydrated(page);
+    await expect(
+      page.locator('[data-owner-picker]'),
+      'a member who may not give work to others has no Owner picker',
+    ).toHaveCount(0);
+    await ctx.close();
+  });
+
   test(`${w.name}: the owner adds and removes Helpers, logged with Undo; a helper sees the task under My work and Helping`, async ({
     browser,
   }) => {

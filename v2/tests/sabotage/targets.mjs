@@ -119,9 +119,15 @@ export const sabotages = [
     expect: 'Target saved',
     edits: [
       {
+        // Landing 10 (#1580 triage): the old plant renamed the call to rpc('targets', …), whose Args
+        // ({ p_plan }) do not take p_id/p_values — the build failed its type check, so the spec never ran
+        // and the sabotage could never go red with its Expect text. The rename below calls the sibling
+        // save with the identical Args shape, so the build passes and the save fails at run time instead:
+        // a category id is no target (target_save raises not_found), and a target's values are not
+        // category fields (category_save raises field_unknown on a new record).
         file: 'src/modules/perf/screens/PlanDetailScreen.tsx',
         find: "rpc('target_save', {",
-        replace: "rpc('targets', {",
+        replace: "rpc('achievement_category_save', {",
       },
     ],
   },
@@ -131,10 +137,16 @@ export const sabotages = [
     expect: 'Category saved',
     edits: [
       {
+        // Landing 10 (#1580 triage): same fix as targets-target-save-never-lands — the old plant renamed
+        // the call to rpc('achievement_categories', …), whose Args do not take p_id/p_values, so the build
+        // failed its type check and the spec never ran. The sibling save has the identical Args shape, so
+        // the build passes and the save fails at run time: a category id is no target (target_save raises
+        // not_found), and a category's values are not target fields (target_save raises field_unknown
+        // on a new record).
         file: 'src/modules/perf/screens/PlanDetailScreen.tsx',
         find: "rpc('achievement_category_save', {\n          p_id: (editingCategory === null ? null : editingCategory.id) as unknown as string,",
         replace:
-          "rpc('achievement_categories', {\n          p_id: (editingCategory === null ? null : editingCategory.id) as unknown as string,",
+          "rpc('target_save', {\n          p_id: (editingCategory === null ? null : editingCategory.id) as unknown as string,",
       },
     ],
   },

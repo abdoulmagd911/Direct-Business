@@ -36,7 +36,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskRecord.tsx',
-        find: "const mayAssign = mayHelp && me.capabilities.includes('tasks.assign');",
+        find: "const mayAssign =\n    mayHelp &&\n    (me.capabilities.includes('tasks.assign') ||\n      (me.capabilities.includes('tasks.assign_own') && task.owner_id === me.person.id));",
         replace: 'const mayAssign = mayHelp;',
       },
     ],

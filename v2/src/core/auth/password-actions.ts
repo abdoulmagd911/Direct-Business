@@ -175,7 +175,11 @@ async function reSignIn(
     p_device_label: deviceLabel(ua) ?? undefined,
     p_user_agent: ua ?? undefined,
   });
-  if (done.error || done.data !== 'ok') {
+  // Landing 10 (#1580 triage): on the setOwnPassword path the person is still flagged
+  // must_change_password when this sign-in completes — the flag is cleared only by the recordChange
+  // that follows — so 'must_change_password' is a landed sign-in here, not a refusal. Rejecting it
+  // signed the fresh session straight back out and left the person with no cookie at all.
+  if (done.error || (done.data !== 'ok' && done.data !== 'must_change_password')) {
     await db.auth.signOut({ scope: 'local' }).catch(() => undefined);
     return null;
   }

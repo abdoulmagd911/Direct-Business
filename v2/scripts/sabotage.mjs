@@ -158,6 +158,14 @@ function command(target) {
   }
 }
 
+/**
+ * One target's whole run, in milliseconds: build plus spec, or check/lint/unit. A single target that never comes
+ * back must not eat the whole shard: CI gives the job 90 minutes, and a stuck build or spec used to hang this
+ * runner forever (spawnSync has no timeout of its own). Ten minutes is far past any target's honest run (a build
+ * is ~1–2 min, a spec file ~10 min at most), so a timeout is a failure, not a flake.
+ */
+const TARGET_TIMEOUT_MS = 10 * 60 * 1000;
+
 /** @param {string} target @param {Record<string, string>} [extraEnv] @returns {{ ok: boolean, output: string }} */
 function run(target, extraEnv = {}) {
   const [cmd, args] = /** @type {[string, string[]]} */ (command(target));
@@ -166,8 +174,14 @@ function run(target, extraEnv = {}) {
     encoding: 'utf8',
     env: { ...process.env, FORCE_COLOR: '0', NO_COLOR: '1', V2_DB_AFTER: '', ...extraEnv },
     maxBuffer: 64 << 20,
+    // The timeout kills the target's own process; anything it started and left behind (a web server on the test
+    // port, say) is orphaned, not waited on — the next target's web server fails to bind and that target fails,
+    // bounded, instead of hanging.
+    timeout: TARGET_TIMEOUT_MS,
   });
-  const output = `${r.stdout ?? ''}${r.stderr ?? ''}`.replace(/\u001b\[[0-9;]*m/g, '');
+  let output = `${r.stdout ?? ''}${r.stderr ?? ''}`.replace(/\u001b\[[0-9;]*m/g, '');
+  if (/** @type {any} */ (r.error)?.code === 'ETIMEDOUT')
+    output += `\n(target ran past ${TARGET_TIMEOUT_MS / 60000} minutes and was stopped — treated as a failure)`;
   return { ok: r.status === 0, output };
 }
 
@@ -412,6 +426,9 @@ const baselineOk = new Map();
 let failures = 0;
 const rows = [];
 for (const s of chosen) {
+  // One line per sabotage, as it finishes, so the log shows the run moving: a sabotage that goes red as it
+  // must be prints nothing else, and a long silent stretch used to read as a hang (#1580 triage).
+  const t0 = Date.now();
   for (const t of s.breaks) {
     // An e2e target's clean run is CI's own end-to-end job (and a local `pnpm test:e2e`); everything else is re-run here.
     if (t.startsWith('e2e:') || baselineOk.has(t)) continue;
@@ -428,6 +445,7 @@ for (const s of chosen) {
   } catch (e) {
     failures++;
     rows.push([s.name, '(plant)', `FAILED — ${/** @type {Error} */ (e).message}`]);
+    console.log(`  ${s.name} — ${((Date.now() - t0) / 1000).toFixed(0)}s (plant failed)`);
     continue;
   }
   try {
@@ -450,6 +468,7 @@ for (const s of chosen) {
   } finally {
     takeOut();
   }
+  console.log(`  ${s.name} — ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 }
 const statusAfter = git(['status', '--porcelain', '--untracked-files=all', '--', 'v2', 'docs/v2', '.github']);
 if (statusAfter !== statusBefore) {

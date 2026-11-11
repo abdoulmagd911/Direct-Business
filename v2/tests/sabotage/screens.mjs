@@ -1658,8 +1658,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
-        find: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length',
-        replace: '[f.status, f.due, f.partner, f.project, f.q].filter(Boolean).length * 0',
+        find: '[f.status, f.due, f.partner, f.project, f.q, f.owner, f.priority].filter(Boolean).length',
+        replace: '[f.status, f.due, f.partner, f.project, f.q, f.owner, f.priority].filter(Boolean).length * 0',
       },
     ],
   },

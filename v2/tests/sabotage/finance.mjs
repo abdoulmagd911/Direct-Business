@@ -60,7 +60,7 @@ export const sabotages = [
   {
     name: 'member-can-close-a-month',
     breaks: [E2E],
-    expect: 'a member sees the month is not closed',
+    expect: 'only Full on Finance closes a month',
     edits: [{ file: OVERVIEW, find: '  return full ? (', replace: '  return true ? (' }],
   },
   {

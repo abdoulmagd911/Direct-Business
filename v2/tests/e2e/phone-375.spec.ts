@@ -118,6 +118,9 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   // Clients: the chips and Save view
   await page.goto('/clients');
   await hydrated(page);
+  // Landing 10 (#1580 triage): the bar renders only once PartnersList loads — hydrated() gates on the
+  // root-layout marker, so wait for the bar itself before measuring, or the count reads 0 mid-load.
+  await page.locator('[data-saved-views]').waitFor();
   const bar = await heights(page, '[data-saved-views] button, [data-view-save]');
   expect(bar.length, 'Save view is there').toBeGreaterThan(0);
   for (const h of bar) expect(h, 'a saved-view pill and Save view are 44 px tall').toBeGreaterThanOrEqual(TARGET - 0.5);

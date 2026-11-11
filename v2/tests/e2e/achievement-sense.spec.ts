@@ -185,7 +185,14 @@ for (const [label, width, height] of WIDTHS) {
     await page.locator('[data-reason]').fill('Made-up test cancellation');
     await page.locator('[data-reason-save]').click();
     await expect(toast.getByRole('button', { name: 'Undo' }), 'the move was made').toBeVisible();
-    // counted at once: waiting for something to go proves nothing about something that was never there
+    // The record must have settled on Cancelled before the strip is counted: the toast comes before the
+    // refetch, so counting at once would read the pre-move task and prove nothing about the strip.
+    await expect(page.locator('[data-task-status]').first(), 'the task is Cancelled').toHaveAttribute(
+      'data-task-status',
+      'cancelled',
+    );
+    // counted at once, once the record has settled: waiting for something to go proves nothing about
+    // something that was never there
     expect(await strip.count(), 'Cancelled offers nothing').toBe(0);
   });
 }

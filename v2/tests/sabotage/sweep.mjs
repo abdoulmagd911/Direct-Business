@@ -14,9 +14,7 @@ export const sabotages = [
     name: 'activity-tab-repeats-the-details',
     breaks: [E2E],
     expect: 'Activity does not repeat the details',
-    edits: [
-      { file: RECORD, find: "{tab === 'overview' ? (", replace: "{tab === 'overview' || tab === 'activity' ? (" },
-    ],
+    edits: [{ file: RECORD, find: "{tab === 'overview' ? (", replace: "{tab === 'overview' || tab === 'history' ? (" }],
   },
   {
     name: 'client-page-says-partner-added',

@@ -225,8 +225,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/perf/screens/AchievementList.tsx',
-        find: 'onClick={() => go({ ...filter, month: undefined })}\n                className="absolute',
-        replace: 'onClick={() => go({})}\n                className="absolute',
+        find: 'onChange={(v) => go({ ...filter, month: v })}',
+        replace: 'onChange={(v) => go({})}',
       },
     ],
   },
