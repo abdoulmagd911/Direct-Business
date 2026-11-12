@@ -85,6 +85,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
     mayHelp &&
     (me.capabilities.includes('tasks.assign') ||
       (me.capabilities.includes('tasks.assign_own') && task.owner_id === me.person.id));
+  // Delegate in the ⋯ menu is for whoever gives work (`tasks.assign`) only: a Member-owner delegating their own task
+  // (`tasks.assign_own`) is HELD pending the owner's access decision (FIX-42(b)) — the menu offers Remind me and Remove.
+  const mayDelegate = mayHelp && me.capabilities.includes('tasks.assign');
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
   const [delegating, setDelegating] = useState(false);
@@ -247,7 +250,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           <MenuItem icon={<AlarmClockPlus />} onSelect={() => openQuickCapture({ about: follow })} data-menu-follow-up>
             {t('record.followUp')}
           </MenuItem>
-          {mayAssign ? (
+          {mayDelegate ? (
             <MenuItem icon={<UserPlus />} onSelect={() => setDelegating(true)} data-menu-delegate>
               {t('pages.tasks.delegate.open')}
             </MenuItem>
