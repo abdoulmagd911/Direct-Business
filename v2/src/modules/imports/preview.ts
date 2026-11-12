@@ -60,6 +60,15 @@ export type PreviewRow = {
   matched: ExistingRecord | null;
   /** The changed fields as old → new pairs (empty when nothing changed). */
   changes: PreviewChange[];
+  /** The row's own values as they will be written (the merged record) — so the preview can show
+   * them when there is no matched record to diff against. Null for held and skipped rows, which
+   * carry no values of their own. */
+  values: ExistingRecord | null;
+  /** Promo discount figures, from the row itself: a promo row carries no amount of its own, so
+   * these travel apart from `values` (null for every other kind). */
+  promo_before: number | null;
+  promo_discount: number | null;
+  promo_after: number | null;
 };
 
 export type PreviewCounts = {
@@ -254,6 +263,10 @@ export function buildPreview(
           invoice_ref: row.invoice_ref,
           matched: null,
           changes: [],
+          values: null,
+          promo_before: null,
+          promo_discount: null,
+          promo_after: null,
         });
         counts.unchanged += 1;
         continue;
@@ -317,6 +330,10 @@ export function buildPreview(
         invoice_ref: row.invoice_ref,
         matched: match,
         changes: fieldsChanged(match, merged),
+        values: merged,
+        promo_before: row.promo_before,
+        promo_discount: row.promo_discount,
+        promo_after: row.promo_after,
       });
       counts.unchanged += 1;
       continue;
@@ -353,6 +370,10 @@ export function buildPreview(
       invoice_ref: row.invoice_ref,
       matched: match,
       changes: changed,
+      values: merged,
+      promo_before: row.promo_before,
+      promo_discount: row.promo_discount,
+      promo_after: row.promo_after,
     });
     counts[outcome] += 1;
   }
@@ -369,6 +390,10 @@ export function buildPreview(
       invoice_ref: null,
       matched: null,
       changes: [],
+      values: null,
+      promo_before: null,
+      promo_discount: null,
+      promo_after: null,
     });
     counts.excluded += 1;
   }

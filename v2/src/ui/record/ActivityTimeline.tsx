@@ -186,9 +186,17 @@ export function ActivityTimeline({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {(() => {
               // The row title opens its record (FIX-18, F193 — D36(f)): the first change names the record.
-              // An entity with no record page yet (invoice, contract) stays plain text until its screen
-              // lands — FIX-09's ledger links use the same entityRoute, so the two agree.
-              const href = entityRoute(r.changes[0]?.entity, r.changes[0]?.id);
+              // A contract has no page of its own: its row opens the partner it belongs to, whose Overview
+              // rail lists the contract (FIX-18, F-B4-03). The change carries the owner: after is the new
+              // contract row on an insert (partner.contract.partner_id is not null), before is the old row
+              // on a delete; an update carries only its changed fields, so it stays plain text unless the
+              // owner itself changed. An invoice has no page yet (D-2, finance finalisation) and stays
+              // plain text — never a link to nowhere, never /finance.
+              const c = r.changes[0];
+              const owner =
+                c?.entity === 'contract' ? (record(c.after)?.partner_id ?? record(c.before)?.partner_id) : null;
+              const href =
+                entityRoute(c?.entity, c?.id) ?? (typeof owner === 'string' && owner ? `/partners/${owner}` : null);
               return href ? (
                 <Link href={href} className="font-medium text-link hover:underline">
                   {label(r)}

@@ -108,8 +108,14 @@ export function NotificationsPanel({
     const key =
       (n.label_key && byLabel[n.label_key]) ||
       (due && due !== 'coming' ? `notifications.kinds.due_${due}` : `notifications.kinds.${n.kind}`);
-    return t.has(key) ? t(key, { actor, what, record }) : t('notifications.kinds.other', { actor, record });
+    // the Thursday weekly item names how many done tasks wait to be logged (N7): the count the alert carries
+    const count = Number((n.label_args as Record<string, unknown> | null)?.count ?? 0) || 0;
+    return t.has(key) ? t(key, { actor, what, record, count }) : t('notifications.kinds.other', { actor, record });
   };
+  // Where an item opens: its record's page, else — for the Thursday weekly item, which names no record — the weekly
+  // review, where those done tasks are logged (N7).
+  const hrefOf = (n: Notification) =>
+    entityRoute(n.entity, n.entity_id) ?? (n.kind === 'alert_weekly_unlogged' ? '/my-day/week' : null);
   const detailOf = (n: Notification) =>
     n.label_key && t.has(`activity.labels.${n.label_key}`)
       ? t(`activity.labels.${n.label_key}`, (n.label_args ?? {}) as Record<string, string | number>)
@@ -261,7 +267,7 @@ export function NotificationsPanel({
                       <ul className="flex flex-col">
                         {collapse(g.rows).map((s) => {
                           const n = s.newest;
-                          const href = entityRoute(n.entity, n.entity_id);
+                          const href = hrefOf(n);
                           const line = wordsOf(n, now);
                           const detail =
                             n.kind === 'commented'

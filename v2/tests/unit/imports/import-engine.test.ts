@@ -616,6 +616,158 @@ describe('promo matching by invoice number only', () => {
   });
 });
 
+describe('needs-linking rows carry their own values (F182, L14 #6)', () => {
+  it('an unmatched invoice row shows its own values and no matched record', () => {
+    const { records } = normaliseFile('invoice_export', INVOICE_HEADER, [
+      [
+        'invoice',
+        '1160000133',
+        'A company',
+        '',
+        'DPIN-T-100',
+        '2026-01-05',
+        '',
+        '',
+        'Fully Paid',
+        '',
+        '1000.00',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    const preview = buildPreview([], records, []);
+    const row = preview.rows[0]!;
+    expect(row.outcome).toBe('needs_linking');
+    expect(row.matched).toBeNull();
+    expect(row.changes).toEqual([]);
+    expect(row.values).toMatchObject({
+      invoice_ref: '1160000133',
+      transaction_ref: null,
+      amount: 1000,
+      record_date: '2026-01-05',
+      tax_no: 'DPIN-T-100',
+      status_text: 'Fully Paid',
+      fully_paid: true,
+      provisional: false,
+    });
+    expect(row.promo_before).toBeNull();
+    expect(row.promo_discount).toBeNull();
+    expect(row.promo_after).toBeNull();
+  });
+
+  it('an unmatched promo row shows its discount figures and code, not an amount', () => {
+    const promoHeader = [
+      'Invoice Number',
+      'Before Discount',
+      'Discount',
+      'After Discount',
+      'Product',
+      'Payment Status',
+    ];
+    const { records } = normaliseFile(
+      'promo_code_invoice_export',
+      promoHeader,
+      [['1160000999', '1200.00', '200.00', '1000.00', 'Visa', 'Fully Paid']],
+      { sourcePromo: 'code-id-1' },
+    );
+    const preview = buildPreview([], records, []);
+    const row = preview.rows[0]!;
+    expect(row.outcome).toBe('needs_linking');
+    expect(row.matched).toBeNull();
+    expect(row.values).toMatchObject({
+      invoice_ref: '1160000999',
+      source_promo: 'code-id-1',
+      product: 'Visa',
+      fully_paid: true,
+    });
+    expect(row.values?.amount).toBeNull();
+    expect(row.promo_before).toBe(1200);
+    expect(row.promo_discount).toBe(200);
+    expect(row.promo_after).toBe(1000);
+  });
+
+  it('an unmatched expense row shows its cost and transaction number', () => {
+    const expenseHeader = ['Invoice#', 'Amount (SAR)', 'Expense Type', 'Status', 'Created At'];
+    const { records } = normaliseFile('transaction_expense_export', expenseHeader, [
+      ['TXN-9', '200.00', 'Hotel Cost', 'Approved', '2026-01-06'],
+    ]);
+    const preview = buildPreview([], records, []);
+    const row = preview.rows[0]!;
+    expect(row.outcome).toBe('needs_linking');
+    expect(row.matched).toBeNull();
+    expect(row.values).toMatchObject({
+      transaction_ref: 'TXN-9',
+      cost: 200,
+      record_date: '2026-01-06',
+    });
+    expect(row.values?.amount).toBeNull();
+  });
+
+  it('an unmatched transaction row shows its amount, service and refs', () => {
+    const listHeader = ['RECEIPT REF.', 'PRODUCT', 'AMOUNT (SAR)', 'INVOICE ISSUING', 'CREATED AT', 'EXPENSE STATUS'];
+    const { records } = normaliseFile('corporate_transaction_list', listHeader, [
+      ['TXN-9', 'Visa', '1000.00', 'Need to issue', '2026-01-04', 'Ready'],
+    ]);
+    const preview = buildPreview([], records, []);
+    const row = preview.rows[0]!;
+    expect(row.outcome).toBe('needs_linking');
+    expect(row.matched).toBeNull();
+    expect(row.values).toMatchObject({
+      transaction_ref: 'TXN-9',
+      invoice_ref: null,
+      amount: 1000,
+      product: 'Visa',
+      record_date: '2026-01-04',
+    });
+  });
+
+  it('a matched row still names its stored record and its changes, with its values alongside', () => {
+    const first = normaliseFile('invoice_export', INVOICE_HEADER, [
+      [
+        'invoice',
+        '1160000133',
+        'A company',
+        '',
+        'DPIN-T-100',
+        '2026-01-05',
+        '',
+        '',
+        'Fully Paid (Audit Required)',
+        '',
+        '1000.00',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    const existing = toExisting(first.records);
+    const second = normaliseFile('invoice_export', INVOICE_HEADER, [
+      [
+        'invoice',
+        '1160000133',
+        'A company',
+        '',
+        'DPIN-T-100',
+        '2026-01-05',
+        '',
+        '',
+        'Fully Paid',
+        '',
+        '1000.00',
+        '',
+        '',
+        '',
+      ],
+    ]);
+    const preview = buildPreview(existing, second.records, second.held);
+    const row = preview.rows[0]!;
+    expect(row.matched?.invoice_ref).toBe('1160000133');
+    expect(row.changes).toEqual([{ field: 'status', before: 'Fully Paid (Audit Required)', after: 'Fully Paid' }]);
+    expect(row.values).toMatchObject({ invoice_ref: '1160000133', amount: 1000, status_text: 'Fully Paid' });
+  });
+});
+
 describe('five counts', () => {
   it('counts sum to the rows in, with plain reasons and row numbers', () => {
     const header = ['RECEIPT REF.', 'PRODUCT', 'AMOUNT (SAR)', 'INVOICE ISSUING', 'CREATED AT', 'EXPENSE STATUS'];

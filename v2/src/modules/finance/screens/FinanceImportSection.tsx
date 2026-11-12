@@ -22,6 +22,7 @@ import {
   type Preview,
   type PreviewCounts,
   type PreviewDecisions,
+  type PreviewRow,
   type Signature,
 } from '@/modules/imports';
 import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
@@ -81,6 +82,9 @@ const CHANGE_KEY: Record<string, string> = {
   'transaction number': 'transactionNumber',
   'invoice number': 'invoiceNumber',
   'discount code': 'discountCode',
+  'promo before': 'promoBefore',
+  'promo discount': 'promoDiscount',
+  'promo after': 'promoAfter',
   service: 'service',
 };
 
@@ -370,6 +374,32 @@ export function FinanceImportSection() {
     return key && t.has(`import.change.${key}`) ? t(`import.change.${key}`) : field;
   };
 
+  // A needs-linking row's own values, as plain lines (F182, L14 #6): the refs first (a dash
+  // where the other half is still missing), then only the values the row carries. A promo row
+  // carries discount figures, not an amount; a fully-paid or provisional row says so.
+  const rowValues = (r: PreviewRow): string[] => {
+    const v = r.values;
+    if (!v) return [];
+    const lines = [
+      `${changeLabel('transaction number')}: ${changeValue(v.transaction_ref)}`,
+      `${changeLabel('invoice number')}: ${changeValue(v.invoice_ref)}`,
+    ];
+    if (v.amount !== null) lines.push(`${changeLabel('amount')}: ${changeValue(v.amount)}`);
+    if (v.cost !== null) lines.push(`${changeLabel('cost')}: ${changeValue(v.cost)}`);
+    if (v.wallet_topup > 0) lines.push(`${changeLabel('wallet part')}: ${changeValue(v.wallet_topup)}`);
+    if (v.record_date !== null) lines.push(`${changeLabel('date')}: ${changeValue(v.record_date)}`);
+    if (v.product !== null) lines.push(`${changeLabel('service')}: ${changeValue(v.product)}`);
+    if (v.status_text !== null) lines.push(`${changeLabel('status')}: ${changeValue(v.status_text)}`);
+    if (v.tax_no !== null) lines.push(`${changeLabel('tax number')}: ${changeValue(v.tax_no)}`);
+    if (v.source_promo !== null) lines.push(`${changeLabel('discount code')}: ${changeValue(v.source_promo)}`);
+    if (r.promo_before !== null) lines.push(`${changeLabel('promo before')}: ${changeValue(r.promo_before)}`);
+    if (r.promo_discount !== null) lines.push(`${changeLabel('promo discount')}: ${changeValue(r.promo_discount)}`);
+    if (r.promo_after !== null) lines.push(`${changeLabel('promo after')}: ${changeValue(r.promo_after)}`);
+    if (v.fully_paid) lines.push(t('import.fullyPaid'));
+    if (v.provisional) lines.push(t('import.provisional'));
+    return lines;
+  };
+
   return (
     <section className="flex flex-col gap-4" aria-labelledby="finance-import" data-finance-import-section>
       <h2 id="finance-import" className="font-display text-lg font-semibold">
@@ -646,6 +676,18 @@ export function FinanceImportSection() {
                               {r.changes.map((c) => (
                                 <span key={c.field} className="block">
                                   {changeLabel(c.field)}: {changeValue(c.before)} → {changeValue(c.after)}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                          {r.outcome === 'needs_linking' && r.values ? (
+                            <span className="mt-1 block text-xs">
+                              {r.matched ? null : (
+                                <span className="block font-medium text-text">{t('import.noMatchedRecord')}</span>
+                              )}
+                              {rowValues(r).map((line) => (
+                                <span key={line} className="block">
+                                  {line}
                                 </span>
                               ))}
                             </span>

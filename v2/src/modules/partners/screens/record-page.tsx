@@ -52,8 +52,13 @@ export async function PartnerRecordPage({
   try {
     page = (await serverRpc('partner_page', { p_id: id })) as unknown as PageAnswer;
   } catch (e) {
-    if ((e as { kind?: string }).kind === 'NotFound') notFound();
-    refused = true;
+    const kind = (e as { kind?: string }).kind;
+    if (kind === 'NotFound') notFound();
+    // Only a real refusal is "no access" (F-B3-05 / F-B5-10 / F-B6-01(c)): a stalled read (Unavailable — the
+    // gateway holds a signed-in call ~5 s and gives up at 10 s, status 555) or anything else a read can throw is
+    // a failed read, and the record says so with Try again — never a denial. This is the readOrFail rule, applied
+    // to the one read this page cannot make optional.
+    if (kind === 'PermissionDenied') refused = true;
   }
   // The org is still read on the refused path, as the old page read it alongside the card: the record's no-access
   // state needs the people it names. On the open path it rides inside partner_page — no second round trip.
