@@ -26,12 +26,15 @@ export function FilesSection({
   mayWrite,
   onDone,
   fileKinds,
+  hiddenFiles,
 }: {
   partnerId: string;
   files: CompanyFile[] | null;
   mayWrite: boolean;
   onDone: () => void;
   fileKinds: ListEntry[];
+  /** Files on the partner the reader cannot see (F-B6-02): passed through to the shared section's empty state. */
+  hiddenFiles?: number | null;
 }) {
   const t = useTranslations();
   return (
@@ -51,6 +54,7 @@ export function FilesSection({
       allFilesHref={`/files?company=${partnerId}`}
       allFilesLabel={t('partners.companyFiles.allFiles')}
       intro={t('partners.companyFiles.allFilesHint')}
+      hiddenFiles={hiddenFiles}
     />
   );
 }

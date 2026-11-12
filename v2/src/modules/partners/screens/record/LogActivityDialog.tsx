@@ -1,6 +1,6 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { command } from '@/core/commands/command';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
@@ -14,6 +14,27 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { nameOf, type ListEntry } from '../../types';
 import { today, useWords } from './words';
+
+/** F-B3-08: near-duplicates sit together — "Follow-up call" right after "Call", "Site visit" right after "Visit" —
+ * so each pair reads as one choice, not two unrelated ones. The list's own order otherwise stands, and the live
+ * rows themselves are not renamed or merged (D-7). */
+export function orderActivityTypes(types: ListEntry[]): ListEntry[] {
+  const pairAfter: Record<string, string> = { call: 'follow_up_call', visit: 'site_visit' };
+  const byKey = new Map(types.map((x) => [x.key, x]));
+  const done = new Set<string>();
+  const out: ListEntry[] = [];
+  for (const x of types) {
+    if (done.has(x.key)) continue;
+    done.add(x.key);
+    out.push(x);
+    const pair = byKey.get(pairAfter[x.key] ?? '');
+    if (pair && !done.has(pair.key)) {
+      done.add(pair.key);
+      out.push(pair);
+    }
+  }
+  return out;
+}
 
 /**
  * The dialog's title line: the name wraps over at most three lines with a "More" tap (V653, ruling of 23 Oct — a dialog
@@ -98,6 +119,7 @@ export function LogActivityDialog({
   };
   const [f, setF] = useState(fresh);
   const [busy, setBusy] = useState(false);
+  const orderedTypes = useMemo(() => orderActivityTypes(types), [types]);
   const type = types.find((x) => x.key === f.type);
   const own = outcomes.filter((o) => o.activity_type_id === type?.id);
   const outcome = own.find((o) => o.key === f.outcome);
@@ -189,12 +211,21 @@ export function LogActivityDialog({
       <div className="grid gap-4 sm:grid-cols-2" data-activity-form>
         <Field label={t('partners.activity.type')}>
           {(p) => (
-            <Select
-              {...p}
-              value={f.type}
-              onValueChange={(v) => setF({ ...f, type: v, outcome: '' })}
-              options={types.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
-            />
+            <>
+              <Select
+                {...p}
+                value={f.type}
+                onValueChange={(v) => setF({ ...f, type: v, outcome: '' })}
+                options={orderedTypes.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
+              />
+              {/* F-B3-08: what the chosen type means — as bare names "Call" and "Follow-up call", "Visit" and
+                  "Site visit" cannot be told apart, so the line under the picker says it. */}
+              {t.has(`activity.type.${f.type}`) ? (
+                <p className="text-sm text-muted" data-activity-type-desc>
+                  {t(`activity.type.${f.type}`)}
+                </p>
+              ) : null}
+            </>
           )}
         </Field>
         <Field label={own.length ? t('partners.activity.outcome') : t('partners.activity.outcomeOptional')}>

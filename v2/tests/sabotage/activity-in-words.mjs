@@ -1,6 +1,8 @@
 // Sabotages for B (26 Oct): a record's Activity tab reads in words, with Undo on the reader's newest action only.
 const E2E = 'e2e:tests/e2e/a-tasks-activity-reads-in-words.spec.ts';
 const TIMELINE = 'src/ui/record/ActivityTimeline.tsx';
+// Landing 15 (F-B2-02, F-B5-13): the value-words live in the shared renderer now, not the timeline.
+const DIFF_WORDS = 'src/ui/record/diff-words.ts';
 
 export const sabotages = [
   {
@@ -10,7 +12,7 @@ export const sabotages = [
     expect: 'no id is ever shown',
     edits: [
       {
-        file: TIMELINE,
+        file: DIFF_WORDS,
         find: "return people[v]?.displayName ?? '—';",
         replace: 'return v;',
       },
@@ -23,9 +25,10 @@ export const sabotages = [
     expect: 'no raw date is ever shown',
     edits: [
       {
-        file: TIMELINE,
-        find: 'const when = formatStoredDate(v, locale);',
-        replace: 'const when: string | null = null;',
+        file: DIFF_WORDS,
+        find: "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when = formatStoredDate(v, locale);",
+        replace:
+          "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when: string | null = null;",
       },
     ],
   },

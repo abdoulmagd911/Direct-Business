@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
 import { formatDate, formatMoney } from '@/core/i18n/format';
@@ -16,7 +17,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
 import { toast } from '@/ui/Toast';
-import { filterCodes, sortCodes } from '../state';
+import { filterCodes, searchCodes, sortCodes } from '../state';
 import type { CodeDetail, CodeRow, CompanyCodeRow, CodeState, PartnerOption } from '../types';
 import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
 
@@ -41,7 +42,8 @@ const percentOrDash = (value: number | null) =>
 /**
  * The Discount Codes page: every code on its own row, keyed by its id (the same text can repeat under
  * different ids, so the text is never the key), sorted by total discount first. The state filter is
- * active / inactive / expired. A code's detail is its own ledger — recorded uses, each with the invoice's
+ * active / inactive / expired, and the search box narrows the list by the code's text, in the same order
+ * (F-B3-04). A code's detail is its own ledger — recorded uses, each with the invoice's
  * created date, its counted revenue, cost and profit from the Finance report's own units, and its stored
  * Direct link — with uses that are not counted listed apart, never in the totals. The per-company view is
  * promo attribution only, apart from a company's own totals. Only Full records a use or an attribution.
@@ -78,6 +80,7 @@ export function CodesScreen({
   const locale = useLocale() as Locale;
   const router = useRouter();
   const [state, setState] = useState<CodeState | 'all'>('all');
+  const [query, setQuery] = useState('');
   const [removeUseId, setRemoveUseId] = useState<string | null>(null);
   const [removeAttributionId, setRemoveAttributionId] = useState<string | null>(null);
   const [invoiceRef, setInvoiceRef] = useState('');
@@ -88,7 +91,7 @@ export function CodesScreen({
   const [attributionReason, setAttributionReason] = useState('');
 
   const sorted = sortCodes(rows);
-  const visible = filterCodes(sorted, state);
+  const visible = searchCodes(filterCodes(sorted, state), query);
   const counts = {
     all: sorted.length,
     active: sorted.filter((r) => r.state === 'active').length,
@@ -156,6 +159,24 @@ export function CodesScreen({
           </Button>
         ))}
       </div>
+      <form
+        role="search"
+        className="relative w-full sm:w-64"
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          aria-label={t('pages.codes.search.label')}
+          placeholder={t('pages.codes.search.placeholder')}
+          className="ps-9"
+          data-codes-search
+        />
+      </form>
 
       {listFailed ? (
         <DataState
@@ -165,8 +186,17 @@ export function CodesScreen({
           retryLabel={t('common.tryAgain')}
         />
       ) : visible.length === 0 ? (
-        // A filter with no matches says so; only a list with no codes at all says none exist yet (F166).
-        <DataState kind="empty" message={t(rows.length === 0 ? 'pages.codes.empty' : 'pages.codes.emptyFiltered')} />
+        // A filter or a search with no matches says so; only a list with no codes at all says none exist yet (F166).
+        <DataState
+          kind="empty"
+          message={t(
+            rows.length === 0
+              ? 'pages.codes.empty'
+              : query.trim()
+                ? 'pages.codes.search.noMatch'
+                : 'pages.codes.emptyFiltered',
+          )}
+        />
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
           {visible.map((row) => (

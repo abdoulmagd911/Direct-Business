@@ -1,6 +1,6 @@
 -- Sabotage: a-private-note-found-in-search
 -- Breaks: sql:NOTE-02
--- Expect: nor find it
+-- Expect: its author finds nothing in search
 -- Search matches every note's words, whoever wrote it and whoever may see it.
 create or replace function core.search(p_q text, p_limit int default 10) returns jsonb
 language plpgsql stable security definer set search_path = ''

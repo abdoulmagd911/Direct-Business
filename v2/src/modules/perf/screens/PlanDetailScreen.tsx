@@ -16,6 +16,7 @@ import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
+import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ScrollCue } from '@/ui/ScrollCue';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
@@ -170,6 +171,29 @@ export function PlanDetailScreen({
       },
     );
     setBusy(false);
+  };
+  // F-B5-12 (D-5 ruled: delete allowed): the target being deleted, if any — its expected count goes with it and
+  // the achievements already logged stay, so the dialog says so and asks for the reason (the RPC requires one).
+  const [deletingTarget, setDeletingTarget] = useState<TargetRow | null>(null);
+  const reasonWords = {
+    reason: t('common.reason'),
+    save: t('common.save'),
+    cancel: t('common.cancel'),
+    reasonRequired: t('settings.form.reasonRequired'),
+  };
+  const deleteTarget = async (why: string) => {
+    if (!deletingTarget) return;
+    const row = deletingTarget;
+    await command(
+      words(t('targets.targetDeleted')),
+      () => rpc('target_delete', { p_id: row.id, p_reason: why }) as Promise<{ request_id?: string | null } | null>,
+      {
+        after: () => {
+          setDeletingTarget(null);
+          router.refresh();
+        },
+      },
+    );
   };
   // the target's category may have been retired since the target was set: it stays offered on edit, so the target
   // still reads and can be moved to a live category instead of vanishing from the form
@@ -376,7 +400,9 @@ export function PlanDetailScreen({
           {[
             dept ? name(dept) : '—',
             String(plan.year),
-            t('settings.targets.categories', { count: categories.length }),
+            // F-B5-12: the count is the active categories only — before, it counted every category including
+            // archived ones, so it read "Categories: 8" while the list showed 7.
+            t('settings.targets.categories', { count: active.length }),
           ].join(' · ')}
         </p>
       </div>
@@ -415,17 +441,27 @@ export function PlanDetailScreen({
                         </span>
                       ) : null}
                     </div>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => startTargetEdit(row)}
-                      aria-label={t('settings.list.edit', {
-                        name: `${monthLabel(row.month, locale)} · ${cat ? catName(cat) : row.category_code}`,
-                      })}
-                      data-target-edit={row.id}
-                    >
-                      {t('common.edit')}
-                    </Button>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => startTargetEdit(row)}
+                        aria-label={t('settings.list.edit', {
+                          name: `${monthLabel(row.month, locale)} · ${cat ? catName(cat) : row.category_code}`,
+                        })}
+                        data-target-edit={row.id}
+                      >
+                        {t('common.edit')}
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setDeletingTarget(row)}
+                        data-target-delete={row.id}
+                      >
+                        {t('targets.deleteTarget')}
+                      </Button>
+                    </div>
                   </div>
                 </li>
               );
@@ -487,6 +523,14 @@ export function PlanDetailScreen({
                           data-target-edit={row.id}
                         >
                           {t('common.edit')}
+                        </Button>{' '}
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => setDeletingTarget(row)}
+                          data-target-delete={row.id}
+                        >
+                          {t('targets.deleteTarget')}
                         </Button>
                       </td>
                     </tr>
@@ -926,6 +970,29 @@ export function PlanDetailScreen({
           </div>
         ) : null}
       </Dialog>
+
+      {/* F-B5-12: delete a target — soft-delete with a reason (the RPC requires one) and one audit row; the
+          target's expected count goes with it, the achievements already logged stay (D-5). */}
+      <ReasonDialog
+        open={deletingTarget !== null}
+        onOpenChange={(v) => {
+          if (!v) setDeletingTarget(null);
+        }}
+        title={deletingTarget ? t('targets.deleteTarget') : ''}
+        body={
+          deletingTarget
+            ? t('targets.deleteConfirm', {
+                month: monthLabel(deletingTarget.month, locale),
+                category: byId.get(deletingTarget.category_id)
+                  ? catName(byId.get(deletingTarget.category_id)!)
+                  : deletingTarget.category_code,
+              })
+            : undefined
+        }
+        destructive
+        words={reasonWords}
+        onSave={deleteTarget}
+      />
     </div>
   );
 }

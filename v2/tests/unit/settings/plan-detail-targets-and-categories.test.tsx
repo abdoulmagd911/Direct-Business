@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
 import { monthOptionsOf, PlanDetailScreen } from '../../../src/modules/perf/screens/PlanDetailScreen';
+import type { Category } from '../../../src/modules/perf/types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }) }));
 
@@ -107,5 +108,41 @@ describe('Plan targets', () => {
     expect(months[0]).toEqual({ value: '2026-01-01', label: 'January 2026' });
     expect(months[11]).toEqual({ value: '2026-12-01', label: 'December 2026' });
     expect(monthOptionsOf(2026, 'ar')[0]).toEqual({ value: '2026-01-01', label: 'يناير 2026' });
+  });
+  it('counts active categories only in the header, and offers Delete on every target (F-B5-12)', () => {
+    // an archived category sits in the list (shown only with "Show archived") but the header counts the live ones
+    const archived: Category = {
+      id: 'c3',
+      plan_id: 'p1',
+      code: 'TESTCAT',
+      name_en: 'Test category',
+      name_ar: 'فئة تجريبية',
+      parent_id: null,
+      parent_code: null,
+      is_money_link: false,
+      has_deal_value: false,
+      sets_prospect: false,
+      required_ref_system: null,
+      line_template_en: 'Test category: {title}',
+      line_template_ar: 'فئة تجريبية: {title}',
+      sort: 30,
+      active: false,
+      version: 1,
+    };
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en as never} timeZone="Asia/Riyadh">
+        <PlanDetailScreen
+          plan={plan}
+          departments={[dept]}
+          categories={[...categories, archived]}
+          targets={targets}
+          refSystems={[]}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain('Categories: 2');
+    expect(html).not.toContain('Categories: 3');
+    expect(html).toContain('data-target-delete="t1"');
+    expect(html).toContain('Delete target');
   });
 });

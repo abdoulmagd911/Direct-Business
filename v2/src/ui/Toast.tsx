@@ -4,7 +4,9 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 
 /**
  * Toasts: bottom-end, 5 s, past tense ("Task created"), Undo where the command is undoable (§2.4).
- * A toast carrying a second action stays 10 s: two choices need reading time.
+ * A toast carrying a second action stays 10 s: two choices need reading time. Undo is such an action —
+ * a toast with Undo to press stays twice as long as a plain done toast (F-B1-05: the file-removal Undo
+ * vanished before it could be read).
  * No coloured side stripe; the icon and the word carry the outcome.
  */
 export function Toaster() {
@@ -46,8 +48,9 @@ export const toast = {
     return sonnerToast.success(title, {
       id: opts.id,
       description: opts.description,
-      // a toast with a second action stays twice as long: two choices need reading time
-      duration: opts.extra ? 10000 : undefined,
+      // a toast with a second action stays twice as long: two choices need reading time — Undo counts, and
+      // so does an extra button beside it
+      duration: opts.extra || opts.undo ? 10000 : undefined,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
       // a second thing to do with what just happened: a button beside Undo, and a way out. (Phase 0.3 removed
       // the Done toast's Log achievement button; nothing passes an extra today, but the mechanism stays for

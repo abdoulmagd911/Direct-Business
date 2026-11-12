@@ -1,4 +1,4 @@
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireMe } from '@/core/auth/require-me';
 import { DbError } from '@/core/db/errors';
@@ -24,9 +24,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type RefusalWords = 'record.files.downloadRefused' | 'record.files.downloadNotFound' | 'record.files.downloadFailed';
 
-/** A refusal page with words, in the presser's own language — never a silent failure (FIX-39). */
-async function refusal(status: number, key: RefusalWords): Promise<NextResponse> {
-  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
+/** A refusal page with words, in the language the link asked for — never a silent failure (FIX-39).
+ *  The locale comes from the link's ?locale, not the presser's session: a link shared with ?locale=ar
+ *  refuses in Arabic even when the presser's session is English (F-B2-01). */
+async function refusal(status: number, key: RefusalWords, locale: 'en' | 'ar'): Promise<NextResponse> {
+  const t = await getTranslations({ locale });
   const words = t(key);
   const goMyDay = t('errors.notFound.goMyDay');
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
@@ -47,11 +49,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const { id } = await params;
-  if (!UUID.test(id)) return refusal(404, 'record.files.downloadNotFound');
-  // The app gate: no session → sign in and back here; a refused session → sign out with the reason.
-  await requireMe();
+  // The link's language, read before anything else: every refusal below answers in it, including the
+  // malformed-id one (F-B2-01).
   const asked = request.nextUrl.searchParams.get('locale');
   const locale = asked === 'ar' ? 'ar' : 'en';
+  if (!UUID.test(id)) return refusal(404, 'record.files.downloadNotFound', locale);
+  // The app gate: no session → sign in and back here; a refused session → sign out with the reason.
+  await requireMe();
   let info: { bucket: string; path: string; download_name: string; expires_in: number };
   try {
     info = (await serverRpc('file_download', { p_id: id, p_locale: locale })) as unknown as {
@@ -63,16 +67,17 @@ export async function GET(
   } catch (e) {
     // file.cannot_see (a reader unshared since) refuses with words; a missing file is not available; anything
     // else is a failed read, not a refusal — the person is told to try again.
-    if (e instanceof DbError && e.kind === 'PermissionDenied') return refusal(403, 'record.files.downloadRefused');
+    if (e instanceof DbError && e.kind === 'PermissionDenied')
+      return refusal(403, 'record.files.downloadRefused', locale);
     if (e instanceof DbError && (e.kind === 'NotFound' || e.key === 'file.not_stored'))
-      return refusal(404, 'record.files.downloadNotFound');
-    return refusal(503, 'record.files.downloadFailed');
+      return refusal(404, 'record.files.downloadNotFound', locale);
+    return refusal(503, 'record.files.downloadFailed', locale);
   }
   const db = await serverDb();
   const signed = await db.storage
     .from(info.bucket)
     .createSignedUrl(info.path, info.expires_in, { download: info.download_name });
-  if (signed.error || !signed.data) return refusal(503, 'record.files.downloadFailed');
+  if (signed.error || !signed.data) return refusal(503, 'record.files.downloadFailed', locale);
   const go = NextResponse.redirect(signed.data.signedUrl, 303);
   go.headers.set('cache-control', 'no-store');
   return go;

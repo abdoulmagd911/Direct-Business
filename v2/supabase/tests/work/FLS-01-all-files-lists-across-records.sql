@@ -195,6 +195,11 @@ select test.as_person(current_setting('t.peer')::uuid);
 select test.eq((select count(*)::int from jsonb_array_elements(
   api.all_files(p_entity => 'partner.partner') -> 'rows') r where r ->> 'kind' = 'agreement'), 0,
   'a member sees none of the partner''s agreement');
+-- the card counts the files the reader cannot see, so the record can say so instead of "No files yet" (F-B6-02)
+select test.eq((api.partner(current_setting('t.p')::uuid) -> 'counts' ->> 'files_hidden')::int, 1,
+  'a member the agreement is hidden from counts one hidden file on the partner');
+select test.eq((api.partner(current_setting('t.p')::uuid) -> 'counts' ->> 'files')::int, 5,
+  'and five files they can see');
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.eq((select count(*)::int from jsonb_array_elements(
   api.all_files(p_entity => 'partner.partner') -> 'rows') r where r ->> 'kind' = 'agreement'), 0,
@@ -207,6 +212,10 @@ select test.as_person(current_setting('t.own')::uuid);
 select test.eq((select count(*)::int from jsonb_array_elements(
   api.all_files(p_entity => 'partner.partner') -> 'rows') r where r ->> 'kind' = 'agreement'), 1,
   'and its uploader sees it');
+select test.eq((api.partner(current_setting('t.p')::uuid) -> 'counts' ->> 'files_hidden')::int, 0,
+  'its uploader counts no hidden file');
+select test.eq((api.partner(current_setting('t.p')::uuid) -> 'counts' ->> 'files')::int, 6,
+  'and six files they can see');
 
 -- a pending file is visible only to its uploader
 select test.as_person(current_setting('t.peer')::uuid);
@@ -265,7 +274,7 @@ select test.eq((api.all_files(p_limit => 2) ->> 'total')::int, 11,
 select test.eq(jsonb_array_length(api.all_files(p_limit => 2) -> 'rows'), 2,
   'and returns only the page asked for');
 select test.eq(api.all_files(p_sort => 'name', p_limit => 1) -> 'rows' -> 0 ->> 'original_name',
-  'agreement.pdf', 'sorted by name, the first is the agreement''s (its displayed name starts with Agreement)');
+  'achievement proof.pdf', 'sorted by name, the first is the achievement''s (its stored name starts with achievement)');
 select test.eq((api.all_files(p_sort => 'size', p_limit => 1) -> 'rows' -> 0 ->> 'size')::int, 5000,
   'sorted by size, the first is the biggest');
 select test.eq(api.all_files() -> 'rows' -> 0 ->> 'status', 'stored',

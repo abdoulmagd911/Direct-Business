@@ -18,6 +18,7 @@ import { Field } from '@/ui/Field';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
+import { makeValueWords, plainWords, settingLabel, settingValueWords } from '@/ui/record/diff-words';
 import type { HistoryRow } from '@/ui/record/history';
 import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
@@ -38,6 +39,28 @@ const TABS = ['changes', 'settings', 'signIns', 'deleted'] as const;
 
 export type { DeletedRow } from './RecentlyDeleted';
 
+/** One What-filter option per displayed word (F-B1-07): "Achievement" is three record types, "Comment" two and
+ * "Targets" three, and the picker offered the word three times over. One option keeps every key it stands for —
+ * its value names them all, so the read still shows each one's rows. */
+export function whatFilterOptions(entries: { key: string; label: string }[]): { value: string; label: string }[] {
+  const byLabel = new Map<string, string[]>();
+  for (const e of entries) {
+    const keys = byLabel.get(e.label) ?? [];
+    if (!keys.includes(e.key)) keys.push(e.key);
+    byLabel.set(e.label, keys);
+  }
+  return [...byLabel.entries()]
+    .map(([label, keys]) => ({ value: keys.join(','), label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** The rows of one request merged with older pages, by request, newest first (F-B4-04): a page never repeats a
+ * request already read, however the cursor fell. */
+export function mergeActivityRows(rows: HistoryRow[], page: HistoryRow[]): HistoryRow[] {
+  const seen = new Set(rows.map((r) => r.request_id));
+  return [...rows, ...page.filter((r) => !seen.has(r.request_id))];
+}
+
 /**
  * Activity (V97: its own page): the whole change log with filters (who, what, since) and Undo; the settings log with
  * Revert (V97: the previous value comes back as a new dated row, outside the Undo window); the sign-in log. Filters
@@ -52,6 +75,8 @@ export function ActivityScreen({
   deleted,
   filters,
   priorities,
+  total,
+  sinceIso,
 }: {
   me: Me;
   tab: string;
@@ -62,6 +87,10 @@ export function ActivityScreen({
   filters: { actor: string; entity: string; since: string; person: string };
   /** The priority list, for the History diff (F119, D36(a)): a priority id reads as its name, never as an id. */
   priorities: { id: string; name_en: string; name_ar: string | null }[];
+  /** How many requests the Changes feed holds in all (the true total, F-B4-04): "Show all" names it. */
+  total?: number;
+  /** The Since filter as the instant the page's read used, so "Show earlier" asks for the same slice. */
+  sinceIso?: string | null;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -79,9 +108,65 @@ export function ActivityScreen({
     return orgDescribe(field, value);
   };
   const summarize = summarizeWith(org, locale, (name) => t('activity.reportsTo', { name }));
+  const valueWords = makeValueWords({ t, locale, describe, people });
   const entities: { key: string; label: string }[] = [];
   for (const m of modules)
     for (const e of m.entities ?? []) entities.push({ key: e.key, label: t.has(e.label) ? t(e.label) : e.key });
+  // The Settings log names the setting, not its columns (F-B5-13(c), O1): a setting change carries the setting
+  // row itself, so its key reads by its wording and its value before → after in words. The value that stood
+  // before is the replaced row's, soft-removed in the same request (V131) — the insert itself carries none.
+  const settingEntry = (r: HistoryRow) => {
+    const insert = r.changes.find((x) => x.entity === 'setting' && x.action === 'insert');
+    const removed = r.changes.find((x) => x.entity === 'setting' && x.action === 'remove');
+    const c = insert ?? removed ?? r.changes.find((x) => x.entity === 'setting');
+    if (!c) return null;
+    const rec = (v: unknown): Record<string, unknown> | null =>
+      v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+    const after = rec(c.after);
+    const before = rec(c.before) ?? rec(removed?.before);
+    const key = typeof after?.key === 'string' ? after.key : typeof before?.key === 'string' ? before.key : null;
+    if (!key) return null;
+    const name = settingLabel(t, key) ?? plainWords(key);
+    const hasValue = before?.value !== undefined || after?.value !== undefined;
+    return {
+      key,
+      name,
+      valueText: hasValue
+        ? `${settingValueWords(t, key, before?.value, valueWords)} → ${settingValueWords(t, key, after?.value, valueWords)}`
+        : null,
+    };
+  };
+  // Older pages of the Changes feed, read in the browser (F-B4-04): the page's read caps at 500, and "Show
+  // earlier" walks back from the oldest row read, by (at, id) so no request on the boundary is skipped. A
+  // filter change drops the extra pages — they belong to the old slice. A refresh keeps them: the merge drops
+  // any request the fresh first page already holds.
+  const filterKey = [current, filters.actor, filters.entity, filters.since].join('|');
+  const [extraRows, setExtraRows] = useState<HistoryRow[]>([]);
+  const [extraKey, setExtraKey] = useState(filterKey);
+  if (extraKey !== filterKey) {
+    setExtraKey(filterKey);
+    setExtraRows([]);
+  }
+  const allRows = mergeActivityRows(rows, extraRows);
+  const hasEarlier = total !== undefined && allRows.length < total;
+  const loadEarlier = async () => {
+    const last = allRows[allRows.length - 1];
+    if (!last || !hasEarlier) return;
+    const page = (await rpc('activity', {
+      p_actor: filters.actor || undefined,
+      p_entities: filters.entity
+        ? filters.entity
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined,
+      p_since: sinceIso ?? undefined,
+      p_before: last.at,
+      p_before_id: last.request_id,
+      p_limit: 500,
+    })) as unknown as HistoryRow[];
+    setExtraRows((prev) => mergeActivityRows(prev, page));
+  };
   const setFilter = (patch: Partial<typeof filters>) => {
     const q = new URLSearchParams({ tab: current });
     const next = { ...filters, ...patch };
@@ -168,9 +253,7 @@ export function ActivityScreen({
                   value={filters.entity}
                   onValueChange={(v) => setFilter({ entity: v })}
                   placeholder={t('activity.filters.anything')}
-                  options={entities
-                    .sort((a, b) => a.label.localeCompare(b.label))
-                    .map((e) => ({ value: e.key, label: e.label }))}
+                  options={whatFilterOptions(entities)}
                 />
               )}
             </Field>
@@ -205,13 +288,16 @@ export function ActivityScreen({
       {current === 'changes' ? (
         <section className="rounded-lg border border-border bg-raised px-5 py-2" data-activity-changes>
           <ActivityTimeline
-            rows={rows}
+            rows={allRows}
             people={people}
             initial={50}
             onChanged={() => router.refresh()}
             describe={describe}
             summarize={summarize}
             undoEvery
+            totalCount={total}
+            hasEarlier={hasEarlier}
+            onLoadEarlier={loadEarlier}
           />
         </section>
       ) : null}
@@ -223,6 +309,7 @@ export function ActivityScreen({
                 const c =
                   r.changes.find((x) => x.entity === 'setting' && x.action === 'insert') ??
                   r.changes.find((x) => x.entity === 'setting');
+                const entry = settingEntry(r);
                 return (
                   <li
                     key={r.request_id}
@@ -233,9 +320,10 @@ export function ActivityScreen({
                         {r.label_key && t.has(`activity.labels.${r.label_key}`)
                           ? t(`activity.labels.${r.label_key}`)
                           : t('activity.actions.request')}
-                        {c?.fields.length ? (
-                          <span className="ms-2 font-data text-xs whitespace-nowrap text-muted">
-                            {c.fields.join(', ')}
+                        {entry ? (
+                          <span className="ms-2 font-data text-xs text-muted">
+                            {entry.name}
+                            {entry.valueText ? `: ${entry.valueText}` : ''}
                           </span>
                         ) : null}
                       </span>
@@ -307,7 +395,7 @@ export function ActivityScreen({
         open={reverting !== null}
         onOpenChange={(o) => !o && setReverting(null)}
         title={t('activity.revertTitle', {
-          setting: reverting?.changes.find((c) => c.entity === 'setting')?.fields.join(', ') ?? '',
+          setting: reverting ? (settingEntry(reverting)?.name ?? '') : '',
         })}
         body={t('activity.revertBody', { setting: t('entity.setting') })}
         onSave={revert}

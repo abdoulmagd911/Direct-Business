@@ -28,3 +28,13 @@ export function filterCodes(rows: CodeRow[], state: CodeState | 'all'): CodeRow[
   if (state === 'all') return rows;
   return rows.filter((r) => r.state === state);
 }
+
+/**
+ * The search box (F-B3-04, Landing 15): a code whose text carries the typed fragment, case-insensitively, in
+ * the list's own order. An empty box keeps the list as it is.
+ */
+export function searchCodes(rows: CodeRow[], query: string): CodeRow[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((r) => r.code.toLowerCase().includes(q));
+}

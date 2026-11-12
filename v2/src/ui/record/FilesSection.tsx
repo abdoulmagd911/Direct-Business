@@ -58,6 +58,18 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * The name a toast uses for a file (FIX-38): the stored uploaded filename — never the generated display name.
+ * The display name is built from its kind's pattern ("Agreement · {partner} · {title} · {start} to {end}"),
+ * and with empty slots it collapses to "… · to" + ".csv" — the "to.csv" the removal toast showed (F-B1-05).
+ * The generated name is only the fallback when no stored name was kept.
+ */
+export function toastFileName(f: RecordFile, locale: 'en' | 'ar'): string {
+  if (f.original_name) return f.original_name;
+  if (locale === 'ar' && f.display_name_ar) return f.display_name_ar;
+  return f.display_name_en ?? '';
+}
+
 /** A file's SHA-256, as file_finish wants it. */
 export async function sha256HexFile(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
@@ -117,6 +129,7 @@ export function FilesSection({
   allFilesHref,
   allFilesLabel,
   intro,
+  hiddenFiles,
 }: {
   /** The entity key, e.g. 'partner', 'task', 'achievement'. */
   entity: string;
@@ -131,6 +144,9 @@ export function FilesSection({
   allFilesHref?: string;
   allFilesLabel?: string;
   intro?: string;
+  /** How many files on this record the reader cannot see (null when unknown): when the list is empty but
+   *  files exist that are hidden from this reader, the empty state says so instead of "No files yet" (F-B6-02). */
+  hiddenFiles?: number | null;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -158,8 +174,7 @@ export function FilesSection({
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const fileName = (f: RecordFile) =>
-    locale === 'ar' && f.display_name_ar ? f.display_name_ar : (f.display_name_en ?? f.original_name ?? '');
+  const fileName = (f: RecordFile) => toastFileName(f, locale);
 
   const selected = kinds.find((k) => k.kind === kind) ?? kinds[0];
   const needsReview = selected?.reviewRequired === true;
@@ -178,7 +193,26 @@ export function FilesSection({
     })) as unknown as { id: string; bucket: string; path: string };
     const stored = await browserDb().storage.from(begun.bucket).upload(begun.path, file);
     if (stored.error) throw stored.error;
-    await rpc('file_finish', { p_id: begun.id, p_sha256: await sha256HexFile(file) });
+    // file_finish answers the request id of the store, so the upload's toast carries Undo (F-B1-05):
+    // undoing that request puts the file back to pending — the upload undone. The storage object and the
+    // pending row stay, as after any interrupted upload; the row can then be removed.
+    return (await rpc('file_finish', { p_id: begun.id, p_sha256: await sha256HexFile(file) })) as unknown as {
+      request_id?: string | null;
+    };
+  };
+
+  /**
+   * One file through command() (F-B1-05): a toast naming the stored file, with Undo, and the global refetch —
+   * the bare rpc + onDone() before it showed no toast at all. A failed file gets the refusal toast and no
+   * refresh, so the pending retry row stays on the page (F163).
+   */
+  const uploadOne = async (file: File, kindOpt: FileKindOption, review: string | null): Promise<boolean> => {
+    const done = await command(
+      words(t('record.files.uploaded', { name: file.name })),
+      () => attempt(file, kindOpt, review),
+      { after: () => onDone() },
+    );
+    return done !== undefined;
   };
 
   const uploadPicked = async () => {
@@ -187,9 +221,8 @@ export function FilesSection({
     setError(null);
     const failed: PendingUpload[] = [];
     for (const file of picked) {
-      try {
-        await attempt(file, selected, needsReview ? reviewOn : null);
-      } catch {
+      const ok = await uploadOne(file, selected, needsReview ? reviewOn : null);
+      if (!ok) {
         failed.push({
           key: `${file.name}-${file.size}-${file.lastModified}`,
           file,
@@ -204,9 +237,9 @@ export function FilesSection({
     if (inputRef.current) inputRef.current.value = '';
     if (failed.length) setError(t('record.files.uploadFailed'));
     setBusy(false);
-    // only refresh when at least one file landed: on a total failure the pending retry rows stay on the page,
-    // and a refresh would throw the record away into the full-page crash (F163).
-    if (failed.length < picked.length) onDone();
+    // each landed file already refreshed through command()'s after(); on a total failure nothing refreshed,
+    // so the pending retry rows stay on the page instead of the record throwing away into the full-page crash
+    // (F163).
   };
 
   const retry = async (p: PendingUpload) => {
@@ -214,15 +247,13 @@ export function FilesSection({
     if (!kindOpt) return;
     setBusy(true);
     setError(null);
-    try {
-      await attempt(p.file, kindOpt, p.reviewOn);
+    const ok = await uploadOne(p.file, kindOpt, p.reviewOn);
+    if (ok) {
       setPending((prev) => prev.filter((x) => x.key !== p.key));
-      onDone();
-    } catch {
+    } else {
       setError(t('record.files.uploadFailed'));
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   };
 
   const addPicked = (list: FileList | null) => {
@@ -274,7 +305,8 @@ export function FilesSection({
             </Field>
           ) : null}
           {needsReview ? (
-            <Field label={t('record.files.reviewOn')} className="sm:w-48">
+            // Wide enough for the date as written ("20 Nov 2026") and never squeezed by the row (F-B1-09).
+            <Field label={t('record.files.reviewOn')} className="sm:w-64 sm:shrink-0">
               {({ id }) => <DatePicker id={id} value={reviewOn || undefined} onChange={(v) => setReviewOn(v ?? '')} />}
             </Field>
           ) : null}
@@ -395,7 +427,7 @@ export function FilesSection({
           })}
         </ul>
       ) : (
-        <DataState kind="empty" message={t('record.files.none')} />
+        <DataState kind="empty" message={hiddenFiles ? t('record.files.hiddenFromYou') : t('record.files.none')} />
       )}
       <ReasonDialog
         open={removing !== null}

@@ -37,8 +37,9 @@ function api.action_item_star(p_id uuid, p_starred boolean) execute authenticate
 function api.action_item_update(p_id uuid, p_values jsonb, p_version integer) execute authenticated
 function api.action_items_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.activities_inside(p_limit integer, p_offset integer) execute authenticated
-function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
+function api.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer, p_entities text[], p_before_id uuid) execute authenticated
 function api.activity_log(p_partner uuid, p_type text, p_outcome text, p_happened_on date, p_body text, p_next_step text, p_next_step_on date, p_mentions uuid[], p_ticket_ref text, p_internal text, p_share_team boolean) execute authenticated
+function api.activity_total(p_actor uuid, p_entity text, p_since timestamp with time zone, p_entities text[]) execute authenticated
 function api.all_files(p_entity text, p_record uuid, p_kind text, p_uploader uuid, p_from date, p_to date, p_purpose text, p_side text, p_status text, p_search text, p_sort text, p_limit integer, p_offset integer, p_locale text) execute authenticated
 function api.app_settings() execute authenticated
 function api.app_settings() execute service_role
@@ -248,6 +249,7 @@ function api.sign_in_log(p_person uuid, p_before timestamp with time zone, p_lim
 function api.sign_in_methods() execute service_role
 function api.sign_in_password_check(p_email text, p_user_agent text) execute service_role
 function api.sign_in_password_refused(p_email text, p_detail text, p_user_agent text) execute service_role
+function api.target_delete(p_id uuid, p_reason text) execute authenticated
 function api.target_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function api.targets(p_plan uuid) execute authenticated
 function api.task(p_id uuid) execute authenticated
@@ -293,7 +295,8 @@ function api.views_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.weekly_review(p_day date) execute authenticated
 function api.weekly_unlogged(p_show_routine boolean) execute authenticated
 function api.wrap_up(p_items jsonb) execute authenticated
-function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer) execute authenticated
+function audit.activity(p_actor uuid, p_entity text, p_since timestamp with time zone, p_before timestamp with time zone, p_limit integer, p_entities text[], p_before_id uuid) execute authenticated
+function audit.activity_total(p_actor uuid, p_entity text, p_since timestamp with time zone, p_entities text[]) execute authenticated
 function audit.record_history(p_entity text, p_id uuid) execute authenticated
 function audit.undo(p_request uuid) execute authenticated
 function audit.undo_ticketed(p_request uuid, p_ticket uuid) execute authenticated
@@ -531,6 +534,7 @@ function perf.category_usage(p_id uuid) execute authenticated
 function perf.plan_get(p_id uuid) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
 function perf.plans(p_department uuid) execute authenticated
+function perf.target_delete(p_id uuid, p_reason text) execute authenticated
 function perf.target_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.targets(p_plan uuid) execute authenticated
 function pipeline.board(p_entity text, p_filter jsonb) execute authenticated

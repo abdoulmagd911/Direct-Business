@@ -84,6 +84,15 @@ describe('the Today block with reminders', () => {
     expect(html).toContain('data-today-reminder="p1"');
     expect(html).not.toContain('data-today-reminder="p2"');
   });
+  it('counts a later-day reminder on the Reminders chip, although the Today block does not list it (F-B1-08)', () => {
+    // the Reminders section below lists the later-day reminder, so the chip must count it too — before, it
+    // read "Reminders 0" while that reminder was listed on the page
+    const html = draw({
+      pending: [{ id: 'p2', note_id: null, text: 'Next week', remind_at: '2026-10-18T09:00:00+03:00' }],
+    });
+    expect(html).not.toContain('data-today-reminder="p2"');
+    expect(html).toMatch(/data-today-chip="reminders"[^>]*>Reminders <span[^>]*>1<\/span>/);
+  });
   it('says "Nothing due today" when there is nothing, and draws Arabic without a missing key', () => {
     expect(draw({})).toContain('Nothing due today');
     const html = draw(

@@ -12,6 +12,13 @@ import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
 // turn, first asked first served), a read the person has moved away from is cancelled before it starts (once sent it runs on and
 // its answer is dropped, so the database is never asked for more than two statements at once), a read that fails for the database's timeout or a dropped connection is asked once more after a pause, and
 // each block fails and retries on its own — Try again repeats that one read, never the page.
+//
+// L15 (F-B3-06): the limit stays TWO. A stalled read's own fail-and-retry cycle is the ~70 s to its error, not the
+// queue — the other blocks fill in seconds either way, so raising the limit would not shorten the failure and would
+// risk the 8-second pile-up again. No client deadline was added either: a deadline that let go of the slot would
+// start the next read beside a statement still working (QA-552, in `once` below), and one that kept the slot would
+// leave the retry waiting for it — no sooner than the retry today. The per-attempt stall cost is the transport's,
+// not this file's: these reads bypass `rpc()` and its 30 s timeout, so no client timeout bounds them.
 
 /** How many Finance reads this browser has in flight at once. */
 export const LIMIT = 2;

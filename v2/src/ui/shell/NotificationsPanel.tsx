@@ -19,6 +19,7 @@ import { Field } from '../Field';
 import { IconButton } from '../IconButton';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 import { dueState, groupOf, recordName, riyadhDay } from './bell-words';
+import { fieldLabel } from '../record/diff-words';
 import { Tabs } from '../Tabs';
 import { toast } from '../Toast';
 
@@ -73,11 +74,8 @@ export function NotificationsPanel({
   };
   // One plain pattern: "<who> changed <what> on <record>". The record is its name for a reader who may see it (the
   // server sends none otherwise, QA-553), else the kind's word; what changed is the fields' words, never their values.
-  const fieldWord = (f: string) => {
-    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);
-    const plain = f.replace(/_id$/, '').replace(/_/g, ' ');
-    return plain.charAt(0).toUpperCase() + plain.slice(1);
-  };
+  // The field words are the shared diff renderer's (D36(a)): the bell and the timeline name a field the same way.
+  const fieldWord = (f: string) => fieldLabel(t, f);
   const wordsOf = (n: Notification, now: Date) => {
     const actor = (locale === 'ar' ? n.actor_name_ar : n.actor_name_en) ?? n.actor_name_en ?? '';
     // A dotted kind ("task.removed", "contact.removed") reads by its first part — "Task", "Contact" — never raw.

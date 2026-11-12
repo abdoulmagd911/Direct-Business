@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { command } from '@/core/commands/command';
 import { restoreRecord } from '@/core/commands/undo';
@@ -12,7 +11,6 @@ import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
-import { entityRoute } from '@/ui/entity-route';
 import type { AvatarPerson } from '@/ui/Avatar';
 
 /** One row of api.recently_deleted (V401): a removed record the viewer may see, inside the restore window. */
@@ -51,6 +49,10 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
   const [type, setType] = useState('all');
   const [person, setPerson] = useState('all');
   const [since, setSince] = useState('');
+  // F-B5-07: a deleted row's label expands the row in place instead of linking out — the link went to the live
+  // record's route, which 404s for a deleted record, so the full text was unreachable. The expanded row shows
+  // the label and the reason in full; the truncation leg of the same finding is evidence-owed (§5.7), not built.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // A dotted kind ("task.removed") reads by its first part — "Task" — never raw.
   const kindOf = (entity: string) => {
@@ -182,23 +184,24 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
             <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
               <ul className="divide-y divide-border">
                 {filtered.map((d) => {
-                  const href = entityRoute(d.entity, d.id);
+                  const key = `${d.entity}:${d.id}`;
+                  const open = openId === key;
                   return (
                     <li
-                      key={`${d.entity}:${d.id}`}
+                      key={key}
                       className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
                       data-deleted-row={d.id}
                     >
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="font-medium">
-                          {href ? (
-                            <Link href={href} className="hover:underline">
-                              {whatOf(d)}
-                            </Link>
-                          ) : (
-                            whatOf(d)
-                          )}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(open ? null : key)}
+                          aria-expanded={open}
+                          className="text-start font-medium hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+                          data-deleted-details={d.id}
+                        >
+                          {whatOf(d)}
+                        </button>
                         <span className="text-xs text-muted">
                           {[
                             d.deleted_by && people[d.deleted_by] ? people[d.deleted_by]!.displayName : null,
@@ -208,6 +211,15 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
                             .join(' · ')}
                         </span>
                         {reasonOf(d) ? <span className="break-words text-xs text-muted">{reasonOf(d)}</span> : null}
+                        {open ? (
+                          <span
+                            className="mt-1 flex min-w-0 flex-col gap-0.5 border-s-2 border-border ps-3"
+                            data-deleted-full={d.id}
+                          >
+                            {labelOf(d) ? <span className="break-words text-sm">{labelOf(d)}</span> : null}
+                            {reasonOf(d) ? <span className="break-words text-xs text-muted">{reasonOf(d)}</span> : null}
+                          </span>
+                        ) : null}
                       </span>
                       {d.can_restore === false ? (
                         <span className="text-xs text-muted" data-deleted-blocked>

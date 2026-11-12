@@ -1,7 +1,7 @@
 'use client';
 import { AlarmClockPlus, Check, Megaphone, Pencil, Trash2, Trophy, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
@@ -17,6 +17,8 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
+import { Select } from '@/ui/Select';
+import type { ListEntry } from '@/modules/partners/types';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
 import { OpenAskChips, RecordHeaderCounts } from '@/ui/record/Comments';
@@ -128,8 +130,12 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       {task.stale ? <StatusChip tone="warning">{t('pages.tasks.flags.stale')}</StatusChip> : null}
       {task.escalated ? <StatusChip tone="warning">{t('pages.tasks.escalate.flag')}</StatusChip> : null}
       {task.past_work ? <StatusChip tone="neutral">{t('pages.tasks.flags.pastWork')}</StatusChip> : null}
-      {task.executive_directive ? (
-        <StatusChip tone="info">{names.locale === 'ar' ? task.priority_ar : task.priority_en}</StatusChip>
+      {/* FIX-05 (F-B1-06): the priority is shown whenever the task has one — before, the chip only drew for an
+          executive directive, so a stored priority was invisible on the record. */}
+      {task.priority ? (
+        <StatusChip tone="info">
+          {(names.locale === 'ar' ? task.priority_ar : task.priority_en) ?? task.priority}
+        </StatusChip>
       ) : null}
       <FollowUpChips entity="task" id={task.id} onCount={setFollowUps} />
       <OpenAskChips
@@ -315,6 +321,11 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       </RailField>
       <RailField label={t('pages.tasks.fields.type')} empty={!task.type} add={<span>—</span>}>
         {names.locale === 'ar' ? task.type_ar : task.type_en}
+      </RailField>
+      {/* FIX-05 (F-B1-06): the priority sits in Details with the other stored fields, so it is visible even
+          where the header chips are not the first thing read. */}
+      <RailField label={t('pages.tasks.fields.priority')} empty={!task.priority} add={<span>—</span>}>
+        {(names.locale === 'ar' ? task.priority_ar : task.priority_en) ?? task.priority}
       </RailField>
       <RailField label={t('pages.tasks.fields.raised')}>{date(task.happened_on)}</RailField>
       <RailField label={t('pages.tasks.fields.number')}>
@@ -551,7 +562,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         ) : null}
         {tab === 'items' ? <Checklist task={task} personName={names.person} locale={names.locale} /> : null}
       </RecordPage>
-      <EditTask open={editing} onOpenChange={setEditing} task={task} />
+      <EditTask open={editing} onOpenChange={setEditing} task={task} priorities={lookups.priorities} />
       <Escalate open={escalating} onOpenChange={setEscalating} task={task} org={lookups.org} />
       <Delegate open={delegating} onOpenChange={setDelegating} task={task} org={lookups.org} />
     </>
@@ -563,10 +574,12 @@ function EditTask({
   open,
   onOpenChange,
   task,
+  priorities,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   task: TaskDetail;
+  priorities: ListEntry[];
 }) {
   const t = useTranslations();
   return (
@@ -579,15 +592,23 @@ function EditTask({
       // phone-actions test (and a user closing a clean edit) relies on. Clearing the due date is done
       // by the dialog's own Clear button next to the field, not by the browser picker's Clear.
     >
-      {open ? <EditForm task={task} onClose={() => onOpenChange(false)} /> : null}
+      {open ? <EditForm task={task} priorities={priorities} onClose={() => onOpenChange(false)} /> : null}
     </Dialog>
   );
 }
 
-function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) {
+function EditForm({ task, priorities, onClose }: { task: TaskDetail; priorities: ListEntry[]; onClose: () => void }) {
   const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
   const words = useCommandWords();
-  const stored = { title: task.title, due_on: task.due_on ?? '', notes: task.notes ?? '' };
+  const stored = {
+    title: task.title,
+    due_on: task.due_on ?? '',
+    notes: task.notes ?? '',
+    // FIX-05 (F-B1-06): the priority is editable here — before, the dialog had no Priority field, so a stored
+    // priority could not be seen or changed on the record. '' is no priority; task_update clears it (list_id '').
+    priority: task.priority ?? '',
+  };
   const [f, setF] = useState(stored);
   const [version] = useState(task.version);
   const [error, setError] = useState<string | undefined>();
@@ -601,6 +622,7 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
     if (title !== stored.title) changes.title = title;
     if (f.due_on !== stored.due_on) changes.due_on = f.due_on || null;
     if (f.notes.trim() !== stored.notes) changes.notes = f.notes.trim() || null;
+    if (f.priority !== stored.priority) changes.priority = f.priority;
     if (!Object.keys(changes).length) return onClose();
     setBusy(true);
     await command(
@@ -649,6 +671,26 @@ function EditForm({ task, onClose }: { task: TaskDetail; onClose: () => void }) 
           />
         )}
       </Field>
+      {priorities.length ? (
+        <Field label={t('pages.tasks.fields.priority')}>
+          {(p) => (
+            <Select
+              id={p.id}
+              // Radix reads an empty value as "no value" (the placeholder case), so no priority is a
+              // sentinel, as in QuickAdd — the '' itself is what task_update receives on save.
+              value={f.priority || '__none'}
+              onValueChange={(v) => setF({ ...f, priority: v === '__none' ? '' : v })}
+              options={[
+                { value: '__none', label: t('task.priority.none') },
+                ...priorities.map((x) => ({
+                  value: x.key,
+                  label: locale === 'ar' && x.name_ar ? x.name_ar : x.name_en,
+                })),
+              ]}
+            />
+          )}
+        </Field>
+      ) : null}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}

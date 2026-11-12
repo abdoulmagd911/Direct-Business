@@ -130,6 +130,11 @@
     "notes": "Notes",
     "recentlyDeleted": "Recently deleted"
   },
+  "search": {
+    "codes": {
+      "group": "Discount codes"
+    }
+  },
   "profileMenu": {
     "theme": "Theme",
     "density": "Density",
@@ -730,6 +735,11 @@
         "none": "No code is shown under a partner yet",
         "promo": "Promo",
         "codes": "Codes"
+      },
+      "search": {
+        "label": "Search codes",
+        "placeholder": "Search by code…",
+        "noMatch": "No codes match this search."
       },
       "emptyFiltered": "No codes match this filter."
     },
@@ -1421,8 +1431,10 @@
       "remove": "Remove",
       "removeTitle": "Remove {name}?",
       "removed": "File {name} removed",
+      "uploaded": "File {name} uploaded",
       "kind": "Kind",
       "none": "No files yet",
+      "hiddenFromYou": "There are files you cannot see",
       "addedOn": "Added {date}",
       "uploader": "Added by",
       "search": "Search files",
@@ -1436,6 +1448,7 @@
       "retryUpload": "Try again",
       "uploadFailedPickAgain": "The upload did not finish — choose the file again",
       "notStored": "Not uploaded yet",
+      "evidenceCount": "{count, plural, one {# evidence item} other {# evidence items}}",
       "kinds": {
         "evidence": "Evidence"
       }
@@ -1544,7 +1557,8 @@
       "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
       "escalation.raised": "Asked for help",
       "escalation.acknowledged": "Need for help acknowledged",
-      "achievement_category.retired": "Category archived"
+      "achievement_category.retired": "Category archived",
+      "contact.removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
     },
     "signIn": {
       "at": "When",
@@ -1566,6 +1580,21 @@
       }
     },
     "loadMore": "Show earlier",
+    "startPage": {
+      "my_day": "My day",
+      "overview": "Overview",
+      "clients": "Clients",
+      "suppliers_partners": "Suppliers",
+      "pipeline": "Pipeline",
+      "projects": "Projects",
+      "tasks": "Tasks",
+      "finance": "Finance",
+      "kpis": "Achievements",
+      "reports": "Reports",
+      "codes": "Discount codes",
+      "activity": "Activity",
+      "appraisal": "Appraisal"
+    },
     "deleted": {
       "restore": "Restore",
       "restored": "{what} restored",
@@ -1650,12 +1679,25 @@
       "deleted_by": "Deleted by",
       "delete_reason": "Delete reason",
       "city": "City",
-      "sha256": "Sha256",
+      "sha256": "SHA-256",
       "stored_at": "Stored at"
     },
     "moreFields": "+{count} more",
     "fieldsCount": "{count, plural, one {# field} other {# fields}}",
-    "reportsTo": "reports to {name}"
+    "reportsTo": "reports to {name}",
+    "type": {
+      "call": "A phone call with the client.",
+      "follow_up_call": "A phone call following up an earlier contact.",
+      "visit": "A visit to the client's office.",
+      "site_visit": "A visit to a site or venue, not the client's office.",
+      "meeting": "A meeting with the client.",
+      "demo": "A demonstration of the system.",
+      "note": "A note, with no contact.",
+      "decision": "A decision recorded on the client.",
+      "whatsapp": "A WhatsApp message with the client.",
+      "email": "An email to the client.",
+      "ticket": "Work on a support ticket."
+    }
   },
   "profile": {
     "title": "My profile",
@@ -3186,5 +3228,15 @@
     "bar": "TEST user: {name} (you are {owner})",
     "back": "Back to my account",
     "start": "Sign in as test user"
+  },
+  "task": {
+    "priority": {
+      "none": "No priority"
+    }
+  },
+  "targets": {
+    "deleteTarget": "Delete target",
+    "targetDeleted": "Target deleted",
+    "deleteConfirm": "Delete the {month} target for {category}? Achievements already logged stay."
   }
 }

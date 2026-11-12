@@ -1,8 +1,9 @@
 -- NOTE-02 — a My day note is seen by its own rule (V454, V143, V183; TECH-SPEC §3.3a). Private — the default — by its
--- author alone, admins included: in nobody else's My day, note door, search, history, Activity page or Follow, and it
+-- author alone, admins included: in nobody else's My day, note door, history, Activity page or Follow, and it
 -- mentions nobody. Team: the author's team (home, helping or leading) and admins, never another team. Workspace:
 -- everyone. A mention must see the note and is told once; sharing more narrowly while someone mentioned would lose the
--- note is refused. Every value is made up.
+-- note is refused. Search returns no notes at all, for anyone (Landing 15, F-B3-03: the 'notes' key is gone from
+-- core.search). Every value is made up.
 -- Sabotages: supabase/tests/sabotage/an-admin-reads-a-private-note.sql, a-private-note-found-in-search.sql,
 -- a-team-note-seen-by-another-team.sql, the-admin-shortcut-ignores-rule-only.sql, a-rule-only-type-without-its-rule.sql,
 -- since-counts-private-notes.sql, an-admin-undoes-a-private-note.sql.
@@ -29,7 +30,7 @@ select set_config('t.ncap', api.note_capture('sticky', jsonb_build_object('title
 select set_config('t.n', current_setting('t.ncap')::jsonb ->> 'id', true);
 select test.eq(api.my_note(current_setting('t.n')::uuid) ->> 'visibility', 'private', 'a note is private by default');
 select test.eq(api.my_day('me') -> 'notes' -> 0 ->> 'id', current_setting('t.n'), 'it is on its author''s My day');
-select test.eq(jsonb_array_length(api.search('quiet thought') -> 'notes'), 1, 'its author finds it');
+select test.ok(api.search('quiet thought') -> 'notes' is null, 'its author finds nothing in search');
 select test.eq(jsonb_array_length(api.record_history('my_note', current_setting('t.n')::uuid)), 1,
   'its author reads its history');
 select test.raises(format('select api.note_capture(%L, %L::jsonb, array[%L]::uuid[])', 'sticky', '{"title": "Made up"}',
@@ -38,7 +39,7 @@ select test.raises(format('select api.note_capture(%L, %L::jsonb, array[%L]::uui
 select test.as_person(current_setting('t.admin')::uuid);
 select test.raises(format('select api.my_note(%L)', current_setting('t.n')), 'P0002',
   'an admin cannot open a member''s private note', 'common.not_found');
-select test.eq(jsonb_array_length(api.search('quiet thought') -> 'notes'), 0, 'nor find it');
+select test.ok(api.search('quiet thought') -> 'notes' is null, 'nor find it');
 select test.raises(format('select api.record_history(%L, %L)', 'my_note', current_setting('t.n')), '42501',
   'nor read its history', 'access.needs_level');
 select test.eq(jsonb_array_length(api.activity(null, 'my_note')), 0, 'nor see it on the Activity page');
@@ -84,10 +85,10 @@ select test.eq(authz.can_see_as(current_setting('t.admin')::uuid, 'my.note', cur
 select test.as_person(current_setting('t.mate')::uuid);
 select test.eq(api.my_day('team') -> 'notes' -> 0 ->> 'id', current_setting('t.tn'), 'it is on the teammate''s My team');
 select test.eq(api.my_day('team') -> 'notes' -> 0 -> 'items' -> 0 ->> 'text', 'Made-up first row', 'with its rows');
-select test.eq(jsonb_array_length(api.search('team list') -> 'notes'), 1, 'and found in search');
+select test.ok(api.search('team list') -> 'notes' is null, 'and not found in search');
 select test.as_person(current_setting('t.other')::uuid);
-select test.eq(jsonb_array_length(api.my_day('team') -> 'notes') + jsonb_array_length(api.search('team list') -> 'notes'),
-  0, 'another team neither meets nor finds it');
+select test.eq(jsonb_array_length(api.my_day('team') -> 'notes'), 0, 'another team neither meets it on My team');
+select test.ok(api.search('team list') -> 'notes' is null, 'nor finds it in search');
 
 select test.as_person(current_setting('t.author')::uuid);
 select test.raises(format('select api.note_update(%L, %L::jsonb, 1)', current_setting('t.tn'), '{"visibility": "private"}'),

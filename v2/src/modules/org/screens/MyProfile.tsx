@@ -301,6 +301,9 @@ export function MyProfile({
                   {...p}
                   value={value}
                   onValueChange={(v) => void save({ start_page: v === '' ? null : v })}
+                  // F-B5-11: Default is stored as '' and Radix reads an empty value as the placeholder case, so
+                  // the closed picker showed blank — the placeholder names it Default, as the dropdown does.
+                  placeholder={t('profile.startPageDefault')}
                   options={[
                     { value: '', label: t('profile.startPageDefault') },
                     ...pages.map((e) => ({ value: e.page, label: t(e.label) })),

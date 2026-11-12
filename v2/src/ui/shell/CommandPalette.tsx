@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, CheckSquare, History, Search, StickyNote, UserRound } from 'lucide-react';
+import { Building2, CheckSquare, History, Search, Tag, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
 import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
@@ -28,14 +28,8 @@ registerActions([
 
 type Hit = { id: string; full_name_en: string; full_name_ar: string | null; job_title_en: string | null };
 type OrgHit = { id: string; number: string; trade_name_en: string; trade_name_ar: string | null; matched_by: string };
-// a captured item the reader may see (V641): its name and what it was captured as
-type NoteHit = {
-  id: string;
-  label: string | null;
-  capture_kind: 'note' | 'idea' | 'checklist' | 'reminder' | 'meeting';
-  /** V660: the checklist item it was found by, when found by an item alone */
-  item?: string | null;
-};
+// a discount code the reader may see, by its text (F-B1-01)
+type CodeHit = { id: string; code: string; state: 'active' | 'inactive' | 'expired' };
 // a task the reader may see (api.search reads it by its row level), by its number and title, or by a checklist item
 type TaskHit = { id: string; number: string; title: string; closed: boolean; item?: string | null };
 
@@ -45,10 +39,10 @@ const groupClass =
   '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted';
 
 /**
- * Ctrl K (V401): Go to a page; organisations, people, tasks and the notes the reader may see — every kind captured,
- * each naming its kind (V641) — through api.search; the Create actions; and the actions each step registers (New task ·
- * Log activity · New invoice) — only the ones whose page the person may see. Opens from the top-bar search or the
- * shortcut; Escape closes and focus returns.
+ * Ctrl K (V401): Go to a page; organisations, people, tasks and discount codes the reader may see — through
+ * api.search; the Create actions; and the actions each step registers (New task · Log activity · New invoice) —
+ * only the ones whose page the person may see. Captured notes are NOT here (F-B3-03, Landing 15): the search
+ * answers no notes group. Opens from the top-bar search or the shortcut; Escape closes and focus returns.
  */
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
@@ -60,13 +54,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     term: string;
     people: Hit[];
     partners: OrgHit[];
-    notes: NoteHit[];
+    codes: CodeHit[];
     tasks: TaskHit[];
   }>({
     term: '',
     people: [],
     partners: [],
-    notes: [],
+    codes: [],
     tasks: [],
   });
   // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
@@ -82,18 +76,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             term,
             people: ((a as { people?: Hit[] } | null)?.people ?? []).slice(0, 8),
             partners: ((a as { partners?: OrgHit[] } | null)?.partners ?? []).slice(0, 8),
-            notes: ((a as { notes?: NoteHit[] } | null)?.notes ?? []).slice(0, 8),
+            codes: ((a as { codes?: CodeHit[] } | null)?.codes ?? []).slice(0, 8),
             tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),
           }),
       )
-      .catch(() => live && setFound({ term, people: [], partners: [], notes: [], tasks: [] }));
+      .catch(() => live && setFound({ term, people: [], partners: [], codes: [], tasks: [] }));
     return () => {
       live = false;
     };
   }, [term, open]);
   const people = open && term.length >= 2 && found.term === term ? found.people : [];
   const partners = open && term.length >= 2 && found.term === term ? found.partners : [];
-  const notes = open && term.length >= 2 && found.term === term ? found.notes : [];
+  const codes = open && term.length >= 2 && found.term === term ? found.codes : [];
   const tasks = open && term.length >= 2 && found.term === term ? found.tasks : [];
   // FIX-13(a): while the search for the term as typed is still on its way, the palette says so — the "Nothing
   // matches" empty state only shows once the answer for this term has settled.
@@ -230,34 +224,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   ))}
                 </Command.Group>
               ) : null}
-              {notes.length ? (
-                <Command.Group heading={t('palette.notes')} className={groupClass}>
-                  {notes.map((n) => {
-                    const kind = t(`pages.myDay.quick.kinds.${n.capture_kind}`);
-                    return (
-                      <Command.Item
-                        key={n.id}
-                        value={`${n.label ?? ''} ${n.id}`}
-                        onSelect={() => go(`/my-day/notes/${n.id}`)}
-                        className={itemClass}
-                        data-palette-note={n.id}
-                      >
-                        <StickyNote className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                        <span className="truncate">
-                          {n.label ?? kind}
-                          {n.item ? (
-                            <span className="text-muted" data-palette-item>
-                              {' · '}
-                              {n.item}
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="ms-auto shrink-0 text-sm text-muted" data-palette-note-kind>
-                          {kind}
-                        </span>
-                      </Command.Item>
-                    );
-                  })}
+              {codes.length ? (
+                <Command.Group heading={t('search.codes.group')} className={groupClass}>
+                  {codes.map((c) => (
+                    <Command.Item
+                      key={c.id}
+                      value={`${c.code} ${c.id}`}
+                      onSelect={() => go(`/codes?code=${c.id}`)}
+                      className={itemClass}
+                      data-palette-code={c.id}
+                    >
+                      <Tag className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                      <span className="truncate font-data">{c.code}</span>
+                      <span className="ms-auto shrink-0 text-sm text-muted">{t(`pages.codes.filter.${c.state}`)}</span>
+                    </Command.Item>
+                  ))}
                 </Command.Group>
               ) : null}
               {createActions.length || actions.length ? (

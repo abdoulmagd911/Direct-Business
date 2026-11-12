@@ -258,7 +258,9 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                       className="flex items-center gap-2.5 hover:underline"
                       data-entity="person"
                     >
-                      {avatar ? <Avatar person={avatar} size="sm" /> : null}
+                      {/* O2: the avatar sits inside the link that already names the person, so it is decorative —
+                          its alt would repeat the name and the link's accessible name would carry it twice (F105). */}
+                      {avatar ? <Avatar person={avatar} size="sm" decorative /> : null}
                       <span className="flex flex-col leading-tight">
                         <span className="font-medium">{fullName(p)}</span>
                         {jobTitle(p) ? <span className="text-xs text-muted">{jobTitle(p)}</span> : null}
@@ -312,7 +314,8 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
             <li key={p.id} className="rounded-lg border border-border bg-raised p-3" data-person-card={p.id}>
               <div className="flex items-center justify-between gap-3">
                 <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2.5" data-entity="person">
-                  {avatar ? <Avatar person={avatar} size="sm" /> : null}
+                  {/* O2: decorative here too — the link already names the person (see the table row above). */}
+                  {avatar ? <Avatar person={avatar} size="sm" decorative /> : null}
                   <span className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate font-medium">{fullName(p)}</span>
                     <span className="truncate text-xs text-muted">

@@ -52,4 +52,15 @@ describe('Recently deleted offers Restore only where it works', () => {
     expect(out).toContain('You can&#x27;t restore this');
     expect(out).toContain('Can&#x27;t be restored');
   });
+
+  it('opens a deleted row in place instead of linking to its live record (F-B5-07)', () => {
+    const out = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <RecentlyDeleted rows={[row('gone', true)]} people={{}} />
+      </NextIntlClientProvider>,
+    );
+    // the live record's route 404s for a deleted row, so the label is a button that expands the row, not a link
+    expect(out).toContain('data-deleted-details="gone"');
+    expect(out).not.toContain('href=');
+  });
 });

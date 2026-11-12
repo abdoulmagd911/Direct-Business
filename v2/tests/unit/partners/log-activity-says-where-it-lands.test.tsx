@@ -74,6 +74,11 @@ describe('Log activity', () => {
     draw({});
     expect(typeBox()).toBe('WhatsApp');
   });
+
+  it('says what the chosen type means, so Call and Follow-up call read apart (F-B3-08)', () => {
+    draw({});
+    expect(document.querySelector('[data-activity-type-desc]')?.textContent).toBe('A phone call with the client.');
+  });
 });
 
 describe('Log activity (23 Oct)', () => {
@@ -94,5 +99,36 @@ describe('Log activity (23 Oct)', () => {
     const title = document.querySelector('[role="dialog"] h2');
     expect(title?.textContent).toContain('Log activity for TEST Agency Client 16Oct');
     expect(title?.querySelector('[data-activity-change]'), 'Change sits inside the title row').not.toBeNull();
+  });
+});
+
+describe('the activity type picker groups near-duplicates (F-B3-08)', () => {
+  it('puts Follow-up call after Call and Site visit after Visit, and keeps the rest in order', async () => {
+    const { orderActivityTypes } = await import('../../../src/modules/partners/screens/record/LogActivityDialog');
+    const types = ['visit', 'call', 'site_visit', 'meeting', 'follow_up_call', 'note'].map((key, i) => ({
+      id: `t${i}`,
+      key,
+      name_en: key,
+      name_ar: null,
+    })) as unknown as ListEntry[];
+    expect(orderActivityTypes(types).map((x) => x.key)).toEqual([
+      'visit',
+      'site_visit',
+      'call',
+      'follow_up_call',
+      'meeting',
+      'note',
+    ]);
+  });
+
+  it('leaves a list without the duplicates untouched', async () => {
+    const { orderActivityTypes } = await import('../../../src/modules/partners/screens/record/LogActivityDialog');
+    const types = ['call', 'meeting', 'demo'].map((key, i) => ({
+      id: `t${i}`,
+      key,
+      name_en: key,
+      name_ar: null,
+    })) as unknown as ListEntry[];
+    expect(orderActivityTypes(types).map((x) => x.key)).toEqual(['call', 'meeting', 'demo']);
   });
 });

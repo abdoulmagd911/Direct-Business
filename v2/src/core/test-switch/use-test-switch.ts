@@ -66,6 +66,11 @@ export function useTestSwitch() {
       } catch (e) {
         const { key, detail } = errorKey(e, (k) => t.has(k));
         toast.failed(t(key, { detail }));
+      } finally {
+        // F-B6-01(e): the switch leaves the old page sitting there while the new one loads, and the buttons on
+        // it are bound to `busy` — clearing it only on failure left every switch button disabled after a
+        // switch that had already succeeded server-side. The server still refuses a second switch, so
+        // re-enabling the buttons cannot double-apply one.
         setBusy(false);
       }
     },

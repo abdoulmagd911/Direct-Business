@@ -6,13 +6,14 @@ import { useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { run } from '@/core/commands/run';
 import { undoRequest } from '@/core/commands/undo';
-import { formatDate, formatStoredDate } from '@/core/i18n/format';
+import { formatDate } from '@/core/i18n/format';
 import { entityRoute } from '@/ui/entity-route';
 import { Button } from '../Button';
 import { StatusChip } from '../Chip';
 import { PersonChip } from '../PersonChip';
 import type { AvatarPerson } from '../Avatar';
 import { ShowAll } from './ShowAll';
+import { fieldLabel, keyWord, makeValueWords } from './diff-words';
 
 import { groupPreferenceRuns, type HistoryRow } from './history';
 export type { HistoryRow, RecordChange } from './history';
@@ -34,6 +35,9 @@ export function ActivityTimeline({
   summarize,
   entityWords,
   undoEvery = false,
+  totalCount,
+  hasEarlier = false,
+  onLoadEarlier,
 }: {
   rows: HistoryRow[];
   /** Who is who, for the chips: from api.org() or the record itself. */
@@ -48,12 +52,18 @@ export function ActivityTimeline({
   entityWords?: Record<string, string>;
   /** The whole change log: Undo on every request not undone, not only on the reader's newest. */
   undoEvery?: boolean;
+  /** How many requests the log holds in all (the /activity page's true total): "Show all" names it, not the rows read so far. */
+  totalCount?: number;
+  /** Older pages wait past the ones read: "Show earlier" loads them. */
+  hasEarlier?: boolean;
+  onLoadEarlier?: () => Promise<void> | void;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const me = useMaybeMe()?.person.id;
   const [busy, setBusy] = useState<string | null>(null);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const undoable = (r: HistoryRow) => !r.undone && r.kind !== 'system' && r.kind !== 'job' && r.kind !== 'undo';
   const newestMine = rows.find((r) => r.actor_id === me && undoable(r))?.request_id;
   const offersUndo = (r: HistoryRow) => undoable(r) && (undoEvery || r.request_id === newestMine);
@@ -63,49 +73,10 @@ export function ActivityTimeline({
     ...entityWords,
   };
 
-  // A column name is never shown: its wording, else the name in plain words ("manager_id" → "Manager").
-  const fieldLabel = (f: string) => {
-    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);
-    const plain = f.replace(/_id$/, '').replace(/_/g, ' ');
-    return plain.charAt(0).toUpperCase() + plain.slice(1);
-  };
-  const valueWords = (field: string, v: unknown): string => {
-    const said = describe?.(field, v);
-    if (said) return said;
-    if (v === null || v === undefined || v === '') return '—';
-    if (typeof v === 'boolean') return t(v ? 'common.yes' : 'common.no');
-    // a stored day or moment is written the one way the app writes a date (formatStoredDate), then a person's id by name
-    if (typeof v === 'string' || typeof v === 'number') {
-      const when = formatStoredDate(v, locale);
-      if (when) return when;
-    }
-    if (typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) return people[v]?.displayName ?? '—';
-    if (typeof v === 'string' || typeof v === 'number') return String(v);
-    // A list reads as its items' words, never as JSON (F061): a checklist item by its text, marked done where it is.
-    if (Array.isArray(v)) {
-      if (!v.length) return '—';
-      const texts = v.map((it) => {
-        if (it && typeof it === 'object') {
-          const rec = it as Record<string, unknown>;
-          if (typeof rec.text === 'string' && rec.text.trim())
-            return rec.done === true ? `${rec.text.trim()} (${t('status.done')})` : rec.text.trim();
-          return null;
-        }
-        if (typeof it === 'string' || typeof it === 'number') return String(it);
-        return null;
-      });
-      const said = texts.filter((x): x is string => x !== null);
-      return said.length ? said.join(', ') : '—';
-    }
-    // A grouped value reads as its named parts, never as JSON.
-    if (v && typeof v === 'object') {
-      const parts = Object.entries(v as Record<string, unknown>).map(
-        ([k, val]) => `${fieldLabel(k)}: ${valueWords(k, val)}`,
-      );
-      return parts.length ? parts.join(', ') : '—';
-    }
-    return JSON.stringify(v);
-  };
+  // The shared diff renderer (D36(a)): a column name is never shown, and a value reads in words — a list of
+  // people by name, a start page by its word, a setting or capability key by its wording.
+  const fieldLabelOf = (f: string) => fieldLabel(t, f);
+  const valueWords = makeValueWords({ t, locale, describe, people });
   const record = (v: unknown): Record<string, unknown> | null =>
     v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
   /** What an added record is, in words: its name, then who and where ("Kareem Medhat · Sales · reports to Othman"). */
@@ -116,9 +87,11 @@ export function ActivityTimeline({
     // FIX-26 F031: a flag note's own words are its summary — the need-for-help note reads in History, not just
     // the flag. (Only the escalation kind: other notes keep the summary they already had.)
     if (after.kind === 'escalation' && typeof after.body === 'string' && after.body) return after.body;
-    const name = ['full_name_en', 'trade_name_en', 'name_en', 'title', 'email', 'key']
-      .map((k) => after[k])
-      .find(Boolean);
+    const nameField = ['full_name_en', 'trade_name_en', 'name_en', 'title', 'email', 'key'].find((k) => after[k]);
+    let name = nameField ? after[nameField] : undefined;
+    // A record named by its key alone reads by the key's word, never raw (O1: three capability keys joined
+    // with "·" were a registry sync's summaries): a capability's word, a setting's, a start page's.
+    if (nameField === 'key' && typeof name === 'string') name = keyWord(t, name) ?? name;
     const parts: string[] = [];
     if (typeof name === 'string') parts.push(name);
     // a task's helper by name; a follow-up by its time (B)
@@ -149,7 +122,7 @@ export function ActivityTimeline({
           ? t(`entity.${c.entity.split('.')[0]}`)
           : (c.entity ?? ''));
     if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
-    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabel).join(', ') });
+    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabelOf).join(', ') });
   };
 
   const undo = (r: HistoryRow) => {
@@ -265,7 +238,7 @@ export function ActivityTimeline({
                 if (!said) return null;
                 return (
                   <li key={f} className="rounded-sm bg-surface px-1.5 py-0.5" data-history-field={f}>
-                    {fieldLabel(f)}: {said}
+                    {fieldLabelOf(f)}: {said}
                   </li>
                 );
               })
@@ -297,12 +270,40 @@ export function ActivityTimeline({
   });
 
   if (!items.length) return <p className="text-sm text-muted">{t('activity.none')}</p>;
+  const loadEarlier = async () => {
+    if (!onLoadEarlier || loadingEarlier) return;
+    setLoadingEarlier(true);
+    try {
+      await onLoadEarlier();
+    } finally {
+      setLoadingEarlier(false);
+    }
+  };
   return (
-    <ShowAll
-      items={items}
-      initial={initial}
-      labels={{ showAll: (n) => t('record.showAll', { count: n }), showLess: t('record.showLess') }}
-      render={(children) => <ol className="divide-y divide-border">{children}</ol>}
-    />
+    <>
+      <ShowAll
+        items={items}
+        initial={initial}
+        labels={{
+          // The count is the whole log's (F-B4-04), not the rows read so far: "Show all (484)" hid the 7 Nov
+          // entries while naming only the grouped rows of one page.
+          showAll: () => t('record.showAll', { count: totalCount ?? items.length }),
+          showLess: t('record.showLess'),
+        }}
+        render={(children) => <ol className="divide-y divide-border">{children}</ol>}
+      />
+      {hasEarlier ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2"
+          onClick={() => void loadEarlier()}
+          loading={loadingEarlier}
+          data-activity-load-earlier
+        >
+          {t('activity.loadMore')}
+        </Button>
+      ) : null}
+    </>
   );
 }

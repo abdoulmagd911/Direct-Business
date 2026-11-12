@@ -231,8 +231,10 @@ export async function FilesArchivePage({
         </p>
       ) : null}
       {/* Wide screens: search and filters in one row. Keyed by the address, so Clear filters remounts the
-          controls with fresh defaults (F146) instead of leaving the old values showing. */}
-      <form key={queryKey} action="/files" method="get" className="mb-4 hidden flex-col gap-3 sm:flex">
+          controls with fresh defaults (F146) instead of leaving the old values showing. The key carries the
+          breakpoint too: the two forms are siblings, and the same key on both broke React reconciliation and
+          piled up extra filter bars across soft navigations (F-B3-01). */}
+      <form key={`${queryKey}:wide`} action="/files" method="get" className="mb-4 hidden flex-col gap-3 sm:flex">
         <div className="flex gap-2">
           <input
             type="search"
@@ -253,8 +255,9 @@ export async function FilesArchivePage({
           </Link>
         ) : null}
       </form>
-      {/* Phones: search plus a filter sheet. Keyed by the address, as the wide form above. */}
-      <form key={queryKey} action="/files" method="get" className="mb-4 flex flex-col gap-3 sm:hidden">
+      {/* Phones: search plus a filter sheet. Keyed by the address, as the wide form above — with its own
+          breakpoint suffix, so the two sibling forms never share a key (F-B3-01). */}
+      <form key={`${queryKey}:phone`} action="/files" method="get" className="mb-4 flex flex-col gap-3 sm:hidden">
         <div className="flex gap-2">
           <input
             type="search"

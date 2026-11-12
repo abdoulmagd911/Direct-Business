@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codeState, filterCodes, sortCodes } from '@/modules/codes/state';
+import { codeState, filterCodes, searchCodes, sortCodes } from '@/modules/codes/state';
 import type { CodeRow } from '@/modules/codes/types';
 
 const row = (over: Partial<CodeRow>): CodeRow => ({
@@ -58,5 +58,25 @@ describe('discount codes list order and filter', () => {
     ]);
     expect(filterCodes(rows, 'active').map((r) => r.id)).toEqual(['c', 'a']);
     expect(filterCodes(rows, 'all').map((r) => r.id)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+describe('discount codes search box (F-B3-04)', () => {
+  it('keeps the codes carrying the typed fragment, in the list order', () => {
+    const rows = [
+      row({ id: 'a', code: 'FLIGHTS10' }),
+      row({ id: 'b', code: 'HOTEL20' }),
+      row({ id: 'c', code: 'FLIGHTS20' }),
+    ];
+    expect(searchCodes(rows, 'flights').map((r) => r.id)).toEqual(['a', 'c']);
+    expect(searchCodes(rows, 'FLIGHTS1').map((r) => r.id)).toEqual(['a']);
+    expect(searchCodes(rows, 'hotel').map((r) => r.id)).toEqual(['b']);
+  });
+
+  it('an empty box keeps the list, and a text no code carries keeps none', () => {
+    const rows = [row({ id: 'a', code: 'FLIGHTS10' })];
+    expect(searchCodes(rows, '')).toEqual(rows);
+    expect(searchCodes(rows, '  ')).toEqual(rows);
+    expect(searchCodes(rows, 'zzz')).toEqual([]);
   });
 });

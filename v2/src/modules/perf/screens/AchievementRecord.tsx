@@ -49,7 +49,7 @@ export type AchievementRecordData = {
   history: HistoryRow[] | null;
   /** The Discussion's comments; null when they could not be read. */
   comments: RecordComments | null;
-  /** The achievement's files (null when they could not be read); the header's files count and the Discussion stream read them. */
+  /** The achievement's files (null when they could not be read); the header's evidence count and the Discussion stream read them. */
   files: RecordFile[] | null;
   categories: Category[];
   systems: { key: string; name: string }[];
@@ -223,7 +223,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             {data.fromNote ? <FromNoteChip note={data.fromNote} /> : null}
             <RecordHeaderCounts
               comments={commentCount ?? data.comments?.comments.length ?? null}
-              files={data.files?.length ?? null}
+              // the header counts the same evidence the Evidence tab counts — files plus references — so the
+              // two numbers agree (F-B2-03); a failed files read leaves the count out, never zero.
+              evidence={{
+                count: data.files === null ? null : data.files.length + a.refs.length,
+                href: `/kpis/achievements/${a.id}?tab=evidence`,
+              }}
               href={(f) => `/kpis/achievements/${a.id}?tab=discussion${f === 'files' ? '&filter=files' : ''}`}
             />
           </>
@@ -256,8 +261,9 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         }
         tabs={TABS.map((k) => ({
           key: k,
-          // FIX-36 F086/F085: the Evidence tab counts ALL evidence — files and references — and agrees with the
-          // header; when the files read failed (null) it falls back to the references alone.
+          // FIX-36 F086/F085 (F-B2-03): the Evidence tab counts ALL evidence — files and references — the
+          // same set the header counts, so the two numbers agree; when the files read failed (null) the tab
+          // falls back to the references alone and the header leaves its count out.
           label:
             k === 'evidence'
               ? `${t('tabs.evidence')} (${formatNumber((data.files?.length ?? 0) + a.refs.length, locale)})`

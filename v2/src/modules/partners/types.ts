@@ -188,7 +188,13 @@ export type PartnerCard = {
   stale_on: string | null;
   next_step: { note_id: string; text: string; on: string } | null;
   flags: string[];
-  counts: { contracts: number; files: number; notes: number };
+  counts: {
+    contracts: number;
+    files: number;
+    /** Files on the partner the reader cannot see (F-B6-02): the Files section tells "none" from "hidden". */
+    files_hidden: number;
+    notes: number;
+  };
 };
 
 /** One file on a company, as api.files answers it (the existing file doors). */

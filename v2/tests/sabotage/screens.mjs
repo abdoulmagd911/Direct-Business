@@ -653,14 +653,15 @@ export const sabotages = [
   },
 
   {
+    // Landing 15 (F-B2-02, F-B5-13): the field label lives in the shared diff-words renderer now.
     name: 'activity-shows-column-names',
     breaks: ['e2e:tests/e2e/review-1.spec.ts'],
     expect: 'the field in words',
     edits: [
       {
-        file: 'src/ui/record/ActivityTimeline.tsx',
-        find: '    if (t.has(`activity.fields.${f}`)) return t(`activity.fields.${f}`);\n',
-        replace: '    if (f) return f;\n',
+        file: 'src/ui/record/diff-words.ts',
+        find: '  if (t.has(`activity.fields.${field}`)) return t(`activity.fields.${field}`);\n',
+        replace: '  if (field) return field;\n',
       },
     ],
   },
@@ -1858,15 +1859,16 @@ export const sabotages = [
     ],
   },
   {
-    // V641 (3): the owner's saved idea could not be found anywhere — the search box dropped the notes it was sent
-    name: 'search-box-shows-no-notes',
-    breaks: ['e2e:tests/e2e/search-finds-every-kind-of-note.spec.ts'],
-    expect: 'all five are found',
+    // F-B1-01 (Landing 15): the top search finds a discount code by its text — the search box drops the codes
+    // api.search sends
+    name: 'search-box-shows-no-codes',
+    breaks: ['unit:tests/unit/shell/the-palette-shows-a-discount-code.test.tsx'],
+    expect: 'the code is found by its text',
     edits: [
       {
         file: 'src/ui/shell/CommandPalette.tsx',
-        find: '            notes: ((a as { notes?: NoteHit[] } | null)?.notes ?? []).slice(0, 8),\n',
-        replace: '            notes: [],\n',
+        find: '            codes: ((a as { codes?: CodeHit[] } | null)?.codes ?? []).slice(0, 8),\n',
+        replace: '            codes: [],\n',
       },
     ],
   },

@@ -29,6 +29,22 @@ describe('the sign-in helpers mask, return and name safely', () => {
       expect(safeNext(bad)).toBe('/');
   });
 
+  it('refuses a return address to a route that does not exist, and keeps the real ones (F-B5-09)', () => {
+    // a stale ?next=%2Fforgot-password used to pass validation and land on a 404 — there is no such route
+    for (const bad of ['/forgot-password', '/forgot-password?x=1', '/no-such-page', '/reset-password', '/x/y'])
+      expect(safeNext(bad), bad).toBe('/');
+    for (const good of [
+      '/',
+      '/my-day',
+      '/my-day/week?tab=notes#x',
+      '/tasks/TSK-2026-0001',
+      '/settings/performance',
+      '/set-password',
+      '/partners/7?tab=files',
+    ])
+      expect(safeNext(good), good).toBe(good);
+  });
+
   it('judges a return address as the browser resolves it, so dot segments never reach another host (QA-562)', () => {
     // dot segments that collapse into "//host" once resolved
     for (const bad of ['/.//evil.example', '/%2e%2e//evil.example', '/x/..//evil.example', '/./%2e//evil.example/y'])

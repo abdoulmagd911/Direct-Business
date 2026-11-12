@@ -549,6 +549,12 @@ function TaskLine({
         <StatusChip tone={STATUS_TONE[view]}>
           {view === 'blocked' ? t('pages.tasks.blocked') : names.status(row)}
         </StatusChip>
+        {/* FIX-05 (F-B1-06): the priority is on the row, not only in the filter — a stored priority was invisible here. */}
+        {row.priority ? (
+          <StatusChip tone="info">
+            {(names.locale === 'ar' ? row.priority_ar : row.priority_en) ?? row.priority}
+          </StatusChip>
+        ) : null}
         {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
       </div>
     </li>

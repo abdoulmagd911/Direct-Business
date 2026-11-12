@@ -720,22 +720,27 @@ export function OpenAskChips({
 /**
  * A record header's "N comments · N files" (Phase 4, the one layout): each count is a link into the Discussion tab —
  * comments land on the whole stream, files land on the Files filter. A count whose read failed is left out, never
- * shown as zero; when both reads failed there is nothing to show.
+ * shown as zero; when both reads failed there is nothing to show. An achievement's header counts its evidence
+ * instead (files plus references, landing on the Evidence tab), so it agrees with the Evidence tab (F-B2-03).
  */
 export function RecordHeaderCounts({
   comments,
   files,
+  evidence,
   href,
 }: {
   /** How many comments the record holds now, or null when the read failed. */
   comments: number | null;
-  /** How many files the record holds now, or null when the read failed. */
-  files: number | null;
+  /** How many files the record holds now, or null when the read failed. Not read when `evidence` is given. */
+  files?: number | null;
+  /** Evidence (files + references) with where it lands — an achievement's header counts this, not `files`. */
+  evidence?: { count: number | null; href: string } | null;
   /** Where a count lands, by filter. */
   href: (filter: 'all' | 'files') => string;
 }) {
   const t = useTranslations();
-  if (comments === null && files === null) return null;
+  const second = evidence ? evidence.count : (files ?? null);
+  if (comments === null && second === null) return null;
   return (
     <p className="flex flex-wrap items-center gap-x-1 text-sm" data-record-counts>
       {comments !== null ? (
@@ -743,12 +748,18 @@ export function RecordHeaderCounts({
           {t('record.commentsCount', { count: comments })}
         </Link>
       ) : null}
-      {comments !== null && files !== null ? (
+      {comments !== null && second !== null ? (
         <span aria-hidden="true" className="text-muted">
           ·
         </span>
       ) : null}
-      {files !== null ? (
+      {evidence ? (
+        evidence.count !== null ? (
+          <Link href={evidence.href} className="font-medium text-link hover:underline">
+            {t('record.files.evidenceCount', { count: evidence.count })}
+          </Link>
+        ) : null
+      ) : files !== null && files !== undefined ? (
         <Link href={href('files')} className="font-medium text-link hover:underline">
           {t('record.filesCount', { count: files })}
         </Link>

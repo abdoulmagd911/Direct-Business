@@ -315,9 +315,11 @@ export const sabotages = [
     ],
   },
   {
+    // Landing 15: the QA-549 test fails inside settled() first — a block stuck on loading never answers, so the
+    // failure text is the helper's 'every block has answered', not the final assertion's wording.
     name: 'finance-aborted-read-overwrites-the-answer',
     breaks: [READS_E2E],
-    expect: 'no block is left on loading or failed after going back to a period',
+    expect: 'every block has answered',
     edits: [
       {
         file: READS,

@@ -56,16 +56,17 @@ beforeEach(() => {
 
 describe('a tab asks for all its data in one round after me', () => {
   it('Activity: the organisation and the tab read together, on every tab', async () => {
-    for (const [tab, read] of [
-      ['changes', 'activity'],
-      ['deleted', 'recently_deleted'],
-      ['signIns', 'sign_in_log'],
-      ['settings', 'settings_log'],
+    for (const [tab, reads] of [
+      // F-B4-04: the changes tab also asks for the true total, in the same round
+      ['changes', ['activity', 'activity_total']],
+      ['deleted', ['recently_deleted']],
+      ['signIns', ['sign_in_log']],
+      ['settings', ['settings_log']],
     ] as const) {
       started.length = 0;
       const round = await oneRound(() => ActivityPage({ searchParams: Promise.resolve({ tab }) }));
       // the priority list rides in the same round (FIX-14 F119: the history diff names old and new priorities)
-      expect(round.sort(), tab).toEqual(['org', 'list', read].sort());
+      expect(round.sort(), tab).toEqual(['org', 'list', ...reads].sort());
     }
   });
   it('Settings: the settings, the organisation and every list together', async () => {

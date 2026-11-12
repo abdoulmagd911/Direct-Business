@@ -28,7 +28,7 @@ import {
 } from '../logic';
 import { markReminderDone } from '../reminder-done';
 import { whenChip } from './WhenPicker';
-import { todayReminders, type TodayReminder } from '../today-reminders';
+import { laterReminders, todayReminders, type TodayReminder } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import type { PendingReminder, TodayTask } from '../types';
 
@@ -83,7 +83,12 @@ export function TodayBlock({
       ? capRows(groups, BLOCK_ROWS)
       : groups.map((x) => ({ ...x, total: x.rows.length + x.reminders.length }));
   const count = (k: TaskGroup) =>
-    all.find((x) => x.key === k)!.rows.length + all.find((x) => x.key === k)!.reminders.length;
+    all.find((x) => x.key === k)!.rows.length +
+    all.find((x) => x.key === k)!.reminders.length +
+    // FIX-27 (F-B1-08): the Reminders chip counts every reminder My day lists — the Today block's overdue and
+    // today's, and the Reminders section's later-day ones below. Before, it counted today only, so it read
+    // "Reminders 0" while a later-day reminder was listed on the page.
+    (k === 'reminders' ? laterReminders(pending, day).length : 0);
   const open = (v: { key: string; query?: Record<string, unknown> }) => {
     setView(v.key);
     setShown(

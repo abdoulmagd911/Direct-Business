@@ -74,7 +74,15 @@ export type Database = {
       action_items_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       activities_inside: { Args: { p_limit?: number; p_offset?: number }; Returns: Json };
       activity: {
-        Args: { p_actor?: string; p_before?: string; p_entity?: string; p_limit?: number; p_since?: string };
+        Args: {
+          p_actor?: string;
+          p_before?: string;
+          p_before_id?: string;
+          p_entities?: string[];
+          p_entity?: string;
+          p_limit?: number;
+          p_since?: string;
+        };
         Returns: Json;
       };
       activity_log: {
@@ -92,6 +100,10 @@ export type Database = {
           p_type: string;
         };
         Returns: Json;
+      };
+      activity_total: {
+        Args: { p_actor?: string; p_entities?: string[]; p_entity?: string; p_since?: string };
+        Returns: number;
       };
       all_files: {
         Args: {
@@ -613,6 +625,7 @@ export type Database = {
       sign_in_methods: { Args: Record<PropertyKey, never>; Returns: Json };
       sign_in_password_check: { Args: { p_email: string; p_user_agent?: string }; Returns: string };
       sign_in_password_refused: { Args: { p_detail: string; p_email: string; p_user_agent?: string }; Returns: string };
+      target_delete: { Args: { p_id: string; p_reason: string }; Returns: Json };
       target_save: { Args: { p_id: string; p_plan: string; p_values: Json; p_version?: number }; Returns: Json };
       targets: { Args: { p_plan: string }; Returns: Json };
       task: { Args: { p_id: string }; Returns: Json };

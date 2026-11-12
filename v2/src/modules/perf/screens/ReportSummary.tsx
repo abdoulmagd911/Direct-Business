@@ -115,7 +115,10 @@ export function ReportSummary({
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-0.5 text-sm text-muted" data-report-month>
           {t('month')}
-          <MonthPicker id="report-month" value={month} onChange={goMonth} className="w-44" />
+          {/* FIX-28 (F-B1-09): the month box is wide enough for its placeholder ("For example, Oct 2026") in
+              either language — at w-44 the placeholder was cut to "For example, C…". Full width on a phone, capped
+              on a PC. */}
+          <MonthPicker id="report-month" value={month} onChange={goMonth} className="w-full max-w-96" />
         </label>
         <Link
           href={month ? `/kpis/achievements?month=${encodeURIComponent(month)}` : '/kpis/achievements'}

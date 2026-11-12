@@ -25,8 +25,17 @@ const WORDS: Record<string, string> = {
   'record.files.downloadFailed': 'The file could not be opened — try again',
   'errors.notFound.goMyDay': 'Go to My day',
 };
+const WORDS_AR: Record<string, string> = {
+  'record.files.downloadRefused': 'لم يعد بإمكانك تنزيل هذا الملف — لم يعد مشاركًا معك',
+  'record.files.downloadNotFound': 'هذا الملف غير متاح',
+  'record.files.downloadFailed': 'تعذّر فتح الملف — حاول مرة أخرى',
+  'errors.notFound.goMyDay': 'إلى يومي',
+};
 vi.mock('next-intl/server', () => ({
-  getTranslations: async () => (key: string) => WORDS[key] ?? key,
+  // the route asks for translations in the link's language (F-B2-01): the mock answers in that language,
+  // as next-intl does — the session language stays English.
+  getTranslations: async (opts?: { locale?: string }) => (key: string) =>
+    (opts?.locale === 'ar' ? WORDS_AR[key] : WORDS[key]) ?? key,
   getLocale: async () => 'en',
 }));
 
@@ -87,6 +96,18 @@ describe('the download route checks access on every press (FIX-16, I3)', () => {
     const res = await GET(req(), { params: Promise.resolve({ id: 'not-a-file' }) });
     expect(res.status).toBe(404);
     expect(serverRpc).not.toHaveBeenCalled();
+  });
+  it('refuses in Arabic when the link asks for Arabic, even with an English session (F-B2-01)', async () => {
+    serverRpc.mockRejectedValueOnce(new DbError('PermissionDenied', 'file.cannot_see'));
+    const res = await GET(req('ar'), { params: Promise.resolve({ id: FILE_ID }) });
+    expect(res.status).toBe(403);
+    expect(await res.text()).toContain('لم يعد بإمكانك تنزيل هذا الملف');
+  });
+  it('says a missing file is not available in Arabic when the link asks for Arabic', async () => {
+    serverRpc.mockRejectedValueOnce(new DbError('NotFound', 'common.not_found'));
+    const res = await GET(req('ar'), { params: Promise.resolve({ id: FILE_ID }) });
+    expect(res.status).toBe(404);
+    expect(await res.text()).toContain('هذا الملف غير متاح');
   });
   it('lets the gate send a signed-out presser to sign in', async () => {
     requireMe.mockRejectedValueOnce(new Error('NEXT_REDIRECT'));

@@ -781,6 +781,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               mayWrite={mayWrite}
               onDone={refresh}
               fileKinds={lists.fileKinds}
+              // the card carries how many of the partner's files this reader cannot see (F-B6-02): the
+              // section says so when its list is empty, instead of "No files yet".
+              hiddenFiles={card.counts.files_hidden}
             />
           </>
         ) : null}
