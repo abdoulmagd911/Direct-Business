@@ -489,7 +489,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               {g.rows.map((i) => (
                 <li key={i.id} className="flex items-center justify-between gap-2" data-identifier={i.id}>
                   <span className="font-data">
-                    {i.value}
+                    {/* a value keeps its own direction in Arabic: "+966 …" never reads "… 966+" */}
+                    <bdi>{i.value}</bdi>
                     {i.subkind && g.kind !== 'name' ? (
                       <span className="text-xs text-muted">
                         {' · '}
@@ -520,7 +521,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               <li key={c.id} className="flex items-start justify-between gap-2 text-sm" data-contact={c.id}>
                 <span className="flex min-w-0 flex-col">
                   <span className="font-medium">
-                    {contactName(c)}
+                    <bdi>{contactName(c)}</bdi>
                     {c.is_primary ? (
                       <StatusChip tone="info" className="ms-1.5">
                         {t('partners.contact.primary')}
@@ -536,6 +537,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       {c.phone ? (
                         <a
                           href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}
+                          // a phone number reads left to right in Arabic too ("+966 55 …", not "… 55 966+")
+                          dir="ltr"
                           className="inline-flex min-h-11 items-center font-data text-link sm:min-h-0"
                           data-contact-phone
                         >
@@ -545,6 +548,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       {c.email ? (
                         <a
                           href={`mailto:${c.email}`}
+                          dir="ltr"
                           className="inline-flex min-h-11 items-center truncate text-link sm:min-h-0"
                           data-contact-email
                         >
@@ -601,10 +605,10 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       rel="noreferrer"
                       className="truncate font-data text-link hover:underline"
                     >
-                      {r.value}
+                      <bdi>{r.value}</bdi>
                     </a>
                   ) : (
-                    <span className="font-data">{r.value}</span>
+                    <bdi className="font-data">{r.value}</bdi>
                   )}
                 </span>
                 {(r.side ? mayWriteSide(r.side) : mayWrite) ? (
@@ -643,7 +647,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             {contracts.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-2 text-sm" data-contract={c.id}>
                 <span className="flex min-w-0 flex-col">
-                  <span className="font-medium">{c.title}</span>
+                  <span className="font-medium">
+                    <bdi>{c.title}</bdi>
+                  </span>
                   <span className="text-xs text-muted">
                     {t(`partners.side.${c.side}`)} · {formatDate(c.start_on, locale, { dateStyle: 'medium' })}
                     {c.end_on ? ` – ${formatDate(c.end_on, locale, { dateStyle: 'medium' })}` : ''}
@@ -798,7 +804,11 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         back={{ href: SIDE_ROUTE[side], label: t('record.back') }}
         avatar={<PartnerLogo name={card.trade_name_en} size="xl" />}
         title={<bdi>{tradeName(card, locale)}</bdi>}
-        subtitle={[card.number, locale === 'ar' ? card.trade_name_en : card.trade_name_ar].filter(Boolean).join(' · ')}
+        // the name in the other language beside the number — only when there is one: an organisation with no Arabic
+        // name is titled in English in Arabic too, and repeated its own title under it
+        subtitle={[card.number, locale === 'ar' ? card.trade_name_ar && card.trade_name_en : card.trade_name_ar]
+          .filter(Boolean)
+          .join(' · ')}
         chips={
           <>
             {sidesOn.map((s) => (
