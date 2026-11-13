@@ -1,11 +1,12 @@
 'use client';
+import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { refetchAll } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, formatMoney, formatStoredDate } from '@/core/i18n/format';
 import { recordFileDownloadUrl } from '@/core/files/download-url';
 import { sha256HexFile } from '@/ui/record/FilesSection';
 import {
@@ -15,6 +16,7 @@ import {
   normaliseFile,
   parseCsv,
   toApplyPayload,
+  whyOf,
   type Detection,
   type ExistingRecord,
   type HeldRow,
@@ -24,11 +26,13 @@ import {
   type PreviewDecisions,
   type PreviewRow,
   type Signature,
+  type Why,
 } from '@/modules/imports';
 import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
 import type { PartnerRef } from '@/modules/my-day/types';
 import { Button, buttonVariants } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
@@ -88,8 +92,12 @@ const CHANGE_KEY: Record<string, string> = {
   service: 'service',
 };
 
-/** A changed value, as shown: empty stays a dash, never a blank or a guessed 0. */
-const changeValue = (v: unknown) => (v === null || v === undefined ? '—' : String(v));
+/** The fields that hold money, and the one that holds a day: shown the app's way, not as the file wrote them. */
+const MONEY_FIELDS = new Set(['amount', 'wallet part', 'cost', 'promo before', 'promo discount', 'promo after']);
+const DATE_FIELDS = new Set(['date']);
+
+/** A sum of riyals as the app writes it: whole riyals plainly, halalas when there are any (1,500 · 1,500.50). */
+const riyals = (n: number, locale: 'en' | 'ar') => formatMoney(n, locale, Number.isInteger(n) ? 0 : 2);
 
 /**
  * Importing a Direct export, on the Finance page (the imports module's page is Finance, where the import preview
@@ -125,7 +133,8 @@ export function FinanceImportSection() {
   const [decisions, setDecisions] = useState<PreviewDecisions>({});
   const [loading, setLoading] = useState(false);
   const [existingFailed, setExistingFailed] = useState(false);
-  const [fileProblem, setFileProblem] = useState('');
+  // a whole-file stop: its English sentence and its reason code, worded on screen in the person's language
+  const [fileProblem, setFileProblem] = useState<{ text: string; why: Why | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmed, setConfirmed] = useState<PreviewCounts | null>(null);
   // Past imports for the picked partner (F177): the batches this partner already confirmed, re-viewable with
@@ -161,7 +170,7 @@ export function FinanceImportSection() {
     setDecisions({});
     setLoading(false);
     setExistingFailed(false);
-    setFileProblem('');
+    setFileProblem(null);
     setConfirmed(null);
     setStage('pick');
   };
@@ -223,9 +232,10 @@ export function FinanceImportSection() {
       const stored = existingFromImportLedger(answer);
       const norm = normaliseFile(sig.key, header, rows, { sourcePromo: codeText });
       if (norm.fileProblem) {
-        setFileProblem(norm.fileProblem);
+        setFileProblem({ text: norm.fileProblem, why: norm.fileWhy });
         return;
       }
+      setFileProblem(null);
       setExisting(stored);
       setRecords(norm.records);
       setHeld(norm.held);
@@ -310,6 +320,21 @@ export function FinanceImportSection() {
     await runPreview(signature, parsed.header, parsed.rows, signature.kind === 'promo' ? code.trim() : null);
   };
 
+  // A code typed after Review makes the preview stale: its rows carry the code they were reviewed with, and Confirm
+  // would start the batch under the new one. So a changed code asks for Review again.
+  const onCode = (text: string) => {
+    setCode(text);
+    setCodeError('');
+    if (!preview && !loading) return;
+    previewGen.current += 1;
+    setLoading(false);
+    setPreview(null);
+    setRecords([]);
+    setHeld([]);
+    setDecisions({});
+    setFileProblem(null);
+  };
+
   const onKeepDuplicate = (rowNo: number, keep: boolean) => {
     const next: PreviewDecisions = { ...decisions, [rowNo]: keep ? 'keep' : 'skip' };
     setDecisions(next);
@@ -341,6 +366,8 @@ export function FinanceImportSection() {
       toast.done(t('import.confirmed'));
       refetchAll();
       setStage('confirmed');
+      // the batch just confirmed belongs in Previous imports at once, not after a reload
+      void loadBatches(partner.id);
     } catch (e) {
       const { key, detail } = errorKey(e, (k) => t.has(k));
       toast.failed(t(key, { detail }));
@@ -374,30 +401,99 @@ export function FinanceImportSection() {
     return key && t.has(`import.change.${key}`) ? t(`import.change.${key}`) : field;
   };
 
+  // A value as shown: empty stays a dash, never a blank or a guessed 0; money and days are written the app's way
+  // (1,500 · 5 Oct 2026), anything else (a number, a status, a code) as the file had it.
+  const shown = (field: string, v: unknown): string => {
+    if (v === null || v === undefined || v === '') return '—';
+    if (MONEY_FIELDS.has(field) && typeof v === 'number') return riyals(v, locale);
+    if (DATE_FIELDS.has(field) && typeof v === 'string') return formatStoredDate(v, locale) ?? v;
+    return String(v);
+  };
+  const line = (field: string, v: unknown) => `${changeLabel(field)}: ${shown(field, v)}`;
+  // a change reads in the direction of the language: before → after, and in Arabic before ← after
+  const arrow = locale === 'ar' ? '←' : '→';
+
+  // A reason in the person's language (import.why.*): from its code, or — for a sentence read back from a past
+  // import — from the code that sentence stands for. A sentence that is none of the engine's is shown as stored.
+  const word = (why: Why | null | undefined, text: string): string => {
+    const w = why ?? whyOf(text);
+    if (!w || !t.has(`import.why.${w.code}`)) return text;
+    const values: Record<string, string> = {};
+    for (const [name, v] of Object.entries(w.values ?? {})) {
+      if (name === 'status') values.status = v === '' ? t('import.statusNone') : String(v);
+      else if ((name === 'total' || name === 'stored') && Number.isFinite(Number(v)))
+        values[name] = riyals(Number(v), locale);
+      else values[name] = String(v);
+    }
+    if (w.fields) values.fields = w.fields.map(changeLabel).join(locale === 'ar' ? '، ' : ', ');
+    return t(`import.why.${w.code}`, values);
+  };
+  /** A preview row's reasons, each in words, and — when the file had no creation date — which date stood in. */
+  const reasonsOf = (r: PreviewRow): string[] => {
+    const said = r.reasons.map((text, i) => word(r.whys[i], text));
+    const note = records.find((x) => x.rowNos[0] === r.row_no)?.date_note;
+    return note && r.outcome !== 'excluded' ? [...said, word(note, '')] : said;
+  };
+
   // A needs-linking row's own values, as plain lines (F182, L14 #6): the refs first (a dash
   // where the other half is still missing), then only the values the row carries. A promo row
   // carries discount figures, not an amount; a fully-paid or provisional row says so.
   const rowValues = (r: PreviewRow): string[] => {
     const v = r.values;
     if (!v) return [];
-    const lines = [
-      `${changeLabel('transaction number')}: ${changeValue(v.transaction_ref)}`,
-      `${changeLabel('invoice number')}: ${changeValue(v.invoice_ref)}`,
-    ];
-    if (v.amount !== null) lines.push(`${changeLabel('amount')}: ${changeValue(v.amount)}`);
-    if (v.cost !== null) lines.push(`${changeLabel('cost')}: ${changeValue(v.cost)}`);
-    if (v.wallet_topup > 0) lines.push(`${changeLabel('wallet part')}: ${changeValue(v.wallet_topup)}`);
-    if (v.record_date !== null) lines.push(`${changeLabel('date')}: ${changeValue(v.record_date)}`);
-    if (v.product !== null) lines.push(`${changeLabel('service')}: ${changeValue(v.product)}`);
-    if (v.status_text !== null) lines.push(`${changeLabel('status')}: ${changeValue(v.status_text)}`);
-    if (v.tax_no !== null) lines.push(`${changeLabel('tax number')}: ${changeValue(v.tax_no)}`);
-    if (v.source_promo !== null) lines.push(`${changeLabel('discount code')}: ${changeValue(v.source_promo)}`);
-    if (r.promo_before !== null) lines.push(`${changeLabel('promo before')}: ${changeValue(r.promo_before)}`);
-    if (r.promo_discount !== null) lines.push(`${changeLabel('promo discount')}: ${changeValue(r.promo_discount)}`);
-    if (r.promo_after !== null) lines.push(`${changeLabel('promo after')}: ${changeValue(r.promo_after)}`);
+    const lines = [line('transaction number', v.transaction_ref), line('invoice number', v.invoice_ref)];
+    if (v.amount !== null) lines.push(line('amount', v.amount));
+    if (v.cost !== null) lines.push(line('cost', v.cost));
+    if (v.wallet_topup > 0) lines.push(line('wallet part', v.wallet_topup));
+    if (v.record_date !== null) lines.push(line('date', v.record_date));
+    if (v.product !== null) lines.push(line('service', v.product));
+    if (v.status_text !== null) lines.push(line('status', v.status_text));
+    if (v.tax_no !== null) lines.push(line('tax number', v.tax_no));
+    if (v.source_promo !== null) lines.push(line('discount code', v.source_promo));
+    if (r.promo_before !== null) lines.push(line('promo before', r.promo_before));
+    if (r.promo_discount !== null) lines.push(line('promo discount', r.promo_discount));
+    if (r.promo_after !== null) lines.push(line('promo after', r.promo_after));
     if (v.fully_paid) lines.push(t('import.fullyPaid'));
     if (v.provisional) lines.push(t('import.provisional'));
     return lines;
+  };
+
+  const anyDuplicate = !!preview?.rows.some((r) => r.duplicate);
+
+  /** What a preview row says: its reasons, the stored record it matched and what changes on it, or its own values. */
+  const reasonCell = (r: PreviewRow) => {
+    const said = reasonsOf(r).join(' · ');
+    const values = r.outcome === 'needs_linking' && r.values ? rowValues(r) : null;
+    return (
+      <>
+        {/* a dash only when the row says nothing at all, never above the record it matched */}
+        {said || (r.matched || values ? null : '—')}
+        {r.matched ? (
+          <span className={cn('block text-xs', said && 'mt-1')}>
+            <span className="block font-medium text-text">
+              {t('import.matchedRow', {
+                ref: r.matched.transaction_ref ?? r.matched.invoice_ref ?? '—',
+              })}
+            </span>
+            {r.changes.map((c) => (
+              <span key={c.field} className="block">
+                {changeLabel(c.field)}: {shown(c.field, c.before)} {arrow} {shown(c.field, c.after)}
+              </span>
+            ))}
+          </span>
+        ) : null}
+        {values ? (
+          <span className={cn('block text-xs', (said || r.matched) && 'mt-1')}>
+            {r.matched ? null : <span className="block font-medium text-text">{t('import.noMatchedRecord')}</span>}
+            {values.map((l) => (
+              <span key={l} className="block">
+                {l}
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </>
+    );
   };
 
   return (
@@ -407,7 +503,8 @@ export function FinanceImportSection() {
       </h2>
       <p className="text-sm text-muted">{t('import.nothingSavedYet')}</p>
 
-      <div className="flex flex-wrap items-end gap-3">
+      {/* the two labels on one line: a picked partner is two lines tall, so the boxes line up at their top */}
+      <div className="flex flex-wrap items-start gap-3">
         <Field label={t('import.choosePartner')} className="min-w-[16rem] flex-1">
           {({ id }) => (
             <PartnerPicker
@@ -434,126 +531,15 @@ export function FinanceImportSection() {
               accept=".csv,text/csv"
               disabled={!partner}
               onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+              // the browser's own Choose file button, drawn like the app's, in the middle of the box
+              className="py-1 leading-[calc(var(--control-h)-0.6rem)] file:me-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:font-medium file:text-text"
               data-import-file
             />
           )}
         </Field>
       </div>
 
-      {partner ? (
-        <div className="flex flex-col gap-2" data-import-past>
-          <h3 className="text-sm font-semibold">{t('import.pastTitle')}</h3>
-          {batchesFailed ? (
-            <p role="alert" className="text-sm text-danger">
-              {t('import.pastFailed')}{' '}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setBatchesFailed(false);
-                  void loadBatches(partner.id);
-                }}
-              >
-                {t('state.tryAgain')}
-              </Button>
-            </p>
-          ) : null}
-          {batches === null && !batchesFailed ? (
-            <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastTitle') })}</p>
-          ) : null}
-          {batches?.length === 0 ? <p className="text-sm text-muted">{t('import.pastNone')}</p> : null}
-          {batches?.map((batch) => (
-            <div key={batch.id} className="rounded border border-line p-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void toggleBatch(batch)}
-                aria-expanded={openBatch === batch.id}
-              >
-                {batch.file_name} · {formatDate(batch.created_at, locale)} ·{' '}
-                {batch.status === 'confirmed' ? t('import.confirmed') : t('import.pastDraft')}
-                {batch.created_by_name ? ` · ${batch.created_by_name}` : ''}
-              </Button>
-              {openBatch === batch.id ? (
-                <div className="mt-2 flex flex-col gap-2 text-sm">
-                  <p className="text-muted">
-                    {t(`import.signature.${batch.signature}`)}
-                    {batch.source_promo ? ` · ${batch.source_promo}` : ''}
-                  </p>
-                  {counts(batch.counts)}
-                  {batch.problems.length > 0 ? (
-                    <div>
-                      <p className="font-medium">{t('import.held')}</p>
-                      <ul className="list-disc ps-5 text-muted">
-                        {batch.problems.map((p) => (
-                          <li key={p.row_no}>
-                            {t('import.row')} {p.row_no}: {p.reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {batch.source_file_id ? (
-                    <p className="flex flex-wrap items-center gap-3">
-                      <span className="text-muted">{t('import.sourceFile')}:</span>
-                      <a
-                        href={recordFileDownloadUrl(batch.source_file_id!, locale)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-                      >
-                        {t('record.files.download')}
-                      </a>
-                      <FileLinkButton fileId={batch.source_file_id} size="sm" />
-                    </p>
-                  ) : null}
-                  {batchRowsFailed ? (
-                    <p role="alert" className="text-sm text-danger">
-                      {t('import.pastRowsFailed')}
-                    </p>
-                  ) : null}
-                  {batchRows === null && !batchRowsFailed ? (
-                    <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastRows') })}</p>
-                  ) : null}
-                  {batchRows && batchRows.length > 0 ? (
-                    <div>
-                      <p className="font-medium">{t('import.pastRows')}</p>
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-line text-start text-muted">
-                            <th className="px-2 py-1 font-medium">{t('import.reference')}</th>
-                            <th className="px-2 py-1 font-medium">{t('import.pastDate')}</th>
-                            <th className="px-2 py-1 font-medium">{t('import.pastAmount')}</th>
-                            <th className="px-2 py-1 font-medium">{t('import.pastStatus')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {batchRows.map((row, i) => (
-                            <tr key={`${row.transaction_ref ?? row.invoice_ref ?? i}`} className="border-b border-line">
-                              <td className="px-2 py-1 font-data tabular">
-                                {row.transaction_ref ?? row.invoice_ref ?? '—'}
-                              </td>
-                              <td className="px-2 py-1">
-                                {row.record_date ? formatDate(row.record_date, locale) : '—'}
-                              </td>
-                              <td className="px-2 py-1 font-data tabular">
-                                {row.amount_sar === null ? '—' : row.amount_sar}
-                              </td>
-                              <td className="px-2 py-1">{row.status_text ?? '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {loading ? <DataState kind="loading" what={t('import.title')} /> : null}
+      {loading ? <DataState kind="loading" message={t('state.loading', { what: t('import.title') })} /> : null}
 
       {stage === 'unknown' && detection && !detection.recognised ? (
         <div className="flex flex-col gap-3" data-import-unknown>
@@ -598,7 +584,8 @@ export function FinanceImportSection() {
             <span className="text-muted">{t('import.fileType')}: </span>
             <span className="font-medium">{t(`import.signature.${signature.key}`)}</span>
             {fileName ? <span className="text-muted"> · </span> : null}
-            {fileName ? <span className="font-data">{fileName}</span> : null}
+            {/* the file's own name keeps its own direction, so in Arabic it never splits across the line */}
+            {fileName ? <bdi className="font-data [overflow-wrap:anywhere]">{fileName}</bdi> : null}
           </p>
 
           {signature.kind === 'promo' ? (
@@ -610,16 +597,7 @@ export function FinanceImportSection() {
                 className="min-w-[12rem] flex-1"
               >
                 {({ id, ...p }) => (
-                  <Input
-                    id={id}
-                    {...p}
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value);
-                      setCodeError('');
-                    }}
-                    data-import-code
-                  />
+                  <Input id={id} {...p} value={code} onChange={(e) => onCode(e.target.value)} data-import-code />
                 )}
               </Field>
               <Button variant="primary" onClick={() => void onReview()} data-import-review>
@@ -640,14 +618,44 @@ export function FinanceImportSection() {
 
           {fileProblem ? (
             <p role="alert" className="text-sm text-danger">
-              {fileProblem}
+              {word(fileProblem.why, fileProblem.text)}
             </p>
           ) : null}
 
           {preview ? (
             <>
               {counts(preview.counts)}
-              <div className="overflow-x-auto rounded-lg border border-border bg-raised">
+              {/* a phone reads each row as a card, the reason in full under its number (in the table it sat off the
+                  screen, past two columns); a wider screen keeps the table */}
+              <ul
+                className="flex flex-col overflow-hidden rounded-lg border border-border bg-raised sm:hidden"
+                data-import-rows-phone
+              >
+                {preview.rows.map((r) => (
+                  <li key={r.row_no} className="flex flex-col gap-1 border-b border-border px-3 py-2.5 last:border-b-0">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                      <span className="font-data tabular text-muted">
+                        {t('import.row')} {r.row_no}
+                      </span>
+                      <span className="font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</span>
+                      <span className="font-medium">{t(`import.${OUTCOME_KEY[r.outcome]}`)}</span>
+                      {r.duplicate ? (
+                        // on a phone there is no column heading, so the box says what it keeps
+                        <label className="ms-auto inline-flex items-center gap-1 text-sm">
+                          <Checkbox
+                            checked={decisions[r.row_no] === 'keep'}
+                            onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
+                            label={t('import.keep')}
+                          />
+                          <span aria-hidden="true">{t('import.keep')}</span>
+                        </label>
+                      ) : null}
+                    </div>
+                    <div className="text-sm text-muted">{reasonCell(r)}</div>
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-border bg-surface text-xs text-muted">
@@ -655,7 +663,8 @@ export function FinanceImportSection() {
                       <th className="px-4 py-2 text-start font-semibold">{t('import.reference')}</th>
                       <th className="px-4 py-2 text-start font-semibold">{t('import.outcome')}</th>
                       <th className="px-4 py-2 text-start font-semibold">{t('import.reason')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('import.keep')}</th>
+                      {/* the Keep column only when the file has a duplicate to keep */}
+                      {anyDuplicate ? <th className="px-4 py-2 text-start font-semibold">{t('import.keep')}</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -664,44 +673,18 @@ export function FinanceImportSection() {
                         <td className="px-4 py-2.5 font-data tabular">{r.row_no}</td>
                         <td className="px-4 py-2.5 font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</td>
                         <td className="px-4 py-2.5">{t(`import.${OUTCOME_KEY[r.outcome]}`)}</td>
-                        <td className="px-4 py-2.5 text-muted">
-                          {r.reasons.join(' · ') || '—'}
-                          {r.matched ? (
-                            <span className="mt-1 block text-xs">
-                              <span className="block font-medium text-text">
-                                {t('import.matchedRow', {
-                                  ref: r.matched.transaction_ref ?? r.matched.invoice_ref ?? '—',
-                                })}
-                              </span>
-                              {r.changes.map((c) => (
-                                <span key={c.field} className="block">
-                                  {changeLabel(c.field)}: {changeValue(c.before)} → {changeValue(c.after)}
-                                </span>
-                              ))}
-                            </span>
-                          ) : null}
-                          {r.outcome === 'needs_linking' && r.values ? (
-                            <span className="mt-1 block text-xs">
-                              {r.matched ? null : (
-                                <span className="block font-medium text-text">{t('import.noMatchedRecord')}</span>
-                              )}
-                              {rowValues(r).map((line) => (
-                                <span key={line} className="block">
-                                  {line}
-                                </span>
-                              ))}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {r.duplicate ? (
-                            <Checkbox
-                              checked={decisions[r.row_no] === 'keep'}
-                              onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
-                              label={t('import.keep')}
-                            />
-                          ) : null}
-                        </td>
+                        <td className="px-4 py-2.5 text-muted">{reasonCell(r)}</td>
+                        {anyDuplicate ? (
+                          <td className="px-4 py-2.5">
+                            {r.duplicate ? (
+                              <Checkbox
+                                checked={decisions[r.row_no] === 'keep'}
+                                onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
+                                label={t('import.keep')}
+                              />
+                            ) : null}
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>
@@ -714,7 +697,7 @@ export function FinanceImportSection() {
                     {preview.clashes.map((c) => (
                       <li key={c.row_no}>
                         <span className="font-data tabular">{c.row_no}</span>
-                        <span className="text-muted"> · {c.reason}</span>
+                        <span className="text-muted"> · {word(c.why, c.reason)}</span>
                       </li>
                     ))}
                   </ul>
@@ -740,7 +723,7 @@ export function FinanceImportSection() {
           {storedFile ? (
             <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file>
               <span className="text-muted">{t('import.sourceFile')}: </span>
-              <span className="font-data">{storedFile.name}</span>
+              <bdi className="font-data [overflow-wrap:anywhere]">{storedFile.name}</bdi>
               <a
                 href={recordFileDownloadUrl(storedFile.id, locale)}
                 target="_blank"
@@ -772,6 +755,135 @@ export function FinanceImportSection() {
               {t('import.startOver')}
             </Button>
           </div>
+        </div>
+      ) : null}
+
+      {partner ? (
+        <div className="flex flex-col gap-2" data-import-past>
+          <h3 className="text-sm font-semibold">{t('import.pastTitle')}</h3>
+          {batchesFailed ? (
+            <p role="alert" className="text-sm text-danger">
+              {t('import.pastFailed')}{' '}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setBatchesFailed(false);
+                  void loadBatches(partner.id);
+                }}
+              >
+                {t('common.tryAgain')}
+              </Button>
+            </p>
+          ) : null}
+          {batches === null && !batchesFailed ? (
+            <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastTitle') })}</p>
+          ) : null}
+          {batches?.length === 0 ? <p className="text-sm text-muted">{t('import.pastNone')}</p> : null}
+          {batches?.map((batch) => (
+            <div key={batch.id} className="rounded-lg border border-border bg-raised p-1" data-import-past-batch>
+              {/* the file's name on its own line (it wraps, never runs off a phone), when and who under it */}
+              <button
+                type="button"
+                onClick={() => void toggleBatch(batch)}
+                aria-expanded={openBatch === batch.id}
+                className="flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-start text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="font-data font-medium [overflow-wrap:anywhere]">{batch.file_name}</span>
+                  <span className="text-muted">
+                    {formatDate(batch.created_at, locale)} ·{' '}
+                    {batch.status === 'confirmed' ? t('import.confirmed') : t('import.pastDraft')}
+                    {batch.created_by_name ? ` · ${batch.created_by_name}` : ''}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'size-4 shrink-0 text-muted transition-transform',
+                    openBatch === batch.id && 'rotate-180',
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+              {openBatch === batch.id ? (
+                <div className="flex flex-col gap-2 px-2.5 pb-2 pt-1 text-sm">
+                  <p className="text-muted">
+                    {t(`import.signature.${batch.signature}`)}
+                    {batch.source_promo ? ` · ${batch.source_promo}` : ''}
+                  </p>
+                  {counts(batch.counts)}
+                  {batch.problems.length > 0 ? (
+                    <div>
+                      <p className="font-medium">{t('import.held')}</p>
+                      <ul className="list-disc ps-5 text-muted">
+                        {batch.problems.map((p) => (
+                          <li key={p.row_no}>
+                            {t('import.row')} {p.row_no}: {word(null, p.reason)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {batch.source_file_id ? (
+                    <p className="flex flex-wrap items-center gap-3">
+                      <span className="text-muted">{t('import.sourceFile')}:</span>
+                      <a
+                        href={recordFileDownloadUrl(batch.source_file_id!, locale)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                      >
+                        {t('record.files.download')}
+                      </a>
+                      <FileLinkButton fileId={batch.source_file_id} size="sm" />
+                    </p>
+                  ) : null}
+                  {batchRowsFailed ? (
+                    <p role="alert" className="text-sm text-danger">
+                      {t('import.pastRowsFailed')}
+                    </p>
+                  ) : null}
+                  {batchRows === null && !batchRowsFailed ? (
+                    <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastRows') })}</p>
+                  ) : null}
+                  {batchRows && batchRows.length > 0 ? (
+                    <div>
+                      <p className="font-medium">{t('import.pastRows')}</p>
+                      <div className="mt-1 overflow-x-auto">
+                        <table className="w-full min-w-[28rem] text-sm">
+                          <thead>
+                            <tr className="border-b border-border text-muted">
+                              <th className="px-2 py-1 text-start font-medium">{t('import.reference')}</th>
+                              <th className="px-2 py-1 text-start font-medium">{t('import.pastDate')}</th>
+                              <th className="px-2 py-1 text-end font-medium">{t('import.pastAmount')}</th>
+                              <th className="px-2 py-1 text-start font-medium">{t('import.pastStatus')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {batchRows.map((row, i) => (
+                              <tr
+                                key={`${row.transaction_ref ?? row.invoice_ref ?? i}`}
+                                className="border-b border-border last:border-b-0"
+                              >
+                                <td className="px-2 py-1 font-data tabular">
+                                  {row.transaction_ref ?? row.invoice_ref ?? '—'}
+                                </td>
+                                <td className="whitespace-nowrap px-2 py-1">{shown('date', row.record_date)}</td>
+                                <td className="px-2 py-1 text-end font-data tabular">
+                                  {shown('amount', row.amount_sar === null ? null : Number(row.amount_sar))}
+                                </td>
+                                <td className="px-2 py-1">{row.status_text ?? '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ))}
         </div>
       ) : null}
     </section>
