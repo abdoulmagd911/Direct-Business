@@ -1,19 +1,21 @@
 'use client';
+import { useLocale } from 'next-intl';
 import { Toaster as Sonner, toast as sonnerToast } from 'sonner';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 /**
  * Toasts: bottom-end, 5 s, past tense ("Task created"), Undo where the command is undoable (§2.4).
- * A toast carrying a second action stays 10 s: two choices need reading time. Undo is such an action —
- * a toast with Undo to press stays twice as long as a plain done toast (F-B1-05: the file-removal Undo
+ * A toast with Undo to press stays 10 s, twice as long as a plain done toast (F-B1-05: the file-removal Undo
  * vanished before it could be read).
- * No coloured side stripe; the icon and the word carry the outcome.
+ * No coloured side stripe; the icon and the word carry the outcome. The toaster's side is physical, so the end
+ * side is named per language: bottom-right in English, bottom-left in Arabic.
  */
 export function Toaster() {
+  const rtl = useLocale() === 'ar';
   return (
     <Sonner
-      position="bottom-right"
-      dir="auto"
+      position={rtl ? 'bottom-left' : 'bottom-right'}
+      dir={rtl ? 'rtl' : 'ltr'}
       duration={5000}
       gap={8}
       offset={20}
@@ -21,13 +23,11 @@ export function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            'flex w-[360px] max-w-[calc(100vw-32px)] items-start gap-2.5 rounded-md border border-border bg-raised p-3 text-text shadow-2 font-ui text-sm has-[[data-cancel]]:flex-wrap has-[[data-cancel]]:[&_[data-content]]:basis-[calc(100%-2rem)]',
+            'flex w-[360px] max-w-[calc(100vw-32px)] items-start gap-2.5 rounded-md border border-border bg-raised p-3 text-text shadow-2 font-ui text-sm',
           title: 'font-semibold',
           description: 'text-muted',
           actionButton:
             'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
-          cancelButton:
-            'shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface ms-8',
           icon: 'mt-0.5 shrink-0',
         },
       }}
@@ -39,23 +39,17 @@ export function Toaster() {
   );
 }
 
-export type ToastUndo = { label: string; onUndo: () => void | Promise<void> };
-export type ToastExtra = { label: string; onClick: () => void };
+type ToastUndo = { label: string; onUndo: () => void | Promise<void> };
 
 export const toast = {
   /** A command succeeded. Pass `undo` when the command is undoable; the button is "Undo". */
-  done(title: string, opts: { description?: string; undo?: ToastUndo; extra?: ToastExtra; id?: string | number } = {}) {
+  done(title: string, opts: { description?: string; undo?: ToastUndo; id?: string | number } = {}) {
     return sonnerToast.success(title, {
       id: opts.id,
       description: opts.description,
-      // a toast with a second action stays twice as long: two choices need reading time — Undo counts, and
-      // so does an extra button beside it
-      duration: opts.extra || opts.undo ? 10000 : undefined,
+      // a toast with Undo stays twice as long: the choice needs reading time (F-B1-05)
+      duration: opts.undo ? 10000 : undefined,
       action: opts.undo ? { label: opts.undo.label, onClick: () => void opts.undo!.onUndo() } : undefined,
-      // a second thing to do with what just happened: a button beside Undo, and a way out. (Phase 0.3 removed
-      // the Done toast's Log achievement button; nothing passes an extra today, but the mechanism stays for
-      // a future second action — command.ts still threads it through.)
-      ...(opts.extra ? { cancel: { label: opts.extra.label, onClick: opts.extra.onClick }, closeButton: true } : {}),
     });
   },
   /** A command was refused or failed: the reason in words, never a code. */
@@ -66,5 +60,4 @@ export const toast = {
   working(title: string) {
     return sonnerToast.loading(title);
   },
-  dismiss: sonnerToast.dismiss,
 };
