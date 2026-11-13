@@ -87,24 +87,6 @@ export async function sha256HexFile(file: File): Promise<string> {
     .join('');
 }
 
-/**
- * Download one stored file: a real link to the re-checking route (FIX-16, core/files/download-url.ts) — the
- * route re-checks the presser may still see the file on every GET and redirects to a freshly minted short-lived
- * signed URL, so unsharing revokes the link where a raw signed URL minted in the browser would keep serving
- * until its expiry. Delivered through a programmatic link click: after the awaits the click's transient
- * activation is gone, window.open is swallowed by the popup blocker and returns null — no throw, no toast, a
- * silent nothing (F248). The route's redirect carries the save-as name, so no download attribute is needed;
- * a refusal comes back as a words page (FIX-39), never a silent failure.
- */
-export async function downloadRecordFile(fileId: string, locale: 'en' | 'ar'): Promise<void> {
-  const a = document.createElement('a');
-  a.href = recordFileDownloadUrl(fileId, locale);
-  a.rel = 'noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 /** One upload that failed while this screen still holds the file: it can be tried again from memory. */
 type PendingUpload = {
   key: string;

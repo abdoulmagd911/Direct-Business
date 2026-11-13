@@ -8,9 +8,10 @@ import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
 import { formatFileSize } from '../../../src/ui/record/FilesSection';
 
+type Say = (key: string, values: Record<string, string>) => string;
 const say = (locale: 'en' | 'ar') => {
-  const t = createTranslator({ locale, messages: locale === 'en' ? en : ar });
-  return (bytes: number) => formatFileSize(bytes, (k, v) => t(k as never, v), locale);
+  const t = createTranslator({ locale, messages: locale === 'en' ? en : ar }) as unknown as Say;
+  return (bytes: number) => formatFileSize(bytes, t, locale);
 };
 
 describe('a file size is said in the language on screen', () => {

@@ -86,5 +86,3 @@ export function Dialog({
     </RD.Root>
   );
 }
-
-export const DialogClose = RD.Close;
