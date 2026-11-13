@@ -1979,7 +1979,7 @@
       "targetCount": "الإنجازات المتوقعة",
       "targetValue": "قيمة الصفقات المتوقعة",
       "targetAchievedValue": "قيمة الصفقات المنجزة",
-      "achievedCount": "المنجز",
+      "achievedCount": "المنجز: {count}",
       "targetSaved": "تم حفظ الهدف",
       "categoriesTitle": "فئات الإنجازات",
       "categoriesNone": "لا فئات بعد.",
