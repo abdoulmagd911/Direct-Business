@@ -2287,6 +2287,7 @@
       "PermissionDenied": "You do not have access to do this",
       "Conflict": "Someone changed this since you opened it. Reload and try again.",
       "RuleBroken": "This change was refused: {detail}",
+      "RuleBrokenBare": "This change was refused.",
       "NotFound": "This record was not found",
       "Unavailable": "The server did not answer. Try again."
     },
