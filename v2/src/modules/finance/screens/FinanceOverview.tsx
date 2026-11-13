@@ -202,9 +202,11 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
   const router = useRouter();
   return (
     <div className="flex flex-wrap items-center gap-2" data-finance-period>
+      {/* a tab never breaks inside its word (the Arabic "Custom" read مخص/ص on a phone); a bar wider than the screen
+          scrolls sideways instead of wrapping */}
       <nav
         aria-label={t('finance.period.label')}
-        className="inline-flex overflow-hidden rounded-md border border-border-strong bg-raised"
+        className="inline-flex max-w-full overflow-x-auto rounded-md border border-border-strong bg-raised"
       >
         {keys.map((k) => (
           <Link
@@ -214,7 +216,7 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             aria-current={ask.key === k ? 'page' : undefined}
             data-finance-period-key={k}
             className={cn(
-              'inline-flex h-[var(--control-h)] items-center px-3.5 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
+              'inline-flex h-[var(--control-h)] shrink-0 items-center whitespace-nowrap px-3.5 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
               ask.key === k ? 'bg-text text-raised' : 'text-text hover:bg-surface',
             )}
           >

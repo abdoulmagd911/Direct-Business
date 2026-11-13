@@ -1,6 +1,6 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { formatMoney } from '@/core/i18n/format';
+import { formatMoney, formatStoredDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
 import { EntityLink } from '@/ui/EntityLink';
@@ -10,9 +10,9 @@ import type { LedgerReport } from '../types';
 type Locale = 'en' | 'ar';
 
 /**
- * The Finance report itself (workstream B): totals, then received and remaining by company, then the invoices,
- * then the unit rows with their transaction number and invoice number apart. The Discount Codes page draws this
- * same component with `code` fixed in its filter — never a second report (see NOTES.md of workstream B).
+ * The Finance report itself (workstream B): totals, then received and remaining by partner, then the invoices,
+ * then the unit rows with their transaction number and invoice number apart, then the discount-code rows kept apart
+ * from those totals. A view with nothing in it is one line, not five tiles of 0 and three empty tables.
  * A cost with no approved expense is empty, never 0; settlement is never shown; there is no VAT anywhere here.
  */
 export function FinanceReport({
@@ -84,11 +84,32 @@ export function FinanceReport({
     URL.revokeObjectURL(url);
   };
   const flagLabel = (f: string) => (t.has(`finance.ledger.flag.${f}`) ? t(`finance.ledger.flag.${f}`) : f);
+  // a stored day (2026-11-08) is written the one way, 8 Nov 2026 (W-daily 13)
+  const day = (d: string | null | undefined) => (d ? (formatStoredDate(d, locale) ?? d) : '—');
   const total = report.totals;
+  const promoRows = report.promoRows ?? [];
+  const unconfirmed = total.unconfirmedImportUnits ? (
+    <p className="text-sm text-muted" data-finance-ledger-unconfirmed>
+      {t('finance.ledger.unconfirmed', { count: total.unconfirmedImportUnits })}
+    </p>
+  ) : null;
+  if (
+    report.rows.length === 0 &&
+    report.invoices.length === 0 &&
+    report.by_company.length === 0 &&
+    promoRows.length === 0
+  ) {
+    return (
+      <div className="flex flex-col gap-2" data-finance-report data-empty>
+        <p className="text-sm text-muted">{t('finance.ledger.empty')}</p>
+        {unconfirmed}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-5" data-finance-report>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-semibold">{t('finance.ledger.totals')}</h2>
+        <h3 className="font-display text-lg font-semibold">{t('finance.ledger.totals')}</h3>
         <Button variant="secondary" onClick={download} data-finance-export>
           {t('finance.ledger.export')}
         </Button>
@@ -125,43 +146,6 @@ export function FinanceReport({
           <b className="font-data tabular">{formatMoney(report.codeDiscount, locale)}</b>
         </p>
       ) : null}
-      {report.promoRows && report.promoRows.length > 0 ? (
-        <section aria-labelledby="finance-ledger-promo" data-finance-ledger-promo>
-          <h3 id="finance-ledger-promo" className="font-display text-lg font-semibold">
-            {t('finance.ledger.promoTitle')}
-          </h3>
-          <p className="mt-2 text-sm text-muted">{t('finance.ledger.promoNote')}</p>
-          <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-raised">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface text-xs text-muted">
-                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
-                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
-                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.discount')}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.revenue')}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.cost')}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.profit')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.promoRows.map((pr) => (
-                  <tr key={pr.id} className="border-b border-border last:border-b-0">
-                    <td className="px-4 py-2.5 font-data tabular">{pr.created_on}</td>
-                    <td className="px-4 py-2.5 font-data tabular">{pr.transaction_number ?? '—'}</td>
-                    <td className="px-4 py-2.5 font-data tabular">{pr.invoice_number ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.discount_sar)}</td>
-                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.revenue)}</td>
-                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.cost)}</td>
-                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.profit)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
-
       <section aria-labelledby="finance-ledger-companies" data-finance-ledger-companies>
         <h3 id="finance-ledger-companies" className="font-display text-lg font-semibold">
           {t('finance.ledger.byPartner')}
@@ -220,7 +204,7 @@ export function FinanceReport({
               <tbody>
                 {report.invoices.map((v) => (
                   <tr key={v.invoice_id} className="border-b border-border last:border-b-0">
-                    <td className="px-4 py-2.5 font-data tabular">{v.invoice_number ?? t('finance.ledger.noCost')}</td>
+                    <td className="px-4 py-2.5 font-data tabular">{v.invoice_number ?? '—'}</td>
                     <td className="px-4 py-2.5">{partnerCell(v.partner_id)}</td>
                     <td className="px-4 py-2.5 font-data tabular">{v.transactions.join(', ') || '—'}</td>
                     <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(v.received_sar, locale)}</td>
@@ -236,7 +220,7 @@ export function FinanceReport({
 
       <section aria-labelledby="finance-ledger-rows" data-finance-ledger-rows>
         <h3 id="finance-ledger-rows" className="font-display text-lg font-semibold">
-          {t('finance.ledger.title')}
+          {t('finance.ledger.rows')}
         </h3>
         {report.truncated ? <p className="mt-2 text-sm text-warning">{t('finance.ledger.truncated')}</p> : null}
         {report.rows.length === 0 ? (
@@ -260,7 +244,7 @@ export function FinanceReport({
               <tbody>
                 {report.rows.map((r) => (
                   <tr key={`${r.invoice_id}-${r.unit_kind}`} className="border-b border-border last:border-b-0">
-                    <td className="px-4 py-2.5 font-data tabular">{r.created_on}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-data tabular">{day(r.created_on)}</td>
                     <td className="px-4 py-2.5">{partnerCell(r.partner_id)}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.transaction_number ?? '—'}</td>
                     <td className="px-4 py-2.5 font-data tabular">{r.invoice_number ?? '—'}</td>
@@ -280,6 +264,47 @@ export function FinanceReport({
           </div>
         )}
       </section>
+
+      {promoRows.length > 0 ? (
+        <section aria-labelledby="finance-ledger-promo" data-finance-ledger-promo>
+          <h3 id="finance-ledger-promo" className="font-display text-lg font-semibold">
+            {t('finance.ledger.promoTitle')}
+          </h3>
+          <p className="mt-2 text-sm text-muted">{t('finance.ledger.promoNote')}</p>
+          <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-raised">
+            <table className="w-full min-w-[880px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface text-xs text-muted">
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.partnerName')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.code')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.discount')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.revenue')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.cost')}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.profit')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {promoRows.map((pr) => (
+                  <tr key={pr.id} className="border-b border-border last:border-b-0" data-finance-ledger-promo-row>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-data tabular">{day(pr.created_on)}</td>
+                    <td className="px-4 py-2.5">{partnerCell(pr.partner_id)}</td>
+                    <td className="px-4 py-2.5 font-data">{pr.code ?? '—'}</td>
+                    <td className="px-4 py-2.5 font-data tabular">{pr.transaction_number ?? '—'}</td>
+                    <td className="px-4 py-2.5 font-data tabular">{pr.invoice_number ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.discount_sar)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.revenue)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.cost)}</td>
+                    <td className="px-4 py-2.5 text-end font-data tabular">{money(pr.profit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
