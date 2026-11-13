@@ -617,11 +617,13 @@ function EditForm({ task, priorities, onClose }: { task: TaskDetail; priorities:
     const title = f.title.trim();
     if (!title) return setError(t('pages.tasks.add.title_required'));
     if (title.length > TITLE_MAX) return setError(t('pages.tasks.add.title_too_long', { max: TITLE_MAX }));
-    // only what changed is sent (the old app's lesson): an untouched field never overwrites someone else's change
+    // only what changed is sent (the old app's lesson): an untouched field never overwrites someone else's change. A
+    // box is changed when it differs from what was read, as read — never trimmed against untrimmed, which counted an
+    // untouched title or notes with a stray space or line as changed — and only when the trimmed words differ too.
     const changes: Record<string, string | null> = {};
-    if (title !== stored.title) changes.title = title;
+    if (f.title !== stored.title && title !== stored.title.trim()) changes.title = title;
     if (f.due_on !== stored.due_on) changes.due_on = f.due_on || null;
-    if (f.notes.trim() !== stored.notes) changes.notes = f.notes.trim() || null;
+    if (f.notes !== stored.notes && f.notes.trim() !== stored.notes.trim()) changes.notes = f.notes.trim() || null;
     if (f.priority !== stored.priority) changes.priority = f.priority;
     if (!Object.keys(changes).length) return onClose();
     setBusy(true);
