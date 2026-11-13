@@ -170,7 +170,9 @@ test('an unknown address is Not found; an unbuilt page says it is not ready yet;
 }) => {
   const admin = await makePerson({ admin: true });
   await page.setViewportSize({ width: 1500, height: 1000 });
-  await signIn(page, admin.email, '/no-such-page');
+  await signIn(page, admin.email, '/');
+  await hydrated(page);
+  await page.goto('/no-such-page');
   await hydrated(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await expect(page.locator('h1'), 'never the raw path as a title').not.toHaveText(/^\//);

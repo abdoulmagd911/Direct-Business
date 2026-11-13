@@ -51,9 +51,10 @@ async function personWithTeam() {
 
 /** Opens the sheet the way the screen size offers it: the top bar's Create on a wide screen, the + on a phone. */
 async function openSheet(page: Page, wide: boolean) {
-  // the last toast sits over the phone's + for its 5 seconds (a toast under the pointer waits; a finger leaves)
+  // the last toast sits over the phone's + for its 10 seconds — a toast with Undo stays 10 s since L15 F-B1-05
+  // (a toast under the pointer waits; a finger leaves)
   await page.mouse.move(0, 0);
-  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 9000 });
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 12000 });
   await page.locator(wide ? '[data-create]' : '[data-create-bar]').click();
   await page.locator('[data-create-item="capture"]').click();
   await expect(page.locator('[data-quick-capture]')).toBeVisible();

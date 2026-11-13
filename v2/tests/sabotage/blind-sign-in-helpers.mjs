@@ -11,7 +11,9 @@ export const sabotages = [
   {
     name: 'blind-safe-next',
     breaks: [target],
-    expect: '> returns only to an address on this site, never to the sign-in page',
+    // L16: the "//host" doors are caught by the QA-562 test, not by the "returns only to an address" test
+    // (that one passes under this plant) — the expect must name the test that actually fails (MF3, cf. L15 E14).
+    expect: '> judges a return address as the browser resolves it, so dot segments never reach another host (QA-562)',
     // both doors a "//host" could pass: the raw check and the resolved address's origin (QA-562)
     edits: [
       { file: 'src/core/auth/safe-next.ts', find: " || next.startsWith('//')", replace: '' },
