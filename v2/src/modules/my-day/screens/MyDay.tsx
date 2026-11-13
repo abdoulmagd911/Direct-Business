@@ -95,8 +95,9 @@ export function MyDay({ data }: { data: MyDayData }) {
   // what falls today or is overdue is in the Today block; this block keeps only the reminders for later days
   const later = laterReminders(answer.reminders, answer.day);
   const people = new Map(data.people.map((p) => [p.id, p]));
-  // my starred tasks, from the Today list (Phase 5): the star already carries undated tasks there
-  const starred = (answer.tasks ?? []).filter((task) => task.starred);
+  // my starred tasks, from the Today list (Phase 5): the star already carries undated tasks there. Mine only — a task I
+  // only help on carries its owner's star, which is not mine to set or to chase (it stays in Today's Helping group)
+  const starred = (answer.tasks ?? []).filter((task) => task.starred && task.role === 'owner');
   const authorOf = (id: string) => {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;
