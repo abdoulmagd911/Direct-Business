@@ -1578,7 +1578,7 @@
         "updated": "تحدّث الملف"
       },
       "record": {
-        "restored": "استُعيد سجل"
+        "restored": "{entity, select, task {استُعيدت المهمة} action_item {استُعيد بند قائمة التحقق} achievement {استُعيد الإنجاز} partner {استُعيدت الجهة} contact {استُعيدت جهة الاتصال} contract {استُعيد العقد} note {استُعيدت الملاحظة} comment {استُعيد التعليق} project {استُعيد المشروع} saved_view {استُعيد العرض المحفوظ} person_email {استُعيد البريد الإلكتروني} other {استُعيد سجل}}"
       },
       "registry": {
         "synced": "تمت مزامنة السجل"

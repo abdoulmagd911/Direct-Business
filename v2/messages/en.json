@@ -1592,7 +1592,7 @@
         "saved": "View saved"
       },
       "record": {
-        "restored": "Record restored"
+        "restored": "{entity, select, task {Task restored} action_item {Checklist item restored} achievement {Achievement restored} partner {Organisation restored} contact {Contact restored} contract {Contract restored} note {Note restored} comment {Comment restored} project {Project restored} saved_view {Saved view restored} person_email {Email restored} other {Record restored}}"
       },
       "tender": {
         "signed": "Contract signed, from tender {number}"
