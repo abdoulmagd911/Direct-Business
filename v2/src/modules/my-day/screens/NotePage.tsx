@@ -277,6 +277,7 @@ export function NotePage({
                 readOnly={!mine}
                 autoComplete="off"
                 onChange={(e) => setD({ ...d, title: e.target.value })}
+                dir="auto"
                 data-note-title
               />
             )}
@@ -289,6 +290,7 @@ export function NotePage({
                 value={d.body}
                 readOnly={!mine}
                 onChange={(e) => setD({ ...d, body: e.target.value })}
+                dir="auto"
                 data-note-body
               />
             )}
@@ -317,6 +319,7 @@ export function NotePage({
                     autoComplete="off"
                     aria-label={t('pages.myDay.note.itemLabel', { n: i + 1 })}
                     onChange={(e) => item(i, { text: e.target.value })}
+                    dir="auto"
                     className="min-w-0 flex-1"
                   />
                   {mine ? (
