@@ -2962,6 +2962,7 @@
       "from": "From",
       "to": "To",
       "apply": "Apply",
+      "invalid": "Choose two days: From, then To on the same day or after it.",
       "total": {
         "mtd": "Month to date",
         "qtd": "Quarter to date",
@@ -2977,6 +2978,10 @@
       "profit": "Profit"
     },
     "sar": "SAR",
+    "short": {
+      "thousands": "{n}K",
+      "millions": "{n}M"
+    },
     "provisional": "of which Provisional",
     "provisionalUnits": "{count, plural, one {# unit} other {# units}}",
     "notInvoiced": "Not yet invoiced",
