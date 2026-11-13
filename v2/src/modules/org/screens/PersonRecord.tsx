@@ -73,6 +73,7 @@ export type PersonRecordData = {
 };
 
 const TABS = ['overview', 'activity', 'related', 'appraisal'] as const;
+const APPRAISAL_BUILT = modules.some((m) => (m.pages ?? []).some((p) => p.key === 'appraisal' && p.built));
 
 /**
  * A person's record page (V95 template; V96: the appraisal tab is for the person, their manager and admins; V97: only
@@ -90,7 +91,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const hasLeft = !!row?.left_on && row.left_on <= today;
   // the admin and test accounts are never team members (V444, V445): no team, manager, department or appraisal (QA-203)
   const account = isAccount(data.person);
-  const tabs = TABS.filter((k) => !(account && k === 'appraisal'));
+  // the Appraisal tab waits for the Appraisal page (V633: a screen not built is offered nowhere) — until then it could
+  // only ever say "Nothing here yet"
+  const tabs = TABS.filter((k) => !(k === 'appraisal' && (account || !APPRAISAL_BUILT)));
   const tab = (tabs as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const admin = me.person.role?.is_admin === true;
   const self = me.person.id === person.id;
