@@ -952,7 +952,9 @@
           "comment_body_required": "اكتب شيئًا أولًا",
           "comment_too_long": "أقصى طول للتعليق 4000 حرف",
           "comment_not_yours": "لا يعدّل التعليق إلا من كتبه",
-          "remove_not_test": "لا يمكن إزالة إلا مهام الاختبار"
+          "remove_not_test": "لا يمكن إزالة إلا مهام الاختبار",
+          "owner_cannot_see": "هذا الشخص لا يمكنه رؤية هذه المهمة، لذا لا يمكن إسنادها إليه",
+          "team_out_of_reach": "هذا الفريق في قسم لا تعمل فيه"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",
