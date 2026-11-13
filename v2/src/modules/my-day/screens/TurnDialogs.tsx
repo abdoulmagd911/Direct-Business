@@ -95,7 +95,11 @@ export function LogFromNoteDialog({
   const type = types.find((x) => x.key === f.type);
   const own = outcomes.filter((o) => o.activity_type_id === type?.id);
   // Finish meeting holds the meeting unless another outcome is chosen (api.note_finish_meeting)
-  const ok = !!f.partner && !!f.type && (finish || own.length === 0 || !!f.outcome) && !!f.on;
+  const dayOk = /^\d{4}-\d{2}-\d{2}$/.test(f.on);
+  // V654 (6): a greyed Save says in one line what is missing — the organisation, the outcome, or the day (a half-typed
+  // day used to pass as one and was refused by the database in its own terms)
+  const missing = !f.partner ? 'partner' : !finish && own.length > 0 && !f.outcome ? 'outcome' : !dayOk ? 'day' : null;
+  const ok = !!f.type && missing === null;
   const save = async () => {
     if (!f.partner) return;
     setBusy(true);
@@ -139,12 +143,17 @@ export function LogFromNoteDialog({
       description={noteTitle(note) || undefined}
       closeLabel={t('common.close')}
       footer={
-        <>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {missing ? (
+            <p className="w-full text-sm text-muted sm:w-auto sm:flex-1" role="status" data-log-from-note-why>
+              {t(`pages.myDay.turn.activityMissing.${missing}`)}
+            </p>
+          ) : null}
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={!ok} loading={busy} onClick={() => void save()} data-log-from-note-save>
             {finish ? t('pages.myDay.finish.save') : t('common.save')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2" data-log-from-note={finish ? 'finish' : 'activity'}>
@@ -169,12 +178,14 @@ export function LogFromNoteDialog({
               value={f.outcome}
               onValueChange={(v) => setF({ ...f, outcome: v })}
               disabled={!own.length}
-              placeholder={own.length ? undefined : t('common.none')}
+              // an empty box said nothing: it now asks for the outcome, or says there is none for this type
+              placeholder={own.length ? t('pages.myDay.turn.chooseOutcome') : t('common.none')}
               options={own.map((x) => ({ value: x.key, label: nameOf(x, locale) }))}
             />
           )}
         </Field>
-        <Field label={t('pages.myDay.note.happenedOn')}>
+        {/* the day box with its Today chip, calendar and Clear takes the dialog's width (in one of two columns it was cut) */}
+        <Field label={t('pages.myDay.note.happenedOn')} className="sm:col-span-2">
           {(p) => (
             <DatePicker
               id={p.id}
@@ -188,7 +199,15 @@ export function LogFromNoteDialog({
           )}
         </Field>
         <Field label={t('pages.myDay.turn.line')} className="sm:col-span-2">
-          {(p) => <Textarea {...p} rows={4} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />}
+          {(p) => (
+            <Textarea
+              {...p}
+              rows={4}
+              dir="auto"
+              value={f.body}
+              onChange={(e) => setF({ ...f, body: e.target.value })}
+            />
+          )}
         </Field>
       </div>
     </Dialog>
@@ -305,7 +324,7 @@ export function ReminderDialog({
           </Field>
         </div>
         <Field label={t('pages.myDay.turn.text')}>
-          {(p) => <Input {...p} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />}
+          {(p) => <Input {...p} dir="auto" value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} />}
         </Field>
       </div>
     </Dialog>

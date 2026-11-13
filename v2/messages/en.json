@@ -355,6 +355,12 @@
           "time": "Type the time as hours and minutes, like 09:30.",
           "text": "Write what to be reminded of."
         },
+        "activityMissing": {
+          "partner": "Choose the organisation.",
+          "outcome": "Choose the outcome.",
+          "day": "Pick the day it happened."
+        },
+        "chooseOutcome": "Choose the outcome",
         "reminderTitle": "Set a reminder",
         "organisation": "Organisation",
         "searchOrg": "Search organisations by name or number",
