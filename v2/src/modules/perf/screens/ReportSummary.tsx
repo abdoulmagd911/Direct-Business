@@ -200,9 +200,7 @@ function GroupList({ title, groups, locale }: { title: string; groups: Group[]; 
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
         {groups.map((g) => (
           <li key={g.key} className="flex min-w-0 items-center gap-4 px-4 py-3">
-            <span className="min-w-0 flex-1 truncate font-medium">
-              <bdi>{g.label}</bdi>
-            </span>
+            <bdi className="min-w-0 flex-1 truncate font-medium">{g.label}</bdi>
             <span className="font-data text-sm text-muted tabular">{g.count}</span>
             {g.deal !== 0 ? <span className="font-data text-sm tabular">{formatMoney(g.deal, locale)}</span> : null}
           </li>

@@ -603,9 +603,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       href={r.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="truncate font-data text-link hover:underline"
+                      className="min-w-0 font-data text-link hover:underline"
                     >
-                      <bdi>{r.value}</bdi>
+                      <bdi className="block min-w-0 truncate">{r.value}</bdi>
                     </a>
                   ) : (
                     <bdi className="font-data">{r.value}</bdi>

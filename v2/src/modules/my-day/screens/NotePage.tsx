@@ -218,9 +218,9 @@ export function NotePage({
         title={
           <span className="flex min-w-0 items-center gap-3">
             <Icon className="size-6 shrink-0 text-muted" aria-hidden="true" />
-            <span className="min-w-0 truncate">
-              <bdi>{title}</bdi>
-            </span>
+            {/* the <bdi> itself is cut short: an inline <bdi> inside a cut-short box kept its whole width and ran past
+                the screen on a phone (tests/e2e/a-note-turned-into-a-task-stays-on-a-phone-screen.spec.ts) */}
+            <bdi className="min-w-0 truncate">{title}</bdi>
           </span>
         }
         meta={
