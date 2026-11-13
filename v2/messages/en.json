@@ -2967,6 +2967,12 @@
       "tasks": "Tasks",
       "tasksNone": "No tasks on this organisation yet",
       "due": "Due {date}"
+    },
+    "gone": {
+      "title": "This organisation is not here",
+      "body": "It was removed, or the address is wrong. A removed organisation can be brought back from Recently deleted.",
+      "backClients": "Back to Clients",
+      "backSuppliers": "Back to Suppliers"
     }
   },
   "recentlyDeleted": {
