@@ -2070,15 +2070,6 @@
       "reasonRequired": "A reason is required"
     },
     "values": {
-      "work.week_starts_on": {
-        "saturday": "Saturday",
-        "sunday": "Sunday",
-        "monday": "Monday"
-      },
-      "app.export_formats": {
-        "csv": "CSV",
-        "xlsx": "Excel"
-      },
       "work": {
         "week_starts_on": {
           "saturday": "Saturday",
