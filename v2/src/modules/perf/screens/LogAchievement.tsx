@@ -136,7 +136,8 @@ export function LogAchievement({
           id: string;
           request_id?: string | null;
         }>,
-      { after: () => loadYear(loadedYear) },
+      // the plan's categories are read again after it opens, and again after its Undo (Undo no longer re-runs `after`)
+      { after: () => loadYear(loadedYear), afterUndo: () => loadYear(loadedYear) },
     );
     setBusy(false);
   };

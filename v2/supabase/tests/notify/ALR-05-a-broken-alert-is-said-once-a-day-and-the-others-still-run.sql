@@ -1,4 +1,4 @@
--- ALR-03 — a broken alert is said once a day, and the others still run (the 13 Nov sweep): notify.generate_alerts
+-- ALR-05 — a broken alert is said once a day, and the others still run (the 13 Nov sweep): notify.generate_alerts
 -- runs each alert on its own, but a failing one was only a warning in the server's log — the job still succeeded,
 -- so an alert could stop for good unseen. The failure is now one job line in the change log ("alert.failed", naming
 -- the alert and the error), once per alert per Riyadh day. Every value is made up.

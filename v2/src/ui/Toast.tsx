@@ -79,4 +79,6 @@ export const toast = {
   working(title: string) {
     return sonnerToast.loading(title);
   },
+  /** Takes every toast away — Quick capture clears what was just done when it opens, so a toast never covers its sheet. */
+  dismiss: sonnerToast.dismiss,
 };

@@ -826,7 +826,7 @@
       },
       "bulkAssign": {
         "open": "Assign owner and priority",
-        "title": "Assign {count} tasks",
+        "title": "{count, plural, one {Assign # task} other {Assign # tasks}}",
         "what": "Give the selected tasks to one owner, set their priority, or both. Either choice may be left unchanged.",
         "unchanged": "No change",
         "ownerDone": "{count} assigned to {name}",
@@ -2022,7 +2022,7 @@
       "noTeam": "No team",
       "never": "Never",
       "openRecord": "Open",
-      "people": "{count} people",
+      "people": "{count, plural, one {# person} other {# people}}",
       "setRole": "Change role",
       "emailAdded": "{email} allowed",
       "emailRemoved": "{email} removed",
@@ -2789,7 +2789,7 @@
       "costPendingNote": "Some bookings still wait for an approved cost, so Cost and Profit are not final",
       "costMissing": "Cost not known yet",
       "waitingForIssuing": "Waiting to be issued",
-      "waitingCount": "{count} invoices still wait for a tax invoice",
+      "waitingCount": "{count, plural, one {# invoice still waits for a tax invoice} other {# invoices still wait for a tax invoice}}",
       "tenders": "Tenders",
       "tendersNone": "No tenders on this partner yet",
       "tenderAmount": "Tender amount",
@@ -2860,11 +2860,6 @@
       "statuses": {
         "stored": "Stored",
         "pending": "Upload not finished"
-      },
-      "size": {
-        "b": "{n} B",
-        "kb": "{n} KB",
-        "mb": "{n} MB"
       }
     },
     "activity": {
