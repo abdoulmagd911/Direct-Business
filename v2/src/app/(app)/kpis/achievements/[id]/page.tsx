@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
-import type { FromNote } from '@/modules/my-day/types';
+import type { FromNote, PartnerRef } from '@/modules/my-day/types';
 import type { OrgAnswer } from '@/modules/org/types';
 import { AchievementRecord, type AchievementRecordData } from '@/modules/perf/screens/AchievementRecord';
 import type { AchievementDetail, Category } from '@/modules/perf/types';
@@ -71,9 +71,7 @@ export default async function AchievementPage({
     maybe<Category[]>('categories', failed, () => serverRpc('achievement_categories', { p_plan: a.plan_id })),
     maybe<ListEntry[]>('systems', failed, () => serverRpc('list', { p_list: 'ref_system' })),
     a.partner_id
-      ? maybe<{ trade_name_en: string; trade_name_ar: string | null }>('partner', failed, () =>
-          serverRpc('hover_partner', { p_id: a.partner_id! }),
-        )
+      ? maybe<PartnerRef>('partner', failed, () => serverRpc('hover_partner', { p_id: a.partner_id! }))
       : Promise.resolve(null),
     maybe<FromNote | null>('from_note', failed, () => serverRpc('from_note', { p_entity: 'achievement', p_id: id })),
     // The Discussion's comments and the header's files count, read live beside the rest.
@@ -86,6 +84,15 @@ export default async function AchievementPage({
     filter: typeof filter === 'string' ? filter : undefined,
     org,
     partnerName: partner ? (lang === 'ar' && partner.trade_name_ar) || partner.trade_name_en : null,
+    // the organisation as the Edit dialog's picker holds it (id, number and both names)
+    partner: partner
+      ? {
+          id: partner.id,
+          number: partner.number,
+          trade_name_en: partner.trade_name_en,
+          trade_name_ar: partner.trade_name_ar,
+        }
+      : null,
     history: history ? historyRows(history, 'achievement', id) : null,
     comments,
     files,

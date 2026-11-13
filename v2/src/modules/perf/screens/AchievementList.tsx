@@ -52,7 +52,10 @@ export function AchievementList({
   const router = useRouter();
   const go = (next: ListFilter) => router.push(hrefOf(next));
   const toggle = (k: 'backfilled' | 'past' | 'needsOwner') => go({ ...filter, [k]: filter[k] ? undefined : true });
-  const filtered = Object.values(filter).some(Boolean);
+  // the sort only orders the list — it filters nothing out, so it never brings up Clear filters, and Clear filters
+  // keeps it
+  const filtered = Object.entries(filter).some(([k, v]) => k !== 'sort' && !!v);
+  const clear = () => go({ sort: filter.sort });
   const rows = sortAchievements(page?.rows ?? [], filter.sort, locale);
   const top = categories.filter((c) => !c.parent_id);
   const options = [
@@ -66,7 +69,14 @@ export function AchievementList({
     <>
       <PageHeader
         title={t('title')}
-        meta={page ? String(page.total) : undefined}
+        // the count in words, as Clients says its own ("6 organisations") — a bare "0" read as nothing
+        meta={
+          page ? (
+            <span className="font-data" data-achievements-total>
+              {t('count', { count: page.total })}
+            </span>
+          ) : undefined
+        }
         actions={
           canLog ? (
             <Link href="/kpis/achievements/new" className={buttonVariants({ variant: 'primary' })} data-log-achievement>
@@ -76,10 +86,13 @@ export function AchievementList({
           ) : null
         }
       />
-      <div className="flex flex-wrap items-end gap-2" data-achievement-filters>
+      {/* One line of filters, every control at the same height and top: the month's "Any month" line sits under
+          its own box, so the row aligns on the boxes' tops (aligned on the bottom, the month box rode higher than
+          the rest). Its label stands beside its box. On a phone the two menus take the full width. */}
+      <div className="flex flex-wrap items-start gap-2" data-achievement-filters>
         <Select
           aria-label={t('filters.category')}
-          className="w-48"
+          className="w-full sm:w-48"
           value={filter.category ?? ALL}
           options={options}
           onValueChange={(v) => go({ ...filter, category: v === ALL ? undefined : v })}
@@ -87,13 +100,17 @@ export function AchievementList({
         {/* FIX-01: the sort menu — the columns are not sortable, so the order is a menu, kept in the address. */}
         <Select
           aria-label={t('filters.sort')}
-          className="w-44"
+          className="w-full sm:w-44"
           value={filter.sort ?? ''}
           placeholder={t('filters.sort')}
           options={ACHIEVEMENT_SORTS.map((k) => ({ value: k, label: t(`filters.sort_${k}`) }))}
           onValueChange={(v) => go({ ...filter, sort: (v as AchievementSortKey) || undefined })}
         />
-        <div role="group" aria-label={t('filters.mine')} className="inline-flex rounded-md border border-border-strong">
+        <div
+          role="group"
+          aria-label={t('filters.mine')}
+          className="inline-flex h-[var(--control-h)] rounded-md border border-border-strong"
+        >
           {[false, true].map((m) => (
             <button
               key={String(m)}
@@ -101,7 +118,7 @@ export function AchievementList({
               aria-pressed={!!filter.mine === m}
               onClick={() => go({ ...filter, mine: m || undefined })}
               className={cn(
-                'h-[var(--control-h-sm)] px-3 text-sm first:rounded-s-md last:rounded-e-md',
+                'h-full px-3 text-sm first:rounded-s-md last:rounded-e-md',
                 !!filter.mine === m ? 'bg-accent-soft text-text' : 'text-muted hover:bg-surface',
               )}
             >
@@ -109,8 +126,8 @@ export function AchievementList({
             </button>
           ))}
         </div>
-        <label className="flex flex-col gap-0.5 text-sm text-muted" data-month-filter>
-          {t('filters.month')}
+        <label className="flex items-start gap-2 text-sm text-muted" data-month-filter>
+          <span className="flex h-[var(--control-h)] shrink-0 items-center">{t('filters.month')}</span>
           <MonthPicker
             id="month-filter"
             value={filter.month}
@@ -120,7 +137,7 @@ export function AchievementList({
           />
         </label>
         {filtered && page?.rows.length !== 0 ? (
-          <Button size="sm" variant="ghost" onClick={() => go({})} data-clear-filters-row>
+          <Button size="sm" variant="ghost" className="h-[var(--control-h)]" onClick={clear} data-clear-filters-row>
             {t('filters.clear')}
           </Button>
         ) : null}
@@ -150,7 +167,7 @@ export function AchievementList({
           message={filtered ? t('noMatch') : t('empty')}
           action={
             filtered ? (
-              <Button size="sm" variant="secondary" onClick={() => go({})} data-clear-filters>
+              <Button size="sm" variant="secondary" onClick={clear} data-clear-filters>
                 {t('filters.clear')}
               </Button>
             ) : undefined

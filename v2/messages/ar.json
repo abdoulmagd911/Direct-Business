@@ -247,8 +247,10 @@
       "assigned": "تم تحديد المالك",
       "refAdded": "تمت إضافة المرجع",
       "refRemoved": "تمت إزالة المرجع",
+      "participantsSaved": "تم حفظ المشاركين",
       "empty": "لا إنجازات بعد",
       "noMatch": "لا إنجازات تطابق هذه التصفيات",
+      "count": "{count, plural, zero {لا إنجازات} one {إنجاز واحد} two {إنجازان} few {# إنجازات} many {# إنجازًا} other {# إنجاز}}",
       "titleMore": "المزيد",
       "titleLess": "عرض أقل",
       "filters": {
@@ -325,20 +327,23 @@
       "actions": {
         "edit": "تعديل",
         "remove": "إزالة",
-        "move": "نقل",
+        "move": "نقل إلى شهر أسبق",
         "assign": "تحديد مالك",
         "addRef": "إضافة دليل",
         "save": "حفظ",
         "cancel": "إلغاء",
         "choose": "اختيار",
-        "removeParticipant": "أزِل {name}"
+        "removeParticipant": "أزِل {name}",
+        "addParticipants": "إضافة مشاركين",
+        "editParticipants": "تغيير المشاركين"
       },
       "dialogs": {
         "edit": "تعديل الإنجاز",
         "remove": "إزالة الإنجاز",
-        "move": "النقل إلى فترة أسبق",
+        "move": "النقل إلى شهر أسبق",
         "assign": "تحديد مالك",
         "addRef": "إضافة مرجع",
+        "participants": "المشاركون",
         "reason": "السبب",
         "reasonRequired": "اذكر السبب"
       },
@@ -364,13 +369,20 @@
           "no_plan": "لا توجد خطة لعام {detail} بعد",
           "ref_required": "أضف مرجع {detail} أولًا",
           "no_deal_value": "هذه الفئة بلا قيمة صفقة",
+          "value_invalid": "أدخل رقمًا",
+          "count_invalid": "أدخل عددًا صحيحًا",
+          "notes_too_long": "الملاحظات طويلة جدًا",
           "category_retired": "هذه الفئة مؤرشفة",
+          "category_not_in_plan": "هذه الفئة ليست في خطة {detail}",
           "move_earlier_only": "النقل إلى شهر أسبق فقط",
           "owner_required": "المالك مطلوب",
           "before_2025": "التواريخ تبدأ من 1 يناير 2025",
+          "date_required": "الإنجاز المؤرَّخ يبقى بتاريخ",
           "title_required": "اذكر ما تحقق",
           "ref_taken": "هذا المرجع موجود هنا بالفعل",
           "ref_looks_secret": "يبدو هذا كلمة مرور",
+          "ref_url_invalid": "يبدأ الرابط بـ https://",
+          "ref_value_required": "اكتب المرجع",
           "side_required": "اختر من وقّع",
           "repeat_invalid": "الإنجاز السابق لا يطابق",
           "number_fixed": "لا يتغير الرقم أبدًا"
@@ -423,9 +435,12 @@
       "byPartner": "حسب الجهة",
       "unknownOwner": "لا يوجد مالك مذكور",
       "unknownPartner": "لا توجد جهة مذكورة",
+      "hiddenPartner": "جهة لا يمكنك فتحها",
       "download": "تنزيل كجدول بيانات",
       "seeList": "عرض قائمة الإنجازات",
-      "empty": "لا إنجازات في هذا الشهر"
+      "empty": "لا إنجازات في هذا الشهر",
+      "emptyAny": "لا إنجازات بعد",
+      "draftsLeftOut": "{count, plural, zero {لا مسودات.} one {مسودة واحدة بلا تاريخ بعد لا تُحتسب.} two {مسودتان بلا تاريخ بعد لا تُحتسبان.} few {# مسودات بلا تاريخ بعد لا تُحتسب.} many {# مسودة بلا تاريخ بعد لا تُحتسب.} other {# مسودة بلا تاريخ بعد لا تُحتسب.}}"
     },
     "myDay": {
       "kindFilter": {

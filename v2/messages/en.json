@@ -506,8 +506,10 @@
       "assigned": "Owner given",
       "refAdded": "Reference added",
       "refRemoved": "Reference removed",
+      "participantsSaved": "Participants saved",
       "empty": "No achievements yet",
       "noMatch": "No achievements match these filters",
+      "count": "{count, plural, one {# achievement} other {# achievements}}",
       "titleMore": "More",
       "titleLess": "Show less",
       "filters": {
@@ -584,20 +586,23 @@
       "actions": {
         "edit": "Edit",
         "remove": "Remove",
-        "move": "Move",
+        "move": "Move to an earlier month",
         "assign": "Give owner",
         "addRef": "Add evidence",
         "save": "Save",
         "cancel": "Cancel",
         "choose": "Choose",
-        "removeParticipant": "Remove {name}"
+        "removeParticipant": "Remove {name}",
+        "addParticipants": "Add participants",
+        "editParticipants": "Change participants"
       },
       "dialogs": {
         "edit": "Edit achievement",
         "remove": "Remove achievement",
-        "move": "Move to earlier",
+        "move": "Move to an earlier month",
         "assign": "Give owner",
         "addRef": "Add reference",
+        "participants": "Participants",
         "reason": "Reason",
         "reasonRequired": "Say why"
       },
@@ -623,13 +628,20 @@
           "no_plan": "No {detail} plan yet",
           "ref_required": "Add the {detail} reference first",
           "no_deal_value": "This category has no deal value",
+          "value_invalid": "Enter a number",
+          "count_invalid": "Enter a whole number",
+          "notes_too_long": "The notes are too long",
           "category_retired": "This category is retired",
+          "category_not_in_plan": "This category is not in the {detail} plan",
           "move_earlier_only": "Only to an earlier month",
           "owner_required": "An owner is needed",
           "before_2025": "Dates start 1 Jan 2025",
+          "date_required": "A dated achievement keeps a date",
           "title_required": "Say what was achieved",
           "ref_taken": "That reference is already here",
           "ref_looks_secret": "That looks like a password",
+          "ref_url_invalid": "A link starts with https://",
+          "ref_value_required": "Type the reference",
           "side_required": "Choose who signed",
           "repeat_invalid": "That earlier one does not match",
           "number_fixed": "The number never changes"
@@ -682,9 +694,12 @@
       "byPartner": "By organisation",
       "unknownOwner": "No owner listed",
       "unknownPartner": "No organisation listed",
+      "hiddenPartner": "An organisation you cannot open",
       "download": "Download as spreadsheet",
       "seeList": "See the achievements list",
-      "empty": "No achievements in this month"
+      "empty": "No achievements in this month",
+      "emptyAny": "No achievements yet",
+      "draftsLeftOut": "{count, plural, one {# draft with no date yet is not counted.} other {# drafts with no date yet are not counted.}}"
     },
     "codes": {
       "list": "Discount codes",

@@ -75,6 +75,8 @@ export function LogAchievement({
   sourceTaskId?: string;
 }) {
   const t = useTranslations('pages.achievements');
+  // "Required" beside each box Save waits for, so a greyed Save has a reason on screen
+  const required = useTranslations('common')('required');
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const words = useCommandWords();
@@ -100,6 +102,10 @@ export function LogAchievement({
   const needsRef = cat?.required_ref_system ?? null;
   // V521: an MoU with an organisation names the side it was signed with.
   const needsSide = !!cat?.sets_prospect && !!partner;
+  // The value box shows for a category that carries a deal value only (Settings → Targets, "Carries a deal value"):
+  // the database refuses a value on any other category (achievement.no_deal_value), so offering the box on Awards
+  // let a person type a value that could never save.
+  const withValue = !!cat?.has_deal_value;
 
   // The categories are the plan's of the date's year (§5a): another year reads that year's.
   const loadYear = async (y: number) => {
@@ -174,9 +180,10 @@ export function LogAchievement({
             title: title.trim(),
             happened_on: day || null,
             partner_id: partner?.id ?? null,
-            // FIX-06: the value is a plain number for every category (D29) — the unit is the category's own
-            // name, in the field's label; never Revenue/Cost/Profit, and the "not revenue" note stands.
-            ...(cat && value.trim() ? { deal_value: readDealValue(value)! } : {}),
+            // FIX-06: the value is a plain number — the unit is the category's own name, in the field's label;
+            // never Revenue/Cost/Profit, and the "not revenue" note stands. Sent only for a category that carries
+            // a deal value: the database refuses one on any other (achievement.no_deal_value).
+            ...(withValue && value.trim() ? { deal_value: readDealValue(value)! } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
             ...(needsSide && side ? { side } : {}),
@@ -214,8 +221,7 @@ export function LogAchievement({
   };
 
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
-  // FIX-06: the value is a plain number for every category, not only the deal-value ones (D29).
-  const valueBad = !!cat && !!value.trim() && readDealValue(value) === null;
+  const valueBad = withValue && !!value.trim() && readDealValue(value) === null;
   // FIX-06: the value's unit is the category's own name — no per-category unit field exists in the Category
   // type, so the name is the unit (recorded in the build note).
   const valueLabel = cat
@@ -233,7 +239,7 @@ export function LogAchievement({
     >
       <PageHeader crumbs={[{ label: t('title'), href: '/kpis/achievements' }]} title={t('log')} />
       {live.length ? (
-        <Field label={t('fields.category')}>
+        <Field label={t('fields.category')} required={required}>
           {(p) => (
             <Select
               id={p.id}
@@ -265,7 +271,7 @@ export function LogAchievement({
           )}
         </div>
       )}
-      <Field label={t('fields.title')}>
+      <Field label={t('fields.title')} required={required}>
         {(p) => <Input {...p} value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
       </Field>
       <Field label={t('fields.date')}>
@@ -284,7 +290,7 @@ export function LogAchievement({
         {(p) => <PartnerPicker id={p.id} value={partner} onChange={setPartner} />}
       </Field>
       {needsSide ? (
-        <Field label={t('fields.side')}>
+        <Field label={t('fields.side')} required={required}>
           {(p) => (
             <Select
               id={p.id}
@@ -297,12 +303,15 @@ export function LogAchievement({
           )}
         </Field>
       ) : null}
-      {cat ? (
+      {withValue ? (
         <Field label={valueLabel} error={valueBad ? t('valueNotNumber') : undefined}>
           {(p) => <Input {...p} inputMode="decimal" mono value={value} onChange={(e) => setValue(e.target.value)} />}
         </Field>
       ) : null}
-      <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-2">
+      {/* the reference row: on a PC its first column is wide enough for "Where the reference came from" on one line
+          (at 8rem the label broke over two lines and pushed its box below the Reference box); on a phone the two
+          stack */}
+      <div className="grid grid-cols-1 gap-x-2 gap-y-4 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] sm:items-end">
         <Field label={t('fields.system')}>
           {(p) => (
             <Select
@@ -315,7 +324,7 @@ export function LogAchievement({
             />
           )}
         </Field>
-        <Field label={t('fields.reference')}>
+        <Field label={t('fields.reference')} required={needsRef ? required : undefined}>
           {(p) => <Input {...p} value={ref} maxLength={200} onChange={(e) => setRef(e.target.value)} />}
         </Field>
       </div>
