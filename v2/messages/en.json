@@ -2656,8 +2656,7 @@
       "pending": "Upload not finished",
       "notStored": "Not uploaded yet",
       "size": "Size",
-      "addedOn": "Added {date}",
-      "allFilesHint": "Every partner's files, in one place"
+      "addedOn": "Added {date}"
     },
     "companyCodes": {
       "title": "Discount codes",
@@ -2928,11 +2927,11 @@
       "side": "Side",
       "startOn": "Starts",
       "endOn": "Ends",
-      "reminders": "Reminders on",
+      "reminders": "Reminders before it ends",
       "removeTitle": "Remove {title}?",
       "state": {
         "active": "Active",
-        "expiring": "Expires in {days} days",
+        "expiring": "{days, plural, =0 {Expires today} one {Expires in # day} other {Expires in # days}}",
         "expired": "Expired",
         "not_started": "Not started",
         "open": "Open-ended"
@@ -2953,7 +2952,13 @@
     "unarchivePartner": "Unarchive",
     "unarchivedDone": "{name} unarchived",
     "archivedView": "Showing archived partners only",
-    "showActive": "Show active partners"
+    "showActive": "Show active partners",
+    "archivedNote": "This organisation is archived. Unarchive it to change anything on it.",
+    "related": {
+      "tasks": "Tasks",
+      "tasksNone": "No tasks on this organisation yet",
+      "due": "Due {date}"
+    }
   },
   "recentlyDeleted": {
     "title": "Recently deleted"

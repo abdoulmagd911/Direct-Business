@@ -51,9 +51,10 @@ export function FilesSection({
       mayWrite={mayWrite}
       onDone={onDone}
       title={t('partners.companyFiles.title')}
+      // the link opens this organisation's files in All files; no line under the title (it read "Every partner's
+      // files, in one place" above this one organisation's files, which it is not — V11, no hint text)
       allFilesHref={`/files?company=${partnerId}`}
       allFilesLabel={t('partners.companyFiles.allFiles')}
-      intro={t('partners.companyFiles.allFilesHint')}
       hiddenFiles={hiddenFiles}
     />
   );

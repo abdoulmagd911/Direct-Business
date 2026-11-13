@@ -2548,8 +2548,7 @@
       "pending": "الرفع لم يكتمل",
       "notStored": "لم يُرفع بعد",
       "size": "الحجم",
-      "addedOn": "أُضيف {date}",
-      "allFilesHint": "ملفات كل الشركات في مكان واحد"
+      "addedOn": "أُضيف {date}"
     },
     "companyCodes": {
       "title": "رموز الخصم",
@@ -2820,11 +2819,11 @@
       "side": "الجانب",
       "startOn": "يبدأ",
       "endOn": "ينتهي",
-      "reminders": "التذكير في",
+      "reminders": "تذكيرات قبل انتهائه",
       "removeTitle": "إزالة {title}؟",
       "state": {
         "active": "ساري",
-        "expiring": "{days, plural, one {ينتهي بعد يوم واحد} two {ينتهي بعد يومين} few {ينتهي بعد # أيام} many {ينتهي بعد # يومًا} other {ينتهي بعد # يوم}}",
+        "expiring": "{days, plural, =0 {ينتهي اليوم} one {ينتهي بعد يوم واحد} two {ينتهي بعد يومين} few {ينتهي بعد # أيام} many {ينتهي بعد # يومًا} other {ينتهي بعد # يوم}}",
         "expired": "منتهٍ",
         "not_started": "لم يبدأ",
         "open": "مفتوح المدة"
@@ -2847,7 +2846,13 @@
     "unarchivePartner": "إلغاء الأرشفة",
     "unarchivedDone": "تم إلغاء أرشفة {name}",
     "archivedView": "عرض الشركاء المؤرشفين فقط",
-    "showActive": "عرض الشركاء النشطين"
+    "showActive": "عرض الشركاء النشطين",
+    "archivedNote": "هذه الجهة مؤرشفة. ألغِ أرشفتها لتعديل أي شيء فيها.",
+    "related": {
+      "tasks": "المهام",
+      "tasksNone": "لا مهام على هذه الجهة بعد",
+      "due": "مستحقة في {date}"
+    }
   },
   "createNew": {
     "task": "مهمة جديدة",

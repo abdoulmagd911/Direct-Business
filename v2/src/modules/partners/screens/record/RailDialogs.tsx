@@ -41,10 +41,17 @@ export function IdentifierDialog({
 }) {
   const t = useTranslations();
   const words = useWords();
-  const [f, setF] = useState({ kind: 'vat', subkind: '', value: '', from: '', to: '', note: '', reason: '' });
+  const blank = { kind: 'vat', subkind: '', value: '', from: '', to: '', reason: '' };
+  const [f, setF] = useState(blank);
+  // every opening starts from a blank form: a value typed and cancelled is not waiting there the next time
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setF(blank);
+  }
   const [busy, setBusy] = useState(false);
   const kinds = IDENTIFIER_KINDS.filter((k) => clientOn || (k !== 'payments_client_id' && k !== 'discount_code'));
-  const ok = !!f.value.trim() && !!f.reason.trim() && (f.kind !== 'name' || true);
+  const ok = !!f.value.trim() && !!f.reason.trim();
   const save = async () => {
     setBusy(true);
     await command(
@@ -58,12 +65,10 @@ export function IdentifierDialog({
           p_subkind: f.kind === 'name' ? 'alias' : f.subkind || undefined,
           p_valid_from: f.kind === 'discount_code' && f.from ? f.from : undefined,
           p_valid_to: f.kind === 'discount_code' && f.to ? f.to : undefined,
-          p_note: f.note.trim() || undefined,
         }) as Promise<{ request_id?: string | null } | null>,
       {
         after: () => {
           onOpenChange(false);
-          setF({ kind: 'vat', subkind: '', value: '', from: '', to: '', note: '', reason: '' });
           onDone();
         },
       },
@@ -494,10 +499,13 @@ export function ReferenceDialog({
             {(p) => (
               <Select
                 {...p}
-                value={f.side}
-                onValueChange={(v) => setF({ ...f, side: v })}
-                placeholder={t('partners.reference.shared')}
-                options={sidesOn.map((s) => ({ value: s, label: t(`partners.side.${s}`) }))}
+                // "Shared" is a choice of its own, so a side picked by mistake can be taken back
+                value={f.side || 'shared'}
+                onValueChange={(v) => setF({ ...f, side: v === 'shared' ? '' : v })}
+                options={[
+                  { value: 'shared', label: t('partners.reference.shared') },
+                  ...sidesOn.map((s) => ({ value: s, label: t(`partners.side.${s}`) })),
+                ]}
               />
             )}
           </Field>
@@ -667,11 +675,18 @@ export function ContractDialog({
         <Field label={t('partners.fields.notes')} className="sm:col-span-2">
           {(p) => <Textarea {...p} rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />}
         </Field>
-        <Switch
-          checked={f.reminders_on}
-          onCheckedChange={(v) => setF({ ...f, reminders_on: v })}
-          label={t('partners.contract.reminders')}
-        />
+        {/* the switch says what it does on screen, not only to a screen reader (a bare toggle read as nothing) */}
+        <span className="flex min-h-11 items-center gap-2 sm:col-span-2" data-contract-reminders>
+          <Switch
+            id="contract-reminders"
+            checked={f.reminders_on}
+            onCheckedChange={(v) => setF({ ...f, reminders_on: v })}
+            label={t('partners.contract.reminders')}
+          />
+          <label htmlFor="contract-reminders" className="text-sm">
+            {t('partners.contract.reminders')}
+          </label>
+        </span>
       </div>
     </Dialog>
   );
