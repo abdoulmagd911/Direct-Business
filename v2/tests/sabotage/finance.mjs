@@ -76,8 +76,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '    <div className="flex flex-wrap items-center gap-2" data-finance-period>',
-        replace: '    <div className="flex flex-wrap items-center gap-2" data-finance-period data-finance-stamp>',
+        find: '    <div className="flex flex-col items-start gap-2" data-finance-period>',
+        replace: '    <div className="flex flex-col items-start gap-2" data-finance-period data-finance-stamp>',
       },
     ],
   },
@@ -100,9 +100,9 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: "'inline-flex h-[var(--control-h)] items-center px-3.5 text-base",
+        find: "'inline-flex h-[var(--control-h)] shrink-0 items-center whitespace-nowrap px-3.5 text-base",
         // the shared phone rule gives a link a 44 px minimum; a zero minimum (a utility beats that rule) lets the short height show
-        replace: "'inline-flex h-6 min-h-0 items-center px-3.5 text-base",
+        replace: "'inline-flex h-6 min-h-0 shrink-0 items-center whitespace-nowrap px-3.5 text-base",
       },
     ],
   },
@@ -282,7 +282,7 @@ export const sabotages = [
     name: 'attention-row-sits-under-the-add-button',
     breaks: [E2E],
     expect: 'the Needs attention row stays clear of the + button',
-    edits: [{ file: OVERVIEW, find: ' max-sm:mb-16 max-sm:pe-20', replace: '' }],
+    edits: [{ file: OVERVIEW, find: 'bg-raised px-4 py-3 max-sm:pe-20', replace: 'bg-raised px-4 py-3' }],
   },
   {
     name: 'month-row-sits-under-the-add-button',

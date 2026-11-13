@@ -224,9 +224,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/WrapUpDialog.tsx',
-        find: "{i.title || t('pages.myDay.note.untitled')}\n                        </Link>",
+        find: "<bdi>{i.title || t('pages.myDay.note.untitled')}</bdi>\n                        </Link>",
         replace:
-          "{i.title || t('pages.myDay.note.untitled')}\n                        </Link>\n                        <span data-wrap-word={i.word}>{i.word}</span>",
+          "<bdi>{i.title || t('pages.myDay.note.untitled')}</bdi>\n                        </Link>\n                        <span data-wrap-word={i.word}>{i.word}</span>",
       },
     ],
   },

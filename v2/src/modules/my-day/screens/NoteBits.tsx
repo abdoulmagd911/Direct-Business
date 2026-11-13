@@ -201,10 +201,11 @@ export function NoteRow({ note, author, deferred = false }: { note: MyNote; auth
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           {/* the title wraps, never cut: on a phone a cut title lost its last words with no "…" (a link there is a 44 px
-              flex box, where an ellipsis does not draw), and sat lower than the row's icon and date */}
+              flex box, where an ellipsis does not draw), and sat lower than the row's icon and date. It stays a finger
+              wide on a phone even when it is short — "Hi" (QA-584): a min-w-0 here beat the shared 44 px phone rule. */}
           <Link
             href={noteRoute(note.id)}
-            className="block min-w-0 break-words font-medium hover:underline"
+            className="block min-w-11 break-words font-medium hover:underline sm:min-w-0"
             data-note-open
           >
             <bdi>{title}</bdi>
