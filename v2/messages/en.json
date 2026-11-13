@@ -287,7 +287,8 @@
         "emptyQuestions": "No open questions.",
         "emptyNeedHelp": "Nothing needs help right now.",
         "emptyWaitingOnOthers": "Nothing waiting on others.",
-        "emptyNeedHelpOthers": "No tasks you flagged are still waiting."
+        "emptyNeedHelpOthers": "No tasks you flagged are still waiting.",
+        "nothingNow": "Nothing right now."
       },
       "starred": "Starred",
       "more": "Show all",
