@@ -287,7 +287,9 @@ export function ActivityScreen({
             )}
           </Field>
         </div>
-      ) : (
+      ) : (me.levels['settings.org'] ?? 'none') !== 'none' ? (
+        // whose sign-ins: anyone's for People & access · View (api.sign_in_log); everyone else sees their own, and is
+        // offered no picker of names the database would refuse
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={t('activity.filters.who')}>
             {(p) => (
@@ -300,7 +302,7 @@ export function ActivityScreen({
             )}
           </Field>
         </div>
-      )}
+      ) : null}
       {current === 'changes' ? (
         <section className="rounded-lg border border-border bg-raised px-5 py-2" data-activity-changes>
           <ActivityTimeline

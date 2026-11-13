@@ -7,6 +7,7 @@ import { ActivityScreen, type DeletedRow, type SignInRow } from '@/modules/setti
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
+import { canSee } from '@/ui/person';
 import { Page } from '@/ui/shell/Page';
 import { isAdmin } from '@/ui/shell/nav';
 import { pageTitle } from '@/ui/shell/page-title';
@@ -37,6 +38,7 @@ export default async function ActivityPage({
         />
       </Page>
     );
+  const othersSignIns = canSee(me, 'settings.org');
   // W47: the organisation and the tab's own read go out together, one round after me — not one after the other.
   const tabRead = async (): Promise<{
     rows?: HistoryRow[];
@@ -50,10 +52,12 @@ export default async function ActivityPage({
       return { deleted: ((await serverRpc('recently_deleted', { p_limit: 200 })) as unknown as DeletedRow[]) ?? [] };
     }
     if (tab === 'signIns') {
+      // one's own sign-ins always; someone else's with People & access · View (api.sign_in_log, V132) — a head or
+      // manager naming another person in the address was refused, and the refusal took the whole page down
       return {
         signIns:
           ((await serverRpc('sign_in_log', {
-            p_person: filters.person || me.person.id,
+            p_person: othersSignIns && filters.person ? filters.person : me.person.id,
             p_limit: 100,
           } as never)) as unknown as SignInRow[]) ?? [],
       };

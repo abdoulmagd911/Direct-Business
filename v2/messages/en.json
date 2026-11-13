@@ -1806,8 +1806,6 @@
         "from": "From",
         "to": "To",
         "departments": "{count, plural, one {# department keeps its own value} other {# departments keep their own value}}",
-        "fromToday": "Applies from today",
-        "fromDate": "Applies from {date}",
         "replacesSameDay": "replaces today's earlier change"
       },
       "save": "Save setting",
