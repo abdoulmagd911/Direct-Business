@@ -1507,7 +1507,9 @@
       "askChip": "Asked {name}",
       "removedQuestion": "Question deleted",
       "removeQuestionTitle": "Delete the question?"
-    }
+    },
+    "titleMore": "More",
+    "titleLess": "Show less"
   },
   "activity": {
     "helper": "Helper",

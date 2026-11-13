@@ -21,7 +21,7 @@ export type RecordTab = { key: string; label: ReactNode; count?: number };
 export function RecordPage({
   crumbs,
   crumbsClass,
-  titleClamp = 'line-clamp-2',
+  titleClamp,
   titleMore,
   back,
   avatar,
@@ -41,9 +41,9 @@ export function RecordPage({
   crumbs?: { label: ReactNode; href?: string }[];
   /** Extra classes for the trail (a phone shows the back arrow and no trail: `max-lg:hidden`). */
   crumbsClass?: string;
-  /** How many lines the name may take before it is cut. */
+  /** Extra classes for the name (it shows three lines, then a "More" tap that opens the rest). */
   titleClamp?: string;
-  /** Three lines and a "more" tap that opens the rest, on every width (V653); replaces `titleClamp`. */
+  /** The words of the name's "More" / "Less" tap; the record words by default (V653). */
   titleMore?: { more: string; less: string };
   /** The phone's back arrow: where the record was opened from. */
   back: { href: string; label: string };
@@ -64,6 +64,7 @@ export function RecordPage({
   words: { tabs: string; notMeasured: string };
 }) {
   const say = useTranslations('common');
+  const sayRecord = useTranslations('record');
   const tabDefs: TabDef[] = tabs.map((t) => ({ value: t.key, label: t.label, count: t.count, href: tabHref(t.key) }));
   return (
     <PageFrame className="!gap-0">
@@ -103,15 +104,14 @@ export function RecordPage({
           <div className="flex min-w-0 items-center gap-4">
             {avatar ? <div className="shrink-0">{avatar}</div> : null}
             <div className="flex min-w-0 flex-col gap-1">
-              {titleMore ? (
-                <ClampedTitle words={titleMore} className="break-words text-3xl md:text-[27px]">
-                  {title}
-                </ClampedTitle>
-              ) : (
-                <h1 className={cn(titleClamp, 'break-words text-3xl md:text-[27px]')} data-record-title>
-                  {title}
-                </h1>
-              )}
+              {/* Every record's name can be read whole on its own page: three lines, then a "More" tap that
+                  opens the rest (before, a long task title was cut at two lines with "…" and only Edit showed it). */}
+              <ClampedTitle
+                words={titleMore ?? { more: sayRecord('titleMore'), less: sayRecord('titleLess') }}
+                className={cn(titleClamp, 'break-words text-3xl md:text-[27px]')}
+              >
+                {title}
+              </ClampedTitle>
               {subtitle ? <p className="text-base text-muted">{subtitle}</p> : null}
               {chips ? <div className="flex flex-wrap items-center gap-1.5 pt-1">{chips}</div> : null}
             </div>
