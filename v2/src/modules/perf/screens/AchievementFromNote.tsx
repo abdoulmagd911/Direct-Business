@@ -178,7 +178,7 @@ export function AchievementFromNoteDialog({
                 <Select
                   id={p.id}
                   aria-label={t('fields.category')}
-                  value={f.code || undefined}
+                  value={f.code}
                   placeholder={t('actions.choose')}
                   options={live.map((c) => ({ value: c.code, label: name(c) }))}
                   onValueChange={(code) => setF({ ...f, code })}
@@ -191,20 +191,21 @@ export function AchievementFromNoteDialog({
               <Input {...p} value={f.title} maxLength={300} onChange={(e) => setF({ ...f, title: e.target.value })} />
             )}
           </Field>
-          <Field label={t('fields.date')}>
+          <Field label={t('fields.date')} className="sm:col-span-2">
             {(p) => (
               <DatePicker
                 id={p.id}
                 describedBy={p['aria-describedby']}
                 invalid={p['aria-invalid']}
                 value={f.on || undefined}
+                min="2025-01-01"
                 max={riyadhToday()}
                 onChange={(v) => setF({ ...f, on: v ?? '' })}
                 className="font-data"
               />
             )}
           </Field>
-          <Field label={t('fields.organisation')}>
+          <Field label={t('fields.organisation')} className="sm:col-span-2">
             {(p) => <PartnerPicker id={p.id} value={f.partner} onChange={(partner) => setF({ ...f, partner })} />}
           </Field>
           {needsSide ? (
@@ -213,7 +214,7 @@ export function AchievementFromNoteDialog({
                 <Select
                   id={p.id}
                   aria-label={t('fields.side')}
-                  value={f.side || undefined}
+                  value={f.side}
                   placeholder={t('actions.choose')}
                   options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
                   onValueChange={(v) => setF({ ...f, side: v as 'client' | 'supplier_partner' })}
