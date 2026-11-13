@@ -18,6 +18,7 @@ import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
 import { liveKinds, noteText, noteTitle, TURN_READY } from '../logic';
 import type { MyNote, TurnKind } from '../types';
+import { tomorrow } from '../when';
 import { PartnerPicker } from './PartnerPicker';
 import { TaskPicker, type TaskRef } from './TaskPicker';
 
@@ -194,11 +195,11 @@ export function LogFromNoteDialog({
   );
 }
 
-const tomorrowAtNine = () => {
-  const d = new Date(`${today()}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return { day: d.toISOString().slice(0, 10), time: '09:00' };
-};
+/**
+ * The reminder's first answer: the next working day at nine, Riyadh time — Tomorrow as the When chips, Snooze and Wrap up
+ * mean it (a Thursday's is the Sunday). It was the calendar's next day, so on a Thursday it fell on the weekend.
+ */
+const tomorrowAtNine = () => tomorrow(new Date());
 
 /** A reminder from a note (V455: the five-minute job sends it once at its time, Riyadh's clock). */
 export function ReminderDialog({
@@ -277,8 +278,9 @@ export function ReminderDialog({
       }
     >
       <div className="flex flex-col gap-4" data-reminder-form>
-        <div className="flex flex-wrap gap-3" data-reminder-when>
-          <Field label={t('pages.myDay.quick.day')} className="min-w-0 flex-1">
+        {/* Day above Time: side by side in this narrow dialog the day box with its chip, calendar and Clear was 26 px wide */}
+        <div className="flex flex-col gap-4" data-reminder-when>
+          <Field label={t('pages.myDay.quick.day')} className="min-w-0">
             {(p) => (
               <DatePicker
                 id={p.id}
@@ -290,7 +292,7 @@ export function ReminderDialog({
               />
             )}
           </Field>
-          <Field label={t('pages.myDay.quick.time')} className="min-w-0 flex-1">
+          <Field label={t('pages.myDay.quick.time')} className="min-w-0 sm:max-w-[9rem]">
             {(p) => (
               <TimeInput
                 {...p}
