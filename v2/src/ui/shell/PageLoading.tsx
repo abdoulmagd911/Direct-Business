@@ -10,9 +10,10 @@ import { Page } from './Page';
  *
  * Only for a section none of whose pages answers Not found or redirects (W32, the Architect's order of 2 Nov): a frame
  * makes every answer under it start as 200 before its page has run, so a record that does not exist would answer 200,
- * and a redirect would be made by the browser instead of the server. Tasks, Settings, People and Partners answer 404
- * for a record that does not exist and KPIs redirects, so they get none (an app-wide frame was reverted for this;
- * tests/sabotage/an-app-wide-loading-frame.mjs).
+ * and a redirect would be made by the browser instead of the server. Settings, People and Partners answer 404 for a
+ * record that does not exist and KPIs redirects, so they get none (an app-wide frame was reverted for this;
+ * tests/sabotage/an-app-wide-loading-frame.mjs). Tasks gets one for its LIST alone, in the route group tasks/(list),
+ * so a task's record page (tasks/[number]) still answers 404.
  */
 export async function PageLoading() {
   const t = await getTranslations();

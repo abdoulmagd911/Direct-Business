@@ -1,5 +1,5 @@
 import { pageTitle } from '@/ui/shell/page-title';
-import TasksPage from '../page';
+import TasksPage from '../(list)/page';
 
 export const generateMetadata = pageTitle('nav.tasks');
 
