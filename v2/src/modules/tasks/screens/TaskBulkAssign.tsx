@@ -83,17 +83,20 @@ function TaskBulkAssignForm({
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     .map((p) => ({ value: p.key, label: locale === 'ar' && p.name_ar ? p.name_ar : p.name_en }));
 
+  // One leg at a time, each its own request with its own Undo (owner 13 Nov): a refused leg stops there and the dialog
+  // stays open with only what is still to do — the priority never goes ahead on a refused owner, and the dialog never
+  // closes on a half-done choice. A leg that went through is cleared, so trying again never repeats it.
   const save = async () => {
     if (!owner && !priority) return;
     setBusy(true);
-    let done = false;
     if (owner) {
       const name = people.find((p) => p.value === owner)?.label ?? '';
       const r = await command(
         words(t('pages.tasks.bulkAssign.ownerDone', { count: ids.length, name })),
         () => rpc('tasks_assign', { p_ids: ids, p_owner: owner }) as Promise<Written>,
       );
-      if (r) done = true;
+      if (!r) return setBusy(false);
+      setOwner(undefined);
     }
     if (priority) {
       const label = priorityOptions.find((p) => p.value === priority)?.label ?? priority;
@@ -103,13 +106,12 @@ function TaskBulkAssignForm({
         words(t('pages.tasks.bulkAssign.priorityDone', { count: ids.length, priority: label })),
         () => rpc('tasks_priority_set' as never, { p_ids: ids, p_priority: priority } as never) as Promise<Written>,
       );
-      if (r) done = true;
+      if (!r) return setBusy(false);
+      setPriority(undefined);
     }
     setBusy(false);
-    if (done) {
-      onDone();
-      onClose();
-    }
+    onDone();
+    onClose();
   };
 
   return (
