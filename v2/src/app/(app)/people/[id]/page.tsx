@@ -46,6 +46,8 @@ export default async function PersonPage({
       ? maybe<PersonRecordData['signIns']>('signIns', failed, () => serverRpc('sign_in_log', { p_person: id } as never))
       : Promise.resolve(null),
   ]);
+  // Riyadh's day on the server: a leaving day "has come" by the company's calendar, never the browser's clock
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
   const data: PersonRecordData = {
     me,
     tab: typeof tab === 'string' ? tab : 'overview',
@@ -58,6 +60,12 @@ export default async function PersonPage({
     ownDevices,
     signIns,
     failed,
+    today,
+    // who cannot take work over (core.person_available): switched off, or their leaving day has come — the hand-over
+    // picker leaves them out rather than offer a name the database refuses
+    unavailable: (people ?? [])
+      .filter((p) => !p.active || !p.can_sign_in || (p.left_on !== null && p.left_on <= today))
+      .map((p) => p.id),
   };
   return (
     <Page bare>

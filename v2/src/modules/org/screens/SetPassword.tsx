@@ -38,7 +38,8 @@ export function SetPassword({ next }: { next: string }) {
         </h1>
         <p className="door-muted text-[15px] leading-[22px]">{t('sign_in.password.rule', { min: MIN_PASSWORD })}</p>
       </div>
-      <form className="flex flex-col gap-5" onSubmit={submit} noValidate>
+      {/* method="post" (see PasswordDoor): a new password never lands in the address, whatever loaded first */}
+      <form method="post" className="flex flex-col gap-5" onSubmit={submit} noValidate>
         {line ? (
           <div role="alert" className="door-alert">
             {line}

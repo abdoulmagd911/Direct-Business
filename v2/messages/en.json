@@ -1883,6 +1883,8 @@
       "jobTitleAr": "Job title (Arabic)",
       "joinedOn": "Joined",
       "leftOn": "Left on",
+      "leavingOn": "Leaves on",
+      "leftOnUseMarkLeft": "Today or earlier: use Mark as left (under ⋯) — it hands their work over and signs them out",
       "allowSignIn": "Allow sign-in",
       "email": "Work email",
       "addEmail": "Add email",
@@ -1946,9 +1948,16 @@
       "noMatch": "No people match this search.",
       "handover": "Hand over to",
       "handoverPlaceholder": "Choose a person",
-      "openWorkMove": "{count} open items will move to the person chosen below",
+      "openWorkMove": "{count, plural, one {# open item will move} other {# open items will move}} to the person chosen below",
       "openWorkNone": "No open work — nothing to hand over",
-      "headNeedsSuccessor": "{name} heads {department} — choose a new head first"
+      "headNeedsSuccessor": "{name} heads {department} — choose a new head first",
+      "markLeft": "Mark as left",
+      "markLeftTitle": "Mark {name} as left",
+      "markLeftBody": "From their last day {name} can no longer sign in, every device is signed out, and their open work goes to the person you choose — one step, with Undo.",
+      "markedLeft": "{name} marked as left",
+      "lastDay": "Last day",
+      "lastDayRule": "Today or an earlier day — not before the day they joined",
+      "signInSyncFailed": "Saved — but {name}'s sign-in could not be brought in step yet. Try again."
     },
     "teams": {
       "add": "Add team",
