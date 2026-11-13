@@ -1,20 +1,39 @@
 'use client';
 import { useLocale } from 'next-intl';
+import { useSyncExternalStore } from 'react';
 import { Toaster as Sonner, toast as sonnerToast } from 'sonner';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { useMediaQuery } from './useMediaQuery';
+
+/** True while a dialog or a sheet holds the screen (Radix marks the body `data-scroll-locked` while one is open). */
+function useScreenHeld(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const watch = new MutationObserver(cb);
+      watch.observe(document.body, { attributes: true, attributeFilter: ['data-scroll-locked'] });
+      return () => watch.disconnect();
+    },
+    () => document.body.hasAttribute('data-scroll-locked'),
+    () => false,
+  );
+}
 
 /**
  * Toasts: bottom-end, 5 s, past tense ("Task created"), Undo where the command is undoable (§2.4).
  * A toast with Undo to press stays 10 s, twice as long as a plain done toast (F-B1-05: the file-removal Undo
  * vanished before it could be read).
  * No coloured side stripe; the icon and the word carry the outcome. The toaster's side is physical, so the end
- * side is named per language: bottom-right in English, bottom-left in Arabic.
+ * side is named per language: bottom-right in English, bottom-left in Arabic. On a phone, while a sheet or a dialog
+ * is open, toasts come from the top: a sheet's own buttons sit at the foot of the screen, and a refusal toast there
+ * covered the very button the person needed (Quick capture, the More sheet).
  */
 export function Toaster() {
   const rtl = useLocale() === 'ar';
+  const phone = useMediaQuery('(max-width: 639px)');
+  const held = useScreenHeld();
   return (
     <Sonner
-      position={rtl ? 'bottom-left' : 'bottom-right'}
+      position={phone && held ? 'top-center' : rtl ? 'bottom-left' : 'bottom-right'}
       dir={rtl ? 'rtl' : 'ltr'}
       duration={5000}
       gap={8}
