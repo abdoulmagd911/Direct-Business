@@ -128,7 +128,11 @@ export type Contract = {
   version: number;
   terms: ContractTerm[];
   files: unknown[];
-  state?: { status: string; days?: number };
+  /** The database's own state for today in Riyadh (partner.contract_state): "expiring" follows the
+   *  partner.contract_expiring_from_days setting, the same rule as the list's Contract expiring flag. */
+  status?: 'not_started' | 'active' | 'expiring' | 'expired';
+  /** Days to its last day (null with no end). */
+  days_left?: number | null;
 };
 
 export type Note = {
@@ -159,6 +163,27 @@ export type Note = {
   event?: { type: string; values: { task_id: string; number: string | null; title: string | null } | null } | null;
 };
 
+/** One custom field of a side (partner.side_field), as the card carries it: its two labels, its type and, for a
+ *  select, its options (`[{ key, en, ar }]`). The values sit in the side's `fields`. */
+export type SideFieldDef = {
+  side: Side;
+  key: string;
+  label_en: string;
+  label_ar: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'boolean';
+  options: Record<string, unknown>[] | null;
+};
+
+/** A task on the organisation the reader may see (the card's Related list, D5): open first, at most 20. */
+export type CardTask = {
+  id: string;
+  number: string;
+  title: string;
+  due_on: string | null;
+  owner_id: string | null;
+  closed_at: string | null;
+};
+
 export type PartnerCard = {
   id: string;
   number: string;
@@ -179,9 +204,14 @@ export type PartnerCard = {
   client_since: string | null;
   version: number;
   sides: SideFull[];
+  /** The custom fields' definitions for the sides the reader may see (labels in both languages); may be absent on
+   *  an older card, so the screen falls back to the key. */
+  side_fields?: SideFieldDef[];
   identifiers: Identifier[];
   owner_id: string | null;
   contacts: Contact[];
+  /** The tasks on it the reader may see, open first (D5) — the Related tab's list. */
+  tasks?: CardTask[];
   credit_limits: { id: string; amount_sar: number; prepaid_only: boolean; effective_from: string }[] | null;
   references: Reference[];
   last_activity_on: string | null;
