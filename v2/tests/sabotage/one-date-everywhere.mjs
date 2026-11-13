@@ -13,9 +13,13 @@ export const sabotages = [
     expect: '> shows the day as 19 Oct 2026',
     edits: [
       {
-        file: 'src/ui/record/ActivityTimeline.tsx',
-        find: 'const when = formatStoredDate(v, locale);',
-        replace: 'const when: string | null = null;',
+        // L17: the date rendering moved out of ActivityTimeline into the shared diff-words renderer (L15
+        // Group C); the plant follows it there. The find carries the comment line because the same
+        // `const when` line also appears in the number branch below.
+        file: 'src/ui/record/diff-words.ts',
+        find: "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when = formatStoredDate(v, locale);",
+        replace:
+          "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when: string | null = null;",
       },
     ],
   },

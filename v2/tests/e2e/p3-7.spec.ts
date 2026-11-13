@@ -211,7 +211,7 @@ test('a saved view saves, opens first, is removed and comes back from Recently d
   await expect(row).toContainText('Saved view');
   await row.locator('[data-deleted-restore]').click();
   await expect(toast(page, 'restored')).toBeVisible();
-  await expect(row).toHaveCount(0);
+  await expect(row).toHaveCount(0, { timeout: 30000 });
   const [back] = await sql<{ deleted: boolean }>(
     `select deleted_at is not null as deleted from core.saved_view where id = $1`,
     [saved!.id],

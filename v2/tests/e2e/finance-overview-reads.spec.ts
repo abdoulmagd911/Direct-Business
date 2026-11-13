@@ -89,7 +89,9 @@ test('going back to a period just seen never leaves a block stuck on loading (QA
   await page.locator('[data-finance-period-key="ytd"]').click();
   await settled(page);
   // the reads sent for MTD land now, after the kept YTD answers were shown: they must change nothing
-  await page.waitForTimeout(1600);
+  // (L17: 5000 ms — under parallel load the 800 ms route delay plus server time exceeds the old 1600 ms
+  // budget, so the stale answers landed after the assertion and the plant stayed green)
+  await page.waitForTimeout(5000);
   await expect(
     page.locator('[data-finance-overview] [data-state="loading"], [data-finance-overview] [data-state="failed"]'),
     'no block is left on loading or failed after going back to a period',

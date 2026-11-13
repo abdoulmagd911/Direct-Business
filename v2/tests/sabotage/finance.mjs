@@ -315,11 +315,13 @@ export const sabotages = [
     ],
   },
   {
-    // Landing 15: the QA-549 test fails inside settled() first — a block stuck on loading never answers, so the
-    // failure text is the helper's 'every block has answered', not the final assertion's wording.
+    // Landing 17: the QA-549 test fails at the final assertion, not inside settled() — settled() passes on the
+    // kept YTD answers, and the stale MTD answers strand three blocks on loading, so the failure text is the
+    // final assertion's 'no block is left on loading or failed after going back to a period'. (L15's reading
+    // that it fails inside settled() came from a build-under-live-server artifact.)
     name: 'finance-aborted-read-overwrites-the-answer',
     breaks: [READS_E2E],
-    expect: 'every block has answered',
+    expect: 'no block is left on loading or failed after going back to a period',
     edits: [
       {
         file: READS,
