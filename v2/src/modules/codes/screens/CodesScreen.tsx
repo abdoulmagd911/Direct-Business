@@ -2,10 +2,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
+import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
-import { errorKey } from '@/core/db/words';
 import { formatDate, formatMoney } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { StatusChip, type Tone } from '@/ui/Chip';
@@ -16,7 +16,6 @@ import { Money } from '@/ui/Money';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
-import { toast } from '@/ui/Toast';
 import { filterCodes, searchCodes, sortCodes } from '../state';
 import type { CodeDetail, CodeRow, CompanyCodeRow, CodeState, PartnerOption } from '../types';
 import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
@@ -26,11 +25,13 @@ type Locale = 'en' | 'ar';
 const toneOf = (state: CodeState): Tone =>
   state === 'active' ? 'success' : state === 'expired' ? 'danger' : 'neutral';
 
-const moneyOrDash = (value: number | null, locale: Locale) =>
-  value === null ? <span className="text-sm text-muted">—</span> : <Money value={formatMoney(value, locale)} />;
-
-const dateOrDash = (value: string | null, locale: Locale) =>
-  value === null ? <span className="text-sm text-muted">—</span> : formatDate(`${value}T12:00:00Z`, locale);
+/** A figure with its currency in the reader's language (ر.س in Arabic, never a hard "SAR"); empty is a dash, never 0. */
+const moneyOrDash = (value: number | null, locale: Locale, currency: string) =>
+  value === null ? (
+    <span className="text-sm text-muted">—</span>
+  ) : (
+    <Money value={formatMoney(value, locale)} currency={currency} />
+  );
 
 const percentOrDash = (value: number | null) =>
   value === null ? (
@@ -39,14 +40,19 @@ const percentOrDash = (value: number | null) =>
     <span className="font-data text-sm tabular">{`${Number(value).toString()}%`}</span>
   );
 
+/** An organisation's name in the reader's language (the English trade name when it has no Arabic one). */
+const nameIn = (o: { partner_name?: string | null; partner_name_ar?: string | null }, locale: Locale) =>
+  (locale === 'ar' && o.partner_name_ar ? o.partner_name_ar : o.partner_name) ?? null;
+
 /**
  * The Discount Codes page: every code on its own row, keyed by its id (the same text can repeat under
- * different ids, so the text is never the key), sorted by total discount first. The state filter is
- * active / inactive / expired, and the search box narrows the list by the code's text, in the same order
- * (F-B3-04). A code's detail is its own ledger — recorded uses, each with the invoice's
- * created date, its counted revenue, cost and profit from the Finance report's own units, and its stored
+ * different ids, so the text is never the key), sorted by total discount first, each naming the organisation
+ * it belongs to. The state filter is active / inactive / expired, and the search box narrows the list by the
+ * code's text, in the same order (F-B3-04). A code's detail is its own ledger — recorded uses, each with the
+ * invoice's created date, its counted revenue, cost and profit from the Finance report's own units, and its stored
  * Direct link — with uses that are not counted listed apart, never in the totals. The per-company view is
- * promo attribution only, apart from a company's own totals. Only Full records a use or an attribution.
+ * promo attribution only, apart from a company's own totals. Only Full records a use or an attribution; each one,
+ * and each removal, is one request with one Undo, as everywhere else.
  * The detail also holds the code's own files (Phase 4): the approval file belongs to the code itself, not
  * to a use — a use is a transaction.
  */
@@ -79,6 +85,7 @@ export function CodesScreen({
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const sar = t('common.sar');
   const [state, setState] = useState<CodeState | 'all'>('all');
   const [query, setQuery] = useState('');
   const [removeUseId, setRemoveUseId] = useState<string | null>(null);
@@ -89,6 +96,13 @@ export function CodesScreen({
   const [useReason, setUseReason] = useState('');
   const [partnerId, setPartnerId] = useState('');
   const [attributionReason, setAttributionReason] = useState('');
+  const [busy, setBusy] = useState<'use' | 'attribution' | null>(null);
+
+  // "View" opens the code's detail under the list: bring it into view, so a long list never hides what was opened
+  const openedId = detail?.id ?? null;
+  useEffect(() => {
+    if (openedId) document.querySelector('[data-codes-detail]')?.scrollIntoView({ block: 'start' });
+  }, [openedId]);
 
   const sorted = sortCodes(rows);
   const visible = searchCodes(filterCodes(sorted, state), query);
@@ -101,47 +115,90 @@ export function CodesScreen({
   const counted = detail?.ledger.filter((l) => l.counted) ?? [];
   const notCounted = detail?.ledger.filter((l) => !l.counted) ?? [];
 
-  const failed = (e: unknown) => {
-    const { key, detail: d } = errorKey(e, (k) => t.has(k));
-    toast.failed(t(key, { detail: d }));
+  const words = (done: string): CommandWords => ({
+    done,
+    undo: t('common.undo'),
+    undone: t('activity.undone'),
+    has: (k) => t.has(k),
+    failed: (k, d) => t(k, { detail: d }),
+  });
+
+  /** The dates a code runs between, in words — nothing at all for a code with neither date (it showed "— — —"). */
+  const validity = (from: string | null, to: string | null) => {
+    const day = (d: string) => formatDate(`${d}T12:00:00Z`, locale, { dateStyle: 'medium' });
+    if (from && to) return `${day(from)} – ${day(to)}`;
+    if (from) return t('pages.codes.detail.validFrom', { date: day(from) });
+    if (to) return t('pages.codes.detail.validUntil', { date: day(to) });
+    return null;
   };
 
   const addUse = async () => {
     if (!detail) return;
-    try {
-      await rpc('code_use_add', {
-        p_code: detail.id,
-        p_invoice_ref: invoiceRef.trim(),
-        p_discount: Number(discount),
-        p_direct_url: directUrl.trim() || undefined,
-        p_reason: useReason.trim() || undefined,
-      });
-      setInvoiceRef('');
-      setDiscount('');
-      setDirectUrl('');
-      setUseReason('');
-      toast.done(t('pages.codes.addUse.done'));
-      router.refresh();
-    } catch (e) {
-      failed(e);
-    }
+    setBusy('use');
+    await command(
+      words(t('pages.codes.addUse.done')),
+      () =>
+        rpc('code_use_add', {
+          p_code: detail.id,
+          p_invoice_ref: invoiceRef.trim(),
+          p_discount: Number(discount),
+          p_direct_url: directUrl.trim() || undefined,
+          p_reason: useReason.trim() || undefined,
+        }) as Promise<{ request_id?: string | null } | null>,
+      {
+        after: () => {
+          setInvoiceRef('');
+          setDiscount('');
+          setDirectUrl('');
+          setUseReason('');
+          router.refresh();
+        },
+      },
+    );
+    setBusy(null);
   };
 
   const addAttribution = async () => {
     if (!detail || !partnerId) return;
-    try {
-      await rpc('codes_attribution_add', {
-        p_code: detail.id,
-        p_partner: partnerId,
-        p_reason: attributionReason.trim(),
-      });
-      setPartnerId('');
-      setAttributionReason('');
-      toast.done(t('pages.codes.attribution.done'));
-      router.refresh();
-    } catch (e) {
-      failed(e);
-    }
+    setBusy('attribution');
+    await command(
+      words(t('pages.codes.attribution.done')),
+      () =>
+        rpc('codes_attribution_add', {
+          p_code: detail.id,
+          p_partner: partnerId,
+          p_reason: attributionReason.trim(),
+        }) as Promise<{ request_id?: string | null } | null>,
+      {
+        after: () => {
+          setPartnerId('');
+          setAttributionReason('');
+          router.refresh();
+        },
+      },
+    );
+    setBusy(null);
+  };
+
+  // the words of a removal's reason box: its button says Remove, in the danger colour — not Save
+  const removeWords = {
+    reason: t('common.reason'),
+    save: t('common.remove'),
+    cancel: t('common.cancel'),
+    reasonRequired: t('settings.form.reasonRequired'),
+  };
+
+  const owner = (o: { partner_id?: string | null; partner_name?: string | null; partner_name_ar?: string | null }) => {
+    const name = nameIn(o, locale);
+    return o.partner_id && name ? (
+      <Link
+        href={`/partners/${o.partner_id}`}
+        className="inline-flex min-h-11 min-w-0 items-center text-sm text-link hover:underline sm:min-h-0"
+        data-code-partner
+      >
+        <bdi className="truncate">{name}</bdi>
+      </Link>
+    ) : null;
   };
 
   return (
@@ -200,19 +257,29 @@ export function CodesScreen({
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
           {visible.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <li
+              key={row.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3"
+              aria-current={row.id === selectedId ? 'true' : undefined}
+              data-code-row={row.id}
+            >
               <span className="font-data text-sm">{row.code}</span>
               <StatusChip tone={toneOf(row.state)}>{t(`pages.codes.filter.${row.state}`)}</StatusChip>
-              <span className="ms-auto flex items-center gap-4">
+              {/* whose code it is */}
+              {owner(row)}
+              <span className="ms-auto flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.columns.totalDiscount')}</span>
-                  {moneyOrDash(row.total_discount, locale)}
+                  {moneyOrDash(row.total_discount, locale, sar)}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.columns.totalCollected')}</span>
-                  {moneyOrDash(row.total_collected, locale)}
+                  {moneyOrDash(row.total_collected, locale, sar)}
                 </span>
-                <Link href={`/codes?code=${row.id}`} className="text-sm font-medium text-primary">
+                <Link
+                  href={`/codes?code=${row.id}`}
+                  className="inline-flex min-h-11 items-center text-sm font-medium text-primary sm:min-h-0"
+                >
                   {t('pages.codes.columns.view')}
                 </Link>
               </span>
@@ -230,19 +297,22 @@ export function CodesScreen({
             retryLabel={t('common.tryAgain')}
           />
         ) : (
-          <section className="flex flex-col gap-5" data-codes-detail>
+          <section className="flex scroll-mt-4 flex-col gap-5" data-codes-detail>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="font-data text-xl">{detail.code}</h2>
+              {owner(detail)}
+              <StatusChip tone={toneOf(detail.state)}>{t(`pages.codes.filter.${detail.state}`)}</StatusChip>
+              {validity(detail.valid_from, detail.valid_to) ? (
+                <span className="text-sm text-muted" data-code-validity>
+                  {validity(detail.valid_from, detail.valid_to)}
+                </span>
+              ) : null}
               <Link
                 href={`/finance?code=${encodeURIComponent(detail.code)}`}
-                className="text-sm font-medium text-primary"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-primary sm:min-h-0"
               >
                 {t('pages.codes.detail.viewInFinance')}
               </Link>
-              <StatusChip tone={toneOf(detail.state)}>{t(`pages.codes.filter.${detail.state}`)}</StatusChip>
-              <span className="text-sm text-muted">
-                {dateOrDash(detail.valid_from, locale)} — {dateOrDash(detail.valid_to, locale)}
-              </span>
             </div>
             <div className="flex flex-wrap gap-6">
               <span className="flex flex-col gap-1">
@@ -251,19 +321,19 @@ export function CodesScreen({
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.columns.totalDiscount')}</span>
-                {moneyOrDash(detail.totals.total_discount, locale)}
+                {moneyOrDash(detail.totals.total_discount, locale, sar)}
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.columns.totalCollected')}</span>
-                {moneyOrDash(detail.totals.total_collected, locale)}
+                {moneyOrDash(detail.totals.total_collected, locale, sar)}
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.detail.cost')}</span>
-                {moneyOrDash(detail.totals.total_cost, locale)}
+                {moneyOrDash(detail.totals.total_cost, locale, sar)}
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.detail.profit')}</span>
-                {moneyOrDash(detail.totals.total_profit, locale)}
+                {moneyOrDash(detail.totals.total_profit, locale, sar)}
               </span>
               <span className="flex flex-col gap-1">
                 <span className="text-xs text-muted">{t('pages.codes.detail.invoices')}</span>
@@ -279,22 +349,24 @@ export function CodesScreen({
                 {counted.map((l) => (
                   <li key={l.use_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <span className="font-data text-sm">{l.ref}</span>
-                    <span className="text-sm text-muted">{formatDate(`${l.created_on}T12:00:00Z`, locale)}</span>
+                    <span className="text-sm text-muted">
+                      {formatDate(`${l.created_on}T12:00:00Z`, locale, { dateStyle: 'medium' })}
+                    </span>
                     <span className="flex items-center gap-1.5">
                       <span className="text-xs text-muted">{t('pages.codes.detail.discount')}</span>
-                      <Money value={formatMoney(l.discount_sar, locale)} />
+                      <Money value={formatMoney(l.discount_sar, locale)} currency={sar} />
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="text-xs text-muted">{t('pages.codes.detail.revenue')}</span>
-                      {moneyOrDash(l.revenue, locale)}
+                      {moneyOrDash(l.revenue, locale, sar)}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="text-xs text-muted">{t('pages.codes.detail.cost')}</span>
-                      {moneyOrDash(l.cost, locale)}
+                      {moneyOrDash(l.cost, locale, sar)}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="text-xs text-muted">{t('pages.codes.detail.profit')}</span>
-                      {moneyOrDash(l.profit, locale)}
+                      {moneyOrDash(l.profit, locale, sar)}
                     </span>
                     {l.direct_url ? (
                       <a
@@ -309,7 +381,7 @@ export function CodesScreen({
                       <span className="text-sm text-muted">—</span>
                     )}
                     {full ? (
-                      <Button variant="danger" onClick={() => setRemoveUseId(l.use_id)}>
+                      <Button size="sm" variant="ghost" className="ms-auto" onClick={() => setRemoveUseId(l.use_id)}>
                         {t('pages.codes.detail.remove')}
                       </Button>
                     ) : null}
@@ -328,7 +400,7 @@ export function CodesScreen({
                       <span className="text-sm text-muted">{l.status_word ?? '—'}</span>
                       <span className="text-sm text-muted">{l.excluded_reason ?? '—'}</span>
                       {full ? (
-                        <Button variant="danger" onClick={() => setRemoveUseId(l.use_id)}>
+                        <Button size="sm" variant="ghost" className="ms-auto" onClick={() => setRemoveUseId(l.use_id)}>
                           {t('pages.codes.detail.remove')}
                         </Button>
                       ) : null}
@@ -337,27 +409,17 @@ export function CodesScreen({
                 </ul>
               </div>
             ) : null}
-
-            <h3 className="text-base font-semibold">{t('pages.codes.attribution.title')}</h3>
-            {detail.attributions.length === 0 ? (
-              <DataState kind="empty" message={t('pages.codes.attribution.none')} />
-            ) : (
-              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
-                {detail.attributions.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                    <span className="text-sm">{a.partner_name ?? '—'}</span>
-                    {a.is_promo ? <StatusChip tone="info">{t('pages.codes.partners.promo')}</StatusChip> : null}
-                    {full ? (
-                      <Button variant="danger" onClick={() => setRemoveAttributionId(a.id)}>
-                        {t('pages.codes.detail.remove')}
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
+            {/* Record a use: its own box with its own heading, right under the ledger it adds to */}
             {full ? (
-              <div className="flex flex-col gap-3 rounded-lg border border-border bg-raised p-4">
+              <form
+                className="flex w-full max-w-xl flex-col gap-3 rounded-lg border border-border bg-raised p-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (invoiceRef.trim() && discount && useReason.trim()) void addUse();
+                }}
+                data-code-use-form
+              >
+                <h4 className="text-sm font-semibold">{t('pages.codes.addUse.title')}</h4>
                 <Field label={t('pages.codes.addUse.invoiceNumber')} required={t('common.required')}>
                   {(p) => (
                     <Input
@@ -380,17 +442,58 @@ export function CodesScreen({
                   {(p) => <Input {...p} value={useReason} onChange={(e) => setUseReason(e.target.value)} />}
                 </Field>
                 <Button
+                  type="submit"
                   variant="primary"
-                  onClick={addUse}
+                  className="self-start"
+                  loading={busy === 'use'}
                   disabled={!invoiceRef.trim() || !discount || !useReason.trim()}
                 >
                   {t('pages.codes.addUse.save')}
                 </Button>
+              </form>
+            ) : null}
+
+            <h3 className="text-base font-semibold">{t('pages.codes.attribution.title')}</h3>
+            {detail.attributions.length === 0 ? (
+              <DataState kind="empty" message={t('pages.codes.attribution.none')} />
+            ) : (
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
+                {detail.attributions.map((a) => (
+                  <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                    <span className="text-sm">{nameIn(a, locale) ?? '—'}</span>
+                    {a.is_promo ? <StatusChip tone="info">{t('pages.codes.partners.promo')}</StatusChip> : null}
+                    {full ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ms-auto"
+                        onClick={() => setRemoveAttributionId(a.id)}
+                      >
+                        {t('pages.codes.detail.remove')}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Show under a partner: its own box under the partners it adds to — one Reason per box, never two in one */}
+            {full ? (
+              <form
+                className="flex w-full max-w-xl flex-col gap-3 rounded-lg border border-border bg-raised p-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (partnerId && attributionReason.trim()) void addAttribution();
+                }}
+                data-code-attribution-form
+              >
+                <h4 className="text-sm font-semibold">{t('pages.codes.attribution.add')}</h4>
                 <Field label={t('pages.codes.attribution.partner')} required={t('common.required')}>
                   {(p) => (
                     <Select
                       {...p}
-                      value={partnerId || undefined}
+                      // always controlled: '' shows the placeholder again after a save (undefined left the old
+                      // partner showing in the box while the form held none)
+                      value={partnerId}
                       onValueChange={setPartnerId}
                       options={partners.map((o) => ({ value: o.id, label: o.name }))}
                       placeholder={t('pages.codes.attribution.partnerPlaceholder')}
@@ -402,10 +505,16 @@ export function CodesScreen({
                     <Input {...p} value={attributionReason} onChange={(e) => setAttributionReason(e.target.value)} />
                   )}
                 </Field>
-                <Button variant="primary" onClick={addAttribution} disabled={!partnerId || !attributionReason.trim()}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="self-start"
+                  loading={busy === 'attribution'}
+                  disabled={!partnerId || !attributionReason.trim()}
+                >
                   {t('pages.codes.attribution.save')}
                 </Button>
-              </div>
+              </form>
             ) : null}
             <FilesSection
               entity="identifier"
@@ -435,24 +544,24 @@ export function CodesScreen({
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
           {companyRows.map((c) => (
             <li key={c.partner_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <span className="text-sm">{c.partner_name ?? '—'}</span>
+              <span className="text-sm">{nameIn(c, locale) ?? '—'}</span>
               <StatusChip tone="info">{t('pages.codes.partners.promo')}</StatusChip>
-              <span className="ms-auto flex items-center gap-4">
+              <span className="ms-auto flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.partners.codes')}</span>
                   <span className="font-data text-sm tabular">{c.codes}</span>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.columns.totalDiscount')}</span>
-                  {moneyOrDash(c.total_discount, locale)}
+                  {moneyOrDash(c.total_discount, locale, sar)}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.columns.totalCollected')}</span>
-                  {moneyOrDash(c.total_collected, locale)}
+                  {moneyOrDash(c.total_collected, locale, sar)}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="text-xs text-muted">{t('pages.codes.detail.profit')}</span>
-                  {moneyOrDash(c.total_profit, locale)}
+                  {moneyOrDash(c.total_profit, locale, sar)}
                 </span>
               </span>
             </li>
@@ -466,22 +575,18 @@ export function CodesScreen({
           if (!o) setRemoveUseId(null);
         }}
         title={t('pages.codes.detail.removeTitle')}
-        words={{
-          reason: t('common.reason'),
-          save: t('common.save'),
-          cancel: t('common.cancel'),
-          reasonRequired: t('settings.form.reasonRequired'),
-        }}
+        destructive
+        words={removeWords}
         onSave={async (reason) => {
-          if (!removeUseId) return;
-          try {
-            await rpc('code_use_remove', { p_id: removeUseId, p_reason: reason });
-            toast.done(t('pages.codes.detail.removed'));
-            setRemoveUseId(null);
-            router.refresh();
-          } catch (e) {
-            failed(e);
-          }
+          const id = removeUseId;
+          if (!id) return;
+          setRemoveUseId(null);
+          await command(
+            words(t('pages.codes.detail.removed')),
+            () =>
+              rpc('code_use_remove', { p_id: id, p_reason: reason }) as Promise<{ request_id?: string | null } | null>,
+            { after: () => router.refresh() },
+          );
         }}
       />
       <ReasonDialog
@@ -490,22 +595,20 @@ export function CodesScreen({
           if (!o) setRemoveAttributionId(null);
         }}
         title={t('pages.codes.attribution.removeTitle')}
-        words={{
-          reason: t('common.reason'),
-          save: t('common.save'),
-          cancel: t('common.cancel'),
-          reasonRequired: t('settings.form.reasonRequired'),
-        }}
+        destructive
+        words={removeWords}
         onSave={async (reason) => {
-          if (!removeAttributionId) return;
-          try {
-            await rpc('codes_attribution_remove', { p_id: removeAttributionId, p_reason: reason });
-            toast.done(t('pages.codes.attribution.removed'));
-            setRemoveAttributionId(null);
-            router.refresh();
-          } catch (e) {
-            failed(e);
-          }
+          const id = removeAttributionId;
+          if (!id) return;
+          setRemoveAttributionId(null);
+          await command(
+            words(t('pages.codes.attribution.removed')),
+            () =>
+              rpc('codes_attribution_remove', { p_id: id, p_reason: reason }) as Promise<{
+                request_id?: string | null;
+              } | null>,
+            { after: () => router.refresh() },
+          );
         }}
       />
     </div>
