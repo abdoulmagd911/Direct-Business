@@ -477,7 +477,8 @@
         "emptyQuestions": "لا أسئلة مفتوحة.",
         "emptyNeedHelp": "لا شيء يحتاج مساعدة الآن.",
         "emptyWaitingOnOthers": "لا شيء بانتظار الآخرين.",
-        "emptyNeedHelpOthers": "لا مهام طلبتَ المساعدة فيها بانتظار الرد."
+        "emptyNeedHelpOthers": "لا مهام طلبتَ المساعدة فيها بانتظار الرد.",
+        "nothingNow": "لا شيء الآن."
       },
       "starred": "المميزة بنجمة",
       "more": "عرض الكل",

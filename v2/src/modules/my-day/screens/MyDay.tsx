@@ -107,6 +107,22 @@ export function MyDay({ data }: { data: MyDayData }) {
     scope === 'team' && sharedWithMe ? baseRows.filter((n) => n.visibility === 'person' && !n.mine) : baseRows;
   // When the filter is on, the "more" link would drop it (it is client state, not in the address), so it is hidden.
   const more = !sharedWithMe && !all && (answer.more || answer.notes.length > BLOCK_ROWS);
+  // A Waiting section with nothing in either of its lists (both read) is one short line, not two headings and two empty
+  // sentences: on a phone the two empty cards filled the first screen and pushed Today below it
+  const nothingOnMe =
+    data.escalated !== null && data.asks !== null && !data.escalated.length && !data.asks.to_me.length;
+  const nothingOnOthers =
+    data.escalatedByMe !== null && data.asks !== null && !data.escalatedByMe.length && !data.asks.by_me.length;
+  const nothingLine = (key: 'onMe' | 'onOthers', marker: Record<string, string>) => (
+    <section
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-border bg-raised px-4 py-3"
+      data-waiting-nothing
+      {...marker}
+    >
+      <h2 className="text-base font-semibold">{t(`pages.myDay.waiting.${key}`)}</h2>
+      <p className="text-sm text-muted">{t('pages.myDay.waiting.nothingNow')}</p>
+    </section>
+  );
 
   return (
     <>
@@ -128,7 +144,8 @@ export function MyDay({ data }: { data: MyDayData }) {
       {/* Phase 5, at the top of My day: what waits on me (tasks flagged as needing help, addressed to me, plus the
           open questions asked to me) and what waits on others (the questions I asked). Rows link to the record; the
           answer box lives on the record, in the Discussion tab — there is no inline answer box here. */}
-      {scope === 'me' ? (
+      {scope === 'me' && nothingOnMe ? nothingLine('onMe', { 'data-waiting-on-me': '' }) : null}
+      {scope === 'me' && !nothingOnMe ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-me>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onMe')}</h2>
           <h3 className="pt-2.5 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
@@ -221,7 +238,8 @@ export function MyDay({ data }: { data: MyDayData }) {
           )}
         </section>
       ) : null}
-      {scope === 'me' ? (
+      {scope === 'me' && nothingOnOthers ? nothingLine('onOthers', { 'data-waiting-on-others': '' }) : null}
+      {scope === 'me' && !nothingOnOthers ? (
         <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-others>
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onOthers')}</h2>
           {/* FIX-26 F006: the tasks I flagged as needing help — newest flag first — with no Acknowledge on my
