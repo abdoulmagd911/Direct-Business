@@ -644,6 +644,7 @@
           "ref_value_required": "Type the reference",
           "side_required": "Choose who signed",
           "repeat_invalid": "That earlier one does not match",
+          "task_not_yours": "Only the task's own people can log an achievement from it",
           "number_fixed": "The number never changes"
         },
         "common": {
