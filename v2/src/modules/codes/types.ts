@@ -14,6 +14,10 @@ export type CodeRow = {
   total_discount: number | null;
   total_collected: number | null;
   units: number;
+  /** Whose code it is — the organisation it is an identifier of (null when that organisation was removed). */
+  partner_id?: string | null;
+  partner_name?: string | null;
+  partner_name_ar?: string | null;
 };
 
 export type CodeLedgerRow = {
@@ -36,6 +40,7 @@ export type CodeAttribution = {
   id: string;
   partner_id: string;
   partner_name: string | null;
+  partner_name_ar?: string | null;
   is_promo: boolean;
 };
 
@@ -45,6 +50,10 @@ export type CodeDetail = {
   valid_from: string | null;
   valid_to: string | null;
   state: CodeState;
+  /** Whose code it is (null when that organisation was removed). */
+  partner_id?: string | null;
+  partner_name?: string | null;
+  partner_name_ar?: string | null;
   /** The configured discount value (the latest code_terms row's fee_percent); empty when no terms row exists, never 0. */
   fee_percent: number | null;
   totals: {
@@ -61,6 +70,7 @@ export type CodeDetail = {
 export type CompanyCodeRow = {
   partner_id: string;
   partner_name: string | null;
+  partner_name_ar?: string | null;
   codes: number;
   total_discount: number | null;
   total_collected: number | null;

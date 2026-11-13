@@ -733,7 +733,9 @@
         "removeTitle": "إزالة هذا الاستخدام؟",
         "removed": "تمت إزالة الاستخدام",
         "viewInFinance": "عرض في المالية",
-        "configuredFee": "الخصم المُعد"
+        "configuredFee": "الخصم المُعد",
+        "validFrom": "من {date}",
+        "validUntil": "حتى {date}"
       },
       "addUse": {
         "invoiceNumber": "رقم الفاتورة",
@@ -741,7 +743,8 @@
         "directLink": "رابط دايركت",
         "reason": "السبب",
         "save": "تسجيل الاستخدام",
-        "done": "تم تسجيل الاستخدام"
+        "done": "تم تسجيل الاستخدام",
+        "title": "تسجيل استخدام"
       },
       "attribution": {
         "title": "الشركاء",
@@ -752,7 +755,8 @@
         "save": "إظهار تحت الشريك",
         "done": "تمت إضافة الشريك",
         "removeTitle": "إزالة هذا الشريك؟",
-        "removed": "تمت إزالة الشريك"
+        "removed": "تمت إزالة الشريك",
+        "add": "إظهار تحت شريك"
       },
       "partners": {
         "title": "حسب الشريك",
@@ -2367,7 +2371,8 @@
       "month_not_over": "لا يُغلق الشهر إلا بعد انتهائه",
       "product_unknown": "منتج غير معروف: {detail}",
       "status_unknown": "حالة غير معروفة: {detail}",
-      "unknown_entry": "بند غير معروف: {detail}"
+      "unknown_entry": "بند غير معروف: {detail}",
+      "code_use_no_invoice": "لا توجد فاتورة بالرقم {detail}"
     },
     "follow": {
       "not_allowed": "المراقبة غير متاحة لدورك."
@@ -2518,7 +2523,7 @@
       "overview": "نظرة عامة",
       "activity": "النشاط",
       "related": "ذات صلة",
-      "codes": "الرموز",
+      "codes": "الأكواد",
       "finance": "المالية",
       "discussion": "مناقشة",
       "history": "السجل"
@@ -2551,14 +2556,14 @@
       "addedOn": "أُضيف {date}"
     },
     "companyCodes": {
-      "title": "رموز الخصم",
-      "none": "لا رموز خصم على هذه الشركة بعد",
-      "code": "الرمز",
+      "title": "أكواد الخصم",
+      "none": "لا أكواد خصم على هذه الجهة بعد",
+      "code": "الكود",
       "valid": "ساري",
       "units": "الحجوزات",
       "revenue": "الإيراد",
       "profit": "الربح",
-      "noTotals": "لا حجوزات محسوبة لهذا الرمز بعد"
+      "noTotals": "لا حجوزات محسوبة لهذا الكود بعد"
     },
     "companyFinance": {
       "title": "المال",
@@ -2764,7 +2769,7 @@
         "email": "البريد الإلكتروني",
         "phone": "الهاتف",
         "payments_client_id": "رقم العميل",
-        "discount_code": "رمز الخصم",
+        "discount_code": "كود الخصم",
         "name": "اسم آخر",
         "supplier_id": "رقم المورّد"
       },

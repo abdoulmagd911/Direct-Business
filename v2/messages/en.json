@@ -733,7 +733,9 @@
         "removeTitle": "Remove this use?",
         "removed": "Use removed",
         "viewInFinance": "View in Finance",
-        "configuredFee": "Configured discount"
+        "configuredFee": "Configured discount",
+        "validFrom": "From {date}",
+        "validUntil": "Until {date}"
       },
       "addUse": {
         "invoiceNumber": "Invoice number",
@@ -741,7 +743,8 @@
         "directLink": "Direct link",
         "reason": "Reason",
         "save": "Record use",
-        "done": "Use recorded"
+        "done": "Use recorded",
+        "title": "Record a use"
       },
       "attribution": {
         "title": "Partners",
@@ -752,7 +755,8 @@
         "save": "Show under partner",
         "done": "Partner added",
         "removeTitle": "Remove this partner?",
-        "removed": "Partner removed"
+        "removed": "Partner removed",
+        "add": "Show under a partner"
       },
       "partners": {
         "title": "Per partner",
@@ -2413,7 +2417,8 @@
       "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
       "code_use_exists": "This code is already recorded on that invoice.",
       "code_attribution_exists": "This code is already shown under that partner.",
-      "commercial_names_the_person": "Commercial needs the person credited."
+      "commercial_names_the_person": "Commercial needs the person credited.",
+      "code_use_no_invoice": "No invoice has the number {detail}"
     },
     "wrap_up": {
       "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",
