@@ -423,8 +423,8 @@ export function Comments({
                       {name}
                     </span>
                     <span>
-                      {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
-                      {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
+                      {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes, t, locale)}{' '}
+                      · {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
                       {formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </p>
