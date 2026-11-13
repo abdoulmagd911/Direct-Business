@@ -500,10 +500,10 @@ function QuickLogForm({ task, categories, onClose }: { task: NudgeTask; categori
         )}
       </Field>
       <Field label={t('pages.achievements.fields.title')}>
-        {(p) => <Input {...p} value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
+        {(p) => <Input {...p} dir="auto" value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
       </Field>
       <Field label={t('pages.weeklyReview.nudge.result')}>
-        {(p) => <Input {...p} value={result} onChange={(e) => setResult(e.target.value)} />}
+        {(p) => <Input {...p} dir="auto" value={result} onChange={(e) => setResult(e.target.value)} />}
       </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field

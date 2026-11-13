@@ -164,6 +164,8 @@ export function QuickCapture() {
               about ? t('pages.myDay.quick.followUpPlaceholder') : t(`pages.myDay.quick.placeholder.${kind}`)
             }
             aria-label={t('pages.myDay.quick.text')}
+            // typed words take their own direction: English typed on the Arabic page reads left to right, and back
+            dir="auto"
             autoFocus
             data-quick-text
           />
