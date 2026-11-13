@@ -47,6 +47,9 @@ export function ReminderAlert() {
   const words = useWords();
   const [due, setDue] = useState<DueReminder[]>([]);
   const [nextAt, setNextAt] = useState<string | null>(null);
+  // counts the reads, so the timer is set again after each one — a reminder whose time has come but that the job has
+  // not told yet answers the same next_at, and without this the one timer was never set again (the alert never came)
+  const [reads, setReads] = useState(0);
   const [busy, setBusy] = useState(false);
   const seen = useRef(new Set<string>());
   const [hidden, setHidden] = useState<Hidden>({});
@@ -59,6 +62,7 @@ export function ReminderAlert() {
     } catch {
       // the bell and Today say a failed read in their own words; the alert just stays as it was
     }
+    setReads((n) => n + 1);
   }, []);
 
   useEffect(() => {
@@ -76,7 +80,7 @@ export function ReminderAlert() {
     if (wait === null) return;
     const timer = setTimeout(() => void load(), Math.min(wait, LONGEST_WAIT_MS));
     return () => clearTimeout(timer);
-  }, [nextAt, load]);
+  }, [nextAt, reads, load]);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_REALTIME !== '1') return;

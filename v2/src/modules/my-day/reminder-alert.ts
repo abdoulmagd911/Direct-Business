@@ -30,16 +30,23 @@ export const snoozeInstant = (when: When) => instantOf(when);
 /** The job that tells a reminder runs every minute, so a time that has come is told within one. */
 const SLACK_MS = 5_000;
 const WAITING_FOR_THE_JOB_MS = 15_000;
+/**
+ * How long past a reminder's time the screen keeps asking for it: the job runs every minute, so a reminder not told
+ * by then is not coming from this wait (the job is down) — the next read the page makes for any other reason asks again.
+ */
+export const GIVE_UP_AFTER_MS = 3 * 60_000;
 
 /**
  * How long until the screen asks again: once, at the next reminder's time (a few seconds after, so the job has had its
- * turn); if that time has already come but the job has not told it yet, a short wait. Never a repeating timer (A2).
- * `null` when no reminder is waiting.
+ * turn); if that time has already come but the job has not told it yet, a short wait — asked again after each read
+ * until it is told, for at most GIVE_UP_AFTER_MS past its time. Never a timer that repeats on its own (A2).
+ * `null` when no reminder is waiting, or when the wait for the job is given up.
  */
 export function alertDelay(nextAt: string | null, now: Date): number | null {
   if (!nextAt) return null;
   const wait = Date.parse(nextAt) - now.getTime();
-  return wait > 0 ? wait + SLACK_MS : WAITING_FOR_THE_JOB_MS;
+  if (wait > 0) return wait + SLACK_MS;
+  return -wait < GIVE_UP_AFTER_MS ? WAITING_FOR_THE_JOB_MS : null;
 }
 
 /** A timer's longest wait: browsers fire a larger one at once. A reminder further off is asked for again when this one ends. */
