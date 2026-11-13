@@ -114,7 +114,7 @@ export function FinanceReport({
           {t('finance.ledger.export')}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-finance-ledger-totals>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5" data-finance-ledger-totals>
         <TotalTile label={t('finance.ledger.revenue')} value={formatMoney(total.revenue, locale)} />
         <TotalTile label={t('finance.ledger.cost')} value={formatMoney(total.cost, locale)} />
         <TotalTile label={t('finance.ledger.profit')} value={formatMoney(total.profit, locale)} />
