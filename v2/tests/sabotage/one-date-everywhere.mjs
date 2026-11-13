@@ -13,9 +13,10 @@ export const sabotages = [
     expect: '> shows the day as 19 Oct 2026',
     edits: [
       {
-        file: 'src/ui/record/ActivityTimeline.tsx',
-        find: 'const when = formatStoredDate(v, locale);',
-        replace: 'const when: string | null = null;',
+        // the value words moved to the shared diff renderer (Landing 15); the string branch's date line
+        file: 'src/ui/record/diff-words.ts',
+        find: 'const when = formatStoredDate(v, locale);\n      if (when) return when;\n      if (UUID_RE.test(v))',
+        replace: 'const when: string | null = null;\n      if (when) return when;\n      if (UUID_RE.test(v))',
       },
     ],
   },

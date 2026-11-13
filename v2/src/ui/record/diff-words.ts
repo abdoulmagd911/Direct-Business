@@ -29,6 +29,9 @@ export function wordAt(t: WordT, key: string): string | null {
 
 export type AvatarName = { displayName: string };
 
+/** Between the items of a list of words: Arabic's own comma in Arabic ("الحالة، سبب الإلغاء"), a comma in English. */
+export const listSeparator = (locale: 'en' | 'ar'): string => (locale === 'ar' ? '، ' : ', ');
+
 /** A column name is never shown: its wording, else the name in plain words ("manager_id" → "Manager"). */
 export function plainWords(field: string): string {
   const plain = field.replace(/_id$/, '').replace(/_/g, ' ');
