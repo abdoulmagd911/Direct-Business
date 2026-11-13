@@ -588,7 +588,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
                 <Select
                   id={p.id}
                   aria-label={t('fields.side')}
-                  value={f.side || undefined}
+                  value={f.side}
                   placeholder={t('actions.choose')}
                   options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
                   onValueChange={(v) => setF({ ...f, side: v as 'client' | 'supplier_partner' })}
@@ -766,7 +766,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
             <Select
               id={p.id}
               aria-label={t('fields.owner')}
-              value={newOwner || undefined}
+              value={newOwner}
               placeholder={t('actions.choose')}
               options={(org?.people ?? []).map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
               onValueChange={setNewOwner}

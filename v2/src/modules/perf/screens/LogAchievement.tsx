@@ -244,7 +244,7 @@ export function LogAchievement({
             <Select
               id={p.id}
               aria-label={t('fields.category')}
-              value={code || undefined}
+              value={code}
               placeholder={t('actions.choose')}
               options={live.map((c) => ({ value: c.code, label: name(c) }))}
               onValueChange={setCode}
@@ -281,6 +281,7 @@ export function LogAchievement({
             describedBy={p['aria-describedby']}
             invalid={p['aria-invalid']}
             value={day || undefined}
+            min="2025-01-01"
             max={riyadhToday()}
             onChange={(v) => void onDay(v ?? '')}
           />
@@ -295,7 +296,7 @@ export function LogAchievement({
             <Select
               id={p.id}
               aria-label={t('fields.side')}
-              value={side || undefined}
+              value={side}
               placeholder={t('actions.choose')}
               options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
               onValueChange={(v) => setSide(v as 'client' | 'supplier_partner')}
