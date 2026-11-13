@@ -147,6 +147,10 @@ export function FinanceImportSection() {
   // The preview read's generation (F180): a Start over, a partner change or a newer preview supersedes a read
   // still in flight, and its late answer must not resurrect the cleared preview.
   const previewGen = useRef(0);
+  // The past batch whose rows were asked for last, and the partner whose batches were: an older answer that lands
+  // later belongs to something no longer on screen.
+  const openedBatch = useRef<string | null>(null);
+  const askedPartner = useRef<string | null>(null);
 
   // The derived import state, without touching the file input element (F181): picking a file must not wipe the
   // control that shows its name. Start over and partner change use resetFile, which clears the input too.
@@ -182,11 +186,14 @@ export function FinanceImportSection() {
   };
 
   const loadBatches = async (partnerId: string) => {
+    askedPartner.current = partnerId;
     try {
       const answer = (await rpc('import_batches', { p_partner: partnerId }, { retry: true })) as unknown as PastBatch[];
+      // the partner was changed while this was read: these are the other partner's imports, never shown under this one
+      if (askedPartner.current !== partnerId) return;
       setBatches(Array.isArray(answer) ? answer : []);
     } catch {
-      setBatchesFailed(true);
+      if (askedPartner.current === partnerId) setBatchesFailed(true);
     }
   };
 
@@ -200,10 +207,12 @@ export function FinanceImportSection() {
 
   const toggleBatch = async (batch: PastBatch) => {
     if (openBatch === batch.id) {
+      openedBatch.current = null;
       setOpenBatch(null);
       setBatchRows(null);
       return;
     }
+    openedBatch.current = batch.id;
     setOpenBatch(batch.id);
     setBatchRows(null);
     setBatchRowsFailed(false);
@@ -213,9 +222,11 @@ export function FinanceImportSection() {
         { p_batch: batch.id },
         { retry: true },
       )) as unknown as PastBatchRow[];
+      // a late answer for a batch the person has since closed or swapped is dropped, never shown under another one
+      if (openedBatch.current !== batch.id) return;
       setBatchRows(Array.isArray(answer) ? answer : []);
     } catch {
-      setBatchRowsFailed(true);
+      if (openedBatch.current === batch.id) setBatchRowsFailed(true);
     }
   };
 
@@ -515,6 +526,8 @@ export function FinanceImportSection() {
                 // The past batches belong to the picked partner: a cleared or changed partner clears them.
                 setBatches(null);
                 setBatchesFailed(false);
+                openedBatch.current = null;
+                askedPartner.current = null;
                 setOpenBatch(null);
                 setBatchRows(null);
                 setPartner(p);
