@@ -7,6 +7,7 @@ import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
 import { inputClass } from '@/ui/Input';
 import { PageHeader } from '@/ui/PageHeader';
+import { formatFileSize } from '@/ui/record/file-size';
 import { Page } from '@/ui/shell/Page';
 import { FileDownloadButton } from './files-download-button';
 import { ArchiveDateRange } from './ArchiveDateRange';
@@ -28,13 +29,6 @@ const RECORD_TYPE_KEY: Record<string, string> = {
 };
 
 const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined);
-
-/** A file's size in the reader's words (B / KB / MB in English, بايت / ك.ب / م.ب in Arabic — never a hard-coded unit). */
-function sizeOf(bytes: number, t: (key: string, values: { n: string }) => string): string {
-  if (bytes < 1024) return t('partners.archive.size.b', { n: String(bytes) });
-  if (bytes < 1024 * 1024) return t('partners.archive.size.kb', { n: (bytes / 1024).toFixed(1) });
-  return t('partners.archive.size.mb', { n: (bytes / (1024 * 1024)).toFixed(1) });
-}
 
 /**
  * All files, in one place (Phase 3, rebuilt on api.all_files): every file linked to any record the reader may
@@ -162,7 +156,7 @@ export async function FilesArchivePage({
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium">{displayName(f)}</span>
         <span className="text-xs text-muted">
-          {kindName(f)} · {sizeOf(f.size, t)} ·{' '}
+          {kindName(f)} · {formatFileSize(f.size, t, locale === 'ar' ? 'ar' : 'en')} ·{' '}
           {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
           {formatDate(f.added_at, locale as 'en' | 'ar', { dateStyle: 'medium' })}
           {f.review_on ? (

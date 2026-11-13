@@ -6,7 +6,7 @@ import { browserDb } from '@/core/db/client';
 import { rpc } from '@/core/db/rpc';
 import { command } from '@/core/commands/run';
 import { recordFileDownloadUrl } from '@/core/files/download-url';
-import { formatDate, formatNumber } from '@/core/i18n/format';
+import { formatDate } from '@/core/i18n/format';
 import { Button, buttonVariants } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
@@ -15,7 +15,11 @@ import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
+import { formatFileSize } from './file-size';
 import { useCommandWords } from './words';
+
+// the size in words lives in ./file-size (a server page uses it too); kept reachable from here for its callers
+export { formatFileSize };
 
 /** One file on a record, as api.files answers it (the CompanyFile shape, generalised). */
 export type RecordFile = {
@@ -50,21 +54,6 @@ export type FileKindOption = {
   reviewRequired?: boolean;
   label: string;
 };
-
-/**
- * A file's size in words, in the language on screen ("1.2 MB", "1.2 ميغابايت"), for a row or a stream entry — the
- * units were English letters in Arabic too.
- */
-export function formatFileSize(
-  bytes: number,
-  t: (key: string, values: Record<string, string>) => string,
-  locale: 'en' | 'ar',
-): string {
-  if (bytes < 1024) return t('record.files.size.bytes', { n: formatNumber(bytes, locale) });
-  const one = (n: number) => formatNumber(n, locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  if (bytes < 1024 * 1024) return t('record.files.size.kb', { n: one(bytes / 1024) });
-  return t('record.files.size.mb', { n: one(bytes / (1024 * 1024)) });
-}
 
 /**
  * The name a toast uses for a file (FIX-38): the stored uploaded filename — never the generated display name.

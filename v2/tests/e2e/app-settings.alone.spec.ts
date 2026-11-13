@@ -371,7 +371,8 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    // the trail is named in the language on screen (مسار التنقل here), so it is found by its mark, not its English name
+    await expect(page.locator('nav[data-crumbs]'), 'a phone has no trail').toBeHidden();
     await expect(
       page.getByRole('link', { name: w.backTo, exact: true }),
       'the back arrow has its own name',
@@ -399,7 +400,7 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/kpis/achievements/${(long.body as { id: string }).id}`);
     await hydrated(page);
-    const seen = await page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]').evaluate((span) => {
+    const seen = await page.locator('nav[data-crumbs] [aria-current="page"]').evaluate((span) => {
       const node = span.firstChild as Text;
       const r = document.createRange();
       r.setStart(node, 0);
