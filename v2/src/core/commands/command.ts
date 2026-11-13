@@ -42,10 +42,15 @@ export type ConflictPlan = {
 };
 
 export type CommandOptions<T extends Written> = {
-  /** Runs on success (a close, a local state change); the global refetch has already been asked for. */
+  /**
+   * Runs once the write has gone through (a close, a local state change); the global refetch has already been asked
+   * for. It runs once: pressing Undo later does not run it again (it closed a dialog, opened "view the record" or moved
+   * to the new record — all wrong for a write that is undone). A failure inside it is the screen's, never the write's:
+   * it is logged, and the write still counts as saved.
+   */
   after?: (result: T) => void | Promise<void>;
-  /** A second button on the success toast, beside Undo (Done → Log as achievement). */
-  extra?: { label: string; onClick: () => void };
+  /** Runs once an Undo of this write has gone through (a screen's own list taking the undone item back out). */
+  afterUndo?: (result: T) => void | Promise<void>;
   conflict?: ConflictPlan;
   /** Undo straight through the database: for a write that never touches sign-in (the admin route is for those). */
   undoDirect?: boolean;
@@ -119,6 +124,9 @@ async function refusalOf(r: Response): Promise<DbError> {
  * `common.conflict`, raised only when the same field changed — different fields merge on their own, FLOW-08) opens the
  * conflict dialog: the person sees who changed it and when, and chooses per field; the command runs again with their
  * choice and the current version.
+ * Only the write decides the answer: once it has gone through, the command answers its result whatever the step after
+ * it does — a failing after-step once showed "failed" for a saved write and answered nothing, so the screen offered the
+ * same write again and a retry saved it twice.
  */
 export async function command<T extends Written>(
   words: CommandWords,
@@ -129,33 +137,32 @@ export async function command<T extends Written>(
   // whole command — write, conflict resolution and the refetch — and released in the finally, success or failure.
   commandStarted();
   try {
+    let result: T;
     try {
-      const result = await write();
-      await done(words, result, opts.after, opts.extra, opts.undoDirect);
-      return result;
+      result = await write();
     } catch (e) {
-      if (e instanceof DbError && e.kind === 'Conflict' && opts.conflict) {
-        let again: Awaited<ReturnType<typeof resolveConflict>>;
-        try {
-          again = await resolveConflict(e, opts.conflict, opts.nameOf);
-        } catch (e3) {
-          // the fresh read for the dialog failed: said in words, and the caller's busy state is released (QA-74)
-          refuse(words, e3);
-          return undefined;
-        }
-        if (again === 'cancelled') return undefined;
-        try {
-          const result = (await again()) as T;
-          await done(words, result, opts.after, opts.extra, opts.undoDirect);
-          return result;
-        } catch (e2) {
-          refuse(words, e2);
-          return undefined;
-        }
+      if (!(e instanceof DbError && e.kind === 'Conflict' && opts.conflict)) {
+        refuse(words, e);
+        return undefined;
       }
-      refuse(words, e);
-      return undefined;
+      let again: Awaited<ReturnType<typeof resolveConflict>>;
+      try {
+        again = await resolveConflict(e, opts.conflict, opts.nameOf);
+      } catch (e3) {
+        // the fresh read for the dialog failed: said in words, and the caller's busy state is released (QA-74)
+        refuse(words, e3);
+        return undefined;
+      }
+      if (again === 'cancelled') return undefined;
+      try {
+        result = (await again()) as T;
+      } catch (e2) {
+        refuse(words, e2);
+        return undefined;
+      }
     }
+    await done(words, result, opts);
+    return result;
   } finally {
     commandFinished();
   }
@@ -170,35 +177,43 @@ export function run<T extends Written>(
   return command(words, write, { after });
 }
 
-async function done<T extends Written>(
-  words: CommandWords,
-  result: T,
-  after?: (r: T) => void | Promise<void>,
-  extra?: { label: string; onClick: () => void },
-  undoDirect?: boolean,
-) {
+async function done<T extends Written>(words: CommandWords, result: T, opts: CommandOptions<T>) {
   const requestId = (result as { request_id?: string | null } | null)?.request_id ?? null;
   toast.done(words.done, {
-    extra,
-    undo: requestId
-      ? {
-          label: words.undo,
-          onUndo: async () => {
-            const waiting = words.undoing ? toast.working(words.undoing) : undefined;
-            try {
-              await undoRequest(requestId, undoDirect);
-              toast.done(words.undone, { id: waiting });
-              refetchAll();
-              await after?.(result);
-            } catch (e) {
-              refuse(words, e, waiting);
-            }
-          },
-        }
-      : undefined,
+    undo: requestId ? { label: words.undo, onUndo: () => undoIt(words, requestId, result, opts) } : undefined,
   });
   refetchAll();
-  await after?.(result);
+  await settle(opts.after, result);
+}
+
+/** The toast's Undo: the whole request undone, "Undone" said, the refetch asked for, then the screen's afterUndo. */
+async function undoIt<T extends Written>(words: CommandWords, requestId: string, result: T, opts: CommandOptions<T>) {
+  // an Undo is a write too: the focus refetch waits for it as it waits for any write (F131)
+  commandStarted();
+  try {
+    const waiting = words.undoing ? toast.working(words.undoing) : undefined;
+    try {
+      await undoRequest(requestId, opts.undoDirect);
+    } catch (e) {
+      refuse(words, e, waiting);
+      return;
+    }
+    toast.done(words.undone, { id: waiting });
+    refetchAll();
+    await settle(opts.afterUndo, result);
+  } finally {
+    commandFinished();
+  }
+}
+
+/** The step after a write that went through: its failure is logged — the write is saved, so it is never said as failed. */
+async function settle<T>(step: ((result: T) => void | Promise<void>) | undefined, result: T) {
+  if (!step) return;
+  try {
+    await step(result);
+  } catch (e) {
+    console.error('[command] the step after a saved write failed', e);
+  }
 }
 
 function refuse(words: CommandWords, e: unknown, id?: string | number) {
