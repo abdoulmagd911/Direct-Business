@@ -161,6 +161,10 @@ export function LogAchievement({
     setRepeats([]);
     setBusy(true);
     const refs = ref.trim() ? [{ system: needsRef ?? system, value: ref.trim(), url: link.trim() || null }] : [];
+    // the command runs `after` once on the save and again when Undo is pressed on its toast
+    // (src/core/commands/command.ts, done()): the second run is the Undo — the achievement is gone, so the
+    // "Achievement logged" dialog must not open (again) for it.
+    let savedOnce = false;
     await command(
       words(t('logged')),
       () =>
@@ -184,7 +188,13 @@ export function LogAchievement({
         }) as Promise<{ id: string; number?: string; request_id?: string | null }>,
       // FIX-06: after save the form asks — view the record just saved (same), or log another (new) — instead
       // of navigating straight to the record. The pre-save repeat dialog is untouched.
-      { after: (r) => setSaved({ id: r!.id, number: r!.number ?? '' }) },
+      {
+        after: (r) => {
+          if (savedOnce) return setSaved((s) => (s?.id === r?.id ? null : s));
+          savedOnce = true;
+          setSaved({ id: r!.id, number: r!.number ?? '' });
+        },
+      },
     );
     setBusy(false);
   };
