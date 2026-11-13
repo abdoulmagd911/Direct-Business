@@ -980,7 +980,9 @@
           "comment_body_required": "Write something first",
           "comment_too_long": "A comment can be at most 4,000 characters",
           "comment_not_yours": "Only the person who wrote a comment can change it",
-          "remove_not_test": "Only test tasks can be removed"
+          "remove_not_test": "Only test tasks can be removed",
+          "owner_cannot_see": "That person cannot see this task, so it cannot be given to them",
+          "team_out_of_reach": "That team is in a department you do not work in"
         },
         "action_item": {
           "text_required": "Write the action item",
