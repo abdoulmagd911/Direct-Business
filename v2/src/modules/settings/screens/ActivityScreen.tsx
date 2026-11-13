@@ -224,6 +224,16 @@ export function ActivityScreen({
     );
   };
   const settingRows = rows.filter((r) => r.changes.some((c) => c.entity === 'setting'));
+  // Revert writes the setting again (api.setting_set needs Full on the setting's page — admins only, V97): offered to
+  // whoever can, never to a head or manager who reads the log and would be refused; and not on a change already undone
+  // (its value no longer stands — Revert would write the value that stands now).
+  const canRevert = (r: HistoryRow) => {
+    if (r.undone) return false;
+    const after = r.changes.find((c) => c.entity === 'setting' && c.action === 'insert')?.after as
+      { key?: string } | undefined;
+    const group = modules.flatMap((m) => m.settings ?? []).find((s) => s.key === after?.key)?.group;
+    return !!group && me.levels[group] === 'full';
+  };
   return (
     <PageFrame className="[&>*]:max-w-[1100px]">
       <PageHeader title={t('nav.activity')} />
@@ -265,7 +275,13 @@ export function ActivityScreen({
                 describedBy={p['aria-describedby']}
                 invalid={p['aria-invalid']}
                 value={filters.since || undefined}
-                onChange={(v) => setFilter({ since: v ?? '' })}
+                // a whole day (or a cleared box) filters; the box keeps half-typed text itself — each keystroke was
+                // a new address and a page load
+                onChange={(v) => {
+                  if (!v || /^\d{4}-\d{2}-\d{2}$/.test(v)) setFilter({ since: v ?? '' });
+                }}
+                // no Today chip above the box: it pushed the box below the Who and What pickers beside it
+                chips="none"
                 className="font-data"
               />
             )}
@@ -337,7 +353,7 @@ export function ActivityScreen({
                     </span>
                     <span className="flex items-center gap-2">
                       {r.undone ? <StatusChip tone="neutral">{t('activity.undoneChip')}</StatusChip> : null}
-                      {c?.action === 'insert' ? (
+                      {c?.action === 'insert' && canRevert(r) ? (
                         <Button size="xs" onClick={() => setReverting(r)} data-setting-revert>
                           {t('activity.revert')}
                         </Button>

@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
@@ -20,14 +20,15 @@ export const generateMetadata = pageTitle('recentlyDeleted.title');
  * member's saved views and notes included, which the Activity page (Activity · View and above) would keep from them.
  */
 export default async function RecentlyDeletedPage() {
-  const me = await requireMe();
-  const t = await getTranslations();
+  await requireMe();
+  const [t, locale] = await Promise.all([getTranslations(), getLocale()]);
   const failed: string[] = [];
   const [org, rows] = await Promise.all([
     readOrFail<OrgAnswer>('org', failed, () => serverRpc('org', {} as never)),
     readOrFail<DeletedRow[]>('deleted', failed, () => serverRpc('recently_deleted', { p_limit: 200 })),
   ]);
-  const people = Object.fromEntries((org?.people ?? []).map((p) => [p.id, avatarOf(p, me.profile?.locale ?? 'en')]));
+  // who removed it, named in the language on screen (the profile's stored choice is empty until someone picks one)
+  const people = Object.fromEntries((org?.people ?? []).map((p) => [p.id, avatarOf(p, locale === 'ar' ? 'ar' : 'en')]));
   return (
     <Page className="[&>*]:max-w-[900px]">
       <PageHeader title={t('recentlyDeleted.title')} />

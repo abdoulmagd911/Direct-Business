@@ -183,6 +183,7 @@ export function SettingCard({
       <Dialog
         open={open}
         onOpenChange={setOpen}
+        closeLabel={t('common.close')}
         title={t('settings.setting.edit', { setting: label })}
         dirty={changed || reason.length > 0}
         size="md"
