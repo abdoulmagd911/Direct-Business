@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { command } from '@/core/commands/command';
 import { formatDate } from '@/core/i18n/format';
-import type { ListEntry } from '@/modules/partners/types';
+import { tradeName, type ListEntry } from '@/modules/partners/types';
 import { today, useWords } from '@/modules/partners/screens/record/words';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
@@ -48,6 +48,9 @@ type Draft = {
   meeting_partner: PartnerRef | null;
   meeting_on: string;
 };
+
+/** A day as the date box carries it up once it reads as one (YYYY-MM-DD). */
+const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 const draftOf = (n: MyNote, partner: PartnerRef | null): Draft => ({
   title: n.title ?? '',
@@ -125,6 +128,11 @@ export function NotePage({
   // The Discussion's own count while it is open, so the header's comments count follows an add or a delete at once.
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const dirty = JSON.stringify(d) !== JSON.stringify(fresh());
+  // a note always has the day it happened; a meeting's day may be left empty. A box that was cleared, or holds words
+  // that are not a day yet, says so and keeps Save off — before, Save went ahead: the database kept the old day without
+  // a word, or refused the half-typed one in its own terms
+  const dayBad = !isDay(d.happened_on);
+  const meetingBad = d.meeting_on !== '' && !isDay(d.meeting_on);
   const title = noteTitle(note) || t('pages.myDay.note.untitled');
   const Icon = KIND_ICON[note.kind];
   const count = checklistCount({ items: d.items });
@@ -197,7 +205,16 @@ export function NotePage({
   return (
     <div className="flex flex-col gap-5" data-note-page={note.id} data-note-kind={note.kind}>
       <PageHeader
-        crumbs={[{ label: t('nav.my_day'), href: '/my-day' }, { label: t('pages.myDay.blocks.me') }]}
+        crumbs={[
+          { label: t('nav.my_day'), href: '/my-day' },
+          // the list the note sits on: my own notes, or what my team or everyone shares (a note shared with me by name
+          // sits with my team's, V524) — never "My notes" for a colleague's note
+          mine
+            ? { label: t('pages.myDay.blocks.me') }
+            : note.visibility === 'workspace'
+              ? { label: t('pages.myDay.blocks.workspace'), href: '/my-day?tab=workspace' }
+              : { label: t('pages.myDay.blocks.team'), href: '/my-day?tab=team' },
+        ]}
         title={
           <span className="flex min-w-0 items-center gap-3">
             <Icon className="size-6 shrink-0 text-muted" aria-hidden="true" />
@@ -208,7 +225,8 @@ export function NotePage({
           <span className="flex flex-wrap items-center gap-2">
             <span>{t(`pages.myDay.kinds.${note.kind}`)}</span>
             <VisibilityChip visibility={note.visibility} />
-            {author ? <span>{t('pages.myDay.note.by', { name: author })}</span> : null}
+            {/* who wrote it, for a colleague's note; on my own it said "by" my own name */}
+            {author && !mine ? <span>{t('pages.myDay.note.by', { name: author })}</span> : null}
             {note.carried_to ? (
               <span>
                 {t('pages.myDay.note.carried', { date: formatDate(note.carried_to, locale, { dateStyle: 'medium' }) })}
@@ -329,7 +347,13 @@ export function NotePage({
               <Button disabled={!dirty || busy} onClick={() => setD(fresh())}>
                 {t('common.cancel')}
               </Button>
-              <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => void save()} data-note-save>
+              <Button
+                variant="primary"
+                disabled={!dirty || dayBad || meetingBad}
+                loading={busy}
+                onClick={() => void save()}
+                data-note-save
+              >
                 {t('common.save')}
               </Button>
             </div>
@@ -418,7 +442,10 @@ export function NotePage({
               )}
             </Field>
           ) : null}
-          <Field label={t('pages.myDay.note.happenedOn')}>
+          <Field
+            label={t('pages.myDay.note.happenedOn')}
+            error={mine && dayBad ? t('pages.myDay.note.pickDay') : undefined}
+          >
             {(p) => (
               <DatePicker
                 id={p.id}
@@ -443,11 +470,15 @@ export function NotePage({
                       onChange={(meeting_partner) => setD({ ...d, meeting_partner })}
                     />
                   ) : (
-                    <span id={p.id}>{d.meeting_partner?.trade_name_en ?? '—'}</span>
+                    // a reader sees the organisation's name in the page's language, as on the note's row
+                    <span id={p.id}>{d.meeting_partner ? tradeName(d.meeting_partner, locale) : '—'}</span>
                   )
                 }
               </Field>
-              <Field label={t('pages.myDay.note.meetingOn')}>
+              <Field
+                label={t('pages.myDay.note.meetingOn')}
+                error={mine && meetingBad ? t('pages.myDay.note.pickDay') : undefined}
+              >
                 {(p) => (
                   <DatePicker
                     id={p.id}
