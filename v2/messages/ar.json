@@ -2609,9 +2609,8 @@
       "title": "كل الملفات",
       "none": "لا توجد ملفات بعد",
       "partner": "الشريك",
-      "allCompanies": "كل الشركاء",
+      "allCompanies": "عرض كل الملفات",
       "allKinds": "كل الأنواع",
-      "showAll": "عرض كل الشركاء",
       "search": "ابحث في الملفات",
       "recordType": "نوع السجل",
       "addedBy": "أضافها",
@@ -2619,7 +2618,6 @@
       "dateTo": "إلى",
       "kind": "النوع",
       "purpose": "الغرض",
-      "side": "الجهة",
       "status": "الحالة",
       "sort": "الترتيب",
       "sortAdded": "الأحدث أولًا",
@@ -2642,7 +2640,8 @@
         "note": "ملاحظة",
         "partner": "شريك",
         "importBatch": "دفعة استيراد",
-        "campaignCode": "كود خصم"
+        "campaignCode": "كود خصم",
+        "other": "أخرى"
       },
       "purposes": {
         "evidence": "دليل",
@@ -2659,6 +2658,11 @@
       "statuses": {
         "stored": "محفوظ",
         "pending": "لم يكتمل الرفع"
+      },
+      "size": {
+        "b": "{n} بايت",
+        "kb": "{n} ك.ب",
+        "mb": "{n} م.ب"
       }
     },
     "activity": {
