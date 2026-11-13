@@ -742,7 +742,10 @@ export function RecordHeaderCounts({
   return (
     <p className="flex flex-wrap items-center gap-x-1 text-sm" data-record-counts>
       {comments !== null ? (
-        <Link href={href('all')} className="font-medium text-link hover:underline">
+        <Link
+          href={href('all')}
+          className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+        >
           {t('record.commentsCount', { count: comments })}
         </Link>
       ) : null}
@@ -753,12 +756,18 @@ export function RecordHeaderCounts({
       ) : null}
       {evidence ? (
         evidence.count !== null ? (
-          <Link href={evidence.href} className="font-medium text-link hover:underline">
+          <Link
+            href={evidence.href}
+            className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+          >
             {t('record.files.evidenceCount', { count: evidence.count })}
           </Link>
         ) : null
       ) : files !== null && files !== undefined ? (
-        <Link href={href('files')} className="font-medium text-link hover:underline">
+        <Link
+          href={href('files')}
+          className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+        >
           {t('record.filesCount', { count: files })}
         </Link>
       ) : null}
