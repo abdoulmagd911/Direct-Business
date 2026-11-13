@@ -211,7 +211,7 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
   return s ? `/tasks?${s}` : '/tasks';
 }
 
-/** What api.tasks is asked (V195's filter). What it cannot answer yet — Helping, due today or this week — is `keepRow`. */
+/** What api.tasks is asked for the view (V195's filter); `listFilter` adds what the list asks on top of it. */
 export function apiFilter(f: TaskFilters): Record<string, unknown> {
   const out: Record<string, unknown> = {
     scope: f.scope === 'owned' ? 'mine' : f.scope === 'team' || f.scope === 'past' ? 'all' : 'my_work',
@@ -234,8 +234,24 @@ export function apiFilter(f: TaskFilters): Record<string, unknown> {
   return out;
 }
 
-/** The part of the filter judged on the rows: Helping is My work I do not own; due today, this week, or none;
- * the Starred and Need-help views keep only their own rows; FIX-01's priority filter keeps only its key. */
+/**
+ * What the Tasks list asks api.tasks (owner 13 Nov): the view's filter and every chip — Helping, the due window, the
+ * priority — and the sort, so the door answers the view itself. The list reads one page of 200: a chip judged in the
+ * browser lost every task past that page and counted the unfiltered total (work.task_list answers them since
+ * 20261113110000). `keepRow` judges the same rules on the rows, so the two always agree.
+ */
+export function listFilter(f: TaskFilters): Record<string, unknown> {
+  const out = apiFilter(f);
+  if (f.scope === 'helping') out.scope = 'helping';
+  if (f.due === 'today' || f.due === 'week' || f.due === 'none') out.due = f.due;
+  if (f.priority) out.priority = f.priority;
+  if (f.sort) out.sort = f.sort;
+  return out;
+}
+
+/** The filter's rules judged on the rows (the door answers the same since 20261113110000): Helping is My work I do not
+ * own; due today, the next seven days (the chip "Next 7 days"), or none; the Starred and Need-help views keep only
+ * their own rows; FIX-01's priority filter keeps only its key. */
 export function keepRow(row: TaskRow, f: TaskFilters, me: string, today: string): boolean {
   if (f.scope === 'helping' && row.owner_id === me) return false;
   if (f.starred && !row.starred) return false;

@@ -836,7 +836,7 @@
         "due": {
           "overdue": "Overdue",
           "today": "Today",
-          "week": "This week",
+          "week": "Next 7 days",
           "none": "No date"
         }
       },
