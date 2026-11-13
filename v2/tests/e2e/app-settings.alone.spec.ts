@@ -440,9 +440,13 @@ test('in Arabic at 375 px: the Discussion tab, the box and the comment say the c
 }) => {
   await withArabic(async () => {
     const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
-      pages: { tasks: { tabs: { discussion: string }; comments: { write: string; add: string; added: string } } };
+      pages: { tasks: { tabs: { discussion: string } } };
+      record: { comments: { write: string; add: string; added: string } };
     };
     const w = ar.pages.tasks;
+    // the box and its toast are the shared Discussion's words (record.comments.*), the ones the screen draws; the
+    // task-only copy (pages.tasks.comments.*) was unused and is gone from both catalogs
+    const c = ar.record.comments;
     const me = await makePerson({ admin: true });
     await sql(
       `insert into core.team (department_id, code, name_en, name_ar, created_by)
@@ -470,10 +474,10 @@ test('in Arabic at 375 px: the Discussion tab, the box and the comment say the c
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.discussion);
     await page.locator('[data-add-comment] textarea').fill('تعليق تجريبي');
-    await expect(page.getByRole('button', { name: w.comments.add })).toBeVisible();
-    await page.getByRole('button', { name: w.comments.add }).click();
+    await expect(page.getByRole('button', { name: c.add })).toBeVisible();
+    await page.getByRole('button', { name: c.add }).click();
     await expect(page.locator('[data-comment-body]')).toHaveText('تعليق تجريبي');
-    await expect(page.getByText(w.comments.added)).toBeVisible();
+    await expect(page.getByText(c.added)).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       'no sideways scroll',
