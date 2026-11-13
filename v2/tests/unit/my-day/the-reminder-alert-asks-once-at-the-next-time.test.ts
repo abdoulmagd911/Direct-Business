@@ -31,6 +31,13 @@ describe('the one timer', () => {
   it('asks again soon when the time has come and the job has not told it yet', () => {
     expect(alertDelay('2026-10-14T08:59:50Z', at('2026-10-14T09:00:00Z'))).toBe(15_000);
   });
+  it('keeps asking after each read while the job is due to tell it (it runs every minute)', () => {
+    // the same next_at read again 2 minutes later: still the short wait, so the alert comes once the job has told it
+    expect(alertDelay('2026-10-14T08:58:00Z', at('2026-10-14T09:00:00Z'))).toBe(15_000);
+  });
+  it('gives up waiting for the job a few minutes past the time (the next read the page makes asks again)', () => {
+    expect(alertDelay('2026-10-14T08:56:59Z', at('2026-10-14T09:00:00Z'))).toBeNull();
+  });
 });
 
 describe('Snooze', () => {
