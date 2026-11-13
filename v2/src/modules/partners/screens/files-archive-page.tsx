@@ -12,9 +12,11 @@ import { FileDownloadButton } from './files-download-button';
 import { ArchiveDateRange } from './ArchiveDateRange';
 import { ArchiveFilters } from './files-archive-filters';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from './files-archive-constants';
-import type { AllFilesAnswer, AllFilesRow, ListEntry } from '../types';
+import { tradeName, type AllFilesAnswer, type AllFilesRow, type HoverPartner, type ListEntry } from '../types';
 
-/** The message key for a record type (the tables carry dots, which the catalogue reads as nesting). */
+/** The message key for a record type (the tables carry dots, which the catalogue reads as nesting). A discount
+ *  code's own files sit on its identifier row (F157) and read as a discount code too; a type with no words here
+ *  reads as "Other", never as a missing key. */
 const RECORD_TYPE_KEY: Record<string, string> = {
   'work.task': 'task',
   'perf.achievement': 'achievement',
@@ -22,14 +24,16 @@ const RECORD_TYPE_KEY: Record<string, string> = {
   'partner.partner': 'partner',
   'work.import_batch': 'importBatch',
   'partner.campaign_code': 'campaignCode',
+  'partner.identifier': 'campaignCode',
 };
 
 const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined);
 
-function sizeOf(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+/** A file's size in the reader's words (B / KB / MB in English, بايت / ك.ب / م.ب in Arabic — never a hard-coded unit). */
+function sizeOf(bytes: number, t: (key: string, values: { n: string }) => string): string {
+  if (bytes < 1024) return t('partners.archive.size.b', { n: String(bytes) });
+  if (bytes < 1024 * 1024) return t('partners.archive.size.kb', { n: (bytes / 1024).toFixed(1) });
+  return t('partners.archive.size.mb', { n: (bytes / (1024 * 1024)).toFixed(1) });
 }
 
 /**
@@ -97,6 +101,11 @@ export async function FilesArchivePage({
 
   let answer: AllFilesAnswer | null = null;
   let kinds: ListEntry[] = [];
+  // The organisation the list is narrowed to, by its name: read on its own, so a company with no files yet is still
+  // named (the line printed the address's id when the list was empty).
+  const narrowedTo: Promise<HoverPartner | null> = company
+    ? (serverRpc('hover_partner', { p_id: company }) as unknown as Promise<HoverPartner | null>).catch(() => null)
+    : Promise.resolve(null);
   try {
     const args: {
       p_entity?: string;
@@ -138,6 +147,8 @@ export async function FilesArchivePage({
 
   const rows = answer?.rows ?? [];
   const total = answer?.total ?? 0;
+  const owner = await narrowedTo;
+  const companyName = owner ? tradeName(owner, locale as 'en' | 'ar') : (rows[0]?.record_label ?? null);
   const pages = Math.max(1, Math.ceil(total / size));
   const fromRow = total === 0 ? 0 : page * size + 1;
   const toRow = Math.min(total, (page + 1) * size);
@@ -151,7 +162,7 @@ export async function FilesArchivePage({
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium">{displayName(f)}</span>
         <span className="text-xs text-muted">
-          {kindName(f)} · {sizeOf(f.size)} ·{' '}
+          {kindName(f)} · {sizeOf(f.size, t)} ·{' '}
           {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
           {formatDate(f.added_at, locale as 'en' | 'ar', { dateStyle: 'medium' })}
           {f.review_on ? (
@@ -185,7 +196,7 @@ export async function FilesArchivePage({
               g.label = f.record_label ?? '';
               g.link = f.record_link ?? '';
             } else {
-              g.label = t(`partners.archive.recordTypes.${RECORD_TYPE_KEY[f.entity_table]}`);
+              g.label = t(`partners.archive.recordTypes.${RECORD_TYPE_KEY[f.entity_table] ?? 'other'}`);
               g.link = '';
             }
             g.rows.push(f);
@@ -223,8 +234,8 @@ export async function FilesArchivePage({
     <Page title={t('nav.files')}>
       <PageHeader title={t('partners.archive.title')} />
       {company ? (
-        <p className="mb-4 text-sm text-muted">
-          {t('partners.archive.partner')}: {rows[0]?.record_label ?? company} ·{' '}
+        <p className="mb-4 text-sm text-muted" data-archive-company>
+          {t('partners.archive.partner')}: <bdi>{companyName ?? '—'}</bdi> ·{' '}
           <Link href="/files" className="text-link hover:underline">
             {t('partners.archive.allCompanies')}
           </Link>

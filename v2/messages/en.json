@@ -2717,9 +2717,8 @@
       "title": "All files",
       "none": "No files yet",
       "partner": "Partner",
-      "allCompanies": "All partners",
+      "allCompanies": "Show all files",
       "allKinds": "All kinds",
-      "showAll": "Show all partners",
       "search": "Search files",
       "recordType": "Record type",
       "addedBy": "Added by",
@@ -2727,7 +2726,6 @@
       "dateTo": "To",
       "kind": "Kind",
       "purpose": "Purpose",
-      "side": "Side",
       "status": "Status",
       "sort": "Sort",
       "sortAdded": "Newest first",
@@ -2750,7 +2748,8 @@
         "note": "Note",
         "partner": "Partner",
         "importBatch": "Import batch",
-        "campaignCode": "Discount code"
+        "campaignCode": "Discount code",
+        "other": "Other"
       },
       "purposes": {
         "evidence": "Evidence",
@@ -2767,6 +2766,11 @@
       "statuses": {
         "stored": "Stored",
         "pending": "Upload not finished"
+      },
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
       }
     },
     "activity": {
