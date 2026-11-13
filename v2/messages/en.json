@@ -2103,7 +2103,7 @@
       "noDepartment": "Add a department first.",
       "everyDepartmentEveryYear": "Every department already has a plan for every year.",
       "achieved": "Achieved",
-      "achievedCount": "Achieved",
+      "achievedCount": "Achieved: {count}",
       "addTarget": "Add target",
       "backToPlans": "Back to plans",
       "categoriesNone": "No categories yet.",

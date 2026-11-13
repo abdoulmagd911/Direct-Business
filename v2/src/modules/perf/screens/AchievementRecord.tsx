@@ -692,7 +692,8 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         onOpenChange={setRemoving}
         title={t('dialogs.remove')}
         destructive
-        words={reasonWords}
+        // the removal's own button says Remove, not Save (D19)
+        words={{ ...reasonWords, save: t('actions.remove') }}
         onSave={async (why) => {
           await command(
             words(t('removed')),
