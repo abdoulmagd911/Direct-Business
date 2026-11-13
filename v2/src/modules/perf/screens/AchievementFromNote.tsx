@@ -93,9 +93,11 @@ export function AchievementFromNoteDialog({
   const cat = live.find((c) => c.code === f.code);
   const needsRef = cat?.required_ref_system ?? null;
   const needsSide = !!cat?.sets_prospect && !!f.partner;
-  // FIX-06: the value is a plain number for every category, not only the deal-value ones (D29) — the unit is
-  // the category's own name, in the field's label; never Revenue/Cost/Profit, and the "not revenue" note stands.
-  const valueBad = !!cat && !!f.value.trim() && readDealValue(f.value) === null;
+  // FIX-06: the value is a plain number — the unit is the category's own name, in the field's label; never
+  // Revenue/Cost/Profit, and the "not revenue" note stands. The box shows for a category that carries a deal value
+  // only: the database refuses a value on any other (achievement.no_deal_value).
+  const withValue = !!cat?.has_deal_value;
+  const valueBad = withValue && !!f.value.trim() && readDealValue(f.value) === null;
   const ok = !!cat && !!f.title.trim() && (!needsRef || !!f.ref.trim()) && (!needsSide || !!f.side) && !valueBad;
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
   const valueLabel = cat
@@ -121,7 +123,7 @@ export function AchievementFromNoteDialog({
             title: f.title.trim(),
             happened_on: f.on || null,
             partner_id: f.partner?.id ?? null,
-            ...(f.value.trim() ? { deal_value: readDealValue(f.value)! } : {}),
+            ...(withValue && f.value.trim() ? { deal_value: readDealValue(f.value)! } : {}),
             ...(needsSide && f.side ? { side: f.side } : {}),
             ...(f.ref.trim() && system ? { refs: [{ system, value: f.ref.trim(), url: null }] } : {}),
             ...(f.participants.length ? { participants: f.participants } : {}),
@@ -171,7 +173,7 @@ export function AchievementFromNoteDialog({
               {t('fromNote.noCategories', { year })}
             </p>
           ) : (
-            <Field label={t('fields.category')} className="sm:col-span-2">
+            <Field label={t('fields.category')} className="sm:col-span-2" required={tc('required')}>
               {(p) => (
                 <Select
                   id={p.id}
@@ -184,7 +186,7 @@ export function AchievementFromNoteDialog({
               )}
             </Field>
           )}
-          <Field label={t('fields.title')} className="sm:col-span-2">
+          <Field label={t('fields.title')} className="sm:col-span-2" required={tc('required')}>
             {(p) => (
               <Input {...p} value={f.title} maxLength={300} onChange={(e) => setF({ ...f, title: e.target.value })} />
             )}
@@ -206,7 +208,7 @@ export function AchievementFromNoteDialog({
             {(p) => <PartnerPicker id={p.id} value={f.partner} onChange={(partner) => setF({ ...f, partner })} />}
           </Field>
           {needsSide ? (
-            <Field label={t('fields.side')}>
+            <Field label={t('fields.side')} required={tc('required')}>
               {(p) => (
                 <Select
                   id={p.id}
@@ -219,7 +221,7 @@ export function AchievementFromNoteDialog({
               )}
             </Field>
           ) : null}
-          {cat ? (
+          {withValue ? (
             <Field label={valueLabel} error={valueBad ? t('valueNotNumber') : undefined}>
               {(p) => (
                 <Input
@@ -235,6 +237,7 @@ export function AchievementFromNoteDialog({
           {needsRef ? (
             <Field
               label={`${t('fields.reference')} · ${systems.find((s) => s.key === needsRef)?.[locale === 'ar' ? 'name_ar' : 'name_en'] ?? needsRef}`}
+              required={tc('required')}
             >
               {(p) => (
                 <Input {...p} value={f.ref} maxLength={200} onChange={(e) => setF({ ...f, ref: e.target.value })} />
