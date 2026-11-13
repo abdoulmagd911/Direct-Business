@@ -222,7 +222,8 @@
     "previousYear": "Previous year",
     "nextYear": "Next year",
     "placeholder": "For example, 20 Oct 2026",
-    "monthPlaceholder": "For example, Oct 2026"
+    "monthPlaceholder": "For example, Oct 2026",
+    "quickDates": "Quick dates"
   },
   "state": {
     "failed": "{what} could not be loaded",
@@ -1544,33 +1545,67 @@
       "request": "Change"
     },
     "labels": {
-      "profile.updated": "Profile updated",
-      "registry.synced": "Registry synced",
-      "person.created": "Person added",
-      "person.updated": "Person changed",
-      "person.switched": "Sign-in switched",
-      "team.retired": "Team retired",
-      "setting.changed": "Setting changed",
-      "setting.cleared": "Setting cleared",
-      "list.saved": "List entry saved",
-      "access.changed": "Access changed",
-      "team.saved": "Team saved",
-      "department.saved": "Department saved",
-      "role.saved": "Role saved",
-      "person.account_set": "Account type set",
-      "view.removed": "View removed",
-      "view.saved": "View saved",
-      "record.restored": "Record restored",
-      "list.removed": "List entry removed",
-      "list.retired": "List entry archived",
-      "tender.signed": "Contract signed, from tender {number}",
-      "import.started": "Import started",
-      "import.confirmed": "Import confirmed",
-      "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
-      "escalation.raised": "Asked for help",
-      "escalation.acknowledged": "Need for help acknowledged",
-      "achievement_category.retired": "Category archived",
-      "contact.removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
+      "profile": {
+        "updated": "Profile updated"
+      },
+      "registry": {
+        "synced": "Registry synced"
+      },
+      "person": {
+        "created": "Person added",
+        "updated": "Person changed",
+        "switched": "Sign-in switched",
+        "account_set": "Account type set"
+      },
+      "team": {
+        "retired": "Team retired",
+        "saved": "Team saved"
+      },
+      "setting": {
+        "changed": "Setting changed",
+        "cleared": "Setting cleared"
+      },
+      "list": {
+        "saved": "List entry saved",
+        "removed": "List entry removed",
+        "retired": "List entry archived"
+      },
+      "access": {
+        "changed": "Access changed"
+      },
+      "department": {
+        "saved": "Department saved"
+      },
+      "role": {
+        "saved": "Role saved"
+      },
+      "view": {
+        "removed": "View removed",
+        "saved": "View saved"
+      },
+      "record": {
+        "restored": "Record restored"
+      },
+      "tender": {
+        "signed": "Contract signed, from tender {number}"
+      },
+      "import": {
+        "started": "Import started",
+        "confirmed": "Import confirmed"
+      },
+      "alert": {
+        "weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}"
+      },
+      "escalation": {
+        "raised": "Asked for help",
+        "acknowledged": "Need for help acknowledged"
+      },
+      "achievement_category": {
+        "retired": "Category archived"
+      },
+      "contact": {
+        "removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
+      }
     },
     "signIn": {
       "at": "When",
@@ -1959,7 +1994,7 @@
       "noMatch": "No people match this search.",
       "handover": "Hand over to",
       "handoverPlaceholder": "Choose a person",
-      "openWorkMove": "{count, plural, one {# open item will move} other {# open items will move}} to the person chosen below",
+      "openWorkMove": "{count, plural, one {# open item will move to the person chosen below} other {# open items will move to the person chosen below}}",
       "openWorkNone": "No open work — nothing to hand over",
       "headNeedsSuccessor": "{name} heads {department} — choose a new head first",
       "markLeft": "Mark as left",
@@ -2985,7 +3020,8 @@
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement",
-    "capture": "Quick capture"
+    "capture": "Quick capture",
+    "idea": "New idea"
   },
   "finance": {
     "title": "Finance",
