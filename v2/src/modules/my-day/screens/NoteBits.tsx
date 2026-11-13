@@ -124,25 +124,32 @@ const TICKS_SHOWN = 5;
 
 /**
  * Finding 3 (26 Oct): my checklist's open rows on My day, each ticked where it stands. A tick saves at once, as the
- * checklist's page does, with Undo on its toast; the row then leaves the list and the count moves on.
+ * checklist's page does, with Undo on its toast; the row then leaves the list and the count moves on. The rows and the
+ * version a tick writes over are held here and moved on by each save, so a second tick right after the first builds
+ * on it — before, it wrote over the page's older copy and was refused as someone else's change (or undid the first).
  */
 function ChecklistTicks({ note }: { note: MyNote }) {
   const t = useTranslations();
   const words = useWords();
   const [busy, setBusy] = useState(false);
-  const open = note.items.map((x, i) => ({ ...x, i })).filter((x) => !x.done && x.text.trim());
+  const [held, setHeld] = useState({ version: note.version, items: note.items });
+  // a newer read (the refresh after a save, an Undo, an edit elsewhere) replaces what is held
+  if (note.version > held.version) setHeld({ version: note.version, items: note.items });
+  const open = held.items.map((x, i) => ({ ...x, i })).filter((x) => !x.done && x.text.trim());
   if (!open.length) return null;
   const tick = async (i: number) => {
     setBusy(true);
-    await command(
+    const items = held.items.map((x, j) => (j === i ? { ...x, done: true } : x));
+    const saved = await command(
       words(t('pages.myDay.note.itemDone')),
       () =>
         rpc('note_update', {
           p_id: note.id,
-          p_version: note.version,
-          p_values: { items: note.items.map((x, j) => (j === i ? { ...x, done: true } : x)) } as never,
-        }) as Promise<{ request_id?: string | null }>,
+          p_version: held.version,
+          p_values: { items } as never,
+        }) as Promise<{ request_id?: string | null; version?: number }>,
     );
+    if (saved?.version) setHeld({ version: saved.version, items });
     setBusy(false);
   };
   const more = open.length - TICKS_SHOWN;
