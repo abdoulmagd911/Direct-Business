@@ -405,6 +405,7 @@
         "markSeen": "Mark seen",
         "kinds": {
           "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
+          "shared_notes": "{count, plural, one {# note shared with you} other {# notes shared with you}}",
           "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
         }
       },
