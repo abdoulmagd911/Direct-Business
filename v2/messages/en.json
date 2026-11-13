@@ -3085,6 +3085,7 @@
       "invoiceNumber": "Invoice no.",
       "transactionNumber": "Transaction no.",
       "transactions": "Transactions",
+      "rows": "Rows",
       "created": "Created",
       "dpin": "Tax invoice no.",
       "flags": "Flags",

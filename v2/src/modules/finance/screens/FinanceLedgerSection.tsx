@@ -1,18 +1,22 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Select } from '@/ui/Select';
 import { LEDGER_KINDS, ledgerFilterQuery, ledgerReadArgs } from '../ledger';
 import type { PeriodAsk } from '../period';
-import type { LedgerFilter, LedgerReport } from '../types';
+import type { LedgerCompany, LedgerFilter } from '../types';
 import { useFinanceRead } from '../use-reads';
 import { FinanceReport } from './FinanceReport';
+import { ledgerReportOf } from './ledger-report';
 
 type Locale = 'en' | 'ar';
+
+/** "All partners" / "All types" as a value of its own: an empty value is the select's blank, so the box read nothing. */
+const ALL = '__all';
 
 /**
  * The Finance page's ledger section (workstream B): the filters (company, client ID, invoice type, code)
@@ -94,18 +98,23 @@ export function FinanceLedgerSection({
 
   const args = ledgerReadArgs(initial, ask.from, ask.to);
   const key = JSON.stringify(args);
-  const read = useFinanceRead<LedgerReport, 'finance_unified_ledger'>(
+  const read = useFinanceRead<unknown, 'finance_unified_ledger'>(
     'finance_unified_ledger',
     args,
     `ledger|${key}`,
     ready,
   );
-  const report = read.block.status === 'ready' ? read.block.data : null;
+  // the database's own names, read once into the report's (see ledger-report.ts)
+  const answer = read.block.status === 'ready' ? read.block.data : null;
+  const report = useMemo(() => (answer ? ledgerReportOf(answer) : null), [answer]);
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>
     locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? '');
+  // The partners the box offers stay while the next view loads, so a picked partner never goes blank meanwhile.
+  const [companies, setCompanies] = useState<LedgerCompany[]>([]);
+  if (report && report.companies !== companies) setCompanies(report.companies);
   const companyOptions = [
-    { value: '', label: t('finance.ledger.allCompanies') },
-    ...(report?.companies ?? [])
+    { value: ALL, label: t('finance.ledger.allCompanies') },
+    ...companies
       .filter((c) => c.partner_id)
       .map((c) => ({
         value: c.partner_id as string,
@@ -139,8 +148,8 @@ export function FinanceLedgerSection({
         <label className="flex min-w-[12rem] flex-1 flex-col gap-1.5 text-sm font-medium">
           {t('finance.ledger.partner')}
           <Select
-            value={partner}
-            onValueChange={setPartner}
+            value={partner || ALL}
+            onValueChange={(v) => setPartner(v === ALL ? '' : v)}
             options={companyOptions}
             aria-label={t('finance.ledger.partner')}
             data-finance-filter-company
@@ -158,10 +167,10 @@ export function FinanceLedgerSection({
         <label className="flex min-w-[10rem] flex-1 flex-col gap-1.5 text-sm font-medium">
           {t('finance.ledger.kind')}
           <Select
-            value={kind}
-            onValueChange={setKind}
+            value={kind || ALL}
+            onValueChange={(v) => setKind(v === ALL ? '' : v)}
             options={[
-              { value: '', label: t('finance.ledger.allKinds') },
+              { value: ALL, label: t('finance.ledger.allKinds') },
               ...LEDGER_KINDS.map((k) => ({ value: k, label: t(`finance.kind.${k}`) })),
             ]}
             aria-label={t('finance.ledger.kind')}
