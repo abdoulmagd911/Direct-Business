@@ -561,6 +561,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     for (const m of modules) for (const p of m.pages ?? []) if (p.key === key) return t.has(p.label) ? t(p.label) : key;
     return key;
   };
+  /** The levels a page offers (the registry's, default all four): a level it does not offer is refused, never shown. */
+  const levelsOf = (key: string): Level[] => {
+    for (const m of modules)
+      for (const p of m.pages ?? []) if (p.key === key && p.levels) return LEVELS.filter((l) => p.levels!.includes(l));
+    return LEVELS;
+  };
+  const personIsAdmin = access?.role?.is_admin === true;
   const pagesForLevels = access
     ? Object.keys(access.levels)
         .filter((k) => k !== 'settings.profile')
@@ -654,19 +661,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 )
               }
             >
-              <ul className="flex flex-col gap-1 font-data text-xs">
+              {/* only the address is in the data face: the Primary chip and the buttons keep the app's letters (the
+                  list's font-data reached them — "Primary" and "Add email" read like code) */}
+              <ul className="flex flex-col gap-1 text-xs">
                 {row.emails.map((e) => (
                   <li key={e.email} className="flex min-w-0 flex-wrap items-center gap-2" data-person-email={e.email}>
-                    <span className="min-w-0 break-all">{e.email}</span>
+                    <span className="min-w-0 break-all font-data">{e.email}</span>
                     {e.is_primary ? <StatusChip tone="neutral">{t('settings.people.primary')}</StatusChip> : null}
                     {admin && !(self && row.emails.length <= 1) ? (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="font-sans"
-                        onClick={() => setRemovingEmail(e)}
-                        data-email-remove
-                      >
+                      <Button size="xs" variant="ghost" onClick={() => setRemovingEmail(e)} data-email-remove>
                         {t('common.remove')}
                       </Button>
                     ) : null}
@@ -674,13 +677,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 ))}
                 {admin && row.emails.length ? (
                   <li>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="font-sans"
-                      onClick={() => setAddingEmail(true)}
-                      data-email-add
-                    >
+                    <Button size="xs" variant="ghost" onClick={() => setAddingEmail(true)} data-email-add>
                       {t('settings.people.addEmail')}
                     </Button>
                   </li>
@@ -735,16 +732,28 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 title={`${t('settings.people.access')} · ${t(group === 'pages' ? 'settings.people.pagesGroup' : 'settings.people.settingsGroup')}`}
                 data-access-group={group}
               >
+                {/* the database gives an admin every page at its top level, and anyone else none on a Settings page,
+                    whatever an override says (authz.level_of) — so those levels are facts, said once, never a picker */}
+                {personIsAdmin && group === 'pages' ? (
+                  <p className="text-sm text-muted" data-access-note>
+                    {t('settings.people.adminHasAll')}
+                  </p>
+                ) : !personIsAdmin && group === 'settings' ? (
+                  <p className="text-sm text-muted" data-access-note>
+                    {t('settings.noAccess')}
+                  </p>
+                ) : null}
                 {keys.map((page) => {
                   const override = access.level_overrides.find((o) => o.page === page);
+                  const editable = admin && !self && !personIsAdmin && group === 'pages';
                   return (
                     <RailField key={page} label={pageLabel(page)}>
                       <span className="flex items-center gap-2">
-                        {admin && !self ? (
+                        {editable ? (
                           <Select
                             value={access.levels[page] ?? 'none'}
                             onValueChange={(v) => setLevelChange({ page, level: v as Level })}
-                            options={LEVELS.map((l) => ({ value: l, label: t(`levels.${l}`) }))}
+                            options={levelsOf(page).map((l) => ({ value: l, label: t(`levels.${l}`) }))}
                             className="h-8 min-w-24 text-sm"
                           />
                         ) : (
@@ -1119,8 +1128,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                       value={f.manager_id}
                       onValueChange={(v) => setF({ ...f, manager_id: v })}
                       placeholder={t('settings.people.noManager')}
+                      // team members who can work here (the database refuses anyone switched off or gone as a
+                      // manager); the manager as stored stays in the list so the picker still shows them
                       options={org.people
-                        .filter((x) => x.id !== person.id && !isAccount(x))
+                        .filter(
+                          (x) =>
+                            x.id !== person.id &&
+                            !isAccount(x) &&
+                            (!unavailable.has(x.id) || x.id === stored.manager_id),
+                        )
                         .map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
                     />
                   )}
@@ -1329,6 +1345,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <Dialog
         open={addingEmail}
         onOpenChange={setAddingEmail}
+        closeLabel={t('common.close')}
         title={`${t('settings.people.addEmail')} · ${shownName}`}
         dirty={email !== ''}
         size="sm"

@@ -1943,6 +1943,7 @@
       "accessStandard": "{role} (standard)",
       "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
       "accessShowAll": "Show all",
+      "adminHasAll": "An admin has every page at its top level — the role decides it, not a choice here",
       "accessHide": "Show less",
       "emailInvalid": "Enter a valid email address.",
       "noMatch": "No people match this search.",

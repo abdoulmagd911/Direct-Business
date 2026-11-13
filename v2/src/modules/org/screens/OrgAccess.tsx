@@ -107,8 +107,8 @@ export function OrgAccess({
           }))}
         />
       </div>
-      {current === 'people' ? <PeopleTab me={me} org={org} people={people} /> : null}
-      {current === 'teams' ? <TeamsTab org={org} /> : null}
+      {current === 'people' ? <PeopleTab me={me} org={org} people={people} today={today} /> : null}
+      {current === 'teams' ? <TeamsTab org={org} people={people} today={today} /> : null}
       {current === 'access' ? (
         <>
           <AccessTab matrix={matrix} />
@@ -139,6 +139,23 @@ function useWords(done: string) {
   };
 }
 
+/** A leaving day that has come (V463): before it, the person still works and signs in — never shown as "Left". */
+function hasLeft(p: { left_on: string | null }, today: string): boolean {
+  return p.left_on !== null && p.left_on <= today;
+}
+
+/**
+ * The people a manager, team lead or department head may be chosen from: team members who can work here — never the
+ * admin or test account (not team members, V444/V445) and never someone switched off or gone (the database refuses
+ * them as a manager). The one holding the place now stays in the list, so the picker still shows them.
+ */
+function leadersOf(org: OrgAnswer, people: PeopleAnswer, today: string, keep?: string | null) {
+  const can = new Set(
+    people.filter((p) => !isAccount(p) && p.active && p.can_sign_in && !hasLeft(p, today)).map((p) => p.id),
+  );
+  return org.people.filter((p) => can.has(p.id) || p.id === keep);
+}
+
 function useNames(org: OrgAnswer) {
   const locale = useLocale() as 'en' | 'ar';
   return useMemo(() => {
@@ -161,7 +178,7 @@ function useNames(org: OrgAnswer) {
 
 // ---- People --------------------------------------------------------------------------------------------------------
 
-function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: PeopleAnswer }) {
+function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people: PeopleAnswer; today: string }) {
   const t = useTranslations();
   const names = useNames(org);
   const router = useRouter();
@@ -290,7 +307,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                       : t('settings.people.never')}
                   </td>
                   <td className="px-4 py-2.5" data-person-status>
-                    <PersonStatus row={p} />
+                    <PersonStatus row={p} today={today} />
                   </td>
                   {anyOffer ? (
                     <td className="px-4 py-2.5">
@@ -324,7 +341,7 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
                     </span>
                   </span>
                 </Link>
-                <PersonStatus row={p} />
+                <PersonStatus row={p} today={today} />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                 <span className="font-data">
@@ -349,7 +366,16 @@ function PeopleTab({ me, org, people }: { me: Me; org: OrgAnswer; people: People
         })}
       </ul>
       {q.trim() !== '' && rows.length === 0 ? <DataState kind="empty" message={t('settings.people.noMatch')} /> : null}
-      <AddPersonDialog open={adding} onOpenChange={setAdding} org={org} onDone={(id) => router.push(`/people/${id}`)} />
+      {/* mounted only while open: each Add starts from an empty form (a cancelled one left its typing behind) */}
+      {adding ? (
+        <AddPersonDialog
+          open
+          onOpenChange={setAdding}
+          org={org}
+          managers={leadersOf(org, people, today)}
+          onDone={(id) => router.push(`/people/${id}`)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -370,10 +396,11 @@ function PersonRole({ row, roleName }: { row: PersonRow; roleName: string }) {
 /** A status chip in the People table wraps between its words, never inside one (QA-592). */
 const WRAPS = 'h-auto min-h-6 max-w-full whitespace-normal py-1 [overflow-wrap:break-word]';
 
-/** Left (grey) · Switched off (grey) · No role (amber) · Allowed (green), in that order. */
-function PersonStatus({ row }: { row: PersonRow }) {
+/** Left (grey) · Switched off (grey) · No role (amber) · Allowed (green), in that order. A leaving day still to come is
+ * not Left yet: the person works and signs in until then. */
+function PersonStatus({ row, today }: { row: PersonRow; today: string }) {
   const t = useTranslations();
-  if (row.left_on)
+  if (hasLeft(row, today))
     return (
       <StatusChip className={WRAPS} tone="neutral">
         {t('settings.people.left')}
@@ -402,11 +429,14 @@ function AddPersonDialog({
   open,
   onOpenChange,
   org,
+  managers,
   onDone,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   org: OrgAnswer;
+  /** Who may be chosen as the new person's manager (leadersOf). */
+  managers: OrgAnswer['people'];
   onDone: (id: string) => void;
 }) {
   const t = useTranslations();
@@ -415,7 +445,8 @@ function AddPersonDialog({
   const [f, setF] = useState({
     full_name_en: '',
     job_title_en: '',
-    department_id: org.departments[0]?.id ?? '',
+    // the first department the picker offers (a retired one is not offered, so it is never the silent default)
+    department_id: org.departments.find((d) => d.active)?.id ?? '',
     team_id: '',
     manager_id: '',
     role_id: org.roles.find((r) => r.key === 'member')?.id ?? '',
@@ -473,6 +504,7 @@ function AddPersonDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('settings.people.add')}
+      closeLabel={t('common.close')}
       dirty={f.full_name_en !== '' || f.email !== ''}
       footer={
         <>
@@ -533,7 +565,7 @@ function AddPersonDialog({
               value={f.manager_id}
               onValueChange={field('manager_id')}
               placeholder={t('settings.people.noManager')}
-              options={org.people.map((x) => ({ value: x.id, label: nameOf(x, names.locale) }))}
+              options={managers.map((x) => ({ value: x.id, label: nameOf(x, names.locale) }))}
             />
           )}
         </Field>
@@ -578,7 +610,7 @@ function AddPersonDialog({
 
 // ---- Teams and departments -----------------------------------------------------------------------------------------
 
-function TeamsTab({ org }: { org: OrgAnswer }) {
+function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer; today: string }) {
   const t = useTranslations();
   const phone = useMediaQuery('(max-width: 639px)');
   const names = useNames(org);
@@ -595,7 +627,13 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
   const openTeam = (x: OrgTeam | 'new') => {
     setF(
       x === 'new'
-        ? { code: '', name_en: '', name_ar: '', department_id: org.departments[0]?.id ?? '', lead_person_id: '' }
+        ? {
+            code: '',
+            name_en: '',
+            name_ar: '',
+            department_id: org.departments.find((d) => d.active)?.id ?? '',
+            lead_person_id: '',
+          }
         : {
             code: x.code,
             name_en: x.name_en,
@@ -729,7 +767,10 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
             value={f.lead_person_id}
             onValueChange={(v) => setF({ ...f, lead_person_id: v })}
             placeholder={t('settings.teams.noLead')}
-            options={org.people.map((x) => ({ value: x.id, label: nameOf(x, names.locale) }))}
+            options={leadersOf(org, people, today, f.lead_person_id).map((x) => ({
+              value: x.id,
+              label: nameOf(x, names.locale),
+            }))}
           />
         )}
       </Field>
@@ -939,6 +980,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
       <Dialog
         open={editing !== null}
         onOpenChange={(o) => !o && setEditing(null)}
+        closeLabel={t('common.close')}
         title={
           editing === 'new' || editing === null
             ? t('settings.teams.add')
@@ -965,6 +1007,7 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
       <Dialog
         open={dept !== null}
         onOpenChange={(o) => !o && setDept(null)}
+        closeLabel={t('common.close')}
         title={
           dept === 'new' || dept === null
             ? t('settings.departments.add')
@@ -1028,7 +1071,10 @@ function TeamsTab({ org }: { org: OrgAnswer }) {
                 value={d.head_person_id}
                 onValueChange={(v) => setD({ ...d, head_person_id: v })}
                 placeholder={t('settings.departments.noHead')}
-                options={org.people.map((x) => ({ value: x.id, label: nameOf(x, names.locale) }))}
+                options={leadersOf(org, people, today, d.head_person_id).map((x) => ({
+                  value: x.id,
+                  label: nameOf(x, names.locale),
+                }))}
               />
             )}
           </Field>
@@ -1178,6 +1224,7 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
       <Dialog
         open={editing !== null}
         onOpenChange={(o) => !o && setEditing(null)}
+        closeLabel={t('common.close')}
         title={
           editing === 'new' || editing === null
             ? t('common.add')

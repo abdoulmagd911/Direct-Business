@@ -1815,6 +1815,7 @@
       "accessStandard": "{role} (دون تغيير)",
       "accessChanged": "{role} + {count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
       "accessShowAll": "عرض الكل",
+      "adminHasAll": "للمسؤول أعلى مستوى في كل صفحة — يحدده الدور لا اختيار هنا",
       "accessHide": "عرض أقل",
       "add": "إضافة شخص",
       "name": "الاسم",
