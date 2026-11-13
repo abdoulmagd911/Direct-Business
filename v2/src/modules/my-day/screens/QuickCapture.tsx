@@ -11,6 +11,7 @@ import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { IconButton } from '@/ui/IconButton';
 import { Textarea } from '@/ui/Input';
+import { toast } from '@/ui/Toast';
 import {
   CAPTURE_KINDS,
   QUICK_CAPTURE_EVENT,
@@ -55,6 +56,9 @@ export function QuickCapture() {
   useEffect(() => {
     const show = (e: Event) => {
       const opts = ((e as CustomEvent).detail ?? {}) as OpenOptions;
+      // the toasts of what was just done (a capture's "Note saved · Undo" stays 10 s) float over the bottom of the sheet
+      // on a phone, over the When line and beside Capture, where a tap meant for the sheet would close it or press Undo
+      toast.dismiss();
       const at = new Date();
       setNow(at);
       const nextKind = opts.about ? 'reminder' : (opts.kind ?? 'note');
