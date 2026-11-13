@@ -24,7 +24,9 @@ vi.mock('@/core/db/rpc', () => ({
     reads += 1;
     return told
       ? {
-          due: [{ id: 'r1', note_id: 'n1', text: 'Made-up call the hotel back', remind_at: TIME, notification_id: 'x1' }],
+          due: [
+            { id: 'r1', note_id: 'n1', text: 'Made-up call the hotel back', remind_at: TIME, notification_id: 'x1' },
+          ],
           next_at: null,
         }
       : { due: [], next_at: TIME };
