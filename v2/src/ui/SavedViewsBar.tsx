@@ -72,9 +72,16 @@ export function SavedViewsBar({
   // FIX-12: renaming a saved view — its name, in a dialog of its own.
   const [renaming, setRenaming] = useState<SavedView | null>(null);
   const [renameName, setRenameName] = useState('');
+  // A name I already gave a view on this page (the database's rule: one name per person and page, any case) is said at
+  // the box and Save waits — before, the only word was a refusal toast that vanished while the dialog stayed open.
+  const nameTaken = (typed: string, except?: string) => {
+    const k = typed.trim().toLowerCase();
+    return !!k && (views ?? []).some((v) => v.mine && v.id !== except && v.name.trim().toLowerCase() === k);
+  };
+  const takenWord = t('errors.view.name_taken');
   const submitRename = async () => {
     const v = renaming;
-    if (!v || !renameName.trim()) return;
+    if (!v || !renameName.trim() || nameTaken(renameName, v.id)) return;
     const r = await save(
       { id: v.id, name: renameName.trim(), query: v.query, shared: v.shared, version: v.version },
       t('views.renamed', { name: renameName.trim() }),
@@ -90,6 +97,7 @@ export function SavedViewsBar({
       active ? 'border-accent bg-accent-soft text-text' : 'border-border bg-transparent text-muted hover:bg-surface',
     );
   const submit = async () => {
+    if (nameTaken(name)) return;
     const r = await save({ name: name.trim(), query, shared });
     if (r) {
       setSaving(false);
@@ -198,7 +206,12 @@ export function SavedViewsBar({
         footer={
           <>
             <Button onClick={() => setSaving(false)}>{t('common.cancel')}</Button>
-            <Button variant="primary" disabled={!name.trim()} onClick={() => void submit()} data-view-save-confirm>
+            <Button
+              variant="primary"
+              disabled={!name.trim() || nameTaken(name)}
+              onClick={() => void submit()}
+              data-view-save-confirm
+            >
               {t('common.save')}
             </Button>
           </>
@@ -206,7 +219,7 @@ export function SavedViewsBar({
       >
         <div className="flex flex-col gap-4">
           {saveHint ? <p className="text-sm text-muted">{saveHint}</p> : null}
-          <Field label={t('views.name')}>
+          <Field label={t('views.name')} error={nameTaken(name) ? takenWord : undefined}>
             {(p) => <Input {...p} value={name} onChange={(e) => setName(e.target.value)} autoFocus />}
           </Field>
           {canShare ? <Switch checked={shared} onCheckedChange={setShared} label={t('views.shared')} /> : null}
@@ -224,7 +237,7 @@ export function SavedViewsBar({
             <Button onClick={() => setRenaming(null)}>{t('common.cancel')}</Button>
             <Button
               variant="primary"
-              disabled={!renameName.trim()}
+              disabled={!renameName.trim() || nameTaken(renameName, renaming?.id)}
               onClick={() => void submitRename()}
               data-view-rename-confirm
             >
@@ -234,7 +247,7 @@ export function SavedViewsBar({
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label={t('views.name')}>
+          <Field label={t('views.name')} error={nameTaken(renameName, renaming?.id) ? takenWord : undefined}>
             {(p) => <Input {...p} value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus />}
           </Field>
         </div>
