@@ -11,6 +11,7 @@ import { TooltipProvider } from '../Tooltip';
 import { BottomBar } from './BottomBar';
 import { CommandPalette } from './CommandPalette';
 import { Drawer } from './Drawer';
+import { KeyboardInset } from './KeyboardInset';
 import { NavProgress } from './NavProgress';
 import { NotificationsPanel } from './NotificationsPanel';
 import { RefetchBridge } from './RefetchBridge';
@@ -79,6 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <LogActivityEntry />
       <ConflictDialog />
       <RefetchBridge />
+      <KeyboardInset />
       <Suspense fallback={null}>
         <NavProgress />
       </Suspense>

@@ -41,7 +41,7 @@ export function DataTable<T>({
   canSelectRow,
   labels,
   className,
-  maxHeight = '70vh',
+  maxHeight = '70dvh',
   emptyState,
 }: {
   columns: ColumnDef<T, unknown>[];

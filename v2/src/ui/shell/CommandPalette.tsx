@@ -11,6 +11,7 @@ import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
 import { reachableFor } from './nav';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
+import { tradeName } from '@/modules/partners/types';
 import { createActionsFor } from './CreateMenu';
 import { paletteMatches } from './palette-match';
 
@@ -120,13 +121,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const createActions = createActionsFor(me).filter((a) => matches(`${t('top.create')} · ${t(`create.${a.key}`)}`));
   const personName = (p: Hit) => (locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en);
 
+  // On a phone the search box takes focus and the keyboard opens at once: the list ends above it (`--kb`), and the
+  // box is placed by the visible height (`dvh`), so no answer sits hidden under the keyboard or the address bar.
   return (
     <RD.Root open={open} onOpenChange={close}>
       <RD.Portal>
         <RD.Overlay className="fixed inset-0 z-40 bg-scrim" />
         <RD.Content
           aria-describedby={undefined}
-          className="fixed inset-x-4 top-[12vh] z-50 mx-auto w-auto max-w-[620px] overflow-hidden rounded-lg border border-border bg-raised text-text shadow-2 focus:outline-none"
+          className="fixed inset-x-4 top-[12dvh] z-50 mx-auto w-auto max-w-[620px] overflow-hidden rounded-lg border border-border bg-raised text-text shadow-2 focus:outline-none"
           data-command-palette
         >
           <RD.Title className="sr-only">{t('top.searchLabel')}</RD.Title>
@@ -140,7 +143,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 className="h-12 w-full bg-transparent text-base outline-none placeholder:text-muted"
               />
             </div>
-            <Command.List className="max-h-[360px] overflow-y-auto p-1.5">
+            <Command.List className="max-h-[min(360px,calc(84dvh-var(--kb,0px)-3rem))] overflow-y-auto p-1.5">
               {searching ? (
                 <Command.Item
                   value="searching"
@@ -176,7 +179,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       data-palette-partner={p.id}
                     >
                       <Building2 className="size-4 text-muted" aria-hidden="true" />
-                      <span className="truncate">{p.trade_name_en}</span>
+                      <span className="truncate">{tradeName(p, locale === 'ar' ? 'ar' : 'en')}</span>
                       <span className="font-data text-sm text-muted">{p.number}</span>
                     </Command.Item>
                   ))}
