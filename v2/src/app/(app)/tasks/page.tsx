@@ -4,7 +4,7 @@ import { requireMe } from '@/core/auth/require-me';
 import type { Me } from '@/core/auth/me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { loadLookups } from '@/modules/tasks/load';
-import { apiFilter, parseFilters, showsTeamLoad } from '@/modules/tasks/rules';
+import { listFilter, parseFilters, showsTeamLoad } from '@/modules/tasks/rules';
 import { TaskListScreen } from '@/modules/tasks/screens/TaskListScreen';
 import type { TaskList, TeamLoad } from '@/modules/tasks/types';
 import { DataState } from '@/ui/DataState';
@@ -47,7 +47,8 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 async function TasksBody({ me, params, title }: { me: Me; params: Params; title: string }) {
   const filters = parseFilters(params);
   const [list, lookups, load] = await Promise.all([
-    serverRpc('tasks', { p_filter: apiFilter(filters) as never, p_limit: 200 }).then(
+    // every chip and the sort are the door's (listFilter), so the page of 200 and its total are the view's own
+    serverRpc('tasks', { p_filter: listFilter(filters) as never, p_limit: 200 }).then(
       (r) => r as unknown as TaskList,
       () => null,
     ),
