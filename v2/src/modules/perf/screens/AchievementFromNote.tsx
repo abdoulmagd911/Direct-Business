@@ -106,6 +106,10 @@ export function AchievementFromNoteDialog({
     if (!cat) return;
     setBusy(true);
     const system = needsRef ?? systems[0]?.key;
+    // the command runs `after` once on the save and again when Undo is pressed on its toast
+    // (src/core/commands/command.ts, done()): the second run is the Undo — the achievement is gone, so the
+    // "Achievement logged" dialog must not open (again) for it.
+    let savedOnce = false;
     await command(
       withRefusal(words(t('logged')), tt('refused.achievement')),
       () =>
@@ -127,6 +131,8 @@ export function AchievementFromNoteDialog({
       // instead of closing straight away. The note keeps showing what it became either way.
       {
         after: (r) => {
+          if (savedOnce) return setSaved((s) => (s?.id === r?.id ? null : s));
+          savedOnce = true;
           setF(fresh());
           if (r?.id) setSaved({ id: r.id, number: r.number ?? '' });
           else onOpenChange(false);
