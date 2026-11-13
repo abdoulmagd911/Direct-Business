@@ -38,6 +38,8 @@ import {
 } from '../invoice-form';
 
 const NONE = '__none';
+/** A line's field takes the whole row on a phone, so the line's total and its remove button share the last one. */
+const LINE_FIELD = 'col-span-2 sm:col-span-1';
 const fmt = (n: number, locale: string) =>
   new Intl.NumberFormat(locale === 'ar' ? 'en-US' : locale, {
     minimumFractionDigits: 2,
@@ -94,7 +96,11 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
     const found = problemsOf(d, lists);
     if (found.length) {
       setErrors(Object.fromEntries(found.map((p) => [p.field, p.key])));
-      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      // the first field that needs something gets the focus once it is drawn as such (before, nothing was marked yet
+      // when this ran, so the focus stayed on Save — far from a missing line or expense further down)
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>('[data-new-invoice] [aria-invalid="true"]')?.focus(),
+      );
       return;
     }
     setBusy(true);
@@ -214,7 +220,9 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
               </div>
               <StatusChip tone="neutral">{t('finance.source.typed')}</StatusChip>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* two to a row: a date box needs the room for its day, its calendar and Clear — four to a row cut the
+                year off the day ("13 Nov 202") */}
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={t('finance.number.transaction')}
                 error={problem('ref') ?? undefined}
@@ -227,7 +235,8 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                     data-new-ref
                     autoFocus
                     value={d.ref}
-                    maxLength={80}
+                    // the form refuses more than 60 (invoice-form.ts): the box no longer takes 20 it will refuse
+                    maxLength={60}
                     onChange={(e) => set('ref', e.target.value)}
                   />
                 )}
@@ -323,9 +332,9 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                   <div
                     key={l.key}
                     data-line-row
-                    className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.6fr_5rem_7rem_7rem_2.75rem] lg:items-end lg:border-0 lg:p-0"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 rounded-lg border border-border p-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.6fr_5rem_7rem_7rem_2.75rem] lg:border-0 lg:p-0"
                   >
-                    <Field label={t('finance.new.product')}>
+                    <Field label={t('finance.new.product')} className={LINE_FIELD}>
                       {(p) => (
                         <Select
                           id={p.id}
@@ -338,7 +347,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                         />
                       )}
                     </Field>
-                    <Field label={t('finance.new.service')}>
+                    <Field label={t('finance.new.service')} className={LINE_FIELD}>
                       {(p) => (
                         <Select
                           id={p.id}
@@ -348,12 +357,12 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                         />
                       )}
                     </Field>
-                    <Field label={t('finance.new.item')} error={problem(`line.${i}.name`)}>
+                    <Field label={t('finance.new.item')} error={problem(`line.${i}.name`)} className={LINE_FIELD}>
                       {(p) => (
                         <Input {...p} value={l.name} onChange={(e) => setLine(l.key, { name: e.target.value })} />
                       )}
                     </Field>
-                    <Field label={t('finance.new.qty')}>
+                    <Field label={t('finance.new.qty')} className={LINE_FIELD}>
                       {(p) => (
                         <Input
                           {...p}
@@ -364,7 +373,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                         />
                       )}
                     </Field>
-                    <Field label={t('finance.new.price')} error={problem(`line.${i}.price`)}>
+                    <Field label={t('finance.new.price')} error={problem(`line.${i}.price`)} className={LINE_FIELD}>
                       {(p) => (
                         <Input
                           {...p}
@@ -375,16 +384,19 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                         />
                       )}
                     </Field>
-                    <div
-                      className="flex min-h-[var(--control-h)] flex-col justify-end pb-2 text-end font-data tabular text-base"
-                      data-line-total
-                    >
-                      {lineTotal(l) === null ? '—' : fmt(lineTotal(l) ?? 0, locale)}
+                    {/* the line's total: named where there is no column over it, and on a phone on one row with the
+                        remove button — not a bare dash on a row of its own */}
+                    <div className="flex min-h-[var(--control-h)] items-end justify-between gap-2 pb-2 lg:justify-end">
+                      <span className="text-sm text-muted lg:hidden">{t('finance.number.total')}</span>
+                      <span className="text-end font-data tabular text-base" data-line-total>
+                        {lineTotal(l) === null ? '—' : fmt(lineTotal(l) ?? 0, locale)}
+                      </span>
                     </div>
                     <IconButton
                       label={t('finance.new.removeLine')}
                       icon={<X aria-hidden="true" />}
                       onClick={() => setD((x) => ({ ...x, lines: x.lines.filter((y) => y.key !== l.key) }))}
+                      className="justify-self-end"
                     />
                   </div>
                 ))}

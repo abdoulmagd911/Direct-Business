@@ -3142,7 +3142,7 @@
       },
       "lists": "The word lists",
       "lastSaved": "Last saved",
-      "noFigures": "In no figures"
+      "noFigures": "Not in any figure"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
     "periodEmpty": "Nothing in this period ({from} – {to}).",
