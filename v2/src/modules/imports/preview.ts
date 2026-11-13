@@ -143,7 +143,10 @@ export function mergedRecord(existing: ExistingRecord | null, incoming: Normalis
     transaction_ref: pick(incoming.transaction_ref, base.transaction_ref),
     invoice_ref: pick(incoming.invoice_ref, base.invoice_ref),
     tax_no: pick(incoming.tax_no, base.tax_no),
-    record_date: pick(incoming.record_date, base.record_date),
+    // An expense line only brings a cost to a transaction that is already stored: the apply step keeps that
+    // transaction's own date (work.import_apply), so the preview never says the date will move to the expense's day.
+    record_date:
+      incoming.kind === 'expense' && existing ? base.record_date : pick(incoming.record_date, base.record_date),
     amount: pick(incoming.amount, base.amount),
     wallet_topup: incoming.kind === 'invoice' ? incoming.wallet_topup : base.wallet_topup,
     // An expense import is the cost source for its transactions at that moment: its
