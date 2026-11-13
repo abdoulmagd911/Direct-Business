@@ -10,6 +10,7 @@ import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { CreateMenu } from './CreateMenu';
 import { barFor, isActiveEntry, type NavEntry } from './nav';
+import { NavPending } from './NavPending';
 import { signOut } from './ProfileMenu';
 
 /**
@@ -49,8 +50,15 @@ export function BottomBar() {
                 active ? 'text-nav-active-text' : 'text-nav-muted',
               )}
             >
-              <span className={cn('inline-grid h-7 w-12 place-items-center rounded-pill', active && 'bg-nav-active')}>
-                <Icon className="size-5" aria-hidden="true" />
+              <span
+                className={cn(
+                  'relative inline-grid h-7 w-12 place-items-center rounded-pill',
+                  active && 'bg-nav-active',
+                )}
+              >
+                {/* the tapped tab lights up at once, until its page arrives (owner, 13 Nov) */}
+                <NavPending className="absolute inset-0 rounded-pill" />
+                <Icon className="relative size-5" aria-hidden="true" />
               </span>
               <span className="truncate">{t(p.label)}</span>
             </Link>
@@ -103,12 +111,13 @@ export function BottomBar() {
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setMore(false)}
                   className={cn(
-                    'flex h-11 items-center gap-3 rounded-md px-3 text-base focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
+                    'relative flex h-11 items-center gap-3 rounded-md px-3 text-base focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
                     active && 'bg-nav-active font-semibold text-nav-active-text',
                   )}
                 >
-                  <Icon className="size-[18px]" aria-hidden="true" />
-                  {t(p.label)}
+                  <NavPending />
+                  <Icon className="relative size-[18px]" aria-hidden="true" />
+                  <span className="relative">{t(p.label)}</span>
                 </Link>
               );
             })}

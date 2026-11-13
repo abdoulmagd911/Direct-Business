@@ -11,6 +11,10 @@ import { ProfileMenu } from './ProfileMenu';
 /**
  * Top bar, 60 px: search (Ctrl K), Create, the bell with its unread count, the profile chip.
  * No page titles here (spec §2.5). In Direct it is slate with white text, like the drawer.
+ * From 640 px the four sit together at the END edge of the bar — the right in English, the left in Arabic — with the
+ * bar's own 24 px margin (owner, 13 Nov): the search stops growing at 440 px, and the space it leaves goes BEFORE
+ * the group (justify-end), never after the profile chip, which had left the chip in the middle of a wide bar. On a
+ * phone the search takes the start and the bell and the chip keep the end, as before.
  */
 export function TopBar({
   onOpenSearch,
@@ -28,7 +32,7 @@ export function TopBar({
   const pathname = usePathname();
   return (
     <header
-      className="flex h-[var(--topbar-h)] shrink-0 items-center gap-3 border-b border-top-border bg-top-bg px-4 text-top-text sm:px-6"
+      className="flex h-[var(--topbar-h)] shrink-0 items-center gap-3 border-b border-top-border bg-top-bg px-4 text-top-text sm:justify-end sm:px-6"
       data-topbar
     >
       <button
