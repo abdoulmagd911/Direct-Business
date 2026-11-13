@@ -107,8 +107,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/MyDay.tsx',
-        find: '<span className="min-w-0 flex-1 break-words">{r.text}</span>',
-        replace: '<span className="min-w-0 flex-1 truncate">{r.text}</span>',
+        find: '<bdi className="break-words">{r.text}</bdi>',
+        replace: '<bdi className="truncate">{r.text}</bdi>',
       },
     ],
   },

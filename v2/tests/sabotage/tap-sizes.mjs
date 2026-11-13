@@ -72,8 +72,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/NoteBits.tsx',
-        find: 'min-w-11 truncate font-medium hover:underline sm:min-w-0',
-        replace: 'min-w-0 truncate font-medium hover:underline',
+        find: 'block min-w-11 break-words font-medium hover:underline sm:min-w-0',
+        replace: 'block min-w-0 break-words font-medium hover:underline',
       },
     ],
   },
