@@ -385,6 +385,7 @@
           "ref_value_required": "اكتب المرجع",
           "side_required": "اختر من وقّع",
           "repeat_invalid": "الإنجاز السابق لا يطابق",
+          "task_not_yours": "لا يسجّل إنجازًا من هذه المهمة إلا أصحابها",
           "number_fixed": "لا يتغير الرقم أبدًا"
         },
         "common": {
