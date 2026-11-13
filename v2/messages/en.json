@@ -1600,7 +1600,8 @@
         "confirmed": "Import confirmed"
       },
       "alert": {
-        "weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}"
+        "weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
+        "failed": "An alert could not run: {alert} ({error})"
       },
       "escalation": {
         "raised": "Asked for help",
