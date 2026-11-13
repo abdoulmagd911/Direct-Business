@@ -3,7 +3,7 @@ import { ExternalLink, MoreHorizontal, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { formatDate, formatMoney, formatNumber } from '@/core/i18n/format';
@@ -285,6 +285,8 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         titleMore={{ more: t('titleMore'), less: t('titleLess') }}
         back={{ href: '/kpis/achievements', label: t('backTo') }}
         title={displayLine(locale === 'ar' ? a.line_ar : a.line_en)}
+        // each part keeps its own direction: as one string, in Arabic the number's Latin run took the day with it
+        // ("31 · ACH-2026-0005 · أكتوبر 2026")
         subtitle={[
           a.number,
           a.happened_on ? formatDate(a.happened_on, locale) : t('noDate'),
@@ -293,7 +295,12 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           nameFor(a.owner_id),
         ]
           .filter(Boolean)
-          .join(' · ')}
+          .map((part, i, all) => (
+            <Fragment key={i}>
+              <bdi>{part}</bdi>
+              {i < all.length - 1 ? ' · ' : null}
+            </Fragment>
+          ))}
         chips={
           <>
             <Marks row={a} />
