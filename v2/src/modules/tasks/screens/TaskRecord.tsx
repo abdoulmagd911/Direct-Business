@@ -156,11 +156,15 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // one line of what it does as its title (E, 26 Oct): no longer in the ⋯ menu.
   const follow = { entity: 'task' as const, id: task.id, label: `${task.number} · ${task.title}` };
   const escalatable = task.can_edit && !closed;
-  // Log achievement is offered on a done task only, to whoever may log achievements (the kpis level, as the
-  // Done toast used to check) — and never once the task is already logged (FIX-35: has_achievement gates the
-  // menu, so a second achievement cannot be created for the same task); it opens the same form address the
-  // strip uses (Phase 1).
-  const canLog = ['own', 'full'].includes(me.levels.kpis ?? 'none');
+  // Log achievement is offered on a done task only — and never once the task is already logged (FIX-35:
+  // has_achievement gates the menu, so a second achievement cannot be created for the same task); it opens the same
+  // form address the strip uses (Phase 1). It goes to the task's own people with Own on KPIs — its owner, its creator,
+  // a helper — or to someone with Full on KPIs: the database refuses anyone else's link to the task
+  // (achievement.task_not_yours), so a colleague who merely sees the done task is not offered it (owner 13 Nov).
+  const kpisLevel = me.levels.kpis ?? 'none';
+  const onTask =
+    task.owner_id === me.person.id || task.created_by === me.person.id || task.helpers.includes(me.person.id);
+  const canLog = kpisLevel === 'full' || (kpisLevel === 'own' && onTask);
   // The persistent strip (Phase 1, CUJ 7): a done, nudge-eligible task closed after this build ships shows it
   // until its achievement is logged or it is dismissed; a dismissed one shows its Undo line instead.
   const strip = canLog ? achievementStrip(task) : 'hide';
