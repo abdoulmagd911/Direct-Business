@@ -382,8 +382,8 @@ export function MyDay({ data }: { data: MyDayData }) {
                 <span className="min-w-0 flex-1 basis-full sm:basis-0">
                   {/* the words and their time stay together on one line; the record's chip has the line under them */}
                   <span className="flex items-baseline gap-3" data-reminder-line>
-                    <span className="min-w-0 flex-1 break-words">
-                      <bdi>{r.text}</bdi>
+                    <span className="min-w-0 flex-1">
+                      <bdi className="break-words">{r.text}</bdi>
                     </span>
                     <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
                       {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
