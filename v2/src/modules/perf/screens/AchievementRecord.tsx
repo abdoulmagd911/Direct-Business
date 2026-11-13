@@ -124,10 +124,17 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
     partner: data.partner ?? null,
     side: (a.mou_side ?? '') as 'client' | 'supplier_partner' | '',
   };
+  // What the form opened with, and the version it was read at: what changed is worked out against this, never
+  // against the record as it reads now — a refresh landing while the dialog is open (the page re-reads after the last
+  // save) made the form's older values look like changes, and saving wrote them back over that save.
+  const snapshot = () => ({ ...stored, version: a.version });
+  const [base, setBase] = useState(snapshot);
   const [f, setF] = useState(stored);
   const [reason, setReason] = useState('');
   const openEdit = () => {
-    setF(stored);
+    const s = snapshot();
+    setBase(s);
+    setF(s);
     setReason('');
     setEditing(true);
   };
@@ -135,7 +142,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   // refuses a value on any other category (achievement.no_deal_value), so a move to such a category clears it
   const editCat = data.categories.find((c) => c.code === f.category);
   // a dated achievement keeps a date (achievement.date_required): clearing it is said in place, never sent
-  const dateCleared = stored.happened_on !== '' && f.happened_on === '';
+  const dateCleared = base.happened_on !== '' && f.happened_on === '';
   // V521: an MoU with an organisation names the side it was signed with
   const editNeedsSide = !!editCat?.sets_prospect && !!f.partner;
   // an organisation that could not be read is left as it is — never read as none, which a save would clear
@@ -143,18 +150,18 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   const editWithValue = !!editCat?.has_deal_value;
   const changes = () => {
     const out: Record<string, unknown> = {};
-    if (f.title.trim() !== stored.title) out.title = f.title.trim();
-    if (f.category !== stored.category) out.category = f.category;
-    if (f.happened_on !== stored.happened_on) out.happened_on = f.happened_on || null;
-    if (partnerKnown && (f.partner?.id ?? null) !== a.partner_id) out.partner_id = f.partner?.id ?? null;
-    if (editNeedsSide && f.side !== stored.side) out.side = f.side || null;
+    if (f.title.trim() !== base.title) out.title = f.title.trim();
+    if (f.category !== base.category) out.category = f.category;
+    if (f.happened_on !== base.happened_on) out.happened_on = f.happened_on || null;
+    if (partnerKnown && (f.partner?.id ?? null) !== (base.partner?.id ?? null)) out.partner_id = f.partner?.id ?? null;
+    if (editNeedsSide && f.side !== base.side) out.side = f.side || null;
     if (!editWithValue) {
-      if (stored.deal_value !== '' && f.category !== stored.category) out.deal_value = null;
-    } else if (f.deal_value.trim() !== stored.deal_value)
+      if (base.deal_value !== '' && f.category !== base.category) out.deal_value = null;
+    } else if (f.deal_value.trim() !== base.deal_value)
       // Read through readDealValue, not Number(): Arabic digits pass the check above but Number() reads
       // them as NaN, which becomes null and clears the value.
       out.deal_value = f.deal_value.trim() ? readDealValue(f.deal_value) : null;
-    if (f.notes.trim() !== stored.notes) out.notes = f.notes.trim() || null;
+    if (f.notes.trim() !== base.notes) out.notes = f.notes.trim() || null;
     return out;
   };
   const saveEdit = async () => {
@@ -167,7 +174,8 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
         rpc('achievement_update', {
           p_id: a.id,
           p_values: values as never,
-          p_version: a.version,
+          // the version the form was read at: a field changed since by someone else is a conflict, not overwritten
+          p_version: base.version,
           ...(reason.trim() ? { p_reason: reason.trim() } : {}),
         }) as Promise<{ request_id?: string | null }>,
       {
@@ -562,7 +570,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
           </Field>
           <Field
             label={t('fields.date')}
-            required={stored.happened_on ? tc('common.required') : undefined}
+            required={base.happened_on ? tc('common.required') : undefined}
             error={dateCleared ? t('errors.achievement.date_required') : undefined}
           >
             {(p) => (
