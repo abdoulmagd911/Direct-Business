@@ -23,6 +23,7 @@
 import { headerKey, type SignatureKey } from './signatures';
 import { parseDate, parseIssuedInvoice, parseMoney, tenDigitRef } from './money';
 import { fullyPaidVerdict, isApprovedExpense } from './paid';
+import { whyText, type Why } from './reasons';
 
 export type NormalisedRow = {
   kind: 'invoice' | 'transaction' | 'expense' | 'promo';
@@ -34,8 +35,8 @@ export type NormalisedRow = {
   tax_no: string | null;
   /** Creation date (YYYY-MM-DD), or null when the file carries none yet. */
   record_date: string | null;
-  /** Plain note when the date fell back to payment or generate date. */
-  date_note: string | null;
+  /** Said on the review screen when the date fell back to the payment or generate date (a reason code, worded there). */
+  date_note: Why | null;
   /** Invoice or transaction total, or null when not carried yet. */
   amount: number | null;
   /** Wallet portion split off a sale (0 when none). */
@@ -63,7 +64,9 @@ export type NormalisedRow = {
   direct_ref: string | null;
 };
 
-export type HeldRow = { row_no: number; reason: string };
+/** A row that is not written: its row number, its reason in English (what the database stores) and as a code (`why`,
+ * worded on the review screen in the person's language). A held row read back from storage has no `why`. */
+export type HeldRow = { row_no: number; reason: string; why?: Why };
 
 export type NormaliseResult = {
   records: NormalisedRow[];
@@ -71,7 +74,11 @@ export type NormaliseResult = {
   held: HeldRow[];
   /** A whole-file stop (e.g. promo file with no code given). Null when the file ran. */
   fileProblem: string | null;
+  /** The same stop as a reason code, for the review screen. */
+  fileWhy: Why | null;
 };
+
+const hold = (row_no: number, why: Why): HeldRow => ({ row_no, reason: whyText(why), why });
 
 export type NormaliseOptions = {
   /** Discount-code id for a promo file. Required there, ignored elsewhere. */
@@ -193,7 +200,7 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
     const type = read.get(row, 'Type').toLowerCase();
     const ref = read.get(row, 'Invoice Reference #');
     if (!ref) {
-      held.push({ row_no: rowNo, reason: 'No invoice number on this row, so it cannot be matched' });
+      held.push(hold(rowNo, { code: 'no_invoice_ref' }));
       return;
     }
     if (type === 'invoice' || type === 'credit_note') {
@@ -222,10 +229,7 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
       const group = groupFor(ref, rowNo);
       if (/fully applied/i.test(row.join(' '))) group.receiptFullyApplied = true;
     } else {
-      held.push({
-        row_no: rowNo,
-        reason: `Row type "${read.get(row, 'Type')}" is not invoice, item, or payment receipt`,
-      });
+      held.push(hold(rowNo, { code: 'row_type', values: { type: read.get(row, 'Type') } }));
     }
   });
 
@@ -233,13 +237,13 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
   for (const ref of order) {
     const group = groups.get(ref) as Group;
     if (group.type === 'credit_note') {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: 'Credit note, not a sale: not counted' });
+      held.push(hold(group.rowNos[0] ?? 2, { code: 'credit_note' }));
       continue;
     }
     const itemTotal = group.items.reduce((sum, item) => sum + item.total, 0);
     const total = group.total ?? (group.items.length > 0 ? Math.round(itemTotal * 100) / 100 : null);
     if (total === null) {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: 'No amount on this invoice, so it cannot be counted' });
+      held.push(hold(group.rowNos[0] ?? 2, { code: 'no_amount' }));
       continue;
     }
     let wallet = 0;
@@ -251,7 +255,7 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
     wallet = Math.round(wallet * 100) / 100;
     const topup = wallet > 0 && (serviceItems === 0 || wallet >= total - 0.01);
     if (topup) {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: 'Wallet top-up only, not a sale: not counted' });
+      held.push(hold(group.rowNos[0] ?? 2, { code: 'wallet_only' }));
       continue;
     }
     const statusText = group.status;
@@ -268,12 +272,12 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
       record.record_date = group.created;
     } else if (group.paid) {
       record.record_date = group.paid;
-      record.date_note = 'Creation date missing, payment date used instead';
+      record.date_note = { code: 'date_from_payment' };
     } else if (group.generated) {
       record.record_date = group.generated;
-      record.date_note = 'Creation date missing, generate date used instead';
+      record.date_note = { code: 'date_from_generate' };
     } else {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: 'No date on this invoice, so it cannot be placed' });
+      held.push(hold(group.rowNos[0] ?? 2, { code: 'no_date' }));
       continue;
     }
     if (statusLower === 'waiting for issuing') {
@@ -290,12 +294,12 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
       record.audit_required = verdict.auditRequired;
       records.push(record);
     } else if (verdict.outcome === 'ignored') {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: `Not fully paid (${statusText ?? 'no status'}): not counted` });
+      held.push(hold(group.rowNos[0] ?? 2, { code: 'not_paid', values: { status: statusText ?? '' } }));
     } else {
-      held.push({ row_no: group.rowNos[0] ?? 2, reason: verdict.reason });
+      held.push(hold(group.rowNos[0] ?? 2, verdict.why));
     }
   }
-  return { records, held, fileProblem: null };
+  return { records, held, fileProblem: null, fileWhy: null };
 }
 
 function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult {
@@ -309,19 +313,16 @@ function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult 
     if (blankRow(row)) return;
     const ref = read.get(row, 'Invoice#');
     if (!ref) {
-      held.push({ row_no: rowNo, reason: 'No transaction number on this expense line, so it cannot be matched' });
+      held.push(hold(rowNo, { code: 'expense_no_ref' }));
       return;
     }
     const amount = parseMoney(read.get(row, 'Amount (SAR)'));
     if (amount === null) {
-      held.push({ row_no: rowNo, reason: 'Expense amount cannot be read, so this line is not counted' });
+      held.push(hold(rowNo, { code: 'expense_amount' }));
       return;
     }
     if (!isApprovedExpense(read.get(row, 'Status'))) {
-      held.push({
-        row_no: rowNo,
-        reason: `Expense not approved yet (${read.get(row, 'Status') || 'no status'}), so it is not counted as cost`,
-      });
+      held.push(hold(rowNo, { code: 'expense_not_approved', values: { status: read.get(row, 'Status') } }));
       return;
     }
     let group = groups.get(ref);
@@ -345,7 +346,7 @@ function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult 
     record.direct_ref = ref;
     return record;
   });
-  return { records, held, fileProblem: null };
+  return { records, held, fileProblem: null, fileWhy: null };
 }
 
 function normaliseTransactionList(header: string[], rows: string[][], options: NormaliseOptions): NormaliseResult {
@@ -357,7 +358,7 @@ function normaliseTransactionList(header: string[], rows: string[][], options: N
     if (blankRow(row)) return;
     const ref = read.get(row, 'RECEIPT REF.');
     if (!ref) {
-      held.push({ row_no: rowNo, reason: 'No transaction number on this row, so it cannot be matched' });
+      held.push(hold(rowNo, { code: 'no_transaction_ref' }));
       return;
     }
     const issuing = read.get(row, 'INVOICE ISSUING');
@@ -378,48 +379,42 @@ function normaliseTransactionList(header: string[], rows: string[][], options: N
     record.direct_url = directUrl(options.directUrlTemplate, ref);
     records.push(record);
   });
-  return { records, held, fileProblem: null };
+  return { records, held, fileProblem: null, fileWhy: null };
 }
+
+/** A whole-file stop: nothing is read, nothing is held, and the reason says why. */
+const stop = (why: Why): NormaliseResult => ({ records: [], held: [], fileProblem: whyText(why), fileWhy: why });
 
 function normalisePromo(header: string[], rows: string[][], options: NormaliseOptions): NormaliseResult {
   const read = makeReader(header);
   const held: HeldRow[] = [];
-  if (!options.sourcePromo) {
-    return {
-      records: [],
-      held: [],
-      fileProblem:
-        'This file has no discount-code column, so it cannot be imported until you say which code it belongs to. Nothing was saved.',
-    };
-  }
+  if (!options.sourcePromo) return stop({ code: 'file_no_code' });
   const records: NormalisedRow[] = [];
   rows.forEach((row, i) => {
     const rowNo = i + 2;
     if (blankRow(row)) return;
     const invoiceRef = tenDigitRef(read.get(row, 'Invoice Number'));
     if (invoiceRef === null) {
-      held.push({
-        row_no: rowNo,
-        reason: 'Invoice number is not 10 digits, so it cannot be matched to an invoice',
-      });
+      held.push(hold(rowNo, { code: 'promo_ref' }));
       return;
     }
     const before = parseMoney(read.get(row, 'Before Discount'));
     const discount = parseMoney(read.get(row, 'Discount'));
     const after = parseMoney(read.get(row, 'After Discount'));
     if (before === null || discount === null || after === null) {
-      held.push({ row_no: rowNo, reason: 'Discount amounts cannot be read, so this row is not counted' });
+      held.push(hold(rowNo, { code: 'promo_amounts' }));
       return;
     }
     const verdict = fullyPaidVerdict(read.get(row, 'Payment Status'), null);
     if (verdict.outcome !== 'counts') {
-      held.push({
-        row_no: rowNo,
-        reason:
+      held.push(
+        hold(
+          rowNo,
           verdict.outcome === 'ignored'
-            ? `Not fully paid (${read.get(row, 'Payment Status') || 'no status'}): never counted`
-            : verdict.reason,
-      });
+            ? { code: 'promo_not_paid', values: { status: read.get(row, 'Payment Status') } }
+            : verdict.why,
+        ),
+      );
       return;
     }
     const record = baseRow('promo', [rowNo]);
@@ -436,7 +431,7 @@ function normalisePromo(header: string[], rows: string[][], options: NormaliseOp
     record.direct_url = directUrl(options.directUrlTemplate, invoiceRef);
     records.push(record);
   });
-  return { records, held, fileProblem: null };
+  return { records, held, fileProblem: null, fileWhy: null };
 }
 
 /**
@@ -460,10 +455,6 @@ export function normaliseFile(
     case 'promo_code_invoice_export':
       return normalisePromo(header, rows, options);
     default:
-      return {
-        records: [],
-        held: [],
-        fileProblem: 'This shape has no captured headers yet, so it cannot be read. Nothing was saved.',
-      };
+      return stop({ code: 'file_shape' });
   }
 }
