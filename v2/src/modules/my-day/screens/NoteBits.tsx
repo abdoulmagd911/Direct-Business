@@ -179,8 +179,11 @@ function ChecklistTicks({ note }: { note: MyNote }) {
   );
 }
 
-/** One note in a block: its kind, line, count, organisation and chips; the whole row opens the note. */
-export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
+/**
+ * One note in a block: its kind, line, count, organisation and chips; the whole row opens the note. On the Deferred
+ * list it also says the day it comes back (the date at the end is still the day it happened).
+ */
+export function NoteRow({ note, author, deferred = false }: { note: MyNote; author?: string; deferred?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const captured = note.capture_kind ?? (note.kind === 'sticky' ? 'note' : note.kind);
@@ -218,6 +221,13 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
             {t(`pages.myDay.quick.kinds.${captured}`)}
           </span>
           <VisibilityChip visibility={note.visibility} />
+          {deferred && note.carried_to ? (
+            <span className={chipClass} data-note-carried-to={note.carried_to}>
+              {t('pages.myDay.note.carried', {
+                date: formatDate(`${note.carried_to}T12:00:00+03:00`, locale, { dateStyle: 'medium' }),
+              })}
+            </span>
+          ) : null}
           {org ? (
             <span className={chipClass}>
               <bdi>{tradeName(org, locale)}</bdi>

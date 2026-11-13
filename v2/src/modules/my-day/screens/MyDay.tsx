@@ -499,7 +499,7 @@ export function MyDay({ data }: { data: MyDayData }) {
           <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.deferred')}</h2>
           <ul className="divide-y divide-border" data-block-deferred-rows>
             {answer.deferred!.map((n) => (
-              <NoteRow key={n.id} note={n} author={scope === 'me' ? undefined : authorOf(n.author_id)} />
+              <NoteRow key={n.id} note={n} author={scope === 'me' ? undefined : authorOf(n.author_id)} deferred />
             ))}
           </ul>
         </section>
