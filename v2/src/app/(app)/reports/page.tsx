@@ -13,8 +13,12 @@ export const generateMetadata = pageTitle('nav.reports');
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 /** The achievements door answers at most 200 rows a call. */
 const PAGE = 200;
-/** How many rows the summary reads at most — far above a month's; past it, the capped line says so. */
-const READ_CAP = 2000;
+/**
+ * How many rows the summary reads at most — far above a month's (one read); past it, the capped line says so. Kept at
+ * five reads: every read of the door re-checks who may see each of the department's achievements (about 2 ms a row
+ * today, measured 13 Nov), so "Any month" over a long history must not read on and on.
+ */
+const READ_CAP = 1000;
 
 /**
  * Every achievement the summary counts, read 200 at a time until the door says there are no more (up to READ_CAP):
