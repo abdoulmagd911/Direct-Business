@@ -173,7 +173,7 @@ export function ReminderAlert() {
           </span>
           <span className="hidden shrink-0 font-semibold sm:inline">{t('pages.myDay.alert.title')}</span>
           <span className="line-clamp-2 min-w-0 break-words sm:line-clamp-1" data-alert-text>
-            {first.text}
+            <bdi>{first.text}</bdi>
           </span>
           {shown.length > 1 ? (
             <span className="shrink-0 text-muted" data-alert-more>

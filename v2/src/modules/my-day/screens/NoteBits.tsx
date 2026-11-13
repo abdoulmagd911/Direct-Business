@@ -163,7 +163,9 @@ function ChecklistTicks({ note }: { note: MyNote }) {
             onCheckedChange={(v) => (v ? void tick(x.i) : undefined)}
             label={x.text}
           />
-          <span className="min-w-0 break-words text-sm">{x.text}</span>
+          <span className="min-w-0 break-words text-sm">
+            <bdi>{x.text}</bdi>
+          </span>
         </li>
       ))}
       {more > 0 ? (
@@ -202,7 +204,7 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
             className="block min-w-0 break-words font-medium hover:underline"
             data-note-open
           >
-            {title}
+            <bdi>{title}</bdi>
           </Link>
           {count && count.total ? (
             <span className="font-data text-xs text-muted" data-note-count>
