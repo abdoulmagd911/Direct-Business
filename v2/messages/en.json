@@ -311,6 +311,7 @@
         "organisation": "Organisation",
         "meetingOn": "Meeting day",
         "happenedOn": "Happened on",
+        "pickDay": "Pick a day, like 13 Nov 2026",
         "by": "by {name}",
         "draft": "Not logged",
         "logged": "Logged {date}",
