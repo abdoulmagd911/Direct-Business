@@ -355,28 +355,36 @@ export function MyProfile({
           ) : null
         }
       >
+        {/* On a phone the two dates step aside and "Last seen …" goes under the device's name, so the name, the
+            date and Sign out each stay whole on one screen — the four columns squeezed every date onto three lines. */}
         <table className="w-full text-sm">
           <thead className="text-start text-xs text-muted">
             <tr>
               <th className="py-2 text-start font-medium">{t('profile.devices.label')}</th>
-              <th className="py-2 text-start font-medium">{t('profile.devices.signedIn')}</th>
-              <th className="py-2 text-start font-medium">{t('profile.devices.lastSeen')}</th>
+              <th className="hidden py-2 pe-3 text-start font-medium sm:table-cell">{t('profile.devices.signedIn')}</th>
+              <th className="hidden py-2 pe-3 text-start font-medium sm:table-cell">{t('profile.devices.lastSeen')}</th>
               <th className="py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {deviceRows.map((d) => (
               <tr key={d.id} data-device data-this-device={d.this_device || undefined}>
-                <td className="py-2.5">
-                  <span className="flex items-center gap-2">
+                <td className="py-2.5 pe-3">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     {d.device_label ?? t('profile.devices.unknown')}
                     {d.this_device ? <StatusChip tone="info">{t('profile.devices.thisDevice')}</StatusChip> : null}
                   </span>
+                  <span className="mt-0.5 block text-xs text-muted sm:hidden" data-device-last-seen>
+                    {t('profile.devices.lastSeen')}{' '}
+                    <span className="font-data whitespace-nowrap">
+                      {formatDate(new Date(d.last_seen_at), locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                  </span>
                 </td>
-                <td className="py-2.5 font-data text-muted">
+                <td className="hidden py-2.5 pe-3 font-data whitespace-nowrap text-muted sm:table-cell">
                   {formatDate(new Date(d.signed_in_at), locale, { dateStyle: 'medium' })}
                 </td>
-                <td className="py-2.5 font-data text-muted">
+                <td className="hidden py-2.5 pe-3 font-data whitespace-nowrap text-muted sm:table-cell">
                   {formatDate(new Date(d.last_seen_at), locale, { dateStyle: 'medium', timeStyle: 'short' })}
                 </td>
                 <td className="py-2.5 text-end">
@@ -434,14 +442,21 @@ export function PasswordSection() {
   const save = async () => {
     setBusy(true);
     setError(null);
-    const r = await changePassword(current, password, again);
-    if (r.ok) {
-      toast.done(t('profile.password.changed'));
-      setCurrent('');
-      setPassword('');
-      setAgain('');
-    } else setError(r.error);
-    setBusy(false);
+    try {
+      const r = await changePassword(current, password, again);
+      if (r.ok) {
+        toast.done(t('profile.password.changed'));
+        setCurrent('');
+        setPassword('');
+        setAgain('');
+      } else setError(r.error);
+    } catch {
+      // the server action itself failed (the network dropped, the server erred): said in words, as the door says it —
+      // never a button that spins for ever
+      setError('unavailable');
+    } finally {
+      setBusy(false);
+    }
   };
   const onCurrent = error === 'wrong_current' || error === 'not_signed_in';
   // Live validation (F209, D36(e)): the mismatch is said as it is typed, in the field's error slot, not only after

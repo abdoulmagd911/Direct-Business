@@ -57,7 +57,10 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
   const banner = error ? t(`sign_in.password.error.${error}`) : (shownRefusal ?? null);
 
   return (
-    <form className="flex flex-col gap-5" onSubmit={submit} noValidate data-step="password">
+    // method="post": a sign-in pressed before the page's script has loaded is the browser's own submit — a POST keeps
+    // the e-mail and password out of the address (a GET wrote them into the address bar, the history and the server's
+    // request log). The page answers it by drawing the door again, and the next press signs in.
+    <form method="post" className="flex flex-col gap-5" onSubmit={submit} noValidate data-step="password">
       {banner ? (
         <div role="alert" className="door-alert" data-door-alert>
           {banner}
