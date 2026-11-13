@@ -73,8 +73,14 @@ export function FinanceLedgerSection({
     ...(kind ? { kind: kind as LedgerFilter['kind'] } : {}),
     ...(code ? { code } : {}),
   };
+  // Apply, Clear and All keep the period the person chose: MTD/QTD/YTD go by name (two dates in the address are a
+  // custom period — F171 — so writing them turned "Year to date" into "Custom" and froze its end at today).
   const go = (f: LedgerFilter, v = '') => {
-    const q = new URLSearchParams({ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(f) });
+    const q = new URLSearchParams({
+      period: ask.key,
+      ...(ask.key === 'custom' ? { from: ask.from, to: ask.to } : {}),
+      ...ledgerFilterQuery(f),
+    });
     if (v) q.set('view', v);
     router.push(`/finance?${q.toString()}`);
   };
