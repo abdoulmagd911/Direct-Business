@@ -2978,7 +2978,9 @@
       "askChip": "سؤال إلى {name}",
       "removedQuestion": "تم حذف السؤال",
       "removeQuestionTitle": "حذف السؤال؟"
-    }
+    },
+    "titleMore": "المزيد",
+    "titleLess": "عرض أقل"
   },
   "follow": {
     "follow": "مراقبة",
