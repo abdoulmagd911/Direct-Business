@@ -26,8 +26,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       </Page>
     );
   // /tasks/new (the + menu's Task) shows the loading state at once while the list is read, so a phone never sits on a
-  // blank page (the supervisor's sweep of 15 Oct, V284); a tap on Tasks gets the list's loading frame instead
-  // ((list)/loading.tsx, owner 13 Nov), fetched ahead with the link
+  // blank page (the supervisor's sweep of 15 Oct, V284); every other visit reads as before
   if (params.new === '1')
     return (
       <Suspense

@@ -334,7 +334,7 @@ export const sabotages = [
     expect: "a manager's Team view shows the team's load",
     edits: [
       {
-        file: 'src/app/(app)/tasks/(list)/page.tsx',
+        file: 'src/app/(app)/tasks/page.tsx',
         find: 'showsTeamLoad(filters.scope, me.capabilities)',
         replace: 'showsTeamLoad(filters.scope, [])',
       },

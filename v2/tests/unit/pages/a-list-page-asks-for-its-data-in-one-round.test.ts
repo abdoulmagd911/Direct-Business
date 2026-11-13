@@ -39,7 +39,7 @@ vi.mock('@/ui/PageHeader', () => ({ PageHeader: nothing }));
 vi.mock('@/ui/shell/Page', () => ({ Page: nothing }));
 
 const { default: MyDayPage } = await import('@/app/(app)/my-day/page');
-const { default: TasksPage } = await import('@/app/(app)/tasks/(list)/page');
+const { default: TasksPage } = await import('@/app/(app)/tasks/page');
 const { PartnersListPage } = await import('@/modules/partners/screens/list-page');
 
 /** Runs the page until no new read starts, then answers them all; the reads that had started by then. */
