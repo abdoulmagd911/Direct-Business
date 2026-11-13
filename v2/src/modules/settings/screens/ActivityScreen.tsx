@@ -18,7 +18,7 @@ import { Field } from '@/ui/Field';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
-import { makeValueWords, plainWords, settingLabel, settingValueWords } from '@/ui/record/diff-words';
+import { fieldLabel, makeValueWords, plainWords, settingLabel, settingValueWords } from '@/ui/record/diff-words';
 import type { HistoryRow } from '@/ui/record/history';
 import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
@@ -223,7 +223,23 @@ export function ActivityScreen({
       },
     );
   };
-  const settingRows = rows.filter((r) => r.changes.some((c) => c.entity === 'setting'));
+  // The Settings log is every request that touched a Settings page (api.settings_log — V210): a person, a team, a list
+  // entry, access — not only a setting's value. Only those survived here, so the log said "No changes yet" over a
+  // month of people and list changes. Its Who and Since apply here too: the log's read takes neither.
+  const riyadhDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+  const settingRows = rows.filter(
+    (r) =>
+      (!filters.actor || r.actor_id === filters.actor) &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(filters.since) || riyadhDay(r.at) >= filters.since),
+  );
+  // a change that is not a setting's value is named by what changed: "Person changed: Left on", "Allowed email added"
+  const entityLabels = Object.fromEntries(entities.map((e) => [e.key, e.label]));
+  const changeTitle = (r: HistoryRow) => {
+    const c = r.changes[0];
+    if (!c || !t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
+    const what = entityLabels[c.entity ?? ''] ?? plainWords(c.entity ?? '');
+    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map((f) => fieldLabel(t, f)).join(', ') });
+  };
   // Revert writes the setting again (api.setting_set needs Full on the setting's page — admins only, V97): offered to
   // whoever can, never to a head or manager who reads the log and would be refused; and not on a change already undone
   // (its value no longer stands — Revert would write the value that stands now).
@@ -333,17 +349,19 @@ export function ActivityScreen({
                     key={r.request_id}
                     className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
                   >
-                    <span className="flex flex-col gap-0.5">
-                      <span className="font-medium">
-                        {r.label_key && t.has(`activity.labels.${r.label_key}`)
-                          ? t(`activity.labels.${r.label_key}`)
-                          : t('activity.actions.request')}
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      {/* a setting by its name and its value before → after; any other change by what changed */}
+                      <span className="font-medium [overflow-wrap:anywhere]" data-setting-log-title>
                         {entry ? (
-                          <span className="ms-2 font-data text-xs text-muted">
+                          <>
                             {entry.name}
-                            {entry.valueText ? `: ${entry.valueText}` : ''}
-                          </span>
-                        ) : null}
+                            {entry.valueText ? (
+                              <span className="ms-2 font-data text-xs font-normal text-muted">{entry.valueText}</span>
+                            ) : null}
+                          </>
+                        ) : (
+                          changeTitle(r)
+                        )}
                       </span>
                       <span className="text-xs text-muted">
                         {r.actor_id && people[r.actor_id]
