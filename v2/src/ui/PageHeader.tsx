@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
 
 /**
  * Page header: breadcrumb, H1, one primary button, up to two secondary; the rest go to a ⋯ menu.
- * No page titles in the top bar (spec §2.5).
+ * No page titles in the top bar (spec §2.5). The trail is named in the language on screen (`data-crumbs` marks it).
  */
 export function PageHeader({
   crumbs,
@@ -20,11 +21,12 @@ export function PageHeader({
   actions?: ReactNode;
   className?: string;
 }) {
+  const t = useTranslations('common');
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-4', className)}>
       <div className="flex min-w-0 flex-col gap-1.5">
         {crumbs?.length ? (
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted">
+          <nav aria-label={t('breadcrumb')} className="flex items-center gap-2 text-sm text-muted" data-crumbs>
             {crumbs.map((c, i) => (
               <span key={i} className="flex items-center gap-2">
                 {i > 0 ? <span aria-hidden="true">/</span> : null}

@@ -210,7 +210,8 @@
     "by": "by",
     "on": "on",
     "of": "of",
-    "undoing": "Undoing…"
+    "undoing": "Undoing…",
+    "breadcrumb": "Breadcrumb"
   },
   "datePicker": {
     "thisMonth": "This month",
@@ -1464,6 +1465,11 @@
       "evidenceCount": "{count, plural, one {# evidence item} other {# evidence items}}",
       "kinds": {
         "evidence": "Evidence"
+      },
+      "size": {
+        "bytes": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
       }
     },
     "comments": {

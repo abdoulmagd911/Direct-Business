@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { cn } from '../cn';
 import { ClampedTitle } from './ClampedTitle';
@@ -62,6 +63,7 @@ export function RecordPage({
   children: ReactNode;
   words: { tabs: string; notMeasured: string };
 }) {
+  const say = useTranslations('common');
   const tabDefs: TabDef[] = tabs.map((t) => ({ value: t.key, label: t.label, count: t.count, href: tabHref(t.key) }));
   return (
     <PageFrame className="!gap-0">
@@ -75,7 +77,11 @@ export function RecordPage({
             <ArrowLeft className="size-4 flip-rtl" aria-hidden="true" />
           </Link>
           {crumbs?.length ? (
-            <nav aria-label="Breadcrumb" className={cn('flex min-w-0 items-center gap-2', crumbsClass)}>
+            <nav
+              aria-label={say('breadcrumb')}
+              className={cn('flex min-w-0 items-center gap-2', crumbsClass)}
+              data-crumbs
+            >
               {crumbs.map((c, i) => (
                 <span key={i} className="flex min-w-0 items-center gap-2">
                   {i > 0 ? <span aria-hidden="true">/</span> : null}

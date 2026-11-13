@@ -210,7 +210,8 @@
     "of": "من",
     "undoing": "جارٍ التراجع…",
     "datePlaceholder": "يوم شهر سنة",
-    "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة"
+    "dateTimePlaceholder": "يوم شهر سنة، ساعة:دقيقة",
+    "breadcrumb": "مسار التنقل"
   },
   "datePicker": {
     "thisMonth": "هذا الشهر",
@@ -2934,6 +2935,11 @@
       "evidenceCount": "{count, plural, one {عنصر إثبات واحد} two {عنصرا إثبات} few {# عناصر إثبات} many {# عنصرًا إثبات} other {# عنصر إثبات}}",
       "kinds": {
         "evidence": "دليل"
+      },
+      "size": {
+        "bytes": "{n} بايت",
+        "kb": "{n} كيلوبايت",
+        "mb": "{n} ميغابايت"
       }
     },
     "comments": {
