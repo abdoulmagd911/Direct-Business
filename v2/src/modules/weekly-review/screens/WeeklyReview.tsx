@@ -302,11 +302,17 @@ function ItemRow({
         className="flex min-h-14 items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <span className="min-w-0 flex-1">
-          <span className="block break-words">{item.title || t('pages.myDay.note.untitled')}</span>
+          <span className="block break-words">
+            <bdi>{item.title || t('pages.myDay.note.untitled')}</bdi>
+          </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             {item.kind === 'note' ? <StatusChip tone="neutral">{t('pages.weeklyReview.note')}</StatusChip> : null}
             {logged ? <StatusChip tone="success">{t('pages.weeklyReview.done.alreadyLogged')}</StatusChip> : null}
-            {partner ? <StatusChip tone="neutral">{partner}</StatusChip> : null}
+            {partner ? (
+              <StatusChip tone="neutral">
+                <bdi>{partner}</bdi>
+              </StatusChip>
+            ) : null}
             {item.times > 0 ? (
               <StatusChip tone={section === 'slipped' && item.times > 1 ? 'warning' : 'neutral'}>
                 <span data-review-times={item.times}>{t('pages.weeklyReview.carried', { count: item.times })}</span>
@@ -364,9 +370,15 @@ function NudgeItemRow({ item, task, categories }: { item: ReviewItem; task: Nudg
         className="flex min-h-14 items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <span className="min-w-0 flex-1">
-          <span className="block break-words">{item.title || t('pages.myDay.note.untitled')}</span>
+          <span className="block break-words">
+            <bdi>{item.title || t('pages.myDay.note.untitled')}</bdi>
+          </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            {partner ? <StatusChip tone="neutral">{partner}</StatusChip> : null}
+            {partner ? (
+              <StatusChip tone="neutral">
+                <bdi>{partner}</bdi>
+              </StatusChip>
+            ) : null}
             <span className="font-data text-xs whitespace-nowrap text-muted">
               {formatDate(item.day, locale, { dateStyle: 'medium' })}
             </span>
@@ -550,11 +562,18 @@ function NotesSection({ list }: { list: ReviewList<ReviewNote> }) {
                   <Lock className="size-4 shrink-0 text-muted" aria-label={t('pages.weeklyReview.private')} />
                 ) : null}
                 <span className={`min-w-0 flex-1 break-words ${n.done ? 'text-muted line-through' : ''}`}>
-                  {n.title || t('pages.myDay.note.untitled')}
+                  <bdi>{n.title || t('pages.myDay.note.untitled')}</bdi>
                 </span>
                 {n.idea ? <StatusChip tone="neutral">{t('pages.weeklyReview.idea')}</StatusChip> : null}
+                {/* the day of this week it was written: its weekday alone (asked as { weekday } only, formatDate wrote
+                    the whole date beside it, "Fri, 13 Nov 2026", which pushed the title onto two lines on a phone) */}
                 <span className="font-data text-xs whitespace-nowrap text-muted">
-                  {formatDate(n.day, locale, { weekday: 'short' })}
+                  {formatDate(`${n.day}T12:00:00+03:00`, locale, {
+                    weekday: 'short',
+                    day: undefined,
+                    month: undefined,
+                    year: undefined,
+                  })}
                 </span>
               </Link>
             </li>

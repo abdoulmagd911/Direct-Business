@@ -218,7 +218,9 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
     <span className="flex min-w-0 flex-col">
       {/* the words and their time stay together on one line; the record's chip has the line under them */}
       <span className="flex items-baseline gap-3" data-reminder-line>
-        <span className="min-w-0 flex-1 break-words">{title}</span>
+        <span className="min-w-0 flex-1 break-words">
+          <bdi>{title}</bdi>
+        </span>
         <span className={`shrink-0 font-data text-xs whitespace-nowrap ${overdue ? 'text-danger' : 'text-muted'}`}>
           {overdue ? formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' }) : r.time}
         </span>
@@ -304,13 +306,15 @@ function TodayRow({
           className="block break-words after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-focus"
           data-today-open
         >
-          {task.title}
+          <bdi>{task.title}</bdi>
         </Link>
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           {/* the client opens the client, above the row's own link (the read names it only to a reader who may see it) */}
           {task.partner_id && task.partner_name ? (
             <Link href={`/clients/${task.partner_id}`} className="relative z-10" data-today-client>
-              <StatusChip tone="neutral">{task.partner_name}</StatusChip>
+              <StatusChip tone="neutral">
+                <bdi>{task.partner_name}</bdi>
+              </StatusChip>
             </Link>
           ) : null}
           {/* a starred task may have no due day (V661): then no day is shown */}

@@ -167,7 +167,7 @@ export function MyDay({ data }: { data: MyDayData }) {
                 >
                   <span className="min-w-0 flex-1">
                     <Link href={`/tasks/${r.number}`} className="break-words text-base font-medium hover:underline">
-                      {r.title}
+                      <bdi>{r.title}</bdi>
                     </Link>
                     <span className="block text-sm text-muted">
                       {r.number}
@@ -213,10 +213,12 @@ export function MyDay({ data }: { data: MyDayData }) {
                     <span className="min-w-0 flex-1">
                       {href ? (
                         <Link href={href} className="break-words text-base font-medium hover:underline">
-                          {a.body}
+                          <bdi>{a.body}</bdi>
                         </Link>
                       ) : (
-                        <span className="break-words text-base font-medium">{a.body}</span>
+                        <span className="break-words text-base font-medium">
+                          <bdi>{a.body}</bdi>
+                        </span>
                       )}
                       <span className="block text-sm text-muted">
                         {[
@@ -263,7 +265,7 @@ export function MyDay({ data }: { data: MyDayData }) {
                 >
                   <span className="min-w-0 flex-1">
                     <Link href={`/tasks/${r.number}`} className="break-words text-base font-medium hover:underline">
-                      {r.title}
+                      <bdi>{r.title}</bdi>
                     </Link>
                     <span className="block text-sm text-muted">
                       {r.number}
@@ -300,10 +302,12 @@ export function MyDay({ data }: { data: MyDayData }) {
                     <span className="min-w-0 flex-1">
                       {href ? (
                         <Link href={href} className="break-words text-base font-medium hover:underline">
-                          {a.body}
+                          <bdi>{a.body}</bdi>
                         </Link>
                       ) : (
-                        <span className="break-words text-base font-medium">{a.body}</span>
+                        <span className="break-words text-base font-medium">
+                          <bdi>{a.body}</bdi>
+                        </span>
                       )}
                       <span className="block text-sm text-muted">
                         {[
@@ -350,7 +354,7 @@ export function MyDay({ data }: { data: MyDayData }) {
                 >
                   <span className="min-w-0 flex-1">
                     <Link href={`/tasks/${task.number}`} className="break-words text-base font-medium hover:underline">
-                      {task.title}
+                      <bdi>{task.title}</bdi>
                     </Link>
                     <span className="block text-sm text-muted">{task.number}</span>
                   </span>
@@ -378,7 +382,9 @@ export function MyDay({ data }: { data: MyDayData }) {
                 <span className="min-w-0 flex-1 basis-full sm:basis-0">
                   {/* the words and their time stay together on one line; the record's chip has the line under them */}
                   <span className="flex items-baseline gap-3" data-reminder-line>
-                    <span className="min-w-0 flex-1 break-words">{r.text}</span>
+                    <span className="min-w-0 flex-1 break-words">
+                      <bdi>{r.text}</bdi>
+                    </span>
                     <span className="shrink-0 font-data text-xs whitespace-nowrap text-muted">
                       {formatDate(r.remind_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>

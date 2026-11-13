@@ -173,7 +173,7 @@ export function WrapUpDialog({
                           className="min-w-0 flex-1 break-words hover:underline"
                           data-wrap-turn
                         >
-                          {i.title || t('pages.myDay.note.untitled')}
+                          <bdi>{i.title || t('pages.myDay.note.untitled')}</bdi>
                         </Link>
                       </div>
                       {/* Tomorrow is the wider column: its day is written under it and stays on one line at 375 px */}

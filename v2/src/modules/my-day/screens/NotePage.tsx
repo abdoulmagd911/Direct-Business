@@ -218,7 +218,9 @@ export function NotePage({
         title={
           <span className="flex min-w-0 items-center gap-3">
             <Icon className="size-6 shrink-0 text-muted" aria-hidden="true" />
-            <span className="min-w-0 truncate">{title}</span>
+            <span className="min-w-0 truncate">
+              <bdi>{title}</bdi>
+            </span>
           </span>
         }
         meta={
