@@ -13,7 +13,7 @@ import { StatusChip } from '../Chip';
 import { PersonChip } from '../PersonChip';
 import type { AvatarPerson } from '../Avatar';
 import { ShowAll } from './ShowAll';
-import { fieldLabel, keyWord, makeValueWords } from './diff-words';
+import { fieldLabel, keyWord, listSeparator, makeValueWords } from './diff-words';
 
 import { groupPreferenceRuns, type HistoryRow } from './history';
 export type { HistoryRow, RecordChange } from './history';
@@ -122,7 +122,7 @@ export function ActivityTimeline({
           ? t(`entity.${c.entity.split('.')[0]}`)
           : (c.entity ?? ''));
     if (!t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
-    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabelOf).join(', ') });
+    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map(fieldLabelOf).join(listSeparator(locale)) });
   };
 
   const undo = (r: HistoryRow) => {

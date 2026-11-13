@@ -15,11 +15,13 @@ export const sabotages = [
       {
         // L17: the date rendering moved out of ActivityTimeline into the shared diff-words renderer (L15
         // Group C); the plant follows it there. The find carries the comment line because the same
-        // `const when` line also appears in the number branch below.
+        // `const when` line also appears in the number branch below. The 13 Nov fix round made the same repair on
+        // its own, anchored on the string branch's next lines (the person's id by name); both anchors are kept, so
+        // the plant can only ever hit the string branch's date line.
         file: 'src/ui/record/diff-words.ts',
-        find: "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when = formatStoredDate(v, locale);",
+        find: "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when = formatStoredDate(v, locale);\n      if (when) return when;\n      if (UUID_RE.test(v))",
         replace:
-          "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when: string | null = null;",
+          "      // A stored day or moment is written the one way the app writes a date, then a person's id by name.\n      const when: string | null = null;\n      if (when) return when;\n      if (UUID_RE.test(v))",
       },
     ],
   },
