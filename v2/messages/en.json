@@ -912,9 +912,6 @@
         "open": "Need help",
         "what": "Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.",
         "title": "Need help {number}",
-        "to": "Tell",
-        "to_required": "Pick who to tell",
-        "to_yourself": "Pick someone other than yourself",
         "note": "What do they need to know?",
         "note_required": "Write what they need to know",
         "notify": "Your manager {name} will be told",
@@ -1083,22 +1080,6 @@
         "next": "Next month",
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
-      },
-      "comments": {
-        "empty": "No comments yet",
-        "readOnly": "You can read the comments on this task. People who work on it can write them.",
-        "write": "Write a comment",
-        "add": "Add comment",
-        "edit": "Edit your comment",
-        "edited": "edited",
-        "added": "Comment added",
-        "saved": "Comment saved",
-        "removed": "Comment deleted",
-        "removeTitle": "Delete the comment by {name}?",
-        "bodyRequired": "Write something first",
-        "tooLong": "At most {max} characters",
-        "delete": "Delete",
-        "editAction": "Edit"
       },
       "delegate": {
         "open": "Delegate",
