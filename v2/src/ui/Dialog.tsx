@@ -1,6 +1,7 @@
 'use client';
 import * as RD from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { cn } from './cn';
 import { IconButton } from './IconButton';
@@ -10,6 +11,10 @@ import { IconButton } from './IconButton';
  * put the form (react-hook-form's useForm) inside `children`, which only mounts while open — closing
  * unmounts it, so nothing leaks between dialogs (§0 "each dialog owns its own form state").
  * `dirty` keeps Escape and the backdrop from closing a half-filled form; the Cancel button always can.
+ * The X is named in the language on screen (the catalog's Close) unless the caller names it.
+ * Its height follows the visible screen (`dvh`, not `vh`: a phone's address bar takes from the visible height, so a
+ * `vh` box ran under it) and gives way to the on-screen keyboard (`--kb`, set by the shell): the body scrolls and the
+ * footer's buttons stay above the keyboard.
  */
 export function Dialog({
   open,
@@ -20,7 +25,7 @@ export function Dialog({
   footer,
   dirty = false,
   size = 'md',
-  closeLabel = 'Close',
+  closeLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +38,7 @@ export function Dialog({
   size?: 'sm' | 'md' | 'lg';
   closeLabel?: string;
 }) {
+  const t = useTranslations('common');
   const descId = useId();
   const opener = useRef<Element | null>(null);
   useEffect(() => {
@@ -56,14 +62,14 @@ export function Dialog({
             if (opener.current instanceof HTMLElement) opener.current.focus();
           }}
           className={cn(
-            'fixed inset-x-4 top-[10vh] z-50 mx-auto flex max-h-[80vh] w-auto flex-col overflow-hidden rounded-lg border border-border bg-raised text-text shadow-2 focus:outline-none',
+            'fixed inset-x-4 top-[10dvh] z-50 mx-auto flex max-h-[calc(80dvh-var(--kb,0px))] w-auto flex-col overflow-hidden rounded-lg border border-border bg-raised text-text shadow-2 focus:outline-none',
             width,
           )}
         >
           <header className="flex items-center gap-3 border-b border-border px-5 py-3.5">
             <RD.Title className="min-w-0 flex-1 font-display text-lg font-semibold">{title}</RD.Title>
             <RD.Close asChild>
-              <IconButton label={closeLabel} icon={<X />} size="sm" />
+              <IconButton label={closeLabel ?? t('close')} icon={<X />} size="sm" />
             </RD.Close>
           </header>
           {description ? (
