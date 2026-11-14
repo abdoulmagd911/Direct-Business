@@ -282,7 +282,7 @@ export function LogAchievement({
             describedBy={p['aria-describedby']}
             invalid={p['aria-invalid']}
             value={day || undefined}
-            min="2025-01-01"
+            min="2024-01-01"
             max={riyadhToday()}
             onChange={(v) => void onDay(v ?? '')}
           />

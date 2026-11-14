@@ -110,7 +110,7 @@
     "profile": "My profile"
   },
   "top": {
-    "search": "Search clients, tasks, invoices",
+    "search": "Search partners, tasks, invoices",
     "searchLabel": "Search",
     "create": "Create",
     "notifications": "Notifications",
@@ -637,7 +637,7 @@
           "category_not_in_plan": "This category is not in the {detail} plan",
           "move_earlier_only": "Only to an earlier month",
           "owner_required": "An owner is needed",
-          "before_2025": "Dates start 1 Jan 2025",
+          "before_2024": "Dates start 1 Jan 2024",
           "date_required": "A dated achievement keeps a date",
           "title_required": "Say what was achieved",
           "ref_taken": "That reference is already here",
@@ -788,7 +788,7 @@
       },
       "dueToday": "Due today",
       "dueOn": "Due {date}",
-      "lookups": "Names of people, clients and projects",
+      "lookups": "Names of people, partners and projects",
       "more": "Showing the first {shown} of {total}",
       "emptyFiltered": "No tasks match these filters",
       "empty": {
@@ -854,7 +854,7 @@
         "due": "Due",
         "start": "Start",
         "status": "Status",
-        "client": "Client",
+        "client": "Partner",
         "project": "Project",
         "type": "Type",
         "raised": "Raised",
@@ -911,7 +911,7 @@
         "open": "{count, plural, one {# open task} other {# open tasks}}",
         "overdue": "{count} overdue",
         "items": "{count, plural, one {# action item} other {# action items}}",
-        "clients": "{count, plural, one {# client} other {# clients}}",
+        "clients": "{count, plural, one {# partner} other {# partners}}",
         "prospects": "{count, plural, one {# prospect} other {# prospects}}"
       },
       "escalate": {
@@ -969,13 +969,13 @@
           "delegate_note_required": "Write what they need to know",
           "delegate_to_yourself": "Pick someone other than yourself",
           "client_work_needs_partner": "Client work needs a client or a project",
-          "internal_has_no_partner": "Internal work has no client",
+          "internal_has_no_partner": "Internal work has no partner",
           "due_before_start": "The due day is before the start",
           "team_required": "The task needs a team",
           "team_inactive": "That team is retired",
-          "partner_not_projects": "The client is not the project's client",
+          "partner_not_projects": "The partner is not the project's partner",
           "work_type_not_projects": "The work type is the project's",
-          "contact_not_partners": "That contact is not the client's",
+          "contact_not_partners": "That contact is not the partner's",
           "notes_too_long": "The notes are too long",
           "ref_value_required": "The reference needs a value",
           "ref_taken": "That reference is already on the task",
@@ -1025,7 +1025,7 @@
           "title": "Title",
           "happened_on": "Date",
           "kind": "Status",
-          "organisation": "Client",
+          "organisation": "Partner",
           "notes": "Notes",
           "person": "Owner"
         },
@@ -1044,14 +1044,14 @@
           "date_unreadable": "The date cannot be read",
           "date_ambiguous": "The date could be two days",
           "date_in_future": "The date is after today",
-          "date_before_start": "Before 1 January 2025, where past work starts",
+          "date_before_start": "Before 1 January 2024, where past work starts",
           "kind_missing": "No status",
           "kind_unknown": "Unknown status",
           "value_unreadable": "The value is not an amount",
           "value_not_allowed": "This category has no deal value",
-          "organisation_unknown": "Unknown client",
-          "organisation_ambiguous": "More than one client has this name",
-          "organisation_checking": "Checking the client",
+          "organisation_unknown": "Unknown partner",
+          "organisation_ambiguous": "More than one partner has this name",
+          "organisation_checking": "Checking the partner",
           "person_checking": "Checking the name",
           "owner_needed": "Pick an owner",
           "repeated": "The same row twice",
@@ -1287,7 +1287,7 @@
   "status": {
     "done": "Done",
     "inProgress": "In progress",
-    "waiting": "Waiting on client",
+    "waiting": "Waiting on partner",
     "overdue": "Overdue",
     "blocked": "Blocked",
     "draft": "Draft",
@@ -1316,7 +1316,7 @@
       "identify": "Change client identifiers and decide matches",
       "merge": "Merge organisations",
       "assign": "Set the Client side's status, owner and priority",
-      "assign_own": "Bulk-assign clients I own"
+      "assign_own": "Bulk-assign partners I own"
     },
     "suppliers_partners": {
       "identify": "Change identifiers and decide matches",
@@ -1354,8 +1354,8 @@
     "finance": {
       "cost_estimate": "Show the pass-through lines as a cost estimate while no expense is approved",
       "collection_due_days": "Days after issue an invoice with no due date of its own is due",
-      "quiet_client_days": "Days without a fully paid invoice before a client counts as quiet",
-      "revenue_definition": "What Commercial revenue counts: its basis, services, client types and whether commissions count",
+      "quiet_client_days": "Days without a fully paid invoice before a partner counts as quiet",
+      "revenue_definition": "What Commercial revenue counts: its basis, services, partner types and whether commissions count",
       "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
     },
     "auth": {
@@ -1395,7 +1395,7 @@
       "contract_renewal_task": "Make the renewal task at a contract's first reminder",
       "logo_fallback": "An organisation with no logo shows",
       "stale_after_days": "Days without activity before an organisation is stale",
-      "active_client_days": "Days a client counts as active after a counted invoice"
+      "active_client_days": "Days a partner counts as active after a counted invoice"
     },
     "core": {
       "file_download_display_name": "Downloads use the file's display name",
@@ -1801,16 +1801,16 @@
     "fieldsCount": "{count, plural, one {# field} other {# fields}}",
     "reportsTo": "reports to {name}",
     "type": {
-      "call": "A phone call with the client.",
+      "call": "A phone call with the partner.",
       "follow_up_call": "A phone call following up an earlier contact.",
-      "visit": "A visit to the client's office.",
-      "site_visit": "A visit to a site or venue, not the client's office.",
-      "meeting": "A meeting with the client.",
+      "visit": "A visit to the partner's office.",
+      "site_visit": "A visit to a site or venue, not the partner's office.",
+      "meeting": "A meeting with the partner.",
       "demo": "A demonstration of the system.",
       "note": "A note, with no contact.",
-      "decision": "A decision recorded on the client.",
-      "whatsapp": "A WhatsApp message with the client.",
-      "email": "An email to the client.",
+      "decision": "A decision recorded on the partner.",
+      "whatsapp": "A WhatsApp message with the partner.",
+      "email": "An email to the partner.",
       "ticket": "Work on a support ticket."
     }
   },
@@ -1866,7 +1866,7 @@
       "escalated": "Someone asked me for help",
       "alert_project_no_update": "A project of mine has no health update",
       "alert_due_tomorrow": "A task of mine is coming due",
-      "alert_quiet_client": "A client of mine has gone quiet",
+      "alert_quiet_client": "A partner of mine has gone quiet",
       "task_commented": "A comment on a task of mine",
       "commented": "A comment on a record of mine",
       "asked": "A question asked of me",
@@ -2222,7 +2222,7 @@
       "email": "Email",
       "basis": "Basis",
       "services": "Services",
-      "client_types": "Client types",
+      "client_types": "Partner types",
       "commissions": "Commissions count",
       "prepaid": "Prepaid",
       "postpaid": "Postpaid",
@@ -2235,7 +2235,7 @@
   "errors": {
     "plan": {
       "year_taken": "That department already has a plan for that year",
-      "year_invalid": "A plan can be opened for 2025 up to next year"
+      "year_invalid": "A plan can be opened for 2024 up to next year"
     },
     "comment": {
       "body_required": "Write something first",
@@ -2248,7 +2248,8 @@
       "already_asked": "You already have an open question with {detail}."
     },
     "backfill": {
-      "no_match": "That task and achievement no longer match"
+      "no_match": "That task and achievement no longer match",
+      "before_2024": "Dates start 1 Jan 2024"
     },
     "overview": {
       "period_invalid": "The period ends before it starts",
@@ -2476,7 +2477,7 @@
       "turn_into_type_invalid": "Choose call or meeting",
       "turn_into_invalid": "This cannot be turned into that",
       "wrap_up_choice_invalid": "Choose carry over or done",
-      "about_invalid": "A follow-up goes on a client, a task or an invoice"
+      "about_invalid": "A follow-up goes on a partner, a task or an invoice"
     },
     "password": {
       "too_short": "At least 10 characters",
@@ -2706,7 +2707,7 @@
       "country": "Country",
       "address": "Address",
       "notes": "Notes",
-      "clientSince": "Client since",
+      "clientSince": "Partner since",
       "number": "Number",
       "supplierSince": "Supplier since"
     },
@@ -2717,7 +2718,7 @@
       "contacts": "Contacts",
       "files": "Files",
       "notes": "Notes",
-      "client_since": "Client since",
+      "client_since": "Partner since",
       "noActivity": "No activity yet",
       "noNextStep": "No next step"
     },

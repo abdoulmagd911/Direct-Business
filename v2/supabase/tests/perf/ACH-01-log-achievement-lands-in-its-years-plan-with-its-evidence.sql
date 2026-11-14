@@ -57,7 +57,7 @@ select test.raises(format('select api.achievement_update(%L, %L::jsonb, 1)', cur
 select test.raises($$select api.achievement_log(jsonb_build_object('category', 'AWARD', 'title', 'Made up',
   'happened_on', '2026-10-02'))$$, 'P0001', 'never after the day it is logged (V400)', 'common.date_in_future');
 select test.raises($$select api.achievement_log(jsonb_build_object('category', 'AWARD', 'title', 'Made up',
-  'happened_on', '2024-12-31'))$$, 'P0001', 'no plan before 2025', 'achievement.no_plan');
+  'happened_on', '2023-12-31'))$$, 'P0001', 'no plan before 2024', 'achievement.no_plan');
 select test.raises($$select api.achievement_log(jsonb_build_object('category', 'NOT-A-CODE', 'title', 'Made up'))$$,
   'P0002', 'a category of the plan only', 'list.unknown_value');
 select test.raises(format('select api.achievement_log(%L::jsonb)', jsonb_build_object('category', 'AWARD',
@@ -71,12 +71,12 @@ select test.eq((api.achievement_log(jsonb_build_object('category', 'AWARD', 'tit
   'happened_on', '2026-09-01', 'owner_id', current_setting('t.am1'))) ->> 'id') is not null, true,
   'a manager credits someone else (V467)');
 
--- the database refuses a day before 1 January 2025 whatever door writes it (V506)
+-- the database refuses a day before 1 January 2024 whatever door writes it (V506)
 select test.as_owner();
-select test.raises(format($$update perf.achievement set happened_on = '2024-12-31' where id = %L$$, current_setting('t.a')),
-  'P0001', 'nothing is dated before 1 January 2025', 'achievement.no_plan');
-select test.raises(format($$insert into perf.plan (department_id, year, name) values (%L, 2024, 'Made up')$$,
-  test.department('commercial')), '23514', 'and no plan is opened for a year before 2025');
+select test.raises(format($$update perf.achievement set happened_on = '2023-12-31' where id = %L$$, current_setting('t.a')),
+  'P0001', 'nothing is dated before 1 January 2024', 'achievement.no_plan');
+select test.raises(format($$insert into perf.plan (department_id, year, name) values (%L, 2023, 'Made up')$$,
+  test.department('commercial')), '23514', 'and no plan is opened for a year before 2024');
 
 -- a project or task it names must exist (V376: work.project and work.task landed first, #140)
 select test.raises(format($$update perf.achievement set project_id = gen_random_uuid() where id = %L$$,

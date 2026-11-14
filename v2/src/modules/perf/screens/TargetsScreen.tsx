@@ -16,7 +16,7 @@ import { Select } from '@/ui/Select';
 import { entityRoute } from '@/ui/entity-route';
 
 /** The earliest year a plan may be opened for, and the latest is next year (perf.plan_open). */
-const FIRST_YEAR = 2025;
+const FIRST_YEAR = 2024;
 
 /** The years a department has no plan for, newest first: the only years a plan may be opened for (perf.plan_open). */
 export function freeYearsOf(plans: PlanRow[], department: string, year: number): number[] {

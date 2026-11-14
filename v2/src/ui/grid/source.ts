@@ -1,7 +1,7 @@
 /**
  * The report a paste of past work comes from (V506): one of the department's four reports, and which one — its month,
  * or its quarter for the Commercial quarterly. It stands as the evidence of every row pasted from it, and an undated
- * row takes the report's last day (V504). Past work starts on 1 January 2025 (V506). Calendar arithmetic only, in
+ * row takes the report's last day (V504). Past work starts on 1 January 2024 (V506). Calendar arithmetic only, in
  * whole days — nothing here reads the computer's clock or time zone (PRF-139); the grid passes Riyadh's today (D20).
  */
 export const SOURCE_REPORTS = ['bd_monthly', 'partnerships', 'commercial_quarterly', 'improvements'] as const;
@@ -16,7 +16,7 @@ export const SOURCE_PERIOD: Readonly<Record<SourceReportKind, 'month' | 'quarter
 };
 
 /** The first day past work may carry (V506). */
-export const PAST_WORK_FROM = '2025-01-01';
+export const PAST_WORK_FROM = '2024-01-01';
 
 /** A report: its kind, and its period — `YYYY-MM` for a month, `YYYY-Qn` for a quarter. */
 export interface SourceReport {
@@ -40,7 +40,7 @@ export function periodLastDay(period: string): string | null {
 }
 
 /**
- * The periods a report of this kind may be, oldest first: from the one holding 1 January 2025 to the last one that
+ * The periods a report of this kind may be, oldest first: from the one holding 1 January 2024 to the last one that
  * has ended by today (a report is issued once its period is over).
  */
 export function periodsFor(kind: SourceReportKind, today: string): string[] {

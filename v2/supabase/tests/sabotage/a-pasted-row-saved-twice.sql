@@ -41,8 +41,8 @@ begin
   for r in select x from pg_catalog.jsonb_array_elements(p_request -> 'rows') x loop
     i := i + 1;
     day := coalesce(nullif(r ->> 'happened_on', '')::date, last_day);
-    if day < date '2025-01-01' then
-      raise exception using errcode = 'P0001', message = 'backfill.before_2025', detail = i::text;
+    if day < date '2024-01-01' then
+      raise exception using errcode = 'P0001', message = 'backfill.before_2024', detail = i::text;
     end if;
     if day > core.riyadh_today() then
       raise exception using errcode = 'P0001', message = 'common.date_in_future', detail = i::text;

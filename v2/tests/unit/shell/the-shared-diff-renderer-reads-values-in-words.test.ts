@@ -80,7 +80,7 @@ describe('a value in words', () => {
   it('reads a setting key and a capability key by their words', () => {
     expect(words('key', 'app.arabic_enabled')).toBe('Arabic');
     expect(words('key', 'notify.kinds_enabled')).toBe('Notifications sent');
-    expect(words('capability_key', 'clients.assign_own')).toBe('Bulk-assign clients I own');
+    expect(words('capability_key', 'clients.assign_own')).toBe('Bulk-assign partners I own');
   });
   it('names a person for their id, and says nothing for an unknown one', () => {
     expect(words('owner_id', PERSON_A)).toBe('TEST Person A');

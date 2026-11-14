@@ -79,7 +79,7 @@ export const LABELS: PastWorkLabels = {
     date_unreadable: 'The date cannot be read',
     date_ambiguous: 'The date could be two days',
     date_in_future: 'The date is after today',
-    date_before_start: 'Before 1 January 2025, where past work starts',
+    date_before_start: 'Before 1 January 2024, where past work starts',
     kind_missing: 'No status',
     kind_unknown: 'Unknown status',
     value_unreadable: 'The value is not an amount',

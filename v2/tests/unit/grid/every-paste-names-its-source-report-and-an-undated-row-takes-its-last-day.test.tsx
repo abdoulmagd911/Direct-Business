@@ -13,8 +13,8 @@ import { excelPaste, LABELS, ORGS, STATUSES, TODAY } from './grid-tools';
  * Past work comes from the department's reports (the owner's V506, V504; the Architect's relay of 30 Sep): every paste
  * names the report it comes from — BD monthly, Partnerships, Commercial quarterly or Improvements, and which one — and
  * that report is every row's evidence; Save waits until one is picked. An undated row takes the report's last day,
- * marked as the report's; a dated row keeps its own day. Past work starts on 1 January 2025. Made-up rows (rule 7).
- * Sabotages: `grid-lets-a-2024-row-in`, `grid-leaves-an-undated-row-undated`, `grid-dates-an-undated-row-today`,
+ * marked as the report's; a dated row keeps its own day. Past work starts on 1 January 2024. Made-up rows (rule 7).
+ * Sabotages: `grid-lets-a-2023-row-in`, `grid-leaves-an-undated-row-undated`, `grid-dates-an-undated-row-today`,
  * `grid-saves-without-a-report`, `grid-offers-a-report-not-yet-over`, `grid-counts-february-as-30-days`,
  * `grid-keys-a-row-by-its-report`, `grid-reads-a-report-day-in-the-computers-zone` (tests/sabotage/grid.mjs).
  */
@@ -66,13 +66,17 @@ describe('V506 — the report a paste comes from', () => {
     }
   });
 
-  it('offers the reports from January 2025 to the last one over by today', () => {
+  it('offers the reports from January 2024 to the last one over by today', () => {
     const months = periodsFor('bd_monthly', TODAY);
-    expect(months[0]).toBe('2025-01');
+    expect(months[0]).toBe('2024-01');
     expect(months.at(-1), 'September is not over on 29 September').toBe('2026-08');
-    expect(months).toHaveLength(20);
+    expect(months).toHaveLength(32);
     expect(periodsFor('bd_monthly', '2026-09-30').at(-1), 'September is over on its last day').toBe('2026-09');
     expect(periodsFor('commercial_quarterly', TODAY)).toEqual([
+      '2024-Q1',
+      '2024-Q2',
+      '2024-Q3',
+      '2024-Q4',
       '2025-Q1',
       '2025-Q2',
       '2025-Q3',
@@ -97,14 +101,15 @@ describe('V506 — the report a paste comes from', () => {
       false,
     );
     expect(isSourceReport({ kind: 'bd_monthly', period: '2026-09' }, TODAY), 'not over yet').toBe(false);
-    expect(isSourceReport({ kind: 'bd_monthly', period: '2024-12' }, TODAY), 'before past work starts').toBe(false);
+    expect(isSourceReport({ kind: 'bd_monthly', period: '2024-12' }, TODAY), 'the first year is in').toBe(true);
+    expect(isSourceReport({ kind: 'bd_monthly', period: '2023-12' }, TODAY), 'before past work starts').toBe(false);
   });
 
-  it('refuses a row dated before 1 January 2025, and takes 1 January itself', () => {
+  it('refuses a row dated before 1 January 2024, and takes 1 January itself', () => {
     const rows = read(
       [
-        ['Made-up call', '31/12/2024', 'Done', 'Test Co A'],
-        ['Made-up visit', '01/01/2025', 'Done', 'Test Co A'],
+        ['Made-up call', '31/12/2023', 'Done', 'Test Co A'],
+        ['Made-up visit', '01/01/2024', 'Done', 'Test Co A'],
       ],
       MARCH_2025,
     );

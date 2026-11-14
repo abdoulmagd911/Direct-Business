@@ -1,7 +1,7 @@
 -- BACK-01 — the Past work grid's door (V400, V491, V504, V506; OLD-PRF-045). One paste is one request of Backfilled
 -- tasks: each with its day — an undated row takes the source report's last day — the report as its evidence, its owner
 -- or Unknown; none tells anyone or is ever "logged late"; a key already held is left out and named, so the same paste
--- twice adds nothing; a row before 1 January 2025 is refused by its index; a member backfills only their own rows; one
+-- twice adds nothing; a row before 1 January 2024 is refused by its index; a member backfills only their own rows; one
 -- Undo takes the paste back. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-pasted-row-saved-twice.sql, an-undated-row-dated-today.sql,
 -- a-past-task-numbered-this-year.sql.
@@ -55,8 +55,8 @@ select test.eq((current_setting('t.again')::jsonb ->> 'saved')::int, 0, 'the sam
 select test.eq(jsonb_array_length(current_setting('t.again')::jsonb -> 'held'), 3, 'and names what was held');
 
 select test.raises(format('select api.backfill_tasks(%L::jsonb)', jsonb_set(current_setting('t.req')::jsonb, '{rows}',
-  jsonb_build_array(jsonb_build_object('title', 'Made up', 'happened_on', '2024-12-31', 'import_key', 'made-up-key-0')))),
-  'P0001', 'a row before 1 January 2025 is refused', 'backfill.before_2025');
+  jsonb_build_array(jsonb_build_object('title', 'Made up', 'happened_on', '2023-12-31', 'import_key', 'made-up-key-0')))),
+  'P0001', 'a row before 1 January 2024 is refused', 'backfill.before_2024');
 select test.raises(format('select api.backfill_tasks(%L::jsonb)', current_setting('t.req')::jsonb - 'source'),
   'P0001', 'every paste names its report', 'backfill.source_required');
 

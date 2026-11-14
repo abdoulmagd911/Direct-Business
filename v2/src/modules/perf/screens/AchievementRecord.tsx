@@ -37,8 +37,8 @@ import { readDealValue, riyadhToday } from './LogAchievement';
 import { useCommandWords } from './words';
 
 const TABS = ['overview', 'discussion', 'history', 'evidence'] as const;
-/** The first day an achievement may be dated (achievement.before_2025). */
-const FIRST_DAY = '2025-01-01';
+/** The first day an achievement may be dated (achievement.before_2024). */
+const FIRST_DAY = '2024-01-01';
 
 /** The day before the first of the month a `YYYY-MM-DD` day is in: the latest day an achievement moves to. */
 export function dayBeforeMonthOf(day: string): string {
@@ -219,7 +219,7 @@ export function AchievementRecord({ data }: { data: AchievementRecordData }) {
   };
   const [moveTo, setMoveTo] = useState('');
   const [newOwner, setNewOwner] = useState('');
-  // Move goes to an earlier month only (achievement.move_earlier_only) and never before 2025 (achievement.before_2025):
+  // Move goes to an earlier month only (achievement.move_earlier_only) and never before 2024 (achievement.before_2024):
   // the box offers exactly those days — the last one is the day before the month the achievement is in
   const moveMax = a.happened_on ? dayBeforeMonthOf(a.happened_on) : undefined;
   const moveOk = /^\d{4}-\d{2}-\d{2}$/.test(moveTo) && moveTo >= FIRST_DAY && !!moveMax && moveTo <= moveMax;

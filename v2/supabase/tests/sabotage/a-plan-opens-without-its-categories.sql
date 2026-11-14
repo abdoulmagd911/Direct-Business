@@ -15,7 +15,7 @@ begin
   if p_department is null or not exists (select 1 from core.department d where d.id = p_department and d.deleted_at is null) then
     raise exception using errcode = 'P0002', message = 'common.not_found';
   end if;
-  if p_year is null or p_year < 2025 or p_year > pg_catalog.date_part('year', core.riyadh_today())::int + 1 then
+  if p_year is null or p_year < 2024 or p_year > pg_catalog.date_part('year', core.riyadh_today())::int + 1 then
     raise exception using errcode = 'P0001', message = 'plan.year_invalid', detail = p_year::text;
   end if;
   held := perf.plan_of(p_department, p_year);

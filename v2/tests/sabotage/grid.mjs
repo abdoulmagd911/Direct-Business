@@ -249,7 +249,7 @@ export const sabotages = [
     ],
   },
   {
-    name: 'grid-lets-a-2024-row-in',
+    name: 'grid-lets-a-2023-row-in',
     breaks: [SOURCE_TEST],
     expect: 'before past work starts (V506)',
     edits: [{ file: ROWS, find: 'else if (date.day < PAST_WORK_FROM)', replace: "else if (date.day < '1900')" }],

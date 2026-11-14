@@ -198,7 +198,7 @@ export function AchievementFromNoteDialog({
                 describedBy={p['aria-describedby']}
                 invalid={p['aria-invalid']}
                 value={f.on || undefined}
-                min="2025-01-01"
+                min="2024-01-01"
                 max={riyadhToday()}
                 onChange={(v) => setF({ ...f, on: v ?? '' })}
                 className="font-data"

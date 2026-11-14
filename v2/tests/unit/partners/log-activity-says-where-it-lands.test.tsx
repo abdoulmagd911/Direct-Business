@@ -77,7 +77,7 @@ describe('Log activity', () => {
 
   it('says what the chosen type means, so Call and Follow-up call read apart (F-B3-08)', () => {
     draw({});
-    expect(document.querySelector('[data-activity-type-desc]')?.textContent).toBe('A phone call with the client.');
+    expect(document.querySelector('[data-activity-type-desc]')?.textContent).toBe('A phone call with the partner.');
   });
 });
 

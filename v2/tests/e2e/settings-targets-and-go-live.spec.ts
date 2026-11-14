@@ -151,7 +151,7 @@ test('a department with a plan for every year says why Open is grey', async ({ p
     [`f_${tag}`, name, `إدارة ${tag}`],
   );
   const year = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' }).slice(0, 4));
-  for (let y = 2025; y <= year + 1; y++)
+  for (let y = 2024; y <= year + 1; y++)
     await sql(`insert into perf.plan (department_id, year, name, created_by) values ($1, $2, $3, $4)`, [
       dept!.id,
       y,

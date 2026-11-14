@@ -402,7 +402,7 @@ test('10 · the search says "Search" on a phone and names what it finds from 640
   expect(await search.innerText()).toBe('Search');
   await expect(search.locator('kbd')).toBeHidden();
   await page.setViewportSize(DESKTOP);
-  await expect.poll(() => search.innerText()).toMatch(/^Search clients, tasks, invoices\s*Ctrl K$/);
+  await expect.poll(() => search.innerText()).toMatch(/^Search partners, tasks, invoices\s*Ctrl K$/);
   await expect(search.locator('kbd')).toBeVisible();
   await expect(search.locator('kbd')).toHaveText('Ctrl K');
 });

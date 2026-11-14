@@ -2,7 +2,7 @@
 -- sends (#105). One paste is one request of Backfilled achievements: each with its day — an undated row takes the
 -- report's last day, the quarter's for the Commercial quarterly — the report as its evidence, its owner or Unknown,
 -- its plan the one of its own year; none tells anyone or is ever "logged late"; a key already held is left out and
--- named, so the same paste twice adds nothing; a row before 1 January 2025 is refused by its index; a member backfills
+-- named, so the same paste twice adds nothing; a row before 1 January 2024 is refused by its index; a member backfills
 -- only their own rows; one Undo takes the paste back. Every value is made up.
 -- Sabotage: supabase/tests/sabotage/a-pasted-achievement-saved-twice.sql, an-undated-achievement-dated-today.sql.
 select set_config('v2.test_now', '2026-10-01 09:00:00+03', true);
@@ -83,9 +83,9 @@ select test.eq((api.achievement((current_setting('t.q')::jsonb -> 'ids' ->> 0)::
   'an undated quarterly row takes the quarter''s last day');
 
 select test.raises(format('select api.backfill_achievements(%L::jsonb)', jsonb_set(current_setting('t.req')::jsonb, '{rows}',
-  jsonb_build_array(jsonb_build_object('title', 'Made up', 'happened_on', '2024-12-31', 'kind', 'AWARD',
+  jsonb_build_array(jsonb_build_object('title', 'Made up', 'happened_on', '2023-12-31', 'kind', 'AWARD',
                                        'import_key', 'made-up-a-0')))),
-  'P0001', 'a row before 1 January 2025 is refused', 'backfill.before_2025');
+  'P0001', 'a row before 1 January 2024 is refused', 'backfill.before_2024');
 select test.raises(format('select api.backfill_achievements(%L::jsonb)', current_setting('t.req')::jsonb - 'source'),
   'P0001', 'every paste names its report', 'backfill.source_required');
 select test.raises(format('select api.backfill_achievements(%L::jsonb)', jsonb_set(current_setting('t.req')::jsonb,

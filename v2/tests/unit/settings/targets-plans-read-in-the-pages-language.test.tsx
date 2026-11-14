@@ -47,7 +47,7 @@ describe('Targets', () => {
   });
 });
 
-const full = ['2025', '2026', '2027'].map((y, i) => ({
+const full = ['2024', '2025', '2026', '2027'].map((y, i) => ({
   id: `f${i}`,
   department_id: 'd1',
   year: Number(y),
@@ -75,8 +75,8 @@ describe('when every department has a plan for every year', () => {
 });
 
 describe('the plan dialog starts on a year that can be opened', () => {
-  it('offers the years a department has no plan for, newest first, from next year down to 2025', () => {
-    expect(freeYearsOf(plans, 'd1', 2026)).toEqual([2027]);
+  it('offers the years a department has no plan for, newest first, from next year down to 2024', () => {
+    expect(freeYearsOf(plans, 'd1', 2026)).toEqual([2027, 2024]);
     expect(freeYearsOf(full, 'd1', 2026)).toEqual([]);
   });
   it('starts on this year when it is free, else the newest free year, and on no year when none is free', () => {
