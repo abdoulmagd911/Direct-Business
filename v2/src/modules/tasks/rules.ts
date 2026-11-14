@@ -238,7 +238,7 @@ export function apiFilter(f: TaskFilters): Record<string, unknown> {
  * What the Tasks list asks api.tasks (owner 13 Nov): the view's filter and every chip — Helping, the due window, the
  * priority — and the sort, so the door answers the view itself. The list reads one page of 200: a chip judged in the
  * browser lost every task past that page and counted the unfiltered total (work.task_list answers them since
- * 20261113110000). `keepRow` judges the same rules on the rows, so the two always agree.
+ * 20261113120002). `keepRow` judges the same rules on the rows, so the two always agree.
  */
 export function listFilter(f: TaskFilters): Record<string, unknown> {
   const out = apiFilter(f);
@@ -249,7 +249,7 @@ export function listFilter(f: TaskFilters): Record<string, unknown> {
   return out;
 }
 
-/** The filter's rules judged on the rows (the door answers the same since 20261113110000): Helping is My work I do not
+/** The filter's rules judged on the rows (the door answers the same since 20261113120002): Helping is My work I do not
  * own; due today, the next seven days (the chip "Next 7 days"), or none; the Starred and Need-help views keep only
  * their own rows; FIX-01's priority filter keeps only its key. */
 export function keepRow(row: TaskRow, f: TaskFilters, me: string, today: string): boolean {
