@@ -37,7 +37,7 @@ export type NavEntry = {
   route: string;
   label: string;
   icon: LucideIcon;
-  /** The main page this one is a tab of (Suppliers → Clients); never in the menu itself. */
+  /** The main page this one is a tab of (Suppliers → Partners); never in the menu itself. */
   tabOf: string | null;
 };
 
@@ -121,7 +121,7 @@ export function isManageTier(me: Me): boolean {
 
 /**
  * Whether an entry is in this person's menu: the page is open to them (any level above none), whatever their role (V238).
- * A tab (Suppliers) is reached from the page it is a tab of (Clients) — unless the person cannot see that page, and then
+ * A tab (Suppliers) is reached from the page it is a tab of (Partners) — unless the person cannot see that page, and then
  * it is their own door (QA-504). Settings is not here: it is the admin's door at the foot (`menuFor`).
  */
 export function inMenu(me: Me, e: NavEntry): boolean {

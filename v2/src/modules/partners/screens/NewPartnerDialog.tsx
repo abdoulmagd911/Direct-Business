@@ -1,10 +1,12 @@
 'use client';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
 import { bannedIn } from '@/core/words/banned';
+import type { PartnerRef } from '@/modules/my-day/types';
 import { nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
@@ -15,7 +17,7 @@ import { Switch } from '@/ui/Switch';
 import { nameOf, type ListEntry, type Side } from '../types';
 
 /**
- * New client / New supplier (V149: api.partner_create with one side — type required, tier, owner; the owner
+ * New partner / New supplier (V149: api.partner_create with one side — type required, tier, owner; the owner
  * is the caller unless named). The organisation opens once created; the other side is switched on from its record.
  */
 export function NewPartnerDialog({
@@ -49,6 +51,32 @@ export function NewPartnerDialog({
     key: false,
   });
   const [busy, setBusy] = useState(false);
+  /** L23: a name that already exists warns before Save — the roles live on the one record, so the reader is sent
+   * to it instead of making a second one. Save stays on: two companies can share a name. As in PartnerPicker,
+   * the matches are the search's answer for the typed term, never a guess. */
+  const [found, setFound] = useState<{ term: string; hits: PartnerRef[] }>({ term: '', hits: [] });
+  const term = f.trade_name_en.trim().length >= 2 ? f.trade_name_en.trim() : f.trade_name_ar.trim();
+  useEffect(() => {
+    if (term.length < 2) return;
+    let live = true;
+    rpc('search', { p_q: term, p_limit: 8 })
+      .then((a) => {
+        if (!live) return;
+        const norm = (s: string) => s.trim().toLowerCase();
+        const n = norm(term);
+        setFound({
+          term,
+          hits: ((a as { partners?: PartnerRef[] } | null)?.partners ?? []).filter(
+            (p) => norm(p.trade_name_en) === n || (p.trade_name_ar != null && norm(p.trade_name_ar) === n),
+          ),
+        });
+      })
+      .catch(() => live && setFound({ term, hits: [] }));
+    return () => {
+      live = false;
+    };
+  }, [term]);
+  const dupes = term.length >= 2 && found.term === term ? found.hits : [];
   const banned = bannedIn(f.trade_name_en) ?? bannedIn(f.trade_name_ar);
   const ok = !banned && f.trade_name_en.trim().length > 0 && !!f.type;
   const save = async () => {
@@ -129,6 +157,23 @@ export function NewPartnerDialog({
             />
           )}
         </Field>
+        {dupes.length > 0 && (
+          <div
+            role="alert"
+            className="rounded-md border border-warning bg-warning-soft p-3 text-sm sm:col-span-2"
+            data-new-partner-duplicate
+          >
+            <p className="font-medium">{t('partners.duplicateName')}</p>
+            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {dupes.map((d) => (
+                <Link key={d.id} href={`/partners/${d.id}`} className="font-medium underline">
+                  {locale === 'ar' && d.trade_name_ar ? d.trade_name_ar : d.trade_name_en} ({d.number})
+                </Link>
+              ))}
+            </p>
+            <p className="mt-1 text-muted">{t('partners.duplicateNameOpen', { side: t(`partners.sides.${side}`) })}</p>
+          </div>
+        )}
         <Field label={t('partners.columns.type')} required={t('common.required')}>
           {(p) => (
             <Select

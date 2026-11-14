@@ -1,7 +1,7 @@
 /**
  * The 13 Oct sweep, nav and Finance (V238): the desktop menu, the phone bar and More are one list — a page shows where the
  * person's access opens it and nowhere else, for an admin and for a Commercial member, at desktop and phone width; the
- * Suppliers page is titled Suppliers (its tab sits under it, Clients keeps
+ * Suppliers page is titled Suppliers (its tab sits under it, Partners keeps
  * its own title), at desktop and phone width; and on a wide Finance window the lists beside the figures fill while the heavy
  * reads (the closed months, the health line) are still on their way — the page never sits on one grey wait. Every value is
  * made up.
@@ -18,16 +18,16 @@ for (const size of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'phone', width: 390, height: 844 },
 ]) {
-  test(`${size.name}: the Suppliers page is titled Suppliers and Clients keeps its title`, async ({ page }) => {
+  test(`${size.name}: the Suppliers page is titled Suppliers and Partners keeps its title`, async ({ page }) => {
     const admin = await makePerson({ admin: true });
     await page.setViewportSize({ width: size.width, height: size.height });
     await signIn(page, admin.email, '/suppliers');
     await hydrated(page);
     await expect(page.getByRole('heading', { level: 1 }), 'the title is the page on screen').toHaveText('Suppliers');
     await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
-    await page.goto('/clients');
+    await page.goto('/partners');
     await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Clients');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Partners');
     await expect(page.locator('[data-side-tab="client"]')).toHaveAttribute('aria-current', 'page');
   });
 }

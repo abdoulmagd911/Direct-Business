@@ -1,7 +1,7 @@
 /**
  * The owner's feedback on the Tasks pass (11 Oct, V630): completing is deliberate. Tapping a task's row opens the task;
  * only the separate, marked check control completes it, and then an Undo is on screen for a few seconds. On a phone the
- * Clients card opens its record the same way. Every value is made up.
+ * Partners card opens its record the same way. Every value is made up.
  * Sabotage: tests/sabotage/screens.mjs "task-row-tap-opens-nothing", "task-check-hides-its-mark",
  * "task-check-sits-under-the-row-link", "client-card-tap-opens-nothing".
  */
@@ -92,10 +92,10 @@ for (const [name, width, height] of [
   });
 }
 
-test('phone 375: a tap on a Clients card opens its record', async ({ page }) => {
+test('phone 375: a tap on a Partners card opens its record', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await page.setViewportSize({ width: 375, height: 812 });
-  await signIn(page, admin.email, '/clients');
+  await signIn(page, admin.email, '/partners');
   await hydrated(page);
   const created = await callAs(page.context(), 'partner_create', {
     p_partner: {
@@ -105,8 +105,8 @@ test('phone 375: a tap on a Clients card opens its record', async ({ page }) => 
   });
   expect(created.status, JSON.stringify(created.body)).toBe(200);
   const id = (created.body as { id: string }).id;
-  await page.goto('/clients');
+  await page.goto('/partners');
   await hydrated(page);
   await tap(page, page.locator(`[data-partner-card="${id}"] .text-sm`).first());
-  await expect(page, 'a tap on the card opens the record').toHaveURL(new RegExp(`/clients/${id}$`));
+  await expect(page, 'a tap on the card opens the record').toHaveURL(new RegExp(`/partners/${id}$`));
 });

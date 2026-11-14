@@ -1,13 +1,17 @@
-import { PartnersListPage } from '@/modules/partners/screens/list-page';
-import { pageTitle } from '@/ui/shell/page-title';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = pageTitle('nav.clients');
-
-/** Clients (V98): the organisations with the Client side on. */
-export default function ClientsPage({
+/** The old Clients address goes to Partners (L23 rename): the filters ride in the address, so they are kept. */
+export default async function ClientsRedirect({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  return <PartnersListPage side="client" searchParams={searchParams} />;
+  const q = await searchParams;
+  const s = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) {
+    if (typeof v === 'string') s.set(k, v);
+    else if (Array.isArray(v)) v.forEach((x) => s.append(k, x));
+  }
+  const qs = s.toString();
+  redirect(`/partners${qs ? `?${qs}` : ''}`);
 }

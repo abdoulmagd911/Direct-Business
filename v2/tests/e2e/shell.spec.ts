@@ -47,14 +47,14 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/partners?view=clients');
-  // Capture, Tasks, Clients, Suppliers, Finance (Invoice, QA-556) and the KPIs page (Achievement) are built; a page not
+  // Capture, Tasks, Partners, Suppliers, Finance (Invoice, QA-556) and the KPIs page (Achievement) are built; a page not
   // yet built would be absent, never greyed
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText([
     'Capture',
     'Task',
     'Log activity',
-    'Client',
+    'Partner',
     'Supplier',
     'Invoice',
     'Achievement',
@@ -62,8 +62,8 @@ test('the Create menu offers only built screens (W4/W28, V217); the top bar carr
   ]);
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-topbar]')).not.toContainText('Partners');
-  await expect(page.locator('h1')).toHaveText('Clients');
-  await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Clients');
+  await expect(page.locator('h1')).toHaveText('Partners');
+  await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveText('Partners');
 });
 
 test('under 640 px the bottom bar carries the first four of the menu and More, and More opens the rest', async ({
@@ -76,7 +76,7 @@ test('under 640 px the bottom bar carries the first four of the menu and More, a
   await expect(page.locator('[data-drawer]')).toBeHidden();
   const bar = page.locator('[data-bottom-bar]');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
+  await expect(bar.locator('a, button')).toHaveText(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
   await expect(bar.locator('a[aria-current="page"]')).toHaveText('My day');
   await page.locator('[data-bottom-more]').click();
   const sheet = page.locator('[data-more-sheet]');
@@ -104,7 +104,7 @@ test('every drawer entry is a link and the active one is marked', async ({ page,
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/kpis');
   const links = page.locator('[data-drawer] a[href]');
-  // logo, the admin's 8 built entries (Suppliers is a tab of Clients — V217; unbuilt pages hide — QA3-002), Settings; My
+  // logo, the admin's 8 built entries (Suppliers is a tab of Partners — V217; unbuilt pages hide — QA3-002), Settings; My
   // profile is in the avatar menu only (daily use 10)
   await expect(links).toHaveCount(10);
   await expect(page.locator('[data-drawer] a[aria-current="page"]')).toHaveAttribute('href', '/kpis');
@@ -126,7 +126,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   expect(labels.map((l) => l.trim()).filter(Boolean)).toEqual([
     'My day',
     'Tasks',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',

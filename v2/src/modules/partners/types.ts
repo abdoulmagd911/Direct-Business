@@ -8,9 +8,9 @@ export type Status = (typeof STATUSES)[number];
 
 /** The list page each side is (registry keys; TECH-SPEC §8). */
 export const SIDE_PAGE: Record<Side, string> = { client: 'clients', supplier_partner: 'suppliers_partners' };
-export const SIDE_ROUTE: Record<Side, string> = { client: '/clients', supplier_partner: '/suppliers' };
+export const SIDE_ROUTE: Record<Side, string> = { client: '/partners', supplier_partner: '/suppliers' };
 export const sideOfRoute = (segment: string): Side | null =>
-  segment === 'clients' ? 'client' : segment === 'suppliers' ? 'supplier_partner' : null;
+  segment === 'partners' ? 'client' : segment === 'suppliers' ? 'supplier_partner' : null;
 
 export type SideJson = {
   id: string;

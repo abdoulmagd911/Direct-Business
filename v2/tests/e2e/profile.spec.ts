@@ -40,7 +40,7 @@ test('a team member edits their profile and sees it at once; Settings refuses th
     'Default',
     'My day',
     'Tasks',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',

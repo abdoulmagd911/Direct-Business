@@ -30,7 +30,7 @@ export function filtersOf(q: Record<string, string | string[] | undefined>): Lis
 }
 
 /**
- * Clients, with Suppliers as its second tab (V98, V149, V217): one list per side over api.partners(side), each tab
+ * Partners, with Suppliers as its second tab (V98, V149, V217): one list per side over api.partners(side), each tab
  * its own address and its own access key. The tab row shows only when the reader has both sides. The filters live in
  * the address, so a saved view is an address and the global refetch re-reads the list. What the reader may not see is
  * refused by the database and shown as the no-access state, never as an empty list.
@@ -45,7 +45,7 @@ export async function PartnersListPage({
   const [q, me] = await Promise.all([searchParams, requireMe()]);
   const t = await getTranslations();
   const page = SIDE_PAGE[side];
-  // the title is the page on screen: Clients on /clients, Suppliers on /suppliers; the two tabs sit under it (V217, V238)
+  // the title is the page on screen: Partners on /partners, Suppliers on /suppliers; the two tabs sit under it (V217, V238)
   const title = side === 'client' ? t('nav.clients') : t('nav.suppliers_partners');
   if ((me.levels[page] ?? 'none') === 'none')
     return (

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// W47 (V635): the three tabs people switch between most — My day, Tasks and Clients — ask the database for everything
+// W47 (V635): the three tabs people switch between most — My day, Tasks and Partners — ask the database for everything
 // they show in one round after me, and the app says "Loading" at once. Every read is held open until the test lets
 // go: if a page waited for one before asking the next, the next would never start. Made-up answers only.
 const started: string[] = [];
@@ -76,7 +76,7 @@ describe('a list page asks for all its data in one round after me', () => {
     expect(round).toEqual(expect.arrayContaining(['tasks', 'list', 'org', 'partners', 'projects']));
     expect(round.filter((f) => f === 'org')).toHaveLength(1);
   });
-  it('Clients: the list and the lookups together — the other side is read when its tab opens, not up front (FIX-45: the second partners call, otherCount, only filled a count the tab shows when opened)', async () => {
+  it('Partners: the list and the lookups together — the other side is read when its tab opens, not up front (FIX-45: the second partners call, otherCount, only filled a count the tab shows when opened)', async () => {
     const round = await oneRound(() => PartnersListPage({ side: 'client', searchParams: Promise.resolve({}) }));
     expect(round.sort()).toEqual(['list', 'list', 'list', 'org', 'partners']);
   });

@@ -49,7 +49,7 @@ export function EditPartnerDialog({
   card: PartnerCard;
   priorities: ListEntry[];
   nameOfPerson: (id: string) => string | undefined;
-  /** Client since is the organisation's date as a client: offered only while its Client side is on (or it holds one). */
+  /** Client since is the organisation's date as a partner: offered only while its Partner side is on (or it holds one). */
   clientOn?: boolean;
   onDone: () => void;
 }) {

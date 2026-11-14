@@ -1,5 +1,5 @@
 /**
- * Screenshots of the P3-9a screens: the Clients list with organisations (saved views, the search, the table or the
+ * Screenshots of the P3-9a screens: the Partners list with organisations (saved views, the search, the table or the
  * cards on a phone) and an organisation's record with both sides on, a status, a logged call and a note — four themes
  * at 1,500 and 400 px; axe finds no serious issue on either.
  */
@@ -10,7 +10,7 @@ import { callAs, makePerson, signIn } from './support/stack';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
-/** Six organisations on the Client side, one of them a key partner with the supplier side on and a call logged. */
+/** Six organisations on the Partner side, one of them a key partner with the supplier side on and a call logged. */
 async function stage(context: BrowserContext, tag: string) {
   const create = async (partner: Record<string, unknown>) => {
     const r = await callAs(context, 'partner_create', { p_partner: partner });
@@ -67,20 +67,20 @@ for (const theme of THEMES) {
       await page.setViewportSize({ width: 1500, height: 900 });
       const admin = await makePerson({ admin: true });
       const tag = `${theme}${width}${Date.now().toString(36)}`;
-      await signIn(page, admin.email, '/clients');
+      await signIn(page, admin.email, '/partners');
       await hydrated(page);
       const id = await stage(context, tag);
 
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`/clients?q=${encodeURIComponent(`Org ${tag}`)}`);
+      await page.goto(`/partners?q=${encodeURIComponent(`Org ${tag}`)}`);
       await hydrated(page);
       // the table's name links at 1,500 px; the cards on a phone
       await expect(page.locator(width === 400 ? '[data-partner-card]' : '[data-partner-link]')).toHaveCount(6);
       await fitToPage(page, width);
       await page.screenshot({ path: shot(`clients-${theme}-${width}`) });
-      await noSeriousIssue(page, 'the Clients list');
+      await noSeriousIssue(page, 'the Partners list');
 
-      await page.goto(`/clients/${id}?tab=activity`);
+      await page.goto(`/partners/${id}?tab=activity`);
       await hydrated(page);
       await expect(page.getByRole('heading', { level: 1, name: `Shot Key Org ${tag}` })).toBeVisible();
       await expect(page.locator('[data-partner-notes]')).toContainText('Called to confirm');

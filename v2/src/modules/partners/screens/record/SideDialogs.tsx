@@ -348,7 +348,7 @@ export function StatusDialog({
   );
 }
 
-/** Set a side's owner from a day (V146: the account manager on the Client side, the relationship owner on the other). */
+/** Set a side's owner from a day (V146: the account manager on the Partner side, the relationship owner on the other). */
 export function OwnerDialog({
   open,
   onOpenChange,

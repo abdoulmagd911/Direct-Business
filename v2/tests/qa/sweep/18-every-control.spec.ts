@@ -8,7 +8,7 @@
  *  - the wording: a raw catalogue key, a code word a person should never read (null, undefined, NaN, an id, a
  *    decision number), and English left on an Arabic page;
  *  - the layout: sideways scroll, text cut off, and a control covered by something else (the + button, the bar);
- *  - the page's heading, recorded so a heading that names the wrong thing (Suppliers headed Clients) is seen.
+ *  - the page's heading, recorded so a heading that names the wrong thing (Suppliers headed Partners) is seen.
  * Destructive presses (sign out, delete, remove, archive, switch off, merge, close month) are never made. Writes are
  * counted. Runs only when asked (QA_ROUND=1, --grep "every control"): in CI after every merge to v2/main, as a report
  * that never fails the run (.github/workflows/v2.yml, "every control on main (report)"). Made-up people only.
@@ -186,7 +186,7 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
           start,
           '/my-day',
           '/tasks',
-          '/clients',
+          '/partners',
           '/suppliers',
           '/pipeline',
           '/finance',

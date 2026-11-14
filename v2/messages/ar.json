@@ -104,7 +104,7 @@
       "app": "التطبيق"
     },
     "settings_home": "الإعدادات",
-    "clients": "العملاء",
+    "clients": "الشركاء",
     "suppliers_partners": "الموردون",
     "files": "الملفات",
     "profile": "ملفي"
@@ -166,7 +166,7 @@
   "create": {
     "task": "مهمة",
     "activity": "تسجيل نشاط",
-    "client": "عميل",
+    "client": "شريك",
     "supplier": "مورد",
     "invoice": "فاتورة",
     "achievement": "إنجاز",
@@ -395,7 +395,7 @@
         }
       },
       "sides": {
-        "client": "عميل",
+        "client": "شريك",
         "supplier_partner": "مورد"
       },
       "repeat": {
@@ -1315,7 +1315,7 @@
     "clients": {
       "identify": "تغيير معرّفات العملاء وحسم المطابقات",
       "merge": "دمج الجهات",
-      "assign": "تحديد حالة جانب العميل ومسؤوله وأولويته",
+      "assign": "تحديد حالة جانب الشريك ومسؤوله وأولويته",
       "assign_own": "إسناد جماعي للشركاء الذين أملكهم"
     },
     "suppliers_partners": {
@@ -1671,7 +1671,7 @@
     "startPage": {
       "my_day": "يومي",
       "overview": "نظرة عامة",
-      "clients": "العملاء",
+      "clients": "الشركاء",
       "suppliers_partners": "الموردون",
       "pipeline": "الفرص",
       "projects": "المشاريع",
@@ -1837,7 +1837,7 @@
       "status": "الحالة",
       "values": {
         "side": {
-          "client": "عميل",
+          "client": "شريك",
           "supplier_partner": "مورد"
         },
         "status": {
@@ -1989,7 +1989,7 @@
         "default_start_page": {
           "my_day": "يومي",
           "overview": "نظرة عامة",
-          "clients": "العملاء",
+          "clients": "الشركاء",
           "suppliers_partners": "الموردون",
           "pipeline": "الفرص",
           "projects": "المشاريع",
@@ -2209,7 +2209,7 @@
       "partner_fixed": "تبقى الفرصة مع جهتها",
       "type_of_other_side": "هذا النوع من الجانب الآخر",
       "type_required": "اختر ما ستصبح عليه الجهة",
-      "side_required": "اختر عميل أو مورد وشريك",
+      "side_required": "اختر شريك أو مورد وشريك",
       "partner_required": "اختر الجهة"
     },
     "tender": {
@@ -2509,8 +2509,10 @@
     "count": "{count, plural, zero {لا جهات} one {جهة واحدة} two {جهتان} few {# جهات} many {# جهة} other {# جهة}}",
     "none": "لا جهات مطابقة",
     "search": "ابحث بالاسم أو الرقم",
-    "newClient": "عميل جديد",
+    "newClient": "شريك جديد",
     "newSupplier": "مورد وشريك جديد",
+    "duplicateName": "يوجد شريك بهذا الاسم بالفعل",
+    "duplicateNameOpen": "افتحها وفعّل {side} هناك بدلًا من إنشاء سجل جديد",
     "created": "تمت إضافة {name}",
     "updated": "تم تحديث {name}",
     "edit": "تعديل {name}",
@@ -2534,11 +2536,11 @@
       "title": "الأعمدة"
     },
     "side": {
-      "client": "عميل",
+      "client": "شريك",
       "supplier_partner": "مورد"
     },
     "sides": {
-      "client": "جانب العميل",
+      "client": "جانب الشريك",
       "supplier_partner": "جانب المورد"
     },
     "status": {
@@ -2584,7 +2586,7 @@
       "noActivity": "لا نشاط بعد",
       "noNextStep": "لا خطوة تالية"
     },
-    "sideTabs": "العملاء والموردون",
+    "sideTabs": "الشركاء والموردون",
     "tabs": {
       "overview": "نظرة عامة",
       "activity": "النشاط",
@@ -2728,13 +2730,13 @@
     },
     "activity": {
       "who": "مع من كان ذلك؟",
-      "whoOrg": "عميل أو عميل محتمل أو مورد",
+      "whoOrg": "شريك أو عميل محتمل أو مورد",
       "whoNext": "التالي",
       "whoKind": "كان ذلك مع",
       "whoInside": "شخص داخل دايركت",
       "insideField": "فريق أو نظام",
       "insideNone": "اختر فريقًا أو نظامًا",
-      "needWho": "اختر عميلًا أو عميلًا محتملًا أو مورّدًا",
+      "needWho": "اختر شريكًا أو عميلًا محتملًا أو مورّدًا",
       "needInside": "اختر فريقًا أو نظامًا",
       "ticketRef": "مرجع التذكرة (اختياري)",
       "shareTeam": "مشاركة مع فريقي",
@@ -2926,14 +2928,14 @@
     "gone": {
       "title": "هذه الجهة غير موجودة",
       "body": "أُزيلت أو أن العنوان غير صحيح. يمكن استعادة الجهة المُزالة من «المحذوفة مؤخرًا».",
-      "backClients": "العودة إلى العملاء",
+      "backClients": "العودة إلى الشركاء",
       "backSuppliers": "العودة إلى الموردين"
     }
   },
   "createNew": {
     "task": "مهمة جديدة",
     "activity": "تسجيل نشاط",
-    "client": "عميل جديد",
+    "client": "شريك جديد",
     "supplier": "مورد جديد",
     "invoice": "فاتورة جديدة",
     "achievement": "إنجاز جديد",

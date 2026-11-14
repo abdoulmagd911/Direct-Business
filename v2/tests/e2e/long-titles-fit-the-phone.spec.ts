@@ -1,7 +1,7 @@
 /**
  * The owner's phone screenshots (22 Oct): a long title on a card must wrap or end in an ellipsis — never be cut off at
  * either edge, never push the page sideways — at 375 px and 320 px. One long title with spaces and one unbroken run of
- * letters (an address, a code) on each list: Tasks (the list and My day's Today), Clients, Notes and Reminders (My day).
+ * letters (an address, a code) on each list: Tasks (the list and My day's Today), Partners, Notes and Reminders (My day).
  * Every value is made up. Sabotages: tests/sabotage/long-titles.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -95,7 +95,7 @@ for (const width of [375, 320]) {
       }
       return mark;
     };
-    const marks: Record<string, string[]> = { '/tasks': [], '/clients': [], '/my-day': [] };
+    const marks: Record<string, string[]> = { '/tasks': [], '/partners': [], '/my-day': [] };
     for (const [form, text] of [
       ['spaced', SPACED],
       ['unbroken', UNBROKEN],
@@ -104,7 +104,7 @@ for (const width of [375, 320]) {
       const t = (what: string) => `${k}${what} ${text}`.replace(/ $/, '');
       const title = (what: string) => (form === 'unbroken' ? `${k}${what}${text}` : t(what));
       marks['/tasks']!.push(await made(title('T'), 'task', `${k}T`));
-      marks['/clients']!.push(await made(title('C'), 'client', `${k}C`));
+      marks['/partners']!.push(await made(title('C'), 'client', `${k}C`));
       marks['/my-day']!.push(await made(title('N'), 'note', `${k}N`));
       marks['/my-day']!.push(await made(title('R'), 'reminder', `${k}R`));
       marks['/my-day']!.push(`${k}T`);

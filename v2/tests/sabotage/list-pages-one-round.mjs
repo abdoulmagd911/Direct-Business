@@ -20,10 +20,10 @@ export const sabotages = [
   {
     // FIX-45: the other side's count is gone — the tab shows no count until it is opened, when its own list read
     // carries its total, so the old plant (a late second partners call for the count) has nothing to delay. The
-    // sabotage now proves the same Clients case catches a second partners read in the round: the list read twice.
-    name: 'clients-reads-its-list-twice',
+    // sabotage now proves the same Partners case catches a second partners read in the round: the list read twice.
+    name: 'partners-reads-its-list-twice',
     breaks: [T],
-    expect: '> a list page asks for all its data in one round after me > Clients: the list and the lookups together',
+    expect: '> a list page asks for all its data in one round after me > Partners: the list and the lookups together',
     edits: [
       {
         file: 'src/modules/partners/screens/list-page.tsx',

@@ -85,7 +85,7 @@ test('the + clears the last row on every page and the list searches are 44 px â€
   await page.setViewportSize({ width: 375, height: 667 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
-  for (const path of ['/my-day', '/tasks', '/clients', '/suppliers', '/finance', '/kpis', '/profile']) {
+  for (const path of ['/my-day', '/tasks', '/partners', '/suppliers', '/finance', '/kpis', '/profile']) {
     await page.goto(path);
     await hydrated(page);
     // Landing 10 (#1580 triage): the scroll container and the + bar render only once the page loads â€”
@@ -105,7 +105,7 @@ test('the + clears the last row on every page and the list searches are 44 px â€
     expect(gap, `${path}: the last row ends above Create`).toBeGreaterThanOrEqual(8);
   }
   // the list searches live behind the Filter button on a phone: 44 px each
-  for (const path of ['/clients', '/suppliers', '/tasks']) {
+  for (const path of ['/partners', '/suppliers', '/tasks']) {
     await page.goto(path);
     await hydrated(page);
     await page.locator('[data-filter-toggle]').click();

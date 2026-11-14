@@ -1,7 +1,7 @@
 /**
  * The owner's phone round on production at 375 px (8 Oct): every control a thumb meets is a 44 px target — the Tasks
  * done-circle (a 24 px circle with a 44 px target), the filter chips, the List / Board / Calendar switch, Save view, the
- * client page's buttons — New client says what it needs before Save is enabled, and the Tasks tab row does not clip
+ * partner page's buttons — New partner says what it needs before Save is enabled, and the Tasks tab row does not clip
  * Past work at the edge. Every value is made up.
  * Sabotage: tests/sabotage/screens.mjs "phone-controls-shrink-again", "done-tick-target-is-the-circle",
  * "new-client-hides-what-it-needs", "tabs-clip-at-the-edge".
@@ -115,8 +115,8 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
   // the tab row shows its two tabs and More whole
   await tabsAreWhole(page, PHONE.width, ['My work', 'Owned', 'More']);
 
-  // Clients: the chips and Save view
-  await page.goto('/clients');
+  // Partners: the chips and Save view
+  await page.goto('/partners');
   await hydrated(page);
   // Landing 10 (#1580 triage): the bar renders only once PartnersList loads — hydrated() gates on the
   // root-layout marker, so wait for the bar itself before measuring, or the count reads 0 mid-load.
@@ -130,13 +130,13 @@ test('phone 375: a done-circle, the chips, the layout switch, Save view and the 
     p_partner: { trade_name_en: `Test Org Phone Target ${t}`, sides: [{ side: 'client', type: 'corporate' }] },
   });
   expect(created.status, JSON.stringify(created.body)).toBe(200);
-  await page.goto(`/clients/${(created.body as { id: string }).id}`);
+  await page.goto(`/partners/${(created.body as { id: string }).id}`);
   await hydrated(page);
   const record = await heights(
     page,
     '[data-record-header] button, [data-record-main] button, [data-record-rail] button',
   );
-  expect(record.length, "the client page's buttons are there").toBeGreaterThan(2);
+  expect(record.length, "the partner page's buttons are there").toBeGreaterThan(2);
   for (const h of record) expect(h, "a button on the client's page is 44 px tall").toBeGreaterThanOrEqual(TARGET - 0.5);
 });
 
@@ -197,10 +197,10 @@ test('phone 375: the Back link, breadcrumbs, calendar arrows, Status pill and Pa
   await tall(page, '[data-past-work-header-tick]', 'the "first row holds the headers" tick');
 });
 
-test('phone 375: New client says what it needs before Save can be pressed', async ({ page }) => {
+test('phone 375: New partner says what it needs before Save can be pressed', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await page.setViewportSize(PHONE);
-  await signIn(page, admin.email, '/clients');
+  await signIn(page, admin.email, '/partners');
   await hydrated(page);
   // On a phone the one add action is Create in the bar (V630, V383); the header button is not drawn.
   await page.locator('[data-create-bar]').click();

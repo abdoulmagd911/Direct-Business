@@ -81,7 +81,7 @@ async function seedFilled() {
 const ROUTES = [
   '/my-day',
   '/overview',
-  '/clients',
+  '/partners',
   '/suppliers',
   '/partners?view=suppliers',
   '/pipeline',

@@ -1,12 +1,11 @@
-import { PartnerRecordPage } from '@/modules/partners/screens/record-page';
-import { pageTitle } from '@/ui/shell/page-title';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = pageTitle('nav.clients');
-
-/** An organisation opened from Clients: its Client side leads (V98). */
-export default function ClientRecordPage(props: {
+/** The old Clients record address goes to the Partners record (L23 rename). */
+export default async function ClientRecordRedirect(props: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
-  return <PartnerRecordPage side="client" {...props} />;
+  const [{ id }, { tab }] = await Promise.all([props.params, props.searchParams]);
+  const q = typeof tab === 'string' ? `?tab=${encodeURIComponent(tab)}` : '';
+  redirect(`/partners/${id}${q}`);
 }

@@ -106,7 +106,7 @@ export function KitGallery() {
   const [on, setOn] = useState(true);
   const [sel, setSel] = useState('b');
   const [removed, setRemoved] = useState(false);
-  // The list kit (P3-7): saved views read the real api.views of the Clients page; the bulk bar runs one made-up
+  // The list kit (P3-7): saved views read the real api.views of the Partners page; the bulk bar runs one made-up
   // command for the whole selection (the count of calls proves "one request").
   const [view, setView] = useState('all');
   const [picked, setPicked] = useState<RowSelectionState>({});
@@ -217,7 +217,7 @@ export function KitGallery() {
                   value={sel}
                   onValueChange={setSel}
                   options={[
-                    { value: 'a', label: 'Client' },
+                    { value: 'a', label: 'Partner' },
                     { value: 'b', label: 'Supplier' },
                     { value: 'c', label: 'Strategic partner' },
                   ]}
@@ -320,7 +320,7 @@ export function KitGallery() {
               Sample project
             </EntityLink>
             <EntityLink kind="kpi" variant="chip" href="/kpis/2026/K1" id="K1">
-              New clients
+              New partners
             </EntityLink>
             <EntityLink kind="achievement" variant="chip" href="/kpis/achievements/t1" id="ACH-T-01">
               New deal

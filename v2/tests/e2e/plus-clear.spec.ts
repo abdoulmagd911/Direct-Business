@@ -3,7 +3,7 @@
  * the Weekly review row's chip on My day; option C made Create the bottom bar's last slot, so it floats over nothing).
  * At 375 px each page is scrolled to its foot: its last block ends above Create and no tappable element of the page
  * overlaps Create's rectangle. My day is read with the Weekly review row (the Me tab) and without it (the Team tab);
- * Tasks and Clients end in a list and a button too. At first view (not scrolled), My day is read at the phone height
+ * Tasks and Partners end in a list and a button too. At first view (not scrolled), My day is read at the phone height
  * that puts Create level with the Weekly review row — the supervisor's case of 15 Oct — and no tappable element may sit
  * under it there either. A toast stands above the bar too: nothing, the bar included, covers the Undo of "Profile saved"
  * (the architect on #274). Every value is made up.
@@ -38,7 +38,7 @@ const PAGES = [
   { name: 'My day, with the Weekly review row', path: '/my-day', door: true },
   { name: 'My day, without the Weekly review row', path: '/my-day?tab=team', door: false },
   { name: 'Tasks', path: '/tasks', door: false },
-  { name: 'Clients', path: '/clients', door: false },
+  { name: 'Partners', path: '/partners', door: false },
 ];
 
 for (const p of PAGES) {

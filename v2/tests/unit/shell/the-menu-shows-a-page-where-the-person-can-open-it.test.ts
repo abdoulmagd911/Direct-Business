@@ -1,7 +1,7 @@
 /**
  * The menu rule (V238, replacing V217's work/manage tiers): a page is in the menu where the person's access opens it
- * (any level above none), whatever their role, and nowhere else; Suppliers is a tab of Clients, never an entry while
- * Clients is open; Settings is the admin's alone, at the foot; the phone bar is the first four and More, with no More for
+ * (any level above none), whatever their role, and nowhere else; Suppliers is a tab of Partners, never an entry while
+ * Partners is open; Settings is the admin's alone, at the foot; the phone bar is the first four and More, with no More for
  * a Viewer whose four fill it. Ctrl K's pages are the same list. A page whose screen is not built (Overview, Pipeline,
  * Projects, Appraisal today) is in none of them, for any role (QA3-002). Every person and level is made up.
  * Sabotage: tests/sabotage/nav-access.mjs "menu-ignores-the-access-list", "menu-shows-unbuilt-pages".
@@ -106,11 +106,11 @@ describe('the menu (V238)', () => {
     expect(reachableFor(member).map((e) => e.page)).toEqual(expect.arrayContaining(keys(member)));
   });
 
-  it('never puts Suppliers in the menu while Clients is open: it is the second tab of Clients', () => {
+  it('never puts Suppliers in the menu while Partners is open: it is the second tab of Partners', () => {
     expect(keys(me('admin', everywhere('full'), true))).not.toContain('suppliers_partners');
   });
 
-  it('gives Suppliers its own door to a person who cannot open Clients', () => {
+  it('gives Suppliers its own door to a person who cannot open Partners', () => {
     expect(keys(me('member', everywhere('own', { clients: 'none' })))).toContain('suppliers_partners');
   });
 

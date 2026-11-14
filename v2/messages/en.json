@@ -104,7 +104,7 @@
       "app": "App"
     },
     "settings_home": "Settings",
-    "clients": "Clients",
+    "clients": "Partners",
     "suppliers_partners": "Suppliers",
     "files": "Files",
     "profile": "My profile"
@@ -166,7 +166,7 @@
   "create": {
     "task": "Task",
     "activity": "Log activity",
-    "client": "Client",
+    "client": "Partner",
     "supplier": "Supplier",
     "invoice": "Invoice",
     "achievement": "Achievement",
@@ -654,7 +654,7 @@
         }
       },
       "sides": {
-        "client": "Client",
+        "client": "Partner",
         "supplier_partner": "Supplier"
       },
       "repeat": {
@@ -1315,7 +1315,7 @@
     "clients": {
       "identify": "Change client identifiers and decide matches",
       "merge": "Merge organisations",
-      "assign": "Set the Client side's status, owner and priority",
+      "assign": "Set the Partner side's status, owner and priority",
       "assign_own": "Bulk-assign partners I own"
     },
     "suppliers_partners": {
@@ -1639,7 +1639,7 @@
     "startPage": {
       "my_day": "My day",
       "overview": "Overview",
-      "clients": "Clients",
+      "clients": "Partners",
       "suppliers_partners": "Suppliers",
       "pipeline": "Pipeline",
       "projects": "Projects",
@@ -1968,7 +1968,7 @@
       "status": "Status",
       "values": {
         "side": {
-          "client": "Client",
+          "client": "Partner",
           "supplier_partner": "Supplier"
         },
         "status": {
@@ -2152,7 +2152,7 @@
         "default_start_page": {
           "my_day": "My day",
           "overview": "Overview",
-          "clients": "Clients",
+          "clients": "Partners",
           "suppliers_partners": "Suppliers & partners",
           "pipeline": "Pipeline",
           "projects": "Projects",
@@ -2260,7 +2260,7 @@
       "partner_fixed": "An opportunity stays with its organisation",
       "type_of_other_side": "That type belongs to the other side",
       "type_required": "Choose what the organisation would become",
-      "side_required": "Choose Client or Supplier & partner",
+      "side_required": "Choose Partner or Supplier & partner",
       "partner_required": "Choose the organisation"
     },
     "tender": {
@@ -2646,8 +2646,10 @@
     "capped": "Showing {shown} of {total} — search or filter to narrow the list",
     "none": "No organisations match",
     "search": "Search by name or number",
-    "newClient": "New client",
+    "newClient": "New partner",
     "newSupplier": "New supplier",
+    "duplicateName": "A partner with this name already exists",
+    "duplicateNameOpen": "Open it and switch on the {side} side there instead of creating a new record",
     "chooseType": "Choose a type",
     "created": "{name} added",
     "updated": "{name} updated",
@@ -2672,11 +2674,11 @@
       "title": "Columns"
     },
     "side": {
-      "client": "Client",
+      "client": "Partner",
       "supplier_partner": "Supplier"
     },
     "sides": {
-      "client": "Client side",
+      "client": "Partner side",
       "supplier_partner": "Supplier side"
     },
     "status": {
@@ -2722,7 +2724,7 @@
       "noActivity": "No activity yet",
       "noNextStep": "No next step"
     },
-    "sideTabs": "Clients and suppliers",
+    "sideTabs": "Partners and suppliers",
     "tabs": {
       "overview": "Overview",
       "activity": "Activity",
@@ -2866,13 +2868,13 @@
     },
     "activity": {
       "who": "Who was it with?",
-      "whoOrg": "A client, lead or supplier",
+      "whoOrg": "A partner, lead or supplier",
       "whoNext": "Next",
       "whoKind": "It was with",
       "whoInside": "Someone inside Direct",
       "insideField": "Team or system",
       "insideNone": "Choose a team or system",
-      "needWho": "Choose a client, lead or supplier",
+      "needWho": "Choose a partner, lead or supplier",
       "needInside": "Choose a team or system",
       "ticketRef": "Ticket reference (optional)",
       "shareTeam": "Share with my team",
@@ -3062,7 +3064,7 @@
     "gone": {
       "title": "This organisation is not here",
       "body": "It was removed, or the address is wrong. A removed organisation can be brought back from Recently deleted.",
-      "backClients": "Back to Clients",
+      "backClients": "Back to Partners",
       "backSuppliers": "Back to Suppliers"
     }
   },
@@ -3072,7 +3074,7 @@
   "createNew": {
     "task": "New task",
     "activity": "Log activity",
-    "client": "New client",
+    "client": "New partner",
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement",

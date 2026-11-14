@@ -1,31 +1,23 @@
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { requireMe } from '@/core/auth/require-me';
-import { serverRpc } from '@/core/db/server-rpc';
-import type { PartnerCard } from '@/modules/partners/types';
+import { PartnerRecordPage } from '@/modules/partners/screens/record-page';
+import { pageTitle } from '@/ui/shell/page-title';
+
+export const generateMetadata = pageTitle('nav.clients');
 
 /**
- * One organisation, two doors (V98, V147): a link to /partners/[id] (a notification, a search hit, an old address)
- * opens the record from the list whose side the reader may see — Clients when the Client side is on and readable,
- * else Suppliers & partners. An id that is no organisation is not found. (The P3-2 specs' throwaway deep link moved
- * to /tasks/…, which the catch-all still serves.)
+ * An organisation opened from Partners: its Partner side leads (V98). A /partners/[id] link is the neutral
+ * record address (a notification, a search hit, a finance link) — a reader with no Partner-side access is sent
+ * on to the Suppliers record, as the old /partners/[id] redirect did.
  */
-export default async function PartnerRedirect({
-  params,
-  searchParams,
-}: {
+export default async function PartnerRecordPageRoute(props: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
-  const [{ id }, { tab }, me] = await Promise.all([params, searchParams, requireMe()]);
-  let card: PartnerCard | null = null;
-  try {
-    card = (await serverRpc('partner', { p_id: id })) as unknown as PartnerCard;
-  } catch (e) {
-    if ((e as { kind?: string }).kind === 'NotFound') notFound();
+  const [{ id }, { tab }, me] = await Promise.all([props.params, props.searchParams, requireMe()]);
+  if ((me.levels['clients'] ?? 'none') === 'none' && (me.levels['suppliers_partners'] ?? 'none') !== 'none') {
+    const q = typeof tab === 'string' ? `?tab=${encodeURIComponent(tab)}` : '';
+    redirect(`/suppliers/${id}${q}`);
   }
-  // an address that is no organisation (a made-up id) is not found — never sent on to a record that is not there
-  if (!card) notFound();
-  const client = card?.sides.some((s) => s.side === 'client' && s.on) && (me.levels['clients'] ?? 'none') !== 'none';
-  const q = typeof tab === 'string' ? `?tab=${encodeURIComponent(tab)}` : '';
-  redirect(`${client ? '/clients' : '/suppliers'}/${id}${q}`);
+  return <PartnerRecordPage side="client" {...props} />;
 }

@@ -9,7 +9,7 @@ import type { CompanyFile, CompanySummary, Contract, ListEntry, Note, PartnerCar
 import type { RecordComments } from '@/ui/record/Comments';
 
 /**
- * The organisation record (V95, V98, V149–V154), opened from the Clients or the Suppliers & partners list.
+ * The organisation record (V95, V98, V149–V154), opened from the Partners or the Suppliers & partners list.
  *
  * FIX-45: the page used to make 16 separate serverRpc calls (the partner read awaited alone, then 15 more in a
  * Promise.all) — 16 HTTPS round trips through the gateway, so two ordinary 10 s stalls on that spine cost ~20 s.

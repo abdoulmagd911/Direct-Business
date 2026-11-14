@@ -1,12 +1,12 @@
 /**
  * The oversight's production sweep of 12 Oct (the Architect's list D2, D6 and the wording and layout items), at phone and
- * desktop width: a client's Overview, Activity and Related each show only their own content; a client's own timeline
- * says "Client added"; a figure with no value says so in plain words; "1 organisation" agrees in number; the floating +
- * never ends up over the last row of a list (the page keeps its height clear); New client's Key partner switch has a
+ * desktop width: a partner's Overview, Activity and Related each show only their own content; a partner's own timeline
+ * says "Partner added"; a figure with no value says so in plain words; "1 organisation" agrees in number; the floating +
+ * never ends up over the last row of a list (the page keeps its height clear); New partner's Key partner switch has a
  * visible label; the task form's ?new=1 is spent when it closes; Finance and Settings are in the menu of the people whose
  * access opens them, in the drawer and in the phone's More sheet. Every value is made up.
  * Sabotage: tests/sabotage/sweep.mjs "overview-tab-repeats-the-timeline", "activity-tab-repeats-the-details",
- * "client-page-says-partner-added", "empty-figure-says-not-measured", "one-organisations", "page-ends-under-the-plus",
+ * "partner-page-says-client-added", "empty-figure-says-not-measured", "one-organisations", "page-ends-under-the-plus",
  * "key-partner-switch-has-no-label", "task-form-keeps-new-in-the-address", "admin-menu-loses-finance-and-settings".
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
@@ -28,7 +28,7 @@ for (const [label, width, height] of [
   ['desk 1440', 1440, 900],
   ['phone 390', 390, 844],
 ] as const) {
-  test(`${label}: a client's tabs each show only their own content, and its timeline says Client added`, async ({
+  test(`${label}: a partner's tabs each show only their own content, and its timeline says Partner added`, async ({
     page,
   }) => {
     const name = `Sweep Org ${tag()}`;
@@ -37,7 +37,7 @@ for (const [label, width, height] of [
     await signIn(page, admin.email);
     const id = await createClient(page.context(), name);
 
-    await page.goto(`/clients/${id}`);
+    await page.goto(`/partners/${id}`);
     await hydrated(page);
     await expect(page.locator('[data-partner-details]'), 'Overview shows the details').toBeVisible();
     await expect(page.locator('[data-partner-notes]'), 'Overview does not repeat the timeline').toHaveCount(0);
@@ -48,15 +48,15 @@ for (const [label, width, height] of [
     await expect(figures).toContainText('No next step');
     await expect(figures).not.toContainText(/not measured/i);
 
-    await page.goto(`/clients/${id}?tab=activity`);
+    await page.goto(`/partners/${id}?tab=activity`);
     await hydrated(page);
     await expect(page.locator('[data-partner-notes]'), 'Activity is the timeline').toBeVisible();
     await expect(page.locator('[data-partner-details]'), 'Activity does not repeat the details').toHaveCount(0);
     await expect(page.locator('[data-record-rail]')).toHaveCount(0);
-    await expect(page.locator('main'), 'a client’s timeline says Client added').toContainText('Client added');
-    await expect(page.locator('main'), 'never Partner added').not.toContainText('Partner added');
+    await expect(page.locator('main'), 'a partner’s timeline says Partner added').toContainText('Partner added');
+    await expect(page.locator('main'), 'never Client added').not.toContainText('Client added');
 
-    await page.goto(`/clients/${id}?tab=related`);
+    await page.goto(`/partners/${id}?tab=related`);
     await hydrated(page);
     await expect(page.locator('[data-partner-related]'), 'Related shows what is related').toBeVisible();
     await expect(page.locator('[data-partner-details]'), 'Related does not repeat the details').toHaveCount(0);
@@ -70,14 +70,14 @@ test('one organisation agrees in number', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email);
   await createClient(page.context(), name);
-  await page.goto(`/clients?q=${encodeURIComponent(name)}`);
+  await page.goto(`/partners?q=${encodeURIComponent(name)}`);
   await hydrated(page);
   await expect(page.locator('[data-partners-total]'), '1 organisation, not 1 organisations').toHaveText(
     '1 organisation',
   );
 });
 
-test('phone 390: a page keeps the floating + clear of its last row, New client labels its switch, the task form spends ?new=1', async ({
+test('phone 390: a page keeps the floating + clear of its last row, New partner labels its switch, the task form spends ?new=1', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -85,13 +85,13 @@ test('phone 390: a page keeps the floating + clear of its last row, New client l
   await signIn(page, admin.email);
 
   // the floating + is 56 px at 76 px up: the page's foot is at least that clear (the + never ends over a row)
-  await page.goto('/clients');
+  await page.goto('/partners');
   await hydrated(page);
   const clear = await page.locator('[data-page]').evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
   expect(clear, 'the page keeps the + clear: at least 132 px below its last row').toBeGreaterThanOrEqual(132);
 
-  // New client: the Key partner switch is a visible word, not only an accessible name
-  await page.goto('/clients?new=1');
+  // New partner: the Key partner switch is a visible word, not only an accessible name
+  await page.goto('/partners?new=1');
   await hydrated(page);
   await expect(page.locator('[data-partner-form]')).toBeVisible();
   await expect(page.locator('#new-partner-key'), 'the switch has a visible label').toBeVisible();

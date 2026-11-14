@@ -1,5 +1,5 @@
 /**
- * V630 on the Clients list, on a phone: one add action (Create in the bar), one Filter button that holds the search and
+ * V630 on the Partners list, on a phone: one add action (Create in the bar), one Filter button that holds the search and
  * the chips and shows how many are on, nothing wider than the screen — at 375 and at 320 px. A wide screen keeps the
  * header button and every control in its row. Every value is made up.
  * Sabotage: tests/sabotage/screens.mjs "clients-header-add-stays-on-a-phone", "clients-filters-stay-in-the-row-on-a-phone",
@@ -17,13 +17,13 @@ const drawn = async (page: Page, selector: string) => {
 };
 
 for (const width of [375, 320]) {
-  test(`phone ${width}: Clients has one add action and one Filter button (V630)`, async ({ page }) => {
+  test(`phone ${width}: Partners has one add action and one Filter button (V630)`, async ({ page }) => {
     const admin = await makePerson({ admin: true });
     await page.setViewportSize({ width, height: 812 });
-    await signIn(page, admin.email, '/clients');
+    await signIn(page, admin.email, '/partners');
     await hydrated(page);
 
-    expect(await drawn(page, '[data-partner-new]'), 'the header New client button is not drawn on a phone').toBeNull();
+    expect(await drawn(page, '[data-partner-new]'), 'the header New partner button is not drawn on a phone').toBeNull();
     expect(await drawn(page, '[data-create-bar]'), 'Create in the bar is the one add action').not.toBeNull();
 
     const filter = await drawn(page, '[data-filter-toggle]');
@@ -46,10 +46,10 @@ for (const width of [375, 320]) {
   });
 }
 
-test('desk 1440: Clients keeps its header button and every filter in the row', async ({ page }) => {
+test('desk 1440: Partners keeps its header button and every filter in the row', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signIn(page, admin.email, '/clients');
+  await signIn(page, admin.email, '/partners');
   await hydrated(page);
   expect(await drawn(page, '[data-partner-new]'), 'the header button is drawn').not.toBeNull();
   expect(await drawn(page, '[data-partners-search]'), 'the search is in the row').not.toBeNull();

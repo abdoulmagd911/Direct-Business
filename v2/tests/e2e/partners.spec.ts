@@ -1,6 +1,6 @@
 /**
- * P3-9a — Clients, and Suppliers & partners (V98, V146–V154): an admin creates a supplier from its list and the record
- * opens with its five header figures; the Client side is switched on from the record's ⋯ door; At risk refuses to save
+ * P3-9a — Partners, and Suppliers & partners (V98, V146–V154): an admin creates a supplier from its list and the record
+ * opens with its five header figures; the Partner side is switched on from the record's ⋯ door; At risk refuses to save
  * without a reason; an activity is logged and appears in the timeline; the Arabic trade name is found by search; the
  * hover card names the number and both sides. Then twenty organisations are assigned in one command with one Undo.
  * Sabotages: tests/sabotage/screens.mjs "at-risk-needs-no-reason", "bulk-assign-one-by-one", "hover-card-shows-one-side".
@@ -19,7 +19,7 @@ async function createPartner(context: BrowserContext, name: string, side: 'clien
   return (r.body as { id: string }).id;
 }
 
-test('an admin creates a supplier, switches its Client side on, sets At risk with a reason, logs a call; Arabic search; the hover card', async ({
+test('an admin creates a supplier, switches its Partner side on, sets At risk with a reason, logs a call; Arabic search; the hover card', async ({
   page,
 }) => {
   const admin = await makePerson({ admin: true });
@@ -29,7 +29,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await page.setViewportSize({ width: 1500, height: 1000 });
   await signIn(page, admin.email, '/suppliers');
   await hydrated(page);
-  // Suppliers is the second tab of Clients (V217); its title is Suppliers, and the Suppliers tab is the one on (V238)
+  // Suppliers is the second tab of Partners (V217); its title is Suppliers, and the Suppliers tab is the one on (V238)
   await expect(page.getByRole('heading', { level: 1, name: 'Suppliers' })).toBeVisible();
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
 
@@ -58,13 +58,13 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
     await expect(figures.getByText(label, { exact: true }), `the ${label} figure`).toBeVisible();
   }
 
-  // the ⋯ door: switch the Client side on
+  // the ⋯ door: switch the Partner side on
   await page.locator('[data-partner-more]').click();
   await page.locator('[data-side-on="client"]').click();
   await page.locator('[data-side-form="client"]').getByLabel('Type').click();
   await page.getByRole('option', { name: 'Corporate' }).click();
   await page.locator('[data-side-save]').click();
-  await expect(toast(page, 'Client added')).toBeVisible();
+  await expect(toast(page, 'Partner added')).toBeVisible();
 
   // At risk needs a reason: refused in place until one is chosen
   await page.locator('[data-partner-more]').click();
@@ -95,8 +95,8 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
     .click();
   await expect(page.locator('[data-partner-notes]')).toContainText(`Called about ${t}`);
 
-  // the Arabic name finds it on the Clients list (the side is on now); the hover card names number and both sides
-  await page.goto(`/clients?q=${encodeURIComponent(`اختبار ${t}`)}`);
+  // the Arabic name finds it on the Partners list (the side is on now); the hover card names number and both sides
+  await page.goto(`/partners?q=${encodeURIComponent(`اختبار ${t}`)}`);
   await hydrated(page);
   const link = page.locator(`[data-partner-link="${id}"]`);
   await expect(link).toBeVisible();
@@ -105,7 +105,7 @@ test('an admin creates a supplier, switches its Client side on, sets At risk wit
   await expect(hover).toBeVisible();
   const [row] = await sql<{ number: string }>(`select number from partner.partner where id = $1`, [id]);
   await expect(hover).toContainText(row!.number);
-  await expect(hover, 'the hover card names both sides').toContainText('Client · Corporate · At risk');
+  await expect(hover, 'the hover card names both sides').toContainText('Partner · Corporate · At risk');
   await expect(hover, 'the hover card names both sides').toContainText('Supplier · Hotel supplier');
 });
 
@@ -118,7 +118,7 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
   const ownerName = `Aa Bulk owner ${t}`;
   await sql(`update core.person set full_name_en = $2 where id = $1`, [fresh.id, ownerName]);
   await page.setViewportSize({ width: 1500, height: 1000 });
-  await signIn(page, admin.email, '/clients');
+  await signIn(page, admin.email, '/partners');
   await hydrated(page);
   const ids: string[] = [];
   for (let i = 0; i < 20; i += 1)
@@ -126,7 +126,7 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
 
   const since = (await sql<{ since: string }>(`select now()::text as since`))[0]!.since;
 
-  await page.goto(`/clients?q=${encodeURIComponent(`Bulk ${t}`)}`);
+  await page.goto(`/partners?q=${encodeURIComponent(`Bulk ${t}`)}`);
   await hydrated(page);
   await expect(page.locator('[data-partner-link]')).toHaveCount(20);
   await page.getByLabel('Select all').click();
@@ -162,4 +162,42 @@ test('twenty organisations are assigned in one command, with one Undo', async ({
   await toast(page, '20 assigned').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(toast(page, 'Undone')).toBeVisible();
   await expect.poll(owned, { message: 'the Undo takes the owner off all twenty' }).toBe(0);
+});
+
+test('the old /clients address lands on Partners, list and record (L23 rename)', async ({ page, context }) => {
+  const admin = await makePerson({ admin: true });
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, admin.email, '/clients');
+  await hydrated(page);
+  await expect(page).toHaveURL(/\/partners$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Partners' })).toBeVisible();
+  const id = await createPartner(context, `Old address ${tag()}`, 'client', 'corporate');
+  await page.goto(`/clients/${id}`);
+  await hydrated(page);
+  await expect(page).toHaveURL(new RegExp(`/partners/${id}$`));
+});
+
+test('New partner warns on an exact name match and offers the existing record instead of a second one (L23)', async ({
+  page,
+  context,
+}) => {
+  const admin = await makePerson({ admin: true });
+  const t = tag();
+  const name = `Dupe Org ${t}`;
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await signIn(page, admin.email, '/partners');
+  await hydrated(page);
+  const id = await createPartner(context, name, 'client', 'corporate');
+  await expect(page.locator('[data-partner-new]'), 'the button is New partner').toHaveText('New partner');
+  await page.locator('[data-partner-new]').click();
+  const form = page.locator('[data-partner-form]');
+  await form.getByLabel('Trade name', { exact: true }).fill(name);
+  const warn = page.locator('[data-new-partner-duplicate]');
+  await expect(warn, 'the exact name warns').toBeVisible();
+  await expect(warn).toContainText('A partner with this name already exists');
+  await expect(warn.getByRole('link')).toHaveAttribute('href', `/partners/${id}`);
+  // Save stays on: two companies can share a name — the warning is a nudge, never a block
+  await form.getByLabel('Type').click();
+  await page.getByRole('option', { name: 'Corporate' }).click();
+  await expect(page.locator('[data-partner-save]')).toBeEnabled();
 });

@@ -67,7 +67,7 @@ for (const width of [375, 1440]) {
     const { me, t } = await personWithTeam();
     const wide = width > 700;
     await page.setViewportSize({ width, height: wide ? 1000 : 800 });
-    await signIn(page, me.email, '/clients');
+    await signIn(page, me.email, '/partners');
     await hydrated(page);
     const where = page.url();
 
@@ -129,7 +129,7 @@ for (const width of [375, 1440]) {
 test('Ctrl K offers Capture and opens the same sheet', async ({ page }) => {
   const { me } = await personWithTeam();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await signIn(page, me.email, '/clients');
+  await signIn(page, me.email, '/partners');
   await hydrated(page);
   await page.keyboard.press('Control+k');
   await page.getByRole('option', { name: 'Create · Capture', exact: true }).click();

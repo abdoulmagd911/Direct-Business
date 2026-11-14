@@ -65,7 +65,7 @@ export const CREATE_ACTIONS: {
     at: ['own', 'full'],
     dialog: openLogActivity,
   },
-  { key: 'client', page: 'clients', route: '/clients?new=1', icon: Building2, at: ['full'] },
+  { key: 'client', page: 'clients', route: '/partners?new=1', icon: Building2, at: ['full'] },
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },

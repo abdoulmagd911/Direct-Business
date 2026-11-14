@@ -66,7 +66,7 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/en.json',
-        find: '"settings_home": "Settings",\n    "clients": "Clients"',
+        find: '"settings_home": "Settings",\n    "clients": "Partners"',
         replace: '"settings_home": "Settings",\n    "clients": "Companies"',
       },
     ],
@@ -970,7 +970,7 @@ export const sabotages = [
   {
     name: 'suppliers-door-lost-when-clients-none',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
-    expect: 'a person with Clients none still has a door to Suppliers',
+    expect: 'a person with Partners none still has a door to Suppliers',
     edits: [
       {
         file: 'src/ui/shell/nav.ts',
@@ -1786,7 +1786,7 @@ export const sabotages = [
   {
     name: 'clients-header-add-stays-on-a-phone',
     breaks: ['e2e:tests/e2e/clients-phone.spec.ts'],
-    expect: 'the header New client button is not drawn on a phone',
+    expect: 'the header New partner button is not drawn on a phone',
     edits: [
       {
         file: 'src/modules/partners/screens/PartnersList.tsx',

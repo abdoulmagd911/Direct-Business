@@ -709,7 +709,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           // An empty field shows only to someone who can fill it (its "+ Add"); for everyone else it is left out, not
           // drawn as a bare label. Client since is the organisation's date as a client (the Finance figures count
           // new clients by it), so it is never relabelled as a supplier's date, and it is not offered on an
-          // organisation without its Client side (the Supplier side's own start is its side's Since).
+          // organisation without its Partner side (the Supplier side's own start is its side's Since).
           .filter(([k, v]) => (v ? true : mayEdit && (k !== 'clientSince' || !!sideOf('client'))))
           .map(([k, v]) => (
             <RailField

@@ -17,14 +17,14 @@ export const sabotages = [
     edits: [{ file: RECORD, find: "{tab === 'overview' ? (", replace: "{tab === 'overview' || tab === 'history' ? (" }],
   },
   {
-    name: 'client-page-says-partner-added',
+    name: 'partner-page-says-client-added',
     breaks: [E2E],
-    expect: 'a client’s timeline says Client added',
+    expect: 'a partner’s timeline says Partner added',
     edits: [
       {
         file: RECORD,
         find: "partner: side === 'client' ? t('partners.side.client') : t('partners.side.supplier_partner'),",
-        replace: "partner: 'Partner',",
+        replace: "partner: 'Client',",
       },
     ],
   },

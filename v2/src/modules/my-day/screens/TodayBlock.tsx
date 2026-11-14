@@ -311,7 +311,7 @@ function TodayRow({
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           {/* the client opens the client, above the row's own link (the read names it only to a reader who may see it) */}
           {task.partner_id && task.partner_name ? (
-            <Link href={`/clients/${task.partner_id}`} className="relative z-10" data-today-client>
+            <Link href={`/partners/${task.partner_id}`} className="relative z-10" data-today-client>
               <StatusChip tone="neutral">
                 <bdi>{task.partner_name}</bdi>
               </StatusChip>

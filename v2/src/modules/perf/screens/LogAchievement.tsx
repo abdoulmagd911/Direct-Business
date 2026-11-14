@@ -121,13 +121,24 @@ export function LogAchievement({
   };
   const onDay = async (next: string) => {
     setDay(next);
-    const y = Number((next || riyadhToday()).slice(0, 4));
+    // The date box hands up raw typing while it is not a day yet — "8", "1", "25" — whose first four
+    // characters are not a year. Only a whole date (2026-11-14) moves the plan; while typing, the loaded
+    // year stays put and the banner never shows a day number as a year. Clearing the box reloads nothing.
+    const m = /^(\d{4})-\d{2}-\d{2}$/.exec(next);
+    const y = m ? Number(m[1]) : null;
     if (!y || y === loadedYear) return;
     await loadYear(y);
   };
 
   // V380: a year with no plan has no categories — never an empty list: one sentence, and an admin opens the plan here.
   const openPlan = async () => {
+    // A year before the first plan (2024 — the same floor as the date box's min and Targets' FIRST_YEAR)
+    // cannot be opened — the server refuses it — so the button goes to Settings > Targets, where the plans
+    // live, instead of doing nothing.
+    if (loadedYear < 2024) {
+      router.push('/settings/performance');
+      return;
+    }
     setBusy(true);
     await command(
       words(t('plan.opened', { year: loadedYear })),

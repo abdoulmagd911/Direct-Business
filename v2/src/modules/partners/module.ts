@@ -1,17 +1,18 @@
 import { z } from 'zod';
 import { defineModule } from '../../core/registry/define-module';
 
-// Organisations — Clients, and Suppliers & partners: one record, two sides (V98); helpers, not locks (D7, V26).
+// Organisations — Partners, and Suppliers & partners: one record, two sides (V98); helpers, not locks (D7, V26).
 // Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'partners',
   pages: [
     // One organisation record, two sides (V98): each side's list is its own page, with its own access and capabilities.
-    // P3-9: the lists live at /clients and /suppliers; a record opens as /clients/[id] or /suppliers/[id] (the same
-    // organisation, the opened side first), and /partners/[id] sends a link to the right one.
+    // P3-9: the lists live at /partners and /suppliers; a record opens as /partners/[id] or /suppliers/[id] (the same
+    // organisation, the opened side first). A plain /partners/[id] link lands on the side the reader may see — the
+    // record page sends a reader with no Partner-side access on to /suppliers/[id].
     {
       key: 'clients',
-      route: '/clients',
+      route: '/partners',
       label: 'nav.clients',
       icon: 'building-2',
       nav: { group: 'main', order: 30, tier: 'work' },
@@ -218,7 +219,7 @@ export default defineModule({
     },
   ],
   capabilities: [
-    // Per side (V98): the same three powers on the Client side and on the Supplier & partner side.
+    // Per side (V98): the same three powers on the Partner side and on the Supplier & partner side.
     ...(['clients', 'suppliers_partners'] as const).flatMap((page) => [
       {
         key: `${page}.identify`,

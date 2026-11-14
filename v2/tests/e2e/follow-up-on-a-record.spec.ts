@@ -126,7 +126,7 @@ for (const w of WIDTHS) {
     expect(org.status, JSON.stringify(org.body)).toBe(200);
     const id = (org.body as { id: string }).id;
 
-    await page.goto(`/clients/${id}`);
+    await page.goto(`/partners/${id}`);
     await hydrated(page);
     await expect(page.locator('[data-follow]'), 'watching a record is named Watch, not Follow').toHaveText(
       /^Watch(ing)?$/,
@@ -209,7 +209,7 @@ for (const w of WIDTHS) {
     const chip = page.locator(`[data-today-task="${number}"] [data-today-client]`);
     await expect(chip).toHaveText(name);
     await chip.click();
-    await expect(page, 'the chip opens the client, not the task').toHaveURL(new RegExp(`/clients/${clientId}$`));
+    await expect(page, 'the chip opens the client, not the task').toHaveURL(new RegExp(`/partners/${clientId}$`));
     await ctx.close();
   });
 }

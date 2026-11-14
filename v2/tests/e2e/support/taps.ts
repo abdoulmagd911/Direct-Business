@@ -55,8 +55,8 @@ export async function walk(page: Page, me: { id: string }, clientId: string, num
     '/my-day',
     '/tasks',
     `/tasks/${number}`,
-    '/clients',
-    `/clients/${clientId}`,
+    '/partners',
+    `/partners/${clientId}`,
     '/suppliers',
     '/finance',
     '/profile',
@@ -77,7 +77,7 @@ export async function walk(page: Page, me: { id: string }, clientId: string, num
     await measure(path);
   }
   // what a finger opens from a client's page and from My day
-  await page.goto(`/clients/${clientId}`);
+  await page.goto(`/partners/${clientId}`);
   await hydrated(page);
   await page.locator('[data-activity-log]').first().click();
   await expect(page.locator('[data-activity-form]')).toBeVisible();

@@ -41,7 +41,7 @@ test('a task added to a client and then done leaves worded lines on the clientâ€
   expect(task.status, JSON.stringify(task.body)).toBe(200);
   const taskId = (task.body as { id: string }).id;
 
-  await page.goto(`/clients/${clientId}?tab=activity`);
+  await page.goto(`/partners/${clientId}?tab=activity`);
   await hydrated(page);
   const lines = page.locator('[data-note-event]');
   await expect(

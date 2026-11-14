@@ -18,13 +18,13 @@ for (const width of [1440, 375]) {
   }) => {
     const admin = await makePerson({ admin: true });
     await page.setViewportSize({ width, height: width === 375 ? 800 : 1000 });
-    await signIn(page, admin.email, '/clients');
+    await signIn(page, admin.email, '/partners');
     const r = await callAs(context, 'partner_create', {
       p_partner: { trade_name_en: `Test Org ${tag()}`, sides: [{ side: 'client', type: 'corporate' }] },
     });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     const id = (r.body as { id: string }).id;
-    await page.goto(`/clients/${id}`);
+    await page.goto(`/partners/${id}`);
     await hydrated(page);
     await page.evaluate(() => {
       (window as unknown as { __same: boolean }).__same = true;

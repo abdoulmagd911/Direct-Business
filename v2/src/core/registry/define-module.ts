@@ -31,7 +31,7 @@ export interface PageDef {
   icon?: string;
   /**
    * In the drawer (main pages) or in Settings' own list. A page may show as several drawer entries (`entries`), each
-   * its own label and route into the same page — the owner's Clients and Suppliers & partners (29 Sep) are two doors
+   * its own label and route into the same page — the owner's Partners and Suppliers & partners (29 Sep) are two doors
    * into Partners; access stays the page's. Without `entries`, the page is one entry with its own label and route.
    */
   nav?: {
@@ -46,7 +46,7 @@ export interface PageDef {
     tier?: 'work' | 'manage';
     viewer?: boolean;
     from?: 'head';
-    /** Shown as a tab of another main page, never in the menu itself (Suppliers is the second tab of Clients). */
+    /** Shown as a tab of another main page, never in the menu itself (Suppliers is the second tab of Partners). */
     tabOf?: string;
   };
   /** The page's screen is built: its Create item may show, and it no longer says "Being built." (set by whoever lands it). */

@@ -21,7 +21,7 @@ describe('a key that names a group of words is no word', () => {
     errors.length = 0;
     expect(keyWord(t, 'files')).toBeNull();
     expect(settingLabel(t, 'files')).toBeNull();
-    // cap.clients is a group; "clients" still reads as the Clients start page, never as "cap.clients"
+    // cap.clients is a group; "clients" still reads as the Partners start page, never as "cap.clients"
     expect(keyWord(t, 'clients')).toBe(en.activity.startPage.clients);
     expect(errors).toEqual([]);
   });

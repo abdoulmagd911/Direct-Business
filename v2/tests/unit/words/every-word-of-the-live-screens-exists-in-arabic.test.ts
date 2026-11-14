@@ -1,6 +1,6 @@
 /**
  * The Arabic sweep of 27 Oct: every catalog word English has, Arabic has, for the screens that are live — My day,
- * notes, the bell, Clients and Tasks lists, Settings, the refusals shown in a toast on any of them, saved views and the
+ * notes, the bell, Partners and Tasks lists, Settings, the refusals shown in a toast on any of them, saved views and the
  * save-conflict box. A missing one would be drawn as its raw key. The namespaces still waiting for their Arabic
  * (Activity, My profile, the sign-in door, Finance) are named below, so a new word in any other namespace fails here.
  * Sabotages: tests/sabotage/arabic-sweep.mjs.

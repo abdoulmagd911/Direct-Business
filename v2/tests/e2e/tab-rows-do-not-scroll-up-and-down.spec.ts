@@ -74,7 +74,7 @@ for (const width of WIDTHS) {
     const pages = [
       { path: '/my-day', must: true },
       { path: '/tasks', must: true },
-      { path: `/clients/${(made.body as { id: string }).id}`, must: true },
+      { path: `/partners/${(made.body as { id: string }).id}`, must: true },
       { path: '/settings/org', must: false },
       { path: '/activity', must: false },
     ];

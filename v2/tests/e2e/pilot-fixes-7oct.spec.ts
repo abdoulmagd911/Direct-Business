@@ -39,7 +39,7 @@ test('every page names its tab: "Tasks · Commercial" (QA-219)', async ({ page }
   await hydrated(page);
   for (const [path, title] of [
     ['/tasks', 'Tasks · Commercial'],
-    ['/clients', 'Clients · Commercial'],
+    ['/partners', 'Partners · Commercial'],
     ['/my-day', 'My day · Commercial'],
     ['/kpis/achievements', 'Achievements · Commercial'],
     ['/activity', 'Activity · Commercial'],
@@ -56,7 +56,7 @@ test('phone: a long title wraps to two lines, and the way back is 24 px or more 
 }) => {
   const member = await memberWithTeam();
   await page.setViewportSize(PHONE);
-  await signIn(page, member.email, '/clients');
+  await signIn(page, member.email, '/partners');
   await hydrated(page);
   const name = `Test Org Phone Wrap Long ${Math.random().toString(36).slice(2, 6)}`;
   const created = await callAs(page.context(), 'partner_create', {
@@ -66,7 +66,7 @@ test('phone: a long title wraps to two lines, and the way back is 24 px or more 
     },
   });
   expect(created.status, JSON.stringify(created.body)).toBe(200);
-  await page.goto(`/clients/${(created.body as { id: string }).id}`);
+  await page.goto(`/partners/${(created.body as { id: string }).id}`);
   await hydrated(page);
   // Landing 11 (#1581 triage): wait for the record's own content before measuring — hydrated() gates only on
   // the root-layout marker, so a slow load can read 0 breadcrumb links (evaluateAll never waits).

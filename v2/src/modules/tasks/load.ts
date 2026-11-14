@@ -23,7 +23,7 @@ type PartnerRow = { id: string; number: string; trade_name_en: string; trade_nam
 type ProjectRow = { id: string; number: string; name: string };
 
 /**
- * The names a task points at. Clients come from the Clients list and projects from the Projects list — each read only
+ * The names a task points at. Partners come from the Partners list and projects from the Projects list — each read only
  * with a level there, so a member without Projects (the pilot hides it, V517) is simply offered none.
  */
 export async function loadLookups(me: Me, failed: string[] = []): Promise<TaskLookups> {

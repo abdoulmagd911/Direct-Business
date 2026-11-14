@@ -25,7 +25,7 @@ import { today, useWords } from './words';
 
 const IDENTIFIER_KINDS = ['vat', 'cr', 'email', 'phone', 'payments_client_id', 'discount_code', 'name'] as const;
 
-/** Add an identifier (§3.4, V133: with its reason; client IDs and codes need the Client side on; codes carry dates). */
+/** Add an identifier (§3.4, V133: with its reason; client IDs and codes need the Partner side on; codes carry dates). */
 export function IdentifierDialog({
   open,
   onOpenChange,

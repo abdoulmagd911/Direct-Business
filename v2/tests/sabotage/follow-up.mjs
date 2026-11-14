@@ -53,14 +53,14 @@ export const sabotages = [
     edits: [{ file: 'messages/en.json', find: '"follow": "Watch",', replace: '"follow": "Follow",' }],
   },
   {
-    // finding 5: the client chip on My day opens the client
-    name: 'today-client-chip-opens-the-task',
+    // finding 5: the partner chip on My day opens the partner
+    name: 'today-partner-chip-opens-the-task',
     breaks: [E2E],
     expect: CHIP,
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: 'href={`/clients/${task.partner_id}`}',
+        find: 'href={`/partners/${task.partner_id}`}',
         replace: 'href={`/tasks/${task.number}`}',
       },
     ],

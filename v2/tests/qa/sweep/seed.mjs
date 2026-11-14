@@ -255,7 +255,7 @@ async function main() {
   for (const k of ['noclients', 'noclientscap'])
     await admin('access_set_person_level', { p_person: u(k).id, p_page: 'clients', p_level: 'none', p_reason: why });
 
-  // Test Org Alpha: the Client side only, owned by the member. Test Org Beta: both sides — the Client side owned by the
+  // Test Org Alpha: the Partner side only, owned by the member. Test Org Beta: both sides — the Partner side owned by the
   // member, the Supplier & partner side by the admin.
   const alpha = await admin('partner_create', {
     p_partner: {
@@ -274,8 +274,8 @@ async function main() {
     },
     p_reason: why,
   });
-  // The hover card and the card name "an owner" (partner.owners, first row). Make that first row the Client side's
-  // owner if any Supplier & partner owner allows it, so a leak of the Client side's owner is visible, not left to luck.
+  // The hover card and the card name "an owner" (partner.owners, first row). Make that first row the Partner side's
+  // owner if any Supplier & partner owner allows it, so a leak of the Partner side's owner is visible, not left to luck.
   const firstOwner = async () =>
     (await sql(`select x::text as id from partner.owners($1) x limit 1`, [beta.id]))[0]?.id ?? null;
   let clientOwnerFirst = (await firstOwner()) === u('member').id;
@@ -476,7 +476,7 @@ async function main() {
   mkdirSync(RUN_DIR, { recursive: true });
   writeFileSync(FIXTURES_FILE, JSON.stringify(fixtures, null, 2));
   console.log(`seeded run ${tag}: ${Object.keys(users).length} people, 2 organisations (${FIXTURES_FILE})`);
-  if (!clientOwnerFirst) console.log('note: no owner order put the Client side owner first on Beta');
+  if (!clientOwnerFirst) console.log('note: no owner order put the Partner side owner first on Beta');
   await pool.end();
 }
 

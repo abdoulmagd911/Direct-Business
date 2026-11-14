@@ -110,7 +110,7 @@ export function PartnersList({
   sideTypes: ListEntry[];
   tiers: ListEntry[];
   priorities: ListEntry[];
-  /** Clients · Suppliers, one page with two tabs (V217); absent when the reader has only one side. */
+  /** Partners · Suppliers, one page with two tabs (V217); absent when the reader has only one side. */
   tabs?: ReactNode;
   /** Opened from Create (`?new=1`): the New dialog is open on arrival, for a reader with Full. */
   startCreating?: boolean;

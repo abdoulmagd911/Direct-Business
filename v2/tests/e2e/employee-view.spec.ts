@@ -1,6 +1,6 @@
 /**
  * The employee view (V217; the Design lead's brief `docs/v2/briefs/employee-view.md`, section F): the menu follows the
- * work/manage rule per role, the phone bar is the menu's first four and More, Suppliers is the second tab of Clients,
+ * work/manage rule per role, the phone bar is the menu's first four and More, Suppliers is the second tab of Partners,
  * Create offers only built screens at the right level, the chip holds My profile and Sign out, My profile has five
  * cards, a person's Access is one line, the words are the new ones, and a phone at 390 px never scrolls sideways.
  * Each test runs at 390 × 844 and 1440 × 900 where the brief asks for both. The access is the one the oversight sets
@@ -101,14 +101,14 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
   expect(await drawerLabels(page), 'the member menu').toEqual([
     'My day',
     'Tasks',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual([
     'Achievements',
     'Reports',
@@ -123,14 +123,14 @@ test('2 · a Business Development member (Pipeline Own by a person change) gets 
   expect(await drawerLabels(page)).toEqual([
     'My day',
     'Tasks',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
   expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes']);
 });
 
@@ -141,7 +141,7 @@ test('3 · a manager: every built page their access opens, in order (Activity at
   expect(await drawerLabels(page)).toEqual([
     'My day',
     'Tasks',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',
@@ -149,13 +149,13 @@ test('3 · a manager: every built page their access opens, in order (Activity at
     'Activity',
   ]);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Clients', 'Finance', 'More', 'Create']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
   expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes', 'Activity']);
 });
 
 test('4 · a head has Activity; an admin adds Settings at the foot and in More', async ({ page, browser }) => {
   await openAs(page, 'head');
-  const head = ['My day', 'Tasks', 'Clients', 'Finance', 'Achievements', 'Reports', 'Discount codes', 'Activity'];
+  const head = ['My day', 'Tasks', 'Partners', 'Finance', 'Achievements', 'Reports', 'Discount codes', 'Activity'];
   expect(await drawerLabels(page)).toEqual(head);
   await expect(page.locator('[data-drawer]').getByRole('link', { name: 'Settings' })).toHaveCount(0);
 
@@ -180,7 +180,7 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   await openAs(page, 'viewer');
   expect(await drawerLabels(page)).toEqual([
     'My day',
-    'Clients',
+    'Partners',
     'Finance',
     'Achievements',
     'Reports',
@@ -191,7 +191,7 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
   await page.keyboard.press('Escape');
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Clients', 'Finance', 'Achievements', 'More', 'Create']);
+  expect(await barLabels(page)).toEqual(['My day', 'Partners', 'Finance', 'Achievements', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
   await page.locator('[data-create-bar]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
@@ -266,7 +266,7 @@ test('7 · an admin sees no unbuilt page in the drawer, the phone bar, More or C
 
 // ── Suppliers tab ────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('8 · Clients carries the tab row Clients · Suppliers with counts; the old address lands on Suppliers; no tab row without Suppliers', async ({
+test('8 · Partners carries the tab row Partners · Suppliers with counts; the old address lands on Suppliers; no tab row without Suppliers', async ({
   page,
   browser,
 }) => {
@@ -276,12 +276,12 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
   await organisation(page.context(), `Test Supplier ${t}`, ['supplier_partner']);
   for (const size of [DESKTOP, PHONE]) {
     await page.setViewportSize(size);
-    await page.goto('/clients');
+    await page.goto('/partners');
     await hydrated(page);
-    await expect(page.getByRole('heading', { level: 1, name: 'Clients' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Partners' })).toBeVisible();
     const tabs = page.locator('[data-side-tabs] a');
     await expect(tabs).toHaveCount(2);
-    await expect(tabs.nth(0)).toHaveText(/^Clients\s*\d+$/);
+    await expect(tabs.nth(0)).toHaveText(/^Partners\s*\d+$/);
     // FIX-45: the tab shows no count until it is opened, when its own list read carries its total — the other
     // tab carries none until then.
     await expect(tabs.nth(1)).toHaveText('Suppliers');
@@ -301,17 +301,17 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
     page.getByRole('heading', { level: 1, name: 'Suppliers' }),
     'the title is the page on screen',
   ).toBeVisible();
-  // the mirror of the Clients leg (FIX-45): on Suppliers the Suppliers tab carries the count, Clients is bare.
+  // the mirror of the Partners leg (FIX-45): on Suppliers the Suppliers tab carries the count, Partners is bare.
   const supTabs = page.locator('[data-side-tabs] a');
   await expect(supTabs).toHaveCount(2);
-  await expect(supTabs.nth(0)).toHaveText('Clients');
+  await expect(supTabs.nth(0)).toHaveText('Partners');
   await expect(supTabs.nth(1)).toHaveText(/^Suppliers\s*\d+$/);
   await expect(page.locator('[data-side-tab="supplier_partner"]')).toHaveAttribute('aria-current', 'page');
   await page.goto(`/suppliers?q=${encodeURIComponent(`Test Supplier ${t}`)}`);
   await hydrated(page);
   await expect(page.getByText(`Test Supplier ${t}`).first(), 'Suppliers lists the supplier side').toBeVisible();
 
-  // a person with Suppliers at none sees Clients alone, with no tab row
+  // a person with Suppliers at none sees Partners alone, with no tab row
   const ctx = await browser.newContext();
   const other = await ctx.newPage();
   const member = await personAs('member');
@@ -321,9 +321,9 @@ test('8 · Clients carries the tab row Clients · Suppliers with counts; the old
     [member.id],
   );
   await other.setViewportSize(DESKTOP);
-  await signIn(other, member.email, '/clients');
+  await signIn(other, member.email, '/partners');
   await hydrated(other);
-  await expect(other.getByRole('heading', { level: 1, name: 'Clients' })).toBeVisible();
+  await expect(other.getByRole('heading', { level: 1, name: 'Partners' })).toBeVisible();
   await expect(other.locator('[data-side-tabs]')).toHaveCount(0);
   await ctx.close();
 });
@@ -334,23 +334,23 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   page,
   browser,
 }) => {
-  // a manager: Task, Client, Supplier, Invoice and Achievement (Tasks, Finance and KPIs are built, QA-556) are at Full
+  // a manager: Task, Partner, Supplier, Invoice and Achievement (Tasks, Finance and KPIs are built, QA-556) are at Full
   await openAs(page, 'manager');
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText([
     'Capture',
     'Task',
     'Log activity',
-    'Client',
+    'Partner',
     'Supplier',
     'Invoice',
     'Achievement',
     'Idea',
   ]);
-  await expect(page.getByRole('menu')).not.toContainText('Partner');
+  await expect(page.getByRole('menu')).not.toContainText('Client');
   await page.keyboard.press('Escape');
 
-  // one item left (a member whose Clients, Suppliers, KPIs and My day are View): Create and the + open it directly, no menu
+  // one item left (a member whose Partners, Suppliers, KPIs and My day are View): Create and the + open it directly, no menu
   const ctx = await browser.newContext();
   const one = await ctx.newPage();
   const member = await personAs('member');
@@ -376,7 +376,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
-  // Clients, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task, plus Idea
+  // Partners, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task, plus Idea
   await one.locator('[data-create]').click();
   await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Idea']);
   await one.locator('[data-create-item="task"]').click();
@@ -476,7 +476,7 @@ test('14 · no title, tab, crumb or menu item says Organization, Suppliers & par
     /Organization|Suppliers & partners|Supplier & partner|Plan & performance|Head of department|Team member/;
   for (const route of [
     '/my-day',
-    '/clients',
+    '/partners',
     '/suppliers',
     '/pipeline',
     '/overview',
@@ -518,10 +518,10 @@ test('15 · at 390 px every page of the member menu fits: no sideways scroll, 44
   const member = await openAs(page, 'member', '/my-day', PHONE);
   void member;
   const id = await organisation(page.context(), `Test Phone Org ${tag()}`, ['client'], '+966 50 000 0000');
-  for (const route of ['/my-day', '/tasks', '/clients', `/clients/${id}`, '/profile']) {
+  for (const route of ['/my-day', '/tasks', '/partners', `/partners/${id}`, '/profile']) {
     await page.goto(route);
     await hydrated(page);
-    // The page's own content, not just the shell: /clients renders a loading state with no PageFrame and no
+    // The page's own content, not just the shell: /partners renders a loading state with no PageFrame and no
     // scroll container, so measuring then reads padding 0 for a container that does not exist yet — the wait below
     // is for the container itself, and the padding assertion is unchanged.
     await page.locator('#main [class*="overflow-y-auto"]').first().waitFor({ state: 'attached', timeout: 30_000 });
@@ -565,15 +565,15 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
 
   // Job 1 — log what happened with a client today, with the next step: ≤ 4 taps to the client, ≤ 60 s to save
   const started = Date.now();
-  await tap(page.locator('[data-bottom-bar]').getByRole('link', { name: 'Clients' }));
-  // My day has a Filter button of its own now, so wait until this is the Clients page before reaching for its Filter
-  await expect(page).toHaveURL(/\/clients/);
+  await tap(page.locator('[data-bottom-bar]').getByRole('link', { name: 'Partners' }));
+  // My day has a Filter button of its own now, so wait until this is the Partners page before reaching for its Filter
+  await expect(page).toHaveURL(/\/partners/);
   await hydrated(page);
   await tap(page.locator('[data-filter-toggle]')); // the search sits behind the one Filter button on a phone (V630)
   await page.getByPlaceholder('Search by name or number').fill(name);
   await page.keyboard.press('Enter');
   await tap(page.locator(`[data-partner-link="${id}"]`).first());
-  await expect(page).toHaveURL(new RegExp(`/clients/${id}`));
+  await expect(page).toHaveURL(new RegExp(`/partners/${id}`));
   expect(taps, 'taps to the client').toBeLessThanOrEqual(4);
   await hydrated(page);
   await tap(page.locator('[data-activity-log]').first());
@@ -603,7 +603,7 @@ test('16 · the three phone jobs from My day (a smoke — the people test is the
   await page.locator('[data-search]').click();
   await page.locator('[data-command-palette]').getByPlaceholder('Go to a page or search…').fill(name);
   await page.locator(`[data-palette-partner="${id}"]`).click();
-  await expect(page).toHaveURL(new RegExp(`/clients/${id}`));
+  await expect(page).toHaveURL(new RegExp(`/partners/${id}`));
   const phone = page.locator('[data-contact-phone]').first();
   await expect(phone).toHaveAttribute('href', 'tel:+966500000001');
   expect(Date.now() - third, 'the phone link within 30 s').toBeLessThan(30_000);

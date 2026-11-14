@@ -102,8 +102,8 @@ test('Side type shows each side and Status reason each status, and Add entry ask
   const types = page.locator('[data-list="side_type"]');
   await expect(types.locator('th[data-list-column="side"]')).toHaveText('Side');
   await expect(types.locator('[data-list-extra="supplier_partner"]').first()).toHaveText('Supplier');
-  await expect(types.locator('[data-list-extra="client"]').first()).toHaveText('Client');
-  // the rows group by side: every Client entry before the first Supplier one
+  await expect(types.locator('[data-list-extra="client"]').first()).toHaveText('Partner');
+  // the rows group by side: every Partner entry before the first Supplier one
   const sides = await types
     .locator('[data-list-extra]')
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-list-extra')));
