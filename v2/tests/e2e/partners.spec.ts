@@ -195,6 +195,7 @@ test('New partner warns on an exact name match and offers the existing record in
   const warn = page.locator('[data-new-partner-duplicate]');
   await expect(warn, 'the exact name warns').toBeVisible();
   await expect(warn).toContainText('A partner with this name already exists');
+  await expect(warn).toContainText('switch on the Partner side there');
   await expect(warn.getByRole('link')).toHaveAttribute('href', `/partners/${id}`);
   // Save stays on: two companies can share a name — the warning is a nudge, never a block
   await form.getByLabel('Type').click();

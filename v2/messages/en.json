@@ -2649,7 +2649,7 @@
     "newClient": "New partner",
     "newSupplier": "New supplier",
     "duplicateName": "A partner with this name already exists",
-    "duplicateNameOpen": "Open it and switch on the {side} side there instead of creating a new record",
+    "duplicateNameOpen": "Open it and switch on the {side} there instead of creating a new record",
     "chooseType": "Choose a type",
     "created": "{name} added",
     "updated": "{name} updated",
