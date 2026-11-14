@@ -317,6 +317,11 @@ async function sweep(page: Page, who: string, lang: 'en' | 'ar', width: number, 
         .replace(/\s+/g, ' ')
         .slice(0, 40);
       if (NEVER.test(name)) continue;
+      // the door language button toggles the language under test — pressing it flips the cookie, so every later
+      // page in the run reads the wrong language and direction (that is how CR-1594-01's 5 false High rows were
+      // made). The door's own language switch is already covered by the F205 e2e test
+      // (tests/e2e/access.spec.ts), so the sweep loses no coverage by skipping it.
+      if ((await el.getAttribute('data-door-language')) !== null) continue;
       const on = await el.evaluate(
         (e) =>
           e.getAttribute('aria-pressed') === 'true' ||

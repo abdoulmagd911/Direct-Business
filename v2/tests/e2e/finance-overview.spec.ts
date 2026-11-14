@@ -249,3 +249,67 @@ test('phone 390: nothing scrolls sideways, the Provisional part is directly unde
     );
   expect(targets, 'every target is 44 px or more').toEqual([]);
 });
+
+test('Clear on either custom date resets the period to YTD, and Apply still moves to a new custom range (CR-1594-07)', async ({
+  page,
+}) => {
+  const ym = await oldMonth();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const call = await signedInAdmin(page, ym);
+  await seed(call, ym);
+  await page.goto(addressOf(ym));
+  await hydrated(page);
+  await blocksSettled(page);
+
+  // the custom figures are only this month's: 1,500 revenue, 600 cost, 400 profit
+  await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the custom month is on the page').toHaveCount(1);
+
+  // From Clear resets the period to the default (YTD): the address, the form and the figures all leave the custom range
+  const from = page.locator('[data-finance-from]');
+  await from.locator('xpath=ancestor::div[@data-date-picker]').locator('[data-date-clear]').click();
+  await expect(page, 'From Clear navigates to the default period').toHaveURL(/\/finance\?period=ytd$/);
+  await blocksSettled(page);
+  await expect(page.locator('[data-finance-period-key="ytd"]'), 'YTD is the current period').toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page.locator('[data-finance-from]'), 'the custom date form is gone').toHaveCount(0);
+  // the custom month's row is on the page while the custom period is — and leaves with it. (The exact-figure
+  // element only renders when the figure has a short form, so a 0 on YTD has no [data-finance-exact] to read;
+  // the month row is the deterministic proof the figures left the custom range.)
+  await expect(
+    page.locator(`[data-finance-month="${ym}-01"]`),
+    'the custom month has left with the custom period',
+  ).toHaveCount(0);
+
+  // back on the custom range, the figures are its own again
+  await page.goto(addressOf(ym));
+  await hydrated(page);
+  await blocksSettled(page);
+  await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
+
+  // Apply still works: new dates move the address to the new custom range and the figures follow. The dates are
+  // typed as 8 digits in 2026 — the date box only parses years 2000–2099, so an old-month year would stay raw text.
+  await from.focus();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('20260309');
+  await page.keyboard.press('Tab');
+  const to = page.locator('[data-finance-to]');
+  await to.focus();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('20260328');
+  await page.keyboard.press('Tab');
+  await page.locator('[data-finance-apply]').click();
+  await expect(page, 'Apply moves to the new custom range').toHaveURL(
+    /\/finance\?period=custom&from=2026-03-09&to=2026-03-28$/,
+  );
+  await blocksSettled(page);
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the figures followed Apply').toHaveCount(0);
+
+  // To Clear resets the period too
+  await to.locator('xpath=ancestor::div[@data-date-picker]').locator('[data-date-clear]').click();
+  await expect(page, 'To Clear navigates to the default period').toHaveURL(/\/finance\?period=ytd$/);
+  await blocksSettled(page);
+  await expect(page.locator('[data-finance-from]'), 'the custom date form is gone').toHaveCount(0);
+});

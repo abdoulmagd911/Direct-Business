@@ -63,6 +63,7 @@ export function DatePicker({
   readOnly,
   disabled,
   inputProps,
+  onClear,
 }: {
   /** The input's id (the label points at it). When left out, one is made up. */
   id?: string;
@@ -83,6 +84,11 @@ export function DatePicker({
   /** The value is shown but cannot be changed (chips, calendar and Clear are off too). */
   readOnly?: boolean;
   disabled?: boolean;
+  /**
+   * Extra work a caller wants Clear to do (a form-level reset). Both Clear buttons call it in addition to
+   * emptying the field; when it is not passed, Clear works exactly as before.
+   */
+  onClear?: () => void;
   /** Extra attributes for the typed box (aria-label, data-* markers the tests read). */
   inputProps?: Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
@@ -343,7 +349,15 @@ export function DatePicker({
                   {t('common.today')}
                 </Button>
                 {text && !locked ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => set('')}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      set('');
+                      onClear?.();
+                    }}
+                  >
                     <X aria-hidden className="size-4" />
                     {t('datePicker.clear')}
                   </Button>
@@ -353,7 +367,15 @@ export function DatePicker({
           </RP.Portal>
         </RP.Root>
         {text && !locked ? (
-          <Button type="button" variant="ghost" onClick={() => set('')} {...at('clear')}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              set('');
+              onClear?.();
+            }}
+            {...at('clear')}
+          >
             <X aria-hidden className="size-4" />
             {t('datePicker.clear')}
           </Button>

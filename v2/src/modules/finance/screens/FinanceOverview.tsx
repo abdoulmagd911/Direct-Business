@@ -234,6 +234,7 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             id="finance-from"
             value={from || undefined}
             onChange={(v) => setFrom(v ?? '')}
+            onClear={() => router.push('/finance?period=ytd')}
             className="w-[10.5rem]"
             inputProps={{ 'aria-label': t('finance.period.from'), 'data-finance-from': '' }}
           />
@@ -241,6 +242,7 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             id="finance-to"
             value={to || undefined}
             onChange={(v) => setTo(v ?? '')}
+            onClear={() => router.push('/finance?period=ytd')}
             className="w-[10.5rem]"
             inputProps={{ 'aria-label': t('finance.period.to'), 'data-finance-to': '' }}
           />
