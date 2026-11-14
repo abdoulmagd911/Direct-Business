@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { rpc } from '@/core/db/rpc';
@@ -23,7 +24,12 @@ export function SinceBlock() {
       try {
         const before = (await rpc('page_seen', { p_page: 'my_day' })) as unknown as string | null;
         if (!before) return;
-        const a = (await rpc('my_day', { p_scope: 'me', p_limit: 1, p_since: before })) as unknown as MyDayAnswer;
+        // the counts do not depend on the tab; Workspace's read skips Me's tasks and reminders, which this block never shows
+        const a = (await rpc('my_day', {
+          p_scope: 'workspace',
+          p_limit: 1,
+          p_since: before,
+        })) as unknown as MyDayAnswer;
         const counts = a.since.filter((s) => s.count > 0);
         if (counts.length) setSince({ at: before, counts });
       } catch {
@@ -44,12 +50,15 @@ export function SinceBlock() {
       </div>
       <ul className="flex flex-wrap gap-2">
         {since.counts.map((s) => (
-          <li
-            key={s.kind}
-            className="inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border border-border px-3 text-sm"
-            data-since-kind={s.kind}
-          >
-            {t(`pages.myDay.since.kinds.${s.kind}`, { count: s.count })}
+          <li key={s.kind} data-since-kind={s.kind}>
+            {/* each count opens the tab that lists those notes: a note shared by name sits with the team's (V524) */}
+            <Link
+              href={s.kind === 'workspace_notes' ? '/my-day?tab=workspace' : '/my-day?tab=team'}
+              className="inline-flex min-h-11 items-center rounded-pill border border-border px-3 text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus sm:min-h-9"
+              data-since-open={s.kind}
+            >
+              {t(`pages.myDay.since.kinds.${s.kind}`, { count: s.count })}
+            </Link>
           </li>
         ))}
       </ul>

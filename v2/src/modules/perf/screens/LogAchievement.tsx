@@ -75,6 +75,8 @@ export function LogAchievement({
   sourceTaskId?: string;
 }) {
   const t = useTranslations('pages.achievements');
+  // "Required" beside each box Save waits for, so a greyed Save has a reason on screen
+  const required = useTranslations('common')('required');
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const words = useCommandWords();
@@ -100,6 +102,10 @@ export function LogAchievement({
   const needsRef = cat?.required_ref_system ?? null;
   // V521: an MoU with an organisation names the side it was signed with.
   const needsSide = !!cat?.sets_prospect && !!partner;
+  // The value box shows for a category that carries a deal value only (Settings → Targets, "Carries a deal value"):
+  // the database refuses a value on any other category (achievement.no_deal_value), so offering the box on Awards
+  // let a person type a value that could never save.
+  const withValue = !!cat?.has_deal_value;
 
   // The categories are the plan's of the date's year (§5a): another year reads that year's.
   const loadYear = async (y: number) => {
@@ -130,7 +136,8 @@ export function LogAchievement({
           id: string;
           request_id?: string | null;
         }>,
-      { after: () => loadYear(loadedYear) },
+      // the plan's categories are read again after it opens, and again after its Undo (Undo no longer re-runs `after`)
+      { after: () => loadYear(loadedYear), afterUndo: () => loadYear(loadedYear) },
     );
     setBusy(false);
   };
@@ -161,6 +168,10 @@ export function LogAchievement({
     setRepeats([]);
     setBusy(true);
     const refs = ref.trim() ? [{ system: needsRef ?? system, value: ref.trim(), url: link.trim() || null }] : [];
+    // the command runs `after` once on the save and again when Undo is pressed on its toast
+    // (src/core/commands/command.ts, done()): the second run is the Undo — the achievement is gone, so the
+    // "Achievement logged" dialog must not open (again) for it.
+    let savedOnce = false;
     await command(
       words(t('logged')),
       () =>
@@ -170,9 +181,10 @@ export function LogAchievement({
             title: title.trim(),
             happened_on: day || null,
             partner_id: partner?.id ?? null,
-            // FIX-06: the value is a plain number for every category (D29) — the unit is the category's own
-            // name, in the field's label; never Revenue/Cost/Profit, and the "not revenue" note stands.
-            ...(cat && value.trim() ? { deal_value: readDealValue(value)! } : {}),
+            // FIX-06: the value is a plain number — the unit is the category's own name, in the field's label;
+            // never Revenue/Cost/Profit, and the "not revenue" note stands. Sent only for a category that carries
+            // a deal value: the database refuses one on any other (achievement.no_deal_value).
+            ...(withValue && value.trim() ? { deal_value: readDealValue(value)! } : {}),
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             ...(owner !== meId ? { owner_id: owner } : {}),
             ...(needsSide && side ? { side } : {}),
@@ -184,7 +196,13 @@ export function LogAchievement({
         }) as Promise<{ id: string; number?: string; request_id?: string | null }>,
       // FIX-06: after save the form asks — view the record just saved (same), or log another (new) — instead
       // of navigating straight to the record. The pre-save repeat dialog is untouched.
-      { after: (r) => setSaved({ id: r!.id, number: r!.number ?? '' }) },
+      {
+        after: (r) => {
+          if (savedOnce) return setSaved((s) => (s?.id === r?.id ? null : s));
+          savedOnce = true;
+          setSaved({ id: r!.id, number: r!.number ?? '' });
+        },
+      },
     );
     setBusy(false);
   };
@@ -204,8 +222,7 @@ export function LogAchievement({
   };
 
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
-  // FIX-06: the value is a plain number for every category, not only the deal-value ones (D29).
-  const valueBad = !!cat && !!value.trim() && readDealValue(value) === null;
+  const valueBad = withValue && !!value.trim() && readDealValue(value) === null;
   // FIX-06: the value's unit is the category's own name — no per-category unit field exists in the Category
   // type, so the name is the unit (recorded in the build note).
   const valueLabel = cat
@@ -223,12 +240,12 @@ export function LogAchievement({
     >
       <PageHeader crumbs={[{ label: t('title'), href: '/kpis/achievements' }]} title={t('log')} />
       {live.length ? (
-        <Field label={t('fields.category')}>
+        <Field label={t('fields.category')} required={required}>
           {(p) => (
             <Select
               id={p.id}
               aria-label={t('fields.category')}
-              value={code || undefined}
+              value={code}
               placeholder={t('actions.choose')}
               options={live.map((c) => ({ value: c.code, label: name(c) }))}
               onValueChange={setCode}
@@ -255,7 +272,7 @@ export function LogAchievement({
           )}
         </div>
       )}
-      <Field label={t('fields.title')}>
+      <Field label={t('fields.title')} required={required}>
         {(p) => <Input {...p} value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
       </Field>
       <Field label={t('fields.date')}>
@@ -265,6 +282,7 @@ export function LogAchievement({
             describedBy={p['aria-describedby']}
             invalid={p['aria-invalid']}
             value={day || undefined}
+            min="2025-01-01"
             max={riyadhToday()}
             onChange={(v) => void onDay(v ?? '')}
           />
@@ -274,12 +292,12 @@ export function LogAchievement({
         {(p) => <PartnerPicker id={p.id} value={partner} onChange={setPartner} />}
       </Field>
       {needsSide ? (
-        <Field label={t('fields.side')}>
+        <Field label={t('fields.side')} required={required}>
           {(p) => (
             <Select
               id={p.id}
               aria-label={t('fields.side')}
-              value={side || undefined}
+              value={side}
               placeholder={t('actions.choose')}
               options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
               onValueChange={(v) => setSide(v as 'client' | 'supplier_partner')}
@@ -287,12 +305,15 @@ export function LogAchievement({
           )}
         </Field>
       ) : null}
-      {cat ? (
+      {withValue ? (
         <Field label={valueLabel} error={valueBad ? t('valueNotNumber') : undefined}>
           {(p) => <Input {...p} inputMode="decimal" mono value={value} onChange={(e) => setValue(e.target.value)} />}
         </Field>
       ) : null}
-      <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-2">
+      {/* the reference row: on a PC its first column is wide enough for "Where the reference came from" on one line
+          (at 8rem the label broke over two lines and pushed its box below the Reference box); on a phone the two
+          stack */}
+      <div className="grid grid-cols-1 gap-x-2 gap-y-4 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] sm:items-end">
         <Field label={t('fields.system')}>
           {(p) => (
             <Select
@@ -305,7 +326,7 @@ export function LogAchievement({
             />
           )}
         </Field>
-        <Field label={t('fields.reference')}>
+        <Field label={t('fields.reference')} required={needsRef ? required : undefined}>
           {(p) => <Input {...p} value={ref} maxLength={200} onChange={(e) => setRef(e.target.value)} />}
         </Field>
       </div>

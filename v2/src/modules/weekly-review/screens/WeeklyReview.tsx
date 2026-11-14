@@ -3,7 +3,7 @@ import { ChevronRight, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
 import { TIME_ZONE, formatDate } from '@/core/i18n/format';
@@ -15,7 +15,6 @@ import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { Select } from '@/ui/Select';
-import { toast } from '@/ui/Toast';
 import { cn } from '@/ui/cn';
 import { useCommandWords } from '@/modules/tasks/screens/words';
 import type { Category } from '@/modules/perf/types';
@@ -59,15 +58,17 @@ export function WeeklyReview({
   answer,
   unlogged,
   categories,
+  showRoutine = false,
 }: {
   answer: WeeklyReviewAnswer | null;
+  /** The unlogged list as the page read it — with the routine tasks when `showRoutine` (the address's `?routine=1`). */
   unlogged: UnloggedAnswer | null;
   categories: Category[];
+  showRoutine?: boolean;
 }) {
   const t = useTranslations();
   const router = useRouter();
-  const [unloggedState, setUnloggedState] = useState(unlogged);
-  const [showRoutine, setShowRoutine] = useState(false);
+  const [toggling, startToggle] = useTransition();
   if (!answer)
     return (
       <DataState
@@ -78,26 +79,22 @@ export function WeeklyReview({
         retryLabel={t('common.tryAgain')}
       />
     );
-  const unloggedTotal = unloggedState?.total ?? 0;
+  const unloggedTotal = unlogged?.total ?? 0;
   if (weekIsEmpty(answer) && unloggedTotal === 0)
     return <DataState kind="empty" message={t('pages.weeklyReview.emptyWeek')} />;
-  const toggleRoutine = async () => {
-    const next = !showRoutine;
-    try {
-      setUnloggedState((await rpc('weekly_unlogged', { p_show_routine: next })) as unknown as UnloggedAnswer);
-      setShowRoutine(next);
-    } catch {
-      toast.failed(t('state.failed', { what: t('pages.weeklyReview.title') }));
-    }
-  };
+  // The routine tasks are shown through the address (?routine=1), so the page's own read carries them and every
+  // re-read after Log / Not an achievement / Later keeps the choice: the list always follows the database.
+  const toggleRoutine = () =>
+    startToggle(() => router.replace(showRoutine ? '/my-day/week' : '/my-day/week?routine=1', { scroll: false }));
   return (
     <div className="flex flex-col gap-4" data-weekly-review>
       <DoneSection
         list={answer.done}
-        unlogged={unloggedState}
+        unlogged={unlogged}
         categories={categories}
         showRoutine={showRoutine}
-        onToggleRoutine={() => void toggleRoutine()}
+        toggling={toggling}
+        onToggleRoutine={toggleRoutine}
       />
       {SECTIONS.filter((s) => s !== 'done').map((s) => (
         <ItemSection key={s} section={s} list={answer[s]} />
@@ -152,12 +149,15 @@ function DoneSection({
   unlogged,
   categories,
   showRoutine,
+  toggling,
   onToggleRoutine,
 }: {
   list: ReviewList<ReviewItem>;
   unlogged: UnloggedAnswer | null;
   categories: Category[];
   showRoutine: boolean;
+  /** The list is being read again with or without the routine tasks. */
+  toggling: boolean;
   onToggleRoutine: () => void;
 }) {
   const t = useTranslations();
@@ -218,7 +218,9 @@ function DoneSection({
           <button
             type="button"
             onClick={onToggleRoutine}
-            className="font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+            disabled={toggling}
+            aria-busy={toggling || undefined}
+            className="font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-60"
             data-nudge-toggle-routine
           >
             {showRoutine ? t('pages.weeklyReview.nudge.hideRoutine') : t('pages.weeklyReview.nudge.showRoutine')}
@@ -300,11 +302,17 @@ function ItemRow({
         className="flex min-h-14 items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <span className="min-w-0 flex-1">
-          <span className="block break-words">{item.title || t('pages.myDay.note.untitled')}</span>
+          <span className="block break-words">
+            <bdi>{item.title || t('pages.myDay.note.untitled')}</bdi>
+          </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             {item.kind === 'note' ? <StatusChip tone="neutral">{t('pages.weeklyReview.note')}</StatusChip> : null}
             {logged ? <StatusChip tone="success">{t('pages.weeklyReview.done.alreadyLogged')}</StatusChip> : null}
-            {partner ? <StatusChip tone="neutral">{partner}</StatusChip> : null}
+            {partner ? (
+              <StatusChip tone="neutral">
+                <bdi>{partner}</bdi>
+              </StatusChip>
+            ) : null}
             {item.times > 0 ? (
               <StatusChip tone={section === 'slipped' && item.times > 1 ? 'warning' : 'neutral'}>
                 <span data-review-times={item.times}>{t('pages.weeklyReview.carried', { count: item.times })}</span>
@@ -362,9 +370,15 @@ function NudgeItemRow({ item, task, categories }: { item: ReviewItem; task: Nudg
         className="flex min-h-14 items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <span className="min-w-0 flex-1">
-          <span className="block break-words">{item.title || t('pages.myDay.note.untitled')}</span>
+          <span className="block break-words">
+            <bdi>{item.title || t('pages.myDay.note.untitled')}</bdi>
+          </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            {partner ? <StatusChip tone="neutral">{partner}</StatusChip> : null}
+            {partner ? (
+              <StatusChip tone="neutral">
+                <bdi>{partner}</bdi>
+              </StatusChip>
+            ) : null}
             <span className="font-data text-xs whitespace-nowrap text-muted">
               {formatDate(item.day, locale, { dateStyle: 'medium' })}
             </span>
@@ -442,7 +456,7 @@ function QuickLogForm({ task, categories, onClose }: { task: NudgeTask; categori
       return;
     }
     setBusy(true);
-    await command(
+    const logged = await command(
       words(t('pages.achievements.logged')),
       () =>
         rpc('achievement_log', {
@@ -459,7 +473,8 @@ function QuickLogForm({ task, categories, onClose }: { task: NudgeTask; categori
         }) as Promise<{ id: string; request_id?: string | null }>,
     );
     setBusy(false);
-    onClose();
+    // a refused save keeps the form open with what was typed, so one more tap tries again (the toast says why)
+    if (logged) onClose();
   };
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
   const logUrl = `/kpis/achievements/new?title=${encodeURIComponent(task.title.slice(0, 300))}&task=${task.id}`;
@@ -485,10 +500,10 @@ function QuickLogForm({ task, categories, onClose }: { task: NudgeTask; categori
         )}
       </Field>
       <Field label={t('pages.achievements.fields.title')}>
-        {(p) => <Input {...p} value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
+        {(p) => <Input {...p} dir="auto" value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />}
       </Field>
       <Field label={t('pages.weeklyReview.nudge.result')}>
-        {(p) => <Input {...p} value={result} onChange={(e) => setResult(e.target.value)} />}
+        {(p) => <Input {...p} dir="auto" value={result} onChange={(e) => setResult(e.target.value)} />}
       </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field
@@ -547,11 +562,18 @@ function NotesSection({ list }: { list: ReviewList<ReviewNote> }) {
                   <Lock className="size-4 shrink-0 text-muted" aria-label={t('pages.weeklyReview.private')} />
                 ) : null}
                 <span className={`min-w-0 flex-1 break-words ${n.done ? 'text-muted line-through' : ''}`}>
-                  {n.title || t('pages.myDay.note.untitled')}
+                  <bdi>{n.title || t('pages.myDay.note.untitled')}</bdi>
                 </span>
                 {n.idea ? <StatusChip tone="neutral">{t('pages.weeklyReview.idea')}</StatusChip> : null}
+                {/* the day of this week it was written: its weekday alone (asked as { weekday } only, formatDate wrote
+                    the whole date beside it, "Fri, 13 Nov 2026", which pushed the title onto two lines on a phone) */}
                 <span className="font-data text-xs whitespace-nowrap text-muted">
-                  {formatDate(n.day, locale, { weekday: 'short' })}
+                  {formatDate(`${n.day}T12:00:00+03:00`, locale, {
+                    weekday: 'short',
+                    day: undefined,
+                    month: undefined,
+                    year: undefined,
+                  })}
                 </span>
               </Link>
             </li>

@@ -19,7 +19,7 @@ export {
   MenuRadioGroup,
   MenuRadioItem,
 } from './Menu';
-export { Dialog, DialogClose } from './Dialog';
+export { Dialog } from './Dialog';
 export { Confirm } from './Confirm';
 export { Toaster, toast } from './Toast';
 export { StatusChip, FilterChip, type Tone } from './Chip';

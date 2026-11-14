@@ -21,6 +21,7 @@
 // never by DPIN, TTIN, or a receipt reference.
 
 import type { HeldRow, NormalisedRow } from './normalise';
+import { whyText, type Why } from './reasons';
 
 export type ExistingRecord = {
   transaction_ref: string | null;
@@ -51,7 +52,9 @@ export type PreviewRow = {
   row_nos: number[];
   kind: NormalisedRow['kind'];
   outcome: PreviewOutcome;
+  /** The reasons in English words; `whys` holds the same reasons as codes, in the same order, for the screen. */
   reasons: string[];
+  whys: Why[];
   duplicate: boolean;
   transaction_ref: string | null;
   invoice_ref: string | null;
@@ -85,7 +88,7 @@ export type Preview = {
   /** Held rows, with row numbers and plain reasons. */
   problems: HeldRow[];
   /** Same invoice number already held by another row: written, flagged, held for a person. */
-  clashes: { row_no: number; reason: string }[];
+  clashes: { row_no: number; reason: string; why: Why }[];
 };
 
 export type PreviewDecisions = Record<number, 'skip' | 'keep'>;
@@ -140,7 +143,10 @@ export function mergedRecord(existing: ExistingRecord | null, incoming: Normalis
     transaction_ref: pick(incoming.transaction_ref, base.transaction_ref),
     invoice_ref: pick(incoming.invoice_ref, base.invoice_ref),
     tax_no: pick(incoming.tax_no, base.tax_no),
-    record_date: pick(incoming.record_date, base.record_date),
+    // An expense line only brings a cost to a transaction that is already stored: the apply step keeps that
+    // transaction's own date (work.import_apply), so the preview never says the date will move to the expense's day.
+    record_date:
+      incoming.kind === 'expense' && existing ? base.record_date : pick(incoming.record_date, base.record_date),
     amount: pick(incoming.amount, base.amount),
     wallet_topup: incoming.kind === 'invoice' ? incoming.wallet_topup : base.wallet_topup,
     // An expense import is the cost source for its transactions at that moment: its
@@ -242,22 +248,31 @@ export function buildPreview(
   // What this file itself has already merged for each key, so a kept duplicate diffs
   // against its first occurrence instead of creating a second record for one key.
   const inFile = new Map<string, ExistingRecord>();
+  const clash = (row_no: number, why: Why) => clashes.push({ row_no, reason: whyText(why), why });
 
   for (const row of incoming) {
     const rowNo = row.rowNos[0] ?? 2;
     const key = naturalKey(row);
     const duplicate = seen.has(key);
     seen.add(key);
+    // every reason is said once, as its English sentence and as its code, in the same order
     const reasons: string[] = [];
+    const whys: Why[] = [];
+    const say = (why: Why) => {
+      reasons.push(whyText(why));
+      whys.push(why);
+    };
     if (duplicate) {
       const decision = decisions[rowNo] ?? 'skip';
       if (decision === 'skip') {
+        const skipped: Why = { code: 'duplicate_skipped' };
         rows.push({
           row_no: rowNo,
           row_nos: row.rowNos,
           kind: row.kind,
           outcome: 'unchanged',
-          reasons: ['Duplicate in this file, skipped'],
+          reasons: [whyText(skipped)],
+          whys: [skipped],
           duplicate: true,
           transaction_ref: row.transaction_ref,
           invoice_ref: row.invoice_ref,
@@ -271,7 +286,7 @@ export function buildPreview(
         counts.unchanged += 1;
         continue;
       }
-      reasons.push('Duplicate in this file, kept by choice');
+      say({ code: 'duplicate_kept' });
     }
     const match = (duplicate ? inFile.get(key) : undefined) ?? findMatch(row, existing);
     const groupSize =
@@ -280,7 +295,7 @@ export function buildPreview(
         : 1;
     const merged = mergedRecord(match, row, groupSize);
     if (row.kind === 'invoice' && match && match.transaction_ref !== null && groupSize > 1) {
-      reasons.push(`Also fills the tax number and status on ${groupSize} transaction rows sharing this invoice`);
+      say({ code: 'group_fill', values: { count: groupSize } });
     }
     if (
       row.kind === 'invoice' &&
@@ -290,18 +305,12 @@ export function buildPreview(
       row.amount !== null &&
       Math.abs(match.amount - row.amount) >= 0.01
     ) {
-      clashes.push({
-        row_no: rowNo,
-        reason: `Invoice total ${row.amount} differs from the stored transaction amount ${match.amount}: transaction amount kept, held for a person`,
-      });
+      clash(rowNo, { code: 'total_differs', values: { total: row.amount, stored: match.amount } });
     }
     if (row.kind === 'promo' && match === null && row.invoice_ref !== null) {
       const sharing = existing.filter((e) => e.transaction_ref !== null && e.invoice_ref === row.invoice_ref);
       if (sharing.length > 1) {
-        clashes.push({
-          row_no: rowNo,
-          reason: `Invoice number ${row.invoice_ref} covers ${sharing.length} transactions, so no single row owns this code link: held for a person`,
-        });
+        clash(rowNo, { code: 'shared_invoice', values: { invoice: row.invoice_ref, count: sharing.length } });
       }
     }
     // A transaction row filling an invoice number that an invoice-only row already
@@ -311,20 +320,19 @@ export function buildPreview(
         (e) => e !== match && e.transaction_ref === null && e.invoice_ref === row.invoice_ref,
       );
       if (invoiceOnly) {
-        clashes.push({
-          row_no: rowNo,
-          reason: `Invoice number ${row.invoice_ref} is already on another row: held for a person, nothing merged by guess`,
-        });
+        clash(rowNo, { code: 'invoice_elsewhere', values: { invoice: row.invoice_ref } });
       }
     }
     // A promo row never overwrites an attribution already given to another code.
     if (row.kind === 'promo' && match && match.source_promo !== null && match.source_promo !== row.source_promo) {
+      const kept: Why = { code: 'other_code' };
       rows.push({
         row_no: rowNo,
         row_nos: row.rowNos,
         kind: row.kind,
         outcome: 'unchanged',
-        reasons: [`Already linked to another discount code, kept as it was`],
+        reasons: [whyText(kept)],
+        whys: [kept],
         duplicate,
         transaction_ref: row.transaction_ref,
         invoice_ref: row.invoice_ref,
@@ -344,20 +352,19 @@ export function buildPreview(
     if (match === null) {
       outcome = incompleteAfterMerge(row.kind, merged, false) ? 'needs_linking' : 'new';
       if (outcome === 'needs_linking') {
-        if (row.kind === 'invoice')
-          reasons.push('Missing transaction number: fills in when the transaction list arrives');
-        if (row.kind === 'transaction') reasons.push('Missing invoice number: fills in when the invoice arrives');
-        if (row.kind === 'expense') reasons.push('No transaction details yet: fills in when the transaction arrives');
-        if (row.kind === 'promo') reasons.push('No invoice yet: fills in when the invoice export arrives');
+        if (row.kind === 'invoice') say({ code: 'wait_transaction' });
+        if (row.kind === 'transaction') say({ code: 'wait_invoice' });
+        if (row.kind === 'expense') say({ code: 'wait_transaction_details' });
+        if (row.kind === 'promo') say({ code: 'wait_invoice_export' });
       }
     } else if (changed.length === 0) {
       outcome = 'unchanged';
     } else if (incompleteAfterMerge(row.kind, merged, true)) {
       outcome = 'needs_linking';
-      reasons.push(`Changed (${changed.map((c) => c.field).join(', ')}), still missing its other half`);
+      say({ code: 'changed_incomplete', fields: changed.map((c) => c.field) });
     } else {
       outcome = 'updated';
-      reasons.push(`Changed: ${changed.map((c) => c.field).join(', ')}`);
+      say({ code: 'changed', fields: changed.map((c) => c.field) });
     }
     rows.push({
       row_no: rowNo,
@@ -365,6 +372,7 @@ export function buildPreview(
       kind: row.kind,
       outcome,
       reasons,
+      whys,
       duplicate,
       transaction_ref: row.transaction_ref,
       invoice_ref: row.invoice_ref,
@@ -385,6 +393,7 @@ export function buildPreview(
       kind: 'invoice',
       outcome: 'excluded',
       reasons: [heldRow.reason],
+      whys: heldRow.why ? [heldRow.why] : [],
       duplicate: false,
       transaction_ref: null,
       invoice_ref: null,

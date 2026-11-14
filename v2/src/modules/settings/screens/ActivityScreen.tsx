@@ -18,7 +18,7 @@ import { Field } from '@/ui/Field';
 import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { ActivityTimeline } from '@/ui/record/ActivityTimeline';
-import { makeValueWords, plainWords, settingLabel, settingValueWords } from '@/ui/record/diff-words';
+import { fieldLabel, makeValueWords, plainWords, settingLabel, settingValueWords } from '@/ui/record/diff-words';
 import type { HistoryRow } from '@/ui/record/history';
 import { Select } from '@/ui/Select';
 import { PageFrame } from '@/ui/shell/AppShell';
@@ -223,7 +223,33 @@ export function ActivityScreen({
       },
     );
   };
-  const settingRows = rows.filter((r) => r.changes.some((c) => c.entity === 'setting'));
+  // The Settings log is every request that touched a Settings page (api.settings_log — V210): a person, a team, a list
+  // entry, access — not only a setting's value. Only those survived here, so the log said "No changes yet" over a
+  // month of people and list changes. Its Who and Since apply here too: the log's read takes neither.
+  const riyadhDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+  const settingRows = rows.filter(
+    (r) =>
+      (!filters.actor || r.actor_id === filters.actor) &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(filters.since) || riyadhDay(r.at) >= filters.since),
+  );
+  // a change that is not a setting's value is named by what changed: "Person changed: Left on", "Allowed email added"
+  const entityLabels = Object.fromEntries(entities.map((e) => [e.key, e.label]));
+  const changeTitle = (r: HistoryRow) => {
+    const c = r.changes[0];
+    if (!c || !t.has(`activity.actions.${c.action}`)) return t('activity.actions.request');
+    const what = entityLabels[c.entity ?? ''] ?? plainWords(c.entity ?? '');
+    return t(`activity.actions.${c.action}`, { what, fields: c.fields.map((f) => fieldLabel(t, f)).join(', ') });
+  };
+  // Revert writes the setting again (api.setting_set needs Full on the setting's page — admins only, V97): offered to
+  // whoever can, never to a head or manager who reads the log and would be refused; and not on a change already undone
+  // (its value no longer stands — Revert would write the value that stands now).
+  const canRevert = (r: HistoryRow) => {
+    if (r.undone) return false;
+    const after = r.changes.find((c) => c.entity === 'setting' && c.action === 'insert')?.after as
+      { key?: string } | undefined;
+    const group = modules.flatMap((m) => m.settings ?? []).find((s) => s.key === after?.key)?.group;
+    return !!group && me.levels[group] === 'full';
+  };
   return (
     <PageFrame className="[&>*]:max-w-[1100px]">
       <PageHeader title={t('nav.activity')} />
@@ -265,13 +291,21 @@ export function ActivityScreen({
                 describedBy={p['aria-describedby']}
                 invalid={p['aria-invalid']}
                 value={filters.since || undefined}
-                onChange={(v) => setFilter({ since: v ?? '' })}
+                // a whole day (or a cleared box) filters; the box keeps half-typed text itself — each keystroke was
+                // a new address and a page load
+                onChange={(v) => {
+                  if (!v || /^\d{4}-\d{2}-\d{2}$/.test(v)) setFilter({ since: v ?? '' });
+                }}
+                // no Today chip above the box: it pushed the box below the Who and What pickers beside it
+                chips="none"
                 className="font-data"
               />
             )}
           </Field>
         </div>
-      ) : (
+      ) : (me.levels['settings.org'] ?? 'none') !== 'none' ? (
+        // whose sign-ins: anyone's for People & access · View (api.sign_in_log); everyone else sees their own, and is
+        // offered no picker of names the database would refuse
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={t('activity.filters.who')}>
             {(p) => (
@@ -284,7 +318,7 @@ export function ActivityScreen({
             )}
           </Field>
         </div>
-      )}
+      ) : null}
       {current === 'changes' ? (
         <section className="rounded-lg border border-border bg-raised px-5 py-2" data-activity-changes>
           <ActivityTimeline
@@ -315,17 +349,19 @@ export function ActivityScreen({
                     key={r.request_id}
                     className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"
                   >
-                    <span className="flex flex-col gap-0.5">
-                      <span className="font-medium">
-                        {r.label_key && t.has(`activity.labels.${r.label_key}`)
-                          ? t(`activity.labels.${r.label_key}`)
-                          : t('activity.actions.request')}
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      {/* a setting by its name and its value before → after; any other change by what changed */}
+                      <span className="font-medium [overflow-wrap:anywhere]" data-setting-log-title>
                         {entry ? (
-                          <span className="ms-2 font-data text-xs text-muted">
+                          <>
                             {entry.name}
-                            {entry.valueText ? `: ${entry.valueText}` : ''}
-                          </span>
-                        ) : null}
+                            {entry.valueText ? (
+                              <span className="ms-2 font-data text-xs font-normal text-muted">{entry.valueText}</span>
+                            ) : null}
+                          </>
+                        ) : (
+                          changeTitle(r)
+                        )}
                       </span>
                       <span className="text-xs text-muted">
                         {r.actor_id && people[r.actor_id]
@@ -337,7 +373,7 @@ export function ActivityScreen({
                     </span>
                     <span className="flex items-center gap-2">
                       {r.undone ? <StatusChip tone="neutral">{t('activity.undoneChip')}</StatusChip> : null}
-                      {c?.action === 'insert' ? (
+                      {c?.action === 'insert' && canRevert(r) ? (
                         <Button size="xs" onClick={() => setReverting(r)} data-setting-revert>
                           {t('activity.revert')}
                         </Button>

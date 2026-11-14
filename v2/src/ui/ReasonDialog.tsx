@@ -38,22 +38,25 @@ export function ReasonDialog({
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ok = reason.trim().length > 0 && !saveDisabled;
+  // Every way out clears the box — Cancel too: the dialog stays mounted between uses, so a reason typed and cancelled
+  // for one item came back filled in (and its error with it) when the dialog opened for the next.
+  const change = (o: boolean) => {
+    if (!o) {
+      setReason('');
+      setTouched(false);
+      setError(null);
+    }
+    onOpenChange(o);
+  };
   return (
     <Dialog
       open={open}
-      onOpenChange={(o) => {
-        if (!o) {
-          setReason('');
-          setTouched(false);
-          setError(null);
-        }
-        onOpenChange(o);
-      }}
+      onOpenChange={change}
       title={title}
       dirty={reason.length > 0}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>{words.cancel}</Button>
+          <Button onClick={() => change(false)}>{words.cancel}</Button>
           <Button
             variant={destructive ? 'danger' : 'primary'}
             disabled={!ok}

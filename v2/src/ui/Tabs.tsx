@@ -1,7 +1,7 @@
 'use client';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { cn } from './cn';
 import { LinkPending } from './LinkPending';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from './Menu';
@@ -35,6 +35,9 @@ export function Tabs({
   className?: string;
 }) {
   const scroll = useScrollMore();
+  // each row's own tab ids: two rows on one screen (a page's and the bell's) may share a value such as "all"
+  const rowId = useId();
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
   // A link tab's active state is read from the address, which only changes when the next page has arrived — so
   // without this the new tab's content renders under the old tab's underline for the whole round trip (F218). The
   // underline follows the click at once; the address takes over when it lands (the render-phase sync, as in
@@ -109,10 +112,22 @@ export function Tabs({
       </nav>
     );
   }
-  const move = (from: number, dir: 1 | -1) => {
-    const next = tabs[(from + dir + tabs.length) % tabs.length]!;
+  const go = (to: number) => {
+    const next = tabs[(to + tabs.length) % tabs.length]!;
     onValueChange?.(next.value);
-    document.getElementById(`tab-${next.value}`)?.focus();
+    buttons.current.get(next.value)?.focus();
+  };
+  // The arrows follow the row as drawn: in Arabic the next tab is on the left, so ArrowLeft moves on; Home and End
+  // go to the first and the last tab.
+  const onArrow = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+    const on = rtl ? 'ArrowLeft' : 'ArrowRight';
+    const back = rtl ? 'ArrowRight' : 'ArrowLeft';
+    const to =
+      e.key === on ? i + 1 : e.key === back ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+    if (to === null) return;
+    e.preventDefault();
+    go(to);
   };
   return (
     <div
@@ -131,16 +146,17 @@ export function Tabs({
         return (
           <button
             key={t.value}
-            id={`tab-${t.value}`}
+            id={`${rowId}-tab-${t.value}`}
+            ref={(el) => {
+              if (el) buttons.current.set(t.value, el);
+              else buttons.current.delete(t.value);
+            }}
             type="button"
             role="tab"
             aria-selected={active}
             tabIndex={active ? 0 : -1}
             onClick={() => onValueChange?.(t.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowRight') move(i, 1);
-              if (e.key === 'ArrowLeft') move(i, -1);
-            }}
+            onKeyDown={(e) => onArrow(e, i)}
             className={tabClass(active)}
           >
             {t.label}

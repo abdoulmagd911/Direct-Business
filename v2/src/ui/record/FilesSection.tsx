@@ -15,7 +15,11 @@ import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
+import { formatFileSize } from './file-size';
 import { useCommandWords } from './words';
+
+// the size in words lives in ./file-size (a server page uses it too); kept reachable from here for its callers
+export { formatFileSize };
 
 /** One file on a record, as api.files answers it (the CompanyFile shape, generalised). */
 export type RecordFile = {
@@ -51,13 +55,6 @@ export type FileKindOption = {
   label: string;
 };
 
-/** A file's size in words ("1.2 MB"), for a row or a stream entry. */
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 /**
  * The name a toast uses for a file (FIX-38): the stored uploaded filename — never the generated display name.
  * The display name is built from its kind's pattern ("Agreement · {partner} · {title} · {start} to {end}"),
@@ -77,24 +74,6 @@ export async function sha256HexFile(file: File): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-}
-
-/**
- * Download one stored file: a real link to the re-checking route (FIX-16, core/files/download-url.ts) — the
- * route re-checks the presser may still see the file on every GET and redirects to a freshly minted short-lived
- * signed URL, so unsharing revokes the link where a raw signed URL minted in the browser would keep serving
- * until its expiry. Delivered through a programmatic link click: after the awaits the click's transient
- * activation is gone, window.open is swallowed by the popup blocker and returns null — no throw, no toast, a
- * silent nothing (F248). The route's redirect carries the save-as name, so no download attribute is needed;
- * a refusal comes back as a words page (FIX-39), never a silent failure.
- */
-export async function downloadRecordFile(fileId: string, locale: 'en' | 'ar'): Promise<void> {
-  const a = document.createElement('a');
-  a.href = recordFileDownloadUrl(fileId, locale);
-  a.rel = 'noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 
 /** One upload that failed while this screen still holds the file: it can be tried again from memory. */
@@ -374,7 +353,7 @@ export function FilesSection({
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{name}</span>
                   <span className="text-xs text-muted">
-                    {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
+                    {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes, t, locale)} ·{' '}
                     {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
                     {formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     {f.review_on ? (

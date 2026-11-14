@@ -7,6 +7,7 @@ import { rpc } from '@/core/db/rpc';
 import { bannedIn } from '@/core/words/banned';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
+import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
@@ -165,17 +166,24 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
     setBusy(false);
   };
 
-  const startArchive = async (r: ListEntry) => {
-    setArchiving(r);
+  // the count could not be read: said in the dialog with Try again — Archive waits for the count (an entry in use
+  // needs its replacement), and a silent failure left the button off with nothing said
+  const [usageFailed, setUsageFailed] = useState(false);
+  const countUsage = async (r: ListEntry) => {
     setUsage(null);
-    setReplaceWith('');
-    setReason('');
+    setUsageFailed(false);
     try {
       const n = (await rpc('list_usage', { p_list: entity, p_id: r.id })) as { total?: number } | null;
       setUsage(n?.total ?? 0);
     } catch {
-      setUsage(null);
+      setUsageFailed(true);
     }
+  };
+  const startArchive = async (r: ListEntry) => {
+    setArchiving(r);
+    setReplaceWith('');
+    setReason('');
+    await countUsage(r);
   };
   const archive = async () => {
     if (!archiving) return;
@@ -235,7 +243,8 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
             {t('settings.list.entries', { count: rows.filter((r) => r.active).length })}
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        {/* wraps on a phone: with Show archived, the three did not fit one line and ran past the card's edge */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {rows.some((r) => !r.active) ? (
             <label className="flex items-center gap-2 text-sm">
               <Switch
@@ -374,6 +383,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
       <Dialog
         open={editing !== null}
         onOpenChange={(o) => !o && setEditing(null)}
+        closeLabel={t('common.close')}
         title={
           editing === 'new' || editing === null
             ? t('settings.list.new')
@@ -462,6 +472,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
       <Dialog
         open={archiving !== null}
         onOpenChange={(o) => !o && setArchiving(null)}
+        closeLabel={t('common.close')}
         title={archiving ? t('settings.list.retireTitle', { name: name(archiving) }) : ''}
         footer={
           <>
@@ -484,6 +495,15 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
               <p className="font-display text-xl" data-list-usage>
                 {t('settings.list.usedIn', { count: usage })}
               </p>
+            ) : null}
+            {usageFailed ? (
+              <DataState
+                kind="failed"
+                what={t('settings.list.usage')}
+                message={t('state.failed', { what: t('settings.list.usage') })}
+                onRetry={() => void countUsage(archiving)}
+                retryLabel={t('common.tryAgain')}
+              />
             ) : null}
             <p className="text-sm text-muted">
               {(usage ?? 0) > 0

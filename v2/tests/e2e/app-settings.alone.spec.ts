@@ -371,7 +371,8 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('nav[aria-label="Breadcrumb"]'), 'a phone has no trail').toBeHidden();
+    // the trail is named in the language on screen (مسار التنقل here), so it is found by its mark, not its English name
+    await expect(page.locator('nav[data-crumbs]'), 'a phone has no trail').toBeHidden();
     await expect(
       page.getByRole('link', { name: w.backTo, exact: true }),
       'the back arrow has its own name',
@@ -399,7 +400,7 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/kpis/achievements/${(long.body as { id: string }).id}`);
     await hydrated(page);
-    const seen = await page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]').evaluate((span) => {
+    const seen = await page.locator('nav[data-crumbs] [aria-current="page"]').evaluate((span) => {
       const node = span.firstChild as Text;
       const r = document.createRange();
       r.setStart(node, 0);
@@ -439,9 +440,13 @@ test('in Arabic at 375 px: the Discussion tab, the box and the comment say the c
 }) => {
   await withArabic(async () => {
     const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
-      pages: { tasks: { tabs: { discussion: string }; comments: { write: string; add: string; added: string } } };
+      pages: { tasks: { tabs: { discussion: string } } };
+      record: { comments: { write: string; add: string; added: string } };
     };
     const w = ar.pages.tasks;
+    // the box and its toast are the shared Discussion's words (record.comments.*), the ones the screen draws; the
+    // task-only copy (pages.tasks.comments.*) was unused and is gone from both catalogs
+    const c = ar.record.comments;
     const me = await makePerson({ admin: true });
     await sql(
       `insert into core.team (department_id, code, name_en, name_ar, created_by)
@@ -469,10 +474,10 @@ test('in Arabic at 375 px: the Discussion tab, the box and the comment say the c
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('[data-record-header] [data-tabs]')).toContainText(w.tabs.discussion);
     await page.locator('[data-add-comment] textarea').fill('تعليق تجريبي');
-    await expect(page.getByRole('button', { name: w.comments.add })).toBeVisible();
-    await page.getByRole('button', { name: w.comments.add }).click();
+    await expect(page.getByRole('button', { name: c.add })).toBeVisible();
+    await page.getByRole('button', { name: c.add }).click();
     await expect(page.locator('[data-comment-body]')).toHaveText('تعليق تجريبي');
-    await expect(page.getByText(w.comments.added)).toBeVisible();
+    await expect(page.getByText(c.added)).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
       'no sideways scroll',

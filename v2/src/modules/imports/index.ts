@@ -11,6 +11,8 @@ export type { Detection, Signature, SignatureKey } from './signatures';
 export { parseDate, parseIssuedInvoice, parseMoney, roundMoney, tenDigitRef } from './money';
 export { fullyPaidVerdict, isApprovedExpense } from './paid';
 export type { PaidVerdict } from './paid';
+export { WHY, whyOf, whyText } from './reasons';
+export type { Why, WhyCode } from './reasons';
 export { normaliseFile } from './normalise';
 export type { HeldRow, NormaliseOptions, NormaliseResult, NormalisedRow } from './normalise';
 export { buildPreview, mergedRecord } from './preview';

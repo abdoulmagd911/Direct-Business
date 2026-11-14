@@ -124,25 +124,32 @@ const TICKS_SHOWN = 5;
 
 /**
  * Finding 3 (26 Oct): my checklist's open rows on My day, each ticked where it stands. A tick saves at once, as the
- * checklist's page does, with Undo on its toast; the row then leaves the list and the count moves on.
+ * checklist's page does, with Undo on its toast; the row then leaves the list and the count moves on. The rows and the
+ * version a tick writes over are held here and moved on by each save, so a second tick right after the first builds
+ * on it — before, it wrote over the page's older copy and was refused as someone else's change (or undid the first).
  */
 function ChecklistTicks({ note }: { note: MyNote }) {
   const t = useTranslations();
   const words = useWords();
   const [busy, setBusy] = useState(false);
-  const open = note.items.map((x, i) => ({ ...x, i })).filter((x) => !x.done && x.text.trim());
+  const [held, setHeld] = useState({ version: note.version, items: note.items });
+  // a newer read (the refresh after a save, an Undo, an edit elsewhere) replaces what is held
+  if (note.version > held.version) setHeld({ version: note.version, items: note.items });
+  const open = held.items.map((x, i) => ({ ...x, i })).filter((x) => !x.done && x.text.trim());
   if (!open.length) return null;
   const tick = async (i: number) => {
     setBusy(true);
-    await command(
+    const items = held.items.map((x, j) => (j === i ? { ...x, done: true } : x));
+    const saved = await command(
       words(t('pages.myDay.note.itemDone')),
       () =>
         rpc('note_update', {
           p_id: note.id,
-          p_version: note.version,
-          p_values: { items: note.items.map((x, j) => (j === i ? { ...x, done: true } : x)) } as never,
-        }) as Promise<{ request_id?: string | null }>,
+          p_version: held.version,
+          p_values: { items } as never,
+        }) as Promise<{ request_id?: string | null; version?: number }>,
     );
+    if (saved?.version) setHeld({ version: saved.version, items });
     setBusy(false);
   };
   const more = open.length - TICKS_SHOWN;
@@ -156,7 +163,9 @@ function ChecklistTicks({ note }: { note: MyNote }) {
             onCheckedChange={(v) => (v ? void tick(x.i) : undefined)}
             label={x.text}
           />
-          <span className="min-w-0 break-words text-sm">{x.text}</span>
+          <span className="min-w-0 break-words text-sm">
+            <bdi>{x.text}</bdi>
+          </span>
         </li>
       ))}
       {more > 0 ? (
@@ -170,8 +179,11 @@ function ChecklistTicks({ note }: { note: MyNote }) {
   );
 }
 
-/** One note in a block: its kind, line, count, organisation and chips; the whole row opens the note. */
-export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
+/**
+ * One note in a block: its kind, line, count, organisation and chips; the whole row opens the note. On the Deferred
+ * list it also says the day it comes back (the date at the end is still the day it happened).
+ */
+export function NoteRow({ note, author, deferred = false }: { note: MyNote; author?: string; deferred?: boolean }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const captured = note.capture_kind ?? (note.kind === 'sticky' ? 'note' : note.kind);
@@ -188,12 +200,15 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
       <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+          {/* the title wraps, never cut: on a phone a cut title lost its last words with no "…" (a link there is a 44 px
+              flex box, where an ellipsis does not draw), and sat lower than the row's icon and date. It stays a finger
+              wide on a phone even when it is short — "Hi" (QA-584): a min-w-0 here beat the shared 44 px phone rule. */}
           <Link
             href={noteRoute(note.id)}
-            className="min-w-11 truncate font-medium hover:underline sm:min-w-0"
+            className="block min-w-11 break-words font-medium hover:underline sm:min-w-0"
             data-note-open
           >
-            {title}
+            <bdi>{title}</bdi>
           </Link>
           {count && count.total ? (
             <span className="font-data text-xs text-muted" data-note-count>
@@ -207,6 +222,13 @@ export function NoteRow({ note, author }: { note: MyNote; author?: string }) {
             {t(`pages.myDay.quick.kinds.${captured}`)}
           </span>
           <VisibilityChip visibility={note.visibility} />
+          {deferred && note.carried_to ? (
+            <span className={chipClass} data-note-carried-to={note.carried_to}>
+              {t('pages.myDay.note.carried', {
+                date: formatDate(`${note.carried_to}T12:00:00+03:00`, locale, { dateStyle: 'medium' }),
+              })}
+            </span>
+          ) : null}
           {org ? (
             <span className={chipClass}>
               <bdi>{tradeName(org, locale)}</bdi>

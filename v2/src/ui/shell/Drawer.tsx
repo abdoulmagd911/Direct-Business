@@ -2,8 +2,8 @@
 import { Pin, PinOff } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useState, type FocusEvent, type PointerEvent } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { BrandLogo } from '../BrandLogo';
@@ -11,6 +11,7 @@ import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { Tooltip } from '../Tooltip';
 import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
+import { NavPending } from './NavPending';
 
 /**
  * The side drawer (spec §2.5): 232 px pinned, 56 px collapsed icon rail with tooltips; unpinned it opens on hover
@@ -20,6 +21,13 @@ import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from '.
  * is not here: it is in the avatar menu at the top, its one place (daily use 10).
  * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
  * (Direct) and dark drawers, the slate variant on light ones.
+ *
+ * Touch (owner, 13 Nov): on a tablet, or a phone on its side, a tap on a rail item did NOTHING — the tap focused the
+ * link, the focus opened the drawer, and opening it redrew the items 24 px lower and swapped each link for a new
+ * element, so the finger was lifted over another item and no click was ever made. Now the drawer opens only for a
+ * mouse that hovers and for the KEYBOARD's focus, never for a finger; each link stays the same element open or
+ * closed (its tooltip is switched off, not unwrapped); and the head is the same height open or closed, so no item
+ * moves under a mouse either. A tapped item shows that its page is on its way (NavPending) until the page arrives.
  */
 export function Drawer() {
   const t = useTranslations();
@@ -30,6 +38,8 @@ export function Drawer() {
   const pinned = prefs.drawer === 'pinned';
   const [peek, setPeek] = useState(false);
   const expanded = pinned || peek;
+  // the collapsed rail's tooltips open towards the page: right of a rail on the left (English), left of one on the right
+  const tipSide = useLocale() === 'ar' ? 'left' : 'right';
 
   useEffect(() => {
     if (!peek) return;
@@ -53,29 +63,38 @@ export function Drawer() {
   const item = (p: NavEntry) => {
     const active = isActiveEntry(p, pathname, view);
     const Icon = p.icon;
-    const link = (
-      <Link
-        key={p.key}
-        href={p.route}
-        aria-current={active ? 'page' : undefined}
-        className={cn(
-          'relative flex h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-md px-3 text-base text-nav-text transition-colors duration-[var(--dur)] hover:bg-[color-mix(in_srgb,var(--nav-text)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
-          active &&
-            'bg-nav-active font-semibold text-nav-active-text shadow-1 before:absolute before:start-0 before:bottom-2.5 before:top-2.5 before:w-[3px] before:rounded-[2px] before:bg-nav-mark',
-          !expanded && 'justify-center px-0',
-        )}
-      >
-        <Icon className="size-[18px] shrink-0" aria-hidden="true" />
-        <span className={cn(!expanded && 'sr-only')}>{t(p.label)}</span>
-      </Link>
-    );
-    return expanded ? (
-      link
-    ) : (
-      <Tooltip key={p.key} content={t(p.label)} side="right">
-        {link}
+    // One element whether the drawer is open or not: the tooltip is switched off while the words show, never
+    // unwrapped — unwrapping replaced the link under the pointer, and a tap that began on the old one was lost.
+    return (
+      <Tooltip key={p.key} content={t(p.label)} side={tipSide} disabled={expanded}>
+        <Link
+          href={p.route}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'relative flex h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-md px-3 text-base text-nav-text transition-colors duration-[var(--dur)] hover:bg-[color-mix(in_srgb,var(--nav-text)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
+            active &&
+              'bg-nav-active font-semibold text-nav-active-text shadow-1 before:absolute before:start-0 before:bottom-2.5 before:top-2.5 before:w-[3px] before:rounded-[2px] before:bg-nav-mark',
+            !expanded && 'justify-center px-0',
+          )}
+        >
+          <NavPending />
+          <Icon className="relative size-[18px] shrink-0" aria-hidden="true" />
+          <span className={cn('relative', !expanded && 'sr-only')}>{t(p.label)}</span>
+        </Link>
       </Tooltip>
     );
+  };
+
+  // A mouse that hovers opens the rail; a finger never does (its tap is a press on the item, see above).
+  const onPointerEnter = (e: PointerEvent) => {
+    if (!pinned && e.pointerType === 'mouse') setPeek(true);
+  };
+  const onPointerLeave = (e: PointerEvent) => {
+    if (!pinned && e.pointerType === 'mouse') setPeek(false);
+  };
+  // The keyboard's focus opens it (Tab into the rail); the focus a tap or a click gives the link does not.
+  const onFocusCapture = (e: FocusEvent) => {
+    if (!pinned && byKeyboard(e.target)) setPeek(true);
   };
 
   const content = (
@@ -87,14 +106,20 @@ export function Drawer() {
         'flex h-full flex-col gap-0.5 bg-nav-bg px-2 pb-4 pt-[18px] text-nav-text',
         expanded ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
       )}
-      onMouseEnter={() => !pinned && setPeek(true)}
-      onMouseLeave={() => !pinned && setPeek(false)}
-      onFocusCapture={() => !pinned && setPeek(true)}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onFocusCapture={onFocusCapture}
       onBlurCapture={(e) => {
         if (!pinned && !e.currentTarget.contains(e.relatedTarget as Node)) setPeek(false);
       }}
     >
-      <div className={cn('flex flex-col gap-2.5 pb-5', expanded ? 'px-2.5' : 'items-center px-0')}>
+      {/* The head keeps ONE height, open or closed, in English and in Arabic (the logo and the department's name on
+          one line, or the D), so the items below never move when the rail opens under a mouse — they moved 24 px,
+          and a click aimed at Tasks opened My day. 84 px holds the open head in both languages (77 / 82 px). */}
+      <div
+        className={cn('flex h-[84px] shrink-0 flex-col gap-2.5 pb-5', expanded ? 'px-2.5' : 'items-center px-0')}
+        data-drawer-head
+      >
         <Link
           href="/my-day"
           aria-label={t('nav.my_day')}
@@ -113,7 +138,7 @@ export function Drawer() {
         </Link>
         {expanded ? (
           <div className="leading-tight">
-            <b className="block font-display text-[14.5px] font-semibold">
+            <b className="block truncate font-display text-[14.5px] font-semibold">
               <DepartmentName />
             </b>
           </div>
@@ -163,6 +188,18 @@ export function Drawer() {
 function DepartmentName() {
   const t = useTranslations('app');
   return <>{t('department')}</>;
+}
+
+/**
+ * Whether a focus came from the keyboard: the browser says so with :focus-visible (every browser of the last three
+ * years). One too old to know it answers yes, which is what the drawer always did.
+ */
+function byKeyboard(target: EventTarget): boolean {
+  try {
+    return target instanceof Element && target.matches(':focus-visible');
+  } catch {
+    return true;
+  }
 }
 
 /**

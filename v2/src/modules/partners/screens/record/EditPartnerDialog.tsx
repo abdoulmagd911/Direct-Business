@@ -11,7 +11,7 @@ import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
-import { clientPriorities, nameOf, type ListEntry, type PartnerCard } from '../../types';
+import { clientPriorities, nameOf, tradeName, type ListEntry, type PartnerCard } from '../../types';
 import { useWords } from './words';
 
 const FIELDS = [
@@ -41,6 +41,7 @@ export function EditPartnerDialog({
   card,
   priorities,
   nameOfPerson,
+  clientOn = true,
   onDone,
 }: {
   open: boolean;
@@ -48,11 +49,15 @@ export function EditPartnerDialog({
   card: PartnerCard;
   priorities: ListEntry[];
   nameOfPerson: (id: string) => string | undefined;
+  /** Client since is the organisation's date as a client: offered only while its Client side is on (or it holds one). */
+  clientOn?: boolean;
   onDone: () => void;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const words = useWords();
+  // the organisation by the name the reader reads it by — the title and the toast
+  const shown = tradeName(card, locale);
   const read = (c: PartnerCard): Record<Key, string | boolean> => ({
     trade_name_en: c.trade_name_en,
     trade_name_ar: c.trade_name_ar ?? '',
@@ -125,7 +130,7 @@ export function EditPartnerDialog({
       rpc('partner_update', { p_id: card.id, p_changes: values as never, p_version: version }) as Promise<{
         request_id?: string | null;
       } | null>;
-    await command(words(t('partners.updated', { name: card.trade_name_en })), () => write(changes, card.version), {
+    await command(words(t('partners.updated', { name: shown })), () => write(changes, card.version), {
       after: () => {
         onOpenChange(false);
         onDone();
@@ -160,10 +165,11 @@ export function EditPartnerDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('partners.edit', { name: card.trade_name_en })}
+      title={t('partners.edit', { name: shown })}
       size="lg"
       closeLabel={t('common.close')}
-      dirty
+      // only a changed form holds Escape and the backdrop back; an untouched one closes like any dialog
+      dirty={FIELDS.some((k) => asValue(k, f[k]) !== asValue(k, read(card)[k]))}
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
@@ -194,7 +200,7 @@ export function EditPartnerDialog({
         {text('official_name_en')}
         {text('official_name_ar', { dir: 'rtl', lang: 'ar' })}
         {text('website', { type: 'url' })}
-        {text('client_since', { type: 'date', className: 'font-data' })}
+        {clientOn || card.client_since ? text('client_since', { type: 'date', className: 'font-data' }) : null}
         {text('city')}
         {text('country')}
         {text('address')}

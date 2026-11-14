@@ -93,9 +93,11 @@ export function AchievementFromNoteDialog({
   const cat = live.find((c) => c.code === f.code);
   const needsRef = cat?.required_ref_system ?? null;
   const needsSide = !!cat?.sets_prospect && !!f.partner;
-  // FIX-06: the value is a plain number for every category, not only the deal-value ones (D29) — the unit is
-  // the category's own name, in the field's label; never Revenue/Cost/Profit, and the "not revenue" note stands.
-  const valueBad = !!cat && !!f.value.trim() && readDealValue(f.value) === null;
+  // FIX-06: the value is a plain number — the unit is the category's own name, in the field's label; never
+  // Revenue/Cost/Profit, and the "not revenue" note stands. The box shows for a category that carries a deal value
+  // only: the database refuses a value on any other (achievement.no_deal_value).
+  const withValue = !!cat?.has_deal_value;
+  const valueBad = withValue && !!f.value.trim() && readDealValue(f.value) === null;
   const ok = !!cat && !!f.title.trim() && (!needsRef || !!f.ref.trim()) && (!needsSide || !!f.side) && !valueBad;
   const name = (c: Category) => (c.parent_id ? '— ' : '') + (locale === 'ar' ? c.name_ar : c.name_en);
   const valueLabel = cat
@@ -106,6 +108,10 @@ export function AchievementFromNoteDialog({
     if (!cat) return;
     setBusy(true);
     const system = needsRef ?? systems[0]?.key;
+    // the command runs `after` once on the save and again when Undo is pressed on its toast
+    // (src/core/commands/command.ts, done()): the second run is the Undo — the achievement is gone, so the
+    // "Achievement logged" dialog must not open (again) for it.
+    let savedOnce = false;
     await command(
       withRefusal(words(t('logged')), tt('refused.achievement')),
       () =>
@@ -117,7 +123,7 @@ export function AchievementFromNoteDialog({
             title: f.title.trim(),
             happened_on: f.on || null,
             partner_id: f.partner?.id ?? null,
-            ...(f.value.trim() ? { deal_value: readDealValue(f.value)! } : {}),
+            ...(withValue && f.value.trim() ? { deal_value: readDealValue(f.value)! } : {}),
             ...(needsSide && f.side ? { side: f.side } : {}),
             ...(f.ref.trim() && system ? { refs: [{ system, value: f.ref.trim(), url: null }] } : {}),
             ...(f.participants.length ? { participants: f.participants } : {}),
@@ -127,6 +133,8 @@ export function AchievementFromNoteDialog({
       // instead of closing straight away. The note keeps showing what it became either way.
       {
         after: (r) => {
+          if (savedOnce) return setSaved((s) => (s?.id === r?.id ? null : s));
+          savedOnce = true;
           setF(fresh());
           if (r?.id) setSaved({ id: r.id, number: r.number ?? '' });
           else onOpenChange(false);
@@ -165,12 +173,12 @@ export function AchievementFromNoteDialog({
               {t('fromNote.noCategories', { year })}
             </p>
           ) : (
-            <Field label={t('fields.category')} className="sm:col-span-2">
+            <Field label={t('fields.category')} className="sm:col-span-2" required={tc('required')}>
               {(p) => (
                 <Select
                   id={p.id}
                   aria-label={t('fields.category')}
-                  value={f.code || undefined}
+                  value={f.code}
                   placeholder={t('actions.choose')}
                   options={live.map((c) => ({ value: c.code, label: name(c) }))}
                   onValueChange={(code) => setF({ ...f, code })}
@@ -178,34 +186,35 @@ export function AchievementFromNoteDialog({
               )}
             </Field>
           )}
-          <Field label={t('fields.title')} className="sm:col-span-2">
+          <Field label={t('fields.title')} className="sm:col-span-2" required={tc('required')}>
             {(p) => (
               <Input {...p} value={f.title} maxLength={300} onChange={(e) => setF({ ...f, title: e.target.value })} />
             )}
           </Field>
-          <Field label={t('fields.date')}>
+          <Field label={t('fields.date')} className="sm:col-span-2">
             {(p) => (
               <DatePicker
                 id={p.id}
                 describedBy={p['aria-describedby']}
                 invalid={p['aria-invalid']}
                 value={f.on || undefined}
+                min="2025-01-01"
                 max={riyadhToday()}
                 onChange={(v) => setF({ ...f, on: v ?? '' })}
                 className="font-data"
               />
             )}
           </Field>
-          <Field label={t('fields.organisation')}>
+          <Field label={t('fields.organisation')} className="sm:col-span-2">
             {(p) => <PartnerPicker id={p.id} value={f.partner} onChange={(partner) => setF({ ...f, partner })} />}
           </Field>
           {needsSide ? (
-            <Field label={t('fields.side')}>
+            <Field label={t('fields.side')} required={tc('required')}>
               {(p) => (
                 <Select
                   id={p.id}
                   aria-label={t('fields.side')}
-                  value={f.side || undefined}
+                  value={f.side}
                   placeholder={t('actions.choose')}
                   options={(['client', 'supplier_partner'] as const).map((k) => ({ value: k, label: t(`sides.${k}`) }))}
                   onValueChange={(v) => setF({ ...f, side: v as 'client' | 'supplier_partner' })}
@@ -213,7 +222,7 @@ export function AchievementFromNoteDialog({
               )}
             </Field>
           ) : null}
-          {cat ? (
+          {withValue ? (
             <Field label={valueLabel} error={valueBad ? t('valueNotNumber') : undefined}>
               {(p) => (
                 <Input
@@ -229,6 +238,7 @@ export function AchievementFromNoteDialog({
           {needsRef ? (
             <Field
               label={`${t('fields.reference')} · ${systems.find((s) => s.key === needsRef)?.[locale === 'ar' ? 'name_ar' : 'name_en'] ?? needsRef}`}
+              required={tc('required')}
             >
               {(p) => (
                 <Input {...p} value={f.ref} maxLength={200} onChange={(e) => setF({ ...f, ref: e.target.value })} />

@@ -97,7 +97,19 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const canBulk = me.capabilities.includes('tasks.assign');
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const toggleRow = (id: string, on: boolean) => setSelected((s) => (on ? [...s, id] : s.filter((x) => x !== id)));
+  // The selection is of the rows on screen (owner 13 Nov): another view, chip, search, sort or layout starts it again,
+  // and a row that left the list (done, given away, changed by someone else) leaves it — Bulk assign never acts on a
+  // task no longer shown, and Select all reads only what is shown.
+  const listKey = filtersHref(f);
+  const [seenListKey, setSeenListKey] = useState(listKey);
+  if (listKey !== seenListKey) {
+    setSeenListKey(listKey);
+    setSelected([]);
+  }
+  const onScreen = new Set(rows.map((r) => r.id));
+  const shown = selected.filter((id) => onScreen.has(id));
+  const toggleRow = (id: string, on: boolean) =>
+    setSelected((s) => (on ? [...s.filter((x) => x !== id), id] : s.filter((x) => x !== id)));
   const go = (change: Partial<TaskFilters>) => router.push(filtersHref(f, change));
   const retry = () => router.refresh();
   // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
@@ -340,7 +352,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
               {canBulk && rows.length ? (
                 <div className="flex items-center gap-2 px-1 text-sm text-muted" data-task-select-all>
                   <Checkbox
-                    checked={selected.length === 0 ? false : selected.length === rows.length ? true : 'indeterminate'}
+                    checked={shown.length === 0 ? false : shown.length === rows.length ? true : 'indeterminate'}
                     onCheckedChange={(on) => setSelected(on ? rows.map((r) => r.id) : [])}
                     label={t('table.selectAll')}
                     id="task-select-all"
@@ -359,7 +371,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                     lookups={lookups}
                     today={today}
                     selectable={canBulk}
-                    selected={selected.includes(r.id)}
+                    selected={shown.includes(r.id)}
                     onSelect={(on) => toggleRow(r.id, on)}
                   />
                 ))}
@@ -375,7 +387,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       )}
       {canBulk ? (
         <BulkBar
-          ids={selected}
+          ids={shown}
           actions={[
             {
               key: 'assign',
@@ -389,7 +401,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
       <TaskBulkAssign
         open={bulkOpen}
         onOpenChange={setBulkOpen}
-        ids={selected}
+        ids={shown}
         org={lookups.org}
         priorities={lookups.priorities}
         onDone={() => setSelected([])}
@@ -504,11 +516,13 @@ function TaskLine({
       data-due={due}
     >
       {selectable ? (
+        // above the title link's whole-row layer (its ::after), as the done tick is: under it, a tap on the box
+        // opened the task instead of selecting it, so no row could be selected for Bulk assign (owner 13 Nov)
         <Checkbox
           checked={selected ?? false}
           onCheckedChange={(on) => onSelect?.(on)}
           label={t('table.selectRow', { name: row.title })}
-          className="mt-1 shrink-0"
+          className="z-10 mt-1 shrink-0"
         />
       ) : null}
       {row.can_edit ? (

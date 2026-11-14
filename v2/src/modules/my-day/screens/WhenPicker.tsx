@@ -77,8 +77,10 @@ export function WhenPicker({
       </div>
       {value === 'pick' ? (
         <div className="flex flex-col gap-2" data-when-pick>
-          <div className="flex flex-wrap gap-3">
-            <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
+          {/* the day box with its calendar and Clear needs the width: on a phone Day and Time stack, and beside a wider
+              Day the time keeps a narrow box (two equal halves squeezed the day to 26 px on a phone, "15 Nov 202" on a PC) */}
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
               {t('pages.myDay.quick.day')}
               <DatePicker
                 id={dayId}
@@ -88,7 +90,7 @@ export function WhenPicker({
                 inputProps={{ 'data-when-day': '' }}
               />
             </label>
-            <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm font-medium">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium">
               {t('pages.myDay.quick.time')}
               <TimeInput value={pick.time} onChange={(time) => onPick({ ...pick, time })} data-when-time-field />
             </label>

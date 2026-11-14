@@ -175,9 +175,10 @@ export function PlanDetailScreen({
   // F-B5-12 (D-5 ruled: delete allowed): the target being deleted, if any — its expected count goes with it and
   // the achievements already logged stay, so the dialog says so and asks for the reason (the RPC requires one).
   const [deletingTarget, setDeletingTarget] = useState<TargetRow | null>(null);
+  // the delete's own button says what it does (D19: a delete asks with Delete and Cancel), not Save
   const reasonWords = {
     reason: t('common.reason'),
-    save: t('common.save'),
+    save: t('targets.deleteTarget'),
     cancel: t('common.cancel'),
     reasonRequired: t('settings.form.reasonRequired'),
   };
@@ -228,20 +229,22 @@ export function PlanDetailScreen({
     const n = usageCounts?.[c.id];
     return n === undefined || n < 0 ? '—' : String(n);
   };
+  // every category's uses read at once, not one after another (a plan of twenty categories waited twenty rounds)
   const loadUsage = async () => {
     setUsageCounts({});
-    const next: Record<string, number> = {};
-    for (const c of categories) {
-      try {
-        const u = (await rpc('achievement_category_usage', { p_id: c.id }, { retry: true })) as {
-          total?: number;
-        } | null;
-        next[c.id] = u?.total ?? -1;
-      } catch {
-        next[c.id] = -1;
-      }
-    }
-    setUsageCounts(next);
+    const read = await Promise.all(
+      categories.map(async (c) => {
+        try {
+          const u = (await rpc('achievement_category_usage', { p_id: c.id }, { retry: true })) as {
+            total?: number;
+          } | null;
+          return [c.id, u?.total ?? -1] as const;
+        } catch {
+          return [c.id, -1] as const;
+        }
+      }),
+    );
+    setUsageCounts(Object.fromEntries(read));
   };
 
   const startCategoryAdd = () => {
@@ -429,9 +432,11 @@ export function PlanDetailScreen({
                       <span className="font-medium">
                         {monthLabel(row.month, locale)} · {cat ? catName(cat) : row.category_code}
                       </span>
+                      {/* the count expected, then what was achieved — its number said with it (the line read
+                          "Count: 3 · Achieved" with no number on a phone) */}
                       <span className="text-sm text-muted">
-                        {t('pages.achievements.fields.count')}: {formatNumber(row.target_count, locale)} ·{' '}
-                        {t('settings.targets.achievedCount', { count: row.achieved_count })}
+                        {t('settings.targets.targetCount')}: {formatNumber(row.target_count, locale)} ·{' '}
+                        {t('settings.targets.achievedCount', { count: formatNumber(row.achieved_count, locale) })}
                       </span>
                       {cat?.has_deal_value ? (
                         <span className="text-sm text-muted">
@@ -479,7 +484,7 @@ export function PlanDetailScreen({
                     {t('settings.targets.targetCategory')}
                   </th>
                   <th className="border-b border-border px-3 py-2 text-start font-medium">
-                    {t('pages.achievements.fields.count')}
+                    {t('settings.targets.targetCount')}
                   </th>
                   <th className="border-b border-border px-3 py-2 text-start font-medium">
                     {t('settings.targets.achieved')}

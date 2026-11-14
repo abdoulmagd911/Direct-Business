@@ -9,13 +9,28 @@ import { formatStoredDate } from '@/core/i18n/format';
  * never to JSON and never to the raw key.
  */
 
-/** The translations a renderer needs: next-intl's `t` (callable, with `has`). */
+/** The translations a renderer needs: next-intl's `t` (callable, with `has`, and `raw` to read a message as stored). */
 export type WordT = {
   (key: string, values?: Record<string, string | number>): string;
   has: (key: string) => boolean;
+  raw?: (key: string) => unknown;
 };
 
+/**
+ * The words at `key` when the catalog holds a sentence there, else null. next-intl's `has` is true for a GROUP of words
+ * too (`setting.files`, `cap.clients` name groups), and `t` on a group answers its own path and logs INSUFFICIENT_PATH —
+ * the Activity page showed raw keys that way. A group is no word.
+ */
+export function wordAt(t: WordT, key: string): string | null {
+  if (!t.has(key)) return null;
+  if (t.raw && typeof t.raw(key) !== 'string') return null;
+  return t(key);
+}
+
 export type AvatarName = { displayName: string };
+
+/** Between the items of a list of words: Arabic's own comma in Arabic ("الحالة، سبب الإلغاء"), a comma in English. */
+export const listSeparator = (locale: 'en' | 'ar'): string => (locale === 'ar' ? '، ' : ', ');
 
 /** A column name is never shown: its wording, else the name in plain words ("manager_id" → "Manager"). */
 export function plainWords(field: string): string {
@@ -33,16 +48,12 @@ export function fieldLabel(t: WordT, field: string): string {
  * "Assign a task I own or created"), a start page's ("my_day" → "My day"). Null when no wording knows the key.
  */
 export function keyWord(t: WordT, key: string): string | null {
-  if (t.has(`setting.${key}`)) return t(`setting.${key}`);
-  if (t.has(`cap.${key}`)) return t(`cap.${key}`);
-  if (t.has(`activity.startPage.${key}`)) return t(`activity.startPage.${key}`);
-  return null;
+  return wordAt(t, `setting.${key}`) ?? wordAt(t, `cap.${key}`) ?? wordAt(t, `activity.startPage.${key}`);
 }
 
 /** A setting's key in words ("app.arabic_enabled" → "Arabic"), else null. */
 export function settingLabel(t: WordT, key: string): string | null {
-  if (t.has(`setting.${key}`)) return t(`setting.${key}`);
-  return null;
+  return wordAt(t, `setting.${key}`);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-/i;
@@ -74,11 +85,20 @@ export function makeValueWords({ t, locale, describe, people = {} }: ValueWordsD
         const word = keyWord(t, v);
         if (word) return word;
       }
-      if ((field === 'theme' || field === 'default_theme') && t.has(`theme.${v}`)) return t(`theme.${v}`);
-      if ((field === 'density' || field === 'default_density') && t.has(`density.${v}`)) return t(`density.${v}`);
-      if (field === 'locale' && t.has(`locale.${v}`)) return t(`locale.${v}`);
-      if ((field === 'start_page' || field === 'default_start_page') && t.has(`activity.startPage.${v}`))
-        return t(`activity.startPage.${v}`);
+      const vocabulary =
+        field === 'theme' || field === 'default_theme'
+          ? 'theme'
+          : field === 'density' || field === 'default_density'
+            ? 'density'
+            : field === 'locale'
+              ? 'locale'
+              : field === 'start_page' || field === 'default_start_page'
+                ? 'activity.startPage'
+                : field === 'level'
+                  ? 'levels'
+                  : null;
+      const word = vocabulary ? wordAt(t, `${vocabulary}.${v}`) : null;
+      if (word) return word;
       // A stored day or moment is written the one way the app writes a date, then a person's id by name.
       const when = formatStoredDate(v, locale);
       if (when) return when;
@@ -132,16 +152,20 @@ export function settingValueWords(
 ): string {
   if (key === 'notify.kinds_enabled' && Array.isArray(value)) {
     if (!value.length) return '—';
-    const kinds = value.map((k) =>
-      typeof k === 'string' && t.has(`profile.notify.${k}`) ? t(`profile.notify.${k}`) : String(k),
-    );
+    const kinds = value.map((k) => (typeof k === 'string' ? wordAt(t, `profile.notify.${k}`) : null) ?? String(k));
     return kinds.join(', ');
   }
   if (typeof value === 'string') {
-    if (key === 'app.default_theme' && t.has(`theme.${value}`)) return t(`theme.${value}`);
-    if (key === 'app.default_density' && t.has(`density.${value}`)) return t(`density.${value}`);
-    if (key === 'app.default_start_page' && t.has(`activity.startPage.${value}`))
-      return t(`activity.startPage.${value}`);
+    const vocabulary =
+      key === 'app.default_theme'
+        ? 'theme'
+        : key === 'app.default_density'
+          ? 'density'
+          : key === 'app.default_start_page'
+            ? 'activity.startPage'
+            : null;
+    const word = vocabulary ? wordAt(t, `${vocabulary}.${value}`) : null;
+    if (word) return word;
   }
   return words('value', value);
 }

@@ -23,6 +23,12 @@ import type { IncomeByService, LateChange, OverviewData, Period } from '../types
 
 type Locale = 'en' | 'ar';
 
+/** A real day as `YYYY-MM-DD` (not 30 Feb, not a half-typed day). */
+const isDay = (s: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+  !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) &&
+  new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
+
 /** A month start as "September 2026" (Riyadh calendar, Latin digits) — never "1 Sep 2026". */
 const monthName = (m: string, locale: Locale) =>
   formatDate(`${m}T12:00:00Z`, locale, { day: undefined, month: 'long', year: 'numeric' });
@@ -154,7 +160,7 @@ export function FinanceOverview({
           {flags ? (
             <section
               aria-label={t('finance.attention.title')}
-              className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:mb-16 max-sm:pe-20"
+              className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-raised px-4 py-3 max-sm:pe-20"
               data-finance-attention
             >
               <h2 className="font-ui text-xs font-semibold uppercase tracking-wide text-muted">
@@ -200,11 +206,14 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
     setTo(ask.to);
   }
   const router = useRouter();
+  const [wrong, setWrong] = useState(false);
   return (
-    <div className="flex flex-wrap items-center gap-2" data-finance-period>
+    <div className="flex flex-col items-start gap-2" data-finance-period>
+      {/* a tab never breaks inside its word (the Arabic "Custom" read مخص/ص on a phone); a bar wider than the screen
+          scrolls sideways instead of wrapping */}
       <nav
         aria-label={t('finance.period.label')}
-        className="inline-flex overflow-hidden rounded-md border border-border-strong bg-raised"
+        className="inline-flex max-w-full overflow-x-auto rounded-md border border-border-strong bg-raised"
       >
         {keys.map((k) => (
           <Link
@@ -214,7 +223,7 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             aria-current={ask.key === k ? 'page' : undefined}
             data-finance-period-key={k}
             className={cn(
-              'inline-flex h-[var(--control-h)] items-center px-3.5 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
+              'inline-flex h-[var(--control-h)] shrink-0 items-center whitespace-nowrap px-3.5 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
               ask.key === k ? 'bg-text text-raised' : 'text-text hover:bg-surface',
             )}
           >
@@ -223,32 +232,65 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
         ))}
       </nav>
       {ask.key === 'custom' ? (
+        // From and To are named on screen (two bare boxes said nothing on a phone); two days that are not a period —
+        // half typed, or the first after the second — are said so in place, instead of silently becoming the year
         <form
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-wrap items-start gap-2"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!isDay(from) || !isDay(to) || from > to) {
+              setWrong(true);
+              return;
+            }
             router.push(`/finance?period=custom&from=${from}&to=${to}`);
           }}
         >
-          <DatePicker
-            id="finance-from"
-            value={from || undefined}
-            onChange={(v) => setFrom(v ?? '')}
-            onClear={() => router.push('/finance?period=ytd')}
-            className="w-[10.5rem]"
-            inputProps={{ 'aria-label': t('finance.period.from'), 'data-finance-from': '' }}
-          />
-          <DatePicker
-            id="finance-to"
-            value={to || undefined}
-            onChange={(v) => setTo(v ?? '')}
-            onClear={() => router.push('/finance?period=ytd')}
-            className="w-[10.5rem]"
-            inputProps={{ 'aria-label': t('finance.period.to'), 'data-finance-to': '' }}
-          />
-          <Button type="submit" variant="secondary" data-finance-apply>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="finance-from" className="text-sm font-medium">
+              {t('finance.period.from')}
+            </label>
+            <DatePicker
+              id="finance-from"
+              value={from || undefined}
+              onChange={(v) => {
+                setFrom(v ?? '');
+                setWrong(false);
+              }}
+              onClear={() => router.push('/finance?period=ytd')}
+              chips="none"
+              invalid={wrong || undefined}
+              describedBy={wrong ? 'finance-period-wrong' : undefined}
+              className="w-[10.5rem]"
+              inputProps={{ 'data-finance-from': '' }}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="finance-to" className="text-sm font-medium">
+              {t('finance.period.to')}
+            </label>
+            <DatePicker
+              id="finance-to"
+              value={to || undefined}
+              onChange={(v) => {
+                setTo(v ?? '');
+                setWrong(false);
+              }}
+              onClear={() => router.push('/finance?period=ytd')}
+              chips="none"
+              invalid={wrong || undefined}
+              describedBy={wrong ? 'finance-period-wrong' : undefined}
+              className="w-[10.5rem]"
+              inputProps={{ 'data-finance-to': '' }}
+            />
+          </div>
+          <Button type="submit" variant="secondary" className="mt-[1.625rem]" data-finance-apply>
             {t('finance.period.apply')}
           </Button>
+          {wrong ? (
+            <p id="finance-period-wrong" role="alert" className="basis-full text-sm text-danger">
+              {t('finance.period.invalid')}
+            </p>
+          ) : null}
         </form>
       ) : null}
     </div>
@@ -297,7 +339,11 @@ function FigureTile({
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const exact = formatMoney(value, locale);
-  const short = shortForm(value);
+  // the short form's K and M are words of the screen's language (1.5K; in Arabic 1.5 ألف), never Latin letters there
+  const parts = /^(-?[\d.]+)([KM])$/.exec(shortForm(value) ?? '');
+  const short = parts
+    ? t(parts[2] === 'K' ? 'finance.short.thousands' : 'finance.short.millions', { n: parts[1] ?? '' })
+    : null;
   return (
     <div
       className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-raised px-4 py-3.5 shadow-1"
@@ -452,7 +498,7 @@ function MonthItem({ row, full, onClose }: { row: MonthRow; full: boolean; onClo
         <div className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card>
           <Figure label={t('finance.months.revenue')} value={money(f?.revenue)} stacked />
           <Figure label={t('finance.months.profit')} value={money(f?.profit)} stacked />
-          <Figure label={t('finance.provisional')} value={money(f?.provisional_profit)} stacked />
+          <Figure label={t('finance.months.provisional')} value={money(f?.provisional_profit)} stacked />
         </div>
       </div>
       {late > 0 ? (
@@ -526,7 +572,7 @@ function ProvisionalMonthItem({ row }: { row: MonthRow }) {
         <div className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card>
           <Figure label={t('finance.months.revenue')} value={formatMoney(f.provisional_revenue, locale)} stacked />
           <Figure label={t('finance.months.profit')} value={formatMoney(f.provisional_profit, locale)} stacked />
-          <Figure label={t('finance.provisional')} value={none} stacked />
+          <Figure label={t('finance.months.provisional')} value={none} stacked />
         </div>
       </div>
     </li>

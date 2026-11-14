@@ -152,15 +152,17 @@ export function Checklist({
         </ul>
       )}
       {task.can_edit ? (
+        // The item on its own line, then its due day and Add: squeezed beside the item at 176 px, the due chips broke
+        // over two lines and the date box was cut off mid-word (owner 13 Nov).
         <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault();
             void add();
           }}
           data-add-item
         >
-          <Field label={t('pages.tasks.items.new')} error={error} className="flex-1">
+          <Field label={t('pages.tasks.items.new')} error={error}>
             {(p) => (
               <Input
                 {...p}
@@ -173,22 +175,24 @@ export function Checklist({
               />
             )}
           </Field>
-          <Field label={t('pages.tasks.fields.due')} className="sm:w-44">
-            {(p) => (
-              <DatePicker
-                id={p.id}
-                describedBy={p['aria-describedby']}
-                invalid={p['aria-invalid']}
-                value={due || undefined}
-                onChange={(v) => setDue(v ?? '')}
-                chips="due"
-                name="item-due"
-              />
-            )}
-          </Field>
-          <Button type="submit" loading={busy === 'add'}>
-            {t('common.add')}
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <Field label={t('pages.tasks.fields.due')} className="sm:w-80">
+              {(p) => (
+                <DatePicker
+                  id={p.id}
+                  describedBy={p['aria-describedby']}
+                  invalid={p['aria-invalid']}
+                  value={due || undefined}
+                  onChange={(v) => setDue(v ?? '')}
+                  chips="due"
+                  name="item-due"
+                />
+              )}
+            </Field>
+            <Button type="submit" loading={busy === 'add'} className="sm:self-end">
+              {t('common.add')}
+            </Button>
+          </div>
         </form>
       ) : null}
       <Confirm

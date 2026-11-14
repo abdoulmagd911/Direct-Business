@@ -199,7 +199,12 @@ export function DatePicker({
   return (
     <div className="flex flex-col gap-2" {...at('picker')}>
       {chipList.length ? (
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.tasks.fields.due')}>
+        <div
+          className="flex flex-wrap gap-2"
+          role="radiogroup"
+          // a task's Due chips are its due day; anywhere else (a contract's start, a review date) they are quick dates
+          aria-label={chips === 'due' ? t('pages.tasks.fields.due') : t('datePicker.quickDates')}
+        >
           {chipList.map((c) => (
             <button
               key={c.key}
@@ -285,7 +290,16 @@ export function DatePicker({
                     if (inRange(current)) pick(current);
                     return;
                   }
-                  const by = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' ? -7 : 7;
+                  // the arrows follow the grid as drawn: in Arabic the week runs right to left, so ArrowLeft is the
+                  // next day
+                  const ltr = getComputedStyle(e.currentTarget).direction !== 'rtl';
+                  const steps: Record<string, number> = {
+                    ArrowLeft: ltr ? -1 : 1,
+                    ArrowRight: ltr ? 1 : -1,
+                    ArrowUp: -7,
+                    ArrowDown: 7,
+                  };
+                  const by = steps[e.key] ?? 0;
                   const next = stepDay(current, by);
                   if (next.slice(0, 7) !== shownMonth) setShownMonth(next.slice(0, 7));
                   focus(next);

@@ -27,7 +27,6 @@ import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import { Select } from '@/ui/Select';
-import { Switch } from '@/ui/Switch';
 import {
   LEVELS,
   avatarOf,
@@ -67,9 +66,14 @@ export type PersonRecordData = {
   signIns: { id: string; at: string; email: string; result: string; user_agent: string | null }[] | null;
   /** The reads that failed for a reason other than access (`people`, `access`, `history`, `devices`, `signIns`). */
   failed: string[];
+  /** Riyadh's date on the server (YYYY-MM-DD): whether a leaving day has come. */
+  today?: string;
+  /** People who cannot take work over (switched off, or left): never offered in the hand-over picker. */
+  unavailable?: string[];
 };
 
 const TABS = ['overview', 'activity', 'related', 'appraisal'] as const;
+const APPRAISAL_BUILT = modules.some((m) => (m.pages ?? []).some((p) => p.key === 'appraisal' && p.built));
 
 /**
  * A person's record page (V95 template; V96: the appraisal tab is for the person, their manager and admins; V97: only
@@ -82,9 +86,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const { me, org, person, row, access, history, devices, ownDevices, signIns, failed } = data;
+  const today = data.today ?? new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+  // left = the leaving day has come (V463); a day still to come is not "Left" yet — they work until then
+  const hasLeft = !!row?.left_on && row.left_on <= today;
   // the admin and test accounts are never team members (V444, V445): no team, manager, department or appraisal (QA-203)
   const account = isAccount(data.person);
-  const tabs = TABS.filter((k) => !(account && k === 'appraisal'));
+  // the Appraisal tab waits for the Appraisal page (V633: a screen not built is offered nowhere) — until then it could
+  // only ever say "Nothing here yet"
+  const tabs = TABS.filter((k) => !(k === 'appraisal' && (account || !APPRAISAL_BUILT)));
   const tab = (tabs as readonly string[]).includes(data.tab) ? data.tab : 'overview';
   const admin = me.person.role?.is_admin === true;
   const self = me.person.id === person.id;
@@ -126,21 +135,60 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   // leaves the left two-thirds empty dark space; the summary line stays, and one tap shows the whole list (V217)
   const [allAccess, setAllAccess] = useState(false);
   const [switching, setSwitching] = useState(false);
+  /** Mark as left (V452): the leaving day, and the same hand-over as a switch-off — one request, one Undo. */
+  const [leaving, setLeaving] = useState(false);
+  const [leftOn, setLeftOn] = useState('');
   /** The switch-off handover (D39): who takes the person's open work, and what they hold — the count loads when
       the dialog opens, and the picker is required while anything is open. */
   const [handover, setHandover] = useState('');
   const [openWork, setOpenWork] = useState<OpenWork | null>(null);
   const switchingOff = switching && (row?.can_sign_in ?? false);
   const openCount = openWork ? openWork.tasks + openWork.projects + openWork.action_items + openWork.sides : 0;
+  const loadOpenWork = () => {
+    setOpenWork(null);
+    rpc('person_open_work', { p_id: person.id })
+      .then((w) => setOpenWork(w as unknown as OpenWork))
+      .catch(() => undefined);
+  };
   /** Open the switch dialog (D39): the count of what the person holds loads with it, and the handover picker is
       required while anything is open. The server still refuses a switch-off that holds work unnamed. */
   const openSwitch = () => {
     setSwitching(true);
     setOpenWork(null);
-    if (row?.can_sign_in)
-      rpc('person_open_work', { p_id: person.id })
-        .then((w) => setOpenWork(w as unknown as OpenWork))
-        .catch(() => undefined);
+    if (row?.can_sign_in) loadOpenWork();
+  };
+  const openLeave = () => {
+    setLeftOn(today);
+    setHandover('');
+    setLeaving(true);
+    loadOpenWork();
+  };
+  /**
+   * After a switch or a leaving day: the person's sign-ins in Supabase Auth are banned or unbanned to match the
+   * database (/auth/admin/sync). That answer is checked, once more on a failure — a sync that did not land is never
+   * silent: a person switched on but still banned could not sign in while their record said Allowed. It is said on the
+   * record, with Try again.
+   */
+  const [syncFailed, setSyncFailed] = useState(false);
+  const syncSignIn = async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch('/auth/admin/sync', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ person_id: person.id }),
+        });
+        const body = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+        if (res.ok && body?.ok) {
+          setSyncFailed(false);
+          return true;
+        }
+      } catch {
+        // the network: tried once more below
+      }
+    }
+    setSyncFailed(true);
+    return false;
   };
   const [signingOut, setSigningOut] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -200,6 +248,9 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     left_on: row?.left_on ?? '',
   };
   const [f, setF] = useState(stored);
+  // a leaving day of today or earlier, typed for someone who has not left: that is Mark as left's (hand-over, sign-out)
+  const leaveTooEarly =
+    !hasLeft && f.left_on !== stored.left_on && /^\d{4}-\d{2}-\d{2}$/.test(f.left_on) && f.left_on <= today;
   const [formVersion, setFormVersion] = useState<number | null>(null);
   const openEdit = () => {
     setF(stored);
@@ -339,15 +390,38 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         } as never)) as {
           request_id?: string | null;
         } | null;
-        await fetch('/auth/admin/sync', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ person_id: person.id }),
-        });
+        // the database has decided (and logged it); Auth follows — a failure is said on the record, never swallowed
+        await syncSignIn();
         return r;
       },
       () => {
         setSwitching(false);
+        setHandover('');
+        setOpenWork(null);
+        refresh();
+      },
+    );
+  };
+  /**
+   * Mark as left (V452, V463): api.person_leave records the leaving day, switches the person off, ends their devices and
+   * hands their open work to the person named — one request, with the count, and one Undo. (A leaving day typed into
+   * Edit did none of that: the work stayed with someone who could no longer sign in, and the devices stayed live.)
+   */
+  const doLeave = async (reason: string) => {
+    await run(
+      words(t('settings.people.markedLeft', { name: shownName })),
+      async () => {
+        const r = (await rpc('person_leave', {
+          p_id: person.id,
+          p_reason: reason,
+          p_left_on: leftOn || undefined,
+          p_reassign_to: handover || undefined,
+        })) as { request_id?: string | null } | null;
+        await syncSignIn();
+        return r;
+      },
+      () => {
+        setLeaving(false);
         setHandover('');
         setOpenWork(null);
         refresh();
@@ -490,6 +564,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     for (const m of modules) for (const p of m.pages ?? []) if (p.key === key) return t.has(p.label) ? t(p.label) : key;
     return key;
   };
+  /** The levels a page offers (the registry's, default all four): a level it does not offer is refused, never shown. */
+  const levelsOf = (key: string): Level[] => {
+    for (const m of modules)
+      for (const p of m.pages ?? []) if (p.key === key && p.levels) return LEVELS.filter((l) => p.levels!.includes(l));
+    return LEVELS;
+  };
+  const personIsAdmin = access?.role?.is_admin === true;
   const pagesForLevels = access
     ? Object.keys(access.levels)
         .filter((k) => k !== 'settings.profile')
@@ -566,7 +647,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               {row.joined_on ? formatDate(new Date(row.joined_on), locale, { dateStyle: 'medium' }) : null}
             </RailField>
             {row.left_on ? (
-              <RailField label={t('settings.people.leftOn')}>
+              <RailField label={hasLeft ? t('settings.people.leftOn') : t('settings.people.leavingOn')}>
                 {formatDate(new Date(row.left_on), locale, { dateStyle: 'medium' })}
               </RailField>
             ) : null}
@@ -583,19 +664,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 )
               }
             >
-              <ul className="flex flex-col gap-1 font-data text-xs">
+              {/* only the address is in the data face: the Primary chip and the buttons keep the app's letters (the
+                  list's font-data reached them — "Primary" and "Add email" read like code) */}
+              <ul className="flex flex-col gap-1 text-xs">
                 {row.emails.map((e) => (
                   <li key={e.email} className="flex min-w-0 flex-wrap items-center gap-2" data-person-email={e.email}>
-                    <span className="min-w-0 break-all">{e.email}</span>
+                    <span className="min-w-0 break-all font-data">{e.email}</span>
                     {e.is_primary ? <StatusChip tone="neutral">{t('settings.people.primary')}</StatusChip> : null}
                     {admin && !(self && row.emails.length <= 1) ? (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="font-sans"
-                        onClick={() => setRemovingEmail(e)}
-                        data-email-remove
-                      >
+                      <Button size="xs" variant="ghost" onClick={() => setRemovingEmail(e)} data-email-remove>
                         {t('common.remove')}
                       </Button>
                     ) : null}
@@ -603,13 +680,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 ))}
                 {admin && row.emails.length ? (
                   <li>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      className="font-sans"
-                      onClick={() => setAddingEmail(true)}
-                      data-email-add
-                    >
+                    <Button size="xs" variant="ghost" onClick={() => setAddingEmail(true)} data-email-add>
                       {t('settings.people.addEmail')}
                     </Button>
                   </li>
@@ -664,16 +735,28 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 title={`${t('settings.people.access')} · ${t(group === 'pages' ? 'settings.people.pagesGroup' : 'settings.people.settingsGroup')}`}
                 data-access-group={group}
               >
+                {/* the database gives an admin every page at its top level, and anyone else none on a Settings page,
+                    whatever an override says (authz.level_of) — so those levels are facts, said once, never a picker */}
+                {personIsAdmin && group === 'pages' ? (
+                  <p className="text-sm text-muted" data-access-note>
+                    {t('settings.people.adminHasAll')}
+                  </p>
+                ) : !personIsAdmin && group === 'settings' ? (
+                  <p className="text-sm text-muted" data-access-note>
+                    {t('settings.noAccess')}
+                  </p>
+                ) : null}
                 {keys.map((page) => {
                   const override = access.level_overrides.find((o) => o.page === page);
+                  const editable = admin && !self && !personIsAdmin && group === 'pages';
                   return (
                     <RailField key={page} label={pageLabel(page)}>
                       <span className="flex items-center gap-2">
-                        {admin && !self ? (
+                        {editable ? (
                           <Select
                             value={access.levels[page] ?? 'none'}
                             onValueChange={(v) => setLevelChange({ page, level: v as Level })}
-                            options={LEVELS.map((l) => ({ value: l, label: t(`levels.${l}`) }))}
+                            options={levelsOf(page).map((l) => ({ value: l, label: t(`levels.${l}`) }))}
                             className="h-8 min-w-24 text-sm"
                           />
                         ) : (
@@ -688,6 +771,46 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             ) : null,
           )
         : null}
+    </>
+  );
+
+  // The hand-over (D39, V463), for Switch off and Mark as left alike: what the person holds, and who takes it — only
+  // team members who can take work (never someone switched off or gone, whom the database refuses).
+  const heads = openWork?.heads ?? [];
+  const handoverBlocked = openWork !== null && ((openCount > 0 && !handover) || heads.length > 0);
+  const leaveDayOk =
+    /^\d{4}-\d{2}-\d{2}$/.test(leftOn) && leftOn <= today && (!row?.joined_on || leftOn >= row.joined_on);
+  const unavailable = new Set(data.unavailable ?? []);
+  const handoverFields = (
+    <>
+      {openWork !== null && heads.length > 0 ? (
+        <p className="text-sm text-muted">
+          {t('settings.people.headNeedsSuccessor', {
+            name: shownName,
+            department: heads.map((h) => pick(h)).join(', '),
+          })}
+        </p>
+      ) : null}
+      {openWork !== null ? (
+        openCount > 0 ? (
+          <p className="text-sm text-muted">{t('settings.people.openWorkMove', { count: openCount })}</p>
+        ) : (
+          <p className="text-sm text-muted">{t('settings.people.openWorkNone')}</p>
+        )
+      ) : null}
+      <Field label={t('settings.people.handover')}>
+        {(p) => (
+          <Select
+            {...p}
+            value={handover}
+            onValueChange={setHandover}
+            placeholder={t('settings.people.handoverPlaceholder')}
+            options={assignablePeople(org.people.filter((x) => x.id !== person.id && !unavailable.has(x.id))).map(
+              (x) => ({ value: x.id, label: nameOf(x, locale) }),
+            )}
+          />
+        )}
+      </Field>
     </>
   );
 
@@ -713,6 +836,11 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
               {t('settings.people.password.generate')}
             </MenuItem>
             <MenuItem onSelect={() => setSigningOut(true)}>{t('settings.people.signOutEverywhere')}</MenuItem>
+            {row && !hasLeft ? (
+              <MenuItem onSelect={openLeave} data-person-leave>
+                {t('settings.people.markLeft')}
+              </MenuItem>
+            ) : null}
           </MenuContent>
         </Menu>
       </>
@@ -743,7 +871,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             <StatusChip tone="warning">{t('settings.people.noRole')}</StatusChip>
           ) : null}
           {row ? (
-            row.left_on ? (
+            hasLeft ? (
               <StatusChip tone="neutral">{t('settings.people.left')}</StatusChip>
             ) : row.can_sign_in ? (
               <StatusChip tone="success">{t('settings.people.signInOn')}</StatusChip>
@@ -765,6 +893,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       rail={rail}
       words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
     >
+      {syncFailed ? (
+        <DataState
+          kind="failed"
+          what={t('settings.people.access')}
+          message={t('settings.people.signInSyncFailed', { name: shownName })}
+          onRetry={() => void syncSignIn()}
+          retryLabel={t('common.tryAgain')}
+        />
+      ) : null}
       {tab === 'overview' ? (
         <>
           {failedRead('people', t('settings.tabs.people'))}
@@ -877,14 +1014,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         <Dialog
           open={editing}
           onOpenChange={setEditing}
-          title={t('settings.people.updated', { name: '' }).trim() ? `${t('common.edit')} · ${shownName}` : shownName}
+          title={`${t('common.edit')} · ${shownName}`}
+          closeLabel={t('common.close')}
           dirty
           footer={
             <>
               <Button onClick={() => setEditing(false)}>{t('common.cancel')}</Button>
               <Button
                 variant="primary"
-                disabled={!f.full_name_en.trim()}
+                disabled={!f.full_name_en.trim() || leaveTooEarly}
                 loading={busy}
                 onClick={() => void saveEdit()}
                 data-person-save
@@ -993,8 +1131,15 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                       value={f.manager_id}
                       onValueChange={(v) => setF({ ...f, manager_id: v })}
                       placeholder={t('settings.people.noManager')}
+                      // team members who can work here (the database refuses anyone switched off or gone as a
+                      // manager); the manager as stored stays in the list so the picker still shows them
                       options={org.people
-                        .filter((x) => x.id !== person.id && !isAccount(x))
+                        .filter(
+                          (x) =>
+                            x.id !== person.id &&
+                            !isAccount(x) &&
+                            (!unavailable.has(x.id) || x.id === stored.manager_id),
+                        )
                         .map((x) => ({ value: x.id, label: nameOf(x, locale) }))}
                     />
                   )}
@@ -1013,7 +1158,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 />
               )}
             </Field>
-            <Field label={t('settings.people.leftOn')}>
+            {/* A leaving day still to come is set here (V463: they work and sign in until then); today or earlier is
+                Mark as left, which hands the work over and signs them out in the same step — typed here it did neither.
+                Someone who has already left keeps the box to correct the day, or to clear it when they come back. */}
+            <Field
+              label={hasLeft ? t('settings.people.leftOn') : t('settings.people.leavingOn')}
+              error={leaveTooEarly ? t('settings.people.leftOnUseMarkLeft') : undefined}
+            >
               {(p) => (
                 <DatePicker
                   id={p.id}
@@ -1021,6 +1172,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                   invalid={p['aria-invalid']}
                   value={f.left_on || undefined}
                   onChange={(v) => setF({ ...f, left_on: v ?? '' })}
+                  chips="none"
                   className="font-data"
                 />
               )}
@@ -1045,9 +1197,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         body={row?.can_sign_in ? t('settings.people.switchOffBody', { name: shownName }) : undefined}
         onSave={doSwitch}
         destructive={row?.can_sign_in ?? false}
-        saveDisabled={
-          switchingOff && openWork !== null && ((openCount > 0 && !handover) || (openWork.heads ?? []).length > 0)
-        }
+        saveDisabled={switchingOff && handoverBlocked}
         words={{
           reason: t('common.reason'),
           save: row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn'),
@@ -1055,37 +1205,47 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
           reasonRequired: t('settings.form.reasonRequired'),
         }}
       >
-        {switchingOff && openWork !== null && (openWork.heads ?? []).length > 0 ? (
-          <p className="text-sm text-muted">
-            {t('settings.people.headNeedsSuccessor', {
-              name: shownName,
-              department: (openWork.heads ?? []).map((h) => pick(h)).join(', '),
-            })}
-          </p>
-        ) : null}
-        {switchingOff && openWork !== null ? (
-          openCount > 0 ? (
-            <p className="text-sm text-muted">{t('settings.people.openWorkMove', { count: openCount })}</p>
-          ) : (
-            <p className="text-sm text-muted">{t('settings.people.openWorkNone')}</p>
-          )
-        ) : null}
-        {switchingOff ? (
-          <Field label={t('settings.people.handover')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={handover}
-                onValueChange={setHandover}
-                placeholder={t('settings.people.handoverPlaceholder')}
-                options={assignablePeople(org.people.filter((p) => p.id !== person.id)).map((p) => ({
-                  value: p.id,
-                  label: nameOf(p, locale),
-                }))}
-              />
-            )}
-          </Field>
-        ) : null}
+        {switchingOff ? handoverFields : null}
+      </ReasonDialog>
+      <ReasonDialog
+        open={leaving}
+        onOpenChange={(o) => {
+          if (!o) {
+            setHandover('');
+            setOpenWork(null);
+          }
+          setLeaving(o);
+        }}
+        title={t('settings.people.markLeftTitle', { name: shownName })}
+        body={t('settings.people.markLeftBody', { name: shownName })}
+        onSave={doLeave}
+        destructive
+        saveDisabled={handoverBlocked || !leaveDayOk}
+        words={{
+          reason: t('common.reason'),
+          save: t('settings.people.markLeft'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      >
+        <Field
+          label={t('settings.people.lastDay')}
+          error={leftOn && !leaveDayOk ? t('settings.people.lastDayRule') : undefined}
+        >
+          {(p) => (
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={leftOn || undefined}
+              onChange={(v) => setLeftOn(v ?? '')}
+              min={row?.joined_on ?? undefined}
+              max={today}
+              className="font-data"
+            />
+          )}
+        </Field>
+        {handoverFields}
       </ReasonDialog>
       <ReasonDialog
         open={removingEmail !== null}
@@ -1188,6 +1348,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       <Dialog
         open={addingEmail}
         onOpenChange={setAddingEmail}
+        closeLabel={t('common.close')}
         title={`${t('settings.people.addEmail')} · ${shownName}`}
         dirty={email !== ''}
         size="sm"
@@ -1232,6 +1393,3 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
     </section>
   );
 }
-
-// Unused-import guard for Switch (kept for the edit dialog's sign-in switch in a later step).
-void Switch;

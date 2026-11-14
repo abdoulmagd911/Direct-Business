@@ -96,6 +96,8 @@ export function ledgerRowsToCsv(
       headers.transaction,
       headers.invoice,
       headers.kind,
+      // every row carries its source after its kind: without this heading every later column sat under the wrong name
+      headers.source,
       headers.revenue,
       headers.cost,
       headers.profit,

@@ -5,6 +5,7 @@ import { NotePage } from '@/modules/my-day/screens/NotePage';
 import { activityOutcomes, activityTypes, myNote } from '@/modules/my-day/server';
 import { nameOf as personName, avatarOf, type OrgAnswer } from '@/modules/org/types';
 import { loadLookups } from '@/modules/tasks/load';
+import { noTeamToWorkIn } from '@/modules/tasks/rules';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { historyRows, type RecordChange } from '@/ui/record/history';
@@ -30,9 +31,14 @@ export default async function NoteRoute({ params }: { params: Promise<{ id: stri
       </Page>
     );
   const me = await requireMe();
-  // a task is made by someone with Tasks at Own or Full (V401); only they need the names the form offers
+  // a task is made by someone with Tasks at Own or Full (V401); only they need the names the form offers. Someone in no
+  // team who may not assign has no team to work in: Create never offers them a task (QA-521), so Turn into does not either
+  // — it opened a form that could only say so
   const tasks = me.levels.tasks ?? 'none';
-  const canTask = note.mine && (tasks === 'own' || tasks === 'full');
+  const canTask =
+    note.mine &&
+    (tasks === 'own' || tasks === 'full') &&
+    !noTeamToWorkIn(me.person.team_id, me.capabilities.includes('tasks.assign'));
   const [types, outcomes, org, lookups, comments, files, historyRaw] = await Promise.all([
     activityTypes(),
     activityOutcomes(),

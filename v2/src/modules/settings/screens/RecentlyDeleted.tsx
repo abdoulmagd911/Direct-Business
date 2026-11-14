@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 import { command } from '@/core/commands/command';
 import { restoreRecord } from '@/core/commands/undo';
 import { formatDate } from '@/core/i18n/format';
+import { modules } from '@/core/registry';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
+import { DatePicker } from '@/ui/DatePicker';
 import { Field } from '@/ui/Field';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
@@ -18,6 +20,8 @@ export type DeletedRow = {
   entity: string;
   id: string;
   label: string | null;
+  /** The record's Arabic name where it has one (api.recently_deleted sends it; else the label again). */
+  label_ar?: string | null;
   deleted_at: string;
   deleted_by: string | null;
   reason: string | null;
@@ -26,6 +30,11 @@ export type DeletedRow = {
   /** QA-585: why it cannot be restored, the refusal's full key (restore.blocked_by_duplicate …); the row says it in one line. */
   restore_blocked?: string | null;
 };
+
+/** Each record kind's word as its module registers it (the registry's entity labels). */
+const ENTITY_LABELS: Record<string, string> = Object.fromEntries(
+  modules.flatMap((m) => (m.entities ?? []).map((e) => [e.key, e.label] as const)),
+);
 
 /** The refusal keys api.recently_deleted sends, as the catalog's short names under activity.deleted.blocked. */
 const BLOCKED: Record<string, string> = {
@@ -54,18 +63,28 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
   // the label and the reason in full; the truncation leg of the same finding is evidence-owed (§5.7), not built.
   const [openId, setOpenId] = useState<string | null>(null);
 
-  // A dotted kind ("task.removed") reads by its first part — "Task" — never raw.
+  // A dotted kind ("task.removed") reads by its first part — "Task" — never raw; a kind with no word of its own reads by
+  // the word its module gives it (a removed achievement participant is "Achievement", a target "Targets"), and failing
+  // all of those in plain words — "achievement_participant" showed as typed in the code.
   const kindOf = (entity: string) => {
     if (t.has(`entity.${entity}`)) return t(`entity.${entity}`);
     const first = entity.split('.')[0];
     if (first && t.has(`entity.${first}`)) return t(`entity.${first}`);
-    return entity;
+    const label = ENTITY_LABELS[entity] ?? (first ? ENTITY_LABELS[first] : undefined);
+    if (label && t.has(label)) return t(label);
+    const plain = entity.replace(/[._]+/g, ' ').trim();
+    return plain.charAt(0).toUpperCase() + plain.slice(1);
   };
-  // A removed setting's label is its key ("app.arabic_enabled"); its name lives in the settings catalog.
+  // A removed setting's label is its key ("app.arabic_enabled"); its name lives in the settings catalog. Anything else
+  // reads by its name in the language on screen — the Arabic one where the record has it.
   const labelOf = (d: DeletedRow) => {
     if (d.entity === 'setting' && d.label && t.has(`setting.${d.label}`)) return t(`setting.${d.label}`);
+    if (locale === 'ar' && d.label_ar) return d.label_ar;
     return d.label;
   };
+  // the day a record was removed, in Riyadh (the company's calendar — the stored moment is UTC, and its first ten
+  // characters were the UTC day: a removal between midnight and 03:00 fell on the day before)
+  const riyadhDayOf = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
   // A system removal reason ("replaced", "undo") reads in the language on screen; a person's own words stay as written.
   const reasonOf = (d: DeletedRow) => {
     if (!d.reason) return null;
@@ -90,8 +109,11 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
     return rows.filter((r) => {
       if (type !== 'all' && r.entity !== type) return false;
       if (person !== 'all' && r.deleted_by !== person) return false;
-      if (since && r.deleted_at.slice(0, 10) < since) return false;
-      if (needle && !`${r.label ?? ''} ${r.reason ?? ''} ${kindOf(r.entity)}`.toLowerCase().includes(needle)) {
+      if (since && riyadhDayOf(r.deleted_at) < since) return false;
+      if (
+        needle &&
+        !`${r.label ?? ''} ${r.label_ar ?? ''} ${r.reason ?? ''} ${kindOf(r.entity)}`.toLowerCase().includes(needle)
+      ) {
         return false;
       }
       return true;
@@ -159,9 +181,19 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
             />
           )}
         </Field>
+        {/* the app's own date box (FIX-02), not the browser's: its picker dismissed on a day-click without setting the
+            day; only a whole day filters, half-typed text stays in the box */}
         <Field label={t('activity.filters.since')}>
           {(p) => (
-            <Input {...p} type="date" value={since} onChange={(e) => setSince(e.target.value)} className="font-data" />
+            <DatePicker
+              id={p.id}
+              describedBy={p['aria-describedby']}
+              invalid={p['aria-invalid']}
+              value={since || undefined}
+              onChange={(v) => setSince(v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '')}
+              chips="none"
+              className="w-60 font-data"
+            />
           )}
         </Field>
       </div>

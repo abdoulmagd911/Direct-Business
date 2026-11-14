@@ -210,7 +210,8 @@
     "by": "by",
     "on": "on",
     "of": "of",
-    "undoing": "Undoing…"
+    "undoing": "Undoing…",
+    "breadcrumb": "Breadcrumb"
   },
   "datePicker": {
     "thisMonth": "This month",
@@ -222,7 +223,8 @@
     "previousYear": "Previous year",
     "nextYear": "Next year",
     "placeholder": "For example, 20 Oct 2026",
-    "monthPlaceholder": "For example, Oct 2026"
+    "monthPlaceholder": "For example, Oct 2026",
+    "quickDates": "Quick dates"
   },
   "state": {
     "failed": "{what} could not be loaded",
@@ -287,7 +289,8 @@
         "emptyQuestions": "No open questions.",
         "emptyNeedHelp": "Nothing needs help right now.",
         "emptyWaitingOnOthers": "Nothing waiting on others.",
-        "emptyNeedHelpOthers": "No tasks you flagged are still waiting."
+        "emptyNeedHelpOthers": "No tasks you flagged are still waiting.",
+        "nothingNow": "Nothing right now."
       },
       "starred": "Starred",
       "more": "Show all",
@@ -311,6 +314,7 @@
         "organisation": "Organisation",
         "meetingOn": "Meeting day",
         "happenedOn": "Happened on",
+        "pickDay": "Pick a day, like 13 Nov 2026",
         "by": "by {name}",
         "draft": "Not logged",
         "logged": "Logged {date}",
@@ -353,6 +357,12 @@
           "time": "Type the time as hours and minutes, like 09:30.",
           "text": "Write what to be reminded of."
         },
+        "activityMissing": {
+          "partner": "Choose the organisation.",
+          "outcome": "Choose the outcome.",
+          "day": "Pick the day it happened."
+        },
+        "chooseOutcome": "Choose the outcome",
         "reminderTitle": "Set a reminder",
         "organisation": "Organisation",
         "searchOrg": "Search organisations by name or number",
@@ -405,6 +415,7 @@
         "markSeen": "Mark seen",
         "kinds": {
           "team_notes": "{count, plural, one {# note from your team} other {# notes from your team}}",
+          "shared_notes": "{count, plural, one {# note shared with you} other {# notes shared with you}}",
           "workspace_notes": "{count, plural, one {# note for everyone} other {# notes for everyone}}"
         }
       },
@@ -497,8 +508,10 @@
       "assigned": "Owner given",
       "refAdded": "Reference added",
       "refRemoved": "Reference removed",
+      "participantsSaved": "Participants saved",
       "empty": "No achievements yet",
       "noMatch": "No achievements match these filters",
+      "count": "{count, plural, one {# achievement} other {# achievements}}",
       "titleMore": "More",
       "titleLess": "Show less",
       "filters": {
@@ -575,20 +588,23 @@
       "actions": {
         "edit": "Edit",
         "remove": "Remove",
-        "move": "Move",
+        "move": "Move to an earlier month",
         "assign": "Give owner",
         "addRef": "Add evidence",
         "save": "Save",
         "cancel": "Cancel",
         "choose": "Choose",
-        "removeParticipant": "Remove {name}"
+        "removeParticipant": "Remove {name}",
+        "addParticipants": "Add participants",
+        "editParticipants": "Change participants"
       },
       "dialogs": {
         "edit": "Edit achievement",
         "remove": "Remove achievement",
-        "move": "Move to earlier",
+        "move": "Move to an earlier month",
         "assign": "Give owner",
         "addRef": "Add reference",
+        "participants": "Participants",
         "reason": "Reason",
         "reasonRequired": "Say why"
       },
@@ -614,15 +630,23 @@
           "no_plan": "No {detail} plan yet",
           "ref_required": "Add the {detail} reference first",
           "no_deal_value": "This category has no deal value",
+          "value_invalid": "Enter a number",
+          "count_invalid": "Enter a whole number",
+          "notes_too_long": "The notes are too long",
           "category_retired": "This category is retired",
+          "category_not_in_plan": "This category is not in the {detail} plan",
           "move_earlier_only": "Only to an earlier month",
           "owner_required": "An owner is needed",
           "before_2025": "Dates start 1 Jan 2025",
+          "date_required": "A dated achievement keeps a date",
           "title_required": "Say what was achieved",
           "ref_taken": "That reference is already here",
           "ref_looks_secret": "That looks like a password",
+          "ref_url_invalid": "A link starts with https://",
+          "ref_value_required": "Type the reference",
           "side_required": "Choose who signed",
           "repeat_invalid": "That earlier one does not match",
+          "task_not_yours": "Only the task's own people can log an achievement from it",
           "number_fixed": "The number never changes"
         },
         "common": {
@@ -673,9 +697,12 @@
       "byPartner": "By organisation",
       "unknownOwner": "No owner listed",
       "unknownPartner": "No organisation listed",
+      "hiddenPartner": "An organisation you cannot open",
       "download": "Download as spreadsheet",
       "seeList": "See the achievements list",
-      "empty": "No achievements in this month"
+      "empty": "No achievements in this month",
+      "emptyAny": "No achievements yet",
+      "draftsLeftOut": "{count, plural, one {# draft with no date yet is not counted.} other {# drafts with no date yet are not counted.}}"
     },
     "codes": {
       "list": "Discount codes",
@@ -708,7 +735,9 @@
         "removeTitle": "Remove this use?",
         "removed": "Use removed",
         "viewInFinance": "View in Finance",
-        "configuredFee": "Configured discount"
+        "configuredFee": "Configured discount",
+        "validFrom": "From {date}",
+        "validUntil": "Until {date}"
       },
       "addUse": {
         "invoiceNumber": "Invoice number",
@@ -716,7 +745,8 @@
         "directLink": "Direct link",
         "reason": "Reason",
         "save": "Record use",
-        "done": "Use recorded"
+        "done": "Use recorded",
+        "title": "Record a use"
       },
       "attribution": {
         "title": "Partners",
@@ -727,7 +757,8 @@
         "save": "Show under partner",
         "done": "Partner added",
         "removeTitle": "Remove this partner?",
-        "removed": "Partner removed"
+        "removed": "Partner removed",
+        "add": "Show under a partner"
       },
       "partners": {
         "title": "Per partner",
@@ -795,7 +826,7 @@
       },
       "bulkAssign": {
         "open": "Assign owner and priority",
-        "title": "Assign {count} tasks",
+        "title": "{count, plural, one {Assign # task} other {Assign # tasks}}",
         "what": "Give the selected tasks to one owner, set their priority, or both. Either choice may be left unchanged.",
         "unchanged": "No change",
         "ownerDone": "{count} assigned to {name}",
@@ -811,7 +842,7 @@
         "due": {
           "overdue": "Overdue",
           "today": "Today",
-          "week": "This week",
+          "week": "Next 7 days",
           "none": "No date"
         }
       },
@@ -887,9 +918,6 @@
         "open": "Need help",
         "what": "Tell your manager about this task, with a note. They get a notification and the task is flagged until they acknowledge it.",
         "title": "Need help {number}",
-        "to": "Tell",
-        "to_required": "Pick who to tell",
-        "to_yourself": "Pick someone other than yourself",
         "note": "What do they need to know?",
         "note_required": "Write what they need to know",
         "notify": "Your manager {name} will be told",
@@ -955,7 +983,9 @@
           "comment_body_required": "Write something first",
           "comment_too_long": "A comment can be at most 4,000 characters",
           "comment_not_yours": "Only the person who wrote a comment can change it",
-          "remove_not_test": "Only test tasks can be removed"
+          "remove_not_test": "Only test tasks can be removed",
+          "owner_cannot_see": "That person cannot see this task, so it cannot be given to them",
+          "team_out_of_reach": "That team is in a department you do not work in"
         },
         "action_item": {
           "text_required": "Write the action item",
@@ -1056,22 +1086,6 @@
         "next": "Next month",
         "emptyMonth": "Nothing is due this month",
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
-      },
-      "comments": {
-        "empty": "No comments yet",
-        "readOnly": "You can read the comments on this task. People who work on it can write them.",
-        "write": "Write a comment",
-        "add": "Add comment",
-        "edit": "Edit your comment",
-        "edited": "edited",
-        "added": "Comment added",
-        "saved": "Comment saved",
-        "removed": "Comment deleted",
-        "removeTitle": "Delete the comment by {name}?",
-        "bodyRequired": "Write something first",
-        "tooLong": "At most {max} characters",
-        "delete": "Delete",
-        "editAction": "Edit"
       },
       "delegate": {
         "open": "Delegate",
@@ -1451,6 +1465,11 @@
       "evidenceCount": "{count, plural, one {# evidence item} other {# evidence items}}",
       "kinds": {
         "evidence": "Evidence"
+      },
+      "size": {
+        "bytes": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
       }
     },
     "comments": {
@@ -1488,7 +1507,9 @@
       "askChip": "Asked {name}",
       "removedQuestion": "Question deleted",
       "removeQuestionTitle": "Delete the question?"
-    }
+    },
+    "titleMore": "More",
+    "titleLess": "Show less"
   },
   "activity": {
     "helper": "Helper",
@@ -1532,33 +1553,68 @@
       "request": "Change"
     },
     "labels": {
-      "profile.updated": "Profile updated",
-      "registry.synced": "Registry synced",
-      "person.created": "Person added",
-      "person.updated": "Person changed",
-      "person.switched": "Sign-in switched",
-      "team.retired": "Team retired",
-      "setting.changed": "Setting changed",
-      "setting.cleared": "Setting cleared",
-      "list.saved": "List entry saved",
-      "access.changed": "Access changed",
-      "team.saved": "Team saved",
-      "department.saved": "Department saved",
-      "role.saved": "Role saved",
-      "person.account_set": "Account type set",
-      "view.removed": "View removed",
-      "view.saved": "View saved",
-      "record.restored": "Record restored",
-      "list.removed": "List entry removed",
-      "list.retired": "List entry archived",
-      "tender.signed": "Contract signed, from tender {number}",
-      "import.started": "Import started",
-      "import.confirmed": "Import confirmed",
-      "alert.weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
-      "escalation.raised": "Asked for help",
-      "escalation.acknowledged": "Need for help acknowledged",
-      "achievement_category.retired": "Category archived",
-      "contact.removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
+      "profile": {
+        "updated": "Profile updated"
+      },
+      "registry": {
+        "synced": "Registry synced"
+      },
+      "person": {
+        "created": "Person added",
+        "updated": "Person changed",
+        "switched": "Sign-in switched",
+        "account_set": "Account type set"
+      },
+      "team": {
+        "retired": "Team retired",
+        "saved": "Team saved"
+      },
+      "setting": {
+        "changed": "Setting changed",
+        "cleared": "Setting cleared"
+      },
+      "list": {
+        "saved": "List entry saved",
+        "removed": "List entry removed",
+        "retired": "List entry archived"
+      },
+      "access": {
+        "changed": "Access changed"
+      },
+      "department": {
+        "saved": "Department saved"
+      },
+      "role": {
+        "saved": "Role saved"
+      },
+      "view": {
+        "removed": "View removed",
+        "saved": "View saved"
+      },
+      "record": {
+        "restored": "{entity, select, task {Task restored} action_item {Checklist item restored} achievement {Achievement restored} partner {Organisation restored} contact {Contact restored} contract {Contract restored} note {Note restored} comment {Comment restored} project {Project restored} saved_view {Saved view restored} person_email {Email restored} other {Record restored}}"
+      },
+      "tender": {
+        "signed": "Contract signed, from tender {number}"
+      },
+      "import": {
+        "started": "Import started",
+        "confirmed": "Import confirmed"
+      },
+      "alert": {
+        "weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
+        "failed": "An alert could not run: {alert} ({error})"
+      },
+      "escalation": {
+        "raised": "Asked for help",
+        "acknowledged": "Need for help acknowledged"
+      },
+      "achievement_category": {
+        "retired": "Category archived"
+      },
+      "contact": {
+        "removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
+      }
     },
     "signIn": {
       "at": "When",
@@ -1680,7 +1736,66 @@
       "delete_reason": "Delete reason",
       "city": "City",
       "sha256": "SHA-256",
-      "stored_at": "Stored at"
+      "stored_at": "Stored at",
+      "account": "Account type",
+      "activity_type_id": "Activity type",
+      "archived_at": "Archived at",
+      "assigned_by": "Assigned by",
+      "blocked": "Blocked",
+      "blocked_on": "Blocked since",
+      "blocked_reason": "Why it is blocked",
+      "cancelled_reason": "Why it was cancelled",
+      "carried_to": "Carried to",
+      "category_id": "Category",
+      "closed_at": "Closed at",
+      "closed_by": "Closed by",
+      "code": "Code",
+      "count": "Count",
+      "counts": "Counts",
+      "deal_value": "Deal value",
+      "dismissed_from_nudge": "Left out of the achievement reminder",
+      "done_by": "Done by",
+      "draft": "Draft",
+      "edited_at": "Edited at",
+      "effective_from": "Applies from",
+      "end_on": "Ends on",
+      "head_person_id": "Head",
+      "idea": "Idea",
+      "items": "Items",
+      "kind": "Kind",
+      "lead_person_id": "Team lead",
+      "logged_at": "Logged at",
+      "meaning": "Meaning",
+      "next_step": "Next step",
+      "next_step_on": "Next step on",
+      "notes": "Notes",
+      "nudge_later_until": "Reminder paused until",
+      "number": "Number",
+      "origin": "Origin",
+      "partner_id": "Organisation",
+      "period_move_reason": "Why the month moved",
+      "period_moved_by": "Month moved by",
+      "period_moved_from": "Moved from month",
+      "problems": "Problems",
+      "project_id": "Project",
+      "providers": "Sign-in methods",
+      "question_open": "Question open",
+      "remind_at": "Reminder time",
+      "reminders_on": "Reminders on",
+      "review_required": "Needs a review date",
+      "sensitivity": "Sensitivity",
+      "sent_at": "Sent at",
+      "shared_with": "Shared with",
+      "shared_with_team": "Shared with the team",
+      "starred": "Important",
+      "start_on": "Starts on",
+      "status_id": "Status",
+      "text": "Text",
+      "url": "Link",
+      "use_as_example": "Use as an example",
+      "work_type": "Work type",
+      "answer": "Answer",
+      "target_count": "Target"
     },
     "moreFields": "+{count} more",
     "fieldsCount": "{count, plural, one {# field} other {# fields}}",
@@ -1806,8 +1921,6 @@
         "from": "From",
         "to": "To",
         "departments": "{count, plural, one {# department keeps its own value} other {# departments keep their own value}}",
-        "fromToday": "Applies from today",
-        "fromDate": "Applies from {date}",
         "replacesSameDay": "replaces today's earlier change"
       },
       "save": "Save setting",
@@ -1883,6 +1996,8 @@
       "jobTitleAr": "Job title (Arabic)",
       "joinedOn": "Joined",
       "leftOn": "Left on",
+      "leavingOn": "Leaves on",
+      "leftOnUseMarkLeft": "Today or earlier: use Mark as left (under ⋯) — it hands their work over and signs them out",
       "allowSignIn": "Allow sign-in",
       "email": "Work email",
       "addEmail": "Add email",
@@ -1907,7 +2022,7 @@
       "noTeam": "No team",
       "never": "Never",
       "openRecord": "Open",
-      "people": "{count} people",
+      "people": "{count, plural, one {# person} other {# people}}",
       "setRole": "Change role",
       "emailAdded": "{email} allowed",
       "emailRemoved": "{email} removed",
@@ -1941,14 +2056,22 @@
       "accessStandard": "{role} (standard)",
       "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
       "accessShowAll": "Show all",
+      "adminHasAll": "An admin has every page at its top level — the role decides it, not a choice here",
       "accessHide": "Show less",
       "emailInvalid": "Enter a valid email address.",
       "noMatch": "No people match this search.",
       "handover": "Hand over to",
       "handoverPlaceholder": "Choose a person",
-      "openWorkMove": "{count} open items will move to the person chosen below",
+      "openWorkMove": "{count, plural, one {# open item will move to the person chosen below} other {# open items will move to the person chosen below}}",
       "openWorkNone": "No open work — nothing to hand over",
-      "headNeedsSuccessor": "{name} heads {department} — choose a new head first"
+      "headNeedsSuccessor": "{name} heads {department} — choose a new head first",
+      "markLeft": "Mark as left",
+      "markLeftTitle": "Mark {name} as left",
+      "markLeftBody": "From their last day {name} can no longer sign in, every device is signed out, and their open work goes to the person you choose — one step, with Undo.",
+      "markedLeft": "{name} marked as left",
+      "lastDay": "Last day",
+      "lastDayRule": "Today or an earlier day — not before the day they joined",
+      "signInSyncFailed": "Saved — but {name}'s sign-in could not be brought in step yet. Try again."
     },
     "teams": {
       "add": "Add team",
@@ -2008,15 +2131,6 @@
       "reasonRequired": "A reason is required"
     },
     "values": {
-      "work.week_starts_on": {
-        "saturday": "Saturday",
-        "sunday": "Sunday",
-        "monday": "Monday"
-      },
-      "app.export_formats": {
-        "csv": "CSV",
-        "xlsx": "Excel"
-      },
       "work": {
         "week_starts_on": {
           "saturday": "Saturday",
@@ -2070,7 +2184,7 @@
       "noDepartment": "Add a department first.",
       "everyDepartmentEveryYear": "Every department already has a plan for every year.",
       "achieved": "Achieved",
-      "achievedCount": "Achieved",
+      "achievedCount": "Achieved: {count}",
       "addTarget": "Add target",
       "backToPlans": "Back to plans",
       "categoriesNone": "No categories yet.",
@@ -2173,6 +2287,7 @@
       "PermissionDenied": "You do not have access to do this",
       "Conflict": "Someone changed this since you opened it. Reload and try again.",
       "RuleBroken": "This change was refused: {detail}",
+      "RuleBrokenBare": "This change was refused.",
       "NotFound": "This record was not found",
       "Unavailable": "The server did not answer. Try again."
     },
@@ -2397,7 +2512,8 @@
       "channel_on_units_only": "A channel goes on a transaction or standalone invoice.",
       "code_use_exists": "This code is already recorded on that invoice.",
       "code_attribution_exists": "This code is already shown under that partner.",
-      "commercial_names_the_person": "Commercial needs the person credited."
+      "commercial_names_the_person": "Commercial needs the person credited.",
+      "code_use_no_invoice": "No invoice has the number {detail}"
     },
     "wrap_up": {
       "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",
@@ -2640,8 +2756,7 @@
       "pending": "Upload not finished",
       "notStored": "Not uploaded yet",
       "size": "Size",
-      "addedOn": "Added {date}",
-      "allFilesHint": "Every partner's files, in one place"
+      "addedOn": "Added {date}"
     },
     "companyCodes": {
       "title": "Discount codes",
@@ -2675,7 +2790,7 @@
       "costPendingNote": "Some bookings still wait for an approved cost, so Cost and Profit are not final",
       "costMissing": "Cost not known yet",
       "waitingForIssuing": "Waiting to be issued",
-      "waitingCount": "{count} invoices still wait for a tax invoice",
+      "waitingCount": "{count, plural, one {# invoice still waits for a tax invoice} other {# invoices still wait for a tax invoice}}",
       "tenders": "Tenders",
       "tendersNone": "No tenders on this partner yet",
       "tenderAmount": "Tender amount",
@@ -2697,9 +2812,8 @@
       "title": "All files",
       "none": "No files yet",
       "partner": "Partner",
-      "allCompanies": "All partners",
+      "allCompanies": "Show all files",
       "allKinds": "All kinds",
-      "showAll": "Show all partners",
       "search": "Search files",
       "recordType": "Record type",
       "addedBy": "Added by",
@@ -2707,7 +2821,6 @@
       "dateTo": "To",
       "kind": "Kind",
       "purpose": "Purpose",
-      "side": "Side",
       "status": "Status",
       "sort": "Sort",
       "sortAdded": "Newest first",
@@ -2730,7 +2843,8 @@
         "note": "Note",
         "partner": "Partner",
         "importBatch": "Import batch",
-        "campaignCode": "Discount code"
+        "campaignCode": "Discount code",
+        "other": "Other"
       },
       "purposes": {
         "evidence": "Evidence",
@@ -2912,11 +3026,11 @@
       "side": "Side",
       "startOn": "Starts",
       "endOn": "Ends",
-      "reminders": "Reminders on",
+      "reminders": "Reminders before it ends",
       "removeTitle": "Remove {title}?",
       "state": {
         "active": "Active",
-        "expiring": "Expires in {days} days",
+        "expiring": "{days, plural, =0 {Expires today} one {Expires in # day} other {Expires in # days}}",
         "expired": "Expired",
         "not_started": "Not started",
         "open": "Open-ended"
@@ -2937,7 +3051,19 @@
     "unarchivePartner": "Unarchive",
     "unarchivedDone": "{name} unarchived",
     "archivedView": "Showing archived partners only",
-    "showActive": "Show active partners"
+    "showActive": "Show active partners",
+    "archivedNote": "This organisation is archived. Unarchive it to change anything on it.",
+    "related": {
+      "tasks": "Tasks",
+      "tasksNone": "No tasks on this organisation yet",
+      "due": "Due {date}"
+    },
+    "gone": {
+      "title": "This organisation is not here",
+      "body": "It was removed, or the address is wrong. A removed organisation can be brought back from Recently deleted.",
+      "backClients": "Back to Clients",
+      "backSuppliers": "Back to Suppliers"
+    }
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
@@ -2949,7 +3075,8 @@
     "supplier": "New supplier",
     "invoice": "New invoice",
     "achievement": "New achievement",
-    "capture": "Quick capture"
+    "capture": "Quick capture",
+    "idea": "New idea"
   },
   "finance": {
     "title": "Finance",
@@ -2962,6 +3089,7 @@
       "from": "From",
       "to": "To",
       "apply": "Apply",
+      "invalid": "Choose two days: From, then To on the same day or after it.",
       "total": {
         "mtd": "Month to date",
         "qtd": "Quarter to date",
@@ -2977,6 +3105,10 @@
       "profit": "Profit"
     },
     "sar": "SAR",
+    "short": {
+      "thousands": "{n}K",
+      "millions": "{n}M"
+    },
     "provisional": "of which Provisional",
     "provisionalUnits": "{count, plural, one {# unit} other {# units}}",
     "notInvoiced": "Not yet invoiced",
@@ -3085,6 +3217,7 @@
       "invoiceNumber": "Invoice no.",
       "transactionNumber": "Transaction no.",
       "transactions": "Transactions",
+      "rows": "Rows",
       "created": "Created",
       "dpin": "Tax invoice no.",
       "flags": "Flags",
@@ -3141,7 +3274,7 @@
       },
       "lists": "The word lists",
       "lastSaved": "Last saved",
-      "noFigures": "In no figures"
+      "noFigures": "Not in any figure"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
     "periodEmpty": "Nothing in this period ({from} – {to}).",
@@ -3150,8 +3283,6 @@
   "import": {
     "title": "Import",
     "choosePartner": "Choose the partner first",
-    "downloadTemplate": "Download template",
-    "uploadReview": "Upload and review",
     "confirm": "Confirm import",
     "nothingSavedYet": "Nothing is saved until you confirm.",
     "new": "New",
@@ -3162,21 +3293,13 @@
     "unknownSignature": "This file is not a known Direct export",
     "unknownSignatureBody": "Its columns are shown below. Nothing was saved.",
     "binaryFile": "This is not a text file (PDF, Excel, or zip). Export the report as CSV and try again.",
-    "ownReport": "This is a file this app exported, not a Direct export. Drop the Direct export instead.",
+    "ownReport": "This is a file this app exported, not a Direct export. Choose the Direct export instead.",
     "noCodeForFile": "This file has no discount-code column. Say which code it belongs to before importing.",
-    "duplicateSkip": "Duplicate in this file, skipped",
-    "duplicateKeep": "Duplicate in this file, kept by choice",
-    "missingTransaction": "Missing transaction number",
-    "missingInvoice": "Missing invoice number",
-    "costPending": "Cost not in yet",
     "confirmed": "Import confirmed",
-    "linkClash": "Same invoice number is already on another row: held for a person",
-    "templateMissing": "No template yet: the first real header row for this export is still needed.",
     "chooseFile": "Choose a file",
     "fileType": "File type",
     "code": "Discount code",
     "review": "Review",
-    "rows": "Rows",
     "row": "Row",
     "outcome": "Result",
     "reason": "Reason",
@@ -3222,6 +3345,49 @@
       "transaction_expense_export": "Transaction Expense Export (the only cost source)",
       "promo_code_invoice_export": "Promo Code Invoice Export",
       "corporate_transaction_list": "Corporate Transactions list (saved by hand, no export button)"
+    },
+    "statusNone": "no status",
+    "why": {
+      "no_invoice_ref": "No invoice number on this row, so it cannot be matched",
+      "row_type": "Row type \"{type}\" is not invoice, item, or payment receipt",
+      "credit_note": "Credit note, not a sale: not counted",
+      "no_amount": "No amount on this invoice, so it cannot be counted",
+      "wallet_only": "Wallet top-up only, not a sale: not counted",
+      "no_date": "No date on this invoice, so it cannot be placed",
+      "not_paid": "Not fully paid ({status}): not counted",
+      "date_from_payment": "Creation date missing, payment date used instead",
+      "date_from_generate": "Creation date missing, generate date used instead",
+      "expense_no_ref": "No transaction number on this expense line, so it cannot be matched",
+      "expense_amount": "Expense amount cannot be read, so this line is not counted",
+      "expense_not_approved": "Expense not approved yet ({status}), so it is not counted as cost",
+      "no_transaction_ref": "No transaction number on this row, so it cannot be matched",
+      "promo_ref": "Invoice number is not 10 digits, so it cannot be matched to an invoice",
+      "promo_amounts": "Discount amounts cannot be read, so this row is not counted",
+      "promo_not_paid": "Not fully paid ({status}): never counted",
+      "file_no_code": "This file has no discount-code column, so it cannot be imported until you say which code it belongs to. Nothing was saved.",
+      "file_shape": "This shape has no captured headers yet, so it cannot be read. Nothing was saved.",
+      "paid": "Fully paid",
+      "paid_not": "Not fully paid: {status}",
+      "paid_nothing_left": "Fully paid: nothing remaining",
+      "paid_and_unpaid": "Says fully paid and unpaid, with no remaining of 0.00 to settle it: not counted",
+      "no_status": "No status written: held for a person",
+      "status_unknown": "Status \"{status}\" is not named yet: held for a person",
+      "duplicate_skipped": "Duplicate in this file, skipped",
+      "duplicate_kept": "Duplicate in this file, kept by choice",
+      "group_fill": "Also fills the tax number and status on {count} transaction rows sharing this invoice",
+      "total_differs": "Invoice total {total} differs from the stored transaction amount {stored}: transaction amount kept, held for a person",
+      "shared_invoice": "Invoice number {invoice} covers {count} transactions, so no single row owns this code link: held for a person",
+      "invoice_elsewhere": "Invoice number {invoice} is already on another row: held for a person, nothing merged by guess",
+      "other_code": "Already linked to another discount code, kept as it was",
+      "wait_transaction": "Missing transaction number: fills in when the transaction list arrives",
+      "wait_invoice": "Missing invoice number: fills in when the invoice arrives",
+      "wait_transaction_details": "No transaction details yet: fills in when the transaction arrives",
+      "wait_invoice_export": "No invoice yet: fills in when the invoice export arrives",
+      "changed_incomplete": "Changed ({fields}), still missing its other half",
+      "changed": "Changed: {fields}",
+      "db_total_differs": "Invoice total differs from the stored transaction amount: transaction amount kept, held for a person",
+      "db_invoice_elsewhere": "Invoice number is already on another row: held for a person, nothing merged by guess",
+      "db_shared_invoice": "Invoice number covers several transactions, so no single row owns this code link: held for a person"
     }
   },
   "testSwitch": {

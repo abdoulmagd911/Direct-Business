@@ -123,7 +123,8 @@ function CodeDoor({ next, refusal }: { next: string | null; refusal: string | nu
   const card = 'flex flex-col gap-5';
 
   return step === 'email' ? (
-    <form className={card} onSubmit={onEmail} noValidate data-step="email">
+    // method="post" (see PasswordDoor): a press before the script loads never puts the e-mail in the address
+    <form method="post" className={card} onSubmit={onEmail} noValidate data-step="email">
       <Field label={t('sign_in.email_label')} error={line}>
         {(p) => (
           <Input
@@ -144,7 +145,7 @@ function CodeDoor({ next, refusal }: { next: string | null; refusal: string | nu
       </Button>
     </form>
   ) : (
-    <form className={card} onSubmit={onCode} noValidate data-step="code">
+    <form method="post" className={card} onSubmit={onCode} noValidate data-step="code">
       <div className="flex flex-col gap-1">
         <span className="text-[15px] font-semibold">{t('sign_in.code_label')}</span>
         <span className="text-base text-muted">

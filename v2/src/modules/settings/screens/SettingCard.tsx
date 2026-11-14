@@ -183,6 +183,7 @@ export function SettingCard({
       <Dialog
         open={open}
         onOpenChange={setOpen}
+        closeLabel={t('common.close')}
         title={t('settings.setting.edit', { setting: label })}
         dirty={changed || reason.length > 0}
         size="md"
@@ -278,15 +279,13 @@ export function SettingCard({
                 '—'
               )}
             </dd>
+            {/* the label already says "Applies from": the value is the day alone ("Applies from · Applies from today"
+                said it twice) */}
             <dt className="text-muted">{t('settings.setting.appliesFrom')}</dt>
             <dd>
               {(previewed ? previewed.valid_from : def.effective_dated ? from : today) !== today
-                ? t('settings.setting.preview.fromDate', {
-                    date: formatDate(new Date(previewed ? previewed.valid_from : from), locale, {
-                      dateStyle: 'medium',
-                    }),
-                  })
-                : t('settings.setting.preview.fromToday')}
+                ? formatDate(new Date(previewed ? previewed.valid_from : from), locale, { dateStyle: 'medium' })
+                : t('common.today')}
               {previewed?.replaces_same_day ? ` · ${t('settings.setting.preview.replacesSameDay')}` : ''}
             </dd>
             {scope === 'all' && deptRows.length ? (

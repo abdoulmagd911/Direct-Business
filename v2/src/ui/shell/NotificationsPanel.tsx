@@ -19,7 +19,7 @@ import { Field } from '../Field';
 import { IconButton } from '../IconButton';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 import { dueState, groupOf, recordName, riyadhDay } from './bell-words';
-import { fieldLabel } from '../record/diff-words';
+import { fieldLabel, listSeparator } from '../record/diff-words';
 import { Tabs } from '../Tabs';
 import { toast } from '../Toast';
 
@@ -93,7 +93,7 @@ export function NotificationsPanel({
       ? n.fields
           .map(fieldWord)
           .map((w) => w.replace(/ on$/i, ''))
-          .join(', ')
+          .join(listSeparator(locale))
       : t('notifications.someDetails');
     // a notice whose label has words of its own: a note shared by name (it rides the note-mention kind and its
     // setting), and the due alert's second notice once the day has passed (D, 26 Oct)

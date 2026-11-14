@@ -222,7 +222,8 @@ export function Comments({
     [people, me.person.id],
   );
 
-  // `after` runs twice for a write that is undone: once for the write, once for its Undo.
+  // Each write shows its effect at once (`after`) and takes it back when its Undo goes through (`afterUndo`); both
+  // read the list again. The Undo touches only what the write changed — an editor opened since stays open.
   const add = async () => {
     const problem = check(text, t('record.comments.bodyRequired'));
     if (problem) return setError(problem);
@@ -231,7 +232,6 @@ export function Comments({
     const body = text.trim();
     const asked = mode === 'ask' ? (askedTo ?? null) : null;
     const askedLabel = askable.find((p) => p.value === asked)?.label ?? '';
-    let first = true;
     await command(
       words(mode === 'ask' ? t('record.comments.askAdded') : t('record.comments.added')),
       () =>
@@ -243,38 +243,38 @@ export function Comments({
         undoDirect: true,
         after: (r) => {
           void readAgain();
-          const cid = r?.id ?? '';
-          if (first) {
-            first = false;
-            setText('');
-            setAskedTo(undefined);
-            setAdded((a) => [
-              ...a,
-              {
-                id: cid,
-                body,
-                author_id: me.person.id,
-                author_name: personName,
-                author_name_ar: personName,
-                created_at: new Date().toISOString(),
-                edited_at: null,
-                edited: false,
-                version: 1,
-                mine: true,
-                can_edit: true,
-                can_remove: true,
-                asked_to: asked,
-                asked_to_name: askedLabel || null,
-                asked_to_name_ar: askedLabel || null,
-                question_open: asked !== null,
-                answer: null,
-                answered_at: null,
-                answered_by: null,
-                answered_by_name: null,
-                answered_by_name_ar: null,
-              },
-            ]);
-          } else setAdded((a) => a.filter((x) => x.id !== cid));
+          setText('');
+          setAskedTo(undefined);
+          setAdded((a) => [
+            ...a,
+            {
+              id: r?.id ?? '',
+              body,
+              author_id: me.person.id,
+              author_name: personName,
+              author_name_ar: personName,
+              created_at: new Date().toISOString(),
+              edited_at: null,
+              edited: false,
+              version: 1,
+              mine: true,
+              can_edit: true,
+              can_remove: true,
+              asked_to: asked,
+              asked_to_name: askedLabel || null,
+              asked_to_name_ar: askedLabel || null,
+              question_open: asked !== null,
+              answer: null,
+              answered_at: null,
+              answered_by: null,
+              answered_by_name: null,
+              answered_by_name_ar: null,
+            },
+          ]);
+        },
+        afterUndo: (r) => {
+          void readAgain();
+          setAdded((a) => a.filter((x) => x.id !== (r?.id ?? '')));
         },
       },
     );
@@ -285,7 +285,6 @@ export function Comments({
     if (problem) return setError(problem);
     setBusy(c.id);
     const body = draft.trim();
-    let first = true;
     await command(
       words(t('record.comments.saved')),
       () =>
@@ -297,15 +296,15 @@ export function Comments({
         after: () => {
           void readAgain();
           setEditing(null);
-          if (first) {
-            first = false;
-            setNewWords((w) => ({ ...w, [c.id]: body }));
-          } else
-            setNewWords((w) => {
-              const rest = { ...w };
-              delete rest[c.id];
-              return rest;
-            });
+          setNewWords((w) => ({ ...w, [c.id]: body }));
+        },
+        afterUndo: () => {
+          void readAgain();
+          setNewWords((w) => {
+            const rest = { ...w };
+            delete rest[c.id];
+            return rest;
+          });
         },
       },
     );
@@ -313,7 +312,6 @@ export function Comments({
   };
   const remove = async (c: RecordComment) => {
     setBusy(c.id);
-    let first = true;
     await command(
       // A question is deleted as a question, not as a comment (F094).
       words(t(c.asked_to ? 'record.comments.removedQuestion' : 'record.comments.removed')),
@@ -323,10 +321,11 @@ export function Comments({
         after: () => {
           void readAgain();
           setRemoving(null);
-          if (first) {
-            first = false;
-            setGone((g) => [...g, c.id]);
-          } else setGone((g) => g.filter((x) => x !== c.id));
+          setGone((g) => [...g, c.id]);
+        },
+        afterUndo: () => {
+          void readAgain();
+          setGone((g) => g.filter((x) => x !== c.id));
         },
       },
     );
@@ -338,7 +337,6 @@ export function Comments({
     setBusy(c.id);
     const reply = answerDraft.trim();
     const at = new Date().toISOString();
-    let first = true;
     await command(
       words(t('record.comments.answered')),
       () => rpc('comment_answer', { p_id: c.id, p_answer: reply }) as Promise<{ request_id?: string | null }>,
@@ -347,15 +345,15 @@ export function Comments({
         after: () => {
           void readAgain();
           setAnswering(null);
-          if (first) {
-            first = false;
-            setClosed((m) => ({ ...m, [c.id]: { answer: reply, answered_by: me.person.id, answered_at: at } }));
-          } else
-            setClosed((m) => {
-              const rest = { ...m };
-              delete rest[c.id];
-              return rest;
-            });
+          setClosed((m) => ({ ...m, [c.id]: { answer: reply, answered_by: me.person.id, answered_at: at } }));
+        },
+        afterUndo: () => {
+          void readAgain();
+          setClosed((m) => {
+            const rest = { ...m };
+            delete rest[c.id];
+            return rest;
+          });
         },
       },
     );
@@ -425,8 +423,8 @@ export function Comments({
                       {name}
                     </span>
                     <span>
-                      {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes)} ·{' '}
-                      {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
+                      {locale === 'ar' && f.kind_ar ? f.kind_ar : f.kind_en} · {formatFileSize(f.size_bytes, t, locale)}{' '}
+                      · {f.added_by_name ? `${t('record.files.uploader')} ${f.added_by_name} · ` : ''}
                       {formatDate(f.added_at, locale, { dateStyle: 'medium', timeStyle: 'short' })}
                     </span>
                   </p>
@@ -744,7 +742,10 @@ export function RecordHeaderCounts({
   return (
     <p className="flex flex-wrap items-center gap-x-1 text-sm" data-record-counts>
       {comments !== null ? (
-        <Link href={href('all')} className="font-medium text-link hover:underline">
+        <Link
+          href={href('all')}
+          className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+        >
           {t('record.commentsCount', { count: comments })}
         </Link>
       ) : null}
@@ -755,12 +756,18 @@ export function RecordHeaderCounts({
       ) : null}
       {evidence ? (
         evidence.count !== null ? (
-          <Link href={evidence.href} className="font-medium text-link hover:underline">
+          <Link
+            href={evidence.href}
+            className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+          >
             {t('record.files.evidenceCount', { count: evidence.count })}
           </Link>
         ) : null
       ) : files !== null && files !== undefined ? (
-        <Link href={href('files')} className="font-medium text-link hover:underline">
+        <Link
+          href={href('files')}
+          className="inline-flex items-center font-medium text-link hover:underline max-sm:min-h-11"
+        >
           {t('record.filesCount', { count: files })}
         </Link>
       ) : null}

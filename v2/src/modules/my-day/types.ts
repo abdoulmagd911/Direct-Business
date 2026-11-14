@@ -87,7 +87,8 @@ export type MyNote = {
   has_pending_reminder?: boolean;
 };
 
-export type SinceCount = { kind: 'team_notes' | 'workspace_notes'; count: number };
+/** What's new since the last visit, by kind: my team's notes, notes shared with me by name, notes for everyone. */
+export type SinceCount = { kind: 'team_notes' | 'shared_notes' | 'workspace_notes'; count: number };
 
 export type PendingReminder = {
   id: string;

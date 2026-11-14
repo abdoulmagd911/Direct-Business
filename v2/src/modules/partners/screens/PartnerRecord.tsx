@@ -1,12 +1,13 @@
 'use client';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, Plus, X } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
-import { formatDate, formatStoredDate } from '@/core/i18n/format';
+import { formatDate } from '@/core/i18n/format';
 import { avatarOf, nameOf as personName, type OrgAnswer } from '@/modules/org/types';
 import { FromNoteChip } from '@/modules/my-day/screens/NoteBits';
 import { Button } from '@/ui/Button';
@@ -29,12 +30,13 @@ import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { PersonHover } from './PersonHover';
+import { sideFieldRows } from '../side-fields';
 import { CodesTab, FilesSection, FinanceTab } from './record/CompanyTabs';
 import { EditPartnerDialog } from './record/EditPartnerDialog';
 import { AddNoteDialog, LogActivityDialog } from './record/LogActivityDialog';
 import { ContactDialog, ContractDialog, IdentifierDialog, ReferenceDialog } from './record/RailDialogs';
 import { OwnerDialog, SideDialog, SideOffDialog, StatusDialog } from './record/SideDialogs';
-import { useWords } from './record/words';
+import { today, useWords } from './record/words';
 import {
   SIDES,
   SIDE_PAGE,
@@ -121,6 +123,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
   const personOf = (id: string | null | undefined) => (id ? org.people.find((p) => p.id === id) : undefined);
   const nameOfPerson = (id: string) => (personOf(id) ? personName(personOf(id)!, locale) : undefined);
+  const contactName = (c: Contact) => (locale === 'ar' && c.name_ar ? c.name_ar : c.name_en);
 
   const [logging, setLogging] = useState(false);
   const [noting, setNoting] = useState(false);
@@ -158,23 +161,39 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
 
   const sidesOn = card.sides.filter((s) => s.on);
   const sideOf = (k: Side) => card.sides.find((s) => s.side === k && s.on) ?? null;
+  const archived = !!card.archived_at;
   const fullOn = (k: Side) => me.levels[SIDE_PAGE[k]] === 'full';
   /** Full on any side the record has on: the record-level Remove / Archive / Unarchive gate. */
   const full = sidesOn.some((s) => fullOn(s.side));
   const canAssign = (k: Side) => me.capabilities.includes(`${SIDE_PAGE[k]}.assign`);
   const isOwner = (s: SideFull | null) => !!s && s.owner_id === me.person.id;
-  const mayWrite = sidesOn.some((s) => fullOn(s.side) || (me.levels[SIDE_PAGE[s.side]] === 'own' && isOwner(s)));
-  /** Anything behind the ⋯ menu (F110): Full on a side, the side's owner or assigner, or a writer. A reader with
-      none of these gets no More button at all — the menu would be empty, a blank white box. */
-  const hasMoreActions =
-    full ||
-    mayWrite ||
-    SIDES.some((k) => {
-      const s = sideOf(k);
-      return fullOn(k) || (s !== null && (isOwner(s) || canAssign(k)));
-    });
+  // Every gate below is the database's own rule, so a button is offered only where its save is allowed. An archived
+  // organisation takes no change at all until it is unarchived (partner.writable and partner.side_writable refuse it):
+  // its write buttons are not offered, and a line under the header says why.
+  /** One side's rows — contracts, references, activities, status (partner.side_writable): Full on that side's page, or
+   *  Own and its owner. */
+  const mayWriteSide = (k: Side) => {
+    const s = sideOf(k);
+    return !archived && !!s && (fullOn(k) || (me.levels[SIDE_PAGE[k]] === 'own' && isOwner(s)));
+  };
+  const mayWrite = sidesOn.some((s) => mayWriteSide(s.side));
+  /** The shared part — names, details, contacts, identifiers (partner.writable): Full on a side the record has on. An
+   *  Own-level owner logs and adds on their side, but these stay with Full. */
+  const mayEdit = full && !archived;
+  /** A side's type, tier and start, switching a side on or off (partner.side_set): Full on that side. */
+  const maySide = (k: Side) => !archived && fullOn(k);
+  /** A side's status: its owner, or someone who assigns on that side — on a side they may write (partner.side_status_set). */
+  const mayStatus = (k: Side) => mayWriteSide(k) && (isOwner(sideOf(k)) || canAssign(k));
+  /** A side's owner: someone who assigns on that side, on a side they may write (partner.side_owner_set). */
+  const mayOwner = (k: Side) => mayWriteSide(k) && canAssign(k);
+  /** Anything behind the ⋯ menu (F110). A reader with none of these gets no More button at all — the menu would be
+      empty, a blank white box. */
+  const hasMoreActions = full || mayWrite || SIDES.some((k) => maySide(k) || mayStatus(k) || mayOwner(k));
   const mayIdentify =
-    me.capabilities.includes('clients.identify') || me.capabilities.includes('suppliers_partners.identify');
+    mayEdit &&
+    (me.capabilities.includes('clients.identify') || me.capabilities.includes('suppliers_partners.identify'));
+  /** What an empty side field shows to a reader with no "+ Add" for it: a dash, never a bare label. */
+  const none = <span className="text-muted">—</span>;
   const listName = (list: ListEntry[], key: string | null | undefined, byId = false) =>
     nameOf(
       list.find((x) => (byId ? x.id === key : x.key === key)),
@@ -213,8 +232,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
       case 'next_step': {
         // A next step in the past gets an overdue flag in plain words, so a
         // 1 Nov check no longer shows a past date with no warning on it.
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
-        const overdue = !!card.next_step && card.next_step.on < today;
+        const overdue = !!card.next_step && card.next_step.on < today();
         const note = [card.next_step?.text, overdue ? t('status.overdue') : null].filter(Boolean).join(' · ');
         return {
           key: k,
@@ -242,7 +260,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           {t('partners.activity.log')}
         </Button>
       ) : null}
-      {mayWrite ? (
+      {mayEdit ? (
         <Button onClick={() => setEditing(true)} data-partner-edit>
           {t('common.edit')}
         </Button>
@@ -265,31 +283,31 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                 const label = t(`partners.side.${k}`);
                 // A side with nothing behind it contributes no item at all (F110): not even its separator, so the
                 // menu is never a list of separators for a reader who may do nothing here.
-                if (!fullOn(k) && (s === null || (!isOwner(s) && !canAssign(k)))) return null;
+                if (!maySide(k) && !mayStatus(k) && !mayOwner(k)) return null;
                 if (!s)
-                  return fullOn(k) ? (
+                  return maySide(k) ? (
                     <MenuItem key={k} onSelect={() => setSideOn(k)} data-side-on={k}>
                       {t('partners.sideDialog.switchOn', { side: label })}
                     </MenuItem>
                   ) : null;
                 return (
                   <div key={k}>
-                    {fullOn(k) ? (
+                    {maySide(k) ? (
                       <MenuItem onSelect={() => setSideEdit(s)} data-side-edit={k}>
                         {t('partners.sideDialog.change', { side: label })}
                       </MenuItem>
                     ) : null}
-                    {isOwner(s) || canAssign(k) ? (
+                    {mayStatus(k) ? (
                       <MenuItem onSelect={() => setStatusFor(k)} data-status-set={k}>
                         {t('partners.statusDialog.action')} · {label}
                       </MenuItem>
                     ) : null}
-                    {canAssign(k) ? (
+                    {mayOwner(k) ? (
                       <MenuItem onSelect={() => setOwnerFor(k)} data-owner-set={k}>
                         {t('partners.ownerDialog.action')} · {label}
                       </MenuItem>
                     ) : null}
-                    {fullOn(k) && sidesOn.length > 1 ? (
+                    {maySide(k) && sidesOn.length > 1 ? (
                       <MenuItem onSelect={() => setSideOff(k)} data-side-off={k}>
                         {t('partners.sideDialog.switchOffAction', { side: label })}
                       </MenuItem>
@@ -333,13 +351,22 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
     kind,
     rows: card.identifiers.filter((i) => i.kind === kind && (kind !== 'name' || i.subkind === 'alias')),
   }));
-  const contractState = (c: Contract) => {
+  // every kind with its "+ Add" for someone who may add one; for everyone else only the kinds that hold a value
+  const shownIdentifierGroups = identifierGroups.filter((g) => mayIdentify || g.rows.length > 0);
+  /** A contract's state in words with its tone — the database's own state (partner.contract_state), so "expiring"
+   *  follows the setting the list's Contract expiring flag uses, never a number written here; an end-less contract
+   *  says it is open-ended. The day count is worked out here only for a card read before the state was sent. */
+  const contractState = (c: Contract): { label: string; tone: 'danger' | 'warning' | 'neutral' } => {
     const day = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
-    if (c.start_on > day) return t('partners.contract.state.not_started');
-    if (!c.end_on) return t('partners.contract.state.open');
-    if (c.end_on < day) return t('partners.contract.state.expired');
-    const days = Math.round((Date.parse(c.end_on) - Date.parse(day)) / 86_400_000);
-    return days <= 30 ? t('partners.contract.state.expiring', { days }) : t('partners.contract.state.active');
+    const status = c.status ?? (c.start_on > day ? 'not_started' : c.end_on && c.end_on < day ? 'expired' : 'active');
+    if (status === 'not_started') return { label: t('partners.contract.state.not_started'), tone: 'neutral' };
+    if (status === 'expired') return { label: t('partners.contract.state.expired'), tone: 'danger' };
+    if (!c.end_on) return { label: t('partners.contract.state.open'), tone: 'neutral' };
+    if (status === 'expiring') {
+      const days = c.days_left ?? Math.round((Date.parse(c.end_on) - Date.parse(day)) / 86_400_000);
+      return { label: t('partners.contract.state.expiring', { days }), tone: 'warning' };
+    }
+    return { label: t('partners.contract.state.active'), tone: 'neutral' };
   };
 
   const rail = (
@@ -355,11 +382,13 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               label={t('partners.tier')}
               empty={!s.tier_id}
               add={
-                fullOn(k) ? (
+                maySide(k) ? (
                   <Button variant="link" size="xs" onClick={() => setSideEdit(s)}>
                     {t('common.addNew')}
                   </Button>
-                ) : null
+                ) : (
+                  none
+                )
               }
             >
               {listName(lists.tiers, s.tier_id, true)}
@@ -368,11 +397,13 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               label={k === 'client' ? t('partners.accountManager') : t('partners.relationshipOwner')}
               empty={!owner}
               add={
-                canAssign(k) ? (
+                mayOwner(k) ? (
                   <Button variant="link" size="xs" onClick={() => setOwnerFor(k)}>
                     {t('common.addNew')}
                   </Button>
-                ) : null
+                ) : (
+                  none
+                )
               }
             >
               {owner ? (
@@ -385,11 +416,13 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               label={t('partners.columns.status')}
               empty={!s.status}
               add={
-                isOwner(s) || canAssign(k) ? (
+                mayStatus(k) ? (
                   <Button variant="link" size="xs" onClick={() => setStatusFor(k)}>
                     {t('common.addNew')}
                   </Button>
-                ) : null
+                ) : (
+                  none
+                )
               }
             >
               {s.status ? (
@@ -399,27 +432,43 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             <RailField label={t('partners.since')}>
               {s.since ? formatDate(s.since, locale, { dateStyle: 'medium' }) : '—'}
             </RailField>
-            {Object.entries(s.fields ?? {}).map(([key, value]) => (
-              <RailField key={key} label={key}>
-                {value === null || value === undefined || value === ''
-                  ? '—'
-                  : (formatStoredDate(value, locale) ?? String(value))}
-              </RailField>
-            ))}
+            {/* a side's own fields by their names in the reader's language, a choice or a yes/no by its meaning —
+                never the stored key (the card carries the definitions) */}
+            {sideFieldRows(k, s.fields, card.side_fields, locale, { yes: t('common.yes'), no: t('common.no') }).map(
+              (f) => (
+                <RailField key={f.key} label={f.label}>
+                  <span data-side-field={f.key}>{f.value}</span>
+                </RailField>
+              ),
+            )}
           </RailSection>
         );
       })}
       <RailSection
         title={t('partners.identifier.title')}
+        plain={!shownIdentifierGroups.length}
         footer={
           mayIdentify ? (
-            <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setAddingId(true)} data-identifier-add>
+            <Button
+              size="xs"
+              variant="ghost"
+              icon={<Plus />}
+              onClick={() => setAddingId(true)}
+              className="self-start"
+              data-identifier-add
+            >
               {t('partners.identifier.add')}
             </Button>
           ) : null
         }
       >
-        {identifierGroups.map((g) => (
+        {/* a reader who cannot add one sees the identifiers there are, not a column of empty labels */}
+        {shownIdentifierGroups.length ? null : (
+          <p className="text-sm text-muted" data-identifiers-none>
+            {t('state.empty')}
+          </p>
+        )}
+        {shownIdentifierGroups.map((g) => (
           <RailField
             key={g.kind}
             label={
@@ -440,7 +489,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               {g.rows.map((i) => (
                 <li key={i.id} className="flex items-center justify-between gap-2" data-identifier={i.id}>
                   <span className="font-data">
-                    {i.value}
+                    {/* a value keeps its own direction in Arabic: "+966 …" never reads "… 966+" */}
+                    <bdi>{i.value}</bdi>
                     {i.subkind && g.kind !== 'name' ? (
                       <span className="text-xs text-muted">
                         {' · '}
@@ -451,7 +501,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                   {mayIdentify ? (
                     <IconButton
                       label={t('partners.identifier.remove')}
-                      icon={<MoreHorizontal />}
+                      // a remove opens its confirm at once, so it wears the remove mark, not the ⋯ of a menu
+                      icon={<X />}
                       size="sm"
                       onClick={() => setRemovingId({ id: i.id, value: i.value })}
                       data-identifier-remove
@@ -470,7 +521,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               <li key={c.id} className="flex items-start justify-between gap-2 text-sm" data-contact={c.id}>
                 <span className="flex min-w-0 flex-col">
                   <span className="font-medium">
-                    {locale === 'ar' && c.name_ar ? c.name_ar : c.name_en}
+                    <bdi>{contactName(c)}</bdi>
                     {c.is_primary ? (
                       <StatusChip tone="info" className="ms-1.5">
                         {t('partners.contact.primary')}
@@ -486,6 +537,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       {c.phone ? (
                         <a
                           href={`tel:${c.phone.replace(/[^\d+]/g, '')}`}
+                          // a phone number reads left to right in Arabic too ("+966 55 …", not "… 55 966+")
+                          dir="ltr"
                           className="inline-flex min-h-11 items-center font-data text-link sm:min-h-0"
                           data-contact-phone
                         >
@@ -495,6 +548,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       {c.email ? (
                         <a
                           href={`mailto:${c.email}`}
+                          dir="ltr"
                           className="inline-flex min-h-11 items-center truncate text-link sm:min-h-0"
                           data-contact-email
                         >
@@ -504,7 +558,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                     </span>
                   ) : null}
                 </span>
-                {mayWrite ? (
+                {mayEdit ? (
                   <Menu>
                     <MenuTrigger asChild>
                       <IconButton label={t('common.more')} icon={<MoreHorizontal />} size="sm" data-contact-menu />
@@ -518,9 +572,18 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               </li>
             ))}
           </ul>
-        ) : null}
-        {mayWrite ? (
-          <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setContact('new')} data-contact-add>
+        ) : mayEdit ? null : (
+          <p className="text-sm text-muted">{t('state.empty')}</p>
+        )}
+        {mayEdit ? (
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={<Plus />}
+            onClick={() => setContact('new')}
+            className="self-start"
+            data-contact-add
+          >
             {t('partners.contact.add')}
           </Button>
         ) : null}
@@ -540,15 +603,15 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                       href={r.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="truncate font-data text-link hover:underline"
+                      className="min-w-0 font-data text-link hover:underline"
                     >
-                      {r.value}
+                      <bdi className="block min-w-0 truncate">{r.value}</bdi>
                     </a>
                   ) : (
-                    <span className="font-data">{r.value}</span>
+                    <bdi className="font-data">{r.value}</bdi>
                   )}
                 </span>
-                {mayWrite ? (
+                {(r.side ? mayWriteSide(r.side) : mayWrite) ? (
                   <Menu>
                     <MenuTrigger asChild>
                       <IconButton label={t('common.more')} icon={<MoreHorizontal />} size="sm" data-reference-menu />
@@ -562,9 +625,18 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               </li>
             ))}
           </ul>
-        ) : null}
+        ) : mayWrite ? null : (
+          <p className="text-sm text-muted">{t('state.empty')}</p>
+        )}
         {mayWrite ? (
-          <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setReference('new')} data-reference-add>
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={<Plus />}
+            onClick={() => setReference('new')}
+            className="self-start"
+            data-reference-add
+          >
             {t('partners.reference.add')}
           </Button>
         ) : null}
@@ -575,25 +647,20 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             {contracts.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-2 text-sm" data-contract={c.id}>
                 <span className="flex min-w-0 flex-col">
-                  <span className="font-medium">{c.title}</span>
+                  <span className="font-medium">
+                    <bdi>{c.title}</bdi>
+                  </span>
                   <span className="text-xs text-muted">
                     {t(`partners.side.${c.side}`)} · {formatDate(c.start_on, locale, { dateStyle: 'medium' })}
                     {c.end_on ? ` – ${formatDate(c.end_on, locale, { dateStyle: 'medium' })}` : ''}
                   </span>
-                  <StatusChip
-                    tone={
-                      contractState(c) === t('partners.contract.state.expired')
-                        ? 'danger'
-                        : contractState(c).startsWith(t('partners.contract.state.expiring', { days: 0 }).split(' ')[0]!)
-                          ? 'warning'
-                          : 'neutral'
-                    }
-                    className="mt-1 w-fit"
-                  >
-                    {contractState(c)}
+                  <StatusChip tone={contractState(c).tone} className="mt-1 w-fit" data-contract-state={c.status}>
+                    {contractState(c).label}
                   </StatusChip>
                 </span>
-                {fullOn(c.side) || isOwner(sideOf(c.side)) ? (
+                {/* Edit and Remove on a side this reader may write (partner.side_writable) — a View-level owner
+                    of the side gets no menu, as they get no Add */}
+                {mayWriteSide(c.side) ? (
                   <Menu>
                     <MenuTrigger asChild>
                       <IconButton label={t('common.more')} icon={<MoreHorizontal />} size="sm" data-contract-menu />
@@ -607,9 +674,18 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               </li>
             ))}
           </ul>
-        ) : null}
+        ) : mayWrite ? null : (
+          <p className="text-sm text-muted">{t('state.empty')}</p>
+        )}
         {mayWrite ? (
-          <Button size="xs" variant="ghost" icon={<Plus />} onClick={() => setContract('new')} data-contract-add>
+          <Button
+            size="xs"
+            variant="ghost"
+            icon={<Plus />}
+            onClick={() => setContract('new')}
+            className="self-start"
+            data-contract-add
+          >
             {t('partners.contract.add')}
           </Button>
         ) : null}
@@ -629,43 +705,45 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             ['clientSince', card.client_since ? formatDate(card.client_since, locale, { dateStyle: 'medium' }) : null],
             ['notes', card.notes],
           ] as const
-        ).map(([k, v]) => (
-          <RailField
-            key={k}
-            label={
-              k === 'clientSince' && side !== 'client' ? t('partners.fields.supplierSince') : t(`partners.fields.${k}`)
-            }
-            empty={!v}
-            add={
-              mayWrite ? (
+        )
+          // An empty field shows only to someone who can fill it (its "+ Add"); for everyone else it is left out, not
+          // drawn as a bare label. Client since is the organisation's date as a client (the Finance figures count
+          // new clients by it), so it is never relabelled as a supplier's date, and it is not offered on an
+          // organisation without its Client side (the Supplier side's own start is its side's Since).
+          .filter(([k, v]) => (v ? true : mayEdit && (k !== 'clientSince' || !!sideOf('client'))))
+          .map(([k, v]) => (
+            <RailField
+              key={k}
+              label={t(`partners.fields.${k}`)}
+              empty={!v}
+              add={
                 <Button variant="link" size="xs" onClick={() => setEditing(true)}>
                   {t('common.addNew')}
                 </Button>
-              ) : null
-            }
-          >
-            {k === 'website' && v ? (
-              <a href={v} target="_blank" rel="noreferrer" className="break-all text-link hover:underline">
-                {v}
-              </a>
-            ) : (
-              v
-            )}
-          </RailField>
-        ))}
-        <RailField
-          label={t('partners.priority')}
-          empty={!card.priority_id}
-          add={
-            mayWrite ? (
+              }
+            >
+              {k === 'website' && v ? (
+                <a href={v} target="_blank" rel="noreferrer" className="break-all text-link hover:underline">
+                  {v}
+                </a>
+              ) : (
+                v
+              )}
+            </RailField>
+          ))}
+        {card.priority_id || mayEdit ? (
+          <RailField
+            label={t('partners.priority')}
+            empty={!card.priority_id}
+            add={
               <Button variant="link" size="xs" onClick={() => setEditing(true)}>
                 {t('common.addNew')}
               </Button>
-            ) : null
-          }
-        >
-          {listName(lists.priorities, card.priority_id, true)}
-        </RailField>
+            }
+          >
+            {listName(lists.priorities, card.priority_id, true)}
+          </RailField>
+        ) : null}
       </RailSection>
     </>
   );
@@ -726,7 +804,11 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         back={{ href: SIDE_ROUTE[side], label: t('record.back') }}
         avatar={<PartnerLogo name={card.trade_name_en} size="xl" />}
         title={<bdi>{tradeName(card, locale)}</bdi>}
-        subtitle={[card.number, locale === 'ar' ? card.trade_name_en : card.trade_name_ar].filter(Boolean).join(' · ')}
+        // the name in the other language beside the number — only when there is one: an organisation with no Arabic
+        // name is titled in English in Arabic too, and repeated its own title under it
+        subtitle={[card.number, locale === 'ar' ? card.trade_name_ar && card.trade_name_en : card.trade_name_ar]
+          .filter(Boolean)
+          .join(' · ')}
         chips={
           <>
             {sidesOn.map((s) => (
@@ -770,6 +852,22 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
+        {/* An archived organisation takes no change until it is unarchived: its write buttons are not offered, and this
+            line says why — with the Unarchive itself for someone who may do it. */}
+        {archived ? (
+          <div
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-surface px-4 py-3 text-sm"
+            role="status"
+            data-partner-archived-note
+          >
+            <span>{t('partners.archivedNote')}</span>
+            {full ? (
+              <Button size="sm" variant="link" onClick={() => void unarchive()} data-partner-unarchive-inline>
+                {t('partners.unarchivePartner')}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {tab === 'overview' ? (
           <>
             <section className="flex flex-col gap-6 rounded-lg border border-border bg-raised p-5" data-partner-details>
@@ -857,6 +955,43 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           </>
         ) : null}
         {tab === 'related' ? (
+          <section className="rounded-lg border border-border bg-raised p-5" data-partner-related-tasks>
+            {/* the tasks on this organisation the reader may see (the card's D5 list, open first — at most 20) */}
+            <h2 className="mb-2 text-base font-semibold">{t('partners.related.tasks')}</h2>
+            {card.tasks?.length ? (
+              <ul className="divide-y divide-border text-sm">
+                {card.tasks.map((task) => {
+                  const owner = personOf(task.owner_id);
+                  const overdue = !task.closed_at && !!task.due_on && task.due_on < today();
+                  return (
+                    <li key={task.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5" data-related-task>
+                      <span className="font-data text-xs text-muted">{task.number}</span>
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className="inline-flex min-h-11 min-w-0 items-center font-medium text-link hover:underline sm:min-h-0"
+                      >
+                        <bdi className="truncate">{task.title}</bdi>
+                      </Link>
+                      {task.closed_at ? <StatusChip tone="success">{t('status.done')}</StatusChip> : null}
+                      {overdue ? <StatusChip tone="warning">{t('status.overdue')}</StatusChip> : null}
+                      {task.due_on ? (
+                        <span className="font-data text-xs text-muted">
+                          {t('partners.related.due', {
+                            date: formatDate(task.due_on, locale, { dateStyle: 'medium' }),
+                          })}
+                        </span>
+                      ) : null}
+                      {owner ? <PersonChip person={avatarOf(owner, locale)} href={`/people/${owner.id}`} /> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <DataState kind="empty" message={t('partners.related.tasksNone')} />
+            )}
+          </section>
+        ) : null}
+        {tab === 'related' ? (
           <section className="rounded-lg border border-border bg-raised p-5" data-partner-related>
             {sidesOn.map((s) => (
               <div key={s.side} className="mb-4" data-side-history={s.side}>
@@ -931,6 +1066,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         card={card}
         priorities={lists.priorities}
         nameOfPerson={nameOfPerson}
+        clientOn={!!sideOf('client')}
         onDone={refresh}
       />
       {sideOn ? (
@@ -1060,14 +1196,15 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
       <Confirm
         open={removingContact !== null}
         onOpenChange={(o) => !o && setRemovingContact(null)}
-        title={t('partners.contact.removeTitle', { name: removingContact?.name_en ?? '' })}
-        body={t('confirm.body', { item: removingContact?.name_en ?? '' })}
+        // the contact by the name the reader reads it by, as the list above shows it
+        title={t('partners.contact.removeTitle', { name: removingContact ? contactName(removingContact) : '' })}
+        body={t('confirm.body', { item: removingContact ? contactName(removingContact) : '' })}
         cancelLabel={t('common.cancel')}
         confirmLabel={t('common.remove')}
         onConfirm={async () => {
           const c = removingContact!;
           setRemovingContact(null);
-          await remove(t('partners.contact.removed', { name: c.name_en }), 'contacts_remove', [c.id]);
+          await remove(t('partners.contact.removed', { name: contactName(c) }), 'contacts_remove', [c.id]);
         }}
       />
       {reference !== null ? (
@@ -1077,7 +1214,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           partnerId={card.id}
           current={reference === 'new' ? null : reference}
           systems={lists.systems}
-          sidesOn={sidesOn.map((s) => s.side)}
+          // a new reference goes on a side this reader may write, or is shared by all
+          sidesOn={sidesOn.filter((s) => mayWriteSide(s.side)).map((s) => s.side)}
           onDone={refresh}
         />
       ) : null}
@@ -1100,7 +1238,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           onOpenChange={(o) => !o && setContract(null)}
           partnerId={card.id}
           current={contract === 'new' ? null : contract}
-          sidesOn={sidesOn}
+          // a new contract goes on a side this reader may write (partner.side_writable) — never offered a side the
+          // save would refuse
+          sidesOn={sidesOn.filter((s) => mayWriteSide(s.side))}
           onDone={refresh}
         />
       ) : null}

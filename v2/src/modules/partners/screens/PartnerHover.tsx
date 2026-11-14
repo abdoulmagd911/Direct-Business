@@ -41,9 +41,7 @@ export function PartnerHover({
             <div className="flex items-center gap-2.5">
               <PartnerLogo name={p.trade_name_en} size="md" />
               <span className="flex min-w-0 flex-col">
-                <span className="truncate font-semibold">
-                  <bdi>{tradeName(p, locale)}</bdi>
-                </span>
+                <bdi className="truncate font-semibold">{tradeName(p, locale)}</bdi>
                 <span className="font-data text-xs text-muted">{p.number}</span>
               </span>
             </div>

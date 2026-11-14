@@ -97,11 +97,6 @@ export function ownChoice(key: keyof Prefs, get: (name: string) => string | unde
   return raw !== undefined && (PREF_DEFS[key].values as readonly string[]).includes(raw) && !syncedFrom(get).has(key);
 }
 
-/** Whether this browser holds its own choice for a preference, as opposed to the coerced default or a cached value. */
-export function prefIsSet(key: keyof Prefs): boolean {
-  return ownChoice(key, readCookie);
-}
-
 export function readPrefs(): Prefs {
   return prefsFrom(readCookie);
 }

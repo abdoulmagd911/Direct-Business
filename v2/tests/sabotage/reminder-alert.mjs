@@ -12,8 +12,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/reminder-alert.ts',
-        find: 'wait > 0 ? wait + SLACK_MS',
-        replace: 'wait > 0 ? SLACK_MS',
+        find: 'if (wait > 0) return wait + SLACK_MS;',
+        replace: 'if (wait > 0) return SLACK_MS;',
       },
     ],
   },
