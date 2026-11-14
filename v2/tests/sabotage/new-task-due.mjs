@@ -37,8 +37,17 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/DatePicker.tsx',
-        find: "onClick={() => set('')} {...at('clear')}",
-        replace: "onClick={() => { if (testId === 'due') return; set(''); }} {...at('clear')}",
+        find: `            onClick={() => {
+              set('');
+              onClear?.();
+            }}
+            {...at('clear')}`,
+        replace: `            onClick={() => {
+              if (testId === 'due') return;
+              set('');
+              onClear?.();
+            }}
+            {...at('clear')}`,
       },
     ],
   },
