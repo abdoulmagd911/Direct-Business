@@ -1,9 +1,15 @@
+import { RefreshCw } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { requireMe } from '@/core/auth/require-me';
+import { failureRef, readAgain } from '@/core/db/read-again';
 import { serverRpc } from '@/core/db/server-rpc';
 import type { OrgAnswer } from '@/modules/org/types';
 import { parseDueDay } from '@/modules/tasks/rules';
 import { ActivityScreen, type DeletedRow, type SignInRow } from '@/modules/settings/screens/ActivityScreen';
+import { buttonVariants } from '@/ui/button-variants';
+import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import type { HistoryRow } from '@/ui/record/history';
@@ -38,6 +44,17 @@ export default async function ActivityPage({
         />
       </Page>
     );
+  // Landing 28: the settings log is not offered while signed in as a test user. api.settings_log begins with
+  // authz.require_admin(), which refuses every switched session (test_switch.no_access_change) whatever the test
+  // user's role — so the tab is not drawn (ActivityScreen) and its address lands on the default tab, keeping the
+  // Who and Since filters. The read is never sent.
+  if (me.test_switch && tab === 'settings') {
+    const kept = new URLSearchParams();
+    if (filters.actor) kept.set('actor', filters.actor);
+    if (filters.since) kept.set('since', filters.since);
+    const query = kept.toString();
+    redirect(query ? `/activity?${query}` : '/activity');
+  }
   const othersSignIns = canSee(me, 'settings.org');
   // W47: the organisation and the tab's own read go out together, one round after me — not one after the other.
   const tabRead = async (): Promise<{
@@ -108,14 +125,53 @@ export default async function ActivityPage({
     ]);
     return { rows: rows ?? [], total, sinceIso };
   };
+  // Landing 28: each read is caught on its own (the codes page's readAgain), so one failing read never takes the
+  // whole page into the error screen — the three were awaited together with no catch, and one refusal drew
+  // "This page could not be drawn". Still one round: the three go out together.
+  const failure: { ref: string | null } = { ref: null };
+  const keep = (e: unknown) => {
+    failure.ref ??= failureRef(e);
+  };
   const [org, priorities, read] = await Promise.all([
-    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,
-    serverRpc('list', { p_list: 'priority' }) as unknown as Promise<
-      { id: string; name_en: string; name_ar: string | null }[]
-    >,
-    tabRead(),
+    readAgain(() => serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, keep),
+    readAgain(
+      () =>
+        serverRpc('list', { p_list: 'priority' }) as unknown as Promise<
+          { id: string; name_en: string; name_ar: string | null }[]
+        >,
+    ),
+    readAgain(tabRead, keep),
   ]);
-  const { rows = [], signIns = [], deleted = [], total, sinceIso } = read;
+  // Without the organisation the screen cannot name anyone: the page says so, with Try again as a link to the
+  // same address (a server page cannot pass a callback — FIX-28), inside the app's frame.
+  if (!org) {
+    const again = new URLSearchParams({ tab });
+    for (const [k, v] of Object.entries(filters)) if (v) again.set(k, v);
+    return (
+      <Page>
+        <PageHeader title={t('nav.activity')} />
+        <DataState
+          kind="failed"
+          what={t('nav.activity')}
+          message={t('state.failed', { what: t('nav.activity') })}
+          action={
+            <>
+              <Link href={`/activity?${again}`} className={cn(buttonVariants({ size: 'sm' }), 'ms-auto')} data-retry>
+                <RefreshCw aria-hidden="true" />
+                {t('common.tryAgain')}
+              </Link>
+              {failure.ref ? (
+                <span dir="ltr" className="basis-full font-data text-xs text-muted" data-activity-error>
+                  {failure.ref}
+                </span>
+              ) : null}
+            </>
+          }
+        />
+      </Page>
+    );
+  }
+  const { rows = [], signIns = [], deleted = [], total, sinceIso } = read ?? {};
   return (
     <Page bare>
       <ActivityScreen
@@ -126,7 +182,9 @@ export default async function ActivityPage({
         signIns={signIns}
         deleted={deleted}
         filters={filters}
-        priorities={priorities}
+        priorities={priorities ?? []}
+        readFailed={read === null}
+        readError={failure.ref}
         total={total}
         sinceIso={sinceIso}
       />

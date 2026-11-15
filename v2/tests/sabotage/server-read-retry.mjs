@@ -40,10 +40,11 @@ sabotages.push(
       {
         file: 'src/app/(app)/activity/page.tsx',
         // The priorities list joined the round since this sabotage was written, so the destructure is three
-        // reads now; the plant still pulls the organisation out in front of the rest.
-        find: "  const [org, priorities, read] = await Promise.all([\n    serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>,",
+        // reads now; the plant still pulls the organisation out in front of the rest. Landing 28: each read is
+        // caught on its own (readAgain), so the plant's text follows the page.
+        find: "  const [org, priorities, read] = await Promise.all([\n    readAgain(() => serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, keep),",
         replace:
-          "  const org = (await serverRpc('org', {} as never)) as unknown as OrgAnswer;\n  const [priorities, read] = await Promise.all([",
+          "  const org = await readAgain(() => serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>, keep);\n  const [priorities, read] = await Promise.all([",
       },
     ],
   },

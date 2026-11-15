@@ -77,6 +77,8 @@ export function ActivityScreen({
   priorities,
   total,
   sinceIso,
+  readFailed = false,
+  readError = null,
 }: {
   me: Me;
   tab: string;
@@ -91,12 +93,19 @@ export function ActivityScreen({
   total?: number;
   /** The Since filter as the instant the page's read used, so "Show earlier" asks for the same slice. */
   sinceIso?: string | null;
+  /** The tab's own read failed (Landing 28): the tab row stays, and the tab says so instead of the page falling. */
+  readFailed?: boolean;
+  /** What ended that read — the error's kind and code; null when it did not fail. */
+  readError?: string | null;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const pathname = usePathname();
-  const current = (TABS as readonly string[]).includes(tab) ? tab : 'changes';
+  // Landing 28: the settings log is not offered while signed in as a test user — the database refuses it to every
+  // switched session (test_switch.no_access_change), so the tab is not drawn and its address is the default tab.
+  const tabs = me.test_switch ? TABS.filter((k) => k !== 'settings') : TABS;
+  const current = (tabs as readonly string[]).includes(tab) ? tab : 'changes';
   const people = Object.fromEntries(org.people.map((p) => [p.id, avatarOf(p, locale)]));
   const orgDescribe = describeWith(org, locale);
   const describe = (field: string, value: unknown) => {
@@ -256,7 +265,7 @@ export function ActivityScreen({
       <Tabs
         label={t('nav.activity')}
         value={current}
-        tabs={TABS.map((k) => ({ value: k, label: t(`activity.tabs.${k}`), href: `/activity?tab=${k}` }))}
+        tabs={tabs.map((k) => ({ value: k, label: t(`activity.tabs.${k}`), href: `/activity?tab=${k}` }))}
       />
       {current === 'deleted' ? null : current !== 'signIns' ? (
         <div className="grid gap-3 sm:grid-cols-3" data-activity-filters>
@@ -319,7 +328,22 @@ export function ActivityScreen({
           </Field>
         </div>
       ) : null}
-      {current === 'changes' ? (
+      {readFailed ? (
+        <DataState
+          kind="failed"
+          message={t('state.failed', { what: t(`activity.tabs.${current}`) })}
+          onRetry={() => router.refresh()}
+          retryLabel={t('common.tryAgain')}
+          action={
+            readError ? (
+              <span dir="ltr" className="basis-full font-data text-xs text-muted" data-activity-error>
+                {readError}
+              </span>
+            ) : null
+          }
+        />
+      ) : null}
+      {!readFailed && current === 'changes' ? (
         <section className="rounded-lg border border-border bg-raised px-5 py-2" data-activity-changes>
           <ActivityTimeline
             rows={allRows}
@@ -335,7 +359,7 @@ export function ActivityScreen({
           />
         </section>
       ) : null}
-      {current === 'settings' ? (
+      {!readFailed && current === 'settings' ? (
         <section className="rounded-lg border border-border bg-raised" data-activity-settings>
           {settingRows.length ? (
             <ul className="divide-y divide-border">
@@ -388,7 +412,7 @@ export function ActivityScreen({
           )}
         </section>
       ) : null}
-      {current === 'signIns' ? (
+      {!readFailed && current === 'signIns' ? (
         <ScrollCue className="rounded-lg border border-border bg-raised" data-activity-sign-ins>
           {signIns.length ? (
             <table className="w-full text-sm">
@@ -426,7 +450,7 @@ export function ActivityScreen({
           )}
         </ScrollCue>
       ) : null}
-      {current === 'deleted' ? <RecentlyDeleted rows={deleted} people={people} /> : null}
+      {!readFailed && current === 'deleted' ? <RecentlyDeleted rows={deleted} people={people} /> : null}
       <ReasonDialog
         open={reverting !== null}
         onOpenChange={(o) => !o && setReverting(null)}

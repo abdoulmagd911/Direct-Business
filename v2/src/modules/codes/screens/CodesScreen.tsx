@@ -65,6 +65,7 @@ export function CodesScreen({
   selectedId,
   listFailed,
   detailFailed,
+  detailError,
   companiesFailed,
   files,
   filesFailed,
@@ -77,6 +78,8 @@ export function CodesScreen({
   selectedId: string | null;
   listFailed: boolean;
   detailFailed: boolean;
+  /** What ended the detail's read — the error's kind and code (Landing 28); null when it did not fail. */
+  detailError?: string | null;
   companiesFailed: boolean;
   /** The selected code's files; null when the read failed (a failed read says so, never an empty section). */
   files: RecordFile[] | null;
@@ -295,6 +298,14 @@ export function CodesScreen({
             message={t('state.failed', { what: t('pages.codes.detail.title') })}
             onRetry={() => router.refresh()}
             retryLabel={t('common.tryAgain')}
+            // Landing 28: the failure's kind and code ride beside the message, so a flaky read can be diagnosed
+            action={
+              detailError ? (
+                <span dir="ltr" className="basis-full font-data text-xs text-muted" data-codes-detail-error>
+                  {detailError}
+                </span>
+              ) : null
+            }
           />
         ) : (
           <section className="flex scroll-mt-4 flex-col gap-5" data-codes-detail>
