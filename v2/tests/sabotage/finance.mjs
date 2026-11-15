@@ -427,4 +427,30 @@ export const sabotages = [
       },
     ],
   },
+  // Landing 27: the Finance Overview reads run with JIT off. Each drops the setting
+  // for one function from the migration, so JIT-04 must go red for that function.
+  {
+    name: 'income-by-service-loses-jit-off',
+    breaks: ['sql:JIT-04'],
+    expect: 'finance.income_by_service runs with JIT off',
+    edits: [
+      {
+        file: 'supabase/migrations/20261115090000_finance_overview_reads_no_jit.sql',
+        find: 'alter function finance.income_by_service(date, date) set jit = off;',
+        replace: '',
+      },
+    ],
+  },
+  {
+    name: 'health-loses-jit-off',
+    breaks: ['sql:JIT-04'],
+    expect: 'finance.health runs with JIT off',
+    edits: [
+      {
+        file: 'supabase/migrations/20261115090000_finance_overview_reads_no_jit.sql',
+        find: 'alter function finance.health(date, date) set jit = off;',
+        replace: '',
+      },
+    ],
+  },
 ];
