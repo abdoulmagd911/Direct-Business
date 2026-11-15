@@ -83,3 +83,11 @@ set (about 1,300 plants) — CI runs both on the push.
 
 `CREATE OR REPLACE FUNCTION` silently drops a function's `jit = off`. A migration that redefines one of the three
 codes functions must repeat its `ALTER FUNCTION … SET jit = off` in the same file; `JIT-05` goes red if it does not.
+
+## Follow-up after CI run 1608 (test only, no product code)
+
+CI on `735e02b` was red in one job: `app-settings.alone.spec.ts` "People and Teams tables fit their box in Arabic"
+(1280 px and 1440 px). Cause: the new browser spec left one made-up person marked TEST; a TEST row gains the
+"Sign in as test user" control on the People list, which widens that table for the spec that measures it last.
+The spec now removes the mark and the holder row when it ends, pass or fail. Every other job was green, and the
+production job had applied this landing's migration.

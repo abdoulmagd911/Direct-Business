@@ -57,14 +57,29 @@ test('activity: a switched session is not offered the settings log, and no tab t
   const testAdmin = await makePerson({ admin: true });
   await sql(`update core.person set is_test = true where id = $1`, [testAdmin.id]);
   await sql(`insert into core.test_switch_holder (person_id, note) values ($1, 'made up: the owner')`, [owner.id]);
+  try {
+    await switchedAndBack(page, context, owner.email, testAdmin.id);
+  } finally {
+    // Leave no test user behind: a person marked TEST gains the "Sign in as test user" control on the People list,
+    // which widens that table for the specs that measure it afterwards (app-settings.alone, CI run 1608).
+    await sql(`delete from core.test_switch_holder where person_id = $1`, [owner.id]);
+    await sql(`update core.person set is_test = false where id = $1`, [testAdmin.id]);
+  }
+});
 
-  await signIn(page, owner.email, '/activity?tab=settings');
+async function switchedAndBack(
+  page: import('@playwright/test').Page,
+  context: import('@playwright/test').BrowserContext,
+  ownerEmail: string,
+  testAdminId: string,
+) {
+  await signIn(page, ownerEmail, '/activity?tab=settings');
   await hydrated(page);
   // the admin's own account: the settings log is offered and read
   await expect(page.locator('[data-activity-settings]'), 'the real admin reads the settings log').toBeVisible();
   await expect(page.locator('[data-tabs] a[href="/activity?tab=settings"]')).toBeVisible();
 
-  const switched = await callAs(context, 'test_switch_start', { p_person: testAdmin.id });
+  const switched = await callAs(context, 'test_switch_start', { p_person: testAdminId });
   expect(switched.status, JSON.stringify(switched.body)).toBe(200);
 
   await page.goto('/activity?tab=settings');
@@ -93,4 +108,4 @@ test('activity: a switched session is not offered the settings log, and no tab t
   await page.goto('/activity?tab=settings');
   await hydrated(page);
   await expect(page.locator('[data-activity-settings]'), 'back on the own account, the log is read').toBeVisible();
-});
+}
