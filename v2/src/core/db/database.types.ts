@@ -249,6 +249,10 @@ export type Database = {
         Returns: Json;
       };
       finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_company_not_counted: {
+        Args: { p_from: string; p_partner: string; p_to: string };
+        Returns: Json;
+      };
       finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       finance_difference_counts: {
         Args: Record<PropertyKey, never>;

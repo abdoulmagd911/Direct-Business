@@ -46,6 +46,17 @@ export default defineModule({
       built: true,
       defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
+    {
+      // A company's Finance tab (Landing 25, F-A/A1): the tab's saved views ("Partner result" and the ones a
+      // person saves) live under this page, so they never leak onto the Finance page or the Partners list — a
+      // saved view is read and written only under its own page (core.view_save / core.views ask the page).
+      // No nav entry of its own: the tab is reached from the record. Role defaults as for Finance.
+      key: 'partner_finance',
+      route: '/partners/[id]?tab=finance',
+      label: 'partners.companyFinance.page',
+      built: true,
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'view', viewer: 'view' },
+    },
   ],
   entities: [
     // An organisation's records go by the pages of its sides (partner.row_level — V98): the whole record by the sides

@@ -390,4 +390,41 @@ export const sabotages = [
       },
     ],
   },
+  // The company Finance tab (Landing 25, F-A/A1): each breaks one promise of the tab.
+  {
+    name: 'company-tab-reads-money-row-only',
+    breaks: ['e2e:tests/e2e/company-finance-tab.spec.ts'],
+    expect: 'revenue is the manual and imported rows together',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/CompanyTabs.tsx',
+        find: "    () => (report ? (hide ? report.rows.filter((r) => r.source === 'manual') : report.rows) : []),",
+        replace: "    () => (report ? report.rows.filter((r) => r.source === 'manual') : []),",
+      },
+    ],
+  },
+  {
+    name: 'company-tab-hides-imported-from-list-only',
+    breaks: ['e2e:tests/e2e/company-finance-tab.spec.ts'],
+    expect: 'revenue drops to the manual rows alone',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/CompanyTabs.tsx',
+        find: '  const revenue = visibleRows.reduce((s, r) => s + r.revenue, 0);',
+        replace: '  const revenue = (report?.rows ?? visibleRows).reduce((s, r) => s + r.revenue, 0);',
+      },
+    ],
+  },
+  {
+    name: 'company-tab-profit-counts-cost-pending-rows',
+    breaks: ['e2e:tests/e2e/company-finance-tab.spec.ts'],
+    expect: 'profit is empty, never 0',
+    edits: [
+      {
+        file: 'src/modules/partners/screens/record/CompanyTabs.tsx',
+        find: '  const profit = profitRows.length ? profitRows.reduce((s, r) => s + (r.profit ?? 0), 0) : null;',
+        replace: '  const profit = profitRows.length ? profitRows.reduce((s, r) => s + (r.profit ?? 0), 0) : revenue;',
+      },
+    ],
+  },
 ];

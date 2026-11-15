@@ -17,6 +17,10 @@
  * The 44 px wide-and-high walk in Arabic (V643) lives here for the same reason.
  * Sabotages: tests/sabotage/tap-sizes.mjs "the-shared-tap-rule-is-gone", "the-tap-rule-forgets-the-width".
  *
+ * QA-580 in Arabic lives here too, as its own test: a short reminder title starts at the right edge of its link,
+ * not centred. It used to sit inside the walk, where the walk's failure under the centring sabotage hid it.
+ * Sabotage: tests/sabotage/tap-sizes.mjs "a-row-link-centres-its-words".
+ *
  * QA-592 too: the People and Teams tables of Settings → People & access fit their box in Arabic at 1,280 and 1,440 px, and
  * the last sign-in date is whole. Sabotage: tests/sabotage/settings-tables-arabic.mjs.
  */
@@ -501,9 +505,6 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
     expect(await walk(page, me, clientId, number), 'every tappable thing is 44 px wide and high on a phone').toEqual(
       [],
     );
-    // QA-580: a short reminder title starts at the right edge of its link in Arabic, not centred
-    const { gap } = await reminderStartGap(page, me.id, 'اتصل بعلي');
-    expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
     // QA-584: short note titles in the notes list are a finger wide and high in Arabic too
     const notes = await noteLinkWidths(page, ['Hi', 'علي', 'Check']);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -511,6 +512,31 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
       expect(height, `the note link "${title}" is 44 px high on a phone`).toBeGreaterThanOrEqual(43.5);
       expect(width, `the note link "${title}" is 44 px wide on a phone`).toBeGreaterThanOrEqual(43.5);
     }
+  });
+});
+
+// ---- QA-580 in Arabic: a short reminder title starts at the right edge of its link, not centred.
+// It used to sit inside the 44 px walk above, so under the sabotage that centres a row link's words the walk
+// failed first and this check never ran — the sabotage runner never saw its phrase. It is its own test now, like
+// the English one in tap-sizes-everywhere.spec.ts, so the sabotage goes red for this reason on both specs.
+// Sabotage: tests/sabotage/tap-sizes.mjs "a-row-link-centres-its-words".
+
+test('a short reminder title on My day starts at the right edge of its link, not centred — Arabic, at 375 px (QA-580)', async ({
+  page,
+}) => {
+  await withArabic(async () => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    const { me } = await seed(page);
+    await sql(`insert into core.person_profile (person_id, created_by, locale) values ($1, $1, 'ar')`, [me.id]);
+    await page.context().addCookies([{ name: 'v2.locale', value: 'ar', url: new URL(page.url()).origin }]);
+    await page.goto('/my-day');
+    await expect(page.locator('html'), 'the Arabic QA-580 check is in Arabic, right to left').toHaveAttribute(
+      'dir',
+      'rtl',
+    );
+    const { gap, width } = await reminderStartGap(page, me.id, 'اتصل بعلي');
+    expect(gap, 'the words start at the start edge of their link, not centred in it').toBeLessThanOrEqual(2);
+    expect(width, 'and the link is still a finger wide').toBeGreaterThanOrEqual(43.5);
   });
 });
 

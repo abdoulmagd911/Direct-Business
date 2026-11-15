@@ -63,6 +63,10 @@ export type PartnerRecordData = {
   tab: string;
   /** The Discussion filter the record opened with ('files' from the header's files count). */
   filter?: string;
+  /** The Finance tab's imported-rows filter, from the address (?hideImported=1). */
+  hideImported: boolean;
+  /** The Finance tab's open saved view, from the address — '' for the plain view. */
+  view: string;
   card: PartnerCard | null;
   refused: boolean;
   org: OrgAnswer;
@@ -910,7 +914,16 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           )
         ) : null}
         {tab === 'codes' ? <CodesTab card={card} summary={summary} /> : null}
-        {tab === 'finance' ? <FinanceTab card={card} summary={summary} onRetry={refresh} side={side} /> : null}
+        {tab === 'finance' ? (
+          <FinanceTab
+            card={card}
+            summary={summary}
+            onRetry={refresh}
+            side={side}
+            hideImported={data.hideImported}
+            view={data.view}
+          />
+        ) : null}
         {tab === 'history' ? (
           <>
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>

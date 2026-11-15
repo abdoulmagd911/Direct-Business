@@ -23,9 +23,14 @@ export async function PartnerRecordPage({
 }: {
   side: Side;
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string | string[]; filter?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    filter?: string | string[];
+    hideImported?: string | string[];
+    view?: string | string[];
+  }>;
 }) {
-  const [{ id }, { tab, filter }, me] = await Promise.all([params, searchParams, requireMe()]);
+  const [{ id }, { tab, filter, hideImported, view }, me] = await Promise.all([params, searchParams, requireMe()]);
   type PageAnswer = {
     card: PartnerCard;
     org: OrgAnswer;
@@ -70,6 +75,10 @@ export async function PartnerRecordPage({
     side,
     tab: typeof tab === 'string' ? tab : 'overview',
     filter: typeof filter === 'string' ? filter : undefined,
+    /** The Finance tab's imported-rows filter, from the address (?hideImported=1). */
+    hideImported: hideImported === '1',
+    /** The Finance tab's open saved view, from the address — '' for the plain view. */
+    view: typeof view === 'string' ? view : '',
     card: page?.card ?? null,
     refused,
     org,
