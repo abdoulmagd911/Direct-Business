@@ -183,9 +183,19 @@ describe('Organization & access in Arabic (QA-591)', () => {
     const text = draw('access');
     const catalog = (key: string) =>
       key.split('.').reduce<unknown>((n, k) => (n as Record<string, unknown> | undefined)?.[k], ar);
+    // Every page the matrix lists, and every capability, by its Arabic name. The page loop runs over the
+    // matrix's rows only — the AccessTab filter in OrgAccess.tsx keeps nav_group 'main'/'settings' plus
+    // 'settings.profile'. A tab-only page has no matrix row: partner_finance (the Finance tab of a partner
+    // record, reached from the record) and files (the archive) keep their levels at the registry defaults,
+    // so their names are not drawn here and the test must not ask for them (L26: the QA-591 failure was
+    // this test asking for 'مالية الشريك', a name the matrix never draws).
     for (const m of modules)
-      for (const key of [...(m.pages ?? []).map((p) => p.label), ...(m.capabilities ?? []).map((c) => c.label)])
-        expect(text, key).toContain(catalog(key) as string);
+      for (const p of (m.pages ?? []).filter(
+        (p) => p.nav?.group === 'main' || p.nav?.group === 'settings' || p.key === 'settings.profile',
+      ))
+        expect(text, p.key).toContain(catalog(p.label) as string);
+    for (const m of modules)
+      for (const key of (m.capabilities ?? []).map((c) => c.label)) expect(text, key).toContain(catalog(key) as string);
     for (const level of ['none', 'view', 'own', 'full'])
       expect(typeof catalog(`levels.${level}`), `levels.${level}`).toBe('string');
     for (const w of [ar.settings.tabs.people, ar.settings.tabs.teams, ar.settings.tabs.access])

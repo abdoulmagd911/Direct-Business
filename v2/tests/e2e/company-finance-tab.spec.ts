@@ -147,8 +147,7 @@ test('desk 1440: the tab shows the unified-ledger totals, the imported rows, the
   // the list is all four rows, manual and imported, with their source beside them
   const rows = page.locator('[data-partner-finance-row]');
   await expect(rows, 'four rows in the list').toHaveCount(4);
-  for (const n of [m1, m2, i1, i2])
-    await expect(rows.filter({ hasText: n }), `row ${n} is listed`).toHaveCount(1);
+  for (const n of [m1, m2, i1, i2]) await expect(rows.filter({ hasText: n }), `row ${n} is listed`).toHaveCount(1);
   await expect(rows.filter({ hasText: 'Recorded here' }), 'two manual rows').toHaveCount(2);
   await expect(rows.filter({ hasText: 'Imported' }), 'two imported rows').toHaveCount(2);
   // the stamp and the named view
