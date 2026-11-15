@@ -9,6 +9,8 @@ import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { deviceLabel } from '@/core/auth/device-label';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
+import { offersSwitch } from '@/core/test-switch/offer';
+import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -814,6 +816,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
     </>
   );
 
+  const sw = useTestSwitch();
   const follow = !self ? <FollowButton entity="person" id={person.id} /> : null;
   const actions =
     admin && !self ? (
@@ -825,6 +828,13 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         <Button onClick={openSwitch} data-person-switch>
           {row?.can_sign_in ? t('settings.people.switchOff') : t('settings.people.switchOn')}
         </Button>
+        {/* V656, Landing 30: Sign in as test user — the door the People table's wide rows no longer carry (its
+            column pushed the table past its box, QA-592). Same gate, same call, same words as the phone cards. */}
+        {offersSwitch(me, row ?? person) ? (
+          <Button onClick={() => void sw.start(person.id)} disabled={sw.busy} data-test-switch-start={person.id}>
+            {t('testSwitch.start')}
+          </Button>
+        ) : null}
         <Menu>
           <MenuTrigger asChild>
             <Button aria-label={t('common.more')} data-person-more>

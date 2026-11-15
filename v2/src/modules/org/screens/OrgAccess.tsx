@@ -198,9 +198,10 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
       (p) => (dept === 'all' || p.department_id === dept) && (!q || hay(p).toLowerCase().includes(q.toLowerCase())),
     )
     .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
-  // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it
+  // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it.
+  // Landing 30: on the phone cards only — in the wide table the button was a column of its own that pushed the table
+  // past its box (QA-592); there the door is on the person's record (PersonRecord, the actions row).
   const offered = (p: PersonRow) => offersSwitch(me, p);
-  const anyOffer = rows.some(offered);
   // the name and the job title in the language of the screen, the English one where there is no Arabic yet
   const arabic = names.locale === 'ar';
   const fullName = (p: PersonRow) => (arabic && p.full_name_ar) || p.full_name_en;
@@ -261,7 +262,6 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
               <th className="px-4 py-2.5 text-start font-medium [overflow-wrap:break-word]">
                 {t('settings.people.status')}
               </th>
-              {anyOffer ? <th className="px-4 py-2.5" aria-hidden="true" /> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -309,15 +309,6 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
                   <td className="px-4 py-2.5" data-person-status>
                     <PersonStatus row={p} today={today} />
                   </td>
-                  {anyOffer ? (
-                    <td className="px-4 py-2.5">
-                      {offered(p) ? (
-                        <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
-                          {t('testSwitch.start')}
-                        </Button>
-                      ) : null}
-                    </td>
-                  ) : null}
                 </tr>
               );
             })}

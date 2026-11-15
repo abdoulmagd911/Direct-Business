@@ -22,7 +22,9 @@
  * Sabotage: tests/sabotage/tap-sizes.mjs "a-row-link-centres-its-words".
  *
  * QA-592 too: the People and Teams tables of Settings → People & access fit their box in Arabic at 1,280 and 1,440 px, and
- * the last sign-in date is whole. Sabotage: tests/sabotage/settings-tables-arabic.mjs.
+ * the last sign-in date is whole. Landing 30: with a TEST person listed too — the wide table carries no "Sign in as test
+ * user" button (its column pushed the table past its box), and the person's record offers it instead.
+ * Sabotage: tests/sabotage/settings-tables-arabic.mjs.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -560,6 +562,12 @@ const overflowOf = (page: Page) =>
     return out;
   });
 
+/** The people this file marked TEST (Landing 30): unmarked after each test, pass or fail, so none is left behind. */
+const markedTest: string[] = [];
+test.afterEach(async () => {
+  if (markedTest.length) await sql(`update core.person set is_test = false where id = any($1)`, [markedTest.splice(0)]);
+});
+
 for (const width of [1280, 1440]) {
   test(`People and Teams tables fit their box in Arabic — at ${width} px`, async ({ page, context }) => {
     test.setTimeout(120_000);
@@ -589,6 +597,14 @@ for (const width of [1280, 1440]) {
           [p.id, p.email],
         );
       }
+      // Landing 30: a TEST person is listed too. An admin is offered "Sign in as test user" for one; in the wide table
+      // that was a column of its own, which pushed the table past its box.
+      const testPerson = await makePerson();
+      markedTest.push(testPerson.id);
+      await sql(
+        `update core.person set full_name_ar = 'مستخدم تجريبي للاختبار', job_title_ar = 'مسؤول حسابات رئيسي', department_id = $2, team_id = $3, is_test = true where id = $1`,
+        [testPerson.id, dept!.id, team!.id],
+      );
       await page.setViewportSize({ width, height: 900 });
       await signIn(page, admin.email, '/my-day');
       await hydrated(page);
@@ -601,7 +617,22 @@ for (const width of [1280, 1440]) {
         expect(await brokenWords(page, `[data-${tab}] table`), `no word of the ${tab} table breaks in Arabic`).toEqual(
           [],
         );
+        if (tab === 'people') {
+          await expect(page.locator(`[data-person-row="${testPerson.id}"]`), 'the TEST person is listed').toBeVisible();
+          await expect(
+            // the wide table only: the phone cards (hidden at this width) keep their button
+            page.locator('[data-people] table [data-test-switch-start]'),
+            'the people table carries no Sign in as test user button',
+          ).toHaveCount(0);
+        }
       }
+      // the door is on the TEST person's record instead, for the admin
+      await page.goto(`/people/${testPerson.id}`);
+      await hydrated(page);
+      await expect(
+        page.locator(`[data-test-switch-start="${testPerson.id}"]`),
+        'the record of a TEST person offers Sign in as test user',
+      ).toBeVisible();
       // the last sign-in date is whole: day, short month, a four-figure year, and inside the table's box (it was cut to "026")
       await page.goto('/settings/org?tab=people');
       await hydrated(page);
