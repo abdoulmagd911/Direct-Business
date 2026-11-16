@@ -203,3 +203,19 @@ machine time) and the `utc-arabic-browser` project — CI runs both on the push.
 - Open Partners with real numbers of rows and watch the list's time: the Quiet count costs about half a second on a
   made-up set of 600 partners and 3,000 invoices. If it is slow live, the lever is named in the migration's notes.
 - Confirm the sixteen decisions and the three finance rules above.
+
+## Follow-up after CI run 1611 (test only, no product code)
+
+CI on `94a673f` was green in 8 of 11 jobs — checks, unit tests, both SQL suites, the build and the whole browser
+suite, the unit / check / SQL sabotages, the every-control report, and the production job, which applied the three
+migrations. The three browser-sabotage shards were red: 7 of 424 older plants no longer proved their point after the
+re-skin (5 stayed green, 2 went red on a neighbouring assertion). None showed a fault in the product. Each was
+re-pointed at the same promise and seen red on the local stack:
+
+| Plant | What changed |
+| --- | --- |
+| `theme-own-cookie-beats-the-profile`, `my-profile-pins-the-theme-as-a-choice` | the served theme is now decided on one line of `effective.ts`; the plants break that line |
+| `page-squeezes-its-tabs` | the pill track's wrapper cannot shrink either, so the plant takes that guard away too |
+| `tab-is-narrow` | the pill tab has padding of its own; the plant removes it with the minimum width |
+| `e2e-select-list-runs-off-the-phone` | the test's short list fits the roomier page without the limit; the plant also makes the list tall |
+| `past-work-keeps-empty-columns-on-a-phone`, `phone-controls-shrink-again` | red as before, on the next assertion of the same test; the expected words follow |

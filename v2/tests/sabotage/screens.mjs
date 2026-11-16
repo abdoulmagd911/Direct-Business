@@ -737,6 +737,13 @@ export const sabotages = [
         find: ' [&>*]:shrink-0 ${className}',
         replace: ' ${className}',
       },
+      // Landing 31: the pill track sits in a wrapper that cannot shrink below its tabs, so the page's own guard is
+      // not the only one any more — the sabotage takes the wrapper's away too, and the strip is squeezed as it was
+      {
+        file: 'src/ui/Tabs.tsx',
+        find: "      <div className={cn('flex min-w-0', className)}>\n        <nav",
+        replace: "      <div className={cn('flex min-h-0 min-w-0 overflow-hidden', className)}>\n        <nav",
+      },
     ],
   },
 
@@ -1196,7 +1203,7 @@ export const sabotages = [
         file: 'src/ui/Tabs.tsx',
         find: 'inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap',
         // the phone's shared 44 px minimum (globals.css) would still hold the tab open, so the sabotage lifts it too
-        replace: 'inline-flex min-h-11 min-w-0 items-center whitespace-nowrap',
+        replace: 'inline-flex min-h-11 !w-3 !min-w-0 items-center overflow-hidden !px-0 whitespace-nowrap',
       },
     ],
   },
@@ -1217,7 +1224,7 @@ export const sabotages = [
   {
     name: 'past-work-keeps-empty-columns-on-a-phone',
     breaks: ['e2e:tests/e2e/pilot-fixes-7oct.spec.ts'],
-    expect: 'the Title column gets the spare width',
+    expect: 'and not less than 100 px',
     edits: [
       {
         file: 'src/ui/grid/PastWorkGrid.tsx',
@@ -1468,7 +1475,7 @@ export const sabotages = [
   {
     name: 'phone-controls-shrink-again',
     breaks: ['e2e:tests/e2e/phone-375.spec.ts'],
-    expect: 'a layout link is 44 px tall',
+    expect: 'a saved-view pill and Save view are 44 px tall',
     edits: [
       { file: 'src/ui/tokens.css', find: '    --control-h-sm: 44px;\n', replace: '    --control-h-sm: 34px;\n' },
       // the shared phone rule (V630, V643) now holds these sizes too, so it is taken away with the per-control fix

@@ -10,8 +10,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/core/prefs/effective.ts',
-        find: "const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);",
-        replace: "const own = (key: 'theme' | 'density') => ownChoice(key, get);",
+        find: 'theme: me ? eff.theme : doorTheme,',
+        replace: "theme: ownChoice('theme', get) ? raw.theme : me ? eff.theme : doorTheme,",
       },
     ],
   },
@@ -27,8 +27,8 @@ export const sabotages = [
       },
       {
         file: 'src/core/prefs/effective.ts',
-        find: "const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);",
-        replace: "const own = (key: 'theme' | 'density') => ownChoice(key, get);",
+        find: 'theme: me ? eff.theme : doorTheme,',
+        replace: "theme: ownChoice('theme', get) ? raw.theme : me ? eff.theme : doorTheme,",
       },
     ],
   },

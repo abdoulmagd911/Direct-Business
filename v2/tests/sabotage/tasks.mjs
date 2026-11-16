@@ -360,7 +360,9 @@ export const sabotages = [
       {
         file: 'src/ui/Select.tsx',
         find: 'z-50 max-h-[var(--radix-select-content-available-height)] min-w-',
-        replace: 'z-50 min-w-',
+        // Landing 31: with the roomier page the short list of this test fits without the limit, so the sabotage also
+        // makes the list as tall as a list of many owners would be
+        replace: 'z-50 min-h-[200vh] min-w-',
       },
     ],
   },
