@@ -41,7 +41,7 @@ export function Select({
         aria-describedby={ariaDescribedBy}
         className={cn(
           inputClass,
-          'inline-flex h-[var(--control-h)] items-center justify-between gap-2 text-start data-[placeholder]:text-muted',
+          'inline-flex h-[var(--input-h)] items-center justify-between gap-2 text-start data-[placeholder]:text-muted data-[state=open]:border-sel',
           className,
         )}
       >
@@ -54,7 +54,7 @@ export function Select({
         <RS.Content
           position="popper"
           sideOffset={4}
-          className="z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-border bg-raised p-1 text-text shadow-2"
+          className="motion-menu z-50 max-h-[var(--radix-select-content-available-height)] min-w-[var(--radix-select-trigger-width)] origin-[var(--radix-select-content-transform-origin)] overflow-hidden rounded-[14px] border border-border bg-raised p-2 text-text shadow-2"
         >
           <RS.Viewport>
             {options.map((o) => (
@@ -62,10 +62,10 @@ export function Select({
                 key={o.value}
                 value={o.value}
                 disabled={o.disabled}
-                className="relative flex h-9 cursor-default select-none items-center rounded-md pe-8 ps-3 text-base outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent-soft data-[state=checked]:font-medium"
+                className="relative flex h-10 cursor-default select-none items-center rounded-sm pe-9 ps-2.5 text-base text-strong outline-none data-[disabled]:text-muted data-[highlighted]:bg-surface data-[state=checked]:font-semibold"
               >
                 <RS.ItemText>{o.label}</RS.ItemText>
-                <RS.ItemIndicator className="absolute end-2">
+                <RS.ItemIndicator className="absolute end-2.5">
                   <Check className="size-4" aria-hidden="true" />
                 </RS.ItemIndicator>
               </RS.Item>

@@ -5,7 +5,9 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { readOrFail as maybe } from '@/modules/org/read-or-fail';
 import type { OrgAnswer } from '@/modules/org/types';
 import type { ListEntry } from '@/modules/partners/types';
-import type { NamePick, TaskStatus } from './types';
+import { MY_WORK_FILTER, workCount, type WorkCount } from './my-work-count';
+import { listFilter, riyadhDay } from './rules';
+import type { NamePick, TaskList, TaskStatus } from './types';
 
 /** What every Tasks screen names things with: the statuses, the people, the clients and the projects one may see. */
 export type TaskLookups = {
@@ -56,4 +58,18 @@ export async function loadLookups(me: Me, failed: string[] = []): Promise<TaskLo
     projects: (projects?.rows ?? []).map((p) => ({ id: p.id, number: p.number, name_en: p.name, name_ar: null })),
     failed,
   };
+}
+
+/**
+ * The "My work" count for a screen that does not hold the Tasks list itself (My day's banner): the SAME read the Tasks
+ * page makes for the My work tab with no chips (one page of 200) and the SAME count (`workCount`), so the banner and
+ * the tab say one number. `more` is true when the person has more than one page of tasks — the count is then of the
+ * first page only, as it is on the Tasks page. Null when the read failed (never drawn as 0).
+ */
+export async function loadMyWorkCount(me: Me, now: Date = new Date()): Promise<(WorkCount & { more: boolean }) | null> {
+  const list = await serverRpc('tasks', { p_filter: listFilter(MY_WORK_FILTER) as never, p_limit: 200 }).then(
+    (r) => r as unknown as TaskList,
+    () => null,
+  );
+  return list ? { ...workCount(list.rows, riyadhDay(now), me.person.id), more: list.more } : null;
 }

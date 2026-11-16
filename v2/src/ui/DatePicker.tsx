@@ -246,6 +246,7 @@ export function DatePicker({
               variant="ghost"
               disabled={locked}
               aria-label={t('datePicker.openCalendar')}
+              className="size-[var(--input-h)] shrink-0 px-0"
               {...at('calendar')}
             >
               <Calendar aria-hidden className="size-4" />
@@ -255,7 +256,7 @@ export function DatePicker({
             <RP.Content
               sideOffset={4}
               align="start"
-              className="z-50 w-72 rounded-lg border border-border bg-raised p-3 shadow-2"
+              className="motion-menu z-50 w-72 origin-[var(--radix-popover-content-transform-origin)] rounded-lg border border-border bg-raised p-3 text-text shadow-2"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <div className="flex items-center justify-between gap-2">
@@ -263,18 +264,18 @@ export function DatePicker({
                   type="button"
                   aria-label={t('datePicker.previousMonth')}
                   onClick={() => setShownMonth(shiftMonth(shownMonth, -1))}
-                  className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+                  className="inline-flex size-9 items-center justify-center rounded-pill hover:bg-surface active:bg-pressed focus-visible:outline-2 focus-visible:outline-focus"
                 >
                   <ChevronLeft className="size-5 rtl:rotate-180" aria-hidden />
                 </button>
-                <p className="text-base font-semibold" data-calendar-month>
+                <p className="text-base font-semibold text-strong" data-calendar-month>
                   {monthName}
                 </p>
                 <button
                   type="button"
                   aria-label={t('datePicker.nextMonth')}
                   onClick={() => setShownMonth(shiftMonth(shownMonth, 1))}
-                  className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+                  className="inline-flex size-9 items-center justify-center rounded-pill hover:bg-surface active:bg-pressed focus-visible:outline-2 focus-visible:outline-focus"
                 >
                   <ChevronRight className="size-5 rtl:rotate-180" aria-hidden />
                 </button>
@@ -346,9 +347,9 @@ export function DatePicker({
                           onClick={() => pick(cell.day)}
                           onFocus={() => setFocusDay(cell.day)}
                           className={cn(
-                            'grid size-9 place-items-center rounded-md text-sm hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus',
-                            selected && 'bg-text font-medium text-raised',
-                            isToday && !selected && 'font-medium text-link',
+                            'grid size-9 place-items-center rounded-pill text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus',
+                            selected && 'bg-sel font-semibold text-on-sel hover:bg-sel',
+                            isToday && !selected && 'font-semibold text-accent-text',
                           )}
                         >
                           {Number(cell.day.slice(8))}

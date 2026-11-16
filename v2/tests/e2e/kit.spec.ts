@@ -95,7 +95,7 @@ test('a chosen theme draws with its own tokens and survives a reload', async ({ 
   await open(page, '/kit');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(bg).toBe('rgb(22, 27, 27)');
+  expect(bg, 'Dark’s page colour (#121417, Landing 31)').toBe('rgb(18, 20, 23)');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });

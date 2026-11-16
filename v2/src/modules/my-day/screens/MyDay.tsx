@@ -1,4 +1,5 @@
 'use client';
+import { BellRing, Hourglass, MessageCircleQuestion, NotebookPen, Plus, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -12,16 +13,17 @@ import { Button } from '@/ui/Button';
 import { cn } from '@/ui/cn';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
-import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { entityRoute } from '@/ui/entity-route';
 import { BLOCK_ROWS } from '../logic';
-import { CAPTURE_KINDS, type CaptureKind } from '../quick-capture';
+import { CAPTURE_KINDS, openQuickCapture, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import { SCOPES, type MyDayAnswer, type OpenAsk, type OpenAsks, type PendingReminder, type Scope } from '../types';
 import { CaptureShortcut } from './CaptureShortcut';
+import { DayBanner } from './DayBanner';
+import { card, CardHead, cardLink, emptyInCard, pill } from './look';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
@@ -30,7 +32,10 @@ import { WrapUpDialog } from './WrapUpDialog';
 import { WeekDoor } from '@/modules/weekly-review/screens/WeekDoor';
 
 export type MyDayData = {
+  /** The banner's heading: Riyadh's day, already written (`dayHeading`). */
   title: string;
+  /** The banner's count: My work, the Tasks screen's own count for its My work tab; null when it was not read. */
+  myWork: number | null;
   scope: Scope;
   answer: MyDayAnswer;
   /** Every note read (`?more=1`) rather than the first block. */
@@ -115,27 +120,42 @@ export function MyDay({ data }: { data: MyDayData }) {
     data.escalatedByMe !== null && data.asks !== null && !data.escalatedByMe.length && !data.asks.by_me.length;
   const nothingLine = (key: 'onMe' | 'onOthers', marker: Record<string, string>) => (
     <section
-      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border border-border bg-raised px-4 py-3"
+      className={cn(card, 'flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3')}
       data-waiting-nothing
       {...marker}
     >
-      <h2 className="text-base font-semibold">{t(`pages.myDay.waiting.${key}`)}</h2>
+      <h2 className="text-lg font-medium leading-6 text-strong">{t(`pages.myDay.waiting.${key}`)}</h2>
       <p className="text-sm text-muted">{t('pages.myDay.waiting.nothingNow')}</p>
     </section>
   );
 
   return (
     <>
-      <PageHeader
-        title={data.title}
-        actions={
-          scope === 'me' ? (
-            <Button onClick={() => setWrapping(true)} data-wrap-open>
+      <DayBanner heading={data.title} myWork={data.myWork}>
+        {scope === 'me' ? (
+          <>
+            {/* on the banner the quiet button is the white one, whatever the theme's card colour is called */}
+            <Button
+              className="border-transparent bg-raised text-strong shadow-1"
+              onClick={() => setWrapping(true)}
+              data-wrap-open
+            >
               {t('pages.myDay.wrap.label')}
             </Button>
-          ) : null
-        }
-      />
+            {/* Capture sits on the banner from 640 px up (the 15 Nov board); a phone keeps its one add control, the +
+                in the bottom bar, as its board draws. It opens the same sheet as Create → Capture and "/". */}
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              className="ring-2 ring-raised/75 max-sm:hidden"
+              onClick={() => openQuickCapture()}
+              data-capture-open
+            >
+              {t('pages.myDay.banner.capture')}
+            </Button>
+          </>
+        ) : null}
+      </DayBanner>
       <Tabs
         label={t('pages.myDay.tabsLabel')}
         value={scope}
@@ -146,9 +166,9 @@ export function MyDay({ data }: { data: MyDayData }) {
           answer box lives on the record, in the Discussion tab — there is no inline answer box here. */}
       {scope === 'me' && nothingOnMe ? nothingLine('onMe', { 'data-waiting-on-me': '' }) : null}
       {scope === 'me' && !nothingOnMe ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-me>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onMe')}</h2>
-          <h3 className="pt-2.5 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
+        <section className={cn(card, 'py-1')} data-waiting-on-me>
+          <CardHead icon={<MessageCircleQuestion />} title={t('pages.myDay.waiting.onMe')} />
+          <h3 className="pt-3 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
           {data.escalated === null ? (
             <DataState
               kind="failed"
@@ -189,7 +209,7 @@ export function MyDay({ data }: { data: MyDayData }) {
           ) : (
             <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyNeedHelp')}</p>
           )}
-          <h3 className="border-t border-border pt-2.5 text-sm font-semibold text-muted">
+          <h3 className="border-t border-border pt-3 text-sm font-semibold text-muted">
             {t('pages.myDay.waiting.questions')}
           </h3>
           {data.asks === null ? (
@@ -242,11 +262,11 @@ export function MyDay({ data }: { data: MyDayData }) {
       ) : null}
       {scope === 'me' && nothingOnOthers ? nothingLine('onOthers', { 'data-waiting-on-others': '' }) : null}
       {scope === 'me' && !nothingOnOthers ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-waiting-on-others>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.waiting.onOthers')}</h2>
+        <section className={cn(card, 'py-1')} data-waiting-on-others>
+          <CardHead icon={<Hourglass />} title={t('pages.myDay.waiting.onOthers')} />
           {/* FIX-26 F006: the tasks I flagged as needing help — newest flag first — with no Acknowledge on my
               own flag; the Questions subsection keeps its own empty text (F041). */}
-          <h3 className="pt-2.5 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
+          <h3 className="pt-3 text-sm font-semibold text-muted">{t('pages.myDay.waiting.needHelp')}</h3>
           {data.escalatedByMe === null ? (
             <DataState
               kind="failed"
@@ -278,7 +298,7 @@ export function MyDay({ data }: { data: MyDayData }) {
           ) : (
             <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyNeedHelpOthers')}</p>
           )}
-          <h3 className="border-t border-border pt-2.5 text-sm font-semibold text-muted">
+          <h3 className="border-t border-border pt-3 text-sm font-semibold text-muted">
             {t('pages.myDay.waiting.questions')}
           </h3>
           {data.asks === null ? (
@@ -342,8 +362,8 @@ export function MyDay({ data }: { data: MyDayData }) {
       {scope === 'me' ? <WeekDoor day={answer.day} unloggedCount={data.unlogged} /> : null}
       {/* Phase 5: my starred tasks, from the Today list — the star already carries undated tasks there. */}
       {scope === 'me' ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-starred>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.starred')}</h2>
+        <section className={cn(card, 'py-1')} data-starred>
+          <CardHead icon={<Star />} title={t('pages.myDay.starred')} />
           {starred.length ? (
             <ul className="divide-y divide-border">
               {starred.map((task) => (
@@ -362,15 +382,15 @@ export function MyDay({ data }: { data: MyDayData }) {
               ))}
             </ul>
           ) : (
-            <DataState kind="empty" message={t('pages.tasks.empty.starred')} />
+            <DataState kind="empty" className={emptyInCard} icon={<Star />} message={t('pages.tasks.empty.starred')} />
           )}
         </section>
       ) : null}
       {scope === 'me' ? <CaptureShortcut /> : null}
       {/* narrowed to one kind, My notes is the list: the Reminders block would list the same reminders again */}
       {scope === 'me' && !kind && later.length ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-reminders>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.reminders')}</h2>
+        <section className={cn(card, 'py-1')} data-reminders>
+          <CardHead icon={<BellRing />} title={t('pages.myDay.blocks.reminders')} />
           <ul className="divide-y divide-border">
             {later.slice(0, BLOCK_ROWS).map((r) => (
               <li
@@ -417,23 +437,18 @@ export function MyDay({ data }: { data: MyDayData }) {
         </section>
       ) : null}
       {scope === 'me' ? <SinceBlock /> : null}
-      <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block={scope}>
-        <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
-          <h2 className="text-base font-semibold">{t(`pages.myDay.blocks.${scope}`)}</h2>
+      <section className={cn(card, 'py-1')} data-block={scope}>
+        <CardHead icon={<NotebookPen />} title={t(`pages.myDay.blocks.${scope}`)}>
           {all ? (
-            <Link
-              href={kind ? kindHref(kind) : tabHref(scope)}
-              className="text-sm text-link hover:underline"
-              data-block-fewer
-            >
+            <Link href={kind ? kindHref(kind) : tabHref(scope)} className={cardLink} data-block-fewer>
               {t('pages.myDay.fewer')}
             </Link>
           ) : null}
-        </div>
+        </CardHead>
         {scope === 'me' ? (
           <nav
             aria-label={t('pages.myDay.kindFilter.label')}
-            className="flex flex-wrap gap-1.5 border-b border-border py-2.5"
+            className="flex flex-wrap gap-2 border-b border-border py-2.5"
             data-kind-filter
           >
             {[undefined, ...CAPTURE_KINDS].map((k) => (
@@ -441,6 +456,7 @@ export function MyDay({ data }: { data: MyDayData }) {
                 key={k ?? 'all'}
                 href={kindHref(k)}
                 aria-current={kind === k ? 'true' : undefined}
+                // this exact class list is what the tap-size sabotage plant looks for: keep it as it is
                 className={cn(
                   'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
                   kind === k ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',
@@ -455,16 +471,13 @@ export function MyDay({ data }: { data: MyDayData }) {
         {scope === 'team' ? (
           <nav
             aria-label={t('pages.myDay.sharedWithMe')}
-            className="flex flex-wrap gap-1.5 border-b border-border py-2.5"
+            className="flex flex-wrap gap-2 border-b border-border py-2.5"
           >
             <button
               type="button"
               aria-pressed={sharedWithMe}
               onClick={() => setSharedWithMe((v) => !v)}
-              className={cn(
-                'inline-flex min-h-11 items-center rounded-pill sm:min-h-9 border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
-                sharedWithMe ? 'border-accent bg-accent-soft text-text' : 'border-border text-muted hover:bg-surface',
-              )}
+              className={pill(sharedWithMe)}
               data-shared-with-me
             >
               {t('pages.myDay.sharedWithMe')}
@@ -478,13 +491,18 @@ export function MyDay({ data }: { data: MyDayData }) {
             ))}
           </ul>
         ) : (
-          <DataState kind="empty" message={kind ? t('pages.myDay.empty.kind') : t(`pages.myDay.empty.${scope}`)} />
+          <DataState
+            kind="empty"
+            className={emptyInCard}
+            icon={<NotebookPen />}
+            message={kind ? t('pages.myDay.empty.kind') : t(`pages.myDay.empty.${scope}`)}
+          />
         )}
         {more ? (
-          <div className="border-t border-border py-2.5">
+          <div className="border-t border-border py-1">
             <Link
               href={`${kind ? kindHref(kind) : tabHref(scope)}${scope === 'me' && !kind ? '?' : '&'}more=1`}
-              className="text-sm text-link hover:underline"
+              className={cardLink}
               data-block-more
             >
               {t('pages.myDay.more')}
@@ -495,8 +513,8 @@ export function MyDay({ data }: { data: MyDayData }) {
       {/* FIX-27: a deferred note is reachable here — a list within My day, not a new route. The main list never
           shows it (its day is still ahead), and the kind filter never hides it. */}
       {(answer.deferred?.length ?? 0) > 0 ? (
-        <section className="rounded-lg border border-border bg-raised px-4 py-2" data-block-deferred>
-          <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.blocks.deferred')}</h2>
+        <section className={cn(card, 'py-1')} data-block-deferred>
+          <CardHead icon={<Hourglass />} title={t('pages.myDay.blocks.deferred')} />
           <ul className="divide-y divide-border" data-block-deferred-rows>
             {answer.deferred!.map((n) => (
               <NoteRow key={n.id} note={n} author={scope === 'me' ? undefined : authorOf(n.author_id)} deferred />

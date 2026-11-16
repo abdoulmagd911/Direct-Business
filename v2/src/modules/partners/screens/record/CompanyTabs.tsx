@@ -1,4 +1,5 @@
 'use client';
+import { Banknote, Download, Hash, Receipt, Ticket, TrendingUp, Wallet } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -11,7 +12,9 @@ import type { LedgerReport, PaymentsAsOf } from '@/modules/finance/types';
 import { useFinanceRead } from '@/modules/finance/use-reads';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
+import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
+import { KpiTile } from '@/ui/KpiTile';
 import { Money } from '@/ui/Money';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Switch } from '@/ui/Switch';
@@ -71,6 +74,21 @@ export function FilesSection({
   );
 }
 
+/** The white card every block of these tabs sits on (V21): 16 px corners, a hairline and the soft shadow. */
+const CARD = 'rounded-lg border border-border bg-raised shadow-1';
+/** A card's heading. */
+const CARD_TITLE = 'text-lg font-semibold leading-6 text-strong';
+/** A table that is a table where its card is wide enough and a stack of labelled rows where it is not (a phone, a
+ *  narrow window): the same rows either way, so nothing ever scrolls sideways. The card carries `@container`. */
+const TABLE = 'w-full text-base @max-3xl:block';
+const THEAD = '@max-3xl:sr-only';
+const TH = 'px-4 py-2.5 text-xs font-semibold text-muted';
+const TR =
+  'border-b border-border last:border-b-0 @max-3xl:grid @max-3xl:grid-cols-2 @max-3xl:gap-x-4 @max-3xl:gap-y-2 @max-3xl:px-4 @max-3xl:py-3';
+const TD = 'px-4 py-3 align-top @max-3xl:block @max-3xl:min-w-0 @max-3xl:p-0';
+/** A cell's column name, shown only while the table is stacked (the header row is then for screen readers only). */
+const CELL_LABEL = 'block text-xs leading-4 text-muted @3xl:hidden';
+
 /** A company's discount codes, with each code's counted totals beside it. */
 export function CodesTab({ card, summary }: { card: PartnerCard; summary: CompanySummary | null }) {
   const t = useTranslations();
@@ -82,8 +100,8 @@ export function CodesTab({ card, summary }: { card: PartnerCard; summary: Compan
     totals.set(key, { units: row.units, revenue: row.revenue, profit: row.profit });
   }
   return (
-    <section className="rounded-lg border border-border bg-raised p-5" data-partner-codes>
-      <h2 className="mb-3 text-base font-semibold">{t('partners.companyCodes.title')}</h2>
+    <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-codes>
+      <h2 className={cn(CARD_TITLE, 'mb-3')}>{t('partners.companyCodes.title')}</h2>
       {codes.length ? (
         <ul className="divide-y divide-border">
           {codes.map((c) => {
@@ -95,7 +113,7 @@ export function CodesTab({ card, summary }: { card: PartnerCard; summary: Compan
                 data-company-code={c.id}
               >
                 <span className="flex min-w-0 flex-col">
-                  <span className="font-data text-sm font-medium">{c.value}</span>
+                  <bdi className="font-data text-base font-medium text-strong">{c.value}</bdi>
                   <span className="text-xs text-muted">
                     {c.valid_from
                       ? `${t('partners.companyCodes.valid')}: ${formatDate(c.valid_from, locale, { dateStyle: 'medium' })}`
@@ -105,14 +123,18 @@ export function CodesTab({ card, summary }: { card: PartnerCard; summary: Compan
                   </span>
                 </span>
                 {total ? (
-                  <span className="flex gap-5 text-sm">
+                  <span className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
                     <span className="flex flex-col items-end">
                       <span className="text-xs text-muted">{t('partners.companyCodes.units')}</span>
                       <span className="font-data">{total.units}</span>
                     </span>
                     <span className="flex flex-col items-end">
                       <span className="text-xs text-muted">{t('partners.companyCodes.revenue')}</span>
-                      <Money value={formatMoney(total.revenue, locale)} currency={t('common.sar')} />
+                      <Money
+                        value={formatMoney(total.revenue, locale)}
+                        currency={t('common.sar')}
+                        className="text-success"
+                      />
                     </span>
                     <span className="flex flex-col items-end">
                       <span className="text-xs text-muted">{t('partners.companyCodes.profit')}</span>
@@ -127,7 +149,7 @@ export function CodesTab({ card, summary }: { card: PartnerCard; summary: Compan
           })}
         </ul>
       ) : (
-        <DataState kind="empty" message={t('partners.companyCodes.none')} />
+        <DataState kind="empty" compact message={t('partners.companyCodes.none')} />
       )}
     </section>
   );
@@ -143,15 +165,15 @@ function moneyRow(
   strong = false,
 ) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
-      <span className="text-muted">{label}</span>
+    <div className="flex min-h-9 items-center justify-between gap-3 border-b border-border py-1.5 text-base last:border-b-0">
+      <span className={strong ? 'font-medium text-strong' : 'text-muted'}>{label}</span>
       {value === null ? (
         <span className="text-muted">{notKnown}</span>
       ) : (
         <Money
           value={formatMoney(value, locale)}
           currency={currency}
-          className={strong ? 'text-base font-semibold' : undefined}
+          className={strong ? 'text-lg font-semibold text-strong' : 'text-base'}
         />
       )}
     </div>
@@ -294,14 +316,15 @@ function CompanyFinanceLedger({
     a.click();
     URL.revokeObjectURL(url);
   };
+  const sar = t('common.sar');
+  const notKnown = t('partners.companyFinance.notKnown');
   return (
-    <section
-      className="rounded-lg border border-border bg-raised p-5"
-      data-partner-finance-ledger
-      data-state={ledger.block.status}
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">{t('partners.companyFinance.totals')}</h2>
+    <section className="flex flex-col gap-4" data-partner-finance-ledger data-state={ledger.block.status}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <h2 className="text-xl font-semibold leading-7 text-strong">{t('partners.companyFinance.totals')}</h2>
+          <StatusChip tone="neutral">{t('finance.period.total.ytd')}</StatusChip>
+        </div>
         {asOf.block.status === 'ready' ? (
           <span className="font-data text-sm text-muted tabular" data-finance-stamp>
             {asOfDate
@@ -310,194 +333,224 @@ function CompanyFinanceLedger({
           </span>
         ) : null}
       </div>
-      <p className="mb-3 text-sm text-muted">{t('finance.period.total.ytd')}</p>
-      <SavedViewsBar
-        page="partner_finance"
-        fixed={[{ key: 'partner-result', label: t('partners.companyFinance.partnerResult') }]}
-        current={currentView}
-        query={{ hideImported: hide }}
-        onOpen={openView}
-        canShare={full}
-        onDefault={(v) => openView(v)}
-        saveHint={t('finance.ledger.saveHint')}
-      />
-      <div className="mt-3">
-        <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-medium">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <SavedViewsBar
+          page="partner_finance"
+          fixed={[{ key: 'partner-result', label: t('partners.companyFinance.partnerResult') }]}
+          current={currentView}
+          query={{ hideImported: hide }}
+          onOpen={openView}
+          canShare={full}
+          onDefault={(v) => openView(v)}
+          saveHint={t('finance.ledger.saveHint')}
+        />
+        {/* One word (13 Nov board): on shows the imported rows, off hides them from the list and the totals together.
+            The address and a saved view still carry the same hideImported filter as before. */}
+        <label
+          className="flex min-h-11 w-fit cursor-pointer items-center gap-2.5 text-base font-medium text-strong sm:min-h-9"
+          data-partner-finance-imported
+        >
           <Switch
-            checked={hide}
+            checked={!hide}
             onCheckedChange={(v) => {
-              setHide(v);
-              go(v, currentView === 'partner-result' ? '' : currentView);
+              setHide(!v);
+              go(!v, currentView === 'partner-result' ? '' : currentView);
             }}
-            label={t('partners.companyFinance.hideImported')}
+            label={t('partners.companyFinance.imported')}
           />
-          {t('partners.companyFinance.hideImported')}
+          {t('partners.companyFinance.imported')}
         </label>
       </div>
       {ledger.block.status === 'loading' || ledger.block.status === 'failed' || !report ? (
-        <div className="mt-3">
-          <DataState
-            kind={ledger.block.status === 'loading' ? 'loading' : 'failed'}
-            message={t(
-              ledger.block.status === 'loading' ? 'state.loading' : 'state.failed',
-              ledger.block.status === 'loading'
-                ? { what: t('partners.companyFinance.totals') }
-                : { what: t('finance.ledger.failed') },
-            )}
-            onRetry={ledger.block.status === 'failed' ? ledger.retry : undefined}
-            retryLabel={ledger.block.status === 'failed' ? t('common.tryAgain') : undefined}
-          />
-        </div>
+        <DataState
+          kind={ledger.block.status === 'loading' ? 'loading' : 'failed'}
+          message={t(
+            ledger.block.status === 'loading' ? 'state.loading' : 'state.failed',
+            ledger.block.status === 'loading'
+              ? { what: t('partners.companyFinance.totals') }
+              : { what: t('finance.ledger.failed') },
+          )}
+          onRetry={ledger.block.status === 'failed' ? ledger.retry : undefined}
+          retryLabel={ledger.block.status === 'failed' ? t('common.tryAgain') : undefined}
+        >
+          {ledger.block.status === 'loading' ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4" data-partner-finance-skeleton>
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="shimmer h-[116px] rounded-lg bg-pressed max-sm:h-[96px]" />
+                ))}
+              </div>
+              <div className="shimmer h-40 rounded-lg bg-pressed" />
+            </>
+          ) : null}
+        </DataState>
       ) : (
-        <div className="mt-3 flex flex-col gap-4" data-partner-finance-totals>
-          <div>
-            <div className="flex items-center justify-between gap-3 py-1.5 text-sm">
-              <span className="text-muted">{t('partners.companyFinance.units')}</span>
-              <span className="font-data">{units}</span>
+        <>
+          <div className="flex flex-col gap-3" data-partner-finance-totals>
+            <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
+              <KpiTile
+                label={t('partners.companyFinance.revenue')}
+                value={formatMoney(revenue, locale)}
+                unit={sar}
+                tone="success"
+                icon={<Banknote />}
+              />
+              <KpiTile
+                label={t('partners.companyFinance.cost')}
+                value={cost === null ? null : formatMoney(cost, locale)}
+                unit={sar}
+                icon={<Receipt />}
+                footnote={
+                  cost === null ? (withoutCost > 0 ? t('partners.companyFinance.costMissing') : notKnown) : undefined
+                }
+              />
+              <KpiTile
+                label={t('partners.companyFinance.profit')}
+                value={profit === null ? null : formatMoney(profit, locale)}
+                unit={sar}
+                icon={<TrendingUp />}
+                footnote={profit === null ? notKnown : undefined}
+              />
+              <KpiTile label={t('partners.companyFinance.units')} value={String(units)} icon={<Ticket />} />
             </div>
-            {moneyRow(
-              t('partners.companyFinance.revenue'),
-              revenue,
-              locale,
-              t('partners.companyFinance.notKnown'),
-              t('common.sar'),
-            )}
-            {moneyRow(
-              t('partners.companyFinance.cost'),
-              cost,
-              locale,
-              withoutCost > 0 ? t('partners.companyFinance.costMissing') : t('partners.companyFinance.notKnown'),
-              t('common.sar'),
-            )}
-            {moneyRow(
-              t('partners.companyFinance.profit'),
-              profit,
-              locale,
-              t('partners.companyFinance.notKnown'),
-              t('common.sar'),
-              true,
-            )}
             {withoutCost > 0 ? (
-              <div className="mt-2">
-                <p className="text-sm text-muted">
-                  <StatusChip tone="warning" className="me-2">
-                    {t('partners.companyFinance.costPending')}
-                  </StatusChip>
+              <div className="flex flex-col gap-1">
+                <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                  <StatusChip tone="warning">{t('partners.companyFinance.costPending')}</StatusChip>
                   {t('finance.ledger.withoutCost', { count: withoutCost })}
                 </p>
-                <p className="mt-1 text-sm text-muted">{t('partners.companyFinance.costPendingNote')}</p>
+                <p className="text-sm text-muted">{t('partners.companyFinance.costPendingNote')}</p>
               </div>
             ) : null}
             {waiting > 0 ? (
-              <p className="mt-2 text-sm text-muted">
-                <StatusChip tone="warning" className="me-2">
-                  {t('partners.companyFinance.waitingForIssuing')}
-                </StatusChip>
+              <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                <StatusChip tone="warning">{t('partners.companyFinance.waitingForIssuing')}</StatusChip>
                 {t('partners.companyFinance.waitingCount', { count: waiting })}
               </p>
             ) : null}
           </div>
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-display text-base font-semibold">{t('finance.ledger.rows')}</h3>
-              <Button variant="secondary" onClick={download} data-finance-export>
+          <div className={cn(CARD, 'overflow-hidden')}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <h3 className={CARD_TITLE}>
+                {t('finance.ledger.rows')}
+                <span className="ms-2 font-data text-sm font-normal text-muted tabular">{visibleRows.length}</span>
+              </h3>
+              <Button variant="secondary" size="sm" icon={<Download />} onClick={download} data-finance-export>
                 {t('finance.ledger.export')}
               </Button>
             </div>
-            {report.truncated ? <p className="mt-2 text-sm text-warning">{t('finance.ledger.truncated')}</p> : null}
+            {report.truncated ? (
+              <p className="border-b border-border px-4 py-2.5 text-sm text-warning">{t('finance.ledger.truncated')}</p>
+            ) : null}
             {visibleRows.length === 0 ? (
-              <p className="mt-2 text-sm text-muted">{t('finance.ledger.empty')}</p>
+              <p className="px-4 py-6 text-base text-muted" data-partner-finance-empty>
+                {t('finance.ledger.empty')}
+              </p>
             ) : (
-              <div className="mt-2 overflow-x-auto rounded-lg border border-border bg-raised">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-surface text-xs text-muted">
-                      <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.created')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.transactionNumber')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.invoiceNumber')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.source')}</th>
-                      <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.revenue')}</th>
-                      <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.cost')}</th>
-                      <th className="px-4 py-2 text-end font-semibold">{t('finance.ledger.profit')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('finance.ledger.flags')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleRows.map((r) => (
-                      <tr
-                        key={`${r.invoice_id}-${r.unit_kind}`}
-                        className="border-b border-border last:border-b-0"
-                        data-partner-finance-row
-                      >
-                        <td className="whitespace-nowrap px-4 py-2.5 font-data tabular">{day(r.created_on)}</td>
-                        <td className="px-4 py-2.5 font-data tabular">{r.transaction_number ?? '—'}</td>
-                        <td className="px-4 py-2.5 font-data tabular">{r.invoice_number ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-muted">
+              <table className={TABLE}>
+                <thead className={THEAD}>
+                  <tr className="border-b border-border">
+                    <th className={cn(TH, 'text-start')}>{t('partners.companyFinance.reference')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('finance.ledger.source')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('finance.ledger.created')}</th>
+                    <th className={cn(TH, 'text-end')}>{t('finance.ledger.revenue')}</th>
+                    <th className={cn(TH, 'text-end')}>{t('finance.ledger.cost')}</th>
+                    <th className={cn(TH, 'text-end')}>{t('finance.ledger.profit')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('finance.ledger.flags')}</th>
+                  </tr>
+                </thead>
+                <tbody className="@max-3xl:block">
+                  {visibleRows.map((r) => (
+                    <tr key={`${r.invoice_id}-${r.unit_kind}`} className={TR} data-partner-finance-row>
+                      {/* the reference: the transaction number, with the invoice number named under it */}
+                      <td className={cn(TD, '@max-3xl:col-span-2')}>
+                        <bdi className="block font-data font-medium text-strong tabular">
+                          {r.transaction_number ?? '—'}
+                        </bdi>
+                        <span className="block text-xs leading-4 text-muted">
+                          {t('finance.ledger.invoiceNumber')}{' '}
+                          <bdi className="font-data tabular">{r.invoice_number ?? '—'}</bdi>
+                        </span>
+                      </td>
+                      <td className={TD}>
+                        <span className={CELL_LABEL}>{t('finance.ledger.source')}</span>
+                        <StatusChip tone={r.source === 'import' ? 'info' : 'neutral'}>
                           {t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')}
-                        </td>
-                        <td className="px-4 py-2.5 text-end font-data tabular">{formatMoney(r.revenue, locale)}</td>
-                        <td className="px-4 py-2.5 text-end font-data tabular">
-                          {r.cost === null ? t('finance.ledger.noCost') : formatMoney(r.cost, locale)}
-                        </td>
-                        <td className="px-4 py-2.5 text-end font-data tabular">
-                          {r.profit === null ? t('finance.ledger.noCost') : formatMoney(r.profit, locale)}
-                        </td>
-                        <td className="px-4 py-2.5 text-muted">{r.flags.map(flagLabel).join(' · ') || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </StatusChip>
+                      </td>
+                      <td className={cn(TD, 'whitespace-nowrap font-data tabular')}>
+                        <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.created')}</span>
+                        {day(r.created_on)}
+                      </td>
+                      <td className={cn(TD, 'font-data text-success tabular @3xl:text-end')}>
+                        <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.revenue')}</span>
+                        {formatMoney(r.revenue, locale)}
+                      </td>
+                      <td className={cn(TD, 'font-data tabular @3xl:text-end')}>
+                        <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.cost')}</span>
+                        {r.cost === null ? t('finance.ledger.noCost') : formatMoney(r.cost, locale)}
+                      </td>
+                      <td className={cn(TD, 'font-data tabular @3xl:text-end')}>
+                        <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.profit')}</span>
+                        {r.profit === null ? t('finance.ledger.noCost') : formatMoney(r.profit, locale)}
+                      </td>
+                      <td className={cn(TD, 'text-sm text-muted', !r.flags.length && '@max-3xl:hidden')}>
+                        <span className={CELL_LABEL}>{t('finance.ledger.flags')}</span>
+                        {r.flags.map(flagLabel).join(' · ') || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-          <div data-partner-finance-not-counted>
-            <h3 className="font-display text-base font-semibold">{t('partners.companyFinance.notYetCounted')}</h3>
+          <div className={cn(CARD, 'flex flex-col gap-2 p-5 max-sm:p-4')} data-partner-finance-not-counted>
+            <h3 className={CARD_TITLE}>{t('partners.companyFinance.notYetCounted')}</h3>
             {unconfirmed > 0 ? (
-              <p className="mt-2 text-sm text-muted" data-partner-finance-unconfirmed>
+              <p className="text-base text-muted" data-partner-finance-unconfirmed>
                 {t('finance.ledger.unconfirmed', { count: unconfirmed })}
               </p>
             ) : null}
             {notCounted.block.status === 'loading' ? (
-              <div className="mt-2">
-                <DataState
-                  kind="loading"
-                  message={t('state.loading', { what: t('partners.companyFinance.notYetCounted') })}
-                />
-              </div>
+              <DataState
+                kind="loading"
+                message={t('state.loading', { what: t('partners.companyFinance.notYetCounted') })}
+              />
             ) : null}
             {notCounted.block.status === 'failed' ? (
-              <div className="mt-2">
-                <DataState
-                  kind="failed"
-                  message={t('state.failed', { what: t('partners.companyFinance.notYetCounted') })}
-                  onRetry={notCounted.retry}
-                  retryLabel={t('common.tryAgain')}
-                />
-              </div>
+              <DataState
+                kind="failed"
+                message={t('state.failed', { what: t('partners.companyFinance.notYetCounted') })}
+                onRetry={notCounted.retry}
+                retryLabel={t('common.tryAgain')}
+              />
             ) : null}
             {notCounted.block.status === 'ready' && held > 0 ? (
-              <p className="mt-2 text-sm text-muted" data-partner-finance-held>
+              <p className="text-base text-muted" data-partner-finance-held>
                 {t('partners.companyFinance.heldRows', { count: held })}
               </p>
             ) : null}
             {notCounted.block.status === 'ready' && excluded > 0 ? (
-              <p className="mt-2 text-sm text-muted" data-partner-finance-excluded>
+              <p className="text-base text-muted" data-partner-finance-excluded>
                 {t('partners.companyFinance.excludedRows', { count: excluded })}
               </p>
             ) : null}
             {notCounted.block.status === 'ready' && allCounted ? (
-              <p className="mt-2 text-sm text-muted">{t('partners.companyFinance.allCounted')}</p>
+              <p className="flex items-center gap-2 text-base text-muted">
+                <StatusChip tone="success">{t('partners.companyFinance.allCounted')}</StatusChip>
+              </p>
             ) : null}
           </div>
-        </div>
+        </>
       )}
     </section>
   );
 }
 
 /**
- * A company's money: its client IDs grouped by kind, its wallet roll-up, its counted totals with the two
- * Provisional flags, and its tenders with invoiced, remaining and actual profit beside expected profit.
+ * A company's money: its counted totals as the Finance page's cards (Revenue in the Revenue green) with the two
+ * Provisional flags and the ledger rows under them, then its client IDs grouped by kind, its wallet roll-up, and its
+ * tenders with invoiced, remaining and actual profit beside expected profit.
  * No VAT is shown anywhere; a figure with no source is empty, never 0.
  */
 export function FinanceTab({
@@ -547,123 +600,104 @@ export function FinanceTab({
   const otherIds = card.identifiers.filter((i) => i.kind === 'payments_client_id' && !i.subkind);
   const hasTender = groups.find((g) => g.sub === 'tender')!.rows.length > 0 || (summary.tenders ?? []).length > 0;
   const partnerName = locale === 'ar' && card.trade_name_ar ? card.trade_name_ar : card.trade_name_en;
+  const notKnown = t('partners.companyFinance.notKnown');
+  const sar = t('common.sar');
+  /** One client (or supplier) ID as the boards draw it: a mono tag. */
+  const idTag = (i: Identifier) => (
+    <li
+      key={i.id}
+      className="inline-flex h-7 items-center rounded-pill bg-surface px-3 font-data text-sm text-strong tabular"
+      data-client-id={i.id}
+    >
+      <bdi>{i.value}</bdi>
+    </li>
+  );
 
   return (
-    <div className="flex flex-col gap-6" data-partner-finance>
-      <section className="rounded-lg border border-border bg-raised p-5">
-        <h2 className="mb-3 text-base font-semibold">
-          {side === 'client' ? t('partners.companyFinance.clientIds') : t('partners.companyFinance.supplierIds')}
-        </h2>
-        {groups.some((g) => g.rows.length) || otherIds.length ? (
-          <div className="flex flex-col gap-3">
-            {groups.map((g) =>
-              g.rows.length ? (
-                <div key={g.sub}>
-                  <h3 className="mb-1 text-sm font-medium">{t(`partners.identifier.subkinds.${g.sub}`)}</h3>
-                  <ul className="flex flex-col gap-1">
-                    {g.rows.map((i: Identifier) => (
-                      <li key={i.id} className="font-data text-sm" data-client-id={i.id}>
-                        {i.value}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null,
-            )}
-            {otherIds.length ? (
-              <div>
-                <h3 className="mb-1 text-sm font-medium">
-                  {side === 'client'
-                    ? t('partners.identifier.kinds.payments_client_id')
-                    : t('partners.identifier.kinds.supplier_id')}
-                </h3>
-                <ul className="flex flex-col gap-1">
-                  {otherIds.map((i) => (
-                    <li key={i.id} className="font-data text-sm" data-client-id={i.id}>
-                      {i.value}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {hasTender ? (
-              <StatusChip tone="info" className="w-fit">
-                {t('partners.identifier.subkinds.tender')}
-              </StatusChip>
-            ) : null}
-          </div>
-        ) : (
-          <DataState
-            kind="empty"
-            message={
-              side === 'client'
-                ? t('partners.companyFinance.clientIdsNone')
-                : t('partners.companyFinance.supplierIdsNone')
-            }
-          />
-        )}
-      </section>
-
-      <section className="rounded-lg border border-border bg-raised p-5">
-        <h2 className="mb-3 text-base font-semibold">{t('partners.companyFinance.wallet')}</h2>
-        {moneyRow(
-          t('partners.companyFinance.toppedUp'),
-          wallet.topped_up,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-        )}
-        {moneyRow(
-          t('partners.companyFinance.walletSpent'),
-          wallet.wallet_spent,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-        )}
-        {moneyRow(
-          t('partners.companyFinance.invoicedTotal'),
-          wallet.invoiced_total,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-        )}
-        {moneyRow(
-          t('partners.companyFinance.balance'),
-          wallet.balance,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-          true,
-        )}
-        {moneyRow(
-          t('partners.companyFinance.held'),
-          wallet.held,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-        )}
-        {moneyRow(
-          t('partners.companyFinance.available'),
-          wallet.available,
-          locale,
-          t('partners.companyFinance.notKnown'),
-          t('common.sar'),
-          true,
-        )}
-        <p className="mt-2 text-sm text-muted">{t('partners.companyFinance.heldNotRecorded')}</p>
-      </section>
-
+    <div className="@container flex flex-col gap-5" data-partner-finance>
       <CompanyFinanceLedger partnerId={card.id} partnerName={partnerName} hideImported={hideImported} view={view} />
 
-      <section className="rounded-lg border border-border bg-raised p-5">
-        <h2 className="mb-3 text-base font-semibold">{t('partners.companyFinance.tenders')}</h2>
+      <div className="grid gap-5 @3xl:grid-cols-2">
+        <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-finance-ids>
+          <h2 className={cn(CARD_TITLE, 'mb-3 flex items-center gap-2.5')}>
+            <span
+              aria-hidden="true"
+              className="inline-grid size-8 shrink-0 place-items-center rounded-pill bg-accent-soft text-accent-ink"
+            >
+              <Hash className="size-4" />
+            </span>
+            {side === 'client' ? t('partners.companyFinance.clientIds') : t('partners.companyFinance.supplierIds')}
+          </h2>
+          {groups.some((g) => g.rows.length) || otherIds.length ? (
+            <div className="flex flex-col gap-3">
+              {groups.map((g) =>
+                g.rows.length ? (
+                  <div key={g.sub}>
+                    <h3 className="mb-1.5 text-sm font-medium text-muted">
+                      {t(`partners.identifier.subkinds.${g.sub}`)}
+                    </h3>
+                    <ul className="flex flex-wrap gap-2">{g.rows.map(idTag)}</ul>
+                  </div>
+                ) : null,
+              )}
+              {otherIds.length ? (
+                <div>
+                  <h3 className="mb-1.5 text-sm font-medium text-muted">
+                    {side === 'client'
+                      ? t('partners.identifier.kinds.payments_client_id')
+                      : t('partners.identifier.kinds.supplier_id')}
+                  </h3>
+                  <ul className="flex flex-wrap gap-2">{otherIds.map(idTag)}</ul>
+                </div>
+              ) : null}
+              {hasTender ? (
+                <StatusChip tone="info" className="w-fit">
+                  {t('partners.identifier.subkinds.tender')}
+                </StatusChip>
+              ) : null}
+            </div>
+          ) : (
+            <DataState
+              kind="empty"
+              compact
+              message={
+                side === 'client'
+                  ? t('partners.companyFinance.clientIdsNone')
+                  : t('partners.companyFinance.supplierIdsNone')
+              }
+            />
+          )}
+        </section>
+
+        <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-finance-wallet>
+          <h2 className={cn(CARD_TITLE, 'mb-3 flex items-center gap-2.5')}>
+            <span
+              aria-hidden="true"
+              className="inline-grid size-8 shrink-0 place-items-center rounded-pill bg-accent-soft text-accent-ink"
+            >
+              <Wallet className="size-4" />
+            </span>
+            {t('partners.companyFinance.wallet')}
+          </h2>
+          {moneyRow(t('partners.companyFinance.toppedUp'), wallet.topped_up, locale, notKnown, sar)}
+          {moneyRow(t('partners.companyFinance.walletSpent'), wallet.wallet_spent, locale, notKnown, sar)}
+          {moneyRow(t('partners.companyFinance.invoicedTotal'), wallet.invoiced_total, locale, notKnown, sar)}
+          {moneyRow(t('partners.companyFinance.balance'), wallet.balance, locale, notKnown, sar, true)}
+          {moneyRow(t('partners.companyFinance.held'), wallet.held, locale, notKnown, sar)}
+          {moneyRow(t('partners.companyFinance.available'), wallet.available, locale, notKnown, sar, true)}
+          <p className="mt-2 text-sm text-muted">{t('partners.companyFinance.heldNotRecorded')}</p>
+        </section>
+      </div>
+
+      <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-finance-tenders>
+        <h2 className={cn(CARD_TITLE, 'mb-3')}>{t('partners.companyFinance.tenders')}</h2>
         {summary.tenders?.length ? (
           <ul className="divide-y divide-border">
             {summary.tenders.map((u) => (
-              <li key={u.id} className="py-3" data-company-tender={u.id}>
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium">{u.title}</span>
-                  <span className="font-data text-xs text-muted">{u.number}</span>
+              <li key={u.id} className="py-3 first:pt-0 last:pb-0" data-company-tender={u.id}>
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                  <span className="text-base font-medium text-strong">{u.title}</span>
+                  <bdi className="font-data text-xs text-muted">{u.number}</bdi>
                   <StatusChip tone={u.state === 'signed' ? 'success' : 'neutral'}>
                     {t(`partners.companyFinance.state.${u.state}`)}
                   </StatusChip>
@@ -677,46 +711,18 @@ export function FinanceTab({
                 {!u.client_id_named ? (
                   <p className="text-sm text-muted">{t('partners.companyFinance.noClientId')}</p>
                 ) : null}
-                {moneyRow(
-                  t('partners.companyFinance.tenderAmount'),
-                  u.tender_amount,
-                  locale,
-                  t('partners.companyFinance.notKnown'),
-                  t('common.sar'),
-                )}
-                {moneyRow(
-                  t('partners.companyFinance.invoiced'),
-                  u.invoiced,
-                  locale,
-                  t('partners.companyFinance.notKnown'),
-                  t('common.sar'),
-                )}
-                {moneyRow(
-                  t('partners.companyFinance.remaining'),
-                  u.remaining,
-                  locale,
-                  t('partners.companyFinance.notKnown'),
-                  t('common.sar'),
-                )}
-                {moneyRow(
-                  t('partners.companyFinance.expectedProfit'),
-                  u.expected_profit,
-                  locale,
-                  t('partners.companyFinance.notKnown'),
-                  t('common.sar'),
-                )}
-                {moneyRow(
-                  t('partners.companyFinance.actualProfit'),
-                  u.actual_profit,
-                  locale,
-                  t('partners.companyFinance.notKnown'),
-                  t('common.sar'),
-                )}
+                <div className="grid gap-x-8 @3xl:grid-cols-2">
+                  {moneyRow(t('partners.companyFinance.tenderAmount'), u.tender_amount, locale, notKnown, sar)}
+                  {moneyRow(t('partners.companyFinance.invoiced'), u.invoiced, locale, notKnown, sar)}
+                  {moneyRow(t('partners.companyFinance.remaining'), u.remaining, locale, notKnown, sar)}
+                  {moneyRow(t('partners.companyFinance.expectedProfit'), u.expected_profit, locale, notKnown, sar)}
+                  {moneyRow(t('partners.companyFinance.actualProfit'), u.actual_profit, locale, notKnown, sar)}
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <DataState kind="empty" message={t('partners.companyFinance.tendersNone')} />
+          <DataState kind="empty" compact message={t('partners.companyFinance.tendersNone')} />
         )}
       </section>
     </div>

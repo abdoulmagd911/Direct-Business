@@ -64,12 +64,18 @@
       "signingIn": "Signing in…",
       "show": "Show password",
       "hide": "Hide password",
-      "capsLock": "Caps Lock is on"
+      "capsLock": "Caps Lock is on",
+      "showWord": "Show",
+      "hideWord": "Hide"
     },
     "footer": "© {year} Direct",
     "tab_title": "Sign in · Commercial Workspace",
     "switch_to_ar": "العربية",
-    "switch_to_en": "English"
+    "switch_to_en": "English",
+    "heading": {
+      "lead": "Commercial",
+      "pill": "Workspace"
+    }
   },
   "session": {
     "sign_out": "Sign out",
@@ -107,7 +113,8 @@
     "clients": "Partners",
     "suppliers_partners": "Suppliers",
     "files": "Files",
-    "profile": "My profile"
+    "profile": "My profile",
+    "back": "Back"
   },
   "top": {
     "search": "Search partners, tasks, invoices",
@@ -148,7 +155,23 @@
     "light": "Light",
     "dark": "Dark",
     "colorful": "Colorful",
-    "direct": "Direct"
+    "direct": "Direct",
+    "turquoise": "Turquoise",
+    "system": "System"
+  },
+  "themePicker": {
+    "title": "Theme",
+    "optIn": "Opt-in",
+    "default": "Default",
+    "hint": "Changes the whole app at once and is saved to your profile. System switches between Light and Dark with your device.",
+    "saved": "Saved to your profile, so every device you sign in on looks the same.",
+    "line": {
+      "light": "White cards, slate frame",
+      "dark": "Dim greys, never pure black",
+      "direct": "Orange and cream · the brand look",
+      "turquoise": "Turquoise on deep teal, modern",
+      "system": "Follows the device: light or dark"
+    }
   },
   "density": {
     "comfortable": "Comfortable",
@@ -382,7 +405,8 @@
           "task": "Your access does not allow you to add a task here.",
           "action_item": "You can only view this task, so you cannot add to its checklist.",
           "achievement": "Your access does not allow you to log an achievement."
-        }
+        },
+        "removeOrg": "Remove {name}"
       },
       "finish": {
         "label": "Finish meeting",
@@ -477,12 +501,13 @@
         "followUpFor": "Follow up on",
         "followUpPlaceholder": "What to follow up on",
         "followUpSaved": "Follow-up set - {title}",
-        "passed": "That time has passed"
+        "passed": "That time has passed",
+        "removeLink": "Remove link"
       },
       "titleDate": {
         "reminder": "Reminder read as {when} (from “{found}”)",
         "due": "Due read as {when} (from “{found}”)",
-        "remove": "Do not use this date"
+        "remove": "Remove date"
       },
       "alert": {
         "title": "Reminder",
@@ -492,6 +517,11 @@
         "hide": "Hide for now",
         "hideShort": "Hide",
         "snoozed": "Snoozed to {when} · {title}"
+      },
+      "banner": {
+        "myWork": "My work · {count, plural, one {# open task} other {# open tasks}}",
+        "capture": "Capture",
+        "failed": "Your day could not load."
       }
     },
     "settings": {
@@ -717,7 +747,10 @@
       "columns": {
         "totalDiscount": "Total discount",
         "totalCollected": "Total collected",
-        "view": "View"
+        "view": "View",
+        "code": "Code",
+        "partner": "Partner",
+        "state": "State"
       },
       "detail": {
         "title": "Code detail",
@@ -737,7 +770,11 @@
         "viewInFinance": "View in Finance",
         "configuredFee": "Configured discount",
         "validFrom": "From {date}",
-        "validUntil": "Until {date}"
+        "validUntil": "Until {date}",
+        "invoice": "Invoice",
+        "date": "Date",
+        "countedPill": "Counted",
+        "notCountedPill": "Not counted"
       },
       "addUse": {
         "invoiceNumber": "Invoice number",
@@ -765,14 +802,23 @@
         "note": "Promo totals only. These are not part of a partner's own totals.",
         "none": "No code is shown under a partner yet",
         "promo": "Promo",
-        "codes": "Codes"
+        "codes": "Codes",
+        "promoTitle": "Promo totals by partner"
       },
       "search": {
         "label": "Search codes",
         "placeholder": "Search by code…",
         "noMatch": "No codes match this search."
       },
-      "emptyFiltered": "No codes match this filter."
+      "emptyFiltered": "No codes match this filter.",
+      "count": "{count, plural, one {# code} other {# codes}}",
+      "sortedBy": "Total discount, highest first",
+      "filterPill": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive",
+        "expired": "Expired"
+      }
     },
     "beingBuilt": "Being built — use Tasks or Achievements for now.",
     "tasks": {
@@ -805,7 +851,7 @@
       "statusHistory": "Status changes",
       "noStatusChanges": "No status changes yet",
       "views": {
-        "label": "Task views",
+        "label": "Task lists",
         "all": "All",
         "starred": "Starred",
         "escalated": "Need help",
@@ -1071,7 +1117,7 @@
         "ownerFor": "Owner for these rows"
       },
       "layout": {
-        "label": "Show tasks as",
+        "label": "View",
         "list": "List",
         "board": "Board",
         "calendar": "Calendar"
@@ -1125,7 +1171,21 @@
         "dismissedDone": "Not logged as an achievement",
         "restoredDone": "Back on the list"
       },
-      "unblock": "Unblock"
+      "unblock": "Unblock",
+      "look": {
+        "search": "Search tasks",
+        "open": "{count, plural, one {# open task} other {# open tasks}}",
+        "dueToday": "{count} due today",
+        "overdue": "{count} overdue",
+        "done": "{count} done",
+        "colTask": "Task",
+        "colWhere": "Partner or project",
+        "colResponsible": "Responsible",
+        "overdueLabel": "Overdue:",
+        "priority": "Priority: {priority}",
+        "seeAll": "See all · {count}",
+        "seeFewer": "Show fewer"
+      }
     },
     "weeklyReview": {
       "title": "Weekly review",
@@ -1356,7 +1416,8 @@
       "collection_due_days": "Days after issue an invoice with no due date of its own is due",
       "quiet_client_days": "Days without a fully paid invoice before a partner counts as quiet",
       "revenue_definition": "What Commercial revenue counts: its basis, services, partner types and whether commissions count",
-      "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told"
+      "unpaid_alert_days": "Days after issue an invoice may stay unpaid before its account manager is told",
+      "credit_limit": "Credit limit"
     },
     "auth": {
       "device_idle_days": "Days a device may go unused before it signs in again",
@@ -1822,7 +1883,7 @@
       "notifications": "Notifications",
       "devices": "Devices",
       "password": "Password",
-      "preferences": "Preferences"
+      "preferences": "Look"
     },
     "fullNameEn": "Full name",
     "fullNameAr": "Full name (Arabic)",
@@ -2071,7 +2132,10 @@
       "markedLeft": "{name} marked as left",
       "lastDay": "Last day",
       "lastDayRule": "Today or an earlier day — not before the day they joined",
-      "signInSyncFailed": "Saved — but {name}'s sign-in could not be brought in step yet. Try again."
+      "signInSyncFailed": "Saved — but {name}'s sign-in could not be brought in step yet. Try again.",
+      "empty": "No one has been added yet.",
+      "failed": "People could not load.",
+      "testUsers": "Test users"
     },
     "teams": {
       "add": "Add team",
@@ -2125,7 +2189,13 @@
       "effective": "Effective",
       "capabilities": "Capabilities",
       "pages": "Pages",
-      "reasonBody": "Every access change is logged with its reason."
+      "reasonBody": "Every access change is logged with its reason.",
+      "legend": {
+        "full": "see and change all",
+        "own": "only their own and shared records",
+        "view": "read only",
+        "none": "page hidden"
+      }
     },
     "form": {
       "reasonRequired": "A reason is required"
@@ -2230,6 +2300,15 @@
     },
     "fileTypes": {
       "text": "Text"
+    },
+    "noAccessAsk": "Settings is for admins. Ask an admin to change a setting.",
+    "credit": {
+      "title": "Credit limit",
+      "help": "SAR · applies to every postpaid client unless their record sets its own. Managers and heads of department can change it.",
+      "readOnly": "Only managers and heads of department can change this.",
+      "invalid": "Enter a whole amount in riyals, above zero.",
+      "saved": "Credit limit saved",
+      "confirmTitle": "Change the credit limit?"
     }
   },
   "errors": {
@@ -2690,7 +2769,8 @@
     },
     "flags": {
       "stale": "Stale",
-      "contract_expiring": "Contract expiring"
+      "contract_expiring": "Contract expiring",
+      "quiet": "Quiet"
     },
     "bulk": {
       "assign": "Assign owner and priority",
@@ -2816,7 +2896,9 @@
         "signed": "Signed"
       },
       "supplierIds": "Supplier IDs",
-      "supplierIdsNone": "No supplier IDs on this partner yet"
+      "supplierIdsNone": "No supplier IDs on this partner yet",
+      "imported": "Imported",
+      "reference": "Reference"
     },
     "archive": {
       "title": "All files",
@@ -3073,7 +3155,36 @@
       "body": "It was removed, or the address is wrong. A removed organisation can be brought back from Recently deleted.",
       "backClients": "Back to Partners",
       "backSuppliers": "Back to Suppliers"
-    }
+    },
+    "kpi": {
+      "label": "Quick filters",
+      "active": "Active",
+      "prospects": "Prospects",
+      "stale": "Stale",
+      "quiet": "Quiet",
+      "note": {
+        "active": {
+          "client": "Partners we work with now",
+          "supplier_partner": "Suppliers we work with now"
+        },
+        "prospects": "Not signed yet",
+        "stale": "Too long without activity",
+        "quiet": "Too long without a paid invoice"
+      },
+      "notCounted": "not counted yet",
+      "clear": "Press again to show all",
+      "all": "All",
+      "prospectsChip": "Prospects",
+      "attention": "Needs attention"
+    },
+    "list": {
+      "failed": "Organisations could not load.",
+      "noneYet": {
+        "client": "No partners yet.",
+        "supplier_partner": "No suppliers yet."
+      }
+    },
+    "quietOnly": "Quiet only"
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
@@ -3112,7 +3223,12 @@
     "tile": {
       "revenue": "Revenue",
       "cost": "Cost",
-      "profit": "Profit"
+      "profit": "Profit",
+      "revenueHere": "Revenue — Recorded here",
+      "costHere": "Cost — Recorded here",
+      "profitHere": "Profit — Recorded here",
+      "provisional": "Provisional",
+      "provisionalNote": "{count, plural, one {# row} other {# rows}} · cost not known yet"
     },
     "sar": "SAR",
     "short": {
@@ -3146,7 +3262,8 @@
       "lateChanges": "Late changes · {count}",
       "afterClose": "After close",
       "gap": "{amount} SAR not in the months",
-      "none": "—"
+      "none": "—",
+      "state": "State"
     },
     "late": {
       "late_paid": "Paid late",
@@ -3157,7 +3274,13 @@
     "close": {
       "title": "Close {month}?",
       "body": "It will never change. Later news becomes a dated note.",
-      "done": "{month} closed"
+      "done": "{month} closed",
+      "warn": "{count, plural, one {# row has cost not known yet.} other {# rows have cost not known yet.}}",
+      "receipt": {
+        "by": "Closed by",
+        "on": "Closed on",
+        "done": "Done"
+      }
     },
     "service": {
       "title": "By service",
@@ -3250,7 +3373,12 @@
       "promoNote": "These rows carry a discount code, so they sit apart from a partner's own Revenue · Cost · Profit and are never mixed into them.",
       "unconfirmed": "Not fully paid imports: {count}",
       "codeDiscount": "Total discount for this code",
-      "discount": "Discount"
+      "discount": "Discount",
+      "revenueUnified": "Revenue — Unified ledger",
+      "costUnified": "Cost — Unified ledger",
+      "profitUnified": "Profit — Unified ledger",
+      "notKnown": "Not known yet",
+      "seeAll": "See all {count}"
     },
     "new": {
       "title": "New invoice",
@@ -3288,7 +3416,15 @@
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
     "periodEmpty": "Nothing in this period ({from} – {to}).",
-    "locked": "You do not have access to Finance"
+    "locked": "You do not have access to Finance",
+    "here": "Recorded here",
+    "unified": "Unified ledger",
+    "view": {
+      "label": "View",
+      "months": "Months",
+      "services": "Services",
+      "ledger": "Ledger"
+    }
   },
   "import": {
     "title": "Import",
@@ -3398,6 +3534,12 @@
       "db_total_differs": "Invoice total differs from the stored transaction amount: transaction amount kept, held for a person",
       "db_invoice_elsewhere": "Invoice number is already on another row: held for a person, nothing merged by guess",
       "db_shared_invoice": "Invoice number covers several transactions, so no single row owns this code link: held for a person"
+    },
+    "step": {
+      "label": "Import steps",
+      "choose": "Choose file",
+      "review": "Review",
+      "done": "Done"
     }
   },
   "testSwitch": {

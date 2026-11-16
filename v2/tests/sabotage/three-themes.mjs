@@ -7,12 +7,12 @@ export const sabotages = [
   {
     name: 'colorful-is-offered-again',
     breaks: [UNIT, E2E],
-    expect: 'Light, Dark and Direct',
+    expect: 'Light, Dark, Direct',
     edits: [
       {
         file: 'src/core/prefs/index.ts',
-        find: "export const THEMES = ['light', 'dark', 'direct'] as const;",
-        replace: "export const THEMES = ['light', 'dark', 'colorful', 'direct'] as const;",
+        find: "export const THEMES = ['light', 'dark', 'direct', 'turquoise', 'system'] as const;",
+        replace: "export const THEMES = ['light', 'dark', 'colorful', 'direct', 'turquoise', 'system'] as const;",
       },
     ],
   },
@@ -43,12 +43,12 @@ export const sabotages = [
   {
     name: 'my-profile-has-no-theme-box',
     breaks: [E2E],
-    expect: 'My profile offers Light, Dark and Direct',
+    expect: 'the page wears the pick',
     edits: [
       {
         file: 'src/modules/org/screens/MyProfile.tsx',
-        find: "<Field label={t('profile.theme')}>",
-        replace: "<Field label={t('profile.themeX')}>",
+        find: "onChange={(v) => void save({ theme: v as Profile['theme'] })}",
+        replace: 'onChange={() => {}}',
       },
     ],
   },

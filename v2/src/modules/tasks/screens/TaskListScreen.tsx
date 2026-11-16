@@ -1,11 +1,10 @@
 'use client';
-import { CalendarDays, Columns3, List, Plus, Search } from 'lucide-react';
+import { CalendarDays, ChevronDown, Columns3, List, ListChecks, Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
-import { formatDate } from '@/core/i18n/format';
 import { nameOf } from '@/modules/org/types';
 import { BulkBar } from '@/ui/BulkBar';
 import { Button } from '@/ui/Button';
@@ -19,6 +18,7 @@ import { PhoneFilter } from '@/ui/PhoneFilter';
 import { Select } from '@/ui/Select';
 import { Tabs } from '@/ui/Tabs';
 import { cn } from '@/ui/cn';
+import { workCount } from '../my-work-count';
 import {
   DUE_CHIPS,
   LAYOUTS,
@@ -33,7 +33,6 @@ import {
   riyadhDay,
   queryFilters,
   sortRows,
-  statusView,
   type Layout,
   type TaskFilters,
   type TaskSortKey,
@@ -47,7 +46,9 @@ import { TaskBoard } from './TaskBoard';
 import { TaskBulkAssign } from './TaskBulkAssign';
 import { TaskCalendar } from './TaskCalendar';
 import { TeamLoadPanel } from './TeamLoadPanel';
-import { DoneTick } from './StatusControl';
+import { DoneTick, statusName } from './StatusControl';
+import { CountBadge, DueMark, ResponsibleMark, WhereMark } from './TaskBits';
+import { pillOf, statusGroups } from './look';
 import { useNames } from './words';
 
 export type TaskListData = {
@@ -61,9 +62,13 @@ export type TaskListData = {
 };
 
 /**
- * The Tasks list (§3.7; V517's stage 1): My work · Owned · Helping · Team, then chips for status, due, client and
- * project. One row per task: the tick (Done in one tap), its title, number, owner, client or project and due day, and
- * its status. 390 px first: a row wraps, the page never scrolls sideways (V509).
+ * The Tasks list (§3.7; V517's stage 1; the look is the 15 Nov boards'): pill tabs My work · Owned · Helping · Team ·
+ * Past work, the count line, then the search and the filter pills (status, due, partner, project, owner, priority) and
+ * the List / Board / Calendar switch — every choice in the address, so switching the view keeps the tab, the filters
+ * and the place. The list is one white card, grouped by status with a count per group (the board's columns, from the
+ * same `statusGroups`). One row per task: the tick (Done), its title, the partner or project, the due day, the
+ * Responsible person and ONE status pill (`pillOf`); overdue is the date in the danger colour, never a pill. The card
+ * is its own container: under 56 rem of room a row stacks (the phone drawing), so nothing scrolls sideways (V509).
  */
 export function TaskListScreen({ data }: { data: TaskListData }) {
   const t = useTranslations();
@@ -92,6 +97,20 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
     lookups.priorities,
   );
   const layout = f.layout ?? 'list';
+  // The count line and the open tab's number (15 Nov: "Tab numbers count open tasks") are ONE count of the rows on
+  // screen — `workCount`, the same function My day's banner reads. The tab carries its number only while the rows are
+  // the whole tab: no chip, no search, no saved view, and not past the first page of 200; Past work has none.
+  const counts = workCount(rows, today, me.person.id);
+  const wholeTab = !!list && !list.more && !isFiltered(f) && !f.starred && !f.escalated;
+  const groups = statusGroups(rows, lookups.statuses);
+  const groupTitle = (g: (typeof groups)[number]) =>
+    g.kind === 'blocked'
+      ? t('pages.tasks.blocked')
+      : g.status
+        ? statusName(g.status, names.locale)
+        : g.rows[0]
+          ? names.status(g.rows[0])
+          : g.key;
   // FIX-01 (F100/F138, P1b): row selection and the bulk bar stay with whoever may give work to others
   // (`tasks.assign`) — a member's own-task bulk-assign is the partners lists', not this list's.
   const canBulk = me.capabilities.includes('tasks.assign');
@@ -137,10 +156,11 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const chipMenu = (field: string, options: { key: string; label: string; href: string }[]) => (
     <Menu>
       <MenuTrigger
-        className="inline-flex h-[var(--control-h-sm)] items-center gap-1.5 whitespace-nowrap rounded-pill border border-dashed border-border-strong px-3.5 text-sm text-muted hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="inline-flex h-[34px] items-center gap-1.5 whitespace-nowrap rounded-pill border border-border-strong bg-raised px-3.5 text-sm font-medium leading-[18px] text-text transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:h-11"
         aria-label={t('chips.add', { field })}
       >
-        <span aria-hidden="true">+</span> {field}
+        {field}
+        <ChevronDown className="size-4 text-muted" aria-hidden="true" />
       </MenuTrigger>
       <MenuContent align="start" className="max-h-80 overflow-y-auto">
         {options.map((o) => (
@@ -169,7 +189,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const fPriority = t('pages.tasks.fields.priority');
 
   return (
-    <div className="flex min-w-0 flex-col gap-5" data-tasks-list>
+    <div className="flex min-w-0 flex-col gap-5" data-tasks-list data-layout-open={layout}>
       <PageHeader
         title={t('nav.tasks')}
         actions={
@@ -195,8 +215,20 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           label: t(`pages.tasks.views.${s}`),
           href: filtersHref(f, { scope: s }),
           more: !phoneScopes(me.capabilities).includes(s),
+          count: s === f.scope && s !== 'past' && wholeTab ? counts.open : undefined,
         }))}
       />
+      {list && !list.more ? (
+        <p className="break-words text-sm leading-5 text-muted" data-task-count-line data-open={counts.open}>
+          <b className="font-semibold text-strong">{t(`pages.tasks.views.${f.scope}`)}</b>
+          {` · ${[
+            t('pages.tasks.look.open', { count: counts.open }),
+            t('pages.tasks.look.dueToday', { count: counts.dueToday }),
+            t('pages.tasks.look.overdue', { count: counts.overdue }),
+            t('pages.tasks.look.done', { count: counts.done }),
+          ].join(' · ')}`}
+        </p>
+      ) : null}
       <SavedViewsBar
         page="tasks"
         fixed={[{ key: 'all', label: t('pages.tasks.views.all') }]}
@@ -212,20 +244,23 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         <PhoneFilter label={t('common.filter')} count={filterCount(f)}>
           <form
             role="search"
-            className="relative w-full sm:w-64"
+            className="relative w-full sm:w-[280px]"
             onSubmit={(e) => {
               e.preventDefault();
               go({ q: q.trim() || undefined });
             }}
           >
-            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <Search
+              className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted"
+              aria-hidden="true"
+            />
             <Input
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              aria-label={t('common.search')}
-              placeholder={t('common.search')}
-              className="ps-9"
+              aria-label={t('pages.tasks.look.search')}
+              placeholder={t('pages.tasks.look.search')}
+              className="ps-10"
             />
           </form>
           {f.status
@@ -325,9 +360,11 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           onRetry={retry}
           retryLabel={t('common.tryAgain')}
         />
-      ) : rows.length === 0 && layout === 'list' ? (
+      ) : rows.length === 0 && layout !== 'calendar' ? (
+        // the list and the board share the empty state (15 Nov: one line and Add task); the calendar keeps its month
         <DataState
           kind="empty"
+          icon={<ListChecks />}
           message={t(
             f.escalated
               ? 'pages.tasks.empty.escalated'
@@ -337,18 +374,23 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                   ? 'pages.tasks.emptyFiltered'
                   : `pages.tasks.empty.${f.scope}`,
           )}
+          action={
+            atLeastOwn(me.levels.tasks) && f.scope !== 'past' && !isFiltered(f) && !f.starred && !f.escalated ? (
+              <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)} data-empty-add-task>
+                {t('pages.tasks.add.open')}
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
-        // Board and Calendar keep their own shape when there are no tasks,
-        // instead of the list's "No tasks yet" — that was why both layouts
-        // showed no board and no calendar for an empty My work.
         <>
           {layout === 'board' ? (
             <TaskBoard rows={rows} lookups={lookups} today={today} />
           ) : layout === 'calendar' ? (
             <TaskCalendar rows={rows} lookups={lookups} today={today} filters={f} />
           ) : (
-            <>
+            // the card is its own container (@container): a row lays its columns out only where the CARD has the room
+            <div className="@container flex min-w-0 flex-col gap-3 [&>ul]:overflow-hidden [&>ul]:shadow-1">
               {canBulk && rows.length ? (
                 <div className="flex items-center gap-2 px-1 text-sm text-muted" data-task-select-all>
                   <Checkbox
@@ -364,19 +406,49 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                 className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised"
                 data-task-rows
               >
-                {rows.map((r) => (
-                  <TaskLine
-                    key={r.id}
-                    row={r}
-                    lookups={lookups}
-                    today={today}
-                    selectable={canBulk}
-                    selected={shown.includes(r.id)}
-                    onSelect={(on) => toggleRow(r.id, on)}
-                  />
-                ))}
+                <li
+                  aria-hidden="true"
+                  className="hidden items-center gap-3 px-4 text-xs font-semibold leading-4 text-muted @4xl:flex"
+                  data-task-columns
+                >
+                  {canBulk ? <span className="size-5 shrink-0" /> : null}
+                  <span className="size-6 shrink-0" />
+                  <div className={cn(ROW_GRID, 'h-[var(--row-h-head)]')}>
+                    <span>{t('pages.tasks.look.colTask')}</span>
+                    <span>{t('pages.tasks.look.colWhere')}</span>
+                    <span>{fDue}</span>
+                    <span>{t('pages.tasks.look.colResponsible')}</span>
+                    <span className="text-end">{fStatus}</span>
+                  </div>
+                </li>
+                {groups
+                  .filter((g) => g.rows.length)
+                  .flatMap((g) => [
+                    <li
+                      key={`group:${g.kind}:${g.key}`}
+                      className="flex min-h-10 items-center gap-2 bg-surface px-4 py-2"
+                      data-task-group={g.key}
+                      data-count={g.rows.length}
+                    >
+                      <h2 className="min-w-0 break-words text-sm font-semibold leading-[18px] text-strong">
+                        {groupTitle(g)}
+                      </h2>
+                      <CountBadge count={g.rows.length} />
+                    </li>,
+                    ...g.rows.map((r) => (
+                      <TaskLine
+                        key={r.id}
+                        row={r}
+                        lookups={lookups}
+                        today={today}
+                        selectable={canBulk}
+                        selected={shown.includes(r.id)}
+                        onSelect={(on) => toggleRow(r.id, on)}
+                      />
+                    )),
+                  ])}
               </ul>
-            </>
+            </div>
           )}
           {list.more ? (
             <p className="text-sm text-muted">
@@ -440,14 +512,19 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
 
 const LAYOUT_ICON: Record<Layout, typeof List> = { list: List, board: Columns3, calendar: CalendarDays };
 
-/** List / Board / Calendar: one view of the same rows (§8 Tasks), a link each so the choice lives in the address. */
+/**
+ * List / Board / Calendar: one view of the same rows (§8 Tasks), a link each, so the choice lives in the address with
+ * the tab and every filter — switching keeps them all, and the page stays where it was scrolled (`scroll={false}`).
+ * The 15 Nov boards draw List and Board; Calendar stays, as the app has it. A pill switch: the open one is the white
+ * pill; on a phone each is a 44 px icon that still carries its name.
+ */
 function LayoutSwitch({ filters }: { filters: TaskFilters }) {
   const t = useTranslations();
   const current = filters.layout ?? 'list';
   return (
     <nav
       aria-label={t('pages.tasks.layout.label')}
-      className="ms-auto flex rounded-md border border-border"
+      className="ms-auto flex gap-1 rounded-pill bg-surface p-1"
       data-layouts
     >
       {LAYOUTS.map((l) => {
@@ -457,10 +534,11 @@ function LayoutSwitch({ filters }: { filters: TaskFilters }) {
           <Link
             key={l}
             href={filtersHref(filters, { layout: l })}
+            scroll={false}
             aria-current={on ? 'page' : undefined}
             className={cn(
-              'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 px-3 text-sm first:rounded-s-md last:rounded-e-md focus-visible:outline-2 focus-visible:outline-focus max-sm:min-w-11 max-sm:justify-center',
-              on ? 'bg-accent-soft font-medium text-text' : 'text-muted hover:bg-surface',
+              'inline-flex h-8 items-center gap-1.5 rounded-pill px-3 text-sm font-medium transition-[background-color,color,box-shadow] duration-[var(--dur-base)] ease-[var(--ease-standard)] focus-visible:outline-2 focus-visible:outline-focus max-sm:h-11 max-sm:min-w-11 max-sm:justify-center',
+              on ? 'bg-raised font-semibold text-strong shadow-tab' : 'text-muted hover:text-strong',
             )}
             data-layout={l}
           >
@@ -472,6 +550,14 @@ function LayoutSwitch({ filters }: { filters: TaskFilters }) {
     </nav>
   );
 }
+
+/**
+ * A list row's columns where the card has the room (56 rem): Task · Partner or project · Due · Responsible · Status —
+ * the header and every row share this one template, so they line up. Narrower, the same cells stack: the title with
+ * the pill at its end, then the partner and the due day on one line, then the Responsible person.
+ */
+const ROW_GRID =
+  'grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5 @4xl:grid-cols-[minmax(0,2.4fr)_minmax(0,1.6fr)_8.5rem_minmax(0,1.3fr)_9.5rem] @4xl:items-center @4xl:gap-x-4';
 
 const atLeastOwn = (l: string | undefined) => l === 'own' || l === 'full';
 const isFiltered = (f: TaskFilters) => !!(f.status || f.due || f.partner || f.project || f.q || f.owner || f.priority);
@@ -506,12 +592,12 @@ function TaskLine({
 }) {
   const t = useTranslations();
   const names = useNames(lookups.org, lookups.partners, lookups.projects);
-  const view = statusView(row);
+  const view = pillOf(row);
   const due = dueState(row, today);
-  const where = row.project_id ? names.project(row.project_id) : row.partner_id ? names.partner(row.partner_id) : '';
+  const priority = row.priority ? ((names.locale === 'ar' ? row.priority_ar : row.priority_en) ?? row.priority) : null;
   return (
     <li
-      className="relative flex items-start gap-3 px-4 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
+      className="relative flex items-start gap-3 px-4 min-h-[var(--list-row-min)] py-[var(--list-row-py)] @4xl:items-center"
       data-task-row={row.number}
       data-due={due}
     >
@@ -522,7 +608,7 @@ function TaskLine({
           checked={selected ?? false}
           onCheckedChange={(on) => onSelect?.(on)}
           label={t('table.selectRow', { name: row.title })}
-          className="z-10 mt-1 shrink-0"
+          className="z-10 mt-1 shrink-0 @4xl:mt-0"
         />
       ) : null}
       {row.can_edit ? (
@@ -530,46 +616,46 @@ function TaskLine({
       ) : (
         <span aria-hidden="true" className="mt-0.5 inline-block size-6 shrink-0" />
       )}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <Link
-          href={`/tasks/${row.number}`}
-          className={cn(
-            "break-words text-base font-medium text-text after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-focus",
-            row.meaning === 'done' && 'text-muted line-through',
-          )}
-        >
-          {row.title}
-        </Link>
-        {/* one run of text, so a wrapped line never ends on a separator */}
-        <p className="break-words text-sm text-muted">
-          <span className="font-data">{row.number}</span>
-          {` · ${[names.person(row.owner_id), where].filter(Boolean).join(' · ')}`}
-        </p>
-        {row.due_on ? (
-          <p
+      <div className={ROW_GRID}>
+        <div className="col-start-1 row-start-1 flex min-w-0 flex-col gap-0.5 @4xl:col-start-auto @4xl:row-start-auto">
+          <Link
+            href={`/tasks/${row.number}`}
+            title={row.number}
             className={cn(
-              'text-sm text-muted',
-              due === 'overdue' && 'font-medium text-danger',
-              due === 'today' && 'text-text',
+              "break-words text-base font-medium text-strong after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-focus",
+              row.meaning === 'done' && 'text-muted line-through',
             )}
           >
-            {due === 'today'
-              ? t('pages.tasks.dueToday')
-              : t('pages.tasks.dueOn', { date: formatDate(row.due_on, names.locale) })}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <StatusChip tone={STATUS_TONE[view]}>
-          {view === 'blocked' ? t('pages.tasks.blocked') : names.status(row)}
-        </StatusChip>
-        {/* FIX-05 (F-B1-06): the priority is on the row, not only in the filter — a stored priority was invisible here. */}
-        {row.priority ? (
-          <StatusChip tone="info">
-            {(names.locale === 'ar' ? row.priority_ar : row.priority_en) ?? row.priority}
+            {row.title}
+          </Link>
+          {/* FIX-05 (F-B1-06): the priority stays on the row — as words under the title, never a second pill */}
+          {priority ? (
+            <p className="break-words text-xs leading-4 text-muted" data-task-priority={row.priority}>
+              {t('pages.tasks.look.priority', { priority })}
+            </p>
+          ) : null}
+        </div>
+        {/* one line on a phone (the partner, then the due day); two columns where the card is wide */}
+        <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 @4xl:contents" data-task-line>
+          <span className="flex min-w-0 max-w-full">
+            <WhereMark row={row} names={names} label={t('pages.tasks.look.colWhere')} />
+          </span>
+          <span className="flex min-w-0">
+            <DueMark row={row} today={today} locale={names.locale} />
+          </span>
+        </div>
+        <span className="col-span-2 flex min-w-0 @4xl:col-span-1">
+          <ResponsibleMark row={row} lookups={lookups} names={names} label={t('pages.tasks.look.colResponsible')} />
+        </span>
+        {/* the ONE pill (`pillOf`): Blocked, else the task's status. Overdue is the date above, never a pill. */}
+        <span
+          className="col-start-2 row-start-1 flex min-w-0 justify-end @4xl:col-start-auto @4xl:row-start-auto"
+          data-task-pill={view}
+        >
+          <StatusChip tone={STATUS_TONE[view]} className="max-w-full">
+            <span className="truncate">{view === 'blocked' ? t('pages.tasks.blocked') : names.status(row)}</span>
           </StatusChip>
-        ) : null}
-        {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
+        </span>
       </div>
     </li>
   );

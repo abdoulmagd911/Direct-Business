@@ -39,7 +39,7 @@ import {
 
 const NONE = '__none';
 /** A line's field takes the whole row on a phone, so the line's total and its remove button share the last one. */
-const LINE_FIELD = 'col-span-2 sm:col-span-1';
+const LINE_FIELD = 'col-span-2 @min-[520px]:col-span-1';
 const fmt = (n: number, locale: string) =>
   new Intl.NumberFormat(locale === 'ar' ? 'en-US' : locale, {
     minimumFractionDigits: 2,
@@ -47,7 +47,11 @@ const fmt = (n: number, locale: string) =>
   }).format(n);
 
 /**
- * New invoice (P4-4, GC-5): an invoice, its lines and its expenses typed in one place, a side panel that works out
+ * New invoice (P4-4, GC-5), in the V21 look (not drawn on the boards; built from the kit): white cards, the kit's
+ * fields, pill buttons, and the three actions beside the title — or, where the page is narrow (a phone), in a bar
+ * that stays at the foot of the screen while the form scrolls. The rows of lines and expenses lay themselves out by
+ * their card's width, so nothing runs off the card with the drawer open.
+ * An invoice, its lines and its expenses typed in one place, a side panel that works out
  * Revenue, Cost and Profit as they will count (with the Provisional part beside Profit), and Save or Save + new.
  * Each row is its own logged request (V622); the Undo in the toast takes them all back, last first. The database
  * checks every value again — this form only says what is missing before it asks.
@@ -161,331 +165,343 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
 
   const showMoney = hasRevenue(d.kind) || d.kind === 'billing';
   return (
-    <form
-      className="flex min-w-0 flex-col gap-6"
-      data-new-invoice
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save(false);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    <div className="@container min-w-0">
+      <form
+        className="flex min-w-0 flex-col gap-6 @min-[640px]:grid @min-[640px]:grid-cols-[minmax(0,1fr)_auto] @min-[640px]:items-end"
+        data-new-invoice
+        onSubmit={(e) => {
           e.preventDefault();
           void save(false);
-        }
-      }}
-    >
-      <PageHeader
-        crumbs={[{ label: t('nav.finance'), href: '/finance' }, { label: t('finance.new.title') }]}
-        title={t('finance.new.title')}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" type="button" onClick={() => router.push('/finance')}>
-              {t('common.cancel')}
-            </Button>
-            <Button variant="secondary" type="button" disabled={busy} onClick={() => void save(true)} data-save-new>
-              {t('finance.new.saveNew')}
-            </Button>
-            <Button variant="primary" type="submit" disabled={busy} data-save>
-              {t('common.save')}
-            </Button>
-          </div>
-        }
-      />
-      <div className={cn('grid min-w-0 gap-6', saved && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
-        <div className="flex min-w-0 flex-col gap-6">
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div
-                role="radiogroup"
-                aria-label={t('finance.new.kind')}
-                className="flex flex-wrap gap-1 rounded-lg border border-border p-1"
-              >
-                {KINDS.map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    role="radio"
-                    aria-checked={d.kind === k}
-                    data-kind={k}
-                    onClick={() => set('kind', k)}
-                    className={cn(
-                      'min-h-11 rounded-md px-3 text-sm font-medium',
-                      d.kind === k ? 'bg-text text-raised' : 'text-muted hover:text-text',
-                    )}
-                  >
-                    {t(`finance.kind.${k}`)}
-                  </button>
-                ))}
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            void save(false);
+          }
+        }}
+      >
+        <PageHeader
+          crumbs={[{ label: t('nav.finance'), href: '/finance' }, { label: t('finance.new.title') }]}
+          title={t('finance.new.title')}
+        />
+        <div
+          className={cn(
+            'grid min-w-0 gap-6 @min-[640px]:col-span-2',
+            saved && '@min-[1000px]:grid-cols-[minmax(0,1fr)_320px]',
+          )}
+        >
+          <div className="flex min-w-0 flex-col gap-6">
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div
+                  role="radiogroup"
+                  aria-label={t('finance.new.kind')}
+                  className="flex flex-wrap gap-1 rounded-[26px] bg-surface p-1"
+                >
+                  {KINDS.map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      role="radio"
+                      aria-checked={d.kind === k}
+                      data-kind={k}
+                      onClick={() => set('kind', k)}
+                      className={cn(
+                        'min-h-9 rounded-pill px-4 text-base font-medium leading-5 transition-[background-color,color,box-shadow] duration-[var(--dur-base)] ease-[var(--ease-standard)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus max-sm:min-h-11',
+                        d.kind === k
+                          ? 'bg-raised font-semibold text-strong shadow-tab'
+                          : 'text-muted hover:text-strong',
+                      )}
+                    >
+                      {t(`finance.kind.${k}`)}
+                    </button>
+                  ))}
+                </div>
+                <StatusChip tone="neutral">{t('finance.source.typed')}</StatusChip>
               </div>
-              <StatusChip tone="neutral">{t('finance.source.typed')}</StatusChip>
-            </div>
-            {/* two to a row: a date box needs the room for its day, its calendar and Clear — four to a row cut the
+              {/* two to a row: a date box needs the room for its day, its calendar and Clear — four to a row cut the
                 year off the day ("13 Nov 202") */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label={t('finance.number.transaction')}
-                error={problem('ref') ?? undefined}
-                required={t('common.required')}
-              >
-                {(p) => (
-                  <Input
-                    {...p}
-                    mono
-                    data-new-ref
-                    autoFocus
-                    value={d.ref}
-                    // the form refuses more than 60 (invoice-form.ts): the box no longer takes 20 it will refuse
-                    maxLength={60}
-                    onChange={(e) => set('ref', e.target.value)}
-                  />
-                )}
-              </Field>
-              <Field label={t('finance.number.status')} error={problem('status')} required={t('common.required')}>
-                {(p) => (
-                  <Select
-                    id={p.id}
-                    aria-invalid={p['aria-invalid']}
-                    value={d.status || undefined}
-                    onValueChange={(v) => set('status', v)}
-                    options={opts(lists.status)}
-                  />
-                )}
-              </Field>
-              <Field label={t('finance.number.created')} error={problem('created')} required={t('common.required')}>
-                {(p) => (
-                  <DatePicker
-                    id={p.id}
-                    describedBy={p['aria-describedby']}
-                    invalid={p['aria-invalid']}
-                    value={d.created || undefined}
-                    onChange={(v) => set('created', v ?? '')}
-                  />
-                )}
-              </Field>
-              <Field label={t('finance.number.paid')} error={problem('paid')}>
-                {(p) => (
-                  <DatePicker
-                    id={p.id}
-                    describedBy={p['aria-describedby']}
-                    invalid={p['aria-invalid']}
-                    value={d.paid || undefined}
-                    onChange={(v) => set('paid', v ?? '')}
-                  />
-                )}
-              </Field>
-              {showMoney ? (
-                <Field label={t('finance.number.total')} error={problem('total')}>
+              <div className="grid gap-4 @min-[520px]:grid-cols-2">
+                <Field
+                  label={t('finance.number.transaction')}
+                  error={problem('ref') ?? undefined}
+                  required={t('common.required')}
+                >
                   {(p) => (
                     <Input
                       {...p}
                       mono
-                      inputMode="decimal"
-                      value={d.total}
-                      onChange={(e) => set('total', e.target.value)}
+                      data-new-ref
+                      autoFocus
+                      value={d.ref}
+                      // the form refuses more than 60 (invoice-form.ts): the box no longer takes 20 it will refuse
+                      maxLength={60}
+                      onChange={(e) => set('ref', e.target.value)}
                     />
                   )}
                 </Field>
-              ) : null}
-            </div>
-          </Card>
-
-          <Card title={t('finance.new.customer')}>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label={t('finance.new.clientId')}>
-                {(p) => <Input {...p} mono value={d.clientId} onChange={(e) => set('clientId', e.target.value)} />}
-              </Field>
-              <Field label={t('finance.new.name')}>
-                {(p) => <Input {...p} value={d.customerName} onChange={(e) => set('customerName', e.target.value)} />}
-              </Field>
-              <Field label={t('finance.new.email')}>
-                {(p) => (
-                  <Input
-                    {...p}
-                    type="email"
-                    value={d.customerEmail}
-                    onChange={(e) => set('customerEmail', e.target.value)}
-                  />
-                )}
-              </Field>
-            </div>
-          </Card>
-
-          {d.kind !== 'wallet_topup' ? (
-            <Card
-              title={t('finance.new.lines')}
-              count={d.lines.length}
-              action={
-                <Button
-                  variant="ghost"
-                  type="button"
-                  data-add-line
-                  onClick={() => setD((x) => ({ ...x, lines: [...x.lines, blankLine()] }))}
-                >
-                  <Plus aria-hidden="true" />
-                  {t('finance.new.addLine')}
-                </Button>
-              }
-            >
-              <div className="flex flex-col gap-3">
-                {d.lines.map((l, i) => (
-                  <div
-                    key={l.key}
-                    data-line-row
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 rounded-lg border border-border p-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.6fr_5rem_7rem_7rem_2.75rem] lg:border-0 lg:p-0"
-                  >
-                    <Field label={t('finance.new.product')} className={LINE_FIELD}>
-                      {(p) => (
-                        <Select
-                          id={p.id}
-                          value={l.product || NONE}
-                          onValueChange={(v) => {
-                            const product = v === NONE ? '' : v;
-                            setLine(l.key, { product, service: serviceOfProduct(product, lists) });
-                          }}
-                          options={[{ value: NONE, label: '—' }, ...opts(lists.product)]}
-                        />
-                      )}
-                    </Field>
-                    <Field label={t('finance.new.service')} className={LINE_FIELD}>
-                      {(p) => (
-                        <Select
-                          id={p.id}
-                          value={l.service || NONE}
-                          onValueChange={(v) => setLine(l.key, { service: v === NONE ? '' : v })}
-                          options={[{ value: NONE, label: '—' }, ...opts(lists.service)]}
-                        />
-                      )}
-                    </Field>
-                    <Field label={t('finance.new.item')} error={problem(`line.${i}.name`)} className={LINE_FIELD}>
-                      {(p) => (
-                        <Input {...p} value={l.name} onChange={(e) => setLine(l.key, { name: e.target.value })} />
-                      )}
-                    </Field>
-                    <Field label={t('finance.new.qty')} className={LINE_FIELD}>
-                      {(p) => (
-                        <Input
-                          {...p}
-                          mono
-                          inputMode="decimal"
-                          value={l.qty}
-                          onChange={(e) => setLine(l.key, { qty: e.target.value })}
-                        />
-                      )}
-                    </Field>
-                    <Field label={t('finance.new.price')} error={problem(`line.${i}.price`)} className={LINE_FIELD}>
-                      {(p) => (
-                        <Input
-                          {...p}
-                          mono
-                          inputMode="decimal"
-                          value={l.price}
-                          onChange={(e) => setLine(l.key, { price: e.target.value })}
-                        />
-                      )}
-                    </Field>
-                    {/* the line's total: named where there is no column over it, and on a phone on one row with the
-                        remove button — not a bare dash on a row of its own */}
-                    <div className="flex min-h-[var(--control-h)] items-end justify-between gap-2 pb-2 lg:justify-end">
-                      <span className="text-sm text-muted lg:hidden">{t('finance.number.total')}</span>
-                      <span className="text-end font-data tabular text-base" data-line-total>
-                        {lineTotal(l) === null ? '—' : fmt(lineTotal(l) ?? 0, locale)}
-                      </span>
-                    </div>
-                    <IconButton
-                      label={t('finance.new.removeLine')}
-                      icon={<X aria-hidden="true" />}
-                      onClick={() => setD((x) => ({ ...x, lines: x.lines.filter((y) => y.key !== l.key) }))}
-                      className="justify-self-end"
+                <Field label={t('finance.number.status')} error={problem('status')} required={t('common.required')}>
+                  {(p) => (
+                    <Select
+                      id={p.id}
+                      aria-invalid={p['aria-invalid']}
+                      value={d.status || undefined}
+                      onValueChange={(v) => set('status', v)}
+                      options={opts(lists.status)}
                     />
-                  </div>
-                ))}
-              </div>
-            </Card>
-          ) : null}
-
-          <Card
-            title={t('finance.new.expenses')}
-            count={d.expenses.length}
-            action={
-              <Button
-                variant="ghost"
-                type="button"
-                data-add-expense
-                onClick={() => setD((x) => ({ ...x, expenses: [...x.expenses, blankExpense()] }))}
-              >
-                <Plus aria-hidden="true" />
-                {t('finance.new.addExpense')}
-              </Button>
-            }
-          >
-            <div className="flex flex-col gap-3">
-              {d.expenses.map((e, i) => (
-                <div
-                  key={e.key}
-                  data-expense-row
-                  className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_7rem_1fr_1.2fr_1fr_2.75rem] lg:items-end lg:border-0 lg:p-0"
-                >
-                  <Field label={t('finance.new.type')} error={problem(`expense.${i}.type`)}>
-                    {(p) => (
-                      <Input {...p} value={e.type} onChange={(x) => setExpense(e.key, { type: x.target.value })} />
-                    )}
-                  </Field>
-                  <Field label={t('finance.new.amount')} error={problem(`expense.${i}.amount`)}>
+                  )}
+                </Field>
+                <Field label={t('finance.number.created')} error={problem('created')} required={t('common.required')}>
+                  {(p) => (
+                    <DatePicker
+                      id={p.id}
+                      describedBy={p['aria-describedby']}
+                      invalid={p['aria-invalid']}
+                      value={d.created || undefined}
+                      onChange={(v) => set('created', v ?? '')}
+                    />
+                  )}
+                </Field>
+                <Field label={t('finance.number.paid')} error={problem('paid')}>
+                  {(p) => (
+                    <DatePicker
+                      id={p.id}
+                      describedBy={p['aria-describedby']}
+                      invalid={p['aria-invalid']}
+                      value={d.paid || undefined}
+                      onChange={(v) => set('paid', v ?? '')}
+                    />
+                  )}
+                </Field>
+                {showMoney ? (
+                  <Field label={t('finance.number.total')} error={problem('total')}>
                     {(p) => (
                       <Input
                         {...p}
                         mono
                         inputMode="decimal"
-                        value={e.amount}
-                        onChange={(x) => setExpense(e.key, { amount: x.target.value })}
+                        value={d.total}
+                        onChange={(e) => set('total', e.target.value)}
                       />
                     )}
                   </Field>
-                  <Field label={t('finance.number.status')} error={problem(`expense.${i}.status`)}>
-                    {(p) => (
-                      <Select
-                        id={p.id}
-                        aria-invalid={p['aria-invalid']}
-                        value={e.status || undefined}
-                        onValueChange={(v) => setExpense(e.key, { status: v })}
-                        options={opts(lists.expenseStatus)}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t('finance.new.merchant')}>
-                    {(p) => (
-                      <Input
-                        {...p}
-                        value={e.merchant}
-                        onChange={(x) => setExpense(e.key, { merchant: x.target.value })}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t('finance.new.reference')}>
-                    {(p) => (
-                      <Input
-                        {...p}
-                        mono
-                        value={e.reference}
-                        onChange={(x) => setExpense(e.key, { reference: x.target.value })}
-                      />
-                    )}
-                  </Field>
-                  <IconButton
-                    label={t('finance.new.removeExpense')}
-                    icon={<X aria-hidden="true" />}
-                    onClick={() => setD((x) => ({ ...x, expenses: x.expenses.filter((y) => y.key !== e.key) }))}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+                ) : null}
+              </div>
+            </Card>
 
-        {saved ? <LastSaved key={`${saved.ref}|${saved.created}`} saved={saved} /> : null}
-      </div>
-    </form>
+            <Card title={t('finance.new.customer')}>
+              <div className="grid gap-4 @min-[640px]:grid-cols-3">
+                <Field label={t('finance.new.clientId')}>
+                  {(p) => <Input {...p} mono value={d.clientId} onChange={(e) => set('clientId', e.target.value)} />}
+                </Field>
+                <Field label={t('finance.new.name')}>
+                  {(p) => <Input {...p} value={d.customerName} onChange={(e) => set('customerName', e.target.value)} />}
+                </Field>
+                <Field label={t('finance.new.email')}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      type="email"
+                      value={d.customerEmail}
+                      onChange={(e) => set('customerEmail', e.target.value)}
+                    />
+                  )}
+                </Field>
+              </div>
+            </Card>
+
+            {d.kind !== 'wallet_topup' ? (
+              <Card
+                title={t('finance.new.lines')}
+                count={d.lines.length}
+                action={
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    data-add-line
+                    onClick={() => setD((x) => ({ ...x, lines: [...x.lines, blankLine()] }))}
+                  >
+                    <Plus aria-hidden="true" />
+                    {t('finance.new.addLine')}
+                  </Button>
+                }
+              >
+                <div className="flex flex-col gap-3">
+                  {d.lines.map((l, i) => (
+                    <div
+                      key={l.key}
+                      data-line-row
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 rounded-lg border border-border p-3 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-[1.2fr_1fr_1.6fr_5rem_7rem_7rem_2.75rem] @min-[900px]:border-0 @min-[900px]:p-0"
+                    >
+                      <Field label={t('finance.new.product')} className={LINE_FIELD}>
+                        {(p) => (
+                          <Select
+                            id={p.id}
+                            value={l.product || NONE}
+                            onValueChange={(v) => {
+                              const product = v === NONE ? '' : v;
+                              setLine(l.key, { product, service: serviceOfProduct(product, lists) });
+                            }}
+                            options={[{ value: NONE, label: '—' }, ...opts(lists.product)]}
+                          />
+                        )}
+                      </Field>
+                      <Field label={t('finance.new.service')} className={LINE_FIELD}>
+                        {(p) => (
+                          <Select
+                            id={p.id}
+                            value={l.service || NONE}
+                            onValueChange={(v) => setLine(l.key, { service: v === NONE ? '' : v })}
+                            options={[{ value: NONE, label: '—' }, ...opts(lists.service)]}
+                          />
+                        )}
+                      </Field>
+                      <Field label={t('finance.new.item')} error={problem(`line.${i}.name`)} className={LINE_FIELD}>
+                        {(p) => (
+                          <Input {...p} value={l.name} onChange={(e) => setLine(l.key, { name: e.target.value })} />
+                        )}
+                      </Field>
+                      <Field label={t('finance.new.qty')} className={LINE_FIELD}>
+                        {(p) => (
+                          <Input
+                            {...p}
+                            mono
+                            inputMode="decimal"
+                            value={l.qty}
+                            onChange={(e) => setLine(l.key, { qty: e.target.value })}
+                          />
+                        )}
+                      </Field>
+                      <Field label={t('finance.new.price')} error={problem(`line.${i}.price`)} className={LINE_FIELD}>
+                        {(p) => (
+                          <Input
+                            {...p}
+                            mono
+                            inputMode="decimal"
+                            value={l.price}
+                            onChange={(e) => setLine(l.key, { price: e.target.value })}
+                          />
+                        )}
+                      </Field>
+                      {/* the line's total: named where there is no column over it, and on a phone on one row with the
+                        remove button — not a bare dash on a row of its own */}
+                      <div className="flex min-h-[var(--control-h)] items-end justify-between gap-2 pb-2 @min-[900px]:justify-end">
+                        <span className="text-sm text-muted @min-[900px]:hidden">{t('finance.number.total')}</span>
+                        <span className="text-end font-data tabular text-base" data-line-total>
+                          {lineTotal(l) === null ? '—' : fmt(lineTotal(l) ?? 0, locale)}
+                        </span>
+                      </div>
+                      <IconButton
+                        label={t('finance.new.removeLine')}
+                        icon={<X aria-hidden="true" />}
+                        onClick={() => setD((x) => ({ ...x, lines: x.lines.filter((y) => y.key !== l.key) }))}
+                        className="justify-self-end"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
+
+            <Card
+              title={t('finance.new.expenses')}
+              count={d.expenses.length}
+              action={
+                <Button
+                  variant="ghost"
+                  type="button"
+                  data-add-expense
+                  onClick={() => setD((x) => ({ ...x, expenses: [...x.expenses, blankExpense()] }))}
+                >
+                  <Plus aria-hidden="true" />
+                  {t('finance.new.addExpense')}
+                </Button>
+              }
+            >
+              <div className="flex flex-col gap-3">
+                {d.expenses.map((e, i) => (
+                  <div
+                    key={e.key}
+                    data-expense-row
+                    className="grid gap-3 rounded-lg border border-border p-3 @min-[520px]:grid-cols-2 @min-[900px]:grid-cols-[1.2fr_7rem_1fr_1.2fr_1fr_2.75rem] @min-[900px]:items-end @min-[900px]:border-0 @min-[900px]:p-0"
+                  >
+                    <Field label={t('finance.new.type')} error={problem(`expense.${i}.type`)}>
+                      {(p) => (
+                        <Input {...p} value={e.type} onChange={(x) => setExpense(e.key, { type: x.target.value })} />
+                      )}
+                    </Field>
+                    <Field label={t('finance.new.amount')} error={problem(`expense.${i}.amount`)}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          mono
+                          inputMode="decimal"
+                          value={e.amount}
+                          onChange={(x) => setExpense(e.key, { amount: x.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <Field label={t('finance.number.status')} error={problem(`expense.${i}.status`)}>
+                      {(p) => (
+                        <Select
+                          id={p.id}
+                          aria-invalid={p['aria-invalid']}
+                          value={e.status || undefined}
+                          onValueChange={(v) => setExpense(e.key, { status: v })}
+                          options={opts(lists.expenseStatus)}
+                        />
+                      )}
+                    </Field>
+                    <Field label={t('finance.new.merchant')}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          value={e.merchant}
+                          onChange={(x) => setExpense(e.key, { merchant: x.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <Field label={t('finance.new.reference')}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          mono
+                          value={e.reference}
+                          onChange={(x) => setExpense(e.key, { reference: x.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <IconButton
+                      label={t('finance.new.removeExpense')}
+                      icon={<X aria-hidden="true" />}
+                      onClick={() => setD((x) => ({ ...x, expenses: x.expenses.filter((y) => y.key !== e.key) }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {saved ? <LastSaved key={`${saved.ref}|${saved.created}`} saved={saved} /> : null}
+        </div>
+        {/* the three actions, once: beside the title where there is room; where the page is narrow (a phone) a bar
+          that stays at the foot of the screen while the form scrolls, so Save is always in reach */}
+        <div
+          className="flex flex-wrap items-center justify-end gap-2 @min-[640px]:col-start-2 @min-[640px]:row-start-1 @max-[639px]:sticky @max-[639px]:bottom-3 @max-[639px]:z-20 @max-[639px]:rounded-xl @max-[639px]:border @max-[639px]:border-border @max-[639px]:bg-raised @max-[639px]:p-3 @max-[639px]:shadow-2"
+          data-new-invoice-actions
+        >
+          <Button variant="ghost" type="button" onClick={() => router.push('/finance')}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="secondary" type="button" disabled={busy} onClick={() => void save(true)} data-save-new>
+            {t('finance.new.saveNew')}
+          </Button>
+          <Button variant="primary" type="submit" disabled={busy} data-save>
+            {t('common.save')}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -501,12 +517,12 @@ function Card({
   children: ReactNode;
 }) {
   return (
-    <section className="flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-raised p-4">
+    <section className="@container flex min-w-0 flex-col gap-4 rounded-lg border border-border bg-raised p-4 shadow-1 sm:p-5">
       {title ? (
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold leading-6 text-strong">
             {title}
-            {count ? <span className="ms-2 text-sm font-normal text-muted">{count}</span> : null}
+            {count ? <span className="ms-2 font-data text-sm font-normal text-muted">{count}</span> : null}
           </h2>
           {action}
         </div>
@@ -554,11 +570,11 @@ function LastSaved({ saved }: { saved: { ref: string; created: string } }) {
   }, [saved, turn]);
   return (
     <aside
-      className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-4 lg:self-start"
+      className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-raised p-4 shadow-1 @min-[1000px]:sticky @min-[1000px]:top-4 @min-[1000px]:self-start sm:p-5"
       aria-label={t('finance.new.lastSaved')}
       data-last-saved
     >
-      <h2 className="text-sm font-semibold">
+      <h2 className="font-display text-lg font-semibold leading-6 text-strong">
         {t('finance.new.lastSaved')} <span className="font-data tabular font-normal text-muted">{saved.ref}</span>
       </h2>
       {read.status === 'loading' ? (
@@ -583,7 +599,7 @@ function LastSaved({ saved }: { saved: { ref: string; created: string } }) {
       {read.status === 'ready'
         ? read.units.map((u, i) => (
             <div key={`${u.unit_kind}-${i}`} className="flex flex-col gap-2" data-last-unit data-counted={u.counted}>
-              <dl className="grid grid-cols-3 gap-2 rounded-lg border border-border p-3">
+              <dl className="grid grid-cols-3 gap-2 rounded-lg bg-surface p-3">
                 {(
                   [
                     ['revenue', u.revenue],
@@ -593,7 +609,15 @@ function LastSaved({ saved }: { saved: { ref: string; created: string } }) {
                 ).map(([k, v]) => (
                   <div key={k} className="flex min-w-0 flex-col gap-1" data-total={k}>
                     <dt className="text-xs text-muted">{t(`finance.tile.${k}`)}</dt>
-                    <dd className="font-data tabular text-base font-semibold">{fmt(u.counted ? v : 0, locale)}</dd>
+                    <dd
+                      className={cn(
+                        'font-data text-base font-semibold tabular [overflow-wrap:anywhere]',
+                        // Revenue is the one green figure, as on the Finance page
+                        k === 'revenue' ? 'text-success' : 'text-strong',
+                      )}
+                    >
+                      {fmt(u.counted ? v : 0, locale)}
+                    </dd>
                   </div>
                 ))}
               </dl>

@@ -1,6 +1,7 @@
 import { cn } from './cn';
 
-/** A money figure: mono, tabular, currency muted beside it. Never a VAT amount (M1). */
+/** A money figure: mono, tabular, currency muted beside it (never under 12 px, 14 px beside a key figure). Never a VAT
+ *  amount (M1). */
 export function Money({
   value,
   currency = 'SAR',
@@ -21,7 +22,7 @@ export function Money({
       )}
     >
       {value}
-      <span className="font-ui text-[.75em] font-medium text-muted">{currency}</span>
+      <span className="font-ui text-[clamp(12px,.6em,14px)] font-medium text-muted">{currency}</span>
     </span>
   );
 }

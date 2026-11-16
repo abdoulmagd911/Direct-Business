@@ -22,28 +22,36 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-raised: var(--raised);
+  --color-pressed: var(--pressed);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-text: var(--text);
+  --color-strong: var(--strong);
   --color-muted: var(--muted);
   --color-link: var(--link);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-on-accent: var(--on-accent);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-pressed: var(--primary-pressed);
   --color-on-primary: var(--on-primary);
   --color-focus: var(--focus);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--info);
+  --color-neutral: var(--neutral);
   --color-success-soft: var(--success-soft);
   --color-warning-soft: var(--warning-soft);
   --color-danger-soft: var(--danger-soft);
   --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
   --color-nav-bg: var(--nav-bg);
+  --color-nav-hover: var(--nav-hover);
   --color-nav-text: var(--nav-text);
   --color-nav-muted: var(--nav-muted);
   --color-nav-active: var(--nav-active);
@@ -57,6 +65,14 @@
   --color-search-border: var(--search-border);
   --color-search-text: var(--search-text);
   --color-scrim: var(--scrim);
+  --color-kpi: var(--kpi);
+  --color-sel: var(--sel);
+  --color-on-sel: var(--on-sel);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-banner-text: var(--banner-text);
+  --color-banner-muted: var(--banner-muted);
+  --color-door-panel: var(--door-panel);
   --color-c1: var(--c1);
   --color-c2: var(--c2);
   --color-c3: var(--c3);
@@ -78,14 +94,18 @@
   --text-xl: var(--t-xl);
   --text-2xl: var(--t-2xl);
   --text-3xl: var(--t-3xl);
+  --text-4xl: var(--t-4xl);
 
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-sheet: var(--r-sheet);
   --radius-pill: var(--r-pill);
 
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
+  --shadow-hover: var(--shadow-hover);
 }
 
 @layer base {
@@ -103,8 +123,9 @@
     color: var(--text);
     font-family: var(--font-ui-stack);
     font-size: var(--t-base);
-    line-height: 1.5;
+    line-height: 1.5715;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   h1,
   h2,
@@ -115,6 +136,8 @@
     letter-spacing: -0.01em;
     text-wrap: balance;
     margin: 0;
+    /* headings and key figures are the dark brown of the look, body text one step softer */
+    color: var(--strong);
   }
   p {
     margin: 0;
@@ -158,6 +181,49 @@
       transition: none !important;
       animation: none !important;
     }
+  }
+}
+
+/*
+ * A theme change cross-fades the whole app (Landing 31, the Motion board): the browser snapshots the old colours and
+ * fades to the new ones over 200 ms, so every colour changes together and nothing moves. With "reduce motion" the
+ * rule above makes it instant; a browser without view transitions simply switches.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* The one gradient of the look: the My day banner. It runs toward the end edge, so it is mirrored in Arabic. */
+@utility banner-fill {
+  background-image: linear-gradient(110deg, var(--banner-1) 0%, var(--banner-2) 55%, var(--banner-3) 100%);
+  &:dir(rtl) {
+    background-image: linear-gradient(250deg, var(--banner-1) 0%, var(--banner-2) 55%, var(--banner-3) 100%);
+  }
+}
+
+/* A loading bar's soft shimmer (the skeleton): 1.6 s, running toward the end edge; still with "reduce motion". */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@utility shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, var(--shim) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer var(--dur-shimmer) ease-in-out infinite;
+  &:dir(rtl) {
+    animation-direction: reverse;
   }
 }
 
@@ -267,4 +333,237 @@
       min-width: 0;
     }
   }
+}
+
+/*
+ * ---------- The V21 look: icon line, small shadows, tap areas, motion (Landing 31) ----------
+ * Lucide icons keep a 1.5 px line on screen at every size (the Icons board: "1.5px on screen at every size (Lucide
+ * with an absolute stroke)"): the line is drawn in screen pixels, not in the icon's own 24-unit grid, so a 14 px icon
+ * and a 24 px one carry the same weight wherever their size comes from (their own class or their parent's). An icon
+ * that must keep its own weight (the tick in a checkbox) says `icon-own-stroke`.
+ */
+svg.lucide:not(.icon-own-stroke) {
+  stroke-width: 1.5px;
+}
+svg.lucide:not(.icon-own-stroke) * {
+  vector-effect: non-scaling-stroke;
+}
+
+/*
+ * The look's small shadows that have no token of their own. They are cut from --scrim (dark in every theme), so no
+ * colour is written here (check-no-hex): the selected tab pill, the filled button and its pressed state, the top bar's
+ * 1 px line and the phone bar's lift.
+ */
+@utility shadow-tab {
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--scrim) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--scrim) 13%, transparent);
+}
+@utility shadow-button {
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) 22%, transparent);
+}
+@utility shadow-button-pressed {
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--scrim) 55%, transparent);
+}
+@utility shadow-topbar {
+  box-shadow: 0 1px 0 var(--border);
+}
+@utility shadow-bottombar {
+  box-shadow:
+    0 -1px 0 var(--border),
+    0 -6px 18px color-mix(in srgb, var(--scrim) 9%, transparent);
+}
+/* a picked card or option: the selection colour as its edge, 2 px inside */
+@utility ring-sel {
+  border-color: var(--sel);
+  box-shadow: inset 0 0 0 2px var(--sel);
+}
+
+/* A small control keeps its look and takes a 44 px tap area around it (the × in a chip, a 24 px icon button). */
+@utility hit-44 {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: min(0px, calc((100% - 44px) / 2));
+    inset-inline: min(0px, calc((100% - 44px) / 2));
+  }
+}
+
+/* A button's press: one step smaller for 80 ms (a card that is a link shrinks less); colour only with "reduce motion". */
+@utility press {
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-standard);
+  @media (prefers-reduced-motion: no-preference) {
+    &:active:not(:disabled, [aria-disabled='true']) {
+      transform: scale(0.98);
+    }
+  }
+}
+@utility press-card {
+  transition:
+    box-shadow var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-standard);
+  &:hover {
+    box-shadow: var(--shadow-hover);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    &:active {
+      transform: scale(0.99);
+    }
+  }
+}
+
+/*
+ * Motion on Radix's open and closed states (the Motion board, "Every pattern"): only opacity and transform move.
+ * Arriving uses the enter curve, leaving the exit curve and about two thirds of the time. Radix waits for the closing
+ * animation before it removes the element; with "reduce motion" the rule in the base layer makes all of it instant.
+ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--menu-shift, -4px));
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--panel-shift, 24px));
+  }
+}
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateX(var(--panel-shift, 24px));
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes show-late {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* the scrim behind a dialog or a sheet: fades 200 ms in, out with what it holds */
+@utility motion-scrim {
+  &[data-state='open'] {
+    animation: fade-in var(--dur-base) var(--ease-enter);
+  }
+  &[data-state='closed'] {
+    animation: fade-out var(--dur-exit) var(--ease-exit) forwards;
+  }
+}
+/* a dialog: fades in, grows from 96% and rises 8 px (240 ms); leaves in 160 ms */
+@utility motion-dialog {
+  &[data-state='open'] {
+    animation: dialog-in var(--dur-enter) var(--ease-enter);
+  }
+  &[data-state='closed'] {
+    animation: dialog-out var(--dur-exit) var(--ease-exit) forwards;
+  }
+}
+/* a menu, a picker's list, a hover card: fades in, grows from 97% out of its button's corner and drops 4 px */
+@utility motion-menu {
+  &[data-side='top'] {
+    --menu-shift: 4px;
+  }
+  &[data-state='open'],
+  &[data-state='delayed-open'],
+  &[data-state='instant-open'] {
+    animation: menu-in var(--dur-menu) var(--ease-enter);
+  }
+  /* no closing animation: while a menu fades out it still holds the page's clicks, so a press on its own button
+     right after closing it was lost (found by the browser tests, 16 Nov) — a menu leaves at once */
+}
+/* a phone sheet: travels up from below its own height (320 ms), and back down (240 ms) */
+@utility motion-sheet {
+  &[data-state='open'] {
+    animation: sheet-in var(--dur-sheet) var(--ease-enter);
+  }
+  &[data-state='closed'] {
+    animation: sheet-out var(--dur-sheet-exit) var(--ease-exit) forwards;
+  }
+}
+/* a side panel: slides 24 px in from the end edge while fading — from the left in Arabic */
+@utility motion-panel {
+  &:dir(rtl) {
+    --panel-shift: -24px;
+  }
+  &[data-state='open'] {
+    animation: panel-in var(--dur-enter) var(--ease-enter);
+  }
+  &[data-state='closed'] {
+    animation: panel-out var(--dur-exit) var(--ease-exit) forwards;
+  }
+}
+/* a full-page sheet on a phone that is a dialog on a wide screen (the detail panel under 900 px) */
+@utility motion-rise {
+  animation: rise-in var(--dur-base) var(--ease-enter);
+}
+/* a skeleton shows only when loading takes over 400 ms (the Motion board); at once, and still, with "reduce motion" */
+@utility show-late {
+  animation: show-late 1ms linear 400ms both;
+}
+
+/*
+ * Toasts (sonner draws and moves them): arrive in 200 ms, leave in 160 ms, on the enter curve. Sonner's own sheet is
+ * written into the page after this one, hence !important.
+ */
+[data-sonner-toast] {
+  transition-duration: var(--dur-toast) !important;
+  transition-timing-function: var(--ease-enter) !important;
+}
+[data-sonner-toast][data-removed='true'] {
+  transition-duration: var(--dur-toast-exit) !important;
+  transition-timing-function: var(--ease-exit) !important;
+}
+/* a toast rises 8 px into place and sinks 8 px on its way out (sonner's own travel is the toast's whole height) */
+[data-sonner-toast]:not([data-mounted='true']),
+[data-sonner-toast][data-removed='true'][data-front='true'][data-swipe-out='false'] {
+  --y: translateY(calc(var(--lift) * -8px)) !important;
 }

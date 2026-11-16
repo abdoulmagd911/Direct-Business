@@ -1,5 +1,5 @@
 'use client';
-import { Search } from 'lucide-react';
+import { ChevronDown, FlaskConical, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ import { SettingCard } from '@/modules/settings/screens/SettingCard';
 import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { cn } from '@/ui/cn';
 import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Dialog } from '@/ui/Dialog';
@@ -113,11 +114,11 @@ export function OrgAccess({
         <>
           <AccessTab matrix={matrix} />
           <section className="flex flex-col gap-4" data-access-section="roles" data-wide>
-            <h2 className="font-display text-lg font-semibold">{t('settings.tabs.roles')}</h2>
+            <h2 className="font-display text-lg font-semibold text-strong">{t('settings.tabs.roles')}</h2>
             <RolesTab org={org} people={people} />
           </section>
           <section className="flex flex-col gap-4" data-access-section="sign-in">
-            <h2 className="font-display text-lg font-semibold">{t('settings.tabs.signIn')}</h2>
+            <h2 className="font-display text-lg font-semibold text-strong">{t('settings.tabs.signIn')}</h2>
             {settings.map((def) => (
               <SettingCard key={def.key} def={def} departments={org.departments} canEdit={canEdit} today={today} />
             ))}
@@ -185,6 +186,7 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
   const [q, setQ] = useState('');
   const [dept, setDept] = useState('all');
   const [adding, setAdding] = useState(false);
+  const [showTest, setShowTest] = useState(false);
   const sw = useTestSwitch();
   // the search reads the department and team names too (both languages), so a name typed in either language finds
   // its people; the department picker narrows the same rows (one change covers the table and the phone cards)
@@ -199,13 +201,77 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
     )
     .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
   // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it.
-  // Landing 30: on the phone cards only — in the wide table the button was a column of its own that pushed the table
-  // past its box (QA-592); there the door is on the person's record (PersonRecord, the actions row).
+  // Landing 30: on the phone list only (under Test users) — in the wide table the button was a column of its own that
+  // pushed the table past its box (QA-592); there the door is on the person's record (PersonRecord, the actions row).
   const offered = (p: PersonRow) => offersSwitch(me, p);
   // the name and the job title in the language of the screen, the English one where there is no Arabic yet
   const arabic = names.locale === 'ar';
   const fullName = (p: PersonRow) => (arabic && p.full_name_ar) || p.full_name_en;
   const jobTitle = (p: PersonRow) => (arabic && p.job_title_ar) || p.job_title_en;
+  // mounted only while open: each Add starts from an empty form (a cancelled one left its typing behind)
+  const addDialog = adding ? (
+    <AddPersonDialog
+      open
+      onOpenChange={setAdding}
+      org={org}
+      managers={leadersOf(org, people, today)}
+      onDone={(id) => router.push(`/people/${id}`)}
+    />
+  ) : null;
+  // nobody yet: one line and the one action, not a table of headings
+  if (people.length === 0)
+    return (
+      <section className="flex flex-col gap-4" data-people data-wide>
+        <DataState
+          kind="empty"
+          message={t('settings.people.empty')}
+          action={
+            <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)} data-person-add>
+              {t('settings.people.add')}
+            </Button>
+          }
+        />
+        {addDialog}
+      </section>
+    );
+  // on a phone the TEST users are a list of their own, closed until asked for (13 Nov board)
+  const everyday = rows.filter((p) => !p.is_test);
+  const testUsers = rows.filter((p) => p.is_test);
+  const card = (p: PersonRow) => {
+    const avatar = names.avatar(p.id);
+    const place = isAccount(p) ? '' : names.team(p.team_id) || names.dept(p.department_id);
+    return (
+      <li key={p.id} className="flex flex-col gap-2 px-4 py-2.5" data-person-card={p.id}>
+        <div className="flex min-h-11 items-center justify-between gap-3">
+          <Link href={`/people/${p.id}`} className="flex min-h-11 min-w-0 items-center gap-3" data-entity="person">
+            {/* O2: decorative here too — the link already names the person (see the table row below). */}
+            {avatar ? <Avatar person={avatar} size="md" decorative /> : null}
+            <span className="flex min-w-0 flex-col gap-0.5 leading-tight">
+              <span className="truncate font-medium text-strong">{fullName(p)}</span>
+              <span className="truncate text-sm text-muted">
+                <PersonRole row={p} roleName={names.role(p.role?.id)} />
+                {place ? ` · ${place}` : ''}
+              </span>
+            </span>
+          </Link>
+          {/* no pill for the everyday case (allowed, with a role): only what needs saying is said */}
+          {isEveryday(p, today) ? null : <PersonStatus row={p} today={today} />}
+        </div>
+        {offered(p) ? (
+          <div>
+            <Button
+              onClick={() => void sw.start(p.id)}
+              disabled={sw.busy}
+              className="max-sm:min-h-11"
+              data-test-switch-start={p.id}
+            >
+              {t('testSwitch.start')}
+            </Button>
+          </div>
+        ) : null}
+      </li>
+    );
+  };
   return (
     <section className="flex flex-col gap-4" data-people data-wide>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -233,11 +299,18 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
             data-people-department
           />
         </div>
-        <Button variant="primary" onClick={() => setAdding(true)} data-person-add>
+        {/* on a phone the one action comes first, the whole width of the screen (13 Nov board) */}
+        <Button
+          variant="primary"
+          icon={<Plus />}
+          onClick={() => setAdding(true)}
+          className="max-sm:order-first max-sm:min-h-11 max-sm:w-full"
+          data-person-add
+        >
           {t('settings.people.add')}
         </Button>
       </div>
-      <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised shadow-1 sm:block">
         <table className="w-full table-auto text-sm">
           <thead className="text-xs text-muted">
             <tr>
@@ -315,58 +388,44 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
           </tbody>
         </table>
       </div>
-      <ul className="flex flex-col gap-2 sm:hidden" data-people-cards>
-        {rows.map((p) => {
-          const avatar = names.avatar(p.id);
-          return (
-            <li key={p.id} className="rounded-lg border border-border bg-raised p-3" data-person-card={p.id}>
-              <div className="flex items-center justify-between gap-3">
-                <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2.5" data-entity="person">
-                  {/* O2: decorative here too — the link already names the person (see the table row above). */}
-                  {avatar ? <Avatar person={avatar} size="sm" decorative /> : null}
-                  <span className="flex min-w-0 flex-col leading-tight">
-                    <span className="truncate font-medium">{fullName(p)}</span>
-                    <span className="truncate text-xs text-muted">
-                      <PersonRole row={p} roleName={names.role(p.role?.id)} />
-                      {!isAccount(p) && names.dept(p.department_id) ? ` · ${names.dept(p.department_id)}` : ''}
-                    </span>
-                  </span>
-                </Link>
-                <PersonStatus row={p} today={today} />
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                <span className="font-data">
-                  {p.emails.map((e) => e.email).join(', ') || t('settings.people.noEmails')}
-                </span>
-                <span className="font-data whitespace-nowrap">
-                  {t('settings.people.lastSignIn')}:{' '}
-                  {p.last_sign_in_at
-                    ? formatDate(new Date(p.last_sign_in_at), names.locale, { dateStyle: 'medium' })
-                    : t('settings.people.never')}
-                </span>
-              </div>
-              {offered(p) ? (
-                <div className="mt-2">
-                  <Button onClick={() => void sw.start(p.id)} disabled={sw.busy} data-test-switch-start={p.id}>
-                    {t('testSwitch.start')}
-                  </Button>
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      {q.trim() !== '' && rows.length === 0 ? <DataState kind="empty" message={t('settings.people.noMatch')} /> : null}
-      {/* mounted only while open: each Add starts from an empty form (a cancelled one left its typing behind) */}
-      {adding ? (
-        <AddPersonDialog
-          open
-          onOpenChange={setAdding}
-          org={org}
-          managers={leadersOf(org, people, today)}
-          onDone={(id) => router.push(`/people/${id}`)}
-        />
+      {everyday.length ? (
+        <ul
+          className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-raised shadow-1 sm:hidden"
+          data-people-cards
+        >
+          {everyday.map(card)}
+        </ul>
       ) : null}
+      {testUsers.length ? (
+        <div
+          className="overflow-hidden rounded-lg border border-border bg-raised shadow-1 sm:hidden"
+          data-people-test-users
+        >
+          <button
+            type="button"
+            aria-expanded={showTest}
+            onClick={() => setShowTest((o) => !o)}
+            className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-start text-base font-medium text-strong focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+            data-people-test-users-toggle
+          >
+            <span
+              aria-hidden="true"
+              className="inline-grid size-8 shrink-0 place-items-center rounded-pill bg-accent-soft text-accent-ink"
+            >
+              <FlaskConical className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">{t('settings.people.testUsers')}</span>
+            <span className="font-data text-sm font-normal text-muted">{testUsers.length}</span>
+            <ChevronDown
+              className={cn('size-4 shrink-0 text-muted transition-transform', showTest && 'rotate-180')}
+              aria-hidden="true"
+            />
+          </button>
+          {showTest ? <ul className="divide-y divide-border border-t border-border">{testUsers.map(card)}</ul> : null}
+        </div>
+      ) : null}
+      {q.trim() !== '' && rows.length === 0 ? <DataState kind="empty" message={t('settings.people.noMatch')} /> : null}
+      {addDialog}
     </section>
   );
 }
@@ -414,6 +473,11 @@ function PersonStatus({ row, today }: { row: PersonRow; today: string }) {
       {t('settings.people.signInOn')}
     </StatusChip>
   );
+}
+
+/** The everyday case — works here, may sign in, has a role: the phone list says nothing more about it (13 Nov board). */
+export function isEveryday(row: Pick<PersonRow, 'left_on' | 'can_sign_in' | 'role'>, today: string): boolean {
+  return !hasLeft(row, today) && row.can_sign_in && !!row.role;
 }
 
 function AddPersonDialog({
@@ -771,7 +835,7 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
     <div className="flex flex-col gap-8" data-teams data-wide>
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">{t('settings.tabs.teams')}</h3>
+          <h3 className="font-display text-lg font-semibold text-strong">{t('settings.tabs.teams')}</h3>
           <Button size="sm" variant="primary" onClick={() => openTeam('new')} data-team-add>
             {t('settings.teams.add')}
           </Button>
@@ -781,7 +845,11 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
             {[...org.teams]
               .sort((a, b) => Number(!a.active) - Number(!b.active) || a.name_en.localeCompare(b.name_en))
               .map((x) => (
-                <li key={x.id} className="rounded-lg border border-border bg-raised p-3" data-team-row={x.code}>
+                <li
+                  key={x.id}
+                  className="rounded-lg border border-border bg-raised p-4 shadow-1"
+                  data-team-row={x.code}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <span className="flex min-w-0 flex-wrap items-center gap-2 font-medium [overflow-wrap:anywhere]">
                       {names.pick(x)}
@@ -805,12 +873,13 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
                   </dl>
                   {x.active ? (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      <Button size="xs" variant="ghost" onClick={() => openTeam(x)}>
+                      <Button size="xs" variant="ghost" className="min-h-11" onClick={() => openTeam(x)}>
                         {t('common.edit')}
                       </Button>
                       <Button
                         size="xs"
                         variant="ghost"
+                        className="min-h-11"
                         onClick={() => {
                           setMoveTo('');
                           setRetiring(x);
@@ -825,7 +894,7 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
               ))}
           </ul>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border bg-raised">
+          <div className="overflow-x-auto rounded-lg border border-border bg-raised shadow-1">
             <table className="w-full table-auto text-sm">
               <thead className="text-xs text-muted">
                 <tr>
@@ -893,7 +962,7 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
       </section>
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">{t('settings.people.department')}</h3>
+          <h3 className="font-display text-lg font-semibold text-strong">{t('settings.people.department')}</h3>
           <Button size="sm" onClick={() => openDept('new')}>
             {t('settings.departments.add')}
           </Button>
@@ -901,7 +970,11 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
         {phone ? (
           <ul className="flex flex-col gap-2" data-departments-cards>
             {org.departments.map((x) => (
-              <li key={x.id} className="rounded-lg border border-border bg-raised p-3" data-department-row={x.code}>
+              <li
+                key={x.id}
+                className="rounded-lg border border-border bg-raised p-4 shadow-1"
+                data-department-row={x.code}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{names.pick(x)}</span>
                   <span className="shrink-0 font-data text-xs text-muted">{x.code}</span>
@@ -917,7 +990,7 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
                   </div>
                 </dl>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  <Button size="xs" variant="ghost" onClick={() => openDept(x)}>
+                  <Button size="xs" variant="ghost" className="min-h-11" onClick={() => openDept(x)}>
                     {t('common.edit')}
                   </Button>
                 </div>
@@ -925,7 +998,7 @@ function TeamsTab({ org, people, today }: { org: OrgAnswer; people: PeopleAnswer
             ))}
           </ul>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border bg-raised">
+          <div className="overflow-x-auto rounded-lg border border-border bg-raised shadow-1">
             <table className="w-full table-auto text-sm">
               <thead className="text-xs text-muted">
                 <tr>
@@ -1156,7 +1229,7 @@ function RolesTab({ org, people }: { org: OrgAnswer; people: PeopleAnswer }) {
           {t('common.add')}
         </Button>
       </div>
-      <ScrollCue className="rounded-lg border border-border bg-raised">
+      <ScrollCue className="rounded-lg border border-border bg-raised shadow-1">
         <table className="w-full text-sm whitespace-nowrap">
           <thead className="text-xs text-muted">
             <tr>
@@ -1341,96 +1414,106 @@ function AccessTab({ matrix }: { matrix: MatrixAnswer }) {
   const pageWord = (key: string) => (labels[key] && t.has(labels[key]!) ? t(labels[key]!) : key);
   const capWord = (key: string) => (caps[key] && t.has(caps[key]!) ? t(caps[key]!) : key);
   return (
-    <ScrollCue className="rounded-lg border border-border bg-raised" data-access-matrix data-wide>
-      <table className="w-full text-sm">
-        <thead className="text-xs text-muted">
-          <tr>
-            <th className="sticky start-0 z-10 bg-raised px-4 py-2.5 text-start font-medium">
-              {t('settings.access.page')}
-            </th>
-            {roles.map((r) => (
-              <th key={r.id} className="px-3 py-2.5 text-start font-medium">
-                {roleName(r)}
+    <>
+      {/* what each level means, before the matrix that sets them (boards settings-access-*) */}
+      <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted" data-access-legend>
+        {(['full', 'own', 'view', 'none'] as const).map((l) => (
+          <span key={l}>
+            <b className="font-semibold text-strong">{t(`levels.${l}`)}</b> {t(`settings.access.legend.${l}`)}
+          </span>
+        ))}
+      </p>
+      <ScrollCue className="rounded-lg border border-border bg-raised shadow-1" data-access-matrix data-wide>
+        <table className="w-full text-sm">
+          <thead className="text-xs text-muted">
+            <tr>
+              <th className="sticky start-0 z-10 bg-raised px-4 py-2.5 text-start font-medium">
+                {t('settings.access.page')}
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {pages.map((p) => (
-            <RowGroup key={p.key}>
-              <tr data-access-page={p.key}>
-                <th scope="row" className="sticky start-0 z-10 bg-raised px-4 py-2 text-start font-medium">
-                  {pageWord(p.key)}
+              {roles.map((r) => (
+                <th key={r.id} className="px-3 py-2.5 text-start font-medium">
+                  {roleName(r)}
                 </th>
-                {roles.map((r) => {
-                  const top = p.levels[p.levels.length - 1] ?? 'full';
-                  const value = r.is_admin ? top : levelOf(r.id, p.key);
-                  return (
-                    <td key={r.id} className="px-3 py-1.5" data-access-role={r.key}>
-                      <Select
-                        value={value}
-                        disabled={r.is_admin}
-                        onValueChange={(v) => setPending({ kind: 'level', role: r, page: p.key, level: v as Level })}
-                        options={LEVELS.filter((l) => p.levels.includes(l)).map((l) => ({
-                          value: l,
-                          label: t(`levels.${l}`),
-                        }))}
-                        className="h-8 min-w-24 text-sm"
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-              {matrix.capabilities
-                .filter((c) => c.page === p.key)
-                .map((c) => (
-                  <tr key={c.key} className="bg-surface/60" data-access-capability={c.key}>
-                    <th
-                      scope="row"
-                      className="sticky start-0 z-10 bg-raised px-4 py-1.5 ps-8 text-start text-xs font-normal text-muted"
-                    >
-                      {capWord(c.key)}
-                    </th>
-                    {roles.map((r) => (
-                      <td key={r.id} className="px-3 py-1.5">
-                        <Checkbox
-                          checked={r.is_admin ? true : capOf(r.id, c.key)}
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {pages.map((p) => (
+              <RowGroup key={p.key}>
+                <tr data-access-page={p.key}>
+                  <th scope="row" className="sticky start-0 z-10 bg-raised px-4 py-2 text-start font-medium">
+                    {pageWord(p.key)}
+                  </th>
+                  {roles.map((r) => {
+                    const top = p.levels[p.levels.length - 1] ?? 'full';
+                    const value = r.is_admin ? top : levelOf(r.id, p.key);
+                    return (
+                      <td key={r.id} className="px-3 py-1.5" data-access-role={r.key}>
+                        <Select
+                          value={value}
                           disabled={r.is_admin}
-                          onCheckedChange={(v) => setPending({ kind: 'cap', role: r, cap: c.key, granted: v })}
-                          label={`${roleName(r)} · ${capWord(c.key)}`}
+                          onValueChange={(v) => setPending({ kind: 'level', role: r, page: p.key, level: v as Level })}
+                          options={LEVELS.filter((l) => p.levels.includes(l)).map((l) => ({
+                            value: l,
+                            label: t(`levels.${l}`),
+                          }))}
+                          className="h-8 min-w-24 text-sm"
                         />
                       </td>
-                    ))}
-                  </tr>
-                ))}
-            </RowGroup>
-          ))}
-        </tbody>
-      </table>
-      <ReasonDialog
-        open={pending !== null}
-        onOpenChange={(o) => !o && setPending(null)}
-        title={
-          pending
-            ? t('settings.access.changeTitle', {
-                what:
-                  pending.kind === 'level'
-                    ? `${pageWord(pending.page)} · ${t(`levels.${pending.level}`)}`
-                    : `${capWord(pending.cap)} · ${pending.granted ? t('common.yes') : t('common.no')}`,
-                who: roleName(pending.role),
-              })
-            : ''
-        }
-        body={t('settings.access.reasonBody')}
-        onSave={apply}
-        words={{
-          reason: t('common.reason'),
-          save: t('common.save'),
-          cancel: t('common.cancel'),
-          reasonRequired: t('settings.form.reasonRequired'),
-        }}
-      />
-    </ScrollCue>
+                    );
+                  })}
+                </tr>
+                {matrix.capabilities
+                  .filter((c) => c.page === p.key)
+                  .map((c) => (
+                    <tr key={c.key} className="bg-surface/60" data-access-capability={c.key}>
+                      <th
+                        scope="row"
+                        className="sticky start-0 z-10 bg-raised px-4 py-1.5 ps-8 text-start text-xs font-normal text-muted"
+                      >
+                        {capWord(c.key)}
+                      </th>
+                      {roles.map((r) => (
+                        <td key={r.id} className="px-3 py-1.5">
+                          <Checkbox
+                            checked={r.is_admin ? true : capOf(r.id, c.key)}
+                            disabled={r.is_admin}
+                            onCheckedChange={(v) => setPending({ kind: 'cap', role: r, cap: c.key, granted: v })}
+                            label={`${roleName(r)} · ${capWord(c.key)}`}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+              </RowGroup>
+            ))}
+          </tbody>
+        </table>
+        <ReasonDialog
+          open={pending !== null}
+          onOpenChange={(o) => !o && setPending(null)}
+          title={
+            pending
+              ? t('settings.access.changeTitle', {
+                  what:
+                    pending.kind === 'level'
+                      ? `${pageWord(pending.page)} · ${t(`levels.${pending.level}`)}`
+                      : `${capWord(pending.cap)} · ${pending.granted ? t('common.yes') : t('common.no')}`,
+                  who: roleName(pending.role),
+                })
+              : ''
+          }
+          body={t('settings.access.reasonBody')}
+          onSave={apply}
+          words={{
+            reason: t('common.reason'),
+            save: t('common.save'),
+            cancel: t('common.cancel'),
+            reasonRequired: t('settings.form.reasonRequired'),
+          }}
+        />
+      </ScrollCue>
+    </>
   );
 }
 

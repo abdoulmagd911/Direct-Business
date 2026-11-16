@@ -34,6 +34,7 @@ const draw = (locale: 'en' | 'ar', a: MyDayAnswer = answer) =>
       <MyDay
         data={{
           title: 'Wednesday',
+          myWork: null,
           scope: 'me',
           answer: a,
           all: false,

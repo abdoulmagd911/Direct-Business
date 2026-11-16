@@ -1,5 +1,5 @@
 'use client';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { refetchAll } from '@/core/commands/refetch';
@@ -32,14 +32,25 @@ import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
 import type { PartnerRef } from '@/modules/my-day/types';
 import { Button, buttonVariants } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
+import { StatusChip, type Tone } from '@/ui/Chip';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { Input } from '@/ui/Input';
 import { toast } from '@/ui/Toast';
+import { FinanceCard, TD, TH } from './parts';
 
 type Stage = 'pick' | 'unknown' | 'preview' | 'confirmed';
+
+/** Each outcome's pill: new rows are the green ones, a row that needs linking is the one to look at. */
+const OUTCOME_TONE: Record<string, Tone> = {
+  new: 'success',
+  updated: 'info',
+  unchanged: 'neutral',
+  excluded: 'neutral',
+  needsLinking: 'warning',
+};
 
 const OUTCOME_KEY = {
   new: 'new',
@@ -388,7 +399,7 @@ export function FinanceImportSection() {
   };
 
   const counts = (c: PreviewCounts) => (
-    <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm" data-import-counts>
+    <ul className="flex flex-wrap gap-2" data-import-counts>
       {(
         [
           ['new', c.new],
@@ -399,8 +410,9 @@ export function FinanceImportSection() {
         ] as const
       ).map(([key, n]) => (
         <li key={key}>
-          <span className="text-muted">{t(`import.${key}`)}: </span>
-          <span className="font-data tabular font-semibold">{n}</span>
+          <StatusChip tone={n > 0 ? (OUTCOME_TONE[key] ?? 'neutral') : 'neutral'}>
+            {t(`import.${key}`)} · <span className="font-data tabular">{n}</span>
+          </StatusChip>
         </li>
       ))}
     </ul>
@@ -508,397 +520,455 @@ export function FinanceImportSection() {
   };
 
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="finance-import" data-finance-import-section>
-      <h2 id="finance-import" className="font-display text-lg font-semibold">
-        {t('import.title')}
-      </h2>
-      <p className="text-sm text-muted">{t('import.nothingSavedYet')}</p>
-
-      {/* the two labels on one line: a picked partner is two lines tall, so the boxes line up at their top */}
-      <div className="flex flex-wrap items-start gap-3">
-        <Field label={t('import.choosePartner')} className="min-w-[16rem] flex-1">
-          {({ id }) => (
-            <PartnerPicker
-              id={id}
-              value={partner}
-              onChange={(p) => {
-                resetFile();
-                // The past batches belong to the picked partner: a cleared or changed partner clears them.
-                setBatches(null);
-                setBatchesFailed(false);
-                openedBatch.current = null;
-                askedPartner.current = null;
-                setOpenBatch(null);
-                setBatchRows(null);
-                setPartner(p);
-              }}
-            />
-          )}
-        </Field>
-        <Field label={t('import.chooseFile')} className="min-w-[16rem] flex-1">
-          {({ id }) => (
-            <Input
-              id={id}
-              ref={fileRef}
-              type="file"
-              accept=".csv,text/csv"
-              disabled={!partner}
-              onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-              // the browser's own Choose file button, drawn like the app's, in the middle of the box
-              className="py-1 leading-[calc(var(--control-h)-0.6rem)] file:me-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:font-medium file:text-text"
-              data-import-file
-            />
-          )}
-        </Field>
-      </div>
-
-      {loading ? <DataState kind="loading" message={t('state.loading', { what: t('import.title') })} /> : null}
-
-      {stage === 'unknown' && detection && !detection.recognised ? (
-        <div className="flex flex-col gap-3" data-import-unknown>
-          <p role="alert" className="text-sm text-danger">
-            {emptyFile
-              ? t('import.emptyFile')
-              : detection.reason === 'binary'
-                ? t('import.binaryFile')
-                : detection.reason === 'own_report'
-                  ? t('import.ownReport')
-                  : t('import.unknownSignature')}
-          </p>
-          {!emptyFile && detection.reason === 'unknown' ? (
-            <p className="text-sm text-muted">{t('import.unknownSignatureBody')}</p>
-          ) : null}
-          {detection.reason === 'unknown' && detection.columns.length ? (
-            <>
-              <h3 className="text-sm font-medium">{t('import.columns')}</h3>
-              <ul className="flex flex-wrap gap-2">
-                {detection.columns.map((c, i) => (
-                  <li
-                    key={`${i}:${c}`}
-                    className="rounded-md border border-border bg-raised px-2 py-1 font-data text-sm"
-                  >
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          <div>
-            <Button variant="secondary" onClick={resetFile} data-import-start-over>
-              {t('import.startOver')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {stage === 'preview' && signature ? (
-        <div className="flex flex-col gap-4" data-import-preview>
-          <p className="text-sm" data-import-file-type>
-            <span className="text-muted">{t('import.fileType')}: </span>
-            <span className="font-medium">{t(`import.signature.${signature.key}`)}</span>
-            {fileName ? <span className="text-muted"> · </span> : null}
-            {/* the file's own name keeps its own direction, so in Arabic it never splits across the line */}
-            {fileName ? <bdi className="font-data [overflow-wrap:anywhere]">{fileName}</bdi> : null}
-          </p>
-
-          {signature.kind === 'promo' ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <Field
-                label={t('import.code')}
-                error={codeError || undefined}
-                required={t('common.required')}
-                className="min-w-[12rem] flex-1"
+    <FinanceCard id="finance-import" title={t('import.title')} data-finance-import-section>
+      <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5 sm:pb-5">
+        {/* the three steps of the 13 Nov import boards, lit as far as this import has come */}
+        <ol
+          className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-base"
+          aria-label={t('import.step.label')}
+          data-import-steps
+        >
+          {(['choose', 'review', 'done'] as const).map((key, i) => {
+            const at = stage === 'confirmed' ? 2 : stage === 'preview' ? 1 : 0;
+            return (
+              <li
+                key={key}
+                className={cn('flex items-center gap-1.5', i <= at ? 'font-medium text-strong' : 'text-muted')}
+                aria-current={i === at ? 'step' : undefined}
+                data-import-step={key}
+                data-on={i <= at ? '' : undefined}
               >
-                {({ id, ...p }) => (
-                  <Input id={id} {...p} value={code} onChange={(e) => onCode(e.target.value)} data-import-code />
-                )}
-              </Field>
-              <Button variant="primary" onClick={() => void onReview()} data-import-review>
-                {t('import.review')}
+                {i > 0 ? <ChevronRight className="size-4 text-muted rtl:-scale-x-100" aria-hidden="true" /> : null}
+                <span
+                  className={cn(
+                    'inline-grid size-6 shrink-0 place-items-center rounded-pill font-data text-xs font-semibold',
+                    i <= at ? 'bg-primary text-on-primary' : 'bg-pressed text-muted',
+                  )}
+                >
+                  {i + 1}
+                </span>
+                {t(`import.step.${key}`)}
+              </li>
+            );
+          })}
+        </ol>
+        <p className="text-base text-muted">{t('import.nothingSavedYet')}</p>
+
+        {/* the two labels on one line: a picked partner is two lines tall, so the boxes line up at their top */}
+        <div className="grid items-start gap-3 @min-[600px]:grid-cols-2">
+          <Field label={t('import.choosePartner')} className="min-w-0">
+            {({ id }) => (
+              <PartnerPicker
+                id={id}
+                value={partner}
+                onChange={(p) => {
+                  resetFile();
+                  // The past batches belong to the picked partner: a cleared or changed partner clears them.
+                  setBatches(null);
+                  setBatchesFailed(false);
+                  openedBatch.current = null;
+                  askedPartner.current = null;
+                  setOpenBatch(null);
+                  setBatchRows(null);
+                  setPartner(p);
+                }}
+              />
+            )}
+          </Field>
+          <Field label={t('import.chooseFile')} className="min-w-0">
+            {({ id }) => (
+              <Input
+                id={id}
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                disabled={!partner}
+                onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+                // the browser's own Choose file button, drawn like the app's, in the middle of the box
+                className="py-1 leading-[calc(var(--control-h)-0.6rem)] file:me-3 file:rounded-pill file:border-0 file:bg-surface file:px-3 file:font-medium file:text-strong"
+                data-import-file
+              />
+            )}
+          </Field>
+        </div>
+
+        {loading ? <DataState kind="loading" message={t('state.loading', { what: t('import.title') })} /> : null}
+
+        {stage === 'unknown' && detection && !detection.recognised ? (
+          <div className="flex flex-col gap-3" data-import-unknown>
+            <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-base text-danger">
+              {emptyFile
+                ? t('import.emptyFile')
+                : detection.reason === 'binary'
+                  ? t('import.binaryFile')
+                  : detection.reason === 'own_report'
+                    ? t('import.ownReport')
+                    : t('import.unknownSignature')}
+            </p>
+            {!emptyFile && detection.reason === 'unknown' ? (
+              <p className="text-base text-muted">{t('import.unknownSignatureBody')}</p>
+            ) : null}
+            {detection.reason === 'unknown' && detection.columns.length ? (
+              <>
+                <h3 className="text-sm font-semibold text-strong">{t('import.columns')}</h3>
+                <ul className="flex flex-wrap gap-2">
+                  {detection.columns.map((c, i) => (
+                    <li key={`${i}:${c}`} className="max-w-full">
+                      {/* a long column name wraps inside its pill, never off the card */}
+                      <StatusChip
+                        tone="neutral"
+                        className="h-auto min-h-6 max-w-full whitespace-normal py-0.5 font-data"
+                      >
+                        <bdi className="[overflow-wrap:anywhere]">{c}</bdi>
+                      </StatusChip>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <div>
+              <Button variant="secondary" onClick={resetFile} data-import-start-over>
+                {t('import.startOver')}
               </Button>
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          {existingFailed && !preview ? (
-            <DataState
-              kind="failed"
-              what={t('import.title')}
-              message={t('import.existingFailed')}
-              onRetry={() => void onReview()}
-              retryLabel={t('common.tryAgain')}
-            />
-          ) : null}
-
-          {fileProblem ? (
-            <p role="alert" className="text-sm text-danger">
-              {word(fileProblem.why, fileProblem.text)}
+        {stage === 'preview' && signature ? (
+          <div className="flex flex-col gap-4" data-import-preview>
+            <p className="flex flex-wrap items-center gap-x-1.5 text-base" data-import-file-type>
+              <FileText className="size-4 shrink-0 text-muted" aria-hidden="true" />
+              <span className="text-muted">{t('import.fileType')}: </span>
+              <span className="font-medium">{t(`import.signature.${signature.key}`)}</span>
+              {fileName ? <span className="text-muted"> · </span> : null}
+              {/* the file's own name keeps its own direction, so in Arabic it never splits across the line */}
+              {fileName ? <bdi className="font-data [overflow-wrap:anywhere]">{fileName}</bdi> : null}
             </p>
-          ) : null}
 
-          {preview ? (
-            <>
-              {counts(preview.counts)}
-              {/* a phone reads each row as a card, the reason in full under its number (in the table it sat off the
-                  screen, past two columns); a wider screen keeps the table */}
-              <ul
-                className="flex flex-col overflow-hidden rounded-lg border border-border bg-raised sm:hidden"
-                data-import-rows-phone
-              >
-                {preview.rows.map((r) => (
-                  <li key={r.row_no} className="flex flex-col gap-1 border-b border-border px-3 py-2.5 last:border-b-0">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                      <span className="font-data tabular text-muted">
-                        {t('import.row')} {r.row_no}
-                      </span>
-                      <span className="font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</span>
-                      <span className="font-medium">{t(`import.${OUTCOME_KEY[r.outcome]}`)}</span>
-                      {r.duplicate ? (
-                        // on a phone there is no column heading, so the box says what it keeps
-                        <label className="ms-auto inline-flex items-center gap-1 text-sm">
-                          <Checkbox
-                            checked={decisions[r.row_no] === 'keep'}
-                            onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
-                            label={t('import.keep')}
-                          />
-                          <span aria-hidden="true">{t('import.keep')}</span>
-                        </label>
-                      ) : null}
-                    </div>
-                    <div className="text-sm text-muted">{reasonCell(r)}</div>
-                  </li>
-                ))}
-              </ul>
-              <div className="hidden overflow-x-auto rounded-lg border border-border bg-raised sm:block">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-surface text-xs text-muted">
-                      <th className="px-4 py-2 text-start font-semibold">{t('import.row')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('import.reference')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('import.outcome')}</th>
-                      <th className="px-4 py-2 text-start font-semibold">{t('import.reason')}</th>
-                      {/* the Keep column only when the file has a duplicate to keep */}
-                      {anyDuplicate ? <th className="px-4 py-2 text-start font-semibold">{t('import.keep')}</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.rows.map((r) => (
-                      <tr key={r.row_no} className="border-b border-border last:border-b-0">
-                        <td className="px-4 py-2.5 font-data tabular">{r.row_no}</td>
-                        <td className="px-4 py-2.5 font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</td>
-                        <td className="px-4 py-2.5">{t(`import.${OUTCOME_KEY[r.outcome]}`)}</td>
-                        <td className="px-4 py-2.5 text-muted">{reasonCell(r)}</td>
-                        {anyDuplicate ? (
-                          <td className="px-4 py-2.5">
-                            {r.duplicate ? (
-                              <Checkbox
-                                checked={decisions[r.row_no] === 'keep'}
-                                onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
-                                label={t('import.keep')}
-                              />
-                            ) : null}
-                          </td>
+            {signature.kind === 'promo' ? (
+              <div className="flex flex-wrap items-start gap-3">
+                <Field
+                  label={t('import.code')}
+                  error={codeError || undefined}
+                  required={t('common.required')}
+                  className="min-w-[12rem] flex-1"
+                >
+                  {({ id, ...p }) => (
+                    <Input id={id} {...p} value={code} onChange={(e) => onCode(e.target.value)} data-import-code />
+                  )}
+                </Field>
+                <Button variant="primary" className="mt-6" onClick={() => void onReview()} data-import-review>
+                  {t('import.review')}
+                </Button>
+              </div>
+            ) : null}
+
+            {existingFailed && !preview ? (
+              <DataState
+                kind="failed"
+                what={t('import.title')}
+                message={t('import.existingFailed')}
+                onRetry={() => void onReview()}
+                retryLabel={t('common.tryAgain')}
+              />
+            ) : null}
+
+            {fileProblem ? (
+              <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-base text-danger">
+                {word(fileProblem.why, fileProblem.text)}
+              </p>
+            ) : null}
+
+            {preview ? (
+              <>
+                {counts(preview.counts)}
+                {/* a narrow card (a phone, or a small window beside the open drawer) reads each row as a card, the reason
+                  in full under its number; a card wide enough keeps the table — by the card's width, so neither ever
+                  scrolls sideways */}
+                <ul
+                  className="flex flex-col overflow-hidden rounded-lg border border-border bg-raised @min-[640px]:hidden"
+                  data-import-rows-phone
+                >
+                  {preview.rows.map((r) => (
+                    <li
+                      key={r.row_no}
+                      className="flex flex-col gap-1 border-b border-border px-3 py-2.5 last:border-b-0"
+                    >
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span className="font-data tabular text-muted">
+                          {t('import.row')} {r.row_no}
+                        </span>
+                        <span className="font-data tabular">{r.transaction_ref ?? r.invoice_ref ?? '—'}</span>
+                        <StatusChip tone={OUTCOME_TONE[OUTCOME_KEY[r.outcome]] ?? 'neutral'}>
+                          {t(`import.${OUTCOME_KEY[r.outcome]}`)}
+                        </StatusChip>
+                        {r.duplicate ? (
+                          // on a phone there is no column heading, so the box says what it keeps
+                          <label className="ms-auto inline-flex items-center gap-1 text-sm">
+                            <Checkbox
+                              checked={decisions[r.row_no] === 'keep'}
+                              onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
+                              label={t('import.keep')}
+                            />
+                            <span aria-hidden="true">{t('import.keep')}</span>
+                          </label>
                         ) : null}
+                      </div>
+                      <div className="text-sm text-muted">{reasonCell(r)}</div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden overflow-hidden rounded-lg border border-border bg-raised @min-[640px]:block">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-surface">
+                        <th className={TH}>{t('import.row')}</th>
+                        <th className={TH}>{t('import.reference')}</th>
+                        <th className={TH}>{t('import.outcome')}</th>
+                        <th className={TH}>{t('import.reason')}</th>
+                        {/* the Keep column only when the file has a duplicate to keep */}
+                        {anyDuplicate ? <th className={TH}>{t('import.keep')}</th> : null}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {preview.clashes.length ? (
-                <div className="flex flex-col gap-1" data-import-clashes>
-                  <h3 className="text-sm font-medium">{t('import.held')}</h3>
-                  <ul className="flex flex-col gap-1 text-sm">
-                    {preview.clashes.map((c) => (
-                      <li key={c.row_no}>
-                        <span className="font-data tabular">{c.row_no}</span>
-                        <span className="text-muted"> · {word(c.why, c.reason)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    </thead>
+                    <tbody>
+                      {preview.rows.map((r) => (
+                        <tr key={r.row_no} className="border-b border-border last:border-b-0">
+                          <td className={cn(TD, 'font-data tabular')}>{r.row_no}</td>
+                          <td className={cn(TD, 'font-data tabular [overflow-wrap:anywhere]')}>
+                            {r.transaction_ref ?? r.invoice_ref ?? '—'}
+                          </td>
+                          <td className={TD}>
+                            <StatusChip tone={OUTCOME_TONE[OUTCOME_KEY[r.outcome]] ?? 'neutral'}>
+                              {t(`import.${OUTCOME_KEY[r.outcome]}`)}
+                            </StatusChip>
+                          </td>
+                          <td className={cn(TD, 'text-muted [overflow-wrap:anywhere]')}>{reasonCell(r)}</td>
+                          {anyDuplicate ? (
+                            <td className={TD}>
+                              {r.duplicate ? (
+                                <Checkbox
+                                  checked={decisions[r.row_no] === 'keep'}
+                                  onCheckedChange={(v) => onKeepDuplicate(r.row_no, v)}
+                                  label={t('import.keep')}
+                                />
+                              ) : null}
+                            </td>
+                          ) : null}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                <Button variant="primary" loading={busy} onClick={() => void onConfirm()} data-import-confirm>
-                  {t('import.confirm')}
-                </Button>
-                <Button variant="secondary" onClick={resetFile} data-import-start-over>
-                  {t('import.startOver')}
-                </Button>
-              </div>
-            </>
-          ) : null}
-        </div>
-      ) : null}
+                {preview.clashes.length ? (
+                  <div className="flex flex-col gap-1" data-import-clashes>
+                    <h3 className="text-sm font-semibold text-strong">{t('import.held')}</h3>
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {preview.clashes.map((c) => (
+                        <li key={c.row_no}>
+                          <span className="font-data tabular">{c.row_no}</span>
+                          <span className="text-muted"> · {word(c.why, c.reason)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {/* the board's foot: the way out first, the one filled button last, on the end edge */}
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button variant="secondary" onClick={resetFile} data-import-start-over>
+                    {t('import.startOver')}
+                  </Button>
+                  <Button variant="primary" loading={busy} onClick={() => void onConfirm()} data-import-confirm>
+                    {t('import.confirm')}
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : null}
 
-      {stage === 'confirmed' && confirmed ? (
-        <div className="flex flex-col gap-3" data-import-confirmed>
-          <p className="text-sm font-medium">{t('import.confirmed')}</p>
-          {counts(confirmed)}
-          {storedFile ? (
-            <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file>
-              <span className="text-muted">{t('import.sourceFile')}: </span>
-              <bdi className="font-data [overflow-wrap:anywhere]">{storedFile.name}</bdi>
-              <a
-                href={recordFileDownloadUrl(storedFile.id, locale)}
-                target="_blank"
-                rel="noreferrer"
-                className={buttonVariants({ size: 'xs' })}
-                data-import-source-download
+        {stage === 'confirmed' && confirmed ? (
+          <div
+            className="flex flex-col gap-3 rounded-lg border border-success/30 bg-success-soft p-4"
+            role="status"
+            data-import-confirmed
+          >
+            <p className="flex items-center gap-3 font-display text-lg font-semibold text-strong">
+              <span
+                aria-hidden="true"
+                className="inline-grid size-10 shrink-0 place-items-center rounded-pill bg-raised text-success"
               >
-                {t('record.files.download')}
-              </a>
-              <FileLinkButton fileId={storedFile.id} />
+                <Check className="size-5" />
+              </span>
+              {t('import.confirmed')}
             </p>
-          ) : sourceFileFailed ? (
-            <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file-failed role="alert">
-              <span className="text-danger">{t('import.sourceFileFailed')}</span>
-              {batchId && sourceFile ? (
+            {counts(confirmed)}
+            {storedFile ? (
+              <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file>
+                <span className="text-muted">{t('import.sourceFile')}: </span>
+                <bdi className="font-data [overflow-wrap:anywhere]">{storedFile.name}</bdi>
+                <a
+                  href={recordFileDownloadUrl(storedFile.id, locale)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonVariants({ size: 'xs' })}
+                  data-import-source-download
+                >
+                  {t('record.files.download')}
+                </a>
+                <FileLinkButton fileId={storedFile.id} />
+              </p>
+            ) : sourceFileFailed ? (
+              <p className="flex flex-wrap items-center gap-2 text-sm" data-import-source-file-failed role="alert">
+                <span className="text-danger">{t('import.sourceFileFailed')}</span>
+                {batchId && sourceFile ? (
+                  <Button
+                    size="xs"
+                    loading={storingFile}
+                    onClick={() => void storeSourceFile(batchId, sourceFile)}
+                    data-import-source-retry
+                  >
+                    {t('common.tryAgain')}
+                  </Button>
+                ) : null}
+              </p>
+            ) : null}
+            <div>
+              <Button variant="secondary" onClick={resetFile} data-import-start-over>
+                {t('import.startOver')}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {partner ? (
+          <div className="flex flex-col gap-2" data-import-past>
+            <h3 className="font-display text-base font-semibold text-strong">{t('import.pastTitle')}</h3>
+            {batchesFailed ? (
+              <p role="alert" className="text-sm text-danger">
+                {t('import.pastFailed')}{' '}
                 <Button
-                  size="xs"
-                  loading={storingFile}
-                  onClick={() => void storeSourceFile(batchId, sourceFile)}
-                  data-import-source-retry
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setBatchesFailed(false);
+                    void loadBatches(partner.id);
+                  }}
                 >
                   {t('common.tryAgain')}
                 </Button>
-              ) : null}
-            </p>
-          ) : null}
-          <div>
-            <Button variant="secondary" onClick={resetFile} data-import-start-over>
-              {t('import.startOver')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {partner ? (
-        <div className="flex flex-col gap-2" data-import-past>
-          <h3 className="text-sm font-semibold">{t('import.pastTitle')}</h3>
-          {batchesFailed ? (
-            <p role="alert" className="text-sm text-danger">
-              {t('import.pastFailed')}{' '}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setBatchesFailed(false);
-                  void loadBatches(partner.id);
-                }}
-              >
-                {t('common.tryAgain')}
-              </Button>
-            </p>
-          ) : null}
-          {batches === null && !batchesFailed ? (
-            <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastTitle') })}</p>
-          ) : null}
-          {batches?.length === 0 ? <p className="text-sm text-muted">{t('import.pastNone')}</p> : null}
-          {batches?.map((batch) => (
-            <div key={batch.id} className="rounded-lg border border-border bg-raised p-1" data-import-past-batch>
-              {/* the file's name on its own line (it wraps, never runs off a phone), when and who under it */}
-              <button
-                type="button"
-                onClick={() => void toggleBatch(batch)}
-                aria-expanded={openBatch === batch.id}
-                className="flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-start text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="font-data font-medium [overflow-wrap:anywhere]">{batch.file_name}</span>
-                  <span className="text-muted">
-                    {formatDate(batch.created_at, locale)} ·{' '}
-                    {batch.status === 'confirmed' ? t('import.confirmed') : t('import.pastDraft')}
-                    {batch.created_by_name ? ` · ${batch.created_by_name}` : ''}
+              </p>
+            ) : null}
+            {batches === null && !batchesFailed ? (
+              <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastTitle') })}</p>
+            ) : null}
+            {batches?.length === 0 ? <p className="text-sm text-muted">{t('import.pastNone')}</p> : null}
+            {batches?.map((batch) => (
+              <div key={batch.id} className="rounded-lg border border-border bg-raised p-1" data-import-past-batch>
+                {/* the file's name on its own line (it wraps, never runs off a phone), when and who under it */}
+                <button
+                  type="button"
+                  onClick={() => void toggleBatch(batch)}
+                  aria-expanded={openBatch === batch.id}
+                  className="flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-start text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+                >
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="font-data font-medium [overflow-wrap:anywhere]">{batch.file_name}</span>
+                    <span className="text-muted">
+                      {formatDate(batch.created_at, locale)} ·{' '}
+                      {batch.status === 'confirmed' ? t('import.confirmed') : t('import.pastDraft')}
+                      {batch.created_by_name ? ` · ${batch.created_by_name}` : ''}
+                    </span>
                   </span>
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'size-4 shrink-0 text-muted transition-transform',
-                    openBatch === batch.id && 'rotate-180',
-                  )}
-                  aria-hidden="true"
-                />
-              </button>
-              {openBatch === batch.id ? (
-                <div className="flex flex-col gap-2 px-2.5 pb-2 pt-1 text-sm">
-                  <p className="text-muted">
-                    {t(`import.signature.${batch.signature}`)}
-                    {batch.source_promo ? ` · ${batch.source_promo}` : ''}
-                  </p>
-                  {counts(batch.counts)}
-                  {batch.problems.length > 0 ? (
-                    <div>
-                      <p className="font-medium">{t('import.held')}</p>
-                      <ul className="list-disc ps-5 text-muted">
-                        {batch.problems.map((p) => (
-                          <li key={p.row_no}>
-                            {t('import.row')} {p.row_no}: {word(null, p.reason)}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {batch.source_file_id ? (
-                    <p className="flex flex-wrap items-center gap-3">
-                      <span className="text-muted">{t('import.sourceFile')}:</span>
-                      <a
-                        href={recordFileDownloadUrl(batch.source_file_id!, locale)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-                      >
-                        {t('record.files.download')}
-                      </a>
-                      <FileLinkButton fileId={batch.source_file_id} size="sm" />
+                  <ChevronDown
+                    className={cn(
+                      'size-4 shrink-0 text-muted transition-transform',
+                      openBatch === batch.id && 'rotate-180',
+                    )}
+                    aria-hidden="true"
+                  />
+                </button>
+                {openBatch === batch.id ? (
+                  <div className="flex flex-col gap-2 px-2.5 pb-2 pt-1 text-sm">
+                    <p className="text-muted">
+                      {t(`import.signature.${batch.signature}`)}
+                      {batch.source_promo ? ` · ${batch.source_promo}` : ''}
                     </p>
-                  ) : null}
-                  {batchRowsFailed ? (
-                    <p role="alert" className="text-sm text-danger">
-                      {t('import.pastRowsFailed')}
-                    </p>
-                  ) : null}
-                  {batchRows === null && !batchRowsFailed ? (
-                    <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastRows') })}</p>
-                  ) : null}
-                  {batchRows && batchRows.length > 0 ? (
-                    <div>
-                      <p className="font-medium">{t('import.pastRows')}</p>
-                      <div className="mt-1 overflow-x-auto">
-                        <table className="w-full min-w-[28rem] text-sm">
-                          <thead>
-                            <tr className="border-b border-border text-muted">
-                              <th className="px-2 py-1 text-start font-medium">{t('import.reference')}</th>
-                              <th className="px-2 py-1 text-start font-medium">{t('import.pastDate')}</th>
-                              <th className="px-2 py-1 text-end font-medium">{t('import.pastAmount')}</th>
-                              <th className="px-2 py-1 text-start font-medium">{t('import.pastStatus')}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {batchRows.map((row, i) => (
-                              <tr
-                                key={`${row.transaction_ref ?? row.invoice_ref ?? i}`}
-                                className="border-b border-border last:border-b-0"
-                              >
-                                <td className="px-2 py-1 font-data tabular">
-                                  {row.transaction_ref ?? row.invoice_ref ?? '—'}
-                                </td>
-                                <td className="whitespace-nowrap px-2 py-1">{shown('date', row.record_date)}</td>
-                                <td className="px-2 py-1 text-end font-data tabular">
-                                  {shown('amount', row.amount_sar === null ? null : Number(row.amount_sar))}
-                                </td>
-                                <td className="px-2 py-1">{row.status_text ?? '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    {counts(batch.counts)}
+                    {batch.problems.length > 0 ? (
+                      <div>
+                        <p className="font-medium">{t('import.held')}</p>
+                        <ul className="list-disc ps-5 text-muted">
+                          {batch.problems.map((p) => (
+                            <li key={p.row_no}>
+                              {t('import.row')} {p.row_no}: {word(null, p.reason)}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
+                    ) : null}
+                    {batch.source_file_id ? (
+                      <p className="flex flex-wrap items-center gap-3">
+                        <span className="text-muted">{t('import.sourceFile')}:</span>
+                        <a
+                          href={recordFileDownloadUrl(batch.source_file_id!, locale)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                        >
+                          {t('record.files.download')}
+                        </a>
+                        <FileLinkButton fileId={batch.source_file_id} size="sm" />
+                      </p>
+                    ) : null}
+                    {batchRowsFailed ? (
+                      <p role="alert" className="text-sm text-danger">
+                        {t('import.pastRowsFailed')}
+                      </p>
+                    ) : null}
+                    {batchRows === null && !batchRowsFailed ? (
+                      <p className="text-sm text-muted">{t('state.loading', { what: t('import.pastRows') })}</p>
+                    ) : null}
+                    {batchRows && batchRows.length > 0 ? (
+                      <div>
+                        <p className="font-medium">{t('import.pastRows')}</p>
+                        <div className="mt-1">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border text-muted">
+                                <th className="px-2 py-1 text-start font-medium">{t('import.reference')}</th>
+                                <th className="px-2 py-1 text-start font-medium">{t('import.pastDate')}</th>
+                                <th className="px-2 py-1 text-end font-medium">{t('import.pastAmount')}</th>
+                                <th className="px-2 py-1 text-start font-medium">{t('import.pastStatus')}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {batchRows.map((row, i) => (
+                                <tr
+                                  key={`${row.transaction_ref ?? row.invoice_ref ?? i}`}
+                                  className="border-b border-border last:border-b-0"
+                                >
+                                  <td className="px-2 py-1 font-data tabular [overflow-wrap:anywhere]">
+                                    {row.transaction_ref ?? row.invoice_ref ?? '—'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-2 py-1">{shown('date', row.record_date)}</td>
+                                  <td className="px-2 py-1 text-end font-data tabular">
+                                    {shown('amount', row.amount_sar === null ? null : Number(row.amount_sar))}
+                                  </td>
+                                  <td className="px-2 py-1 [overflow-wrap:anywhere]">{row.status_text ?? '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </FinanceCard>
   );
 }

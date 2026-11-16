@@ -20,7 +20,7 @@ export function RailSection({
 } & Omit<HTMLAttributes<HTMLElement>, 'title' | 'children' | 'className'>) {
   return (
     <section className={cn('flex flex-col gap-3', className)} {...rest}>
-      <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">{title}</h2>
+      <h2 className="font-ui text-sm font-semibold leading-[18px] text-muted">{title}</h2>
       {plain ? (
         <div className="flex flex-col gap-3">{children}</div>
       ) : (

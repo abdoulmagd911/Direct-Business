@@ -1,5 +1,4 @@
 'use client';
-import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from 'react';
 import { signInWithPassword, type PasswordError } from '@/core/auth/password-actions';
@@ -67,7 +66,7 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
         </div>
       ) : null}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={ids.email} className="text-sm font-medium">
+        <label htmlFor={ids.email} className="door-label">
           {t('sign_in.email_label')}
         </label>
         <input
@@ -97,7 +96,7 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
         ) : null}
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={ids.password} className="text-sm font-medium">
+        <label htmlFor={ids.password} className="door-label">
           {t('sign_in.password.label')}
         </label>
         {/* dir="ltr" with the box: a password is typed left to right, so its room for the eye is on the right — in
@@ -126,17 +125,19 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
             onKeyDown={capsOf}
             onKeyUp={capsOf}
             onBlur={() => setCaps(false)}
-            className="door-field pe-12"
+            className="door-field pe-20"
           />
           <button
             type="button"
             aria-label={shown ? t('sign_in.password.hide') : t('sign_in.password.show')}
             aria-pressed={shown}
             onClick={() => setShown((s) => !s)}
-            className={cn('door-eye absolute end-1 top-1 inline-flex size-10 items-center justify-center rounded-md')}
+            className={cn(
+              'door-eye absolute end-1.5 top-1.5 inline-flex h-8 min-w-11 items-center justify-center px-3',
+            )}
             data-password-eye
           >
-            {shown ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
+            {shown ? t('sign_in.password.hideWord') : t('sign_in.password.showWord')}
           </button>
         </div>
         {caps ? (
@@ -149,7 +150,7 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
             {t('sign_in.password.error.password_required')}
           </p>
         ) : null}
-        <p className="door-muted text-[13px]">{t('sign_in.password.forgot')}</p>
+        <p className="door-muted text-[13px] leading-[18px]">{t('sign_in.password.forgot')}</p>
       </div>
       <button
         type="submit"

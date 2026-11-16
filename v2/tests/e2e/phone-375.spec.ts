@@ -38,7 +38,12 @@ async function tabsAreWhole(page: Page, width: number, shown?: string[]) {
       els.map((e) => {
         const r = e.getBoundingClientRect();
         return {
-          text: (e.textContent ?? '').trim(),
+          // the tab's name, without the count the open tab now carries (Landing 31)
+          text: (() => {
+            const c = e.cloneNode(true) as HTMLElement;
+            c.querySelectorAll('[data-tab-count]').forEach((n) => n.remove());
+            return (c.textContent ?? '').trim();
+          })(),
           left: r.left,
           right: r.right,
           spill: e.scrollWidth - e.clientWidth,

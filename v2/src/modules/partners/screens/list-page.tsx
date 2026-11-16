@@ -5,29 +5,15 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
-import { PartnersList, type ListFilters } from './PartnersList';
-import Link from 'next/link';
-import { cn } from '@/ui/cn';
-import { SIDE_PAGE, SIDE_ROUTE, type ListEntry, type PartnersAnswer, type Side } from '../types';
+import { PartnersList } from './PartnersList';
+import { filtersOf, readFilters } from '../list/filters';
+import { NO_COUNTS, cardDimensionOn, countsFromRows, countsOf, withCounts, type KpiCounts } from '../list/kpi';
+import { SideTabs } from '../list/SideTabs';
+import { SIDE_PAGE, type ListEntry, type PartnersAnswer, type Side } from '../types';
+
+export { filtersOf };
 
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : '');
-const many = (v: string) => (v ? v.split(',').filter(Boolean) : []);
-
-/** The filters a list address carries (a saved view is one of these, under a name). */
-export function filtersOf(q: Record<string, string | string[] | undefined>): ListFilters {
-  return {
-    q: str(q.q),
-    types: many(str(q.type)),
-    owners: many(str(q.owner)),
-    statuses: many(str(q.status)),
-    tiers: many(str(q.tier)),
-    priorities: many(str(q.priority)),
-    key_partner: str(q.key) === '1',
-    stale: str(q.stale) === '1',
-    archived: str(q.archived) === '1',
-    view: str(q.view),
-  };
-}
 
 /**
  * Partners, with Suppliers as its second tab (V98, V149, V217): one list per side over api.partners(side), each tab
@@ -51,25 +37,20 @@ export async function PartnersListPage({
     return (
       <Page>
         <PageHeader title={title} />
-        <DataState kind="no-access" what={title} message={t('state.noAccess', { what: title })} />
+        <DataState
+          kind="no-access"
+          what={title}
+          message={t('state.noAccess', { what: title })}
+          goHome={t('errors.notFound.goMyDay')}
+        />
       </Page>
     );
   const filters = filtersOf(q);
-  const p_filters: Record<string, unknown> = { side };
-  if (filters.q) p_filters.q = filters.q;
-  if (filters.types.length) p_filters.types = filters.types;
-  if (filters.owners.length) p_filters.owners = filters.owners;
-  if (filters.statuses.length) p_filters.statuses = filters.statuses;
-  if (filters.tiers.length) p_filters.tiers = filters.tiers;
-  if (filters.priorities.length) p_filters.priorities = filters.priorities;
-  if (filters.key_partner) p_filters.key_partner = true;
-  if (filters.stale) p_filters.stale = true;
-  // The archived view shows only archived partners (FIX-31): archived_only, not the mixed include_archived.
-  if (filters.archived) p_filters.archived_only = true;
+  const p_filters = readFilters(side, filters);
   const read = async (): Promise<{ answer: PartnersAnswer | null; failed: boolean }> => {
     try {
       const answer = (await serverRpc('partners', {
-        p_filters: p_filters as never,
+        p_filters: withCounts(p_filters) as never,
         p_limit: 500,
       })) as unknown as PartnersAnswer;
       return { answer, failed: false };
@@ -77,6 +58,8 @@ export async function PartnersListPage({
       return { answer: null, failed: true };
     }
   };
+  // Landing 31: the cards' figures come with the list read itself (`counts`, 20261116110000) — the search and the
+  // other filters on, the cards' own choice off — so a render is one partners read whatever card is pressed (FIX-45).
   const other: Side = side === 'client' ? 'supplier_partner' : 'client';
   const both = (me.levels[SIDE_PAGE[other]] ?? 'none') !== 'none';
   // FIX-45: the other side's count used to cost a second `partners` call on every list render, only to fill the
@@ -89,6 +72,14 @@ export async function PartnersListPage({
     serverRpc('list', { p_list: 'priority' }) as unknown as Promise<ListEntry[]>,
     read(),
   ]);
+  // An answer without counts (a database not yet migrated) falls back to its rows when they are the whole unfiltered
+  // list; otherwise the figures are not known ("—"), never guessed and never 0.
+  const counts: KpiCounts = !answer
+    ? NO_COUNTS
+    : (countsOf(answer) ??
+      (!cardDimensionOn(filters) && answer.total <= answer.rows.length
+        ? countsFromRows(answer.rows, answer.total)
+        : NO_COUNTS));
   const totals: Record<Side, number | null> = {
     [side]: answer?.total ?? null,
     [other]: null,
@@ -108,32 +99,15 @@ export async function PartnersListPage({
         tiers={tiers.filter((x) => x.side === side)}
         priorities={priorities}
         startCreating={str(q.new) === '1'}
+        counts={counts}
         tabs={
           both ? (
-            <nav aria-label={t('partners.sideTabs')} data-side-tabs className="flex border-b border-border sm:gap-1">
-              {(['client', 'supplier_partner'] as const).map((s) => {
-                const active = s === side;
-                return (
-                  <Link
-                    key={s}
-                    href={SIDE_ROUTE[s]}
-                    aria-current={active ? 'page' : undefined}
-                    data-side-tab={s}
-                    className={cn(
-                      '-mb-px flex h-11 flex-1 items-center justify-center gap-2 border-b-2 px-4 text-base font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus sm:flex-none',
-                      active ? 'border-primary text-text' : 'border-transparent text-muted hover:text-text',
-                    )}
-                  >
-                    {s === 'client' ? t('nav.clients') : t('nav.suppliers_partners')}
-                    {totals[s] !== null ? (
-                      <span className="font-data text-sm text-muted" data-side-count>
-                        {totals[s]}
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </nav>
+            <SideTabs
+              side={side}
+              label={t('partners.sideTabs')}
+              names={{ client: t('nav.clients'), supplier_partner: t('nav.suppliers_partners') }}
+              totals={totals}
+            />
           ) : null
         }
       />

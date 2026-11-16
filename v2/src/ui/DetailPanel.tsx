@@ -55,14 +55,14 @@ export function DetailPanel({
 
   const body = (
     <>
-      <header className="flex items-start gap-3 border-b border-border px-5 pb-3 pt-4">
+      <header className="flex items-start gap-3 border-b border-border px-6 pb-3 pt-4 max-sm:px-4">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl">{title}</h2>
+          <h2 className="truncate text-xl leading-7">{title}</h2>
           {header}
         </div>
         <IconButton label={closeLabel} icon={<X />} size="sm" onClick={onClose} data-panel-close />
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-sm:px-4">{children}</div>
     </>
   );
 
@@ -72,7 +72,7 @@ export function DetailPanel({
         <RD.Portal>
           <RD.Content
             aria-describedby={undefined}
-            className="fixed inset-0 z-40 flex flex-col bg-raised text-text focus:outline-none"
+            className="motion-rise fixed inset-0 z-40 flex flex-col bg-raised text-text focus:outline-none"
             data-detail-panel
           >
             <RD.Title className="sr-only">{title}</RD.Title>
@@ -88,7 +88,10 @@ export function DetailPanel({
       aria-label={typeof title === 'string' ? title : undefined}
       tabIndex={-1}
       data-detail-panel
-      className={cn('hidden w-[var(--panel-w)] shrink-0 flex-col border-s border-border bg-raised md:flex', className)}
+      className={cn(
+        'hidden w-[var(--panel-w)] shrink-0 flex-col rounded-s-xl border-s border-border bg-raised shadow-1 md:flex',
+        className,
+      )}
     >
       {body}
     </aside>

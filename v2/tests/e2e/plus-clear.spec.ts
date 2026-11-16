@@ -128,10 +128,12 @@ test('the "Profile saved" toast stands above the bottom bar and nothing covers i
     // what is on top at the Undo's centre and at its four inner corners
     const points: [number, number][] = [
       [r.left + r.width / 2, r.top + r.height / 2],
-      [r.left + 2, r.top + 2],
-      [r.right - 2, r.top + 2],
-      [r.left + 2, r.bottom - 2],
-      [r.right - 2, r.bottom - 2],
+      // Landing 31: Undo is a pill, and a pill's rounded ends are not part of it — the four points sit inside the
+      // straight part (half its height in from each end), 2 px from the top and the bottom
+      [r.left + r.height / 2, r.top + 2],
+      [r.right - r.height / 2, r.top + 2],
+      [r.left + r.height / 2, r.bottom - 2],
+      [r.right - r.height / 2, r.bottom - 2],
     ];
     const covered = points.filter(([x, y]) => !button.contains(document.elementFromPoint(x, y))).length;
     return { toastBottom: toast.bottom, barTop: bar.top, covered };

@@ -19,8 +19,10 @@ import {
 /** The When chips' look, shared with the task form's Due chips (V286). */
 export const whenChip = (on: boolean) =>
   cn(
-    'inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
-    on ? 'border-accent bg-accent-soft text-text' : 'border-border bg-raised text-muted hover:text-text',
+    'inline-flex min-h-11 items-center rounded-pill border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+    on
+      ? 'border-accent bg-accent-soft text-strong'
+      : 'border-border bg-raised text-muted hover:bg-surface hover:text-text',
   );
 
 /** "Wed 14 Oct · 09:00": the Riyadh day and time, Gregorian, Latin digits, in Arabic too (V40). */

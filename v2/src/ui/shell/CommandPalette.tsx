@@ -35,9 +35,9 @@ type CodeHit = { id: string; code: string; state: 'active' | 'inactive' | 'expir
 type TaskHit = { id: string; number: string; title: string; closed: boolean; item?: string | null };
 
 const itemClass =
-  'flex h-11 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base data-[selected=true]:bg-accent-soft sm:h-10';
+  'flex h-11 cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 text-base text-strong data-[selected=true]:bg-surface sm:h-10';
 const groupClass =
-  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[.07em] [&_[cmdk-group-heading]]:text-muted';
+  '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted';
 
 /**
  * Ctrl K (V401): Go to a page; organisations, people, tasks and discount codes the reader may see — through
@@ -126,15 +126,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   return (
     <RD.Root open={open} onOpenChange={close}>
       <RD.Portal>
-        <RD.Overlay className="fixed inset-0 z-40 bg-scrim" />
+        <RD.Overlay className="motion-scrim fixed inset-0 z-40 bg-scrim" />
         <RD.Content
           aria-describedby={undefined}
-          className="fixed inset-x-4 top-[12dvh] z-50 mx-auto w-auto max-w-[620px] overflow-hidden rounded-lg border border-border bg-raised text-text shadow-2 focus:outline-none"
+          className="motion-dialog fixed inset-x-4 top-[12dvh] z-50 mx-auto w-auto max-w-[620px] overflow-hidden rounded-xl border border-border bg-raised text-text shadow-2 focus:outline-none"
           data-command-palette
         >
           <RD.Title className="sr-only">{t('top.searchLabel')}</RD.Title>
           <Command label={t('top.searchLabel')} loop shouldFilter={false}>
-            <div className="flex items-center gap-2.5 border-b border-border px-4">
+            <div className="flex items-center gap-2.5 border-b border-border px-5">
               <Search className="size-4 shrink-0 text-muted" aria-hidden="true" />
               <Command.Input
                 value={q}
@@ -143,12 +143,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 className="h-12 w-full bg-transparent text-base outline-none placeholder:text-muted"
               />
             </div>
-            <Command.List className="max-h-[min(360px,calc(84dvh-var(--kb,0px)-3rem))] overflow-y-auto p-1.5">
+            <Command.List className="max-h-[min(360px,calc(84dvh-var(--kb,0px)-3rem))] overflow-y-auto p-2">
               {searching ? (
                 <Command.Item
                   value="searching"
                   disabled
-                  className="flex h-11 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base text-muted sm:h-10"
+                  className="flex h-11 cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 text-base text-muted sm:h-10"
                   data-palette-searching
                 >
                   {t('palette.searching')}

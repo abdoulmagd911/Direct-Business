@@ -120,7 +120,13 @@ export function MonthPicker({
         />
         <RP.Root open={open} onOpenChange={setOpen}>
           <RP.Trigger asChild>
-            <Button type="button" variant="ghost" aria-label={t('datePicker.openCalendar')} data-month-calendar>
+            <Button
+              type="button"
+              variant="ghost"
+              aria-label={t('datePicker.openCalendar')}
+              className="size-[var(--input-h)] shrink-0 px-0"
+              data-month-calendar
+            >
               <Calendar aria-hidden className="size-4" />
             </Button>
           </RP.Trigger>
@@ -128,7 +134,7 @@ export function MonthPicker({
             <RP.Content
               sideOffset={4}
               align="start"
-              className="z-50 w-72 rounded-lg border border-border bg-raised p-3 shadow-2"
+              className="motion-menu z-50 w-72 origin-[var(--radix-popover-content-transform-origin)] rounded-lg border border-border bg-raised p-3 text-text shadow-2"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
               <div className="flex items-center justify-between gap-2">
@@ -136,18 +142,18 @@ export function MonthPicker({
                   type="button"
                   aria-label={t('datePicker.previousYear')}
                   onClick={() => setShownYear(shownYear - 1)}
-                  className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+                  className="inline-flex size-9 items-center justify-center rounded-pill hover:bg-surface active:bg-pressed focus-visible:outline-2 focus-visible:outline-focus"
                 >
                   <ChevronLeft className="size-5 rtl:rotate-180" aria-hidden />
                 </button>
-                <p className="text-base font-semibold" data-month-year>
+                <p className="text-base font-semibold text-strong" data-month-year>
                   {shownYear}
                 </p>
                 <button
                   type="button"
                   aria-label={t('datePicker.nextYear')}
                   onClick={() => setShownYear(shownYear + 1)}
-                  className="inline-flex size-9 items-center justify-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+                  className="inline-flex size-9 items-center justify-center rounded-pill hover:bg-surface active:bg-pressed focus-visible:outline-2 focus-visible:outline-focus"
                 >
                   <ChevronRight className="size-5 rtl:rotate-180" aria-hidden />
                 </button>
@@ -164,9 +170,9 @@ export function MonthPicker({
                       aria-label={written(m.value)}
                       onClick={() => pick(m.value)}
                       className={cn(
-                        'rounded-md px-2 py-2 text-sm hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-focus',
-                        selected && 'bg-text font-medium text-raised',
-                        isCurrent && !selected && 'font-medium text-link',
+                        'rounded-pill px-2 py-2 text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus',
+                        selected && 'bg-sel font-semibold text-on-sel hover:bg-sel',
+                        isCurrent && !selected && 'font-semibold text-accent-text',
                       )}
                     >
                       {m.label}

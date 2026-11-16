@@ -248,7 +248,8 @@ for (const code of ['en', 'ar'] as const) {
       expect(slots.at(-1)!.text).toBe(create);
       for (const s of slots) {
         expect(s.width, `${s.text} is at least 44 px wide`).toBeGreaterThanOrEqual(44);
-        expect(s.cut, `${s.text} is not cut`).toBe(false);
+        // Landing 31: Create is drawn as the round + and keeps its word for a screen reader, so it has no drawn label to cut
+        if (!s.create) expect(s.cut, `${s.text} is not cut`).toBe(false);
       }
       // the desktop keeps Create in the top bar
       await page.setViewportSize({ width: 1440, height: 900 });

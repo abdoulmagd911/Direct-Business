@@ -52,7 +52,7 @@ export function PartnerPicker({
   if (value)
     return (
       <span
-        className="inline-flex min-h-[var(--control-h)] max-w-full items-center gap-2 rounded-md border border-border bg-surface ps-3"
+        className="inline-flex min-h-[var(--control-h)] max-w-full items-center gap-2 rounded-lg border border-border bg-surface py-0.5 ps-3.5 pe-0.5"
         data-partner-picked={value.id}
       >
         <Building2 className="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -66,7 +66,15 @@ export function PartnerPicker({
             {value.number}
           </span>
         </span>
-        <IconButton label={t('common.remove')} icon={<X />} size="sm" onClick={() => onChange(null)} />
+        {/* the × says what it takes away and is a full 44 px tap on a phone (32 px on a wide screen) */}
+        <IconButton
+          label={t('pages.myDay.turn.removeOrg', { name: nameOf(value, locale) })}
+          icon={<X />}
+          size="sm"
+          className="text-muted hover:text-strong"
+          onClick={() => onChange(null)}
+          data-partner-picked-remove
+        />
       </span>
     );
   return (

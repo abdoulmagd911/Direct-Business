@@ -12,8 +12,11 @@ import {
 import { formatClock, formatDate, parseClock } from '@/core/i18n/format';
 import { cn } from './cn';
 
+/** A field (V21): a 44 px pill, 18 px inside, the field line; hover darkens the line, focus is the 2 px ring and the
+ *  selection colour as its edge; a text area keeps 16 px corners. The 44 px is this class's own floor (`min-h`), so a
+ *  box that also names the control height is still 44 px tall. */
 export const inputClass =
-  'min-h-[var(--control-h)] w-full rounded-md border border-border-strong bg-raised px-3 text-base text-text placeholder:text-muted disabled:bg-surface disabled:text-muted focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger';
+  'min-h-[var(--input-h)] w-full rounded-pill border border-border-strong bg-raised px-[18px] text-base text-text transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] placeholder:text-muted hover:border-muted [&[readonly]]:border-transparent [&[readonly]]:bg-surface disabled:border-border disabled:bg-surface disabled:text-muted focus-visible:border-sel focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-1 aria-invalid:border-danger';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement> & { mono?: boolean };
 
@@ -79,7 +82,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
         data-date-text
         className={cn(
           inputClass,
-          'flex min-h-[var(--control-h)] items-center peer-focus-visible:invisible peer-aria-invalid:border-danger peer-disabled:bg-surface peer-disabled:text-muted',
+          'flex min-h-[var(--input-h)] items-center peer-focus-visible:invisible peer-aria-invalid:border-danger peer-disabled:bg-surface peer-disabled:text-muted',
           mono && 'font-data tabular',
           !shown && 'text-muted',
         )}
@@ -92,7 +95,7 @@ const DateInput = forwardRef<HTMLInputElement, InputProps>(function DateInput(
       <p
         aria-hidden="true"
         data-date-echo
-        className="pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-md border border-border bg-raised px-2 py-0.5 text-sm text-muted shadow-2 peer-focus-visible:block"
+        className="pointer-events-none absolute bottom-full end-0 z-30 mb-0.5 hidden rounded-pill border border-border bg-raised px-2.5 py-0.5 text-sm text-muted shadow-2 peer-focus-visible:block"
       >
         {/* the chip keeps the box's own direction, so its end is the side away from the label; only its words order themselves */}
         <span dir="auto">{written}</span>
@@ -168,5 +171,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   { className, rows = 3, ...rest },
   ref,
 ) {
-  return <textarea ref={ref} rows={rows} className={cn(inputClass, 'py-2 leading-normal', className)} {...rest} />;
+  return (
+    <textarea
+      ref={ref}
+      rows={rows}
+      className={cn(inputClass, 'rounded-lg px-4 py-3 leading-[22px]', className)}
+      {...rest}
+    />
+  );
 });

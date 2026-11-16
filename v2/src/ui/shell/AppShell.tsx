@@ -90,8 +90,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * The scrolling page area beside an optional detail panel (a sibling of this). Margins 16 / 24 / 32 / 40 px at
- * phone / tablet / desktop / wide and lists up to 1,600 px wide (V85). On a phone the page's foot keeps 10 rem of room
+ * The scrolling page area beside an optional detail panel (a sibling of this). Gutters (V21): 40 px from 1,280 px,
+ * 24 px under it, 16 px on a phone; the content stops at 1,280 px and sits in the middle of the room that is left,
+ * on the same two edges as the top bar's row; sections are 24 px apart. On a phone the page's foot keeps 10 rem of room
  * above the bottom bar, whose last slot is Create since option C (V383): the room was sized for the floating + it once
  * cleared, sweep-12-oct asserts it ("page-ends-under-the-plus"), and trimming it is its own call.
  * Screens use `Page` (shell/Page.tsx), which draws this only after the gate has answered.
@@ -101,7 +102,7 @@ export function PageFrame({ children, className = '' }: { children: ReactNode; c
   // otherwise be squeezed to nothing on a long page — the Activity tabs vanished and swallowed the first click (W11).
   return (
     <div
-      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-10 lg:px-8 lg:pt-7 2xl:px-10 [&>*]:w-full [&>*]:max-w-[1600px] [&>*]:shrink-0 ${className}`}
+      className={`flex min-w-0 flex-1 flex-col gap-[var(--section-gap)] overflow-y-auto px-4 pb-[calc(10rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-16 sm:pt-7 xl:px-10 xl:pb-[72px] xl:pt-8 max-sm:pt-4 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[var(--page-max)] [&>*]:shrink-0 ${className}`}
       data-page
     >
       {children}

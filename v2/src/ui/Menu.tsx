@@ -4,7 +4,9 @@ import { Check } from 'lucide-react';
 import { Children, type ReactNode } from 'react';
 import { cn } from './cn';
 
-/** A dropdown menu (the ⋯ menu, the Create menu, the profile menu). Radix handles focus and Escape. */
+/** A dropdown menu (the ⋯ menu, the Create menu, the profile menu). Radix handles focus and Escape. The look (V21):
+ *  14 px corners, 8 px inside, rows 40 px tall with 10 px corners on the soft fill; it fades in and grows from 97% out
+ *  of its button's corner in 160 ms, and leaves in 120 ms. */
 export const Menu = RM.Root;
 export const MenuTrigger = RM.Trigger;
 
@@ -18,7 +20,10 @@ export function MenuContent({ children, className, align = 'end', ...rest }: RM.
       <RM.Content
         align={align}
         sideOffset={6}
-        className={cn('z-50 min-w-56 rounded-lg border border-border bg-raised p-1.5 text-text shadow-2', className)}
+        className={cn(
+          'motion-menu z-50 min-w-56 origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-[14px] border border-border bg-raised p-2 text-text shadow-2',
+          className,
+        )}
         {...rest}
       >
         {children}
@@ -28,7 +33,7 @@ export function MenuContent({ children, className, align = 'end', ...rest }: RM.
 }
 
 export const menuItemClass =
-  'flex h-9 cursor-default select-none items-center gap-2.5 rounded-md px-2.5 text-base outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent-soft [&_svg]:size-4 [&_svg]:text-muted';
+  'flex h-10 cursor-default select-none items-center gap-2.5 whitespace-nowrap rounded-sm px-2.5 text-base text-strong outline-none data-[disabled]:text-muted data-[highlighted]:bg-surface [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted';
 
 /** With `asChild` the child (a Link) is the item and carries its own icon: Radix slots one element only. */
 export function MenuItem({
@@ -53,15 +58,11 @@ export function MenuItem({
 }
 
 export function MenuLabel({ children }: { children: ReactNode }) {
-  return (
-    <RM.Label className="px-2.5 pb-1 pt-2 text-xs font-semibold uppercase tracking-[.07em] text-muted">
-      {children}
-    </RM.Label>
-  );
+  return <RM.Label className="px-2.5 pb-1 pt-2 text-xs font-semibold text-muted">{children}</RM.Label>;
 }
 
 export function MenuSeparator() {
-  return <RM.Separator className="my-1.5 h-px bg-border" />;
+  return <RM.Separator className="-mx-2 my-2 h-px bg-border" />;
 }
 
 export function MenuRadioGroup(props: RM.DropdownMenuRadioGroupProps) {
@@ -73,7 +74,7 @@ export function MenuRadioItem({ children, className, ...rest }: RM.DropdownMenuR
     <RM.RadioItem className={cn(menuItemClass, 'relative pe-8', className)} {...rest}>
       {children}
       <RM.ItemIndicator className="absolute end-2.5">
-        <Check className="size-4 !text-text" aria-hidden="true" />
+        <Check className="size-4 !text-strong" aria-hidden="true" />
       </RM.ItemIndicator>
     </RM.RadioItem>
   );

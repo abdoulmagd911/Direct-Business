@@ -10,6 +10,7 @@ import { BrandLogo } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { Tooltip } from '../Tooltip';
+import { useMediaQuery } from '../useMediaQuery';
 import { SETTINGS_ENTRY, isActiveEntry, isAdmin, navFor, type NavEntry } from './nav';
 import { NavPending } from './NavPending';
 
@@ -19,8 +20,10 @@ import { NavPending } from './NavPending';
  * never floats over the page's heading, tabs and search (FIX-47, D23); below 640 px the bottom bar replaces it (V85)
  * (oversight, 29 Sep). The entries come from the module registry (nav.ts); Settings at the foot for admins. My profile
  * is not here: it is in the avatar menu at the top, its one place (daily use 10).
- * The active item carries a 3 px mark in --nav-mark. The logo is the white variant on the slate
- * (Direct) and dark drawers, the slate variant on light ones.
+ * The look (V21): 14 × 12 px inside, items 42 px tall with 12 px corners, hover on --nav-hover; the active item is the
+ * --nav-active fill with its own label colour and no side mark. Under 1,024 px the drawer is always the 56 px rail,
+ * whatever is pinned (it still opens under a mouse or the keyboard). The logo is the white variant in every theme: the
+ * drawer is slate in Light, orange in Direct and dark elsewhere.
  *
  * Touch (owner, 13 Nov): on a tablet, or a phone on its side, a tap on a rail item did NOTHING — the tap focused the
  * link, the focus opened the drawer, and opening it redrew the items 24 px lower and swapped each link for a new
@@ -35,7 +38,9 @@ export function Drawer() {
   const { prefs, set } = usePrefs();
   const pathname = usePathname();
   const view = useSearchParams().get('view');
-  const pinned = prefs.drawer === 'pinned';
+  // under 1,024 px there is no room for a pinned drawer: it is the rail there, and pinning waits for a wider screen
+  const narrow = useMediaQuery('(max-width: 1023px)');
+  const pinned = prefs.drawer === 'pinned' && !narrow;
   const [peek, setPeek] = useState(false);
   const expanded = pinned || peek;
   // the collapsed rail's tooltips open towards the page: right of a rail on the left (English), left of one on the right
@@ -71,14 +76,13 @@ export function Drawer() {
           href={p.route}
           aria-current={active ? 'page' : undefined}
           className={cn(
-            'relative flex h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-md px-3 text-base text-nav-text transition-colors duration-[var(--dur)] hover:bg-[color-mix(in_srgb,var(--nav-text)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
-            active &&
-              'bg-nav-active font-semibold text-nav-active-text shadow-1 before:absolute before:start-0 before:bottom-2.5 before:top-2.5 before:w-[3px] before:rounded-[2px] before:bg-nav-mark',
+            'relative flex h-[42px] shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap rounded-md px-2.5 text-base font-medium leading-5 text-nav-muted transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] hover:bg-nav-hover hover:text-nav-text focus-visible:outline-2 focus-visible:outline-focus focus-visible:-outline-offset-2',
+            active && 'bg-nav-active text-nav-active-text hover:bg-nav-active hover:text-nav-active-text',
             !expanded && 'justify-center px-0',
           )}
         >
           <NavPending />
-          <Icon className="relative size-[18px] shrink-0" aria-hidden="true" />
+          <Icon className="relative size-5 shrink-0" aria-hidden="true" />
           <span className={cn('relative', !expanded && 'sr-only')}>{t(p.label)}</span>
         </Link>
       </Tooltip>
@@ -103,7 +107,8 @@ export function Drawer() {
       data-drawer
       data-expanded={expanded}
       className={cn(
-        'flex h-full flex-col gap-0.5 bg-nav-bg px-2 pb-4 pt-[18px] text-nav-text',
+        'flex h-full flex-col gap-0.5 overflow-y-auto overflow-x-hidden bg-nav-bg py-3.5 text-nav-text [scrollbar-width:none]',
+        expanded ? 'px-3' : 'px-2',
         expanded ? 'w-[var(--drawer-w)]' : 'w-[var(--drawer-w-collapsed)]',
       )}
       onPointerEnter={onPointerEnter}
@@ -126,10 +131,9 @@ export function Drawer() {
           className="rounded-sm focus-visible:outline-2 focus-visible:outline-focus"
         >
           {expanded ? (
-            <>
-              <BrandLogo variant="on-dark" height={28} className="[[data-theme=light]_&]:hidden" />
-              <BrandLogo variant="light" height={28} className="hidden [[data-theme=light]_&]:block" />
-            </>
+            // the drawer is a dark or coloured frame in every theme of the look (slate in Light), so the logo is the
+            // white-wordmark variant everywhere
+            <BrandLogo variant="on-dark" height={28} />
           ) : (
             <span className="inline-grid size-8 place-items-center rounded-md bg-nav-active font-display text-sm font-bold text-nav-active-text">
               D
@@ -138,7 +142,7 @@ export function Drawer() {
         </Link>
         {expanded ? (
           <div className="leading-tight">
-            <b className="block truncate font-display text-[14.5px] font-semibold">
+            <b className="block truncate font-display text-base font-semibold">
               <DepartmentName />
             </b>
           </div>
@@ -147,23 +151,26 @@ export function Drawer() {
       {main.map(item)}
       <div className="mt-auto" />
       {foot.map(item)}
-      <div
-        className={cn(
-          'mt-2 flex items-center justify-end gap-1.5 border-t border-nav-border pt-3',
-          expanded ? 'px-1' : 'flex-col px-0',
-        )}
-      >
-        <div className={cn('flex', expanded ? 'w-full flex-col gap-0.5' : 'flex-col gap-0.5')}>
-          <FootButton
-            expanded={expanded}
-            label={pinned ? t('nav.unpin') : t('nav.pin')}
-            pressed={pinned}
-            icon={pinned ? <Pin /> : <PinOff />}
-            onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
-            data-drawer-pin
-          />
+      {/* pinning is for 1,024 px and up: under it the drawer is the rail, so the control would do nothing */}
+      {narrow ? null : (
+        <div
+          className={cn(
+            'mt-2 flex shrink-0 items-center justify-end gap-1.5 border-t border-nav-border pt-3',
+            expanded ? 'px-0' : 'flex-col px-0',
+          )}
+        >
+          <div className={cn('flex', expanded ? 'w-full flex-col gap-0.5' : 'flex-col gap-0.5')}>
+            <FootButton
+              expanded={expanded}
+              label={pinned ? t('nav.unpin') : t('nav.pin')}
+              pressed={pinned}
+              icon={pinned ? <Pin /> : <PinOff />}
+              onClick={() => set('drawer', pinned ? 'collapsed' : 'pinned')}
+              data-drawer-pin
+            />
+          </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 
@@ -225,7 +232,7 @@ function FootButton({
     <button
       type="button"
       aria-pressed={pressed}
-      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-start text-[13px] text-nav-text hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)] focus-visible:outline-2 focus-visible:outline-focus [&_svg]:size-4 [&_svg]:shrink-0"
+      className="flex h-10 w-full items-center gap-3 rounded-md px-2.5 text-start text-sm font-medium text-nav-muted transition-colors duration-[var(--dur-fast)] hover:bg-nav-hover hover:text-nav-text focus-visible:outline-2 focus-visible:outline-focus [&_svg]:size-[18px] [&_svg]:shrink-0"
       {...rest}
     >
       {icon}

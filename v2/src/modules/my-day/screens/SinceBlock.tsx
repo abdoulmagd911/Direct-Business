@@ -1,11 +1,14 @@
 'use client';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
+import { cn } from '@/ui/cn';
 import type { MyDayAnswer, SinceCount } from '../types';
+import { card, CardHead, pill } from './look';
 
 /**
  * What's new since the person's last visit (V433): on opening My day it asks `api.page_seen('my_day')` — which answers the
@@ -39,22 +42,21 @@ export function SinceBlock() {
   }, []);
   if (!since) return null;
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-raised p-4" data-since>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold">{t('pages.myDay.blocks.since')}</h2>
+    <section className={cn(card, 'flex flex-col gap-3 pb-3 pt-1')} data-since>
+      <CardHead icon={<Sparkles />} title={t('pages.myDay.blocks.since')}>
         <span className="text-sm text-muted">
           {t('pages.myDay.since.at', {
             when: formatDate(since.at, locale, { dateStyle: 'medium', timeStyle: 'short' }),
           })}
         </span>
-      </div>
+      </CardHead>
       <ul className="flex flex-wrap gap-2">
         {since.counts.map((s) => (
           <li key={s.kind} data-since-kind={s.kind}>
             {/* each count opens the tab that lists those notes: a note shared by name sits with the team's (V524) */}
             <Link
               href={s.kind === 'workspace_notes' ? '/my-day?tab=workspace' : '/my-day?tab=team'}
-              className="inline-flex min-h-11 items-center rounded-pill border border-border px-3 text-sm hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus sm:min-h-9"
+              className={pill(false)}
               data-since-open={s.kind}
             >
               {t(`pages.myDay.since.kinds.${s.kind}`, { count: s.count })}

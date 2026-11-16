@@ -7,7 +7,7 @@ import { buttonVariants } from './Button';
 export function NotFoundBody({ address }: { address: string }) {
   const t = useTranslations();
   return (
-    <div data-state="not-found" className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5">
+    <div data-state="not-found" className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5 shadow-1">
       <p className="text-base text-text">
         {t.rich('errors.notFound.body', {
           address: () => (

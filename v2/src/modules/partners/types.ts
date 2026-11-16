@@ -47,7 +47,10 @@ export type PartnerRow = {
   created_at: string;
 };
 
-export type PartnersAnswer = { total: number; rows: PartnerRow[] };
+/** The cards' figures, when the read was asked for them (`counts: true`); quiet is null below View on Finance. */
+export type PartnersCounts = { all: number; active: number; prospect: number; stale: number; quiet: number | null };
+
+export type PartnersAnswer = { total: number; rows: PartnerRow[]; counts?: PartnersCounts };
 
 export type StatusChange = {
   id: string;

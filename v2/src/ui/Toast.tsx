@@ -7,6 +7,8 @@ import { CheckCircle2, XCircle } from 'lucide-react';
  * Toasts: bottom-end, 5 s, past tense ("Task created"), Undo where the command is undoable (§2.4).
  * A toast with Undo to press stays 10 s, twice as long as a plain done toast (F-B1-05: the file-removal Undo
  * vanished before it could be read).
+ * The look (V21): the toast is the inverse pair (dark on a light theme, light on a dark one), 14 px corners; it rises
+ * 8 px into place in 200 ms and leaves in 160 ms (globals.css).
  * No coloured side stripe; the icon and the word carry the outcome. The toaster's side is physical, so the end
  * side is named per language: bottom-right in English, bottom-left in Arabic. On a phone, a refusal raised while a
  * sheet or a dialog is open comes from the top (`placed` below): a sheet's own buttons sit at the foot of the screen,
@@ -25,17 +27,18 @@ export function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            'flex w-[360px] max-w-[calc(100vw-32px)] items-start gap-2.5 rounded-md border border-border bg-raised p-3 text-text shadow-2 font-ui text-sm',
-          title: 'font-semibold',
-          description: 'text-muted',
+            'flex w-[360px] max-w-[calc(100vw-32px)] flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] bg-inverse py-3 pe-3 ps-4 text-on-inverse shadow-2 font-ui text-base font-medium',
+          title: 'font-medium',
+          content: 'min-w-0 flex-1',
+          description: 'text-sm font-normal opacity-80',
           actionButton:
-            'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-md border border-border-strong bg-raised px-3 text-sm font-medium text-text hover:bg-surface',
-          icon: 'mt-0.5 shrink-0',
+            'ms-auto shrink-0 self-center h-8 max-sm:h-11 rounded-pill border border-current/40 bg-transparent px-3.5 text-sm font-semibold text-on-inverse hover:bg-[color-mix(in_srgb,currentColor_14%,transparent)]',
+          icon: 'shrink-0',
         },
       }}
       icons={{
-        success: <CheckCircle2 className="size-4 text-success" />,
-        error: <XCircle className="size-4 text-danger" />,
+        success: <CheckCircle2 className="size-[18px]" />,
+        error: <XCircle className="size-[18px]" />,
       }}
     />
   );

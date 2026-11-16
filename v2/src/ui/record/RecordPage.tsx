@@ -73,7 +73,7 @@ export function RecordPage({
           <Link
             href={back.href}
             aria-label={back.label}
-            className="inline-grid size-8 max-sm:size-11 place-items-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus lg:hidden"
+            className="inline-grid size-8 max-sm:size-11 place-items-center rounded-pill hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus lg:hidden"
           >
             <ArrowLeft className="size-4 flip-rtl" aria-hidden="true" />
           </Link>
@@ -108,7 +108,7 @@ export function RecordPage({
                   opens the rest (before, a long task title was cut at two lines with "…" and only Edit showed it). */}
               <ClampedTitle
                 words={titleMore ?? { more: sayRecord('titleMore'), less: sayRecord('titleLess') }}
-                className={cn(titleClamp, 'break-words text-3xl md:text-[27px]')}
+                className={cn(titleClamp, 'break-words text-3xl leading-[38px] max-sm:text-2xl max-sm:leading-8')}
               >
                 {title}
               </ClampedTitle>
@@ -126,7 +126,7 @@ export function RecordPage({
           <KeyFigures
             figures={figures}
             notMeasured={words.notMeasured}
-            className="rounded-lg border border-border bg-raised p-4"
+            className="rounded-lg border border-border bg-raised p-4 shadow-1"
           />
         ) : null}
         <Tabs tabs={tabDefs} value={tab} label={words.tabs} />

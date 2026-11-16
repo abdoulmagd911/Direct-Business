@@ -115,8 +115,14 @@ export const sabotages = [
   {
     name: 'tokens-drift',
     breaks: ['unit:tests/unit/tokens.test.ts'],
-    expect: 'direct --primary',
-    edits: [{ file: 'src/ui/tokens.css', find: '--primary: #c94c14;', replace: '--primary: #f06820;' }],
+    expect: 'colour primary, in every theme',
+    edits: [
+      {
+        file: 'src/ui/tokens.css',
+        find: '  --accent-text: #b23d0a;\n  --primary: #c8460c;',
+        replace: '  --accent-text: #b23d0a;\n  --primary: #f06820;',
+      },
+    ],
   },
 
   {
@@ -319,9 +325,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/PasswordDoor.tsx',
-        find: '<p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
+        find: '<p className="door-muted text-[13px] leading-[18px]">{t(\'sign_in.password.forgot\')}</p>',
         replace:
-          '<button type="button" className="door-button">Continue with Google</button>\n        <p className="door-muted text-[13px]">{t(\'sign_in.password.forgot\')}</p>',
+          '<button type="button" className="door-button">Continue with Google</button>\n        <p className="door-muted text-[13px] leading-[18px]">{t(\'sign_in.password.forgot\')}</p>',
       },
     ],
   },
@@ -360,9 +366,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/DoorFrame.tsx',
-        find: '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />',
+        find: '<BrandLogo variant="on-dark" height={48} label={t(\'app.brand\')} />',
         replace:
-          '<span aria-hidden="true" className="door-rule block h-[3px] w-6 rounded-full" />\n          <p>{t(\'app.brand_line\')}</p>',
+          "<BrandLogo variant=\"on-dark\" height={48} label={t('app.brand')} />\n        <p>{t('app.brand_line')}</p>",
       },
     ],
   },
@@ -579,9 +585,9 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/shell/BottomBar.tsx',
-        find: '            <button\n              type="button"\n              onClick={signOut}',
+        find: '              <button\n                type="button"\n                onClick={signOut}',
         replace:
-          '            <a href="/profile">My profile</a>\n            <button\n              type="button"\n              onClick={signOut}',
+          '              <a href="/profile">My profile</a>\n              <button\n                type="button"\n                onClick={signOut}',
       },
     ],
   },
@@ -885,7 +891,7 @@ export const sabotages = [
       // the server renders the browser's cookie instead of the profile, and nothing brings the cookie in line
       {
         file: 'src/core/prefs/effective.ts',
-        find: "theme: own('theme') ? raw.theme : eff.theme,",
+        find: 'theme: me ? eff.theme : doorTheme,',
         replace: 'theme: raw.theme,',
       },
       {
@@ -1777,9 +1783,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
-        replace:
-          "        className={cn(\n          'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',\n          className,\n        )}\n        data-tabs\n        {...scroll}\n      >",
+        find: "className={cn(trackClass, 'max-sm:flex-wrap')} data-tabs",
+        replace: 'className={cn(trackClass)} data-tabs',
       },
     ],
   },

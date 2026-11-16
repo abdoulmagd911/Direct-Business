@@ -47,7 +47,7 @@ export function EntityLink({
         href={href}
         data-entity={kind}
         className={cn(
-          'inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-md border border-border bg-raised px-2.5 text-sm font-medium text-link hover:border-border-strong',
+          'inline-flex h-[30px] items-center gap-2 whitespace-nowrap rounded-pill border border-border-strong bg-raised px-3 text-sm font-medium text-link hover:bg-surface',
           className,
         )}
       >

@@ -72,7 +72,8 @@ const type = async (text: string) => {
   });
 };
 
-const shown = () => [...document.querySelectorAll('[data-codes-page] ul li')].map((li) => li.textContent ?? '');
+const shown = () =>
+  [...document.querySelectorAll('[data-codes-page] [data-code-row]')].map((li) => li.textContent ?? '');
 
 describe('the codes list searches by code text', () => {
   it('narrows to the codes carrying the typed fragment, in the list order', async () => {

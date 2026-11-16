@@ -1,8 +1,9 @@
 /**
  * One add control per width (daily use 11, V633): on a PC it is Create in the top bar, on a phone the +, and both open
  * the same menu. Create → Capture opens the Quick capture sheet — Note, Idea, Checklist, Reminder, Meeting, Only me by
- * default — so My day has no Capture button of its own; "/" still opens the sheet from the keyboard. At 375 and
- * 1,440 px. Every value is made up.
+ * default; "/" still opens the sheet from the keyboard. Landing 31 (the 15 Nov board) puts a Capture button on My
+ * day's banner from 640 px up — a second way into the SAME sheet, never a box of its own; a phone keeps the + as its
+ * one add control and shows no such button. At 375 and 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { openCapture } from './support/capture';
@@ -49,7 +50,20 @@ for (const size of [PHONE, PC]) {
     await hydrated(page);
 
     await expect(page.locator('[data-capture-input]'), 'no note-only box').toHaveCount(0);
-    await expect(page.locator('[data-capture-open]'), 'no Capture button of its own on My day').toHaveCount(0);
+    // Landing 31: the banner's Capture shows from 640 px up and opens the same sheet; a phone shows none
+    const onBanner = page.locator('[data-day-banner] [data-capture-open]');
+    await expect(page.locator('[data-capture-open]'), 'at most the banner’s Capture, never a second one').toHaveCount(
+      1,
+    );
+    if (size.width < 640)
+      await expect(onBanner, 'no Capture button on a phone: the + is the one add control').toBeHidden();
+    else {
+      await expect(onBanner, 'Capture on the banner').toBeVisible();
+      await onBanner.click();
+      await expect(page.locator('[data-quick-capture]'), 'it opens the one capture sheet').toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-quick-capture]')).toHaveCount(0);
+    }
     await expect(
       page.locator('[data-state="empty"]', { hasText: 'No notes yet' }),
       'the empty line points to the one add control',

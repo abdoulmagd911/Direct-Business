@@ -27,7 +27,7 @@ export function Tooltip({
           <RT.Content
             side={side}
             sideOffset={6}
-            className="z-50 rounded-md bg-text px-2.5 py-1.5 text-sm text-raised shadow-2"
+            className="motion-menu z-50 max-w-[calc(100vw-32px)] origin-[var(--radix-tooltip-content-transform-origin)] rounded-sm bg-inverse px-2.5 py-1.5 text-sm font-medium text-on-inverse shadow-2"
           >
             {content}
           </RT.Content>

@@ -141,14 +141,14 @@ export function PastWorkPanel({
   if (noTeamToWorkIn(me.person.team_id, forOthers))
     return (
       <section className="flex min-w-0 flex-col gap-3" data-past-work-panel data-no-team aria-label={t('title')}>
-        <h2 className="text-lg font-semibold">{t('title')}</h2>
+        <h2 className="text-lg font-semibold text-strong">{t('title')}</h2>
         <p className="text-base text-muted">{tc('pages.tasks.noTeam')}</p>
       </section>
     );
 
   return (
     <section className="flex min-w-0 flex-col gap-3" data-past-work-panel aria-label={t('title')}>
-      <h2 className="text-lg font-semibold">{t('title')}</h2>
+      <h2 className="text-lg font-semibold text-strong">{t('title')}</h2>
       {ownerNeeded && forOthers ? (
         <div className="flex flex-col gap-2" data-past-owner>
           <p className="text-base text-muted">{t('ownerLine')}</p>

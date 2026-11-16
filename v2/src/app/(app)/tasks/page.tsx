@@ -7,7 +7,8 @@ import { loadLookups } from '@/modules/tasks/load';
 import { listFilter, parseFilters, showsTeamLoad } from '@/modules/tasks/rules';
 import { TaskListScreen } from '@/modules/tasks/screens/TaskListScreen';
 import type { TaskList, TeamLoad } from '@/modules/tasks/types';
-import { DataState } from '@/ui/DataState';
+import { TasksSkeleton } from '@/modules/tasks/screens/TasksSkeleton';
+import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
 import { pageTitle } from '@/ui/shell/page-title';
 
@@ -33,7 +34,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         fallback={
           <Page page="tasks" title={title}>
             <div data-tasks-loading>
-              <DataState kind="loading" message={t('state.loading', { what: title })} />
+              <PageHeader title={title} />
+              <div className="mt-5">
+                <TasksSkeleton board={params.layout === 'board'} label={t('state.loading', { what: title })} />
+              </div>
             </div>
           </Page>
         }

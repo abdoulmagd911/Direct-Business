@@ -1,6 +1,6 @@
 'use client';
 import * as RD from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { Link2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { command } from '@/core/commands/command';
@@ -29,8 +29,10 @@ import { WhenPicker } from './WhenPicker';
 
 const pill = (on: boolean) =>
   cn(
-    'inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
-    on ? 'border-accent bg-accent-soft text-text' : 'border-border bg-raised text-muted hover:text-text',
+    'inline-flex min-h-11 items-center rounded-pill border px-3.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-focus',
+    on
+      ? 'border-accent bg-accent-soft text-strong'
+      : 'border-border bg-raised text-muted hover:bg-surface hover:text-text',
   );
 
 /**
@@ -118,11 +120,11 @@ export function QuickCapture() {
         <RD.Overlay className="fixed inset-0 z-40 bg-scrim" />
         <RD.Content
           aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90dvh] w-full max-w-[560px] flex-col gap-3 overflow-y-auto rounded-t-lg border border-border bg-raised p-4 text-text shadow-2 focus:outline-none sm:bottom-auto sm:top-[12vh] sm:rounded-lg"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90dvh] w-full max-w-[560px] flex-col gap-3 overflow-y-auto rounded-t-sheet border border-border bg-raised p-4 text-text shadow-2 focus:outline-none sm:bottom-auto sm:top-[12vh] sm:rounded-xl sm:p-5"
           data-quick-capture
         >
           <div className="flex items-center justify-between gap-3">
-            <RD.Title className="text-lg font-semibold">
+            <RD.Title className="text-xl font-semibold leading-7 text-strong">
               {about ? t('pages.myDay.quick.followUp') : t('pages.myDay.quick.title')}
             </RD.Title>
             <RD.Close asChild>
@@ -131,11 +133,25 @@ export function QuickCapture() {
           </div>
           {about ? (
             <p
-              className="min-w-0 break-words rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              className="flex max-w-full items-center gap-2 self-start rounded-lg border border-border bg-surface py-0.5 ps-3.5 pe-0.5 text-sm"
               data-quick-about
             >
-              <span className="text-muted">{t('pages.myDay.quick.followUpFor')} </span>
-              <span className="font-medium">{about.label}</span>
+              {/* the record the follow-up is tied to, as a chip with its own ×: taking it away leaves a plain Reminder */}
+              <Link2 className="size-4 shrink-0 text-muted" aria-hidden="true" />
+              <span className="min-w-0 flex-1 break-words py-2">
+                <span className="text-muted">{t('pages.myDay.quick.followUpFor')} </span>
+                <span className="font-medium text-strong">{about.label}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setAbout(null)}
+                aria-label={t('pages.myDay.quick.removeLink')}
+                title={t('pages.myDay.quick.removeLink')}
+                className="grid size-11 shrink-0 place-items-center rounded-pill text-muted hover:bg-raised hover:text-strong focus-visible:outline-2 focus-visible:outline-focus sm:size-8"
+                data-quick-about-remove
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
             </p>
           ) : (
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('pages.myDay.quick.kind')}>

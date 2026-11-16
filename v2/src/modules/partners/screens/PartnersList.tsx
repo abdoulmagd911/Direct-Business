@@ -2,7 +2,7 @@
 import { CappedNote } from './CappedNote';
 import * as RP from '@radix-ui/react-popover';
 import type { RowSelectionState, SortingState, VisibilityState } from '@tanstack/react-table';
-import { Columns3, Plus, SlidersHorizontal } from 'lucide-react';
+import { Archive, CalendarClock, Columns3, Hourglass, Moon, Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -29,9 +29,15 @@ import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { PageFrame } from '@/ui/shell/AppShell';
+import { cn } from '@/ui/cn';
 import { useMediaQuery } from '@/ui/useMediaQuery';
 import { NewPartnerDialog } from './NewPartnerDialog';
 import { PartnerHover } from './PartnerHover';
+import { columnPlan } from '../list/columns';
+import { addressOf, emptyFilters as empty, type ListFilters } from '../list/filters';
+import { KpiCards, PhoneChips } from '../list/KpiCards';
+import type { KpiCounts } from '../list/kpi';
+import { useElementWidth } from '../list/useElementWidth';
 import { compareFlags, compareOwner } from '../sort';
 import {
   SIDE_PAGE,
@@ -47,41 +53,16 @@ import {
   type Side,
 } from '../types';
 
-export type ListFilters = {
-  q: string;
-  types: string[];
-  owners: string[];
-  statuses: string[];
-  tiers: string[];
-  priorities: string[];
-  key_partner: boolean;
-  stale: boolean;
-  archived: boolean;
-  view: string;
-};
-
-/** The address of a set of filters: what a saved view keeps, what the chips write. */
-export function addressOf(base: string, f: ListFilters): string {
-  const q = new URLSearchParams();
-  if (f.q) q.set('q', f.q);
-  if (f.types.length) q.set('type', f.types.join(','));
-  if (f.owners.length) q.set('owner', f.owners.join(','));
-  if (f.statuses.length) q.set('status', f.statuses.join(','));
-  if (f.tiers.length) q.set('tier', f.tiers.join(','));
-  if (f.priorities.length) q.set('priority', f.priorities.join(','));
-  if (f.key_partner) q.set('key', '1');
-  if (f.stale) q.set('stale', '1');
-  if (f.archived) q.set('archived', '1');
-  if (f.view) q.set('view', f.view);
-  const s = q.toString();
-  return s ? `${base}?${s}` : base;
-}
+export { addressOf, type ListFilters };
 
 /**
  * A lean list page (V98, V149, TECH-SPEC §3.4): saved views across the top (All and the side's types are the fixed
  * ones), the chips Type · Owner · Status, More filters for the rest, the table (two-line cards on a phone), a bulk bar
  * that assigns owner and priority to the selection as one request, and New. Every figure on it comes from
  * api.partners; the list is re-read through the address after every command.
+ * Landing 31 (V21): the four cards Active · Prospects · Stale · Quiet sit over the list and filter it through the
+ * address (three chips stand in for them on a phone); the table drops columns to fit its place instead of scrolling
+ * sideways, and under a table's width the list is rows in one card.
  */
 export function PartnersList({
   me,
@@ -90,6 +71,7 @@ export function PartnersList({
   filters,
   answer,
   failed,
+  counts,
   org,
   types,
   sideTypes,
@@ -104,6 +86,8 @@ export function PartnersList({
   filters: ListFilters;
   answer: PartnersAnswer | null;
   failed: boolean;
+  /** The cards' figures (null = not known), counted by the page from the same read as the list. */
+  counts: KpiCounts;
   org: OrgAnswer;
   types: ListEntry[];
   /** Every side's types, for the hover card's chips (the list's own `types` are this side's). */
@@ -133,6 +117,13 @@ export function PartnersList({
   // sort is not in the address (a gap: refresh drops it — see the landing report).
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  // Landing 31: the table draws the columns its own place has room for (the drawer beside it may be open or folded);
+  // a column there is no room for is hidden whatever the chooser says, and under a table's width the rows are cards.
+  const [rowsRef, rowsWidth] = useElementWidth<HTMLDivElement>();
+  const plan = columnPlan(rowsWidth, canBulk);
+  const asCards = phone || plan.cards;
+  const visibility: VisibilityState = { ...columnVisibility };
+  for (const id of plan.hidden) visibility[id] = false;
   const [assignIds, setAssignIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
   const [creating, setCreating] = useState(startCreating && full);
@@ -193,30 +184,50 @@ export function PartnersList({
         accessorKey: 'trade_name_en',
         header: t('partners.columns.name'),
         cell: ({ row }) => (
-          <span className="flex min-w-0 items-center gap-2.5">
-            <PartnerLogo name={row.original.trade_name_en} size="sm" />
-            <PartnerHover id={row.original.id} types={sideTypes}>
-              <Link
-                href={`${base}/${row.original.id}`}
-                className="truncate font-medium text-link hover:underline"
-                data-entity="partner"
-                data-partner-link={row.original.id}
-              >
-                <bdi className="min-w-0 truncate">{tradeName(row.original, locale)}</bdi>
-              </Link>
-            </PartnerHover>
-            {row.original.key_partner ? <StatusChip tone="info">{t('partners.keyPartner')}</StatusChip> : null}
+          <span className="flex min-w-0 items-center gap-3" style={{ maxWidth: plan.nameMax }} data-partner-name>
+            <PartnerLogo name={row.original.trade_name_en} size="sm" className="size-8" />
+            <span className="flex min-w-0 flex-col">
+              <PartnerHover id={row.original.id} types={sideTypes}>
+                <Link
+                  href={`${base}/${row.original.id}`}
+                  className="truncate font-medium leading-5 text-link hover:underline"
+                  data-entity="partner"
+                  data-partner-link={row.original.id}
+                >
+                  <bdi className="min-w-0 truncate">{tradeName(row.original, locale)}</bdi>
+                </Link>
+              </PartnerHover>
+              <span className="flex min-w-0 items-center gap-1.5 text-xs leading-[18px] text-muted">
+                <bdi className="font-data">{row.original.number}</bdi>
+                {row.original.key_partner ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="truncate" data-key-partner>
+                      {t('partners.keyPartner')}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            </span>
           </span>
         ),
       },
       {
         accessorKey: 'type',
         header: t('partners.columns.type'),
-        cell: ({ row }) =>
-          nameOf(
+        cell: ({ row }) => {
+          const name = nameOf(
             types.find((x) => x.key === row.original.type),
             locale,
-          ) || '—',
+          );
+          return name ? (
+            <span className="block max-w-28 truncate" title={name}>
+              {name}
+            </span>
+          ) : (
+            <span className="text-muted">—</span>
+          );
+        },
       },
       {
         accessorKey: 'status',
@@ -238,7 +249,11 @@ export function PartnersList({
         cell: ({ row }) => {
           const p = row.original.owner_id ? people[row.original.owner_id] : undefined;
           return p ? (
-            <PersonChip person={avatarOf(p, locale)} href={`/people/${p.id}`} />
+            <PersonChip
+              person={avatarOf(p, locale)}
+              href={`/people/${p.id}`}
+              className="max-w-44 [&_.name]:min-w-0 [&_.name]:truncate"
+            />
           ) : (
             <span className="text-muted">—</span>
           );
@@ -264,18 +279,13 @@ export function PartnersList({
         accessorFn: (row) => row.flags.join(' '),
         sortingFn: (a, b) => compareFlags(a.original, b.original),
         cell: ({ row }) => (
-          <span className="flex flex-wrap gap-1">
-            {row.original.flags.map((f) => (
-              <StatusChip key={f} tone={f === 'stale' ? 'warning' : 'info'}>
-                {t(`partners.flags.${f}`)}
-              </StatusChip>
-            ))}
-            {row.original.archived ? <StatusChip tone="neutral">{t('partners.archived')}</StatusChip> : null}
+          <span className="flex flex-col gap-0.5">
+            <FlagWords flags={row.original.flags} archived={row.original.archived} />
           </span>
         ),
       },
     ];
-  }, [t, locale, types, sideTypes, people, base]);
+  }, [t, locale, types, sideTypes, people, base, plan.nameMax]);
 
   const activeFilters =
     [filters.q].filter(Boolean).length +
@@ -286,7 +296,12 @@ export function PartnersList({
     filters.priorities.length +
     (filters.key_partner ? 1 : 0) +
     (filters.stale ? 1 : 0) +
+    (filters.quiet ? 1 : 0) +
     (filters.archived ? 1 : 0);
+
+  // a list with nothing in it and no filter on: the side has no organisation yet (the cards would be four zeros)
+  const trulyEmpty = !!answer && answer.total === 0 && activeFilters === 0;
+  const showCards = !!answer && !failed && !trulyEmpty;
 
   const chipLabel = (keys: string[], label: (k: string) => string) =>
     keys.length ? keys.map(label).join(', ') : undefined;
@@ -317,9 +332,16 @@ export function PartnersList({
         }
       />
       {tabs}
+      {showCards ? (
+        <>
+          <KpiCards base={base} side={side} filters={filters} counts={counts} />
+          <PhoneChips base={base} filters={filters} counts={counts} />
+        </>
+      ) : null}
       <SavedViewsBar
         page={page}
-        fixed={fixedViews}
+        // on a phone the three chips above are the fixed views (the 13 Nov board); the type is under Filter
+        fixed={phone ? [] : fixedViews}
         current={currentView}
         query={{ ...filters, view: undefined } as unknown as Record<string, unknown>}
         onOpen={openView}
@@ -397,6 +419,7 @@ export function PartnersList({
               filters.priorities.length +
               (filters.key_partner ? 1 : 0) +
               (filters.stale ? 1 : 0) +
+              (filters.quiet ? 1 : 0) +
               (filters.archived ? 1 : 0) >
             0 ? (
               <span className="font-data text-xs text-muted">
@@ -404,6 +427,7 @@ export function PartnersList({
                   filters.priorities.length +
                   (filters.key_partner ? 1 : 0) +
                   (filters.stale ? 1 : 0) +
+                  (filters.quiet ? 1 : 0) +
                   (filters.archived ? 1 : 0)}
               </span>
             ) : null}
@@ -416,28 +440,32 @@ export function PartnersList({
           filters.priorities.length ||
           filters.key_partner ||
           filters.stale ||
+          filters.quiet ||
           filters.archived ? (
             <Button size="sm" variant="link" onClick={() => go(empty())} data-partners-clear>
               {t('common.clearAll')}
             </Button>
           ) : null}
         </PhoneFilter>
-        <ColumnsMenu
-          columns={[
-            { id: 'type', label: t('partners.columns.type') },
-            { id: 'status', label: t('partners.columns.status') },
-            { id: 'owner_id', label: t('partners.columns.owner') },
-            { id: 'last_activity_on', label: t('partners.columns.lastActivity') },
-            { id: 'flags', label: t('partners.columns.flags') },
-          ]}
-          visibility={columnVisibility}
-          onChange={setColumnVisibility}
-        />
+        {asCards ? null : (
+          <ColumnsMenu
+            // only the columns this width has room for can be chosen: one it has no room for stays hidden
+            columns={[
+              { id: 'type', label: t('partners.columns.type') },
+              { id: 'status', label: t('partners.columns.status') },
+              { id: 'owner_id', label: t('partners.columns.owner') },
+              { id: 'last_activity_on', label: t('partners.columns.lastActivity') },
+              { id: 'flags', label: t('partners.columns.flags') },
+            ].filter((c) => !(plan.hidden as string[]).includes(c.id))}
+            visibility={columnVisibility}
+            onChange={setColumnVisibility}
+          />
+        )}
       </div>
 
       {filters.archived ? (
         <div
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-raised px-4 py-2.5 text-sm shadow-1"
           data-archived-banner
         >
           <span>{t('partners.archivedView')}</span>
@@ -447,23 +475,48 @@ export function PartnersList({
         </div>
       ) : null}
       {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
-      {failed ? (
-        <DataState kind="failed" what={title} onRetry={() => router.refresh()} retryLabel={t('common.tryAgain')} />
-      ) : answer && rows.length === 0 ? (
-        <DataState kind="empty" message={t('partners.none')} />
-      ) : phone ? (
-        <ul className="flex flex-col gap-2" data-partners-cards>
-          {rows.map((r) => {
-            const owner = r.owner_id ? people[r.owner_id] : undefined;
-            return (
-              <li
-                key={r.id}
-                className="relative rounded-lg border border-border bg-raised p-3"
-                data-partner-card={r.id}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <PartnerLogo name={r.trade_name_en} size="sm" />
+      <div ref={rowsRef} className="flex min-w-0 flex-col" data-partners-rows>
+        {failed ? (
+          <DataState
+            kind="failed"
+            what={title}
+            message={t('partners.list.failed')}
+            onRetry={() => router.refresh()}
+            retryLabel={t('common.tryAgain')}
+          />
+        ) : answer && rows.length === 0 ? (
+          <DataState
+            kind="empty"
+            message={trulyEmpty ? t(`partners.list.noneYet.${side}`) : t('partners.none')}
+            action={
+              trulyEmpty ? (
+                full ? (
+                  <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)} data-partner-new-empty>
+                    {side === 'client' ? t('partners.newClient') : t('partners.newSupplier')}
+                  </Button>
+                ) : null
+              ) : (
+                <Button variant="secondary" onClick={() => go(empty())} data-partners-clear-empty>
+                  {t('common.clearAll')}
+                </Button>
+              )
+            }
+          />
+        ) : asCards ? (
+          <ul className="overflow-hidden rounded-lg border border-border bg-raised shadow-1" data-partners-cards>
+            {rows.map((r) => {
+              const type = nameOf(
+                types.find((x) => x.key === r.type),
+                locale,
+              );
+              return (
+                <li
+                  key={r.id}
+                  className="relative flex items-center gap-3 border-b border-border px-3.5 py-1.5 last:border-b-0"
+                  data-partner-card={r.id}
+                >
+                  <PartnerLogo name={r.trade_name_en} size="sm" className="size-8" />
+                  <div className="flex min-w-0 flex-1 flex-col">
                     <Link
                       href={`${base}/${r.id}`}
                       className="inline-flex min-h-11 min-w-0 items-center truncate font-medium text-link after:absolute after:inset-0 after:content-['']"
@@ -472,52 +525,49 @@ export function PartnersList({
                     >
                       <bdi className="min-w-0 truncate">{tradeName(r, locale)}</bdi>
                     </Link>
-                  </span>
-                  <span className="font-data text-xs text-muted">
-                    {r.last_activity_on ? formatDate(r.last_activity_on, locale, { dateStyle: 'medium' }) : '—'}
-                  </span>
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted">
-                  <span>
-                    {nameOf(
-                      types.find((x) => x.key === r.type),
-                      locale,
-                    ) || '—'}
-                  </span>
-                  <span>·</span>
-                  <span>{owner ? personName(owner, locale) : '—'}</span>
-                  {r.status ? (
-                    <StatusChip tone={statusTone(r.status)}>{t(`partners.status.${r.status}`)}</StatusChip>
-                  ) : null}
-                  {r.flags.map((f) => (
-                    <StatusChip key={f} tone={f === 'stale' ? 'warning' : 'info'}>
-                      {t(`partners.flags.${f}`)}
+                    <div className="-mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 pb-1 text-sm text-muted">
+                      <FlagWords flags={r.flags} archived={r.archived} />
+                      {r.flags.length || r.archived ? <span aria-hidden="true">·</span> : null}
+                      {type ? (
+                        <>
+                          <span>{type}</span>
+                          <span aria-hidden="true">·</span>
+                        </>
+                      ) : null}
+                      <span className="font-data">
+                        {r.last_activity_on ? formatDate(r.last_activity_on, locale, { dateStyle: 'medium' }) : '—'}
+                      </span>
+                    </div>
+                  </div>
+                  {/* the 13 Nov board: a pill only for what needs a second look — an active partner carries none */}
+                  {r.status && r.status !== 'active' ? (
+                    <StatusChip tone={statusTone(r.status)} className="shrink-0">
+                      {t(`partners.status.${r.status}`)}
                     </StatusChip>
-                  ))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={rows}
-          getRowId={(r) => r.id}
-          selectable={canBulk}
-          rowSelection={selected}
-          onRowSelectionChange={setSelected}
-          // FIX-01 (P1b): with only the own-task capability, only the rows this person owns may be picked.
-          canSelectRow={canAssign ? undefined : (r) => r.owner_id === me.person.id}
-          sorting={sorting}
-          onSortingChange={setSorting}
-          columnVisibility={columnVisibility}
-          onColumnVisibilityChange={setColumnVisibility}
-          onRowClick={(r) => router.push(`${base}/${r.id}`)}
-          labels={{ selectRow: t('table.selectRow'), selectAll: t('table.selectAll') }}
-          emptyState={<DataState kind={answer ? 'empty' : 'loading'} message={t('partners.none')} />}
-        />
-      )}
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={rows}
+            getRowId={(r) => r.id}
+            selectable={canBulk}
+            rowSelection={selected}
+            onRowSelectionChange={setSelected}
+            // FIX-01 (P1b): with only the own-task capability, only the rows this person owns may be picked.
+            canSelectRow={canAssign ? undefined : (r) => r.owner_id === me.person.id}
+            sorting={sorting}
+            onSortingChange={setSorting}
+            columnVisibility={visibility}
+            onRowClick={(r) => router.push(`${base}/${r.id}`)}
+            labels={{ selectRow: t('table.selectRow'), selectAll: t('table.selectAll') }}
+            emptyState={<DataState kind={answer ? 'empty' : 'loading'} message={t('partners.none')} />}
+          />
+        )}
+      </div>
 
       {canBulk ? (
         <BulkBar
@@ -552,6 +602,8 @@ export function PartnersList({
         filters={filters}
         tiers={tiers}
         priorities={priorities}
+        // Quiet is offered where the list read tells of it (View on Finance), or where the address already carries it
+        quiet={counts.quiet !== null || filters.quiet}
         onApply={(f) => {
           setMore(false);
           go({ ...f, view: '' });
@@ -575,19 +627,36 @@ export function PartnersList({
   );
 }
 
-function empty(): ListFilters {
-  return {
-    q: '',
-    types: [],
-    owners: [],
-    statuses: [],
-    tiers: [],
-    priorities: [],
-    key_partner: false,
-    stale: false,
-    archived: false,
-    view: '',
-  };
+/**
+ * A row's flags as coloured words with a small icon each (V21: Stale amber, Quiet with its card's moon, the rest in
+ * their own tone) — words, not pills, so a row carries one pill at most (its status). Colour never says it alone: the
+ * word is always there.
+ */
+function FlagWords({ flags, archived }: { flags: string[]; archived: boolean }) {
+  const t = useTranslations();
+  const word = 'inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-medium leading-[18px]';
+  return (
+    <>
+      {flags.map((f) => (
+        <span key={f} className={cn(word, f === 'stale' ? 'text-warning' : 'text-info')} data-flag={f}>
+          {f === 'stale' ? (
+            <Hourglass className="size-4 shrink-0" aria-hidden="true" />
+          ) : f === 'quiet' ? (
+            <Moon className="size-4 shrink-0" aria-hidden="true" />
+          ) : (
+            <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
+          )}
+          {t(`partners.flags.${f}`)}
+        </span>
+      ))}
+      {archived ? (
+        <span className={cn(word, 'text-muted')} data-flag="archived">
+          <Archive className="size-4 shrink-0" aria-hidden="true" />
+          {t('partners.archived')}
+        </span>
+      ) : null}
+    </>
+  );
 }
 
 /** FIX-01: the columns chooser — every column but the name can be hidden; the choice is this list's state. */
@@ -729,6 +798,7 @@ function MoreFiltersDialog({
   filters,
   tiers,
   priorities,
+  quiet,
   onApply,
 }: {
   open: boolean;
@@ -736,6 +806,7 @@ function MoreFiltersDialog({
   filters: ListFilters;
   tiers: ListEntry[];
   priorities: ListEntry[];
+  quiet: boolean;
   onApply: (f: ListFilters) => void;
 }) {
   const t = useTranslations();
@@ -813,6 +884,19 @@ function MoreFiltersDialog({
             {t('partners.staleOnly')}
           </label>
         </span>
+        {quiet ? (
+          <span className="flex items-center gap-2">
+            <Switch
+              id="more-quiet"
+              checked={draft.quiet}
+              onCheckedChange={(v) => setDraft({ ...draft, quiet: v })}
+              label={t('partners.quietOnly')}
+            />
+            <label htmlFor="more-quiet" className="text-sm">
+              {t('partners.quietOnly')}
+            </label>
+          </span>
+        ) : null}
         <span className="flex items-center gap-2">
           <Switch
             id="more-archived"

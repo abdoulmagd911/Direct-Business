@@ -59,7 +59,7 @@ export function HoverCard<T>({
           onPointerLeave={hide}
           onOpenAutoFocus={(e) => e.preventDefault()}
           className={cn(
-            'z-50 w-[320px] rounded-lg border border-border bg-raised p-3 text-sm text-text shadow-2',
+            'motion-menu z-50 w-[320px] max-w-[calc(100vw-32px)] origin-[var(--radix-popover-content-transform-origin)] rounded-lg border border-border bg-raised p-4 text-sm text-text shadow-2',
             className,
           )}
           data-hover-card

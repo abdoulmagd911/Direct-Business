@@ -56,11 +56,17 @@ const noSidewaysScroll = async (page: Page, width: number, what: string) =>
 
 /** The tab links drawn on the row, in order, and what sits under More. */
 async function tabsAndMore(page: Page) {
-  const shown = await page
-    .locator('[data-tabs] a')
-    .evaluateAll((els) =>
-      els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => (e.textContent ?? '').trim()),
-    );
+  const shown = await page.locator('[data-tabs] a').evaluateAll((els) =>
+    els
+      .filter((e) => e.getBoundingClientRect().width > 0)
+      .map((e) =>
+        (() => {
+          const c = e.cloneNode(true) as HTMLElement;
+          c.querySelectorAll('[data-tab-count]').forEach((n) => n.remove());
+          return (c.textContent ?? '').trim();
+        })(),
+      ),
+  );
   await page.locator('[data-tabs-more]').click();
   const under = await page.locator('[data-tabs-more-item]').allTextContents();
   await page.keyboard.press('Escape');
@@ -145,11 +151,17 @@ test('desk 1440: Tasks keeps every control in its row — Add task, five tabs, t
   await signIn(page, member.email, '/tasks');
   await hydrated(page);
   expect(await box(page, '[data-add-task]'), 'Add task is in the header').not.toBeNull();
-  const shown = await page
-    .locator('[data-tabs] a')
-    .evaluateAll((els) =>
-      els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => (e.textContent ?? '').trim()),
-    );
+  const shown = await page.locator('[data-tabs] a').evaluateAll((els) =>
+    els
+      .filter((e) => e.getBoundingClientRect().width > 0)
+      .map((e) =>
+        (() => {
+          const c = e.cloneNode(true) as HTMLElement;
+          c.querySelectorAll('[data-tab-count]').forEach((n) => n.remove());
+          return (c.textContent ?? '').trim();
+        })(),
+      ),
+  );
   expect(shown, 'all five tabs show').toEqual(['My work', 'Owned', 'Helping', 'Team', 'Past work']);
   expect(await box(page, '[data-tabs-more]'), 'no More on a wide screen').toBeNull();
   expect(await box(page, '[data-filter-toggle]'), 'no Filter button on a wide screen').toBeNull();

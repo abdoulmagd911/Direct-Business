@@ -242,7 +242,7 @@ export function FilesSection({
 
   return (
     <section
-      className="rounded-lg border border-border bg-raised p-5"
+      className="rounded-lg border border-border bg-raised p-5 shadow-1"
       data-record-files
       {...(entity === 'partner' ? { 'data-partner-files': true } : {})}
       onDragOver={(e) => {

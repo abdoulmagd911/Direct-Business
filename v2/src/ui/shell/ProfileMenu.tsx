@@ -3,14 +3,28 @@ import { LogOut, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMe } from '@/core/auth/me-context';
+import { THEMES, type Theme } from '@/core/prefs';
+import { useThemeChoice } from '@/core/prefs/use-theme-choice';
 import { Avatar } from '../Avatar';
 import { personOf } from '../person';
-import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../Menu';
+import {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuTrigger,
+} from '../Menu';
+import { ThemeSwatch } from '../ThemePicker';
 
 /**
- * The profile chip (avatar and name) opens two things only: My profile and Sign out (V217, cut 5). It is the one way
- * to My profile: the drawer and More do not repeat it (daily use 10). Density, language
- * and the development direction live in My profile's Preferences; Recently deleted is reached from Activity and Ctrl K.
+ * The profile chip (avatar and name) opens My profile, the theme and Sign out (V217, cut 5; Landing 31). It is the
+ * one way to My profile: the drawer and More do not repeat it (daily use 10). The theme lives with the person, under
+ * their avatar — never in the top bar: five rows with swatches, the current one ticked; one click, no page change.
+ * Density, language and the development direction live in My profile's Look; Recently deleted is reached from
+ * Activity and Ctrl K.
  */
 // Sign-out is a POST to /auth/sign-out (P3-2), sent by the hidden form the menu renders beside its trigger.
 const SIGN_OUT_FORM = 'sign-out-form';
@@ -20,6 +34,7 @@ export function ProfileMenu() {
   const t = useTranslations();
   const me = useMe();
   const person = personOf(me);
+  const { theme, choose } = useThemeChoice();
   return (
     <Menu>
       <form id={SIGN_OUT_FORM} method="post" action="/auth/sign-out" hidden />
@@ -41,6 +56,17 @@ export function ProfileMenu() {
             {t('profileMenu.myProfile')}
           </Link>
         </MenuItem>
+        <MenuSeparator />
+        <MenuLabel>{t('themePicker.title')}</MenuLabel>
+        <MenuRadioGroup value={theme} onValueChange={(v) => void choose(v as Theme)} data-theme-menu>
+          {THEMES.map((k) => (
+            // the menu stays open on a pick, so the change is seen at once and another can be tried
+            <MenuRadioItem key={k} value={k} onSelect={(e) => e.preventDefault()} data-theme-item={k}>
+              <ThemeSwatch theme={k} />
+              {t(`theme.${k}`)}
+            </MenuRadioItem>
+          ))}
+        </MenuRadioGroup>
         <MenuSeparator />
         <MenuItem icon={<LogOut />} onSelect={signOut} data-sign-out>
           {t('profileMenu.signOut')}

@@ -100,9 +100,10 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: "'inline-flex h-[var(--control-h)] shrink-0 items-center whitespace-nowrap px-3.5 text-base",
+        // Landing 31: the period links are pill tabs now (36 px, 44 px on a phone)
+        find: "'inline-flex h-9 max-sm:h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-pill px-4",
         // the shared phone rule gives a link a 44 px minimum; a zero minimum (a utility beats that rule) lets the short height show
-        replace: "'inline-flex h-6 min-h-0 shrink-0 items-center whitespace-nowrap px-3.5 text-base",
+        replace: "'inline-flex h-6 min-h-0 shrink-0 items-center justify-center whitespace-nowrap rounded-pill px-4",
       },
     ],
   },
@@ -113,7 +114,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '          <MonthChips row={row} full={full} onClose={onClose} />\n        </div>\n        <div className="grid basis-full grid-cols-3 gap-3 max-sm:order-3 sm:hidden" data-finance-month-card',
+        // Landing 31: the month is a card wherever its own card is narrower than 600 px (a container rule, not the window's)
+        find: '          <MonthChips row={row} full={full} onClose={onClose} />\n        </div>\n        <div className="order-3 grid basis-full grid-cols-3 gap-3 @min-[600px]:hidden" data-finance-month-card',
         replace:
           '          <MonthChips row={row} full={full} onClose={onClose} />\n        </div>\n        <div className="hidden" data-finance-month-card',
       },

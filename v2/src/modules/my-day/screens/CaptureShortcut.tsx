@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { openQuickCapture } from '../quick-capture';
 
 /**
- * "/" anywhere on My day opens the Quick capture sheet. There is no Capture button on the page (daily use 11): the one
- * add control is Create on a PC and the + on a phone, and Create → Capture opens this same sheet.
+ * "/" anywhere on My day opens the Quick capture sheet — the same sheet as Create → Capture, the phone's + and, from
+ * 640 px up, the banner's Capture button (Landing 31, the 15 Nov board; a phone keeps the + as its one add control).
+ * This piece draws nothing itself.
  */
 export function CaptureShortcut() {
   useEffect(() => {

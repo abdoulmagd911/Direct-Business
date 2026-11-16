@@ -48,10 +48,12 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   ]);
   await page.getByRole('option', { name: 'Default' }).click();
 
-  // Theme: Light, Dark and Direct, and nothing else (V636)
-  await page.getByLabel('Theme', { exact: true }).click();
-  await expect(page.getByRole('option')).toHaveText(['Light', 'Dark', 'Direct']);
-  await page.getByRole('option', { name: 'Dark' }).click();
+  // Theme: five cards — Light, Dark, Direct, Turquoise and System — and nothing else (Landing 31; no Colorful, V636)
+  await expect(page.locator('[data-theme-card]')).toHaveCount(5);
+  expect(
+    await page.locator('[data-theme-card]').evaluateAll((els) => els.map((e) => e.getAttribute('data-theme-card'))),
+  ).toEqual(['light', 'dark', 'direct', 'turquoise', 'system']);
+  await page.locator('[data-theme-card="dark"]').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
   await page.getByLabel('Density').click();

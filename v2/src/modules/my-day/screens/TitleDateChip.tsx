@@ -1,5 +1,5 @@
 'use client';
-import { X } from 'lucide-react';
+import { CalendarClock, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatDate } from '@/core/i18n/format';
 import type { TitleDate } from '../title-date';
@@ -27,19 +27,22 @@ export function TitleDateChip({
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
   return (
+    // a pill that names what was read, with its own × at the end edge: 44 px to tap on a phone, 32 px on a wide screen
     <div
-      className="flex min-h-11 items-center justify-between gap-2 rounded-md border border-accent bg-accent-soft px-3 text-sm"
+      className="flex min-h-11 max-w-full items-center gap-2 self-start rounded-pill border border-accent bg-accent-soft py-0.5 ps-3.5 pe-0.5 text-sm font-medium text-strong sm:min-h-9"
       data-title-date
       data-title-date-day={read.day}
     >
-      <span className="min-w-0 break-words">
+      <CalendarClock className="size-4 shrink-0 text-accent-ink" aria-hidden="true" />
+      <span className="min-w-0 break-words py-1">
         {t(`pages.myDay.titleDate.${what}`, { found: read.found, when: titleDateLine(read, locale) })}
       </span>
       <button
         type="button"
         onClick={onRemove}
         aria-label={t('pages.myDay.titleDate.remove')}
-        className="grid size-11 shrink-0 place-items-center rounded-md hover:bg-surface focus-visible:outline-2 focus-visible:outline-focus"
+        title={t('pages.myDay.titleDate.remove')}
+        className="grid size-11 shrink-0 place-items-center rounded-pill text-muted hover:bg-raised hover:text-strong focus-visible:outline-2 focus-visible:outline-focus sm:size-8"
         data-title-date-remove
       >
         <X className="size-4" aria-hidden="true" />

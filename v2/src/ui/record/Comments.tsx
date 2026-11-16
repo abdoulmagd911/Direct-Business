@@ -405,7 +405,7 @@ export function Comments({
           <DataState kind="empty" message={t('record.comments.empty')} />
         )
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised">
+        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-raised shadow-1">
           {visible.map((e, i) => {
             if (e.kind === 'file') {
               const f = e.file;

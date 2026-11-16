@@ -37,9 +37,16 @@ export function SignIn({
   const year = new Date().getFullYear();
   return (
     <DoorFrame footer={t('sign_in.footer', { year })} data-sign-in>
-      <div className="flex flex-col gap-2 pb-8">
-        <h1 className="font-display text-2xl font-semibold leading-8 sm:text-[28px] sm:leading-9">{t('app.name')}</h1>
-        <p className="door-muted text-[15px] leading-[22px]">{t('sign_in.password.subtitle')}</p>
+      <div className="flex flex-col gap-2">
+        {/* the workspace's name is the big heading, its last word in an orange pill (the owner's brief for layout A) */}
+        <h1
+          className="door-heading text-[32px] leading-10 sm:text-[34px] sm:leading-[42px] lg:text-4xl lg:leading-[52px]"
+          aria-label={t('app.name')}
+          data-door-heading
+        >
+          {t('sign_in.heading.lead')} <span className="door-heading-pill">{t('sign_in.heading.pill')}</span>
+        </h1>
+        <p className="door-muted text-sm leading-[22px]">{t('sign_in.password.subtitle')}</p>
       </div>
       {method === 'password' ? (
         <PasswordDoor next={next} refusal={refusal} />

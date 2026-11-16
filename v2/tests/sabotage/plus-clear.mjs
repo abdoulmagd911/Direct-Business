@@ -2,9 +2,9 @@
 // last slot). Each puts Create back to floating over the page, as the + did before: without the foot padding the page
 // ends under it, and with the padding it still sits over My day's Weekly review row at first view.
 const E2E = 'e2e:tests/e2e/plus-clear.spec.ts';
-const BAR_SLOT = "'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px]";
+const BAR_SLOT = "'group flex min-w-0 flex-1 items-center justify-center focus-visible:outline-none'";
 const FLOATING =
-  "'fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 flex-col items-center justify-center gap-1 text-[11px]";
+  "'group fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 items-center justify-center focus-visible:outline-none'";
 
 export const sabotages = [
   {

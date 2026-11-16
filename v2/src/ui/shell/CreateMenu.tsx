@@ -2,6 +2,7 @@
 import {
   Building2,
   CheckSquare,
+  ChevronDown,
   ClipboardList,
   Handshake,
   Lightbulb,
@@ -87,18 +88,21 @@ export function createActionsFor(me: Me) {
   );
 }
 
-/** The bottom bar's last slot on a phone (the architect's ruling of 15 Oct, option C): shaped like the bar's other slots. */
-const barClass =
-  'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium text-nav-text focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus';
+/**
+ * The bottom bar's last slot on a phone (the architect's ruling of 15 Oct, option C: Create is in the bar, so it floats
+ * over nothing). The slot is as wide as the bar's other slots; what it draws is the look's Create button (V21): a 56 px
+ * circle in the action colour.
+ */
+const barClass = 'group flex min-w-0 flex-1 items-center justify-center focus-visible:outline-none';
 
-/** The slot's face: the + in the primary colour, so it reads as the add control, and the word under it. */
+/** The slot's face: a 56 px orange circle with the +; its word is kept for a screen reader. */
 function BarFace({ label }: { label: string }) {
   return (
     <>
-      <span className="inline-grid h-7 w-12 place-items-center rounded-pill bg-primary text-on-primary">
-        <Plus className="size-5" aria-hidden="true" />
+      <span className="press inline-grid size-14 shrink-0 place-items-center rounded-pill bg-primary text-on-primary shadow-button group-active:bg-primary-pressed group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-focus">
+        <Plus className="size-6" aria-hidden="true" />
       </span>
-      <span className="max-w-full truncate px-0.5" data-create-bar-label>
+      <span className="sr-only" data-create-bar-label>
         {label}
       </span>
     </>
@@ -168,6 +172,7 @@ export function CreateMenu({ bar = false }: { bar?: boolean }) {
         ) : (
           <Button variant="primary" icon={<Plus />} data-create className="hidden sm:inline-flex">
             {t('top.create')}
+            <ChevronDown aria-hidden="true" />
           </Button>
         )}
       </MenuTrigger>

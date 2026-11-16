@@ -189,7 +189,7 @@ test('desk 1440: hiding the imported rows hides them from the list AND the total
   const totals = page.locator('[data-partner-finance-totals]');
   const rows = page.locator('[data-partner-finance-row]');
   await expect(rows, 'four rows before hiding').toHaveCount(4);
-  await page.getByRole('switch', { name: 'Hide imported rows' }).click();
+  await page.getByRole('switch', { name: 'Imported', exact: true }).click();
   await expect(page, 'the address keeps the filter').toHaveURL(/hideImported=1/);
   await expect(rows, 'two rows after hiding the imported ones').toHaveCount(2);
   await expect(rows.filter({ hasText: 'Imported' }), 'no imported row is left').toHaveCount(0);
@@ -198,7 +198,7 @@ test('desk 1440: hiding the imported rows hides them from the list AND the total
   await expect(totals, 'cost drops to the manual rows alone').toContainText('200');
   await expect(totals, 'profit drops to the manual rows alone').toContainText('800');
   // and back: the imported rows return, list and total together
-  await page.getByRole('switch', { name: 'Hide imported rows' }).click();
+  await page.getByRole('switch', { name: 'Imported', exact: true }).click();
   await expect(page, 'the address drops the filter').not.toHaveURL(/hideImported=1/);
   await expect(rows, 'four rows again').toHaveCount(4);
   await expect(totals, 'revenue is back to the full view').toContainText('2,700');
@@ -212,7 +212,7 @@ test('desk 1440: a view saved with the filter on opens with the filter on after 
   await hydrated(page);
   await ledgerReady(page);
 
-  await page.getByRole('switch', { name: 'Hide imported rows' }).click();
+  await page.getByRole('switch', { name: 'Imported', exact: true }).click();
   await expect(page.locator('[data-partner-finance-row]'), 'two rows with the filter on').toHaveCount(2);
   await page.locator('[data-view-save]').click();
   const dialog = page.getByRole('dialog', { name: 'Save this view' });
@@ -227,7 +227,8 @@ test('desk 1440: a view saved with the filter on opens with the filter on after 
   await hydrated(page);
   await ledgerReady(page);
   await expect(page.locator('[data-partner-finance-row]'), 'two rows after the reload').toHaveCount(2);
-  await expect(page.getByRole('switch', { name: 'Hide imported rows' })).toHaveAttribute('aria-checked', 'true');
+  // Landing 31: the switch is the one word "Imported" — on shows the imported rows, so with the filter on it is off
+  await expect(page.getByRole('switch', { name: 'Imported', exact: true })).toHaveAttribute('aria-checked', 'false');
 });
 
 test('desk 1440: a company whose rows lack a cost shows profit empty and says how many rows lack one', async ({

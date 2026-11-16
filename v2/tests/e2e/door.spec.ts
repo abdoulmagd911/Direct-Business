@@ -1,6 +1,6 @@
 /**
- * The door — the sign-in page to the visual spec of 29 Sep (V213): a flat 400 px slate panel with the logo alone at
- * 1,024 px and wider, a slate bar on a phone; the heading in a 400 px column at the inline start, at max(96 px, 22 vh);
+ * The door — the sign-in page, layout A of the V21 boards (Landing 31; it was the 29 Sep spec, V213): a panel with the
+ * logo alone at 1,024 px and wider (36 % of the width), a bar on a phone; a centred 480 px card with the heading;
  * the four refusals in words (wrong pair, not on the team list, locked, the server not reached — never as a
  * credentials error); show/hide password; Caps Lock said; an empty field refused in place with the focus on it; the
  * tab title; the favicon answers 200. Sabotages: tests/sabotage/screens.mjs "door-offline-reads-as-wrong-password",
@@ -20,7 +20,7 @@ const email = (page: Page) => page.getByLabel('Work email');
 const password = (page: Page) => page.getByLabel('Password', { exact: true });
 const signIn = (page: Page) => page.getByRole('button', { name: /^Sign(ing)? in/ });
 
-test('the door: slate panel with the logo alone, the column at the inline start, the tab title, the favicon', async ({
+test('the door: the panel with the logo alone, the centred card, the tab title, the favicon', async ({
   page,
   context,
   request,
@@ -32,32 +32,36 @@ test('the door: slate panel with the logo alone, the column at the inline start,
   const panel = page.locator('[data-brand-panel]');
   await expect(panel).toBeVisible();
   const box = (await panel.boundingBox())!;
-  expect(Math.round(box.width), 'the panel is 400 px').toBe(400);
-  expect(await panel.evaluate((el) => getComputedStyle(el).backgroundColor), 'flat slate').toBe('rgb(50, 62, 72)');
+  // Landing 31, layout A: the panel is 36 % of the width, never under 360 px nor over 560 px
+  expect(Math.round(box.width), 'the panel is 36 % of 1,500 px').toBe(540);
   expect(await panel.locator('svg, path').count(), 'no motif, no arrow').toBe(0);
   await expect(panel.getByRole('img', { name: 'Direct' })).toBeVisible();
   await expect(panel, 'no tagline, no copyright in the panel').toHaveText('');
   await expect(page.getByText('The commercial arm of the all-in-one travel app')).toHaveCount(0);
   await expect(page.getByText('الذراع التجاري لتطبيق السفر الشامل')).toHaveCount(0);
-  const h1 = page.getByRole('heading', { level: 1, name: 'Commercial Workspace' });
-  const hb = (await h1.boundingBox())!;
-  expect(hb.y, 'the heading starts at max(96 px, 22 vh) — not centred').toBeGreaterThanOrEqual(
-    Math.max(96, 0.22 * 900) - 1,
-  );
-  expect(hb.y).toBeLessThan(0.22 * 900 + 24);
-  expect(Math.round(hb.x), 'the column is at the inline start, after the panel and the 48 px gutter').toBe(448);
+  await expect(page.getByRole('heading', { level: 1, name: 'Commercial Workspace' })).toBeVisible();
+  const card = (await page.locator('[data-door-card]').boundingBox())!;
+  expect(Math.round(card.width), 'the card is 480 px').toBe(480);
+  expect(
+    Math.abs(card.x + card.width / 2 - (box.width + (1500 - box.width) / 2)),
+    'the card is centred in the page beside the panel',
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(card.y + card.height / 2 - 450),
+    'and near the middle of the height (the footer sits under it)',
+  ).toBeLessThanOrEqual(40);
   await expect(page.getByText('Sign in with your work email and password.')).toBeVisible();
   await expect(page.getByText('Forgot your password? Ask your admin.')).toBeVisible();
   await expect(page.getByText(`© ${new Date().getFullYear()} Direct`)).toBeVisible();
-  // the door is light whatever the theme (the cookie says dark)
-  expect(await page.locator('[data-sign-in]').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
-    'rgb(245, 246, 248)',
-  );
-  expect(await page.locator('[data-sign-in]').evaluate((el) => getComputedStyle(el).colorScheme)).toBe('light');
-  // the button is slate, never orange; the fields are 48 px
-  expect(await signIn(page).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(50, 62, 72)');
-  expect(Math.round((await email(page).boundingBox())!.height)).toBe(48);
-  expect(Math.round((await password(page).boundingBox())!.height)).toBe(48);
+  // the door wears the theme last used on this device (the cookie says dark) — Landing 31, the theme rules
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('dark');
+  // the button is the deep orange with white words, 50 px; the fields are 44 px
+  expect(await signIn(page).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(200, 70, 12)');
+  expect(await signIn(page).evaluate((el) => getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
+  expect(Math.round((await signIn(page).boundingBox())!.height)).toBe(50);
+  expect(Math.round((await email(page).boundingBox())!.height)).toBe(44);
+  expect(Math.round((await password(page).boundingBox())!.height)).toBe(44);
   await expect(email(page)).toHaveAttribute('autocomplete', 'username');
   await expect(password(page)).toHaveAttribute('autocomplete', 'current-password');
   await expect(email(page)).toBeFocused();
@@ -66,14 +70,14 @@ test('the door: slate panel with the logo alone, the column at the inline start,
     const r = await request.get(`${BASE}${path}`, { maxRedirects: 0 });
     expect(r.status(), `${path} answers 200`).toBe(200);
   }
-  // on a phone: no panel, a 56 px slate bar with the logo, 16 px gutters
+  // on a phone: no panel, a 60 px bar with the logo, the card inside 16 px gutters
   await page.setViewportSize({ width: 400, height: 800 });
   await expect(panel).toBeHidden();
   const bar = page.locator('[data-door-bar]');
   await expect(bar).toBeVisible();
-  expect(Math.round((await bar.boundingBox())!.height)).toBe(56);
+  expect(Math.round((await bar.boundingBox())!.height)).toBe(60);
   await expect(bar.getByRole('img', { name: 'Direct' })).toBeVisible();
-  expect(Math.round((await email(page).boundingBox())!.x), '16 px gutter').toBe(16);
+  expect(Math.round((await page.locator('[data-door-card]').boundingBox())!.x), '16 px gutter').toBe(16);
 });
 
 test('the four refusals are said in words; the server not reached is never a credentials error', async ({ page }) => {
@@ -113,9 +117,11 @@ test('show/hide password, Caps Lock, and "Signing in…" with the fields read-on
   const eye = page.locator('[data-password-eye]');
   await expect(eye).toHaveAttribute('aria-label', 'Show password');
   await expect(eye).toHaveAttribute('aria-pressed', 'false');
+  // Landing 31: the control is the word Show / Hide inside the field, at least 44 px wide
+  await expect(eye).toHaveText('Show');
   const eyeBox = (await eye.boundingBox())!;
-  expect(Math.round(eyeBox.width)).toBe(40);
-  expect(Math.round(eyeBox.height)).toBe(40);
+  expect(eyeBox.width).toBeGreaterThanOrEqual(44);
+  expect(eyeBox.height).toBeGreaterThanOrEqual(32);
   await password(page).fill('Visible-1234');
   await expect(password(page)).toHaveAttribute('type', 'password');
   await eye.click();

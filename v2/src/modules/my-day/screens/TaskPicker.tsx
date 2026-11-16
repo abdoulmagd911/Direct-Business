@@ -80,7 +80,7 @@ export function TaskPicker({
                 >
                   <ListChecks className="size-4 shrink-0 text-muted" aria-hidden="true" />
                   <span className="flex min-w-0 flex-1 flex-col py-0.5">
-                    <span className="truncate">{h.title}</span>
+                    <span className="truncate leading-5">{h.title}</span>
                     <span className="font-data text-xs whitespace-nowrap text-muted">{h.number}</span>
                   </span>
                 </button>

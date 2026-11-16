@@ -27,18 +27,18 @@ export function TeamLoadPanel({ load }: { load: TeamLoad[] | null }) {
     );
   return (
     <section className="flex flex-col gap-2" data-team-load aria-label={title}>
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-lg font-semibold text-strong">{title}</h2>
       {load.length === 0 ? (
         <p className="text-base text-muted">{t('pages.tasks.load.empty')}</p>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {byLoad(load).map((p) => (
             <li
               key={p.person_id}
-              className="flex flex-col gap-1 rounded-lg border border-border bg-raised px-4 py-3"
+              className="flex flex-col gap-1.5 rounded-lg border border-border bg-raised px-4 py-3.5 shadow-1"
               data-load-person={p.full_name_en}
             >
-              <p className="break-words text-base font-medium">
+              <p className="break-words text-base font-medium text-strong">
                 {locale === 'ar' && p.full_name_ar ? p.full_name_ar : p.full_name_en}
               </p>
               <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted">

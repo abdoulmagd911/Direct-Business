@@ -19,7 +19,7 @@ export function CrashBody({ reset, body = 'body' }: { reset: () => void; body?: 
     <div
       role="alert"
       data-state="crashed"
-      className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5"
+      className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5 shadow-1"
     >
       <p className="text-base text-text">{t(`errors.crash.${body}`)}</p>
       <div className="flex flex-wrap gap-2">

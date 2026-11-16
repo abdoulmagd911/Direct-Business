@@ -26,7 +26,7 @@ export function PersonChip({
       data-entity="person"
       aria-label={nameless ? (person.fullName ?? person.displayName) : undefined}
       className={cn(
-        'inline-flex items-center gap-2 whitespace-nowrap font-medium text-text hover:[&_.name]:underline',
+        'inline-flex items-center gap-2 whitespace-nowrap rounded-pill font-medium text-strong hover:[&_.name]:underline',
         className,
       )}
     >

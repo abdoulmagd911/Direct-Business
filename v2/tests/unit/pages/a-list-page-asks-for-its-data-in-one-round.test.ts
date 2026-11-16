@@ -58,7 +58,7 @@ beforeEach(() => {
 });
 
 describe('a list page asks for all its data in one round after me', () => {
-  it('My day: the day, the organisation, the statuses, the due reminders, the open questions, the need-help tasks both ways and the unlogged closed tasks for the review door together, the organisation read once', async () => {
+  it("My day: the day, the organisation, the statuses, the due reminders, the open questions, the need-help tasks both ways, the unlogged closed tasks for the review door and the banner's My work count (the Tasks door, Landing 31) together, the organisation read once", async () => {
     const round = await oneRound(() => MyDayPage({ searchParams: Promise.resolve({}) }));
     expect(round.sort()).toEqual([
       'escalated_tasks',
@@ -68,6 +68,7 @@ describe('a list page asks for all its data in one round after me', () => {
       'open_asks',
       'org',
       'reminders_due',
+      'tasks',
       'weekly_unlogged',
     ]);
   });

@@ -1,6 +1,6 @@
 import type { Me } from '@/core/auth/me';
 import type { AppSettings } from '@/core/settings/app';
-import { ownChoice, prefsFrom, readTheme, type Prefs } from './index';
+import { PREF_DEFS, ownChoice, prefsFrom, readTheme, type Prefs } from './index';
 
 /**
  * What the screen should show for a signed-in person (ACC-090/091/139): their own profile choice first, then the
@@ -36,9 +36,14 @@ export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string)
   const raw = prefsFrom(get);
   const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);
   const eff = effectivePrefs(me, app, raw);
+  // Before sign-in (Landing 31, the theme-switcher rules): the theme last used on this device — its cookie, a choice
+  // made here or the cache of the last person's — and on a first visit, with no cookie at all, the device's own
+  // light or dark setting (System).
+  const lastUsed = get(PREF_DEFS.theme.cookie) !== undefined;
+  const doorTheme = own('theme') || lastUsed ? raw.theme : 'system';
   return {
     ...raw,
-    theme: own('theme') ? raw.theme : eff.theme,
+    theme: me ? eff.theme : doorTheme,
     density: own('density') ? raw.density : eff.density,
     // the door (nobody signed in) has no profile, so the cookie's language stands there whatever the Arabic
     // switch says (F205); signed in, the switch still rules (ACC-139)

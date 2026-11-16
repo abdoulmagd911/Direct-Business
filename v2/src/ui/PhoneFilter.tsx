@@ -19,14 +19,14 @@ export function PhoneFilter({ label, count, children }: { label: string; count: 
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
         data-filter-toggle
-        className="inline-flex h-[var(--control-h)] items-center gap-2 rounded-md border border-border-strong bg-raised px-3.5 text-base font-medium text-text hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:hidden"
+        className="inline-flex h-[var(--control-h)] items-center gap-2 rounded-pill border border-border-strong bg-raised px-[18px] text-base font-semibold text-strong hover:bg-surface active:bg-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:hidden"
       >
         <SlidersHorizontal className="size-4" aria-hidden="true" />
         {label}
         {count > 0 ? (
           <span
             data-filter-count
-            className="grid min-w-5 place-items-center rounded-pill bg-accent-soft px-1.5 font-data text-xs text-text"
+            className="grid min-w-5 place-items-center rounded-pill bg-sel px-1.5 font-data text-xs text-on-sel"
           >
             {count}
           </span>

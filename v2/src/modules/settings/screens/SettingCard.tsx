@@ -138,10 +138,13 @@ export function SettingCard({
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5" data-setting={def.key}>
+    <section
+      className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5 shadow-1"
+      data-setting={def.key}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="text-base font-semibold">{label}</h3>
+          <h3 className="text-base font-semibold text-strong">{label}</h3>
           <p className="font-display text-xl" data-setting-value>
             <SchemaValue names={names} settingKey={def.key} value={def.value} />
           </p>

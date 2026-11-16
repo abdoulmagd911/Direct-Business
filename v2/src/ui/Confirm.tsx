@@ -66,7 +66,7 @@ export function Confirm({
   return (
     <RA.Root open={open} onOpenChange={onOpenChange}>
       <RA.Portal>
-        <RA.Overlay className="fixed inset-0 z-40 bg-scrim" />
+        <RA.Overlay className="motion-scrim fixed inset-0 z-40 bg-scrim" />
         <RA.Content
           onOpenAutoFocus={(e) => {
             e.preventDefault();
@@ -76,16 +76,16 @@ export function Confirm({
             e.preventDefault();
             if (opener.current instanceof HTMLElement) opener.current.focus();
           }}
-          className="fixed inset-x-4 top-[20dvh] z-50 mx-auto flex max-h-[76dvh] w-auto max-w-[440px] flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-raised p-5 text-text shadow-2 focus:outline-none"
+          className="motion-dialog fixed inset-x-4 top-[20dvh] z-50 mx-auto flex max-h-[76dvh] w-auto max-w-[440px] flex-col gap-4 overflow-y-auto rounded-xl border border-border bg-raised p-6 text-text shadow-2 focus:outline-none max-sm:p-4"
         >
-          <RA.Title className="font-display text-lg font-semibold">{title}</RA.Title>
+          <RA.Title className="break-words font-display text-xl font-semibold leading-7 text-strong">{title}</RA.Title>
           {body ? (
             <RA.Description className="text-base text-muted">{body}</RA.Description>
           ) : (
             <RA.Description className="sr-only">{title}</RA.Description>
           )}
           {extra ? <div className="flex flex-col gap-2">{extra}</div> : null}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <RA.Cancel asChild>
               <Button ref={cancelRef} variant="secondary" data-confirm-cancel>
                 {cancelLabel}

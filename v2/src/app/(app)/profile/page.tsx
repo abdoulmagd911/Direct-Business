@@ -11,9 +11,10 @@ export const generateMetadata = pageTitle('nav.settings.profile');
 export default async function ProfilePage() {
   const me = await requireMe();
   const devices = (await serverRpc('my_devices', {} as never)) as unknown as Device[];
+  const app = await getAppSettings();
   return (
     <Page bare>
-      <MyProfile me={me} devices={devices} arabicEnabled={(await getAppSettings()).arabic_enabled} />
+      <MyProfile me={me} devices={devices} arabicEnabled={app.arabic_enabled} defaultTheme={app.default_theme} />
     </Page>
   );
 }

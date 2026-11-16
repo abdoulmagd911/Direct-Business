@@ -93,6 +93,9 @@ function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
+function api.finance_company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function api.finance_credit_limit() execute authenticated
+function api.finance_credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
@@ -107,7 +110,6 @@ function api.finance_import_recognise(p_source text, p_headers text[]) execute a
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
 function api.finance_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
-function api.finance_company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.finance_no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
 function api.finance_partner_credit(p_partner uuid) execute authenticated
@@ -423,6 +425,8 @@ function finance.codes_by_company() execute authenticated
 function finance.codes_detail(p_code uuid) execute authenticated
 function finance.codes_list() execute authenticated
 function finance.company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function finance.credit_limit() execute authenticated
+function finance.credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated

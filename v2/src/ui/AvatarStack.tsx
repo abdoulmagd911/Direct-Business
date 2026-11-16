@@ -37,7 +37,7 @@ export function AvatarStack({
         <span
           className={cn(
             'inline-grid place-items-center rounded-full bg-surface font-data text-muted ring-2 ring-raised shadow-[inset_0_0_0_1px_var(--border)]',
-            size === 'xs' ? 'size-6 text-[10px]' : 'size-7 text-[11px]',
+            size === 'xs' ? 'size-6 text-[12px]' : 'size-7 text-[12px]',
           )}
           aria-label={`+${rest}`}
         >

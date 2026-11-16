@@ -265,6 +265,16 @@ export default defineModule({
       default: [...NOTIFICATION_KINDS],
     },
     {
+      // Landing 31 (the owner's decision of 16 Nov 2026): the credit limit of every postpaid client whose record sets
+      // none of its own — whole riyals, in Settings → Finance. Everyone reads it; a manager, a head of department and
+      // an admin change it, through its own door (api.finance_credit_limit_set), not through the settings page.
+      key: 'finance.credit_limit',
+      group: 'settings.finance',
+      label: 'setting.finance.credit_limit',
+      schema: z.number().int().min(1).max(1_000_000_000),
+      default: 1_250_000,
+    },
+    {
       key: 'nudge.weekly_time',
       group: 'settings.app',
       label: 'setting.nudge.weekly_time',

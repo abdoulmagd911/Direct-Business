@@ -49,7 +49,7 @@ export function KeyFigures({
             <dd className="flex items-baseline gap-1">
               <span
                 className={cn(
-                  'font-display font-semibold tabular-nums',
+                  'font-display font-semibold text-strong tabular-nums',
                   size === 'md' ? 'text-2xl' : 'text-base',
                   f.value === null && 'text-base font-normal text-muted',
                 )}

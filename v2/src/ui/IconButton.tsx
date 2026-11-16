@@ -2,7 +2,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from './cn';
 
-/** An icon-only button: always has an accessible name (`label`), hit target ≥ 40 px. */
+/** An icon-only button, a circle (V21): always has an accessible name (`label`), hit target ≥ 40 px (44 on a phone). */
 export const IconButton = forwardRef<
   HTMLButtonElement,
   ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -20,7 +20,7 @@ export const IconButton = forwardRef<
       title={label}
       aria-pressed={pressed}
       className={cn(
-        'relative inline-grid shrink-0 place-items-center rounded-md border border-transparent bg-transparent text-current transition-colors duration-[var(--dur)] hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)] aria-pressed:bg-[color-mix(in_srgb,currentColor_18%,transparent)] disabled:opacity-50 [&_svg]:size-[18px]',
+        'press relative inline-grid shrink-0 place-items-center rounded-pill border border-transparent bg-transparent text-current hover:bg-[color-mix(in_srgb,currentColor_10%,transparent)] active:bg-[color-mix(in_srgb,currentColor_16%,transparent)] aria-pressed:bg-[color-mix(in_srgb,currentColor_16%,transparent)] disabled:cursor-not-allowed disabled:text-muted focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 [&_svg]:size-5',
         size === 'md' ? 'size-[var(--hit)]' : 'size-8 max-sm:size-11 [&_svg]:size-4',
         className,
       )}

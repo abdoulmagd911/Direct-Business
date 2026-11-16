@@ -33,8 +33,8 @@ export const sabotages = [
     edits: [
       {
         file: FILE,
-        find: "onValueChange={(v) => void save({ theme: v as Profile['theme'] })}",
-        replace: 'onValueChange={(v) => void v}',
+        find: "onChange={(v) => void save({ theme: v as Profile['theme'] })}",
+        replace: 'onChange={(v) => void v}',
       },
     ],
   },

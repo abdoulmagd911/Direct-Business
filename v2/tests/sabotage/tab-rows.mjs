@@ -10,8 +10,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px max-sm:flex-wrap max-sm:gap-x-4',",
-        replace: "'flex gap-6 overflow-x-auto border-b border-border max-sm:flex-wrap max-sm:gap-x-4',",
+        find: 'overflow-x-auto overflow-y-hidden rounded-pill bg-surface p-1',
+        replace: 'h-6 overflow-auto rounded-pill bg-surface p-1',
       },
     ],
   },
@@ -22,8 +22,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/ui/Tabs.tsx',
-        find: "'flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border pb-px',",
-        replace: "'flex gap-6 overflow-x-auto border-b border-border',",
+        find: 'gap-1 overflow-x-auto overflow-y-hidden rounded-pill',
+        replace: 'max-h-5 gap-1 overflow-x-auto overflow-y-scroll rounded-pill',
       },
     ],
   },

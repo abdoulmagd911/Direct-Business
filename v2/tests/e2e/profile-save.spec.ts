@@ -107,8 +107,7 @@ for (const width of [375, 1440]) {
     expect(hintBox!.x + hintBox!.width, 'the line fits the screen').toBeLessThanOrEqual(width);
 
     // Theme: one pick saves, the page changes, Saved with Undo, the row holds it
-    await page.getByLabel('Theme', { exact: true }).click();
-    await page.getByRole('option', { name: 'Dark' }).click();
+    await page.locator('[data-theme-card="dark"]').click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(
       toast(page, 'Profile saved').getByRole('button', { name: 'Undo' }),

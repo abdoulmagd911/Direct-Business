@@ -74,7 +74,7 @@ for (const [name, width, height] of [
     ).not.toBe('rgba(0, 0, 0, 0)');
 
     // a tap on the row's grey line opens the task
-    await tap(page, row.locator('p').first());
+    await tap(page, row.locator('[data-task-line] > span').first());
     await expect(page, 'a tap on the row opens the task').toHaveURL(new RegExp(`/tasks/${number}$`));
     expect(await meaning(number), 'and completes nothing').not.toBe('done');
 

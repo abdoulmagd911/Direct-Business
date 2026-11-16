@@ -430,7 +430,7 @@ test("12 · a member's My profile: five cards, eight notification switches, none
   // where the root sends them, not a cut field
   await expect(page.getByLabel('Start page', { exact: true }), 'Start page is on My profile').toHaveCount(1);
   // the owner's ruling of 14 Oct (V636): a member picks a theme of their own, so the Theme box is there
-  await expect(page.getByLabel('Theme', { exact: true }), 'Theme is on My profile').toHaveCount(1);
+  await expect(page.getByRole('radiogroup', { name: 'Theme', exact: true }), 'Theme is on My profile').toHaveCount(1);
 
   const ctx = await browser.newContext();
   const manager = await ctx.newPage();

@@ -22,10 +22,13 @@ for (const width of [375, 1440]) {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, 'the page does not scroll sideways').toBeLessThanOrEqual(0);
 
-    await page.getByLabel('Theme', { exact: true }).click();
-    await expect(page.getByRole('option'), 'three themes, no Colorful').toHaveText(['Light', 'Dark', 'Direct']);
-    await page.getByRole('option', { name: 'Direct' }).click();
-    await expect.poll(() => theme(page)).toBe('direct');
+    // Landing 31: the themes are five cards now (Turquoise and System joined); Colorful stays gone
+    expect(
+      await page.locator('[data-theme-card]').evaluateAll((els) => els.map((e) => e.getAttribute('data-theme-card'))),
+      'five themes, no Colorful',
+    ).toEqual(['light', 'dark', 'direct', 'turquoise', 'system']);
+    await page.locator('[data-theme-card="direct"]').click();
+    await expect.poll(() => theme(page), 'the page wears the pick').toBe('direct');
     await expect
       .poll(async () => {
         const [row] = await sql<{ theme: string | null }>(
@@ -48,7 +51,10 @@ test('a person whose saved theme is colorful reads Light, in every tab', async (
   await tab2.goto('/profile');
   await hydrated(tab2);
   expect(await theme(tab2), 'the other tab too').toBe('light');
-  await expect(tab2.getByLabel('Theme', { exact: true }), 'and the Theme box says Light').toHaveText('Light');
+  await expect(tab2.locator('[data-theme-card="light"]'), 'and the Light card is the chosen one').toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
   expect(
     (await sql<{ theme: string | null }>(`select theme from core.person_profile where person_id = $1`, [member.id]))[0]
       ?.theme,

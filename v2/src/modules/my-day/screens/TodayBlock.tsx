@@ -1,5 +1,5 @@
 'use client';
-import { Check } from 'lucide-react';
+import { Check, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -8,6 +8,7 @@ import { command } from '@/core/commands/command';
 import { clip, formatDate } from '@/core/i18n/format';
 import { useWords } from '@/modules/partners/screens/record/words';
 import { StatusChip } from '@/ui/Chip';
+import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { PhoneFilter } from '@/ui/PhoneFilter';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
@@ -27,7 +28,7 @@ import {
   type TaskGroup,
 } from '../logic';
 import { markReminderDone } from '../reminder-done';
-import { whenChip } from './WhenPicker';
+import { card, CardHead, cardLink, emptyInCard, groupHead, pill } from './look';
 import { laterReminders, todayReminders, type TodayReminder } from '../today-reminders';
 import type { DueAnswer } from '../reminder-alert';
 import type { PendingReminder, TodayTask } from '../types';
@@ -102,8 +103,8 @@ export function TodayBlock({
     );
   };
   return (
-    <section className="rounded-lg border border-border bg-raised px-4 py-2" data-today-block>
-      <h2 className="border-b border-border py-2.5 text-base font-semibold">{t('pages.myDay.today.title')}</h2>
+    <section className={cn(card, 'py-1')} data-today-block>
+      <CardHead icon={<Sun />} title={t('pages.myDay.today.title')} />
       {carried > 0 ? (
         <p className="border-b border-border py-2.5 text-sm text-muted" data-today-carried>
           {t('pages.myDay.today.carried', { count: carried })}
@@ -149,7 +150,7 @@ export function TodayBlock({
                   type="button"
                   aria-pressed={shown.includes(k)}
                   onClick={() => toggle(k)}
-                  className={whenChip(shown.includes(k))}
+                  className={pill(shown.includes(k))}
                   data-today-chip={k}
                 >
                   {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
@@ -160,14 +161,14 @@ export function TodayBlock({
         </div>
       </div>
       {none ? (
-        <DataState kind="empty" message={t('pages.myDay.today.empty')} />
+        <DataState kind="empty" className={emptyInCard} icon={<Sun />} message={t('pages.myDay.today.empty')} />
       ) : (
         drawn
           .filter((x) => x.rows.length || x.reminders.length)
           .map((x) => (
             <div key={x.key} data-today-group={x.key}>
               {/* the card is titled "Today"; its groups are never titled just that (QA-564): Do now · Plan it · Quick or hand off · Later (V661) */}
-              <h3 className="pt-3 text-sm font-medium text-muted">
+              <h3 className={groupHead}>
                 {t(`pages.myDay.today.${x.key}`)}
                 <span className="ms-2 font-data" data-today-count>
                   {x.total}
@@ -185,12 +186,12 @@ export function TodayBlock({
           ))
       )}
       {cut ? (
-        <div className="border-t border-border py-2.5">
+        <div className="border-t border-border py-1">
           <button
             type="button"
             onClick={() => setAll7((v) => !v)}
             aria-expanded={all7}
-            className="text-sm text-link hover:underline focus-visible:outline-2 focus-visible:outline-focus"
+            className={cardLink}
             data-today-more
           >
             {all7 ? t('pages.myDay.today.showFewer') : t('pages.myDay.today.showAll', { count: total })}

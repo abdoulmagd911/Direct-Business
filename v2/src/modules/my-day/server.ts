@@ -1,6 +1,8 @@
 import 'server-only';
 import { serverRpc } from '@/core/db/server-rpc';
+import type { Me } from '@/core/auth/me';
 import type { ListEntry } from '@/modules/partners/types';
+import { loadMyWorkCount } from '@/modules/tasks/load';
 import type { TaskRow } from '@/modules/tasks/types';
 import type { CaptureKind } from './quick-capture';
 import type { DueAnswer } from './reminder-alert';
@@ -66,4 +68,14 @@ export async function escalatedByMe(): Promise<TaskRow[] | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * The banner's count: My work's open tasks — the Tasks screen's own read and its own counting function
+ * (`loadMyWorkCount`, `workCount`), so the banner and the My work tab say one number. Null when it cannot be read: the
+ * banner then says no number rather than a wrong one.
+ */
+export async function myWorkCount(me: Me): Promise<number | null> {
+  const count = await loadMyWorkCount(me);
+  return count ? count.open : null;
 }

@@ -33,42 +33,39 @@ export const sabotages = [
   // The three names below were the colour swatches' (V636 removed them); they now guard the replacement control, the
   // Theme box on My profile: its size on a phone, its size on a wide screen, and one box to a row on a phone.
   {
-    // since #292 the shared phone rule holds a control at min-height 44 px, so a short height alone changes nothing: the
-    // sabotage also sets its own min-height (a class that says its own size wins over the rule)
-    name: 'colour-swatches-are-32-on-a-phone',
+    name: 'theme-cards-are-short-on-a-phone',
     breaks: [E2E],
-    expect: 'the Theme box on My profile',
+    expect: 'every theme card is a 44 px target',
     edits: [
       {
-        file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
+        file: 'src/ui/ThemePicker.tsx',
+        find: "'flex min-w-0 flex-col gap-2 rounded-lg border border-border-strong bg-raised px-2.5 pb-3 pt-2.5 text-start",
         replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-8 min-h-8"\n',
+          "'flex max-sm:h-8 max-sm:!min-h-8 max-sm:overflow-hidden min-w-0 flex-col gap-2 rounded-lg border border-border-strong bg-raised px-2.5 pb-3 pt-2.5 text-start",
       },
     ],
   },
   {
-    name: 'colour-swatches-grow-on-a-wide-screen',
+    name: 'theme-cards-do-not-share-a-row-on-a-wide-screen',
     breaks: [E2E],
-    expect: 'the Theme box on My profile',
+    expect: 'on a wide screen the five cards share one row',
     edits: [
       {
-        file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n',
-        replace:
-          '                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}\n                className="h-11"\n',
+        file: 'src/ui/ThemePicker.tsx',
+        find: 'className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5"',
+        replace: 'className="grid grid-cols-2 gap-3 lg:grid-cols-3"',
       },
     ],
   },
   {
-    name: 'colour-swatches-do-not-wrap',
+    name: 'theme-cards-run-off-the-phone',
     breaks: [E2E],
-    expect: 'the Theme box on My profile',
+    expect: 'every card is inside the screen',
     edits: [
       {
-        file: 'src/modules/org/screens/MyProfile.tsx',
-        find: '<div className="grid gap-4 sm:grid-cols-2">\n          <Field label={t(\'profile.theme\')}>',
-        replace: '<div className="grid grid-cols-2 gap-4">\n          <Field label={t(\'profile.theme\')}>',
+        file: 'src/ui/ThemePicker.tsx',
+        find: 'className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5"',
+        replace: 'className="grid w-[160vw] grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5"',
       },
     ],
   },
@@ -85,9 +82,9 @@ export const sabotages = [
       // Create is the bar's last slot (option C, 15 Oct): it is floated again, as the + was, so the short foot shows
       {
         file: 'src/ui/shell/CreateMenu.tsx',
-        find: "'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px]",
+        find: "'group flex min-w-0 flex-1 items-center justify-center focus-visible:outline-none'",
         replace:
-          "'fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 flex-col items-center justify-center gap-1 text-[11px]",
+          "'group fixed bottom-[calc(76px+env(safe-area-inset-bottom))] end-4 z-40 flex size-14 items-center justify-center focus-visible:outline-none'",
       },
     ],
   },

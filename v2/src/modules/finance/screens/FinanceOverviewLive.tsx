@@ -1,4 +1,8 @@
 'use client';
+import { useLocale } from 'next-intl';
+import { useState } from 'react';
+import { useMaybeMe } from '@/core/auth/me-context';
+import { cn } from '@/ui/cn';
 import { useFinanceRead, type Block } from '../use-reads';
 import type { PeriodAsk } from '../period';
 import type {
@@ -11,7 +15,7 @@ import type {
   PaymentsAsOf,
   Period,
 } from '../types';
-import { FinanceOverview } from './FinanceOverview';
+import { FinanceOverview, type PhoneView } from './FinanceOverview';
 import { FinanceImportSection } from './FinanceImportSection';
 import { FinanceLedgerSection } from './FinanceLedgerSection';
 
@@ -21,6 +25,8 @@ const dataOf = <T,>(b: Block<T>): T | null => (b.status === 'ready' ? b.data : n
  * The Overview with its reads made here, in the browser, a few at a time (see use-reads.ts): the page and the period
  * tabs appear at once, each block fills as its read answers, and a block that cannot be read is said so in place with
  * a Try again that repeats only that read. The first asked is the first served: the figures, then the months.
+ * On a phone the months, the services and the ledger are one view at a time (the 13 Nov phone board); the view not
+ * open is only put away, never unmounted, so its read is asked once and switching costs nothing.
  */
 export function FinanceOverviewLive({
   ask,
@@ -36,6 +42,15 @@ export function FinanceOverviewLive({
   ledger: LedgerFilter;
   view: string;
 }) {
+  const locale = useLocale();
+  const person = useMaybeMe()?.person;
+  // the name a Close month receipt carries: the person's full name, in the language on screen when they have one
+  const closer = person
+    ? locale === 'ar' && person.full_name_ar
+      ? person.full_name_ar
+      : person.full_name_en
+    : undefined;
+  const [phoneView, setPhoneView] = useState<PhoneView>('months');
   const range = { p_from: ask.from, p_to: ask.to };
   const at = `${ask.from}|${ask.to}`;
   const period = useFinanceRead<Period, 'finance_period'>('finance_period', range, `period|${at}`);
@@ -70,6 +85,9 @@ export function FinanceOverviewLive({
         today={today}
         full={full}
         data={data}
+        closer={closer}
+        phoneView={phoneView}
+        onPhoneView={setPhoneView}
         loading={{
           period: is(period.block),
           closed: is(closed.block),
@@ -87,15 +105,21 @@ export function FinanceOverviewLive({
           service: service.retry,
         }}
       />
-      <FinanceLedgerSection
-        ask={ask}
-        initial={ledger}
-        view={view}
-        full={full}
-        ready={period.block.status === 'ready'}
-      />
-      {/* Importing needs Finance full (the batch start refuses anything less), so the section is only here for full. */}
-      {full ? <FinanceImportSection /> : null}
+      {/* on a phone the ledger, and the import under it, are the third view; a wider screen shows them always */}
+      <div
+        className={cn('flex min-w-0 flex-col gap-8', phoneView !== 'ledger' && 'max-sm:hidden')}
+        data-finance-ledger-view
+      >
+        <FinanceLedgerSection
+          ask={ask}
+          initial={ledger}
+          view={view}
+          full={full}
+          ready={period.block.status === 'ready'}
+        />
+        {/* Importing needs Finance full (the batch start refuses anything less), so the section is only here for full. */}
+        {full ? <FinanceImportSection /> : null}
+      </div>
     </div>
   );
 }

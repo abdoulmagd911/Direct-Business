@@ -87,10 +87,10 @@ export function ReasonDialog({
       }
     >
       <div className="flex flex-col gap-4">
-        {body ? <p className="text-sm text-muted">{body}</p> : null}
+        {body ? <p className="text-base text-muted">{body}</p> : null}
         {children}
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p role="alert" className="text-sm leading-[18px] text-danger">
             {error}
           </p>
         ) : null}

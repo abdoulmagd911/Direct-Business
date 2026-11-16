@@ -93,8 +93,10 @@ export function SavedViewsBar({
   };
   const pill = (active: boolean) =>
     cn(
-      'inline-flex h-[var(--control-h-sm)] items-center gap-1.5 whitespace-nowrap rounded-pill border px-3.5 text-sm transition-colors duration-[var(--dur)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2',
-      active ? 'border-accent bg-accent-soft text-text' : 'border-border bg-transparent text-muted hover:bg-surface',
+      'inline-flex h-[34px] items-center gap-1.5 whitespace-nowrap rounded-pill border px-3.5 text-sm font-medium leading-[18px] transition-colors duration-[var(--dur-fast)] ease-[var(--ease-standard)] focus-visible:outline-2 focus-visible:outline-focus focus-visible:outline-offset-2 max-sm:h-11',
+      active
+        ? 'border-sel bg-sel text-on-sel'
+        : 'border-border-strong bg-raised text-text hover:bg-surface active:bg-pressed',
     );
   const submit = async () => {
     if (nameTaken(name)) return;

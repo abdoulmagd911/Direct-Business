@@ -1,7 +1,7 @@
 /**
  * QA3-004 to 006 and W41 — tap size on a phone (V630). Every control a finger meets is 44 px: the top bar's search, the
- * rows of the Ctrl K palette, the bell's tabs and the Theme box on My profile (which took the place of the colour swatches,
- * V636). On a wide screen the same controls keep their compact size. At 375, 320 and 1,440 px. Every value is made up.
+ * rows of the Ctrl K palette, the bell's tabs and the theme cards on My profile (Landing 31; they took the place of the Theme box, which took
+ * the place of the colour swatches, V636). On a wide screen the same controls keep their compact size. At 375, 320 and 1,440 px. Every value is made up.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { makePerson, signIn } from './support/stack';
@@ -47,32 +47,32 @@ for (const width of [375, 1440]) {
 
 for (const width of [375, 320, 1440]) {
   const phone = width < 700;
-  test(`the Theme box on My profile is ${phone ? '44 px, one to a row and inside the screen' : 'compact, beside Density'} — at ${width} px`, async ({
+  test(`the theme cards on My profile are ${phone ? '44 px or more, two to a row and inside the screen' : 'five in one row'} — at ${width} px`, async ({
     page,
   }) => {
+    // Landing 31: the Theme box became five cards (Light, Dark, Direct, Turquoise, System), each with a small drawing
     const me = await makePerson({ admin: true });
     await page.setViewportSize({ width, height: phone ? 800 : 1000 });
     await signIn(page, me.email, '/profile');
     await hydrated(page);
-    const rect = (label: string) =>
-      page.getByLabel(label, { exact: true }).evaluate((e) => {
+    const cards = await page.locator('[data-theme-card]').evaluateAll((els) =>
+      els.map((e) => {
         const b = e.getBoundingClientRect();
-        return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, width: b.width, height: b.height };
-      });
-    const theme = await rect('Theme');
-    const density = await rect('Density');
+        return { top: Math.round(b.top), left: b.left, right: b.right, height: b.height };
+      }),
+    );
+    expect(cards.length, 'five theme cards').toBe(5);
     if (phone) {
-      expect(theme.height, 'the Theme box is a 44 px target').toBeGreaterThanOrEqual(43.5);
-      expect(density.top, 'Theme and Density are one to a row, not squeezed side by side').toBeGreaterThanOrEqual(
-        theme.bottom,
+      expect(Math.min(...cards.map((c) => c.height)), 'every theme card is a 44 px target').toBeGreaterThanOrEqual(
+        43.5,
       );
-      expect(theme.width, 'the Theme box takes the width of the screen').toBeGreaterThanOrEqual(width - 80);
-      expect(theme.right, 'and is inside the screen').toBeLessThanOrEqual(width);
+      expect(new Set(cards.map((c) => c.top)).size, 'two to a row: five cards make three rows').toBe(3);
+      expect(Math.max(...cards.map((c) => c.right)), 'every card is inside the screen').toBeLessThanOrEqual(width);
+      expect(Math.min(...cards.map((c) => c.left)), 'on both sides').toBeGreaterThanOrEqual(0);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, 'the page does not scroll sideways').toBeLessThanOrEqual(0);
     } else {
-      expect(theme.height, 'on a wide screen the Theme box keeps its compact size').toBeLessThanOrEqual(41);
-      expect(Math.abs(density.top - theme.top), 'and sits beside Density').toBeLessThanOrEqual(2);
+      expect(new Set(cards.map((c) => c.top)).size, 'on a wide screen the five cards share one row').toBe(1);
     }
   });
 }

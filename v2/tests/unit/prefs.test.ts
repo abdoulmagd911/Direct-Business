@@ -10,6 +10,7 @@ import {
   readPrefs,
   readTheme,
   setPref,
+  DEFAULT_THEMES,
   THEMES,
 } from '@/core/prefs';
 import { serverPrefs } from '@/core/prefs/effective';
@@ -85,7 +86,7 @@ describe('core/prefs — the only browser storage (A13)', () => {
   });
 });
 
-describe('three themes: Light, Dark and Direct (V636, owner 14 Oct)', () => {
+describe('five themes: Light, Dark, Direct, Turquoise and System (Landing 31; Colorful stays retired, V636)', () => {
   const app = (theme: 'light' | 'dark' | 'direct') =>
     ({
       arabic_enabled: false,
@@ -94,9 +95,28 @@ describe('three themes: Light, Dark and Direct (V636, owner 14 Oct)', () => {
       default_start_page: null,
     }) as never;
 
-  it('offers exactly Light, Dark and Direct, and the registry default is Light', () => {
-    expect([...THEMES]).toEqual(['light', 'dark', 'direct']);
+  it('offers exactly Light, Dark, Direct, Turquoise and System, and the registry default is Light', () => {
+    expect([...THEMES]).toEqual(['light', 'dark', 'direct', 'turquoise', 'system']);
     expect(PREF_DEFS.theme.default).toBe('light');
+  });
+
+  it('an admin may set Light, Dark or Direct as the default: Turquoise is opt-in and System a personal choice', () => {
+    expect([...DEFAULT_THEMES]).toEqual(['light', 'dark', 'direct']);
+    expect(THEMES).not.toContain('colorful');
+  });
+
+  it('Turquoise and System are read as themselves from a profile', () => {
+    expect(readTheme('turquoise')).toBe('turquoise');
+    expect(readTheme('system')).toBe('system');
+  });
+
+  it('before sign-in: the theme last used on this device, or the device’s own on a first visit', () => {
+    const none = () => undefined;
+    expect(serverPrefs(null, app('dark'), none).theme, 'a first visit follows the device').toBe('system');
+    const last = (n: string) => (n === 'v2.theme' ? 'direct' : n === 'v2.synced' ? 'theme' : undefined);
+    expect(serverPrefs(null, app('dark'), last).theme, 'the theme last used here, even as a cache').toBe('direct');
+    const own = (n: string) => (n === 'v2.theme' ? 'turquoise' : undefined);
+    expect(serverPrefs(null, app('light'), own).theme, 'a choice made on this device').toBe('turquoise');
   });
 
   it('a theme saved while Colorful was offered reads as Light, and nothing else changes', () => {

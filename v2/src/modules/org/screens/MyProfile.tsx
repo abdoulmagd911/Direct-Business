@@ -7,7 +7,7 @@ import type { Me } from '@/core/auth/me';
 import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
-import { DENSITIES, DIRS, PREF_DEFS, THEMES, readPrefs, readTheme, setPref } from '@/core/prefs';
+import { DENSITIES, DIRS, PREF_DEFS, readPrefs, readTheme, setPref, type Theme } from '@/core/prefs';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { NOTIFICATION_KINDS, WORK_NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar } from '@/ui/Avatar';
@@ -21,6 +21,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { personOf } from '@/ui/person';
 import { navFor } from '@/ui/shell/nav';
 import { Select } from '@/ui/Select';
+import { ThemeCards } from '@/ui/ThemePicker';
 import { Switch } from '@/ui/Switch';
 import { toast } from '@/ui/Toast';
 import { PageFrame } from '@/ui/shell/AppShell';
@@ -70,10 +71,13 @@ export function MyProfile({
   me,
   devices,
   arabicEnabled = false,
+  defaultTheme,
 }: {
   me: Me;
   devices: Device[];
   arabicEnabled?: boolean;
+  /** The admin's default theme (Settings → App): its card is marked Default. */
+  defaultTheme?: Theme;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -245,17 +249,17 @@ export function MyProfile({
       </Section>
 
       <Section title={t('profile.sections.preferences')} data-profile-card="preferences">
+        {/* Landing 31: five cards with a small drawing of each theme; picking one changes the app at once and saves it */}
+        <div className="mb-5 flex flex-col gap-2" data-profile-theme>
+          <span className="text-sm font-medium text-strong">{t('themePicker.title')}</span>
+          <ThemeCards
+            value={theme}
+            onChange={(v) => void save({ theme: v as Profile['theme'] })}
+            defaultTheme={defaultTheme}
+          />
+          <p className="text-sm text-muted">{t('themePicker.hint')}</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('profile.theme')}>
-            {(p) => (
-              <Select
-                {...p}
-                value={theme}
-                onValueChange={(v) => void save({ theme: v as Profile['theme'] })}
-                options={THEMES.map((k) => ({ value: k, label: t(`theme.${k}`) }))}
-              />
-            )}
-          </Field>
           <Field label={t('profile.density')}>
             {(p) => (
               <>

@@ -12,14 +12,15 @@ export type AvatarPerson = {
 };
 
 const sizes = {
-  xs: 'size-6 text-[9.5px]',
-  sm: 'size-7 text-[11px]',
+  xs: 'size-6 text-[12px]',
+  sm: 'size-7 text-[12px]',
   md: 'size-8 text-xs',
   lg: 'size-10 text-base',
   xl: 'size-14 text-xl',
   '2xl': 'size-24 text-3xl',
 };
-/** Initials sit on a soft tint with no ring of their own: one look for everyone (V636, owner 14 Oct). */
+/** Initials sit on the peach circle in its ink (V21: "Icon circle … avatars, organisation tiles"), with no ring of their
+ *  own: one look for everyone (V636, owner 14 Oct). Nothing is written under 12 px, the smallest avatar included. */
 const tint = 'bg-accent-soft';
 
 export function initialsOf(name: string): string {
@@ -76,7 +77,7 @@ export function Avatar({
           aria-label={decorative ? undefined : title}
           aria-hidden={decorative || undefined}
           className={cn(
-            'inline-grid place-items-center rounded-full font-semibold leading-none tracking-[.02em] text-text',
+            'inline-grid place-items-center rounded-full font-semibold leading-none tracking-[.02em] text-accent-ink',
             tint,
             sizes[size],
             rings[ring],
@@ -91,13 +92,13 @@ export function Avatar({
           className={cn(
             'absolute -bottom-0.5 inline-grid place-items-center rounded-full bg-raised text-c3 shadow-[0_0_0_1.5px_var(--raised),0_0_0_2.5px_var(--border)]',
             size === 'xs' || size === 'sm'
-              ? '-end-1 size-3.5 text-[9px] [&_svg]:size-2.5'
+              ? '-end-1 size-3.5 [&_svg]:size-2.5'
               : size === '2xl'
-                ? '-end-0.5 size-8 text-base [&_svg]:size-4'
-                : '-end-1 size-4 text-[10px] [&_svg]:size-2.5',
+                ? '-end-0.5 size-8 [&_svg]:size-4'
+                : '-end-1 size-4 [&_svg]:size-2.5',
           )}
         >
-          <Icon strokeWidth={2.5} />
+          <Icon strokeWidth={2.5} className="icon-own-stroke" />
         </span>
       ) : null}
     </span>

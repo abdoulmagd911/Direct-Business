@@ -49,13 +49,13 @@ export function ConflictDialog() {
           ) : null}
           <ul className="flex flex-col gap-3">
             {ask.rows.map((r) => (
-              <li key={r.key} className="rounded-md border border-border p-3" data-conflict-field={r.key}>
-                <p className="mb-2 text-sm font-semibold">{r.label}</p>
+              <li key={r.key} className="rounded-lg border border-border p-3" data-conflict-field={r.key}>
+                <p className="mb-2 text-sm font-semibold text-strong">{r.label}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {(['theirs', 'mine'] as const).map((side) => (
                     <label
                       key={side}
-                      className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border p-2.5 text-sm has-[:checked]:border-border-strong has-[:checked]:bg-accent-soft"
+                      className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md border border-border-strong bg-raised p-2.5 text-sm has-[:checked]:ring-sel"
                     >
                       <input
                         type="radio"
@@ -63,18 +63,20 @@ export function ConflictDialog() {
                         value={side}
                         checked={choice[r.key] === side}
                         onChange={() => setChoice({ ...choice, [r.key]: side })}
-                        className="mt-0.5 accent-[var(--primary)]"
+                        className="mt-0.5 size-4 shrink-0 accent-[var(--sel)]"
                         data-conflict-pick={side}
                       />
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-xs font-semibold uppercase tracking-[.07em] text-muted">
+                        <span className="text-xs font-semibold text-muted">
                           {side === 'theirs'
                             ? ask.by
                               ? t('conflict.theirsBy', { name: ask.by })
                               : t('conflict.theirs')
                             : t('conflict.mine')}
                         </span>
-                        <span className="break-words font-medium">{side === 'theirs' ? r.theirs : r.mine}</span>
+                        <span className="break-words font-medium text-strong">
+                          {side === 'theirs' ? r.theirs : r.mine}
+                        </span>
                       </span>
                     </label>
                   ))}

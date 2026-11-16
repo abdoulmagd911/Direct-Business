@@ -198,7 +198,7 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
         </Field>
       </div>
       {rows.length === 0 ? (
-        <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+        <section className="rounded-lg border border-border bg-raised shadow-1" data-activity-deleted>
           <DataState kind="empty" message={t('activity.deleted.none')} />
         </section>
       ) : (
@@ -209,11 +209,11 @@ export function RecentlyDeleted({ rows, people }: { rows: DeletedRow[]; people: 
               : t('activity.deleted.count', { count: rows.length })}
           </p>
           {filtered.length === 0 ? (
-            <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+            <section className="rounded-lg border border-border bg-raised shadow-1" data-activity-deleted>
               <DataState kind="empty" message={t('activity.deleted.none')} />
             </section>
           ) : (
-            <section className="rounded-lg border border-border bg-raised" data-activity-deleted>
+            <section className="rounded-lg border border-border bg-raised shadow-1" data-activity-deleted>
               <ul className="divide-y divide-border">
                 {filtered.map((d) => {
                   const key = `${d.entity}:${d.id}`;

@@ -197,7 +197,7 @@ test('an unknown address is Not found; an unbuilt page says it is not ready yet;
   await page.goto('/my-day');
   await hydrated(page);
   // My day's heading is the date, no greeting (V217, cut 9)
-  await expect(page.locator('h1')).toHaveText(/^(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day\b.*\d{4}$/);
+  await expect(page.locator('h1')).toHaveText(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) \d{1,2} [A-Z][a-z]{2} \d{4}$/);
   await page.locator('[data-bell]').click();
   await expect(page.locator('[data-notifications-panel]')).toContainText('Nothing new');
 });

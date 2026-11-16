@@ -435,7 +435,7 @@ export function PastWorkGrid(props: PastWorkGridProps) {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-md border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-sm" data-past-work-preview>
               <thead className="bg-surface text-muted">
                 <tr>

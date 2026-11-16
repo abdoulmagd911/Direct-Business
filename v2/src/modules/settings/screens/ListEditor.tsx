@@ -235,7 +235,7 @@ export function ListEditor({ entity, label, rows }: { entity: string; label: str
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5" data-list={entity}>
+    <section className="flex flex-col gap-4 rounded-lg border border-border bg-raised p-5 shadow-1" data-list={entity}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h3 className="text-base font-semibold">{label}</h3>

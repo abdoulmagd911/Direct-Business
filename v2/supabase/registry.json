@@ -409,6 +409,19 @@
       "effective_dated": true
     },
     {
+      "key": "finance.credit_limit",
+      "group": "settings.finance",
+      "label": "setting.finance.credit_limit",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000000000
+      },
+      "default": 1250000,
+      "effective_dated": false
+    },
+    {
       "key": "finance.quiet_client_days",
       "group": "settings.finance",
       "label": "setting.finance.quiet_client_days",

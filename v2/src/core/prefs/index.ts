@@ -5,8 +5,14 @@
  * no flash of the wrong theme. Once "My profile" lands (P3-5) the person's profile is the source of truth
  * and these cookies are its cache.
  */
-/** The themes a person can pick (V636, owner 14 Oct): Colorful is no longer offered. */
-export const THEMES = ['light', 'dark', 'direct'] as const;
+/**
+ * The themes a person can pick (Landing 31, the V21 boards): Light (the default), Dark, Direct, Turquoise (opt-in,
+ * never a default) and System, which follows the device's light or dark setting and switches live with it.
+ * Colorful is no longer offered (V636, owner 14 Oct): Turquoise replaces it.
+ */
+export const THEMES = ['light', 'dark', 'direct', 'turquoise', 'system'] as const;
+/** The themes an admin may set as the default for new people: Turquoise is opt-in, and System is a personal choice. */
+export const DEFAULT_THEMES = ['light', 'dark', 'direct'] as const;
 export type Theme = (typeof THEMES)[number];
 /**
  * A theme as the database may still hold it: a profile saved while Colorful was offered reads as Light (V636). A read
@@ -119,8 +125,19 @@ export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K], opts: { 
 export function applyPrefsToDocument(prefs: Prefs): void {
   if (typeof document === 'undefined') return;
   const html = document.documentElement;
-  html.dataset.theme = prefs.theme;
-  html.dataset.density = prefs.density;
-  html.setAttribute('dir', dirOf(prefs));
-  html.setAttribute('lang', prefs.locale);
+  const apply = () => {
+    html.dataset.theme = prefs.theme;
+    html.dataset.density = prefs.density;
+    html.setAttribute('dir', dirOf(prefs));
+    html.setAttribute('lang', prefs.locale);
+  };
+  // A theme change cross-fades the whole app (200 ms, globals.css): the browser snapshots the old colours and fades
+  // to the new ones, so every colour changes together. Instant with "reduce motion", or where the browser has no
+  // view transitions.
+  const doc = document as Document & { startViewTransition?: (run: () => void) => unknown };
+  const still =
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  if (html.dataset.theme !== prefs.theme && html.dataset.theme && !still && doc.startViewTransition)
+    doc.startViewTransition(apply);
+  else apply();
 }

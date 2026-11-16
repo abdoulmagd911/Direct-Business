@@ -32,7 +32,7 @@ export function Field({
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <div className="flex items-baseline gap-2">
-        <label htmlFor={controlId} className="text-sm font-medium text-text">
+        <label htmlFor={controlId} className="text-sm font-medium leading-[18px] text-strong">
           {label}
         </label>
         {required ? (
@@ -47,7 +47,7 @@ export function Field({
         ...(required ? { 'aria-required': true as const } : {}),
       })}
       {error ? (
-        <p id={errorId} role="alert" className="text-sm text-danger">
+        <p id={errorId} role="alert" className="text-sm leading-[18px] text-danger">
           {error}
         </p>
       ) : null}

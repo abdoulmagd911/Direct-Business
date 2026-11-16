@@ -199,7 +199,7 @@ export function NotificationsPanel({
     <>
       <RD.Root open={open} onOpenChange={onOpenChange}>
         <RD.Portal>
-          <RD.Overlay className="fixed inset-0 z-40 bg-scrim" />
+          <RD.Overlay className="motion-scrim fixed inset-0 z-40 bg-scrim" />
           <RD.Content
             aria-describedby={undefined}
             onCloseAutoFocus={(e) => {
@@ -207,12 +207,14 @@ export function NotificationsPanel({
               e.preventDefault();
               document.querySelector<HTMLElement>('[data-bell]')?.focus();
             }}
-            className="fixed inset-y-0 end-0 z-50 flex w-[480px] max-w-full flex-col border-s border-border bg-raised text-text shadow-2 focus:outline-none"
+            className="motion-panel fixed inset-y-0 end-0 z-50 flex w-[480px] max-w-full flex-col border-s border-border bg-raised text-text shadow-2 focus:outline-none sm:rounded-s-xl"
             data-notifications-panel
           >
-            <header className="border-b border-border px-5 pb-3 pt-4">
+            <header className="border-b border-border px-6 pb-3 pt-4 max-sm:px-4">
               <div className="flex items-center gap-3">
-                <RD.Title className="min-w-0 flex-1 truncate text-xl">{t('notifications.title')}</RD.Title>
+                <RD.Title className="min-w-0 flex-1 truncate font-display text-xl font-semibold leading-7 text-strong">
+                  {t('notifications.title')}
+                </RD.Title>
                 <Button
                   size="sm"
                   disabled={!unreadHere}
@@ -252,12 +254,12 @@ export function NotificationsPanel({
                   .map((g) => (
                     <section key={g.key} className="mb-2" data-notifications-group={g.key}>
                       <h3
-                        className="flex items-baseline gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[.07em] text-muted"
+                        className="flex items-baseline gap-2 px-3 pb-1 pt-2 text-xs font-semibold text-muted"
                         data-notifications-group-head
                       >
                         <span>{t(`notifications.groups.${g.key}`)}</span>
                         {g.unread ? (
-                          <span className="font-normal normal-case tracking-normal" data-notifications-group-unread>
+                          <span className="font-normal" data-notifications-group-unread>
                             {t('notifications.groupUnread', { count: g.unread })}
                           </span>
                         ) : null}

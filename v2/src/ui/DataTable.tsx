@@ -20,8 +20,8 @@ export type { ColumnDef };
 
 /**
  * The list table: TanStack Table + Virtual. Row height comes from the density tokens (48 px
- * comfortable, 32 px compact), sticky header, numbers end-aligned in mono, the selected row on
- * accent-soft. Row click opens the detail panel; the list stays interactive. Rows are `<a>`-free:
+ * comfortable, 40 px compact), a card with a soft-fill sticky header (600 12/16, muted), hairline dividers, hover on
+ * the soft fill, numbers end-aligned in mono, the selected row on accent-soft. Row click opens the detail panel; the list stays interactive. Rows are `<a>`-free:
  * cells hold EntityLinks, the row itself is a button for keyboard users.
  */
 export function DataTable<T>({
@@ -156,7 +156,7 @@ export function DataTable<T>({
       : {};
 
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-border bg-raised', className)} data-table>
+    <div className={cn('overflow-hidden rounded-lg border border-border bg-raised shadow-1', className)} data-table>
       <div ref={scrollRef} className="overflow-auto scrollbar-thin" style={{ maxHeight }}>
         <table className="w-full min-w-[480px] border-collapse text-[length:var(--row-font)]">
           <thead className="sticky top-0 z-[1] bg-surface">
@@ -171,7 +171,7 @@ export function DataTable<T>({
                       style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}
                       aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                       className={cn(
-                        'h-[var(--row-h-head)] whitespace-nowrap border-b border-border px-3 text-start text-[12.5px] font-semibold text-muted',
+                        'h-[var(--row-h-head)] whitespace-nowrap border-b border-border px-3 text-start text-xs font-semibold leading-4 text-muted',
                         numeric && 'text-end',
                       )}
                     >
@@ -179,7 +179,7 @@ export function DataTable<T>({
                         <button
                           type="button"
                           onClick={h.column.getToggleSortingHandler()}
-                          className="inline-flex items-center gap-1 rounded-sm hover:text-text"
+                          className="inline-flex items-center gap-1 rounded-sm hover:text-strong"
                         >
                           {flexRender(h.column.columnDef.header, h.getContext())}
                           {sorted === 'asc' ? (
@@ -214,10 +214,10 @@ export function DataTable<T>({
                   aria-current={isSel ? 'true' : undefined}
                   {...rowProps(row)}
                   className={cn(
-                    'border-b border-border last:border-b-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
-                    onRowClick && 'cursor-pointer hover:bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]',
+                    'border-b border-border transition-colors duration-[var(--dur-fast)] last:border-b-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
+                    onRowClick && 'cursor-pointer hover:bg-surface',
                     isSel && 'bg-accent-soft hover:bg-accent-soft',
-                    row.getIsSelected() && !isSel && 'bg-[color-mix(in_srgb,var(--info)_7%,var(--raised))]',
+                    row.getIsSelected() && !isSel && 'bg-[color-mix(in_srgb,var(--sel)_7%,var(--raised))]',
                   )}
                 >
                   {row.getVisibleCells().map((cell) => {

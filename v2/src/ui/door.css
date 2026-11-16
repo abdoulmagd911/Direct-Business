@@ -1,23 +1,46 @@
 /*
- * The door — the pages outside the shell (sign in, choose a new password), to the visual spec of 29 Sep (V213).
- * Always light: its colours are the --door-* tokens (src/ui/tokens.css, one set for every theme), and it declares
- * color-scheme: light so the browser's form controls agree. No hex here (check-no-hex); no physical sides.
+ * The door — the pages outside the shell (sign in, choose a new password), to the V21 board "Sign-in · layout A"
+ * (Landing 31). It follows the theme: last used on this device, or the device's own on a first visit. Its colours are
+ * the --door-* tokens (src/ui/tokens.css), which point at the theme's own; the panel is slate in Light, Direct and
+ * System, never the Direct orange. No hex here (check-no-hex); no physical sides.
  */
 .door {
-  color-scheme: light;
   background: var(--door-bg);
   color: var(--door-text);
-  font-size: 15px;
+  font-size: 14px;
 }
 .door-panel {
   background: var(--door-panel);
   color: var(--door-on-panel);
 }
-.door-rule {
-  background: var(--door-rule);
-}
 .door-page {
   background: var(--door-bg);
+}
+.door-card {
+  background: var(--door-field-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-1);
+}
+.door-heading {
+  color: var(--strong);
+  font-family: var(--font-display-stack);
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.door-heading-pill {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: var(--r-pill);
+  padding-inline: 0.4em;
+  padding-block: 0.02em;
+  letter-spacing: 0;
+}
+.door-label {
+  color: var(--strong);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
 }
 .door-muted {
   color: var(--door-muted);
@@ -27,67 +50,92 @@
 }
 .door-language {
   color: inherit;
+  border-radius: var(--r-pill);
 }
 .door-page .door-language {
-  color: var(--door-text);
+  color: var(--strong);
+  background: var(--door-field-bg);
+  border: 1px solid var(--door-border);
+}
+.door-page .door-language:hover {
+  background: var(--surface);
 }
 .door-field {
-  height: 48px;
+  height: var(--input-h);
   width: 100%;
-  border-radius: var(--r-md);
+  border-radius: var(--r-pill);
   border: 1px solid var(--door-border);
   background: var(--door-field-bg);
   color: var(--door-text);
-  font-size: 15px;
-  padding-inline: 12px;
+  font-size: 14px;
+  padding-inline: 18px;
+}
+.door-field:hover {
+  border-color: var(--door-muted);
+}
+.door-field:focus-visible {
+  border-color: var(--sel);
 }
 .door-field[aria-invalid='true'] {
   border-color: var(--door-danger);
 }
 .door-field:read-only {
-  background: var(--door-bg);
+  background: var(--surface);
 }
 .door-field-error {
   color: var(--door-danger);
   font-size: 13px;
+  line-height: 18px;
 }
 .door-caps {
   color: var(--door-caps);
   font-size: 13px;
 }
 .door-button {
-  height: 48px;
+  height: var(--control-h-lg);
   width: 100%;
-  border-radius: var(--r-md);
+  border-radius: var(--r-pill);
   background: var(--door-button);
   color: var(--door-on-button);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--strong) 10%, transparent);
+  transition:
+    background-color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-standard);
 }
 .door-button:hover:not(:disabled) {
   background: var(--door-button-hover);
 }
+.door-button:active:not(:disabled) {
+  background: var(--primary-pressed);
+  transform: scale(0.98);
+}
 .door-button:disabled {
-  opacity: 0.7;
+  opacity: 0.85;
 }
 .door-alert {
-  border-radius: var(--r-md);
+  border-radius: 14px;
   background: var(--door-danger-bg);
   color: var(--door-danger);
   padding: 12px 14px;
   font-size: 14px;
   line-height: 20px;
+  font-weight: 500;
 }
 .door-eye {
-  color: var(--door-muted);
+  color: var(--strong);
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
 }
 .door-eye:hover {
-  color: var(--door-text);
+  background: var(--surface);
 }
 .door :where(a, button, input, [tabindex]):focus-visible {
   outline: 2px solid var(--door-focus);
   outline-offset: 2px;
 }
 .door input:focus-visible {
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
