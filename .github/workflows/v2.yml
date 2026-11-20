@@ -74,7 +74,9 @@ jobs:
   sabotage:
     name: every check and unit test fails under its sabotage
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # every check and unit test is run again under each of its sabotages (over 240 now): 20 minutes no longer covers
+    # it — run 1613 was cut off at the limit with nothing failed
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
