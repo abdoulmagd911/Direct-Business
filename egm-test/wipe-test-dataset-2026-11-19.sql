@@ -79,9 +79,12 @@ BEGIN
   UPDATE perf.achievement a SET deleted_at = v_now, deleted_by = v_admin, delete_reason = v_reason
   WHERE a.deleted_at IS NULL AND a.id IN (SELECT id FROM wipe_achievements);
 
-  -- Targets the seed wrote (commercial plans 2025/2026, by TEST Admin).
+  -- Targets the seed wrote (commercial plans 2025/2026). The seed runs outside the app,
+  -- so the database records the creator as 'System', not TEST Admin — matching on
+  -- created_by would miss all 69. All 69 share the seed run timestamp, which is how
+  -- they are picked out.
   UPDATE perf.target t SET deleted_at = v_now, deleted_by = v_admin, delete_reason = v_reason
-  WHERE t.deleted_at IS NULL AND t.created_by = v_admin
+  WHERE t.deleted_at IS NULL AND (t.created_by = v_admin OR t.created_at = '2026-11-20 03:50:48.360982+00'::timestamptz)
     AND t.plan_id IN (
       SELECT p.id FROM perf.plan p JOIN core.department d ON d.id = p.department_id
       WHERE d.code = 'commercial' AND p.year IN (2025, 2026) AND p.deleted_at IS NULL);

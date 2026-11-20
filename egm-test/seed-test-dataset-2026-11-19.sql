@@ -997,6 +997,7 @@ $tasks$;
 --    (INTEGRATION gets a ticket ref, as its category requires).
 -- ================================================================
 DO $achievements$
+#variable_conflict use_variable
 DECLARE
   c seed_ctx%ROWTYPE;
   today date := core.riyadh_today();
