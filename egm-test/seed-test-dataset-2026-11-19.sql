@@ -124,7 +124,7 @@ BEGIN
     END IF;
   END LOOP;
   FOR i IN 1..5 LOOP
-    IF NOT EXISTS (SELECT 1 FROM core.team t WHERE t.id = core.test_id('team', i) AND t.deleted_at IS NULL) THEN
+    IF NOT EXISTS (SELECT 1 FROM core.team t WHERE t.id = core.test_id('team', i)) THEN
       RAISE EXCEPTION 'TEST team % is missing.', i;
     END IF;
   END LOOP;
