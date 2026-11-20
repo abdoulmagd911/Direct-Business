@@ -34,6 +34,14 @@ export type CodeLedgerRow = {
   cost: number | null;
   profit: number | null;
   excluded_reason: string | null;
+  /** The organisation the row is recorded under — what Exclude / Include takes (Landing 32). */
+  partner_id?: string | null;
+  /** The row's own number — what Exclude / Include takes. */
+  number?: string | null;
+  /** The kind of rule that keeps the row out of the count; empty when no rule does (e.g. not fully paid). */
+  excluded_by?: string | null;
+  /** True when the row was excluded by hand on the row itself (Include undoes it); false when a list rule catches it. */
+  excluded_row_level?: boolean;
 };
 
 export type CodeAttribution = {
@@ -65,6 +73,8 @@ export type CodeDetail = {
   };
   ledger: CodeLedgerRow[];
   attributions: CodeAttribution[];
+  /** True when the reader is an admin: only an admin excludes a row from the count or includes it again. */
+  can_toggle?: boolean;
 };
 
 export type CompanyCodeRow = {

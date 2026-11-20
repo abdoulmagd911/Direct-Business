@@ -27,3 +27,5 @@ export type {
 } from './preview';
 export { deriveFigures, ledgerBuckets } from './ledger';
 export type { LedgerFigures, LedgerRecord, LedgerTotals } from './ledger';
+export { countRuleExcluded, foldNumber, ruleCheckOf } from './rule-check';
+export type { RuleCheck, RuleCount } from './rule-check';

@@ -20,6 +20,7 @@ import { PageHeader } from '@/ui/PageHeader';
 import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
 import { filterCodes, searchCodes, sortCodes } from '../state';
+import { toggleOf, type RowToggle } from '../toggle';
 import type { CodeDetail, CodeRow, CompanyCodeRow, CodeState, PartnerOption } from '../types';
 import { FilesSection, type RecordFile } from '@/ui/record/FilesSection';
 
@@ -72,6 +73,8 @@ const nameIn = (o: { partner_name?: string | null; partner_name_ar?: string | nu
  * attribution; each one, and each removal, is one request with one Undo, as everywhere else.
  * The detail also holds the code's own files (Phase 4): the approval file belongs to the code itself, not
  * to a use — a use is a transaction.
+ * Landing 32: an admin (the read's `can_toggle`) excludes a counted row from the count, or includes again a row that
+ * was excluded by hand — each with a required reason; a row a list rule catches says so and is changed in Settings.
  */
 export function CodesScreen({
   rows,
@@ -117,6 +120,14 @@ export function CodesScreen({
   const [partnerId, setPartnerId] = useState('');
   const [attributionReason, setAttributionReason] = useState('');
   const [busy, setBusy] = useState<'use' | 'attribution' | null>(null);
+  const [toggle, setToggle] = useState<RowToggle | null>(null);
+  // the dialog keeps its words while it closes (the row asked for is gone the moment Save is pressed)
+  const [toggleKind, setToggleKind] = useState<RowToggle['kind']>('exclude');
+  const canToggle = detail?.can_toggle === true;
+  const askToggle = (next: RowToggle) => {
+    setToggleKind(next.kind);
+    setToggle(next);
+  };
 
   const sorted = sortCodes(rows);
   const visible = searchCodes(filterCodes(sorted, state), query);
@@ -336,6 +347,11 @@ export function CodesScreen({
                   <th className={cn(TH, 'text-end')}>{t('pages.codes.detail.revenue')}</th>
                   <th className={cn(TH, 'text-end')}>{t('pages.codes.detail.cost')}</th>
                   <th className={cn(TH, 'text-end')}>{t('pages.codes.detail.profit')}</th>
+                  {canToggle ? (
+                    <th className={TH}>
+                      <span className="sr-only">{t('pages.codes.detail.countedAction')}</span>
+                    </th>
+                  ) : null}
                   {full ? (
                     <th className={TH}>
                       <span className="sr-only">{t('pages.codes.detail.remove')}</span>
@@ -347,6 +363,9 @@ export function CodesScreen({
                 {ledgerRows.map((l) => {
                   // why a use is not counted, in the words the read gives (its status, its exclusion) — never a guess
                   const why = [l.status_word, l.excluded_reason].filter(Boolean).join(' · ');
+                  // a list rule (Settings → Finance) keeps the row out: it says so, and offers no button here
+                  const byListRule = !l.counted && Boolean(l.excluded_by) && l.excluded_row_level !== true;
+                  const rowToggle = canToggle ? toggleOf(l) : null;
                   return (
                     <tr key={l.use_id} className={TR_4} data-code-use={l.use_id} data-counted={l.counted}>
                       <td className={TD_4}>
@@ -373,6 +392,11 @@ export function CodesScreen({
                             {t(l.counted ? 'pages.codes.detail.countedPill' : 'pages.codes.detail.notCountedPill')}
                           </StatusChip>
                           {!l.counted && why ? <span className="text-sm text-muted">{why}</span> : null}
+                          {byListRule ? (
+                            <span className="basis-full text-sm text-muted" data-code-list-rule>
+                              {t('pages.codes.detail.listRule')}
+                            </span>
+                          ) : null}
                         </span>
                       </td>
                       <td className={cn(TD_4, '@4xl:text-end')}>
@@ -397,6 +421,26 @@ export function CodesScreen({
                         <span className={LABEL_4}>{t('pages.codes.detail.profit')}</span>
                         {moneyOrDash(l.counted ? l.profit : null, locale, sar)}
                       </td>
+                      {canToggle ? (
+                        <td className={cn(TD_4, '@4xl:text-end', !rowToggle && '@max-4xl:hidden')}>
+                          {rowToggle ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => askToggle(rowToggle)}
+                              {...(rowToggle.kind === 'exclude'
+                                ? { 'data-code-exclude': l.use_id }
+                                : { 'data-code-include': l.use_id })}
+                            >
+                              {t(
+                                rowToggle.kind === 'exclude'
+                                  ? 'pages.codes.detail.exclude'
+                                  : 'pages.codes.detail.include',
+                              )}
+                            </Button>
+                          ) : null}
+                        </td>
+                      ) : null}
                       {full ? (
                         <td className={cn(TD_4, '@4xl:text-end')}>
                           <Button size="sm" variant="ghost" onClick={() => setRemoveUseId(l.use_id)}>
@@ -751,6 +795,35 @@ export function CodesScreen({
             words(t('pages.codes.detail.removed')),
             () =>
               rpc('code_use_remove', { p_id: id, p_reason: reason }) as Promise<{ request_id?: string | null } | null>,
+            { after: () => router.refresh() },
+          );
+        }}
+      />
+      <ReasonDialog
+        open={toggle !== null}
+        onOpenChange={(o) => {
+          if (!o) setToggle(null);
+        }}
+        title={t(toggleKind === 'exclude' ? 'pages.codes.detail.excludeTitle' : 'pages.codes.detail.includeTitle')}
+        words={{
+          reason: t('pages.codes.detail.toggleReason'),
+          save: t(toggleKind === 'exclude' ? 'pages.codes.detail.exclude' : 'pages.codes.detail.include'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+        onSave={async (reason) => {
+          const asked = toggle;
+          if (!asked) return;
+          setToggle(null);
+          // one request, one Undo, then the detail is read again — the same way a recorded use refreshes it
+          await command(
+            words(t(asked.kind === 'exclude' ? 'pages.codes.detail.excluded' : 'pages.codes.detail.included')),
+            () =>
+              rpc(asked.kind === 'exclude' ? 'finance_row_exclude' : 'finance_row_include', {
+                p_partner: asked.partnerId,
+                p_number: asked.number,
+                p_reason: reason,
+              }) as Promise<{ request_id?: string | null } | null>,
             { after: () => router.refresh() },
           );
         }}

@@ -1390,6 +1390,18 @@
       "rule_only": false
     },
     {
+      "key": "merge_rule",
+      "table": "finance.merge_rule",
+      "page": "settings.finance",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "month_close",
       "table": "finance.month_close",
       "page": "finance",

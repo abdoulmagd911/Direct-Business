@@ -5,11 +5,14 @@ import { getTranslations } from 'next-intl/server';
 import { requireMe } from '@/core/auth/require-me';
 import { serverRpc } from '@/core/db/server-rpc';
 import { CREDIT_LIMIT_KEY, mayChangeCreditLimit, type CreditLimitAnswer } from '@/modules/settings/credit-limit';
+import { showsFinanceLists, type ExclusionRule, type MergeRule } from '@/modules/settings/finance-lists';
 import { listsOf, settingsGroups } from '@/modules/settings/groups';
 import type { SettingsAnswer } from '@/modules/settings/schema';
 import type { ListEntry } from '@/modules/settings/screens/ListEditor';
 import { OrgAccess, type OrgAnswer, type PeopleAnswer, type MatrixAnswer } from '@/modules/org/screens/OrgAccess';
 import { CreditLimitCard } from '@/modules/settings/screens/CreditLimitCard';
+import { ExclusionListCard } from '@/modules/settings/screens/ExclusionListCard';
+import { MergeListCard } from '@/modules/settings/screens/MergeListCard';
 import { SettingsGroup } from '@/modules/settings/screens/SettingsGroup';
 import { SettingsMenuList } from '@/modules/settings/screens/SettingsMenuList';
 import { TargetsScreen } from '@/modules/perf/screens/TargetsScreen';
@@ -112,7 +115,9 @@ export default async function SettingsGroupPage({
   const listDefs = listsOf(def.page);
   const isOrg = group === 'org';
   const isFinance = group === 'finance';
-  const [settings, org, lists, people, matrix, credit] = await Promise.all([
+  // the exclusion list and the merge list (Landing 32): an admin's, on Finance — read for nobody else
+  const hasLists = showsFinanceLists(me, group);
+  const [settings, org, lists, people, matrix, credit, exclusions, merges] = await Promise.all([
     serverRpc('settings', { p_group: def.page }) as Promise<unknown>,
     serverRpc('org', {} as never) as Promise<unknown>,
     Promise.all(
@@ -124,6 +129,8 @@ export default async function SettingsGroupPage({
     isOrg ? orNull(serverRpc('people', {} as never) as Promise<unknown>) : null,
     isOrg ? (serverRpc('access_matrix', {} as never) as Promise<unknown>) : null,
     isFinance ? orNull(readCreditLimit()) : null,
+    hasLists ? orNull(serverRpc('finance_exclusion_rules', {} as never) as Promise<unknown>) : null,
+    hasLists ? orNull(serverRpc('finance_merge_rules', {} as never) as Promise<unknown>) : null,
   ]);
   const answer = settings as SettingsAnswer;
   const departments = (org as OrgAnswer).departments;
@@ -176,6 +183,9 @@ export default async function SettingsGroupPage({
   return (
     <SettingsShell current={group} title={t(def.label)}>
       {isFinance ? creditLimit(credit) : null}
+      {/* a read that failed arrives as null: the card says so with Try again, never as an empty list */}
+      {hasLists ? <ExclusionListCard rules={exclusions as ExclusionRule[] | null} /> : null}
+      {hasLists ? <MergeListCard rules={merges as MergeRule[] | null} /> : null}
       <SettingsGroup
         names={names}
         // the credit limit is drawn by its own card, above — not a second time as a plain setting

@@ -400,8 +400,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/partners/screens/record/CompanyTabs.tsx',
-        find: "    () => (report ? (hide ? report.rows.filter((r) => r.source === 'manual') : report.rows) : []),",
-        replace: "    () => (report ? report.rows.filter((r) => r.source === 'manual') : []),",
+        find: "    () => (report ? ((hide ? report.rows.filter((r) => r.source === 'manual') : report.rows) as TabRow[]) : []),",
+        replace: "    () => (report ? (report.rows.filter((r) => r.source === 'manual') as TabRow[]) : []),",
       },
     ],
   },

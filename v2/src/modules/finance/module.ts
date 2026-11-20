@@ -64,6 +64,14 @@ export default defineModule({
       page: 'settings.finance',
       label: 'entity.exclusion_rule',
     },
+    // The merge list (Landing 32): a client ID or a discount code counted under a named organisation —
+    // Settings → Finance, admins. Typed by the owner, never seeded.
+    {
+      key: 'merge_rule',
+      table: 'finance.merge_rule',
+      page: 'settings.finance',
+      label: 'entity.merge_rule',
+    },
     // The Finance lists (§3.6): Settings → Finance, admins (V97).
     ...(
       [

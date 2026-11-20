@@ -774,7 +774,16 @@
         "invoice": "Invoice",
         "date": "Date",
         "countedPill": "Counted",
-        "notCountedPill": "Not counted"
+        "notCountedPill": "Not counted",
+        "exclude": "Exclude",
+        "include": "Include",
+        "excludeTitle": "Exclude this row from the count?",
+        "includeTitle": "Include this row in the count again?",
+        "excluded": "Row excluded",
+        "included": "Row included",
+        "toggleReason": "Reason (required)",
+        "countedAction": "Counted?",
+        "listRule": "Excluded by a list rule — change it in Settings → Finance"
       },
       "addUse": {
         "invoiceNumber": "Invoice number",
@@ -1342,7 +1351,8 @@
     "item_service": "Item service",
     "item_class": "Item class",
     "my_carry": "Wrap-up move",
-    "achievement_ref": "Evidence reference"
+    "achievement_ref": "Evidence reference",
+    "merge_rule": "Merge rule"
   },
   "status": {
     "done": "Done",
@@ -2309,6 +2319,50 @@
       "invalid": "Enter a whole amount in riyals, above zero.",
       "saved": "Credit limit saved",
       "confirmTitle": "Change the credit limit?"
+    },
+    "financeLists": {
+      "rows": "{count, plural, one {# row} other {# rows}}",
+      "kind": "Kind",
+      "value": "Value",
+      "reason": "Reason",
+      "choose": "Choose",
+      "digitsOnly": "A client ID is digits only.",
+      "kinds": {
+        "client_id": "Client ID",
+        "name": "Name",
+        "discount_code": "Discount code",
+        "tax_no": "VAT / CR number",
+        "invoice": "Invoice number",
+        "product": "Product",
+        "partner": "Organisation"
+      }
+    },
+    "exclusions": {
+      "title": "Exclusion list",
+      "about": "Excluding takes out exactly what is typed and keeps everything else. An excluded row stays visible in the Ledger as not counted; nothing is removed.",
+      "empty": "Nothing is excluded yet.",
+      "addTitle": "Add to the exclusion list",
+      "catches": "Catches now",
+      "removeNamed": "Remove {value} from the exclusion list",
+      "removeTitle": "Remove {value} from the exclusion list?",
+      "saved": "Added to the exclusion list",
+      "removed": "Removed from the exclusion list",
+      "rowsTitle": "Excluded on single Ledger rows",
+      "rowsAbout": "These are undone with Include on the Ledger row.",
+      "number": "Number"
+    },
+    "merges": {
+      "title": "Merge list",
+      "about": "Merging merges only what is named.",
+      "aboutCode": "A discount code merged into an organisation leaves the promo pool.",
+      "empty": "Nothing is merged yet.",
+      "addTitle": "Add to the merge list",
+      "countedUnder": "Counted under",
+      "merges": "Merges now",
+      "removeNamed": "Remove {value} from the merge list",
+      "removeTitle": "Remove {value} from the merge list?",
+      "saved": "Added to the merge list",
+      "removed": "Removed from the merge list"
     }
   },
   "errors": {
@@ -2593,7 +2647,11 @@
       "code_use_exists": "This code is already recorded on that invoice.",
       "code_attribution_exists": "This code is already shown under that partner.",
       "commercial_names_the_person": "Commercial needs the person credited.",
-      "code_use_no_invoice": "No invoice has the number {detail}"
+      "code_use_no_invoice": "No invoice has the number {detail}",
+      "exclusion_rule_exists": "This is already on the exclusion list.",
+      "merge_rule_exists": "This is already on the merge list.",
+      "row_already_excluded": "Row {detail} is already excluded",
+      "row_excluded_by_list": "Row {detail} is excluded by a list rule — change it in Settings → Finance"
     },
     "wrap_up": {
       "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",
@@ -2898,7 +2956,15 @@
       "supplierIds": "Supplier IDs",
       "supplierIdsNone": "No supplier IDs on this partner yet",
       "imported": "Imported",
-      "reference": "Reference"
+      "reference": "Reference",
+      "notCountedRows": "Not counted ({count})",
+      "notCountedReason": "Reason",
+      "notCountedPill": "Not counted",
+      "listRule": "Excluded by a list rule — change it in Settings → Finance",
+      "codeNotFound": "Code has not been found",
+      "flag": {
+        "code_held": "Held: more than one code carries this text"
+      }
     },
     "archive": {
       "title": "All files",
@@ -3360,7 +3426,9 @@
         "cost_pending": "Cost pending",
         "waiting_for_issuing": "Waiting for issuing",
         "missing_transaction": "Missing transaction",
-        "missing_invoice": "Missing invoice"
+        "missing_invoice": "Missing invoice",
+        "code_not_found": "Code has not been found",
+        "code_held": "Held: more than one code carries this text"
       },
       "empty": "Nothing fully paid matches these filters.",
       "truncated": "Showing the newest 1000 rows; the totals cover everything.",
@@ -3378,7 +3446,36 @@
       "costUnified": "Cost — Unified ledger",
       "profitUnified": "Profit — Unified ledger",
       "notKnown": "Not known yet",
-      "seeAll": "See all {count}"
+      "seeAll": "See all {count}",
+      "countedTitle": "Counted?",
+      "countedYes": "Counted",
+      "countedNo": "Not counted",
+      "exclude": "Exclude",
+      "include": "Include",
+      "byListRule": "Excluded by a list rule — change it in Settings → Finance",
+      "notCountedTitle": "Not counted ({count})",
+      "notCountedNote": "Stored, and out of every figure above.",
+      "noReason": "No reason typed",
+      "reason": "Reason",
+      "reasonRequired": "Reason (required)",
+      "codeNotFound": "Code has not been found",
+      "codeHeld": "Held: more than one code carries this text",
+      "excludeTitle": "Exclude row {number}?",
+      "excludeBody": "The row stays stored. It stops counting in Revenue, Cost and Profit.",
+      "includeTitle": "Include row {number}?",
+      "includeBody": "The row counts again in Revenue, Cost and Profit.",
+      "excludedDone": "Row {number} excluded",
+      "includedDone": "Row {number} included",
+      "rowNumber": "Row no.",
+      "excludedBy": {
+        "client_id": "Client ID",
+        "name": "Name",
+        "tax_no": "VAT / CR number",
+        "discount_code": "Discount code",
+        "invoice": "This row",
+        "product": "Service",
+        "partner": "Partner"
+      }
     },
     "new": {
       "title": "New invoice",
@@ -3424,6 +3521,20 @@
       "months": "Months",
       "services": "Services",
       "ledger": "Ledger"
+    },
+    "counted": {
+      "title": "Is it counted?",
+      "failed": "The counted table",
+      "empty": "Nothing recorded in this period.",
+      "month": "Month",
+      "counted": "Counted",
+      "notCounted": "Not counted",
+      "excluded": "Excluded",
+      "notPaid": "Not fully paid",
+      "promoPool": "Promo pool",
+      "units": "Rows",
+      "revenue": "Revenue",
+      "yearTotal": "{year} total"
     }
   },
   "import": {
@@ -3540,7 +3651,25 @@
       "choose": "Choose file",
       "review": "Review",
       "done": "Done"
-    }
+    },
+    "ruleExcluded": "Every row of this import will be stored but not counted. On the exclusion list: {kind} “{value}”. Reason: {reason}",
+    "ruleNumbers": "{count, plural, one {# row of this import is on the exclusion list: stored, not counted.} other {# rows of this import are on the exclusion list: stored, not counted.}}",
+    "rowRuleExcluded": "On the exclusion list: stored, not counted",
+    "ruleCheckFailed": "The exclusion list could not be checked, so this preview cannot say which rows will not be counted.",
+    "ruleNoReason": "none typed",
+    "ruleKind": {
+      "client_id": "Client ID",
+      "name": "Name",
+      "tax_no": "VAT / CR number",
+      "discount_code": "Discount code",
+      "invoice": "Row number",
+      "product": "Service",
+      "partner": "Partner"
+    },
+    "codeFound": "Code found",
+    "codeNotFound": "Code has not been found",
+    "codeHeld": "Held: more than one code carries this text",
+    "codeCheckFailed": "The code could not be checked."
   },
   "testSwitch": {
     "bar": "TEST user: {name} (you are {owner})",

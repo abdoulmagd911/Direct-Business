@@ -94,6 +94,7 @@ function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
 function api.finance_company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function api.finance_counted_by_month(p_from date, p_to date) execute authenticated
 function api.finance_credit_limit() execute authenticated
 function api.finance_credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
@@ -107,8 +108,12 @@ function api.finance_health(p_from date, p_to date) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function api.finance_import_map(p_source text) execute authenticated
 function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
+function api.finance_import_rule_check(p_partner uuid, p_source_promo text) execute authenticated
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
 function api.finance_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
+function api.finance_merge_rule_remove(p_id uuid, p_reason text) execute authenticated
+function api.finance_merge_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function api.finance_merge_rules() execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
 function api.finance_no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
@@ -121,6 +126,8 @@ function api.finance_proposal_decide(p_id uuid, p_tick boolean, p_reason text) e
 function api.finance_receivables(p_partner uuid) execute authenticated
 function api.finance_row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function api.finance_row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function api.finance_row_exclude(p_partner uuid, p_number text, p_reason text) execute authenticated
+function api.finance_row_include(p_partner uuid, p_number text, p_reason text) execute authenticated
 function api.finance_rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated
 function api.finance_sales_by_code(p_from date, p_to date) execute authenticated
 function api.finance_search(p_text text, p_limit integer) execute authenticated
@@ -140,6 +147,7 @@ function api.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions 
 function api.import_batch_rows(p_batch uuid) execute authenticated
 function api.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function api.import_batches(p_partner uuid) execute authenticated
+function api.import_code_check(p_text text) execute authenticated
 function api.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.individual_add(p_name text, p_reason text) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
@@ -425,6 +433,7 @@ function finance.codes_by_company() execute authenticated
 function finance.codes_detail(p_code uuid) execute authenticated
 function finance.codes_list() execute authenticated
 function finance.company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function finance.counted_by_month(p_from date, p_to date) execute authenticated
 function finance.credit_limit() execute authenticated
 function finance.credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
@@ -437,6 +446,7 @@ function finance.exclusion_rules() execute authenticated
 function finance.health(p_from date, p_to date) execute authenticated
 function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
+function finance.import_rule_check(p_partner uuid, p_source_promo text) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.income_by_service(p_from date, p_to date) execute authenticated
 function finance.ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
@@ -444,6 +454,9 @@ function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_rea
 function finance.match_pin_clear(p_id uuid, p_reason text) execute authenticated
 function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) execute authenticated
 function finance.match_queue() execute authenticated
+function finance.merge_rule_remove(p_id uuid, p_reason text) execute authenticated
+function finance.merge_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function finance.merge_rules() execute authenticated
 function finance.month_close_do(p_month date, p_note text) execute authenticated
 function finance.no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function finance.not_invoiced(p_from date, p_to date) execute authenticated
@@ -456,6 +469,8 @@ function finance.proposal_decide(p_id uuid, p_tick boolean, p_reason text) execu
 function finance.receivables(p_partner uuid) execute authenticated
 function finance.row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function finance.row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
+function finance.row_exclude(p_partner uuid, p_number text, p_reason text) execute authenticated
+function finance.row_include(p_partner uuid, p_number text, p_reason text) execute authenticated
 function finance.rows_remove(p_table text, p_ids uuid[], p_reason text) execute authenticated
 function finance.sales_by_code_list(p_from date, p_to date) execute authenticated
 function finance.search_numbers(p_text text, p_limit integer) execute authenticated
@@ -574,6 +589,7 @@ function work.import_apply(p_batch uuid, p_rows jsonb, p_held jsonb, p_decisions
 function work.import_batch_rows(p_batch uuid) execute authenticated
 function work.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function work.import_batches(p_partner uuid) execute authenticated
+function work.import_code_check(p_text text) execute authenticated
 function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function work.open_asks() execute authenticated
 function work.project_get(p_id uuid) execute authenticated

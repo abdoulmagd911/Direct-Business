@@ -22,6 +22,11 @@
 //   company's own totals. On a code view (a code is asked for), only
 //   rows for that code belong in the view, and promo rows for that code
 //   are the view's rows, so they do count there.
+// - A row an exclusion keeps out (by hand on the row, or by a list rule
+//   in Settings) is never in a total and never in the view's rows: it
+//   is counted apart, with its revenue, so the screen can list it under
+//   "Not counted". Exclusion is checked before anything else about the
+//   row, so an excluded row is never also "unconfirmed" or "promo".
 // - Settlement is never read, and no VAT appears anywhere here.
 
 import { roundMoney } from '@/modules/imports/money';
@@ -46,6 +51,8 @@ export type UnifiedInputRow = {
   /** The code text an imported row arrived with, or null. */
   code: string | null;
   discount: number | null;
+  /** True when an exclusion (on the row, or a list rule) keeps the row out of every figure. */
+  excluded?: boolean;
 };
 
 export type UnifiedTotals = {
@@ -58,11 +65,16 @@ export type UnifiedTotals = {
   importUnits: number;
   promoUnits: number;
   unconfirmedUnits: number;
+  /** Rows an exclusion keeps out, and their revenue — said apart, never part of `revenue`. */
+  excludedUnits: number;
+  excludedRevenue: number;
 };
 
 export type UnifiedResult = {
   rows: UnifiedInputRow[];
   promoRows: UnifiedInputRow[];
+  /** The rows an exclusion keeps out, listed apart from the view's rows. */
+  excludedRows: UnifiedInputRow[];
   totals: UnifiedTotals;
 };
 
@@ -77,6 +89,8 @@ function emptyTotals(): UnifiedTotals {
     importUnits: 0,
     promoUnits: 0,
     unconfirmedUnits: 0,
+    excludedUnits: 0,
+    excludedRevenue: 0,
   };
 }
 
@@ -90,12 +104,19 @@ export function unifyRows(rows: UnifiedInputRow[], opts: { code?: string | null 
   const seen = new Set<string>();
   const out: UnifiedInputRow[] = [];
   const promoRows: UnifiedInputRow[] = [];
+  const excludedRows: UnifiedInputRow[] = [];
   const totals = emptyTotals();
   for (const row of rows) {
     const dedupeKey = `${row.source}:${row.key}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
     if (row.revenue === null) continue;
+    if (row.excluded) {
+      excludedRows.push(row);
+      totals.excludedUnits += 1;
+      totals.excludedRevenue = roundMoney(totals.excludedRevenue + row.revenue);
+      continue;
+    }
     if (!row.counted) {
       totals.unconfirmedUnits += 1;
       continue;
@@ -119,5 +140,5 @@ export function unifyRows(rows: UnifiedInputRow[], opts: { code?: string | null 
     if (row.source === 'manual') totals.manualUnits += 1;
     else totals.importUnits += 1;
   }
-  return { rows: out, promoRows, totals };
+  return { rows: out, promoRows, excludedRows, totals };
 }

@@ -2,15 +2,19 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { refetchAll } from '@/core/commands/refetch';
+import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
 import { Input } from '@/ui/Input';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Select } from '@/ui/Select';
+import { toast } from '@/ui/Toast';
 import { LEDGER_KINDS, ledgerFilterQuery, ledgerReadArgs } from '../ledger';
 import type { PeriodAsk } from '../period';
-import type { LedgerCompany, LedgerFilter } from '../types';
+import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
 import { useFinanceRead } from '../use-reads';
-import { FinanceReport } from './FinanceReport';
+import { CountedTable } from './CountedTable';
+import { FinanceReport, type LedgerToggle } from './FinanceReport';
 import { FinanceCard } from './parts';
 import { ledgerReportOf } from './ledger-report';
 
@@ -114,6 +118,21 @@ export function FinanceLedgerSection({
   // the database's own names, read once into the report's (see ledger-report.ts)
   const answer = read.block.status === 'ready' ? read.block.data : null;
   const report = useMemo(() => (answer ? ledgerReportOf(answer) : null), [answer]);
+  // Exclude / Include one row (admins — the database refuses anyone else): the row's own number and the organisation
+  // it is RECORDED under (never the one it counts under after a merge). A refusal is thrown to the reason box, which
+  // says it in words and stays open; a success says so and every Finance read asks again (see use-reads.ts).
+  const onToggle = async (kind: LedgerToggle, row: LedgerRow, reason: string) => {
+    if (!row.number || !row.source_partner_id) return;
+    await rpc(kind === 'exclude' ? 'finance_row_exclude' : 'finance_row_include', {
+      p_partner: row.source_partner_id,
+      p_number: row.number,
+      p_reason: reason,
+    });
+    toast.done(
+      t(kind === 'exclude' ? 'finance.ledger.excludedDone' : 'finance.ledger.includedDone', { number: row.number }),
+    );
+    refetchAll();
+  };
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>
     locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? '');
   // The partners the box offers stay while the next view loads, so a picked partner never goes blank meanwhile.
@@ -130,99 +149,104 @@ export function FinanceLedgerSection({
   ];
 
   return (
-    <FinanceCard
-      id="finance-ledger"
-      title={t('finance.ledger.title')}
-      source={t('finance.unified')}
-      data-finance-ledger-section
-    >
-      <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5">
-        <SavedViewsBar
-          page="finance"
-          fixed={[{ key: 'all', label: t('common.all') }]}
-          current={currentView}
-          query={{ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(draft) }}
-          onOpen={openView}
-          canShare={full}
-          onDefault={(v) => openView(v)}
-          saveHint={t('finance.ledger.saveHint')}
+    <>
+      <FinanceCard
+        id="finance-ledger"
+        title={t('finance.ledger.title')}
+        source={t('finance.unified')}
+        data-finance-ledger-section
+      >
+        <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5">
+          <SavedViewsBar
+            page="finance"
+            fixed={[{ key: 'all', label: t('common.all') }]}
+            current={currentView}
+            query={{ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(draft) }}
+            onOpen={openView}
+            canShare={full}
+            onDefault={(v) => openView(v)}
+            saveHint={t('finance.ledger.saveHint')}
+          />
+          <form
+            className="grid items-end gap-3 @min-[520px]:grid-cols-2 @min-[1000px]:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
+            data-finance-ledger-filters
+            onSubmit={(e) => {
+              e.preventDefault();
+              go(draft);
+            }}
+          >
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+              {t('finance.ledger.partner')}
+              <Select
+                value={partner || ALL}
+                onValueChange={(v) => setPartner(v === ALL ? '' : v)}
+                options={companyOptions}
+                aria-label={t('finance.ledger.partner')}
+                data-finance-filter-company
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+              {t('finance.ledger.clientId')}
+              <Input
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                aria-label={t('finance.ledger.clientId')}
+                data-finance-filter-client
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+              {t('finance.ledger.kind')}
+              <Select
+                value={kind || ALL}
+                onValueChange={(v) => setKind(v === ALL ? '' : v)}
+                options={[
+                  { value: ALL, label: t('finance.ledger.allKinds') },
+                  ...LEDGER_KINDS.map((k) => ({ value: k, label: t(`finance.kind.${k}`) })),
+                ]}
+                aria-label={t('finance.ledger.kind')}
+                data-finance-filter-kind
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+              {t('finance.ledger.code')}
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                aria-label={t('finance.ledger.code')}
+                data-finance-filter-code
+              />
+            </label>
+            <div className="flex flex-wrap gap-2 @min-[520px]:col-span-2 @min-[1000px]:col-span-1">
+              <Button type="submit" variant="primary" data-finance-filter-apply>
+                {t('finance.ledger.apply')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setPartner('');
+                  setClientId('');
+                  setKind('');
+                  setCode('');
+                  go({});
+                }}
+                data-finance-filter-clear
+              >
+                {t('finance.ledger.clear')}
+              </Button>
+            </div>
+          </form>
+        </div>
+        <FinanceReport
+          report={report}
+          loading={read.block.status === 'loading'}
+          failed={read.block.status === 'failed'}
+          onRetry={read.retry}
+          onToggle={onToggle}
         />
-        <form
-          className="grid items-end gap-3 @min-[520px]:grid-cols-2 @min-[1000px]:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
-          data-finance-ledger-filters
-          onSubmit={(e) => {
-            e.preventDefault();
-            go(draft);
-          }}
-        >
-          <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-            {t('finance.ledger.partner')}
-            <Select
-              value={partner || ALL}
-              onValueChange={(v) => setPartner(v === ALL ? '' : v)}
-              options={companyOptions}
-              aria-label={t('finance.ledger.partner')}
-              data-finance-filter-company
-            />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-            {t('finance.ledger.clientId')}
-            <Input
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              aria-label={t('finance.ledger.clientId')}
-              data-finance-filter-client
-            />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-            {t('finance.ledger.kind')}
-            <Select
-              value={kind || ALL}
-              onValueChange={(v) => setKind(v === ALL ? '' : v)}
-              options={[
-                { value: ALL, label: t('finance.ledger.allKinds') },
-                ...LEDGER_KINDS.map((k) => ({ value: k, label: t(`finance.kind.${k}`) })),
-              ]}
-              aria-label={t('finance.ledger.kind')}
-              data-finance-filter-kind
-            />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-            {t('finance.ledger.code')}
-            <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              aria-label={t('finance.ledger.code')}
-              data-finance-filter-code
-            />
-          </label>
-          <div className="flex flex-wrap gap-2 @min-[520px]:col-span-2 @min-[1000px]:col-span-1">
-            <Button type="submit" variant="primary" data-finance-filter-apply>
-              {t('finance.ledger.apply')}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setPartner('');
-                setClientId('');
-                setKind('');
-                setCode('');
-                go({});
-              }}
-              data-finance-filter-clear
-            >
-              {t('finance.ledger.clear')}
-            </Button>
-          </div>
-        </form>
-      </div>
-      <FinanceReport
-        report={report}
-        loading={read.block.status === 'loading'}
-        failed={read.block.status === 'failed'}
-        onRetry={read.retry}
-      />
-    </FinanceCard>
+      </FinanceCard>
+      {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}
+      <CountedTable from={ask.from} to={ask.to} ready={ready} />
+    </>
   );
 }

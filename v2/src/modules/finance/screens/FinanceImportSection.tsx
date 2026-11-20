@@ -11,10 +11,12 @@ import { recordFileDownloadUrl } from '@/core/files/download-url';
 import { sha256HexFile } from '@/ui/record/FilesSection';
 import {
   buildPreview,
+  countRuleExcluded,
   detectSignature,
   existingFromImportLedger,
   normaliseFile,
   parseCsv,
+  ruleCheckOf,
   toApplyPayload,
   whyOf,
   type Detection,
@@ -25,6 +27,7 @@ import {
   type PreviewCounts,
   type PreviewDecisions,
   type PreviewRow,
+  type RuleCheck,
   type Signature,
   type Why,
 } from '@/modules/imports';
@@ -39,6 +42,7 @@ import { Field } from '@/ui/Field';
 import { FileLinkButton } from '@/ui/record/FileLinkButton';
 import { Input } from '@/ui/Input';
 import { toast } from '@/ui/Toast';
+import { ImportRuleNotes, importCodeStateOf, type ImportCodeState } from './ImportRuleNotes';
 import { FinanceCard, TD, TH } from './parts';
 
 type Stage = 'pick' | 'unknown' | 'preview' | 'confirmed';
@@ -142,6 +146,11 @@ export function FinanceImportSection() {
   const [held, setHeld] = useState<HeldRow[]>([]);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [decisions, setDecisions] = useState<PreviewDecisions>({});
+  // What the exclusion list does to this import, and what its code text matched (Landing 32): asked once per
+  // preview, shown above it. A check that did not answer is said in words — the preview is never silent about it.
+  const [ruleCheck, setRuleCheck] = useState<RuleCheck | null>(null);
+  const [ruleFailed, setRuleFailed] = useState(false);
+  const [codeState, setCodeState] = useState<ImportCodeState | null>(null);
   const [loading, setLoading] = useState(false);
   const [existingFailed, setExistingFailed] = useState(false);
   // a whole-file stop: its English sentence and its reason code, worded on screen in the person's language
@@ -183,6 +192,9 @@ export function FinanceImportSection() {
     setHeld([]);
     setPreview(null);
     setDecisions({});
+    setRuleCheck(null);
+    setRuleFailed(false);
+    setCodeState(null);
     setLoading(false);
     setExistingFailed(false);
     setFileProblem(null);
@@ -247,7 +259,26 @@ export function FinanceImportSection() {
     setLoading(true);
     setExistingFailed(false);
     try {
-      const answer = await rpc('import_ledger', { p_partner: partner.id });
+      // Three reads, asked together: what is stored, what the exclusion list does to this import, and — when the
+      // batch carries a code text — what that text matches. Only the first can stop the preview; the other two
+      // answer in words when they fail, so a preview is never shown as if nothing were excluded.
+      const [answer, rule, codeFound] = await Promise.all([
+        rpc('import_ledger', { p_partner: partner.id }),
+        rpc(
+          'finance_import_rule_check',
+          { p_partner: partner.id, ...(codeText ? { p_source_promo: codeText } : {}) },
+          { retry: true },
+        ).then(
+          (a) => ruleCheckOf(a),
+          () => null,
+        ),
+        codeText
+          ? rpc('import_code_check', { p_text: codeText }, { retry: true }).then(
+              (a) => importCodeStateOf(a),
+              () => 'unchecked' as const,
+            )
+          : Promise.resolve(null),
+      ]);
       // A Start over (or a newer preview) landed while this read was in flight: its answer is stale, and
       // applying it would resurrect the cleared preview (F180). Drop it silently.
       if (gen !== previewGen.current) return;
@@ -262,6 +293,9 @@ export function FinanceImportSection() {
       setRecords(norm.records);
       setHeld(norm.held);
       setDecisions({});
+      setRuleCheck(rule);
+      setRuleFailed(rule === null);
+      setCodeState(codeFound);
       setPreview(buildPreview(stored, norm.records, norm.held, {}));
       setStage('preview');
     } catch {
@@ -354,6 +388,9 @@ export function FinanceImportSection() {
     setRecords([]);
     setHeld([]);
     setDecisions({});
+    setRuleCheck(null);
+    setRuleFailed(false);
+    setCodeState(null);
     setFileProblem(null);
   };
 
@@ -482,6 +519,9 @@ export function FinanceImportSection() {
   };
 
   const anyDuplicate = !!preview?.rows.some((r) => r.duplicate);
+  // The rows the exclusion list catches, added to "Left out by rule" (they are still stored on Confirm).
+  const ruleCount = preview ? countRuleExcluded(preview, ruleCheck) : null;
+  const ruleRows = new Set(ruleCount?.rowNos ?? []);
 
   /** What a preview row says: its reasons, the stored record it matched and what changes on it, or its own values. */
   const reasonCell = (r: PreviewRow) => {
@@ -489,6 +529,11 @@ export function FinanceImportSection() {
     const values = r.outcome === 'needs_linking' && r.values ? rowValues(r) : null;
     return (
       <>
+        {ruleRows.has(r.row_no) ? (
+          <span className="mb-1 block font-medium text-warning" data-import-row-rule-excluded>
+            {t('import.rowRuleExcluded')}
+          </span>
+        ) : null}
         {/* a dash only when the row says nothing at all, never above the record it matched */}
         {said || (r.matched || values ? null : '—')}
         {r.matched ? (
@@ -679,9 +724,10 @@ export function FinanceImportSection() {
               </p>
             ) : null}
 
-            {preview ? (
+            {preview && ruleCount ? (
               <>
-                {counts(preview.counts)}
+                <ImportRuleNotes check={ruleCheck} checkFailed={ruleFailed} count={ruleCount} codeState={codeState} />
+                {counts(ruleCount.counts)}
                 {/* a narrow card (a phone, or a small window beside the open drawer) reads each row as a card, the reason
                   in full under its number; a card wide enough keeps the table — by the card's width, so neither ever
                   scrolls sideways */}

@@ -250,6 +250,7 @@ export type Database = {
       };
       finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_company_not_counted: { Args: { p_from: string; p_partner: string; p_to: string }; Returns: Json };
+      finance_counted_by_month: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_credit_limit: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_credit_limit_set: { Args: { p_amount: number; p_reason: string }; Returns: Json };
       finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
@@ -300,6 +301,7 @@ export type Database = {
       };
       finance_import_map: { Args: { p_source?: string }; Returns: Json };
       finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
+      finance_import_rule_check: { Args: { p_partner: string; p_source_promo?: string }; Returns: Json };
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_ledger: {
         Args: {
@@ -313,6 +315,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      finance_merge_rule_remove: { Args: { p_id: string; p_reason: string }; Returns: Json };
+      finance_merge_rule_save: {
+        Args: { p_fields: Json; p_id: string; p_reason?: string; p_version?: number };
+        Returns: Json;
+      };
+      finance_merge_rules: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
       finance_no_supplier_cost_set: {
         Args: { p_product: string; p_reason?: string; p_value: boolean; p_version: number };
@@ -351,6 +359,8 @@ export type Database = {
         Args: { p_fields: Json; p_id: string; p_reason?: string; p_table: string; p_version: number };
         Returns: Json;
       };
+      finance_row_exclude: { Args: { p_number: string; p_partner: string; p_reason: string }; Returns: Json };
+      finance_row_include: { Args: { p_number: string; p_partner: string; p_reason: string }; Returns: Json };
       finance_rows_remove: { Args: { p_ids: string[]; p_reason: string; p_table: string }; Returns: Json };
       finance_sales_by_code: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_search: { Args: { p_limit?: number; p_text: string }; Returns: Json };
@@ -403,6 +413,7 @@ export type Database = {
         Returns: Json;
       };
       import_batches: { Args: { p_partner: string }; Returns: Json };
+      import_code_check: { Args: { p_text: string }; Returns: Json };
       import_ledger: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };

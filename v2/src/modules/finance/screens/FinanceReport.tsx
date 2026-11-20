@@ -8,8 +8,9 @@ import { StatusChip } from '@/ui/Chip';
 import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { EntityLink } from '@/ui/EntityLink';
-import { ledgerRowsToCsv } from '../ledger';
-import type { LedgerReport } from '../types';
+import { ReasonDialog } from '@/ui/ReasonDialog';
+import { isCounted, ledgerRowsToCsv } from '../ledger';
+import type { LedgerReport, LedgerRow } from '../types';
 import { NUM, TD, TH } from './parts';
 
 type Locale = 'en' | 'ar';
@@ -20,6 +21,11 @@ const NARROW_ROWS = 5;
 const FROM_600 = 'hidden @min-[600px]:table-cell';
 const FROM_860 = 'hidden @min-[860px]:table-cell';
 const FROM_1000 = 'hidden @min-[1000px]:table-cell';
+/** The two flags that are said as a warning pill on the row itself (Landing 32, A3), never in the flags text. */
+const CODE_FLAGS = ['code_not_found', 'code_held'];
+
+/** Exclude takes a counted row out of every figure; Include brings a row excluded by hand back. */
+export type LedgerToggle = 'exclude' | 'include';
 
 /**
  * The Finance report itself (workstream B), in the V21 look: the unified ledger's five figures in one strip (Revenue
@@ -29,22 +35,33 @@ const FROM_1000 = 'hidden @min-[1000px]:table-cell';
  * known yet", never 0, and its profit with it; settlement is never shown; there is no VAT anywhere here.
  * No table scrolls sideways: each one fits the card it is in — a column the card has no room for moves under the
  * row's first cell (the report is its own container, so this follows the card's width, not the window's).
+ * Landing 32: every row says whether it is counted; a row that is not is listed apart, under "Not counted (N)", with
+ * its revenue and the reason typed, and is in no total (the totals are the database's own — nothing is added here).
+ * An admin (`canToggle`) may Exclude a counted row or Include one excluded by hand, each with a reason; a row a list
+ * rule catches points to Settings → Finance instead. A code text that matched no code, or more than one, is said on
+ * the row. With no counted cost there is no Cost and no Profit to show: a dash and the words, never 0.
  */
 export function FinanceReport({
   report,
   loading,
   failed,
   onRetry,
+  onToggle,
 }: {
   report: LedgerReport | null;
   loading: boolean;
   failed: boolean;
   onRetry: () => void;
+  /** Runs Exclude / Include for one row with the reason typed; it throws in the database's words when refused. */
+  onToggle?: (kind: LedgerToggle, row: LedgerRow, reason: string) => Promise<void>;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   // a narrow place lists the first rows and offers the rest; a table wide enough always lists them all
   const [allRows, setAllRows] = useState(false);
+  // the row Exclude / Include was pressed on; it stays while the box closes, so its title never blanks mid-way
+  const [asked, setAsked] = useState<{ kind: LedgerToggle; row: LedgerRow } | null>(null);
+  const [asking, setAsking] = useState(false);
   if (loading || failed || !report) {
     return (
       <div className="border-t border-border px-4 py-4 sm:px-5">
@@ -114,6 +131,41 @@ export function FinanceReport({
     URL.revokeObjectURL(url);
   };
   const flagLabel = (f: string) => (t.has(`finance.ledger.flag.${f}`) ? t(`finance.ledger.flag.${f}`) : f);
+  /** The flags said as text: the two code flags are a warning pill on the row instead (codePill). */
+  const flagsText = (flags: string[]) =>
+    flags
+      .filter((f) => !CODE_FLAGS.includes(f))
+      .map(flagLabel)
+      .join(' · ');
+  /**
+   * "Code has not been found" / "Held: more than one code carries this text" (A3): a visible warning on the row, from
+   * its flags or from what its code text matched — said once, whichever of the two carries it.
+   */
+  const codePill = (r: { flags?: string[]; code_state?: LedgerRow['code_state'] }): ReactNode => {
+    const state =
+      r.code_state === 'ambiguous' || r.flags?.includes('code_held')
+        ? 'ambiguous'
+        : r.code_state === 'not_found' || r.flags?.includes('code_not_found')
+          ? 'not_found'
+          : null;
+    if (!state) return null;
+    return (
+      <span className="mt-1 block" data-ledger-code-state={state}>
+        <StatusChip tone="warning" className="h-auto min-h-6 whitespace-normal py-0.5">
+          {t(state === 'not_found' ? 'finance.ledger.codeNotFound' : 'finance.ledger.codeHeld')}
+        </StatusChip>
+      </span>
+    );
+  };
+  // Exclude / Include: admins only, and only on a row that names itself (its number, and the organisation it is
+  // recorded under). Everyone else reads the column and the reasons, with no button.
+  const mayToggle = (r: LedgerRow) => report.canToggle === true && !!onToggle && !!r.number && !!r.source_partner_id;
+  const ask = (kind: LedgerToggle, row: LedgerRow) => {
+    setAsked({ kind, row });
+    setAsking(true);
+  };
+  const countedRows = report.rows.filter(isCounted);
+  const notCountedRows = report.rows.filter((r) => !isCounted(r));
   // a stored day (2026-11-08) is written the one way, 8 Nov 2026 (W-daily 13)
   const day = (d: string | null | undefined) => (d ? (formatStoredDate(d, locale) ?? d) : '—');
   const total = report.totals;
@@ -159,7 +211,7 @@ export function FinanceReport({
           kind="profit"
           label={t('finance.ledger.profitUnified')}
           value={total.profit}
-          tone={total.profit < 0 ? 'danger' : undefined}
+          tone={total.profit !== null && total.profit < 0 ? 'danger' : undefined}
         />
         <StripFigure kind="received" label={t('finance.ledger.received')} value={total.received} />
         <StripFigure kind="remaining" label={t('finance.ledger.remaining')} value={total.remaining} />
@@ -231,14 +283,18 @@ export function FinanceReport({
                   <td className={TD}>
                     <span className="font-medium">{partnerCell(c.partner_id)}</span>
                     <Under until="600">
-                      <Pair label={t('finance.ledger.cost')} value={formatMoney(c.cost, locale)} />
-                      <Pair label={t('finance.ledger.profit')} value={formatMoney(c.profit, locale)} />
+                      <Pair label={t('finance.ledger.cost')} value={known(c.cost)} />
+                      <Pair label={t('finance.ledger.profit')} value={known(c.profit)} />
                       <Pair label={t('finance.ledger.received')} value={formatMoney(c.received, locale)} />
                     </Under>
                   </td>
                   <td className={cn(TD, NUM)}>{formatMoney(c.revenue, locale)}</td>
-                  <td className={cn(TD, NUM, FROM_600)}>{formatMoney(c.cost, locale)}</td>
-                  <td className={cn(TD, NUM, FROM_600)}>{formatMoney(c.profit, locale)}</td>
+                  <td className={cn(TD, NUM, FROM_600)} data-ledger-partner-cost>
+                    {known(c.cost)}
+                  </td>
+                  <td className={cn(TD, NUM, FROM_600)} data-ledger-partner-profit>
+                    {known(c.profit)}
+                  </td>
                   <td className={cn(TD, NUM, FROM_600)}>{formatMoney(c.received, locale)}</td>
                   <td className={cn(TD, NUM)}>{formatMoney(c.remaining, locale)}</td>
                 </tr>
@@ -296,7 +352,7 @@ export function FinanceReport({
         {report.truncated ? (
           <p className="px-4 pb-3 text-sm text-warning sm:px-5">{t('finance.ledger.truncated')}</p>
         ) : null}
-        {report.rows.length === 0 ? (
+        {countedRows.length === 0 ? (
           empty
         ) : (
           <>
@@ -311,12 +367,13 @@ export function FinanceReport({
                   <th className={cn(TH, 'text-end', FROM_600)}>{t('finance.ledger.cost')}</th>
                   <th className={cn(TH, 'text-end', FROM_600)}>{t('finance.ledger.profit')}</th>
                   <th className={cn(TH, FROM_1000)}>{t('finance.ledger.flags')}</th>
+                  <th className={TH}>{t('finance.ledger.countedTitle')}</th>
                 </tr>
               </thead>
               <tbody>
-                {report.rows.map((r, i) => {
+                {countedRows.map((r, i) => {
                   const pills = sourcePills(r);
-                  const flags = r.flags.map(flagLabel).join(' · ');
+                  const flags = flagsText(r.flags);
                   return (
                     <tr
                       key={`${r.invoice_id}-${r.unit_kind}`}
@@ -331,6 +388,7 @@ export function FinanceReport({
                           {r.transaction_number ?? '—'}
                         </bdi>
                         <Pair label={t('finance.ledger.invoiceNumber')} value={r.invoice_number ?? '—'} block />
+                        {codePill(r)}
                         <Under until="600">
                           {partnerCell(r.partner_id)}
                           <span className="whitespace-nowrap">{day(r.created_on)}</span>
@@ -350,21 +408,98 @@ export function FinanceReport({
                       <td className={cn(TD, NUM, FROM_600)}>{known(r.cost)}</td>
                       <td className={cn(TD, NUM, FROM_600)}>{known(r.profit)}</td>
                       <td className={cn(TD, FROM_1000, 'text-muted')}>{flags || '—'}</td>
+                      <td className={TD} data-ledger-counted="yes">
+                        <span className="flex flex-col items-start gap-1.5">
+                          <StatusChip tone="success">{t('finance.ledger.countedYes')}</StatusChip>
+                          {mayToggle(r) ? (
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              className="max-sm:min-h-11"
+                              onClick={() => ask('exclude', r)}
+                              data-ledger-exclude
+                            >
+                              {t('finance.ledger.exclude')}
+                            </Button>
+                          ) : null}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            {!allRows && report.rows.length > NARROW_ROWS ? (
+            {!allRows && countedRows.length > NARROW_ROWS ? (
               <div className="border-t border-border px-2 py-2 @min-[600px]:hidden">
                 <Button variant="ghost" size="sm" onClick={() => setAllRows(true)} data-finance-ledger-see-all>
-                  {t('finance.ledger.seeAll', { count: report.rows.length })}
+                  {t('finance.ledger.seeAll', { count: countedRows.length })}
                 </Button>
               </div>
             ) : null}
           </>
         )}
       </Block>
+
+      {notCountedRows.length > 0 ? (
+        <Block
+          id="finance-ledger-not-counted"
+          title={t('finance.ledger.notCountedTitle', { count: notCountedRows.length })}
+          data-ledger-not-counted
+        >
+          <p className="px-4 pb-3 text-sm text-muted sm:px-5">{t('finance.ledger.notCountedNote')}</p>
+          {/* each row as its own lines, at every width: its number and revenue, then why it does not count */}
+          <ul className="flex flex-col border-t border-border">
+            {notCountedRows.map((r) => (
+              <li
+                key={`${r.invoice_id}-${r.unit_kind}`}
+                className="flex flex-col gap-1.5 border-b border-border px-4 py-3 text-sm leading-5 last:border-b-0 sm:px-5"
+                data-ledger-not-counted-row
+              >
+                <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <bdi className="font-data font-medium text-strong tabular [overflow-wrap:anywhere]">
+                    {r.number ?? r.transaction_number ?? r.invoice_number ?? '—'}
+                  </bdi>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{partnerCell(r.partner_id)}</span>
+                  <span className="whitespace-nowrap text-muted">{day(r.created_on)}</span>
+                  <span className="ms-auto whitespace-nowrap" data-ledger-not-counted-revenue>
+                    <span className="text-muted">{t('finance.ledger.revenue')} </span>
+                    <bdi className="font-data tabular">{formatMoney(r.revenue, locale)}</bdi>
+                  </span>
+                </span>
+                {codePill(r)}
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5" data-ledger-counted="no">
+                  <StatusChip tone="neutral">{t('finance.ledger.countedNo')}</StatusChip>
+                  <span className="min-w-0 [overflow-wrap:anywhere]" data-ledger-not-counted-reason>
+                    <span className="text-muted">{t('finance.ledger.reason')}: </span>
+                    {r.not_counted_reason ?? t('finance.ledger.noReason')}
+                  </span>
+                  {r.excluded_row_level ? (
+                    mayToggle(r) ? (
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        className="max-sm:min-h-11"
+                        onClick={() => ask('include', r)}
+                        data-ledger-include
+                      >
+                        {t('finance.ledger.include')}
+                      </Button>
+                    ) : null
+                  ) : (
+                    // a list rule catches it: no Include here — the rule is changed where the lists are kept
+                    <span className="basis-full text-muted" data-ledger-by-list-rule>
+                      {t('finance.ledger.byListRule')}
+                      {r.excluded_by && t.has(`finance.ledger.excludedBy.${r.excluded_by}`)
+                        ? ` · ${t(`finance.ledger.excludedBy.${r.excluded_by}`)}`
+                        : ''}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Block>
+      ) : null}
 
       {promoRows.length > 0 ? (
         <Block id="finance-ledger-promo" title={t('finance.ledger.promoTitle')} data-finance-ledger-promo>
@@ -390,6 +525,7 @@ export function FinanceReport({
                       {pr.transaction_number ?? '—'}
                     </bdi>
                     <Pair label={t('finance.ledger.invoiceNumber')} value={pr.invoice_number ?? '—'} block />
+                    {codePill(pr)}
                     <Under until="600">{partnerCell(pr.partner_id)}</Under>
                     <Under until="860">
                       <Pair label={t('finance.ledger.code')} value={pr.code ?? '—'} />
@@ -413,6 +549,26 @@ export function FinanceReport({
             </tbody>
           </table>
         </Block>
+      ) : null}
+
+      {onToggle && report.canToggle ? (
+        <ReasonDialog
+          open={asking}
+          onOpenChange={setAsking}
+          title={t(asked?.kind === 'include' ? 'finance.ledger.includeTitle' : 'finance.ledger.excludeTitle', {
+            number: asked?.row.number ?? '',
+          })}
+          body={t(asked?.kind === 'include' ? 'finance.ledger.includeBody' : 'finance.ledger.excludeBody')}
+          words={{
+            reason: t('finance.ledger.reasonRequired'),
+            save: t(asked?.kind === 'include' ? 'finance.ledger.include' : 'finance.ledger.exclude'),
+            cancel: t('common.cancel'),
+            reasonRequired: t('errors.common.reason_required'),
+          }}
+          onSave={async (reason) => {
+            if (asked) await onToggle(asked.kind, asked.row, reason);
+          }}
+        />
       ) : null}
     </div>
   );
@@ -467,7 +623,8 @@ function Pair({ label, value, block }: { label: string; value: ReactNode; block?
 
 /**
  * One figure of the ledger's strip (13 Nov board): its name small and muted, the figure in the heading face at
- * 20/28. Revenue is the one green figure and a loss is red; every other figure stays neutral.
+ * 20/28. Revenue is the one green figure and a loss is red; every other figure stays neutral. A figure that is not
+ * known (Cost and Profit while no counted row has a cost) is a dash with "Not known yet" — never 0, and no "SAR".
  */
 function StripFigure({
   kind,
@@ -477,11 +634,29 @@ function StripFigure({
 }: {
   kind: string;
   label: string;
-  value: number;
+  /** Null: there is no such figure to show (no counted row has a cost) — a dash and the words, never 0. */
+  value: number | null;
   tone?: 'success' | 'danger';
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
+  if (value === null)
+    return (
+      <span
+        className="flex min-w-0 flex-col"
+        data-finance-ledger-total={kind}
+        data-ledger-cost-empty={kind === 'cost' ? '' : undefined}
+        data-ledger-figure-empty=""
+      >
+        <span className="text-sm leading-[18px] text-muted">{label}</span>
+        <span className="font-display text-xl font-semibold leading-7 text-muted">
+          {t('finance.ledger.noCost')}
+          <small className="ms-1 font-ui text-sm font-medium text-muted" data-not-known>
+            {t('finance.ledger.notKnown')}
+          </small>
+        </span>
+      </span>
+    );
   return (
     <span className="flex min-w-0 flex-col" data-finance-ledger-total={kind} data-tone={tone}>
       <span className="text-sm leading-[18px] text-muted">{label}</span>

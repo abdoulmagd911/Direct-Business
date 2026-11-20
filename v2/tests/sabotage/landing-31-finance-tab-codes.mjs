@@ -39,8 +39,9 @@ export const sabotages = [
     edits: [
       {
         file: TABS,
-        find: "{t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')}",
-        replace: "{t('finance.ledger.sourceManual')}",
+        // the main list's pill (the "Not counted" list below it has one too, two columns deeper)
+        find: "\n                          {t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')}",
+        replace: "\n                          {t('finance.ledger.sourceManual')}",
       },
     ],
   },

@@ -1856,6 +1856,13 @@ export const sabotages = [
         find: 'if (wantsNew && full) setCreating(true);',
         replace: 'if (wantsNew && full && !wantsNew) setCreating(true);',
       },
+      // since the list has a loading state of its own (Landing 31) the address may also arrive as a fresh mount,
+      // which opens the dialog from the page's own flag — the sabotage takes that way in away too
+      {
+        file: 'src/modules/partners/screens/PartnersList.tsx',
+        find: 'const [creating, setCreating] = useState(startCreating && full);',
+        replace: 'const [creating, setCreating] = useState(false);',
+      },
     ],
   },
   {

@@ -8,7 +8,7 @@ import { formatDate, formatMoney, formatStoredDate } from '@/core/i18n/format';
 import { ledgerRowsToCsv } from '@/modules/finance/ledger';
 import { riyadhDay } from '@/modules/finance/period';
 import { ledgerReportOf } from '@/modules/finance/screens/ledger-report';
-import type { LedgerReport, PaymentsAsOf } from '@/modules/finance/types';
+import type { LedgerReport, LedgerRow, PaymentsAsOf } from '@/modules/finance/types';
 import { useFinanceRead } from '@/modules/finance/use-reads';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -188,6 +188,21 @@ type CompanyNotCounted = {
   held_revenue: number;
 };
 
+/** A ledger row as this tab reads it (Landing 32): the read now also LISTS rows that do not count, each saying so. */
+type TabRow = LedgerRow & {
+  /** False on a row that is listed but not counted; a read that does not say is a counted row. */
+  counted?: boolean;
+  /** The reason typed when the row was taken out of the count. */
+  not_counted_reason?: string | null;
+  /** The kind of rule that keeps the row out; empty when no rule does. */
+  excluded_by?: string | null;
+  /** True when the row was excluded by hand on the row; false when a list rule (Settings → Finance) catches it. */
+  excluded_row_level?: boolean;
+};
+
+/** The flags this tab draws as a pill of their own, so they are not repeated in the row's flag words. */
+const PILL_FLAGS = ['code_not_found'];
+
 /**
  * A company's money from the unified ledger (Landing 25, F-A/A1): the list and the totals both come from
  * finance.unified_ledger filtered to this company, for the year to date — the same read the Finance page uses,
@@ -196,6 +211,10 @@ type CompanyNotCounted = {
  * and says how many rows lack one — never 0. Anything the count leaves out is named under "Not yet counted"
  * (not fully paid imports, held rows, excluded rows), never a silent gap. The stamp is the same "as of last
  * import" date the Finance page shows.
+ * Landing 32: the read also lists the rows that do not count. The cards and the main list are the COUNTED rows only
+ * — a not-counted row is never added to a total, with the imported rows shown or hidden — so the totals equal the
+ * Finance page's by-organisation totals for this organisation. The rows that do not count are listed apart, under
+ * "Not counted (N)", with their revenue and the reason; the Ledger and a code's page own Exclude / Include.
  */
 function CompanyFinanceLedger({
   partnerId,
@@ -259,10 +278,15 @@ function CompanyFinanceLedger({
     () => (ledger.block.status === 'ready' ? ledgerReportOf(ledger.block.data) : null),
     [ledger.block],
   );
-  const visibleRows = useMemo(
-    () => (report ? (hide ? report.rows.filter((r) => r.source === 'manual') : report.rows) : []),
+  // every row the switch lets through, counted or not: the Imported switch hides an imported row from both lists
+  const shownRows = useMemo(
+    () => (report ? ((hide ? report.rows.filter((r) => r.source === 'manual') : report.rows) as TabRow[]) : []),
     [report, hide],
   );
+  // the counted rows: the main list, the file and every total — a row that does not count is never among them
+  const visibleRows = useMemo(() => shownRows.filter((r) => r.counted !== false), [shownRows]);
+  // the rows that do not count, listed apart
+  const apartRows = useMemo(() => shownRows.filter((r) => r.counted === false), [shownRows]);
   // The totals are the visible rows': hiding the imported rows hides them from the total too, and profit is
   // only the rows that have one — a row with no cost carries no profit, so a company with no costed row shows
   // profit empty, never 0.
@@ -280,7 +304,25 @@ function CompanyFinanceLedger({
   const excluded = typeof nc?.excluded_units === 'number' ? nc.excluded_units : 0;
   const allCounted = unconfirmed === 0 && held === 0 && excluded === 0;
   const asOfDate = asOf.block.status === 'ready' ? ((asOf.block.data as PaymentsAsOf | null)?.as_of ?? null) : null;
-  const flagLabel = (f: string) => (t.has(`finance.ledger.flag.${f}`) ? t(`finance.ledger.flag.${f}`) : f);
+  const flagLabel = (f: string) =>
+    t.has(`finance.ledger.flag.${f}`)
+      ? t(`finance.ledger.flag.${f}`)
+      : t.has(`partners.companyFinance.flag.${f}`)
+        ? t(`partners.companyFinance.flag.${f}`)
+        : f;
+  /** A row's flags in words, without the ones drawn as a pill of their own. */
+  const flagWords = (flags: string[]) =>
+    flags
+      .filter((f) => !PILL_FLAGS.includes(f))
+      .map(flagLabel)
+      .join(' · ');
+  /** The pill of a row whose discount code is not among the codes. */
+  const codeNotFound = (r: TabRow) =>
+    r.flags.includes('code_not_found') ? (
+      <span className="inline-flex" data-company-code-not-found>
+        <StatusChip tone="warning">{t('partners.companyFinance.codeNotFound')}</StatusChip>
+      </span>
+    ) : null;
   const day = (d: string | null | undefined) => (d ? (formatStoredDate(d, locale) ?? d) : '—');
   const download = () => {
     if (!report) return;
@@ -496,7 +538,10 @@ function CompanyFinanceLedger({
                       </td>
                       <td className={cn(TD, 'text-sm text-muted', !r.flags.length && '@max-3xl:hidden')}>
                         <span className={CELL_LABEL}>{t('finance.ledger.flags')}</span>
-                        {r.flags.map(flagLabel).join(' · ') || '—'}
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {codeNotFound(r)}
+                          {flagWords(r.flags) || (r.flags.length ? null : '—')}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -504,6 +549,81 @@ function CompanyFinanceLedger({
               </table>
             )}
           </div>
+          {apartRows.length ? (
+            <div className={cn(CARD, 'overflow-hidden')} data-company-not-counted-rows>
+              <div className="border-b border-border px-4 py-3">
+                <h3 className={CARD_TITLE}>
+                  {t('partners.companyFinance.notCountedRows', { count: apartRows.length })}
+                </h3>
+              </div>
+              <table className={TABLE}>
+                <thead className={THEAD}>
+                  <tr className="border-b border-border">
+                    <th className={cn(TH, 'text-start')}>{t('partners.companyFinance.reference')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('finance.ledger.source')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('finance.ledger.created')}</th>
+                    <th className={cn(TH, 'text-end')}>{t('finance.ledger.revenue')}</th>
+                    <th className={cn(TH, 'text-start')}>{t('partners.companyFinance.notCountedReason')}</th>
+                  </tr>
+                </thead>
+                <tbody className="@max-3xl:block">
+                  {apartRows.map((r) => {
+                    // a list rule (Settings → Finance) keeps the row out — said in words; this tab has no button
+                    const byListRule = Boolean(r.excluded_by) && r.excluded_row_level !== true;
+                    const words = flagWords(r.flags);
+                    return (
+                      <tr
+                        key={`${r.invoice_id}-${r.unit_kind}`}
+                        className={TR}
+                        data-company-not-counted-row
+                        data-list-rule={byListRule}
+                      >
+                        <td className={cn(TD, '@max-3xl:col-span-2')}>
+                          <bdi className="block font-data font-medium text-strong tabular">
+                            {r.transaction_number ?? '—'}
+                          </bdi>
+                          <span className="block text-xs leading-4 text-muted">
+                            {t('finance.ledger.invoiceNumber')}{' '}
+                            <bdi className="font-data tabular">{r.invoice_number ?? '—'}</bdi>
+                          </span>
+                        </td>
+                        <td className={TD}>
+                          <span className={CELL_LABEL}>{t('finance.ledger.source')}</span>
+                          <StatusChip tone={r.source === 'import' ? 'info' : 'neutral'}>
+                            {t(r.source === 'import' ? 'finance.ledger.sourceImport' : 'finance.ledger.sourceManual')}
+                          </StatusChip>
+                        </td>
+                        <td className={cn(TD, 'whitespace-nowrap font-data tabular')}>
+                          <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.created')}</span>
+                          {day(r.created_on)}
+                        </td>
+                        <td className={cn(TD, 'font-data tabular @3xl:text-end')}>
+                          <span className={cn(CELL_LABEL, 'font-ui')}>{t('finance.ledger.revenue')}</span>
+                          {typeof r.revenue === 'number' ? formatMoney(r.revenue, locale) : '—'}
+                        </td>
+                        <td className={cn(TD, 'text-sm text-muted @max-3xl:col-span-2')}>
+                          <span className={CELL_LABEL}>{t('partners.companyFinance.notCountedReason')}</span>
+                          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <StatusChip tone="neutral">{t('partners.companyFinance.notCountedPill')}</StatusChip>
+                            {codeNotFound(r)}
+                            {r.not_counted_reason ? (
+                              <bdi data-company-not-counted-reason>{r.not_counted_reason}</bdi>
+                            ) : null}
+                            {words ? <span>{words}</span> : null}
+                            {byListRule ? (
+                              <span className="basis-full" data-company-list-rule>
+                                {t('partners.companyFinance.listRule')}
+                              </span>
+                            ) : null}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
           <div className={cn(CARD, 'flex flex-col gap-2 p-5 max-sm:p-4')} data-partner-finance-not-counted>
             <h3 className={CARD_TITLE}>{t('partners.companyFinance.notYetCounted')}</h3>
             {unconfirmed > 0 ? (

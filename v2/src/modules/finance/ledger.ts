@@ -67,9 +67,13 @@ const csvCell = (v: string | number | null | undefined) => {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+/** A ledger row counts unless the read says it does not (Landing 32: the ledger lists the rows left out, too). */
+export const isCounted = (r: { counted?: boolean }): boolean => r.counted !== false;
+
 /**
  * The filtered view as a file: the unit rows first (the view itself), then one totals line. A cost with no
- * approved expense stays empty in the file, never 0 — the same rule as on screen.
+ * approved expense stays empty in the file, never 0 — the same rule as on screen. Only rows that count are filed:
+ * the totals line is over counted rows, so a row left out by an exclusion never sits above a total it is not in.
  */
 export function ledgerRowsToCsv(
   report: LedgerReport,
@@ -108,7 +112,7 @@ export function ledgerRowsToCsv(
       .join(','),
   ];
   const money = (n: number | null) => (n === null ? '' : String(Math.round(n * 100) / 100));
-  for (const r of report.rows as LedgerRow[]) {
+  for (const r of (report.rows as LedgerRow[]).filter(isCounted)) {
     lines.push(
       [
         r.created_on,

@@ -20,7 +20,16 @@ export const sabotages = [
     name: 'codes-detail-loses-jit-off',
     breaks: ['sql:JIT-05'],
     expect: 'finance.codes_detail runs with JIT off',
-    edits: [{ file: MIGRATION, find: 'alter function finance.codes_detail(uuid) set jit = off;', replace: '' }],
+    // Landing 32 redefines finance.codes_detail and repeats the setting in its own migration (CREATE OR REPLACE drops
+    // it), so the setting is taken away in both places
+    edits: [
+      { file: MIGRATION, find: 'alter function finance.codes_detail(uuid) set jit = off;', replace: '' },
+      {
+        file: 'supabase/migrations/20261119110000_finance_unified_ledger_counted_merges_filters.sql',
+        find: 'alter function finance.codes_detail(uuid) set jit = off;',
+        replace: '',
+      },
+    ],
   },
   {
     name: 'codes-by-company-loses-jit-off',
