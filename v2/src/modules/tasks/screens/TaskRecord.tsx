@@ -29,6 +29,7 @@ import type { HistoryRow } from '@/ui/record/history';
 import type { KeyFigure } from '@/ui/record/KeyFigures';
 import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
+import { navStartedTo } from '@/ui/shell/nav-pending';
 import type { TaskLookups } from '../load';
 import { STATUS_TONE, TITLE_MAX, achievementStrip, dueState, riyadhDay, statusView, taskIsTestOwned } from '../rules';
 import type { TaskComments as Comments, TaskDetail } from '../types';
@@ -169,6 +170,10 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // until its achievement is logged or it is dismissed; a dismissed one shows its Undo line instead.
   const strip = canLog ? achievementStrip(task) : 'hide';
   const logAchievementUrl = `/kpis/achievements/new?title=${encodeURIComponent(clip(task.title, 300))}&task=${task.id}`;
+  // a move made in code says so to the shell, so its Loading shows at once (Landing 34, item 10)
+  const openLog = () => {
+    if (navStartedTo(logAchievementUrl)) router.push(logAchievementUrl);
+  };
   // Remove is test-only: the task's owner or creator is a TEST user. The server refuses
   // anything else, so this only hides the control on real tasks; it never decides access.
   const words = useCommandWords();
@@ -186,7 +191,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         rpc('test_tasks_remove', { p_ids: [task.id], p_reason: why }) as Promise<{
           request_id?: string | null;
         }>,
-      { after: () => router.push('/tasks') },
+      { after: () => void (navStartedTo('/tasks') && router.push('/tasks')) },
     );
   };
   // Dismiss the task from the achievement nudge, or bring it back (Phase 1): one request, Undo offered.
@@ -263,7 +268,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
             </MenuItem>
           ) : null}
           {task.meaning === 'done' && canLog && !task.has_achievement ? (
-            <MenuItem icon={<Trophy />} onSelect={() => router.push(logAchievementUrl)} data-menu-log-achievement>
+            <MenuItem icon={<Trophy />} onSelect={() => openLog()} data-menu-log-achievement>
               {t('pages.achievements.offerAction')}
             </MenuItem>
           ) : null}
@@ -360,6 +365,9 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
         }))}
         tab={tab}
         tabHref={(k) => (k === 'overview' ? `/tasks/${task.number}` : `/tasks/${task.number}?tab=${k}`)}
+        // Landing 34 (item 23): on a phone the sections stay on ONE row that scrolls inside itself — "Action items 0"
+        // dropped to a second row in a taller pale box (RecordPage's `tabsOneRow`, shared with the partner record)
+        tabsOneRow
         rail={rail}
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
@@ -371,7 +379,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 data-achievement-strip
               >
                 <p className="min-w-0 flex-1 text-base">{t('pages.tasks.achievementStrip.text')}</p>
-                <Button variant="primary" onClick={() => router.push(logAchievementUrl)} data-strip-log>
+                <Button variant="primary" onClick={() => openLog()} data-strip-log>
                   {t('pages.achievements.offerAction')}
                 </Button>
                 <Button variant="ghost" onClick={() => void dismissStrip(true)} data-strip-dismiss>

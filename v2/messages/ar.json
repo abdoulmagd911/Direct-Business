@@ -1,13 +1,15 @@
 {
   "app": {
-    "name": "مساحة العمل التجارية",
+    "name": "مساحة عمل دايركت للشركات",
     "brand_line": "الذراع التجاري لتطبيق السفر الشامل",
-    "copyright": "© دايركت",
+    "copyright": "© دايركت للشركات",
     "department": "الإدارة التجارية",
-    "workspace": "مساحة العمل التجارية",
+    "workspace": "مساحة عمل دايركت للشركات",
     "brand": "دايركت",
-    "name_other": "Commercial Workspace",
-    "brand_line_other": "The commercial arm of the all-in-one travel app"
+    "name_other": "Direct Corporate Workspace",
+    "brand_line_other": "The commercial arm of the all-in-one travel app",
+    "short": "دايركت للشركات",
+    "corporate": "للشركات"
   },
   "sign_in": {
     "email_label": "البريد الإلكتروني للعمل",
@@ -33,7 +35,7 @@
       "code_off": "سجّل الدخول بكلمة المرور"
     },
     "language": "اللغة",
-    "footer": "© {year} دايركت",
+    "footer": "© {year} دايركت للشركات",
     "password": {
       "again": "كلمة المرور الجديدة مرة أخرى",
       "capsLock": "زر الحروف الكبيرة (Caps Lock) مفعّل",
@@ -71,10 +73,10 @@
     },
     "switch_to_ar": "العربية",
     "switch_to_en": "English",
-    "tab_title": "تسجيل الدخول · مساحة العمل التجارية",
+    "tab_title": "تسجيل الدخول · مساحة عمل دايركت للشركات",
     "heading": {
-      "lead": "مساحة العمل",
-      "pill": "التجارية"
+      "lead": "دايركت للشركات",
+      "pill": "مساحة العمل"
     }
   },
   "session": {
@@ -728,6 +730,35 @@
         "myWork": "عملي · {count, plural, one {مهمة واحدة مفتوحة} two {مهمتان مفتوحتان} few {# مهام مفتوحة} other {# مهمة مفتوحة}}",
         "capture": "تدوين",
         "failed": "تعذّر تحميل يومك."
+      },
+      "three": {
+        "title": "ثلاثة اليوم",
+        "sub": "من قوائم مهامك أنت",
+        "groups": {
+          "important": "المهمة",
+          "short": "القصيرة",
+          "maintenance": "الصيانة"
+        },
+        "empty": {
+          "important": "لا توجد مهام مهمة مفتوحة",
+          "short": "لا توجد مهام قصيرة مفتوحة",
+          "maintenance": "لا توجد مهام صيانة مفتوحة"
+        },
+        "sourcesLabel": "مصدر كل مجموعة",
+        "sources": {
+          "important": "المهمة — مهامك المميزة بنجمة",
+          "short": "القصيرة — مستحقة خلال {days, plural, one {يوم واحد} two {يومين} few {# أيام} other {# يومًا}} وبلا نجمة",
+          "maintenance": "الصيانة — بقية مهامك أنت"
+        },
+        "streak": {
+          "days": "المواظبة: {days, plural, one {يوم عمل واحد} two {يوما عمل متتاليان} few {# أيام عمل متتالية} other {# يوم عمل متتالٍ}}",
+          "none": "لا مواظبة بعد — أنجز ثلاث مهام اليوم لتبدأ",
+          "today": "أُنجز {done} من {target} اليوم"
+        },
+        "team": {
+          "title": "مواظبة فريقي",
+          "days": "{days, plural, =0 {لا مواظبة بعد} one {يوم عمل واحد} two {يوما عمل متتاليان} few {# أيام عمل متتالية} other {# يوم عمل متتالٍ}}"
+        }
       }
     },
     "settings": {
@@ -945,7 +976,8 @@
         "dueToday": "اليوم",
         "dueClear": "مسح",
         "duePlaceholder": "على سبيل المثال، 20 أكتوبر 2026",
-        "owner_required": "اختر مالكًا"
+        "owner_required": "اختر مالكًا",
+        "notSaved": "لم يُحفظ شيء. ما كتبته ما زال هنا."
       },
       "edit": {
         "title": "تعديل {number}",
@@ -2259,6 +2291,9 @@
       "removeTitle": "إزالة {value} من قائمة الدمج؟",
       "saved": "تمت الإضافة إلى قائمة الدمج",
       "removed": "تمت الإزالة من قائمة الدمج"
+    },
+    "language": {
+      "yours": "لغتك"
     }
   },
   "errors": {
@@ -3114,7 +3149,16 @@
         "supplier_partner": "لا يوجد موردون بعد."
       }
     },
-    "quietOnly": "الهادئة فقط"
+    "quietOnly": "الهادئة فقط",
+    "rowOpen": "فتح",
+    "read": {
+      "timeout": "استغرق التحميل وقتاً طويلاً فتم إيقافه.",
+      "unavailable": "لم يستجب الخادم.",
+      "refused": "ليست لديك صلاحية الوصول إلى هذا.",
+      "again": "{count, plural, one {أُعيدت المحاولة مرة واحدة} two {أُعيدت المحاولة مرتين} few {أُعيدت المحاولة # مرات} many {أُعيدت المحاولة # مرة} other {أُعيدت المحاولة # مرة}}: لم يكتمل التحميل بعد.",
+      "record": "تعذّر تحميل هذه الجهة.",
+      "partial": "تعذّر تحميل المسؤولين والأنواع."
+    }
   },
   "createNew": {
     "task": "مهمة جديدة",
@@ -3285,7 +3329,7 @@
       "notClosed": "غير مغلق",
       "open": "مفتوح",
       "profit": "الربح",
-      "provisional": "الربح المؤقت",
+      "provisional": "مؤقت",
       "provisionalRow": "مؤقت — التكلفة لم تصل بعد",
       "revenue": "الإيراد",
       "title": "الأشهر",
@@ -3378,7 +3422,8 @@
         "invoice": "هذا الصف",
         "product": "الخدمة",
         "partner": "الشريك"
-      }
+      },
+      "byCompany": "الدخل حسب الجهة"
     },
     "new": {
       "addExpense": "إضافة مصروف",
@@ -3500,7 +3545,10 @@
       "units": "الصفوف",
       "revenue": "الإيراد",
       "yearTotal": "إجمالي {year}"
-    }
+    },
+    "stampStale": "المدفوعات · لم تُحدَّث منذ {date}",
+    "stampNewest": "أحدث ملف قُرئ في {date}",
+    "provisionalLeft": "دون احتساب المؤقت"
   },
   "import": {
     "title": "استيراد",
@@ -3674,7 +3722,12 @@
   "testSwitch": {
     "bar": "مستخدم تجريبي: {name} (أنت {owner})",
     "back": "العودة إلى حسابي",
-    "start": "الدخول كمستخدم تجريبي"
+    "start": "الدخول كمستخدم تجريبي",
+    "over": "تبديل المستخدم التجريبي",
+    "overTo": "التبديل إلى هذا المستخدم التجريبي",
+    "none": "لا يوجد مستخدم تجريبي آخر",
+    "listFailed": "تعذّر تحميل المستخدمين التجريبيين. حاول مرة أخرى",
+    "switchedBack": "عدت إلى حسابك. {reason}"
   },
   "task": {
     "priority": {

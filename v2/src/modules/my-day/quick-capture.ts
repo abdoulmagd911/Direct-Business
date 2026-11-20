@@ -1,3 +1,5 @@
+import { cutAtWord } from './logic';
+
 /** Quick capture from anywhere (productivity stage 1): the Create menu, the phone + and Ctrl K ask the one sheet in the shell to open. */
 export const QUICK_CAPTURE_EVENT = 'quick-capture:open';
 
@@ -35,10 +37,10 @@ export function splitTitle(line: string): { title: string; rest: string } {
   if (line.length <= TITLE_CAP) return { title: line, rest: '' };
   const sentence = /^(.{1,80}?[.!?؟])\s+(.*)$/su.exec(line);
   if (sentence) return { title: sentence[1]!, rest: sentence[2]!.trim() };
-  const head = line.slice(0, TITLE_CAP);
-  const cut = head.lastIndexOf(' ');
-  const at = cut > TITLE_CAP / 2 ? cut : TITLE_CAP;
-  return { title: `${line.slice(0, at).trim()}…`, rest: line.slice(at).trim() };
+  // cut between words, never inside one (Landing 34, item 22): before, a line whose last space sat in its first half was
+  // cut at the cap itself, in the middle of a word
+  const { head, rest } = cutAtWord(line, TITLE_CAP);
+  return { title: `${head}…`, rest };
 }
 
 /**
@@ -63,7 +65,7 @@ export function quickCaptureArgs(
   const base = { visibility: opts.visibility, happened_on: opts.day };
   if (kind === 'checklist') {
     const items = (rest.length ? rest : [title]).map((t) => ({ text: t, done: false }));
-    return { kind: 'checklist', values: { ...base, title: title.slice(0, 200), items } };
+    return { kind: 'checklist', values: { ...base, title: cutAtWord(title, 200).head, items } };
   }
   const split = splitTitle(title);
   const body = [split.rest, ...rest].filter(Boolean);

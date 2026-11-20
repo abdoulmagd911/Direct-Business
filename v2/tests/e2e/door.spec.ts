@@ -28,7 +28,7 @@ test('the door: the panel with the logo alone, the centred card, the tab title, 
   await setPrefs(context, { theme: 'dark' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await page.goto('/sign-in');
-  await expect(page).toHaveTitle('Sign in · Commercial Workspace');
+  await expect(page).toHaveTitle('Sign in · Direct Corporate Workspace');
   const panel = page.locator('[data-brand-panel]');
   await expect(panel).toBeVisible();
   const box = (await panel.boundingBox())!;
@@ -36,10 +36,11 @@ test('the door: the panel with the logo alone, the centred card, the tab title, 
   expect(Math.round(box.width), 'the panel is 36 % of 1,500 px').toBe(540);
   expect(await panel.locator('svg, path').count(), 'no motif, no arrow').toBe(0);
   await expect(panel.getByRole('img', { name: 'Direct' })).toBeVisible();
-  await expect(panel, 'no tagline, no copyright in the panel').toHaveText('');
+  // Landing 34: the wordmark is followed by the word "Corporate" (the workspace's brand) — and by nothing else
+  await expect(panel, 'no tagline, no copyright in the panel').toHaveText('Corporate');
   await expect(page.getByText('The commercial arm of the all-in-one travel app')).toHaveCount(0);
   await expect(page.getByText('الذراع التجاري لتطبيق السفر الشامل')).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1, name: 'Commercial Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Direct Corporate Workspace' })).toBeVisible();
   const card = (await page.locator('[data-door-card]').boundingBox())!;
   expect(Math.round(card.width), 'the card is 480 px').toBe(480);
   expect(
@@ -52,7 +53,7 @@ test('the door: the panel with the logo alone, the centred card, the tab title, 
   ).toBeLessThanOrEqual(40);
   await expect(page.getByText('Sign in with your work email and password.')).toBeVisible();
   await expect(page.getByText('Forgot your password? Ask your admin.')).toBeVisible();
-  await expect(page.getByText(`© ${new Date().getFullYear()} Direct`)).toBeVisible();
+  await expect(page.getByText(`© ${new Date().getFullYear()} Direct Corporate`)).toBeVisible();
   // the door wears the theme last used on this device (the cookie says dark) — Landing 31, the theme rules
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('dark');

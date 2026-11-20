@@ -7,7 +7,7 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { CREDIT_LIMIT_KEY, mayChangeCreditLimit, type CreditLimitAnswer } from '@/modules/settings/credit-limit';
 import { showsFinanceLists, type ExclusionRule, type MergeRule } from '@/modules/settings/finance-lists';
 import { listsOf, settingsGroups } from '@/modules/settings/groups';
-import type { SettingsAnswer } from '@/modules/settings/schema';
+import { settingsAnswerOf } from '@/modules/settings/schema';
 import type { ListEntry } from '@/modules/settings/screens/ListEditor';
 import { OrgAccess, type OrgAnswer, type PeopleAnswer, type MatrixAnswer } from '@/modules/org/screens/OrgAccess';
 import { CreditLimitCard } from '@/modules/settings/screens/CreditLimitCard';
@@ -117,23 +117,37 @@ export default async function SettingsGroupPage({
   const isFinance = group === 'finance';
   // the exclusion list and the merge list (Landing 32): an admin's, on Finance — read for nobody else
   const hasLists = showsFinanceLists(me, group);
-  const [settings, org, lists, people, matrix, credit, exclusions, merges] = await Promise.all([
-    serverRpc('settings', { p_group: def.page }) as Promise<unknown>,
-    serverRpc('org', {} as never) as Promise<unknown>,
+  // Landing 34 (item 12 — "This page could not be drawn" right after a save that had gone through): every read here
+  // answers or is null. The settings, the organisation, the lists and the access matrix were awaited bare, so ONE of
+  // them failing on the refresh that follows a save threw the whole page to the crash screen. Now a read that failed
+  // is said in the group's own place, with Try again, and the Settings menu stays.
+  const [settings, org, listsRead, people, matrix, credit, exclusions, merges] = await Promise.all([
+    orNull(serverRpc('settings', { p_group: def.page }) as Promise<unknown>),
+    orNull(serverRpc('org', {} as never) as Promise<unknown>),
     Promise.all(
       listDefs.map(async (l) => ({
         ...l,
-        rows: (await serverRpc('list', { p_list: l.key, p_include_retired: true })) as unknown as ListEntry[],
+        rows: (await orNull(
+          serverRpc('list', { p_list: l.key, p_include_retired: true }) as Promise<unknown>,
+        )) as unknown as ListEntry[] | null,
       })),
     ),
     isOrg ? orNull(serverRpc('people', {} as never) as Promise<unknown>) : null,
-    isOrg ? (serverRpc('access_matrix', {} as never) as Promise<unknown>) : null,
+    isOrg ? orNull(serverRpc('access_matrix', {} as never) as Promise<unknown>) : null,
     isFinance ? orNull(readCreditLimit()) : null,
     hasLists ? orNull(serverRpc('finance_exclusion_rules', {} as never) as Promise<unknown>) : null,
     hasLists ? orNull(serverRpc('finance_merge_rules', {} as never) as Promise<unknown>) : null,
   ]);
-  const answer = settings as SettingsAnswer;
-  const departments = (org as OrgAnswer).departments;
+  const failedGroup = (
+    <SettingsShell current={group} title={t(def.label)}>
+      <DataState kind="failed" what={t(def.label)} message={t('state.failed', { what: t(def.label) })} action={retry} />
+    </SettingsShell>
+  );
+  const answer = settingsAnswerOf(settings);
+  const departments = (org as OrgAnswer | null)?.departments;
+  if (!answer || !Array.isArray(departments) || listsRead.some((l) => !Array.isArray(l.rows))) return failedGroup;
+  if (isOrg && matrix === null) return failedGroup;
+  const lists = listsRead as { key: string; label: string; rows: ListEntry[] }[];
   if (isOrg && people === null)
     return (
       <SettingsShell current={group} title={t(def.label)}>
@@ -163,7 +177,8 @@ export default async function SettingsGroupPage({
   }
   // Targets: the plans that are open, and the door to open another (the group has no settings or lists of its own yet)
   if (group === 'performance' && !answer.settings.length && !lists.length) {
-    const plans = (await serverRpc('plans', {} as never)) as unknown as PlanRow[];
+    const plans = (await orNull(serverRpc('plans', {} as never) as Promise<unknown>)) as PlanRow[] | null;
+    if (!Array.isArray(plans)) return failedGroup;
     return (
       <SettingsShell current={group} title={t(def.label)}>
         <TargetsScreen plans={plans} departments={departments} year={Number(today.slice(0, 4))} />
@@ -176,9 +191,12 @@ export default async function SettingsGroupPage({
   for (const [path, list] of Object.entries(LIST_VALUES)) {
     if (!answer.settings.some((x) => path.startsWith(`${x.key}.`))) continue;
     const have = lists.find((l) => l.key === list)?.rows;
-    names[path] = (
-      have ?? ((await serverRpc('list', { p_list: list, p_include_retired: true })) as unknown as ListEntry[])
-    ).filter((e) => e.active);
+    const entries =
+      have ??
+      ((await orNull(serverRpc('list', { p_list: list, p_include_retired: true }) as Promise<unknown>)) as
+        ListEntry[] | null);
+    if (!Array.isArray(entries)) return failedGroup;
+    names[path] = entries.filter((e) => e.active);
   }
   return (
     <SettingsShell current={group} title={t(def.label)}>

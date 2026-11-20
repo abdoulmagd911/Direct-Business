@@ -41,6 +41,7 @@ import type { TaskList, TaskRow, TeamLoad } from '../types';
 import type { TaskLookups } from '../load';
 import { PastWorkPanel } from './PastWorkPanel';
 import { QuickAdd } from './QuickAdd';
+import { navStartedTo } from '@/ui/shell/nav-pending';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { TaskBoard } from './TaskBoard';
 import { TaskBulkAssign } from './TaskBulkAssign';
@@ -129,7 +130,11 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const shown = selected.filter((id) => onScreen.has(id));
   const toggleRow = (id: string, on: boolean) =>
     setSelected((s) => (on ? [...s.filter((x) => x !== id), id] : s.filter((x) => x !== id)));
-  const go = (change: Partial<TaskFilters>) => router.push(filtersHref(f, change));
+  // a chip, the search or a sort is a move to another address: the shell's Loading shows at once (Landing 34)
+  const go = (change: Partial<TaskFilters>) => {
+    const href = filtersHref(f, change);
+    if (navStartedTo(href)) router.push(href);
+  };
   const retry = () => router.refresh();
   // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
   // in the address with the filters, so Back and refresh keep it
@@ -482,20 +487,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         open={adding}
         onOpenChange={(open) => {
           setAdding(open);
-          // Create's address (/tasks/new, or ?new=1) is spent once the form closes or saves, so a reload does not open
-          // it again; /tasks/new draws this list with the form open itself, with no redirect (V286)
-          if (!open) {
-            const url = new URL(window.location.href);
-            const byAddress = url.searchParams.has('new') || url.pathname === '/tasks/new';
-            closedOnAddress.current = byAddress;
-            if (byAddress) {
-              url.searchParams.delete('new');
-              if (url.pathname === '/tasks/new') url.pathname = '/tasks';
-              // null, as on Partners: Next copies its own state in and takes the new address as the router's, so the next
-              // refresh of the list does not write ?new=1 back (an entry passed its own state is not re-read)
-              window.history.replaceState(null, '', `${url.pathname}${url.search}`);
-            }
-          }
+          if (!open) spendNewTaskAddress(closedOnAddress);
         }}
         org={lookups.org}
         partners={lookups.partners}
@@ -503,11 +495,31 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         priorities={lookups.priorities}
         initial={{ partnerId: f.partner, projectId: f.project }}
         onAdded={(r) => {
-          if (closedOnAddress.current) router.replace(`/tasks/${r.number}`);
+          if (closedOnAddress.current && navStartedTo(`/tasks/${r.number}`)) router.replace(`/tasks/${r.number}`);
         }}
       />
     </div>
   );
+}
+
+/**
+ * Create's address (/tasks/new, or ?new=1) is spent once the form closes or saves, so a reload does not open it again;
+ * /tasks/new draws the list with the form open itself, with no redirect (V286). `closedOnAddress` remembers whether the
+ * form that just closed was the address's own: only then does a save move on to the new task's page. One function for
+ * the two forms that can be open — the list's own Add task, and the one /tasks/new opens before the list has been read
+ * (NewTaskEntry, Landing 34).
+ */
+export function spendNewTaskAddress(closedOnAddress: { current: boolean }) {
+  const url = new URL(window.location.href);
+  const byAddress = url.searchParams.has('new') || url.pathname === '/tasks/new';
+  closedOnAddress.current = byAddress;
+  if (byAddress) {
+    url.searchParams.delete('new');
+    if (url.pathname === '/tasks/new') url.pathname = '/tasks';
+    // null, as on Partners: Next copies its own state in and takes the new address as the router's, so the next
+    // refresh of the list does not write ?new=1 back (an entry passed its own state is not re-read)
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+  }
 }
 
 const LAYOUT_ICON: Record<Layout, typeof List> = { list: List, board: Columns3, calendar: CalendarDays };

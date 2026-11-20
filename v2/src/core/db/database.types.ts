@@ -453,6 +453,7 @@ export type Database = {
         Returns: Json;
       };
       my_notes_remove: { Args: { p_delete_reminders?: boolean; p_ids: string[]; p_reason?: string }; Returns: Json };
+      my_streak: { Args: Record<PropertyKey, never>; Returns: Json };
       note_add: {
         Args: {
           p_body: string;
@@ -688,6 +689,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      team_streaks: { Args: Record<PropertyKey, never>; Returns: Json };
       templates_offered: { Args: { p_event: string; p_partner?: string }; Returns: Json };
       tender_bulk_assign: { Args: { p_ids: string[]; p_owner: string; p_reason?: string }; Returns: Json };
       tender_save: { Args: { p_id: string; p_values: Json; p_version?: number }; Returns: Json };

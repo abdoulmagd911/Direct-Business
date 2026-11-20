@@ -16,7 +16,7 @@ test('email step → code step → signed in on the deep link', async ({ page, c
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   await open(page, '/sign-in?next=%2Ftasks');
-  await expect(page.getByRole('heading', { name: 'Commercial Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Direct Corporate Workspace' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Google|Zoom/ }),
     'the only door is the emailed code (V59)',

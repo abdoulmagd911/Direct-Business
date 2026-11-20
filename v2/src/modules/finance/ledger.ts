@@ -139,3 +139,13 @@ export function ledgerRowsToCsv(
   );
   return lines.join('\n');
 }
+
+/**
+ * Whether the ledger (and "Is it counted?" under it) may ask its read: it waits only while the figures above are still
+ * on their way, so the tiles are asked first. A figures read that FAILED never holds it (Landing 34): held until the
+ * figures were ready, the ledger sat on "Loading" for good after a failed first load, with no Try again of its own.
+ */
+export const ledgerMayAsk = (figures: 'loading' | 'ready' | 'failed'): boolean => figures !== 'loading';
+
+/** The parts of the page a phone keeps in the Ledger view: an address that points at one of them opens that view. */
+export const opensLedgerView = (hash: string): boolean => /^#finance-(ledger|counted|company)/.test(hash);

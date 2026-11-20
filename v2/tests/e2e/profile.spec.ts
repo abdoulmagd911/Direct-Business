@@ -29,8 +29,8 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
 
   // no colour to pick and no badge or drawer on the screen (V217, cut 6; V636: no profile colour). Start page (F207)
-  // IS here — the pages this person can see, plus Default — and it offers Finance to a member at View (Landing 7,
-  // F179 overturn)
+  // IS here — the pages this person can see, plus Default — and it offers no Finance to a member: Landing 34 (owner's
+  // test round of 19 Nov, item 5) moved members to none on Finance
   await expect(page.locator('[data-colour]'), 'no colour swatches on My profile').toHaveCount(0);
   for (const gone of ['Badge', 'Drawer', 'Nickname', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
@@ -41,11 +41,14 @@ test('a team member edits their profile and sees it at once; Settings refuses th
     'My day',
     'Tasks',
     'Partners',
-    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
+  await expect(
+    page.getByRole('option', { name: 'Finance', exact: true }),
+    'Finance is not a start page a member can pick',
+  ).toHaveCount(0);
   await page.getByRole('option', { name: 'Default' }).click();
 
   // Theme: five cards — Light, Dark, Direct, Turquoise and System — and nothing else (Landing 31; no Colorful, V636)

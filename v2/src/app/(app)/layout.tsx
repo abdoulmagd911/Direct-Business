@@ -7,6 +7,7 @@ import { DbError } from '@/core/db/errors';
 import { prefsFrom } from '@/core/prefs';
 import { effectivePrefs } from '@/core/prefs/effective';
 import { getAppSettings } from '@/core/settings/app';
+import { AppFlagsProvider } from '@/core/settings/app-flags';
 import { AppShell } from '@/ui/shell/AppShell';
 import { LayoutTransient } from '@/ui/shell/LayoutTransient';
 import { PrefsSync } from '@/ui/shell/PrefsSync';
@@ -33,8 +34,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   );
   return (
     <MeProvider me={me}>
-      <PrefsSync {...prefs} />
-      <AppShell>{children}</AppShell>
+      {/* whether Arabic is on, for the language choice (the profile menu, Settings → App) — Landing 34 */}
+      <AppFlagsProvider arabicEnabled={app.arabic_enabled}>
+        <PrefsSync {...prefs} />
+        <AppShell>{children}</AppShell>
+      </AppFlagsProvider>
     </MeProvider>
   );
 }

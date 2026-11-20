@@ -5,5 +5,5 @@ import { expect, test } from '@playwright/test';
 test('the app serves its first page with the workspace name', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveURL(/\/sign-in\?next=%2F$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Commercial Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Direct Corporate Workspace' })).toBeVisible();
 });

@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState, type FocusEvent, type PointerEvent } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { usePrefs } from '@/core/prefs/usePrefs';
-import { BrandLogo } from '../BrandLogo';
+import { BrandLockup } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { Tooltip } from '../Tooltip';
@@ -133,7 +133,8 @@ export function Drawer() {
           {expanded ? (
             // the drawer is a dark or coloured frame in every theme of the look (slate in Light), so the logo is the
             // white-wordmark variant everywhere
-            <BrandLogo variant="on-dark" height={28} />
+            // Landing 34: the wordmark and, beside it, the word "Corporate" — the workspace reads "Direct Corporate"
+            <BrandLockup variant="on-dark" height={26} label={t('app.brand')} word={t('app.corporate')} />
           ) : (
             <span className="inline-grid size-8 place-items-center rounded-md bg-nav-active font-display text-sm font-bold text-nav-active-text">
               D

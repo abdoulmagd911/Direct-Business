@@ -115,6 +115,10 @@ export function QuickAddForm({
   const [dueError, setDueError] = useState<string | undefined>();
   const [ownerError, setOwnerError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  // Landing 34 (item 6): a save the server refused, or never answered, is said HERE, in the form, and stays until the
+  // next try — the toast alone (8 s, at the top of a phone) was easy to miss, and the form then read as "it spun,
+  // came back, and said nothing". Everything typed stays as it is: nothing here clears the form on a failure.
+  const [failed, setFailed] = useState<string | undefined>();
   // a date typed in the title sets the due day, unless one is already chosen or the person took it away (V639 (1))
   const [dismissed, setDismissed] = useState('');
   const typed = f.due ? null : readDateInTitle(f.title, new Date());
@@ -151,8 +155,19 @@ export function QuickAddForm({
       return;
     }
     setBusy(true);
+    setFailed(undefined);
+    // the refusal's words — the ones the toast says (the refusal's own, or "The server did not answer") — are
+    // kept in the form as well
+    const said = quickWords(t('pages.tasks.add.added', { title: r.values.title as string }));
     await command(
-      quickWords(t('pages.tasks.add.added', { title: r.values.title as string })),
+      {
+        ...said,
+        failed: (key, detail) => {
+          const line = said.failed(key, detail);
+          setFailed(line);
+          return line;
+        },
+      },
       () =>
         (fromNote
           ? rpc('note_turn_into', {
@@ -310,6 +325,15 @@ export function QuickAddForm({
           />
         )}
       </Field>
+      {failed ? (
+        <p
+          role="alert"
+          className="rounded-md bg-danger-soft px-3 py-2.5 text-base font-medium text-danger [overflow-wrap:anywhere]"
+          data-quick-add-failed
+        >
+          {failed} {t('pages.tasks.add.notSaved')}
+        </p>
+      ) : null}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}

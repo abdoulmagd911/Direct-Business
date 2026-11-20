@@ -52,11 +52,25 @@ for (const p of PAGES) {
     const plus = page.locator('[data-create-bar]');
     await expect(plus).toBeVisible();
 
-    // scroll the page to its foot and let it settle
-    await page.locator('[data-page]').evaluate((el) => {
-      el.scrollTop = el.scrollHeight;
-    });
-    await page.waitForTimeout(300);
+    // scroll the page to its foot and let it settle. The shell has hydrated before a long list has taken its phone
+    // form — Partners draws the desktop table for a moment, then its cards, and the page grows under the scroll (found
+    // on a busy machine after Landing 34, with 260 partners: the "foot" was measured 19,000 px above the real one) — so
+    // the foot is read only once the phone's list is drawn, the page's height has stopped moving and the scroll is at it
+    await expect(page.locator('[data-page]'), 'the page has arrived: no loading frame is left').toHaveCount(1);
+    if (p.path === '/partners')
+      await expect(page.locator('[data-partners-rows] table'), 'a phone draws the list as cards').toHaveCount(0);
+    await expect
+      .poll(
+        () =>
+          page.locator('[data-page]').evaluate(async (el) => {
+            el.scrollTop = el.scrollHeight;
+            const height = el.scrollHeight;
+            await new Promise((r) => setTimeout(r, 300));
+            return el.scrollHeight === height && Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+          }),
+        { message: 'the page is scrolled to its foot and has stopped growing', timeout: 15_000 },
+      )
+      .toBe(true);
 
     const found = await page.evaluate(() => {
       const box = document.querySelector('[data-create-bar]')!.getBoundingClientRect();

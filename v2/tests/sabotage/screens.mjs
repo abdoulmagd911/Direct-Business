@@ -366,9 +366,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/org/screens/DoorFrame.tsx',
-        find: '<BrandLogo variant="on-dark" height={48} label={t(\'app.brand\')} />',
-        replace:
-          "<BrandLogo variant=\"on-dark\" height={48} label={t('app.brand')} />\n        <p>{t('app.brand_line')}</p>",
+        find: `<BrandLockup variant="on-dark" height={40} label={t('app.brand')} word={t('app.corporate')} />`,
+        replace: `<BrandLockup variant="on-dark" height={40} label={t('app.brand')} word={t('app.corporate')} />\n        <p>{t('app.brand_line')}</p>`,
       },
     ],
   },
@@ -1251,7 +1250,7 @@ export const sabotages = [
   {
     name: 'page-titles-lost',
     breaks: ['e2e:tests/e2e/prod-walk-1.spec.ts'],
-    expect: 'My day · Commercial',
+    expect: 'My day · Direct Corporate',
     edits: [
       {
         file: 'src/ui/shell/page-title.ts',
@@ -1295,8 +1294,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/settings/screens/SettingCard.tsx',
-        find: "companyRow && companyRow.reason !== 'default'",
-        replace: 'companyRow',
+        find: "if (!row || row.reason === 'default') return words.byDefault;",
+        replace: 'if (!row) return words.byDefault;',
       },
     ],
   },

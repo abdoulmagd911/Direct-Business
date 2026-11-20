@@ -117,8 +117,9 @@ describe('People · Teams · Access', () => {
     }));
     expect(tabs.map((x) => x.tab)).toEqual(['people', 'teams', 'access']);
     for (const x of tabs) expect(x.look, x.tab).toContain('rounded-pill');
-    expect(tabs[0]!.inner).toMatch(/^People<span[^>]*>3<\/span>/);
-    expect(tabs[1]!.inner).toMatch(/^Teams<span[^>]*>1<\/span>/);
+    // Landing 34 (item 15): a tab's name and its count are one run of words with a real space between them
+    expect(tabs[0]!.inner).toMatch(/^<span data-tab-face="true">People <span[^>]*>3<\/span><\/span>/);
+    expect(tabs[1]!.inner).toMatch(/^<span data-tab-face="true">Teams <span[^>]*>1<\/span><\/span>/);
     expect(tabs[2]!.inner).toMatch(/^Access/);
     expect(row.match(/aria-current="page"/g)).toHaveLength(1);
   });

@@ -15,7 +15,7 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Tabs } from '@/ui/Tabs';
 import { entityRoute } from '@/ui/entity-route';
-import { BLOCK_ROWS } from '../logic';
+import { BLOCK_ROWS, helpingTasks, todaysThree } from '../logic';
 import { CAPTURE_KINDS, openQuickCapture, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
@@ -27,6 +27,7 @@ import { card, CardHead, cardLink, emptyInCard, pill } from './look';
 import { NoteRow } from './NoteBits';
 import { SinceBlock } from './SinceBlock';
 import { TodayBlock } from './TodayBlock';
+import { TeamStreaks, TodaysThree } from './TodaysThree';
 import type { TaskRow, TaskStatus } from '@/modules/tasks/types';
 import { WrapUpDialog } from './WrapUpDialog';
 import { WeekDoor } from '@/modules/weekly-review/screens/WeekDoor';
@@ -103,6 +104,10 @@ export function MyDay({ data }: { data: MyDayData }) {
   // my starred tasks, from the Today list (Phase 5): the star already carries undated tasks there. Mine only — a task I
   // only help on carries its owner's star, which is not mine to set or to chase (it stays in Today's Helping group)
   const starred = (answer.tasks ?? []).filter((task) => task.starred && task.role === 'owner');
+  // Today's three (Landing 34): 3 important + 3 short + 3 maintenance of my own tasks sit at the top; the Today block
+  // below keeps the rest of mine, grouped as before, and the tasks I only help on
+  const three = todaysThree(answer.tasks ?? [], answer.day);
+  const belowThree = [...three.rest, ...helpingTasks(answer.tasks ?? [])];
   const authorOf = (id: string) => {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;
@@ -161,6 +166,10 @@ export function MyDay({ data }: { data: MyDayData }) {
         value={scope}
         tabs={SCOPES.map((s) => ({ value: s, label: t(`pages.myDay.tabs.${s}`), href: tabHref(s) }))}
       />
+      {/* Landing 34: the banner, then Today's three, then the rest — on Me, for everyone who has a My day, tasks or none */}
+      {scope === 'me' ? <TodaysThree three={three} statuses={data.statuses} /> : null}
+      {/* the manager's view of the team's streaks; nothing at all for someone who manages nobody */}
+      {scope === 'team' ? <TeamStreaks /> : null}
       {/* Phase 5, at the top of My day: what waits on me (tasks flagged as needing help, addressed to me, plus the
           open questions asked to me) and what waits on others (the questions I asked). Rows link to the record; the
           answer box lives on the record, in the Discussion tab — there is no inline answer box here. */}
@@ -351,7 +360,7 @@ export function MyDay({ data }: { data: MyDayData }) {
       ) : null}
       {scope === 'me' ? (
         <TodayBlock
-          tasks={answer.tasks ?? []}
+          tasks={belowThree}
           day={answer.day}
           statuses={data.statuses}
           carried={answer.carried_over?.length ?? 0}

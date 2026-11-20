@@ -14,7 +14,7 @@ import { PasswordDoor } from './PasswordDoor';
 /**
  * Sign-in (TECH-SPEC §4, V59, V74, V75; the visual spec of 29 Sep, V213): the door frame — a flat slate panel with the
  * logo at the inline start on wide screens, a slate bar on a phone — and, in a 400 px column at the inline start,
- * "Commercial Workspace", one line of what to do, and the door. The door is the work email and the **password**
+ * "Direct Corporate Workspace", one line of what to do, and the door. The door is the work email and the **password**
  * (owner, 29 Sep 13:50: no emails are sent; "Forgot your password? Ask your admin." is plain text), run on the server
  * (core/auth/password-actions.ts; the form is PasswordDoor). The emailed-code door (Send code, then the 6-digit step
  * with Resend and Change; core/auth/actions.ts, P3-2) stays in the code behind SIGN_IN_METHOD=code. Devices stay

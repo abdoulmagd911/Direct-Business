@@ -164,11 +164,12 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
     remind_at: '2026-10-13T09:00:00+03:00',
     notification_id: 'x2',
   };
+  // Landing 34 (item 15): a group's name and its count are a real space apart — they read "Do now1" before
   const headings = (html: string) =>
     (html.match(/<h[23][^>]*>.*?<\/h[23]>/g) ?? []).map((h) => h.replace(/<[^>]+>/g, ''));
   it('titles the card Today and the due reminders Reminders, never just Today', () => {
-    expect(headings(draw({ due: now }))).toEqual(['Today', 'Reminders1']);
-    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Reminders2']);
+    expect(headings(draw({ due: now }))).toEqual(['Today', 'Reminders 1']);
+    expect(headings(draw({ due: { ...now, due: [...now.due, late] } }))).toEqual(['Today', 'Reminders 2']);
   });
   const boxTasks = () =>
     [
@@ -181,12 +182,12 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
     );
   it('says Today once, then the four boxes in order: Do now, Plan it, Quick or hand off, Later (V661)', () => {
     const html = draw({ tasks: boxTasks() });
-    expect(headings(html)).toEqual(['Today', 'Do now1', 'Plan it1', 'Quick or pass to someone1', 'Later1']);
+    expect(headings(html)).toEqual(['Today', 'Do now 1', 'Plan it 1', 'Quick or pass to someone 1', 'Later 1']);
     expect(headings(html).filter((h) => h === 'Today')).toHaveLength(1);
   });
   it('says the same in Arabic: افعلها الآن · خطّط لها · سريعة أو فوّضها · لاحقًا', () => {
     const html = draw({ tasks: boxTasks() }, 'ar');
-    expect(headings(html)).toEqual(['اليوم', 'افعلها الآن1', 'خطّط لها1', 'سريعة أو فوّضها1', 'لاحقًا1']);
+    expect(headings(html)).toEqual(['اليوم', 'افعلها الآن 1', 'خطّط لها 1', 'سريعة أو فوّضها 1', 'لاحقًا 1']);
   });
 
   it("keeps a due reminder's words and its time on one line, with the record chip on the line under them", () => {

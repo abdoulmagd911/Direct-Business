@@ -4,10 +4,10 @@ import { defineModule } from '../../core/registry/define-module';
 // Finance — the level on it is a setting, not a hard-coded refusal (owner decision 10 Nov 2026: "everyone can see
 // what they have access to, and it can be edited in the Settings of the Commercial Workspace"). The starting levels
 // below are the defaults the admin sees in Settings › People & access › Access, where any role's level can be changed
-// (none / view / own / full) — the page, the menu and the figures all follow that level. Members and Viewers start
-// at View (read-only): they read the page and its figures, and the write controls (New invoice, Close month, Import)
-// stay Full-gated. The old F179 refusal (Members/Viewers at none, hard-coded in FIX-03) is overturned; a level of
-// none — set in Settings, or by a person override — still refuses the page. Levels: TECH-SPEC §8.
+// (none / view / own / full) — the page, the menu and the figures all follow that level. Viewers start at View
+// (read-only); the write controls (New invoice, Close month, Import) stay Full-gated. Team members start at NONE
+// (Landing 34, the owner's test round of 19 Nov, item 5: "Members must NOT see Finance") — still a setting an admin
+// may raise for a role or a person, never a hard-coded refusal. Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'finance',
   pages: [
@@ -19,7 +19,7 @@ export default defineModule({
       nav: { group: 'main', order: 70, tier: 'manage' },
       // The screens are built (Overview, New invoice): Create, the phone + and Ctrl K may offer New invoice (QA-556)
       built: true,
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'view', viewer: 'view' },
+      defaults: { admin: 'full', head: 'full', manager: 'full', viewer: 'view' },
     },
     {
       key: 'settings.finance',

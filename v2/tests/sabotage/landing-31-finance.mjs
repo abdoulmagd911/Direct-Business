@@ -46,8 +46,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '        value={period.profit}\n        provisional={p.profit}',
-        replace: '        value={period.profit + p.profit}\n        provisional={p.profit}',
+        find: '        value={period.profit}\n        provisional={p.revenue}',
+        replace: '        value={period.profit + p.profit}\n        provisional={p.revenue}',
       },
     ],
   },
@@ -171,9 +171,8 @@ export const sabotages = [
     edits: [
       {
         file: REPORT,
-        find: '<section aria-labelledby={id} className="flex min-w-0 flex-col border-t border-border" {...rest}>',
-        replace:
-          '<section aria-labelledby={id} className="flex min-w-0 flex-col overflow-x-auto border-t border-border" {...rest}>',
+        find: 'className="flex min-w-0 scroll-mt-20 flex-col border-t border-border"',
+        replace: 'className="flex min-w-0 scroll-mt-20 flex-col overflow-x-auto border-t border-border"',
       },
     ],
   },

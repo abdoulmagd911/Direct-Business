@@ -12,6 +12,7 @@ import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { clientPriorities, nameOf, tradeName, type ListEntry, type PartnerCard } from '../../types';
+import type { SavedEdit } from './saved-overlay';
 import { useWords } from './words';
 
 const FIELDS = [
@@ -51,7 +52,9 @@ export function EditPartnerDialog({
   nameOfPerson: (id: string) => string | undefined;
   /** Client since is the organisation's date as a partner: offered only while its Partner side is on (or it holds one). */
   clientOn?: boolean;
-  onDone: () => void;
+  /** Called once the save is through, with what the database accepted and the record's new version (Landing 34: the
+   *  record shows it at once, before its re-read lands); called with nothing when that save is undone. */
+  onDone: (saved?: SavedEdit) => void;
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
@@ -126,15 +129,21 @@ export function EditPartnerDialog({
       read: asValue(k, was[k]),
       show: show(k),
     }));
-    const write = (values: Record<string, unknown>, version: number) =>
-      rpc('partner_update', { p_id: card.id, p_changes: values as never, p_version: version }) as Promise<{
+    // what was last sent: after a conflict the person's choice per field replaces the first values
+    let written: Record<string, unknown> = changes;
+    const write = (values: Record<string, unknown>, version: number) => {
+      written = values;
+      return rpc('partner_update', { p_id: card.id, p_changes: values as never, p_version: version }) as Promise<{
         request_id?: string | null;
+        version?: number;
       } | null>;
+    };
     await command(words(t('partners.updated', { name: shown })), () => write(changes, card.version), {
-      after: () => {
+      after: (r) => {
         onOpenChange(false);
-        onDone();
+        onDone(typeof r?.version === 'number' ? { version: r.version, changes: written } : null);
       },
+      afterUndo: () => onDone(null),
       nameOf: nameOfPerson,
       conflict: {
         fields,

@@ -10,6 +10,9 @@ import { KeyFigures, type KeyFigure } from './KeyFigures';
 
 export type RecordTab = { key: string; label: ReactNode; count?: number };
 
+/** The phone's tab row kept to one line: no wrap, a pill again (the wrapped row's corners were 26 px). */
+const ONE_ROW = 'max-sm:[&_[data-tabs]]:flex-nowrap max-sm:[&_[data-tabs]]:rounded-pill';
+
 /**
  * The one record page (V95, reshaping V81): a header with the record's avatar or logo, name, one line of data under it,
  * status chips, up to five key figures and the main actions; ONE tab row — Overview · Activity · Related · the type's
@@ -33,6 +36,7 @@ export function RecordPage({
   tabs,
   tab,
   tabHref,
+  tabsOneRow = false,
   rail,
   children,
   words,
@@ -58,6 +62,12 @@ export function RecordPage({
   tabs: RecordTab[];
   tab: string;
   tabHref: (key: string) => string;
+  /**
+   * The tab row stays ONE row on a phone and scrolls sideways inside itself, with the row's own fade at the edge that
+   * still has more (Landing 34: a record with six sections wrapped to two rows there, and the second sat half under
+   * the bottom bar). Without it the row wraps on a phone, as every other record's does.
+   */
+  tabsOneRow?: boolean;
   /** The details rail beside the main column; leave it out on a tab that has no details of its own. */
   rail?: ReactNode;
   children: ReactNode;
@@ -68,7 +78,7 @@ export function RecordPage({
   const tabDefs: TabDef[] = tabs.map((t) => ({ value: t.key, label: t.label, count: t.count, href: tabHref(t.key) }));
   return (
     <PageFrame className="!gap-0">
-      <header className="flex flex-col gap-5 pb-5" data-record-header>
+      <header className="flex flex-col gap-5 pb-5" data-record-header data-tabs-one-row={tabsOneRow || undefined}>
         <div className="flex items-center gap-2 text-sm text-muted">
           <Link
             href={back.href}
@@ -129,7 +139,7 @@ export function RecordPage({
             className="rounded-lg border border-border bg-raised p-4 shadow-1"
           />
         ) : null}
-        <Tabs tabs={tabDefs} value={tab} label={words.tabs} />
+        <Tabs tabs={tabDefs} value={tab} label={words.tabs} className={tabsOneRow ? ONE_ROW : undefined} />
       </header>
       <div
         className={cn(

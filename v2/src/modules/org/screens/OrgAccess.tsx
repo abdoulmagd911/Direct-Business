@@ -8,7 +8,8 @@ import type { Me } from '@/core/auth/me';
 import { run } from '@/core/commands/run';
 import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { rpc } from '@/core/db/rpc';
-import { offersSwitch } from '@/core/test-switch/offer';
+import { offersSwitch, offersSwitchOver } from '@/core/test-switch/offer';
+import { navStartedTo } from '@/ui/shell/nav-pending';
 import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
@@ -204,6 +205,8 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
   // Landing 30: on the phone list only (under Test users) — in the wide table the button was a column of its own that
   // pushed the table past its box (QA-592); there the door is on the person's record (PersonRecord, the actions row).
   const offered = (p: PersonRow) => offersSwitch(me, p);
+  // Landing 34 (item 29): while this device is switched, every OTHER test row goes straight to that test user
+  const offeredOver = (p: PersonRow) => offersSwitchOver(me, p);
   // the name and the job title in the language of the screen, the English one where there is no Arabic yet
   const arabic = names.locale === 'ar';
   const fullName = (p: PersonRow) => (arabic && p.full_name_ar) || p.full_name_en;
@@ -215,7 +218,7 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
       onOpenChange={setAdding}
       org={org}
       managers={leadersOf(org, people, today)}
-      onDone={(id) => router.push(`/people/${id}`)}
+      onDone={(id) => void (navStartedTo(`/people/${id}`) && router.push(`/people/${id}`))}
     />
   ) : null;
   // nobody yet: one line and the one action, not a table of headings
@@ -266,6 +269,17 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
               data-test-switch-start={p.id}
             >
               {t('testSwitch.start')}
+            </Button>
+          </div>
+        ) : offeredOver(p) ? (
+          <div>
+            <Button
+              onClick={() => void sw.over(p.id)}
+              disabled={sw.busy}
+              className="max-sm:min-h-11"
+              data-test-switch-over={p.id}
+            >
+              {t('testSwitch.overTo')}
             </Button>
           </div>
         ) : null}

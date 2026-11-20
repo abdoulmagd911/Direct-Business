@@ -7,7 +7,7 @@ export const sabotages = [
   {
     name: 'e2e-first-page-draws-nothing',
     breaks: [e2e('the-app-serves-its-first-page')],
-    expect: 'Commercial Workspace',
+    expect: 'Direct Corporate Workspace',
     edits: [
       {
         file: 'src/modules/org/screens/SignIn.tsx',

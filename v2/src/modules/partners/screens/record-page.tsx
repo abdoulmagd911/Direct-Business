@@ -5,6 +5,7 @@ import type { OrgAnswer } from '@/modules/org/types';
 import { historyRows, type RecordChange } from '@/ui/record/history';
 import { Page } from '@/ui/shell/Page';
 import { PartnerRecord, type PartnerRecordData } from './PartnerRecord';
+import { readFailure, type ReadFailure } from '../read-failure';
 import type { CompanyFile, CompanySummary, Contract, ListEntry, Note, PartnerCard, Side } from '../types';
 import type { RecordComments } from '@/ui/record/Comments';
 
@@ -40,6 +41,8 @@ export async function PartnerRecordPage({
     comments: RecordComments | null;
     files: CompanyFile[] | null;
     summary: CompanySummary | null;
+    /** Landing 34: the page read no longer works the finance summary out; the Codes / Finance tabs ask for it. */
+    summary_deferred?: boolean;
     lists: {
       types: ListEntry[];
       tiers: ListEntry[];
@@ -54,6 +57,9 @@ export async function PartnerRecordPage({
   };
   let page: PageAnswer | null = null;
   let refused = false;
+  // Landing 34: why the record's read failed (a read stopped for time, no answer), so the failed state says so —
+  // it used to draw a box with the one word "Organisation" and a Try again.
+  let failure: ReadFailure | null = null;
   try {
     page = (await serverRpc('partner_page', { p_id: id })) as unknown as PageAnswer;
   } catch (e) {
@@ -64,12 +70,20 @@ export async function PartnerRecordPage({
     // a failed read, and the record says so with Try again — never a denial. This is the readOrFail rule, applied
     // to the one read this page cannot make optional.
     if (kind === 'PermissionDenied') refused = true;
+    else failure = readFailure(e);
   }
   // The org is still read on the refused path, as the old page read it alongside the card: the record's no-access
   // state needs the people it names. On the open path it rides inside partner_page — no second round trip.
   // The file kinds ride inside partner_page too (FIX-15): the Files section asks for a review date exactly when
   // the kind requires one, read live, never hard-coded, so an admin's change in Settings applies.
-  const org: OrgAnswer = page?.org ?? ((await serverRpc('org', {} as never)) as unknown as OrgAnswer);
+  // Landing 34: that second read fails on its own. It was awaited with no catch, so when the record's read had
+  // stalled and this one stalled after it, the whole page was thrown ("The app could not reach its data just now")
+  // instead of the record's own failed state with its Try again. A record that did not load names nobody, so it is
+  // not asked for at all then.
+  const NO_ORG: OrgAnswer = { departments: [], teams: [], roles: [], people: [] };
+  const org: OrgAnswer =
+    page?.org ??
+    (refused ? await (serverRpc('org', {} as never) as unknown as Promise<OrgAnswer>).catch(() => NO_ORG) : NO_ORG);
   const data: PartnerRecordData = {
     me,
     side,
@@ -81,6 +95,7 @@ export async function PartnerRecordPage({
     view: typeof view === 'string' ? view : '',
     card: page?.card ?? null,
     refused,
+    failure,
     org,
     notes: page?.notes ?? [],
     contracts: page?.contracts ?? [],
@@ -88,6 +103,7 @@ export async function PartnerRecordPage({
     comments: page?.comments ?? null,
     files: page?.files ?? null,
     summary: page?.summary ?? null,
+    summaryDeferred: page?.summary_deferred === true,
     lists: page?.lists ?? {
       types: [],
       tiers: [],

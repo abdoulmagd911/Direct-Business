@@ -26,8 +26,11 @@ select test.eq(current_setting('t.page')::jsonb -> 'comments', api.comments('par
   'the comments are the same answer their own read gives');
 select test.eq(current_setting('t.page')::jsonb -> 'files', api.files('partner', current_setting('t.a')::uuid),
   'the files are the same answer their own read gives');
-select test.eq(current_setting('t.page')::jsonb -> 'summary', api.company_summary(current_setting('t.a')::uuid),
-  'the summary is the same answer its own read gives');
+-- Landing 34: the money summary is no longer worked out by the page read (it was most of the read's time); the
+-- Codes and Finance tabs ask api.company_summary themselves. Sabotage: the-record-read-works-out-the-money-again.sql
+select test.eq(jsonb_typeof(current_setting('t.page')::jsonb -> 'summary'), 'null', 'the page read leaves the summary to its own read');
+select test.eq((current_setting('t.page')::jsonb ->> 'summary_deferred')::boolean, true, 'and says so');
+select test.ok(api.company_summary(current_setting('t.a')::uuid) ? 'finance_visible', 'the summary''s own read still answers');
 select test.eq(current_setting('t.page')::jsonb -> 'org', api.org(), 'the org rides along');
 select test.eq(current_setting('t.page')::jsonb -> 'lists' -> 'types', api.list('side_type'),
   'the lists ride along');

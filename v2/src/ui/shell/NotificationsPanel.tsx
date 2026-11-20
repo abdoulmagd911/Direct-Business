@@ -19,6 +19,7 @@ import { Field } from '../Field';
 import { IconButton } from '../IconButton';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 import { dueState, groupOf, recordName, riyadhDay } from './bell-words';
+import { navStartedTo } from './nav-pending';
 import { fieldLabel, listSeparator } from '../record/diff-words';
 import { Tabs } from '../Tabs';
 import { toast } from '../Toast';
@@ -118,10 +119,13 @@ export function NotificationsPanel({
     n.label_key && t.has(`activity.labels.${n.label_key}`)
       ? t(`activity.labels.${n.label_key}`, (n.label_args ?? {}) as Record<string, string | number>)
       : null;
+  // Landing 34 (item 10): the record's page is asked for FIRST and the shell told (the top bar's Loading shows at
+  // once); marking the item read is a write of its own and goes beside it — waiting for that write held the move back
+  // by a whole trip to the database, so a tap on a notice opened nothing for seconds.
   const openItem = async (ids: string[], href: string) => {
-    if (ids.length) await act(() => markRead(ids));
+    if (navStartedTo(href)) router.push(href);
     onOpenChange(false);
-    router.push(href);
+    if (ids.length) await act(() => markRead(ids));
   };
   // Comment notices collapse to one item per record per day: the newest row's line, a count and the latest
   // comment's preview, one unread dot when any of them is unread; mark-read and snooze take them all together.

@@ -141,10 +141,10 @@ for (const locale of ['en'] as ('en' | 'ar')[]) {
       const heading = page.locator('[data-door-heading]');
       await expect(heading).toBeVisible();
       await expect(heading, 'the heading is the workspace’s name').toHaveAccessibleName(
-        locale === 'en' ? 'Commercial Workspace' : /.+/,
+        locale === 'en' ? 'Direct Corporate Workspace' : /.+/,
       );
       const pill = heading.locator('.door-heading-pill');
-      await expect(pill, 'its last word sits in the pill').toHaveText(locale === 'en' ? 'Workspace' : 'التجارية');
+      await expect(pill, 'its last word sits in the pill').toHaveText(locale === 'en' ? 'Workspace' : 'مساحة العمل');
       const colours = await pill.evaluate((e) => {
         const s = getComputedStyle(e);
         return { bg: s.backgroundColor, fg: s.color };

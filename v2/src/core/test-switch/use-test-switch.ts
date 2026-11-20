@@ -55,6 +55,37 @@ export async function switchEnd(page: Starter = browser): Promise<void> {
   page.reload();
 }
 
+/** The second step of a direct switch was refused: the device is back on its own account, and `cause` says why. */
+export class SwitchedBack extends Error {
+  constructor(public readonly refusal: unknown) {
+    super('test_switch.switched_back');
+  }
+}
+
+const END = 'test_switch_end' as const;
+
+/**
+ * Straight from one TEST user to another (Landing 34, item 29). The database lets nobody switch ON from inside a
+ * switch (core.test_switch_start raises test_switch.already_switched — a rule of its own, with a database test), so
+ * this makes the two steps it does allow, one after the other, each logged as before: back to my account, then Sign in
+ * as the other TEST user. Both run as the real signed-in person, so who may start a switch is still the database's
+ * call, unchanged. If the first step is refused nothing has changed and its refusal is thrown as it is; if the second
+ * is, the device is on its own account again — `SwitchedBack` carries the refusal, and the caller starts the page over.
+ */
+export async function switchOver(person: string, page: Starter = browser): Promise<void> {
+  await rpc(END, {} as never);
+  try {
+    await rpc('test_switch_start', { p_person: person } as never);
+  } catch (e) {
+    throw new SwitchedBack(e);
+  }
+  await applySwitchedPrefs();
+  page.go(AFTER_SWITCH_PATH);
+}
+
+/** How long a refusal of the second step stays on screen before the page starts over on the owner's own account. */
+export const SWITCHED_BACK_RELOAD_MS = 4000;
+
 export function useTestSwitch() {
   const t = useTranslations();
   const [busy, setBusy] = useState(false);
@@ -64,6 +95,14 @@ export function useTestSwitch() {
       try {
         await go();
       } catch (e) {
+        if (e instanceof SwitchedBack) {
+          // the first step went through and the second was refused: say both, then start over as the owner — the
+          // page still on screen is the TEST user's, and nothing on it is true any more
+          const { key, detail } = errorKey(e.refusal, (k) => t.has(k));
+          toast.failed(t('testSwitch.switchedBack', { reason: t(key, { detail }) }));
+          setTimeout(() => browser.reload(), SWITCHED_BACK_RELOAD_MS);
+          return;
+        }
         const { key, detail } = errorKey(e, (k) => t.has(k));
         toast.failed(t(key, { detail }));
       } finally {
@@ -80,5 +119,7 @@ export function useTestSwitch() {
     busy,
     start: (person: string) => attempt(() => switchStart(person)),
     end: () => attempt(() => switchEnd()),
+    /** While switched: straight to another TEST user. */
+    over: (person: string) => attempt(() => switchOver(person)),
   };
 }

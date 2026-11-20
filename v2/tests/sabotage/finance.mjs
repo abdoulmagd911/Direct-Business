@@ -20,7 +20,7 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '        value={period.profit}\n        provisional={p.profit}',
+        find: '        value={period.profit}\n        provisional={p.revenue}',
         replace: '        value={period.profit}\n        provisional={0}',
       },
     ],
@@ -88,8 +88,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '      <span className="text-sm" data-finance-provisional>',
-        replace: '      <span className="mt-24 text-sm" data-finance-provisional>',
+        find: '<span className="flex flex-wrap items-baseline gap-x-1 text-sm" data-finance-provisional>',
+        replace: '<span className="mt-24 flex flex-wrap items-baseline gap-x-1 text-sm" data-finance-provisional>',
       },
     ],
   },
@@ -344,9 +344,10 @@ export const sabotages = [
     edits: [
       {
         file: READS,
-        find: 'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))',
+        // Landing 34: the request is `ask()` (bounded by the deadline); the plant lets a cancelled read go at once
+        find: 'const request: Promise<T> = ask<T>(fn, args)',
         replace:
-          'const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never).abortSignal(signal))',
+          "const request: Promise<T> = Promise.race([ask<T>(fn, args), new Promise<never>((_, no) => signal.addEventListener('abort', () => no(new DOMException('cancelled', 'AbortError')), { once: true }))])",
       },
     ],
   },

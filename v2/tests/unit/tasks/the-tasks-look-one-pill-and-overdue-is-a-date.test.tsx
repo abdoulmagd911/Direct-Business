@@ -232,13 +232,13 @@ describe('the count line and the open tab’s number', () => {
   });
 
   it('the open tab carries the open count while the rows are the whole tab', () => {
-    expect(draw({ scope: 'my_work' })).toMatch(/My work(<[^>]+>)+3</);
+    expect(draw({ scope: 'my_work' })).toMatch(/My work (<[^>]+>)+3</);
   });
 
   it('and carries no number once a chip is on, or past the first page — a part is never shown as the whole', () => {
-    expect(draw({ scope: 'my_work', status: 'open' })).not.toMatch(/My work(<[^>]+>)+3</);
+    expect(draw({ scope: 'my_work', status: 'open' })).not.toMatch(/My work (<[^>]+>)+3</);
     const paged = draw({ scope: 'my_work' }, ROWS, 'en', true);
-    expect(paged).not.toMatch(/My work(<[^>]+>)+3</);
+    expect(paged).not.toMatch(/My work (<[^>]+>)+3</);
     expect(paged, 'nor a count line of the first page only').not.toContain('data-task-count-line');
   });
 });

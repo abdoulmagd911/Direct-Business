@@ -33,7 +33,7 @@ for (const width of [1440, 375]) {
       await page.goto('/sign-in');
       await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
       const pill = page.locator('[data-door-heading] .door-heading-pill');
-      await expect(pill, 'the pill holds the Arabic word').toHaveText('التجارية');
+      await expect(pill, 'the pill holds the Arabic word').toHaveText('مساحة العمل');
       expect(await pill.evaluate((e) => getComputedStyle(e).backgroundColor), 'the pill is the deep orange').toBe(
         'rgb(200, 70, 12)',
       );

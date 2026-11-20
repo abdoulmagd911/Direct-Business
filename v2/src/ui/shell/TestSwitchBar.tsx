@@ -1,9 +1,13 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState, type ReactNode } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import type { Me } from '@/core/auth/me';
+import { rpc } from '@/core/db/rpc';
+import { switchTargets } from '@/core/test-switch/offer';
 import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { Button } from '../Button';
+import { Menu, MenuContent, MenuItem, MenuTrigger } from '../Menu';
 
 /** "TEST user: [name] (you are [owner name])" in the language of the screen. The test user's name is always the English
  * name: a test account is named in English, and its stored Arabic name is a translation of that proper name, never
@@ -23,11 +27,14 @@ export function TestSwitchBarView({
   back,
   onBack,
   busy,
+  others,
 }: {
   line: string;
   back: string;
   onBack: () => void;
   busy?: boolean;
+  /** The way straight to another TEST user (Landing 34, item 29), drawn before Back to my account. */
+  others?: ReactNode;
 }) {
   return (
     <div
@@ -38,10 +45,93 @@ export function TestSwitchBarView({
       <span className="min-w-0 [overflow-wrap:break-word]" data-test-switch-line>
         {line}
       </span>
-      <Button onClick={onBack} disabled={busy} data-test-switch-back>
-        {back}
-      </Button>
+      <span className="flex flex-wrap items-center gap-2">
+        {others}
+        <Button onClick={onBack} disabled={busy} data-test-switch-back>
+          {back}
+        </Button>
+      </span>
     </div>
+  );
+}
+
+type TestPerson = { id: string; is_test?: boolean; full_name_en: string };
+
+/** The menu's rows, from what the read gave: kept apart so a test can look at them without the session. */
+export function SwitchOverRows({
+  state,
+  words,
+  onPick,
+  onRetry,
+}: {
+  /** null while the list is read, 'failed' when it could not be, else the TEST users one can go to. */
+  state: readonly TestPerson[] | 'failed' | null;
+  words: { loading: string; failed: string; none: string };
+  onPick: (id: string) => void;
+  onRetry: () => void;
+}) {
+  if (state === null) return <MenuItem disabled>{words.loading}</MenuItem>;
+  if (state === 'failed')
+    return (
+      // the menu stays open on Try again: the answer shows in it
+      <MenuItem
+        onSelect={(e) => {
+          e.preventDefault();
+          onRetry();
+        }}
+        data-test-switch-retry
+      >
+        {words.failed}
+      </MenuItem>
+    );
+  if (!state.length) return <MenuItem disabled>{words.none}</MenuItem>;
+  return (
+    <>
+      {state.map((p) => (
+        // a test account is named in English (see testSwitchNames)
+        <MenuItem key={p.id} onSelect={() => onPick(p.id)} data-test-switch-to={p.id}>
+          {p.full_name_en}
+        </MenuItem>
+      ))}
+    </>
+  );
+}
+
+/**
+ * "Switch test user" on the bar (Landing 34, item 29): the TEST users by name, read when the menu opens (api.org —
+ * the structure everyone may read, which marks who is TEST); a press goes straight to that one. It is on the bar, so
+ * it is there for whoever the device is signed in as — a test Member cannot open the People page at all.
+ */
+function SwitchOverMenu({ me, busy, onPick }: { me: Me; busy: boolean; onPick: (id: string) => void }) {
+  const t = useTranslations();
+  const [state, setState] = useState<readonly TestPerson[] | 'failed' | null>(null);
+  const load = () => {
+    setState(null);
+    rpc('org', {} as never, { retry: true }).then(
+      (a) => setState(switchTargets(me, (a as unknown as { people?: TestPerson[] } | null)?.people ?? [])),
+      () => setState('failed'),
+    );
+  };
+  return (
+    <Menu
+      onOpenChange={(open) => {
+        if (open && !Array.isArray(state)) load();
+      }}
+    >
+      <MenuTrigger asChild>
+        <Button disabled={busy} data-test-switch-menu>
+          {t('testSwitch.over')}
+        </Button>
+      </MenuTrigger>
+      <MenuContent align="end" data-test-switch-list>
+        <SwitchOverRows
+          state={state}
+          words={{ loading: t('common.loading'), failed: t('testSwitch.listFailed'), none: t('testSwitch.none') }}
+          onPick={onPick}
+          onRetry={load}
+        />
+      </MenuContent>
+    </Menu>
   );
 }
 
@@ -61,6 +151,7 @@ export function TestSwitchBar() {
       back={t('testSwitch.back')}
       onBack={() => void sw.end()}
       busy={sw.busy}
+      others={<SwitchOverMenu me={me} busy={sw.busy} onPick={(id) => void sw.over(id)} />}
     />
   );
 }

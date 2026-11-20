@@ -13,7 +13,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
         '{',
         '  "a": "Welcome to Direct KSA",',
         '  "b": "directksa portal",',
-        '  "c": "Direct-Corporate travel",',
+        '  "c": "Direct-KSA travel",',
         '  "d": "our B2B desk",',
         '  "e": "MICE events",',
         '  "f": "b 2 b",',
@@ -25,7 +25,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
         '',
       ].join('\n'),
       'src/app/page.tsx': [
-        `export const A = () => <h1>Direct Corporate</h1>;`,
+        `export const A = () => <h1>Direct  KSA</h1>;`,
         `export const b = 'b2b';`,
         'export const c = `the ${1} mice`;',
         '',
@@ -46,7 +46,8 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
   it('allows the product and department names, the domain, comments and ordinary words', async () => {
     const root = fixture({
       'messages/en.json':
-        '{ "app": { "name": "Commercial Workspace", "department": "Commercial", "copy": "© Direct" } }\n',
+        // "Direct Corporate" is the workspace's own name since Landing 34 — on the screens, never in data
+        '{ "app": { "name": "Direct Corporate Workspace", "department": "Commercial", "copy": "© Direct Corporate" } }\n',
       'src/app/page.tsx': [
         `// never "Direct KSA" or B2B in the wording (V59) — a comment is not wording`,
         `export const A = () => <p>Direct · Commercial · microphone · mimic · b2c · zooming · googly · signed in · sales</p>;`,
@@ -65,6 +66,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
         "comment on table partner.side_type is 'Made up: a b-2-b desk';",
         '-- check-allow: forbidden-words — a line waived with its reason',
         "select 'Direct KSA';",
+        "insert into partner.partner (trade_name_en) values ('Direct Corporate travel');",
         "select 'Government', 'it''s fine';",
         "insert into partner.activity_type (key, name_en) values ('video', 'Zoom meeting'), ('drive', 'Google Drive');",
         '',
@@ -78,6 +80,7 @@ describe('the words check refuses the names the app never says (V59, V73, V74, V
     expect(got.sort()).toEqual([
       `${SEEDS_FROM}_seeds.sql:2 "B2G"`,
       `${SEEDS_FROM}_seeds.sql:3 "b-2-b"`,
+      `${SEEDS_FROM}_seeds.sql:6 "Direct Corporate"`,
       'en.json:1 "b 2 g"',
     ]);
   });

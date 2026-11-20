@@ -1,5 +1,5 @@
 export { cn } from './cn';
-export { BrandLogo } from './BrandLogo';
+export { BrandLockup, BrandLogo } from './BrandLogo';
 export { Button, buttonVariants } from './Button';
 export { IconButton } from './IconButton';
 export { Input, Textarea } from './Input';

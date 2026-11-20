@@ -151,7 +151,7 @@ test('the gallery: every route as every role, in every reachable state', async (
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.goto('/sign-in');
-  await expect(page.getByRole('heading', { name: 'Commercial Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Direct Corporate Workspace' })).toBeVisible();
   await snap(page, 'none', '/sign-in', 'empty');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await snap(page, 'none', '/sign-in', 'invalid');

@@ -91,8 +91,11 @@ async function commercialMember(): Promise<TestPerson> {
   return person;
 }
 
+// The drawer's head is the logo and the word "Corporate" (Landing 34), a link to My day that is not a page of the menu:
+// the menu's entries are the links under the head.
+const DRAWER_PAGES = '[data-drawer] a[href]:not([data-entity]):not([data-drawer-head] a)';
 const drawerPages = async (page: Page) =>
-  (await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts()).map((l) => l.trim()).filter(Boolean);
+  (await page.locator(DRAWER_PAGES).allInnerTexts()).map((l) => l.trim()).filter(Boolean);
 
 /** The phone's pages in order: the bar's first four, then what More holds (its profile link and Sign out aside). */
 async function phonePages(page: Page) {
@@ -126,7 +129,7 @@ for (const who of ['admin', 'Commercial member'] as const) {
 
     // a page is in the menu only because it opens: every entry lands on a page, never on the no-access state
     const hrefs = await desktop
-      .locator('[data-drawer] a[href]:not([data-entity])')
+      .locator(DRAWER_PAGES)
       .evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).getAttribute('href')!));
     for (const href of hrefs) {
       await desktop.goto(href);
@@ -138,12 +141,16 @@ for (const who of ['admin', 'Commercial member'] as const) {
     if (who === 'admin') expect(wide.at(-1), 'Settings sits at the foot for an admin').toBe('Settings');
     else expect(wide, 'no Settings for a member').not.toContain('Settings');
 
-    // the pages a plain member's access opens are the pages in their menu; Finance follows the access (Landing 7,
-    // F179 overturn), so it is in a member menu at View
+    // the pages a plain member's access opens are the pages in their menu; Finance follows the access, and Landing 34
+    // (owner's test round of 19 Nov, item 5) moved members to none — so it is in no member menu and its address says
+    // no access; an admin (Full) has it
     if (who === 'Commercial member') {
-      for (const name of ['Achievements', 'Finance'])
-        expect(wide, `${name} is in the menu where the access opens it`).toContain(name);
-    }
+      expect(wide, 'Achievements is in the menu where the access opens it').toContain('Achievements');
+      expect(wide, 'Finance is not in a member menu: a member starts at none').not.toContain('Finance');
+      await desktop.goto('/finance');
+      await hydrated(desktop);
+      await expect(desktop.locator('[data-state="no-access"]'), '/finance says no access to a member').toHaveCount(1);
+    } else expect(wide, 'Finance is in the menu where the access opens it').toContain('Finance');
     await desktop.context().close();
     await phone.context().close();
   });

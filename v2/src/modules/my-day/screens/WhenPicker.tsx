@@ -117,7 +117,9 @@ export function WhenPicker({
       {chosen ? (
         <p className="text-sm text-muted" data-when-result>
           {whenLine(chosen, locale)}
-          {hasPassed(chosen, now) ? <span className="ms-2 text-danger">{t('pages.myDay.quick.passed')}</span> : null}
+          {/* a real space between the time and the word, not a margin alone (Landing 34, item 15) */}
+          {hasPassed(chosen, now) ? ' ' : null}
+          {hasPassed(chosen, now) ? <span className="ms-1 text-danger">{t('pages.myDay.quick.passed')}</span> : null}
         </p>
       ) : null}
     </div>

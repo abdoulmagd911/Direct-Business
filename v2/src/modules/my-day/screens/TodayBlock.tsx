@@ -153,7 +153,7 @@ export function TodayBlock({
                   className={pill(shown.includes(k))}
                   data-today-chip={k}
                 >
-                  {t(`pages.myDay.today.${k}`)} <span className="ms-1.5 font-data text-xs">{count(k)}</span>
+                  {t(`pages.myDay.today.${k}`)} <span className="ms-1 font-data text-xs">{count(k)}</span>
                 </button>
               ))}
             </div>
@@ -169,8 +169,10 @@ export function TodayBlock({
             <div key={x.key} data-today-group={x.key}>
               {/* the card is titled "Today"; its groups are never titled just that (QA-564): Do now · Plan it · Quick or hand off · Later (V661) */}
               <h3 className={groupHead}>
-                {t(`pages.myDay.today.${x.key}`)}
-                <span className="ms-2 font-data" data-today-count>
+                {/* a real space between the name and its count, not a margin alone: read as text (a copy, a screen
+                    reader, a narrow phone line) it said "Quick or pass to someone3" (Landing 34, item 15) */}
+                {t(`pages.myDay.today.${x.key}`)}{' '}
+                <span className="ms-1 font-data" data-today-count>
                   {x.total}
                 </span>
               </h3>
@@ -271,15 +273,19 @@ function ReminderRow({ reminder: r, overdue }: { reminder: TodayReminder; overdu
   );
 }
 
-function TodayRow({
+/** One task's row: the Today block's, and the same row in Today's three (so the tick, the star and the title behave as one). */
+export function TodayRow({
   task,
   statuses,
   helping = false,
+  three = false,
 }: {
   task: TodayTask;
   statuses: TaskStatus[];
   /** A task I only help on: it is not mine to finish, so no done tick (P5-7). */
   helping?: boolean;
+  /** Drawn in Today's three: the row carries that section's own mark too. */
+  three?: boolean;
 }) {
   const locale = useLocale() as 'en' | 'ar';
   // overdue is the red day on the row; the heading no longer says it (V661: the boxes replace Overdue · Due today · Next 7 days)
@@ -299,6 +305,7 @@ function TodayRow({
     <li
       className="relative flex items-start gap-3 min-h-[var(--list-row-min)] py-[var(--list-row-py)]"
       data-today-task={task.number}
+      {...(three ? { 'data-three-row': task.number } : {})}
     >
       {helping ? null : <DoneTick task={tick} statuses={statuses} title={task.title} />}
       <div className="min-w-0 flex-1">

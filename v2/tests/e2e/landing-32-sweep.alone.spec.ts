@@ -204,6 +204,12 @@ async function settle(page: Page, key: PageKey, role: RoleKey, phone: boolean): 
     await seen('[data-state="no-access"]', 'a person without access is not shown the no-access state', 20_000);
     return missing;
   }
+  // Landing 34 (test round of 19 Nov, item 5): a Team member starts with no access to Finance or to a partner's
+  // Finance tab — both say so; the member still reads a code's page (Codes at View)
+  if (role === 'member' && (key === 'finance' || key === 'tab')) {
+    await seen('[data-state="no-access"]', 'a member is not shown the no-access state on Finance', 20_000);
+    return missing;
+  }
   if (key === 'finance') {
     await gone('[data-finance-overview] [data-state="loading"]', 'the Overview blocks never answered');
     if (phone) await page.locator('[role=tab][id$="-tab-ledger"]').click();
@@ -292,7 +298,8 @@ async function inspect(page: Page, key: PageKey, role: RoleKey, phone: boolean, 
     issues.push('the admin is missing Exclude or Include');
   if (role !== 'admin' && found.adminButtons > 0) issues.push('someone who is not an admin has Exclude or Include');
   if (role !== 'admin' && found.lists > 0) issues.push('someone who is not an admin sees the lists');
-  if (role !== 'none' && found.tested === 0 && (key !== 'settings' || role === 'admin'))
+  const closedToMember = role === 'member' && (key === 'finance' || key === 'tab');
+  if (role !== 'none' && !closedToMember && found.tested === 0 && (key !== 'settings' || role === 'admin'))
     issues.push('no row of the landing was drawn');
   return { tested: found.tested, bad: found.bad, issues };
 }

@@ -1,13 +1,15 @@
 {
   "app": {
-    "name": "Commercial Workspace",
+    "name": "Direct Corporate Workspace",
     "brand_line": "The commercial arm of the all-in-one travel app",
-    "copyright": "© Direct",
+    "copyright": "© Direct Corporate",
     "department": "Commercial",
-    "workspace": "Commercial Workspace",
+    "workspace": "Direct Corporate Workspace",
     "brand": "Direct",
-    "name_other": "مساحة العمل التجارية",
-    "brand_line_other": "الذراع التجاري لتطبيق السفر الشامل"
+    "name_other": "مساحة عمل دايركت للشركات",
+    "brand_line_other": "الذراع التجاري لتطبيق السفر الشامل",
+    "short": "Direct Corporate",
+    "corporate": "Corporate"
   },
   "sign_in": {
     "email_label": "Work email",
@@ -68,12 +70,12 @@
       "showWord": "Show",
       "hideWord": "Hide"
     },
-    "footer": "© {year} Direct",
-    "tab_title": "Sign in · Commercial Workspace",
+    "footer": "© {year} Direct Corporate",
+    "tab_title": "Sign in · Direct Corporate Workspace",
     "switch_to_ar": "العربية",
     "switch_to_en": "English",
     "heading": {
-      "lead": "Commercial",
+      "lead": "Direct Corporate",
       "pill": "Workspace"
     }
   },
@@ -522,6 +524,35 @@
         "myWork": "My work · {count, plural, one {# open task} other {# open tasks}}",
         "capture": "Capture",
         "failed": "Your day could not load."
+      },
+      "three": {
+        "title": "Today's three",
+        "sub": "From your own task lists",
+        "groups": {
+          "important": "Important",
+          "short": "Short",
+          "maintenance": "Maintenance"
+        },
+        "empty": {
+          "important": "Nothing important is open",
+          "short": "Nothing short is open",
+          "maintenance": "No maintenance is open"
+        },
+        "sourcesLabel": "Where each group comes from",
+        "sources": {
+          "important": "Important — your starred tasks",
+          "short": "Short — due within {days, plural, one {# day} other {# days}}, not starred",
+          "maintenance": "Maintenance — the rest of your own tasks"
+        },
+        "streak": {
+          "days": "Streak: {days, plural, one {# working day} other {# working days}}",
+          "none": "No streak yet — finish three today to start one",
+          "today": "{done} of {target} done today"
+        },
+        "team": {
+          "title": "My team's streaks",
+          "days": "{days, plural, =0 {No streak yet} one {# working day} other {# working days}}"
+        }
       }
     },
     "settings": {
@@ -945,7 +976,8 @@
         "dueToday": "Today",
         "dueClear": "Clear",
         "duePlaceholder": "For example, 20 Oct 2026",
-        "owner_required": "Pick an owner"
+        "owner_required": "Pick an owner",
+        "notSaved": "Nothing was saved. What you typed is still here."
       },
       "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
       "edit": {
@@ -2363,6 +2395,9 @@
       "removeTitle": "Remove {value} from the merge list?",
       "saved": "Added to the merge list",
       "removed": "Removed from the merge list"
+    },
+    "language": {
+      "yours": "Your language"
     }
   },
   "errors": {
@@ -3250,7 +3285,16 @@
         "supplier_partner": "No suppliers yet."
       }
     },
-    "quietOnly": "Quiet only"
+    "quietOnly": "Quiet only",
+    "rowOpen": "Open",
+    "read": {
+      "timeout": "It took too long and was stopped.",
+      "unavailable": "The server did not answer.",
+      "refused": "You do not have access to this.",
+      "again": "{count, plural, one {Tried again once} other {Tried again # times}}: it still did not load.",
+      "record": "This organisation could not load.",
+      "partial": "Owners and types did not load."
+    }
   },
   "recentlyDeleted": {
     "title": "Recently deleted"
@@ -3319,7 +3363,7 @@
       "revenue": "Revenue",
       "cost": "Cost",
       "profit": "Profit",
-      "provisional": "Provisional profit",
+      "provisional": "Provisional",
       "provisionalRow": "Provisional — cost still to come",
       "open": "Open",
       "notClosed": "Not closed",
@@ -3475,7 +3519,8 @@
         "invoice": "This row",
         "product": "Service",
         "partner": "Partner"
-      }
+      },
+      "byCompany": "Income by company"
     },
     "new": {
       "title": "New invoice",
@@ -3535,7 +3580,10 @@
       "units": "Rows",
       "revenue": "Revenue",
       "yearTotal": "{year} total"
-    }
+    },
+    "stampStale": "Payments · not refreshed since {date}",
+    "stampNewest": "Newest file read {date}",
+    "provisionalLeft": "not counting Provisional"
   },
   "import": {
     "title": "Import",
@@ -3674,7 +3722,12 @@
   "testSwitch": {
     "bar": "TEST user: {name} (you are {owner})",
     "back": "Back to my account",
-    "start": "Sign in as test user"
+    "start": "Sign in as test user",
+    "over": "Switch test user",
+    "overTo": "Switch to this test user",
+    "none": "No other test user",
+    "listFailed": "The test users could not load. Try again",
+    "switchedBack": "You are back on your own account. {reason}"
   },
   "task": {
     "priority": {

@@ -1,6 +1,5 @@
 'use client';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { run } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
@@ -14,7 +13,24 @@ import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { valid, type SettingDefRow, type SettingRow } from '../schema';
 import { TIME_PATTERN, type ChoiceNames } from '../words';
+import { LanguageChoice } from './LanguageChoice';
 import { SchemaEditor, SchemaValue } from './SchemaEditor';
+
+/** The setting that opens the language choice. */
+export const ARABIC_KEY = 'app.arabic_enabled';
+
+/**
+ * The line under a setting's value: "Applies from <date>" for a value someone set, the default's own words otherwise.
+ * The reason stored with the change is deliberately not part of it — it is an internal note, read in the history.
+ */
+export function appliesLine(
+  row: Pick<SettingRow, 'valid_from' | 'reason'> | undefined,
+  day: (validFrom: string) => string,
+  words: { appliesFrom: string; byDefault: string },
+): string {
+  if (!row || row.reason === 'default') return words.byDefault;
+  return `${words.appliesFrom} ${day(row.valid_from)}`;
+}
 
 export type Department = { id: string; name_en: string; name_ar: string | null };
 
@@ -50,7 +66,6 @@ export function SettingCard({
 }) {
   const t = useTranslations();
   const locale = useLocale() as 'en' | 'ar';
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<string>('all');
   const [value, setValue] = useState<unknown>(def.value);
@@ -63,8 +78,10 @@ export function SettingCard({
     const d = departments.find((x) => x.id === id);
     return d ? (locale === 'ar' && d.name_ar ? d.name_ar : d.name_en) : t('settings.setting.companyWide');
   };
-  const deptRows = def.rows.filter((r) => r.department_id);
-  const companyRow = def.rows.find((r) => !r.department_id);
+  // a definition whose rows did not arrive is one with no rows, never a crash of the whole page
+  const rows = Array.isArray(def.rows) ? def.rows : [];
+  const deptRows = rows.filter((r) => r.department_id);
+  const companyRow = rows.find((r) => !r.department_id);
   const words = {
     done: t('settings.setting.saved'),
     undo: t('common.undo'),
@@ -117,10 +134,9 @@ export function SettingCard({
           p_valid_from: def.effective_dated ? from : undefined,
           p_reason: reason.trim(),
         }) as Promise<{ request_id?: string | null } | null>,
-      () => {
-        setOpen(false);
-        router.refresh();
-      },
+      // `run` has already asked every screen to refetch (the shell refreshes the page once): a second refresh from
+      // here doubled every read of the page right after the save, against a database that is slow to answer
+      () => setOpen(false),
     );
     setBusy(false);
   };
@@ -133,7 +149,6 @@ export function SettingCard({
           p_department: row.department_id!,
           p_reason: t('settings.setting.clear'),
         } as never) as Promise<{ request_id?: string | null } | null>,
-      () => router.refresh(),
     );
   };
 
@@ -148,10 +163,13 @@ export function SettingCard({
           <p className="font-display text-xl" data-setting-value>
             <SchemaValue names={names} settingKey={def.key} value={def.value} />
           </p>
-          <p className="text-xs text-muted">
-            {companyRow && companyRow.reason !== 'default'
-              ? `${t('settings.setting.appliesFrom')} ${formatDate(new Date(companyRow.valid_from), locale, { dateStyle: 'medium' })}${companyRow.reason ? ` · ${companyRow.reason}` : ''}`
-              : t('settings.setting.default')}
+          {/* "Applies from <date>" and nothing more (Landing 34, item 24): the reason typed with the change is a
+              note for the history — Settings → Activity keeps it — and is never printed on the card */}
+          <p className="text-xs text-muted" data-setting-applies>
+            {appliesLine(companyRow, (day) => formatDate(new Date(day), locale, { dateStyle: 'medium' }), {
+              appliesFrom: t('settings.setting.appliesFrom'),
+              byDefault: t('settings.setting.default'),
+            })}
           </p>
         </div>
         {canEdit ? (
@@ -160,6 +178,8 @@ export function SettingCard({
           </Button>
         ) : null}
       </div>
+      {/* Arabic is on: the choice it opens is offered here at once, to the person who has just turned it on */}
+      {def.key === ARABIC_KEY && def.value === true ? <LanguageChoice /> : null}
       {deptRows.length ? (
         <ul className="flex flex-col gap-2 border-t border-border pt-3">
           {deptRows.map((r) => (

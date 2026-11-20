@@ -1,4 +1,4 @@
-import type { ClosedMonth, HealthEntry, LateChange, MonthFigure, Period } from './types';
+import type { ClosedMonth, HealthEntry, LateChange, MonthFigure, PaymentsAsOf, Period } from './types';
 import { monthsBetween } from './period';
 
 /**
@@ -85,4 +85,27 @@ export function attention(health: HealthEntry[], late: number | null) {
 export function monthsGap(period: Period): number {
   const sum = period.months.reduce((s, m) => s + m.revenue, 0);
   return Math.round((period.revenue - sum) * 100) / 100;
+}
+
+/** A stamp older than this many days is said as "not refreshed since", in the warning tone — never as if current. */
+export const STAMP_STALE_AFTER_DAYS = 2;
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * The Payments stamp as the page says it (Landing 34). `as_of` is the day the figures were last read from Payments —
+ * the OLDEST of the files' days, so the page never claims to be fresher than the oldest file behind it. It is stale
+ * once it is more than two days before today (Riyadh). When another file was read on a later day, that day is the
+ * `newest` — said beside the stamp, so the page shows the latest date it really has; null when there is none later.
+ */
+export function stampOf(
+  asOf: PaymentsAsOf,
+  today: string,
+): { day: string | null; stale: boolean; newest: string | null } {
+  const day = asOf.as_of && DAY.test(asOf.as_of) ? asOf.as_of : null;
+  if (!day) return { day: null, stale: false, newest: null };
+  const age = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${day}T00:00:00Z`)) / 86_400_000);
+  const days = Object.values(asOf.files ?? {}).filter((d): d is string => typeof d === 'string' && DAY.test(d));
+  const last = days.reduce((a, b) => (b > a ? b : a), day);
+  return { day, stale: Number.isFinite(age) && age > STAMP_STALE_AFTER_DAYS, newest: last > day ? last : null };
 }

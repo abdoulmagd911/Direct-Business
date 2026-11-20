@@ -1,6 +1,6 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
-import { onRefetch } from '@/core/commands/refetch';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { commandBusy, onRefetch } from '@/core/commands/refetch';
 import { browserDb } from '@/core/db/client';
 import { DbError, unwrap } from '@/core/db/errors';
 import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
@@ -13,12 +13,23 @@ import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
 // its answer is dropped, so the database is never asked for more than two statements at once), a read that fails for the database's timeout or a dropped connection is asked once more after a pause, and
 // each block fails and retries on its own — Try again repeats that one read, never the page.
 //
-// L15 (F-B3-06): the limit stays TWO. A stalled read's own fail-and-retry cycle is the ~70 s to its error, not the
+// L15 (F-B3-06): the limit stays TWO. A stalled read's own fail-and-retry cycle is the time to its error, not the
 // queue — the other blocks fill in seconds either way, so raising the limit would not shorten the failure and would
-// risk the 8-second pile-up again. No client deadline was added either: a deadline that let go of the slot would
-// start the next read beside a statement still working (QA-552, in `once` below), and one that kept the slot would
-// leave the retry waiting for it — no sooner than the retry today. The per-attempt stall cost is the transport's,
-// not this file's: these reads bypass `rpc()` and its 30 s timeout, so no client timeout bounds them.
+// risk the 8-second pile-up again.
+//
+// Landing 34 (the 19 Nov test round — "Loading" for ever, a Try again that did nothing): every read now SETTLES.
+// These reads bypass `rpc()`, so nothing bounded them: a request the network never answered held its slot for good,
+// two of them held both slots, and every later read — a Try again too — waited behind them with no end. A request
+// with no answer after DEADLINE_MS is now let go and its block fails in words. The deadline is far past the
+// database's own 8-second limit and the gateway's 10, so by then no statement of this read is still working and the
+// slot can be handed on (QA-552 stands: a slot is never released under a statement that may still run). A read that
+// ran into the deadline is not asked a second time on its own — that would be another DEADLINE_MS of "Loading"; the
+// person's Try again asks it.
+//
+// And a window that only comes BACK (the shell asks every screen to refetch on focus, after 15 s away) no longer
+// throws the page's reads away: before, each of the page's eight reads dropped its answer — one still on its way
+// too — and asked again, so looking at another tab during a slow first load started the whole load over. Now only a
+// write does that; a window coming back re-asks an answer that has gone old, and leaves a read in flight alone.
 
 /** How many Finance reads this browser has in flight at once. */
 export const LIMIT = 2;
@@ -26,6 +37,10 @@ export const LIMIT = 2;
 export const RETRY_AFTER_MS = 1200;
 /** A result is kept this long, so flicking back to a period just seen costs nothing; any write clears it. */
 const KEEP_MS = 20_000;
+/** A request with no answer after this long is let go: the block fails in words, with Try again (see the note above). */
+export const DEADLINE_MS = 20_000;
+/** A window brought back re-asks an answer older than this; a fresher one, or a read still on its way, is left alone. */
+export const BACK_STALE_MS = 60_000;
 
 let running = 0;
 const waiting: { start: () => void }[] = [];
@@ -76,6 +91,42 @@ const pause = (ms: number, signal: AbortSignal) =>
 
 const isCancel = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
 
+/** The errors of requests that ran into the deadline: such a read is not asked a second time on its own. */
+const noAnswer = new WeakSet<object>();
+
+/**
+ * One request to the database, bounded: it answers, fails, or — with no answer after DEADLINE_MS — is let go and
+ * fails as "could not be reached". It always settles, so the slot it holds is always handed on.
+ */
+function ask<T>(fn: ApiFunction, args: unknown): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const stop = new AbortController();
+    const timer = setTimeout(() => {
+      const late = new DbError('Unavailable', 'common.unavailable', `${fn} gave no answer in ${DEADLINE_MS / 1000}s`);
+      noAnswer.add(late);
+      reject(late);
+      stop.abort();
+    }, DEADLINE_MS);
+    const call = browserDb().rpc(fn as never, args as never) as unknown as PromiseLike<unknown> & {
+      abortSignal?: (signal: AbortSignal) => PromiseLike<unknown>;
+    };
+    Promise.resolve(typeof call.abortSignal === 'function' ? call.abortSignal(stop.signal) : call).then(
+      (result) => {
+        clearTimeout(timer);
+        try {
+          resolve(unwrap(result as never) as T);
+        } catch (e) {
+          reject(e);
+        }
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 /** Reads sent and not yet settled, by key: a second ask for the same read waits for the first, it does not send another. */
 const inFlight = new Map<string, Promise<unknown>>();
 /** Counts the writes seen: an answer that was asked for before a write is never kept after it. */
@@ -117,9 +168,8 @@ async function once<T>(key: string, fn: ApiFunction, args: unknown, signal: Abor
     return whileWaiting(meanwhile as Promise<T>, signal);
   }
   const asked = epoch;
-  const request: Promise<T> = Promise.resolve(browserDb().rpc(fn as never, args as never))
-    .then((result) => {
-      const data = unwrap(result as never) as T;
+  const request: Promise<T> = ask<T>(fn, args)
+    .then((data) => {
       if (asked === epoch) kept.set(key, { at: Date.now(), data });
       return data;
     })
@@ -143,6 +193,8 @@ export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: Abo
     if (isCancel(e) || signal.aborted) throw e;
     // only a database that could not answer in time (or could not be reached) is worth asking again
     if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;
+    // a request that got no answer at all has already cost the whole deadline: the person's Try again asks it
+    if (noAnswer.has(e)) throw e;
     await pause(RETRY_AFTER_MS, signal);
     data = await once<T>(key, fn, args, signal);
   }
@@ -155,6 +207,37 @@ export const forgetFinanceReads = () => {
   kept.clear();
   inFlight.clear();
 };
+
+/**
+ * True while the shell's refetch is only the window coming back (focus / visibility), not a write. The shell asks for
+ * that refetch from inside the browser's own focus event, so a mark set as the event starts (capture, on the window)
+ * and cleared right after it tells the two apart. Anything else that asks for a refetch counts as a write.
+ */
+let windowBack = false;
+if (typeof window !== 'undefined') {
+  const mark = () => {
+    windowBack = true;
+    setTimeout(() => {
+      windowBack = false;
+    }, 0);
+  };
+  window.addEventListener('focus', mark, true);
+  window.addEventListener('visibilitychange', mark, true);
+}
+
+/**
+ * What one block does when the shell asks every screen to refetch. After a write: ask again, always. When the window
+ * only came back: ask again only for an answer that has gone old — a read still on its way, a failed block (it has
+ * its own Try again) and a fresh answer are left as they are.
+ */
+export function refetchPlan(
+  cause: 'write' | 'back',
+  block: { status: 'loading' | 'ready' | 'failed'; answeredAt: number },
+  now: number,
+): 'ask' | 'leave' {
+  if (cause === 'write') return 'ask';
+  return block.status === 'ready' && now - block.answeredAt > BACK_STALE_MS ? 'ask' : 'leave';
+}
 
 export type Block<T> = { status: 'loading' } | { status: 'ready'; data: T } | { status: 'failed' };
 
@@ -171,32 +254,42 @@ export function useFinanceRead<T, F extends ApiFunction>(
 ): { block: Block<T>; retry: () => void } {
   const [state, setState] = useState<{ key: string; block: Block<T> }>({ key, block: { status: 'loading' } });
   const [turn, setTurn] = useState(0);
+  // what this block holds now and when it was answered, for the refetch listener below (it is registered once)
+  const held = useRef<{ status: Block<T>['status']; answeredAt: number }>({ status: 'loading', answeredAt: 0 });
   const argsKey = JSON.stringify(args);
   useEffect(() => {
     if (!enabled) return undefined;
     const controller = new AbortController();
+    held.current = { status: 'loading', answeredAt: 0 };
     readFinance<T>(fn, JSON.parse(argsKey), controller.signal).then(
       (data) => {
+        if (!controller.signal.aborted) held.current = { status: 'ready', answeredAt: Date.now() };
         if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });
       },
       (e) => {
         // postgrest-js may hand back an aborted read as an ordinary error, so what counts is whether this effect is
         // still the latest one, not the shape of the error (QA-549)
-        if (!controller.signal.aborted && !isCancel(e)) setState({ key, block: { status: 'failed' } });
+        if (controller.signal.aborted || isCancel(e)) return;
+        held.current = { status: 'failed', answeredAt: 0 };
+        setState({ key, block: { status: 'failed' } });
       },
     );
     return () => controller.abort();
   }, [fn, argsKey, key, turn, enabled]);
-  // a write anywhere clears what was kept and every block asks again
+  // a write anywhere clears what was kept and every block asks again; a window that only came back does not (above)
   useEffect(
     () =>
       onRefetch(() => {
-        forgetFinanceReads();
+        const cause = windowBack && !commandBusy() ? 'back' : 'write';
+        if (refetchPlan(cause, held.current, Date.now()) === 'leave') return;
+        if (cause === 'write') forgetFinanceReads();
+        held.current = { status: 'loading', answeredAt: 0 };
         setTurn((n) => n + 1);
       }),
     [],
   );
   const retry = useCallback(() => {
+    held.current = { status: 'loading', answeredAt: 0 };
     setState({ key, block: { status: 'loading' } });
     setTurn((n) => n + 1);
   }, [key]);

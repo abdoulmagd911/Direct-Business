@@ -41,6 +41,19 @@ export function noteTitle(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {
   );
 }
 
+/**
+ * A text cut to at most `max` characters between words — never in the middle of one (Landing 34, item 22). `head` ends at
+ * the last space at or before the cap and `rest` is everything after it, so nothing is lost. Only one unbroken word longer
+ * than the cap (a web address) is cut inside, there being no space to cut at.
+ */
+export function cutAtWord(text: string, max: number): { head: string; rest: string } {
+  if (text.length <= max) return { head: text, rest: '' };
+  // one character past the cap is looked at too: a space right there means a word ended exactly at the cap
+  const lead = /^[\s\S]*\s/u.exec(text.slice(0, max + 1));
+  const at = lead && lead[0].trim() ? lead[0].length - 1 : max;
+  return { head: text.slice(0, at).trimEnd(), rest: text.slice(at).trim() };
+}
+
 /** The whole note as one text, for the line of the activity it becomes. */
 export function noteText(n: Pick<MyNote, 'title' | 'body' | 'items'>): string {
   return [n.title?.trim(), n.body?.trim(), ...n.items.map((i) => `- ${i.text.trim()}`)].filter(Boolean).join('\n');
@@ -132,9 +145,75 @@ export function todayBoxes(tasks: TodayTask[], day: string): Record<TodayBox, To
     if (t.role === 'helper' || t.group === 'helping') continue;
     out[todayBox(t, day)].push(t);
   }
-  for (const b of TODAY_BOXES)
-    out[b].sort((x, y) => (x.due_on ?? '9999').localeCompare(y.due_on ?? '9999') || x.number.localeCompare(y.number));
+  for (const b of TODAY_BOXES) out[b].sort(byDueThenNumber);
   return out;
+}
+
+/** The order inside a box or a group of Today's three: the nearest due day first (no day last), then the task number. */
+const byDueThenNumber = (x: TodayTask, y: TodayTask) =>
+  (x.due_on ?? '9999').localeCompare(y.due_on ?? '9999') || x.number.localeCompare(y.number);
+
+/** Today's three (Landing 34): the three groups at the top of My day, in the order they are drawn. */
+export const THREE_GROUPS = ['important', 'short', 'maintenance'] as const;
+export type ThreeGroup = (typeof THREE_GROUPS)[number];
+/** How many tasks each group of Today's three holds at most. */
+export const THREE_EACH = 3;
+export type TodaysThree = Record<ThreeGroup, TodayTask[]> & { rest: TodayTask[] };
+
+/**
+ * Today's three — the daily practice: 3 important + 3 short + 3 maintenance from the person's OWN open tasks (never the
+ * ones they only help on, never a system-wide list). No new stored field: important = the starred tasks (the Do now and
+ * Plan it boxes), short = not starred and urgent (the Quick box), maintenance = the other own tasks (the Later box — the
+ * upkeep that keeps things running). Each group is sorted by due day then number and holds at most three; `rest` is
+ * every own task not picked, which stays in the Today block below, grouped as before.
+ */
+export function todaysThree(tasks: TodayTask[], day: string): TodaysThree {
+  const boxes = todayBoxes(tasks, day);
+  const all: Record<ThreeGroup, TodayTask[]> = {
+    important: [...boxes.do_now, ...boxes.plan_it].sort(byDueThenNumber),
+    short: boxes.quick,
+    maintenance: boxes.later,
+  };
+  const out: TodaysThree = { important: [], short: [], maintenance: [], rest: [] };
+  for (const g of THREE_GROUPS) {
+    out[g] = all[g].slice(0, THREE_EACH);
+    out.rest.push(...all[g].slice(THREE_EACH));
+  }
+  return out;
+}
+
+/** The person's streak as `api.my_streak` answers it: working days in a row with Today's three done. */
+export type Streak = { days: number; today_done: number; target: number };
+
+/** `api.my_streak`'s answer, read with care: anything that is not a streak (a failed read, an older database) is null — the line is then simply not drawn. */
+export function readStreak(raw: unknown): Streak | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.days !== 'number' || !Number.isFinite(r.days) || r.days < 0) return null;
+  const done = typeof r.today_done === 'number' && r.today_done > 0 ? Math.floor(r.today_done) : 0;
+  const target = typeof r.target === 'number' && r.target > 0 ? Math.floor(r.target) : THREE_EACH;
+  return { days: Math.floor(r.days), today_done: done, target };
+}
+
+/** One person of my team and their streak (`api.team_streaks`). */
+export type TeamStreak = {
+  person_id: string;
+  full_name_en: string | null;
+  full_name_ar: string | null;
+  days: number;
+  today_done: number;
+};
+
+/** `api.team_streaks`' answer, read with care: the longest streak first, then by name; anything else is no list. */
+export function readTeamStreaks(raw: unknown): TeamStreak[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (r): r is TeamStreak =>
+        !!r && typeof r === 'object' && typeof r.person_id === 'string' && typeof r.days === 'number' && r.days >= 0,
+    )
+    .map((r) => ({ ...r, today_done: typeof r.today_done === 'number' ? r.today_done : 0 }))
+    .sort((a, b) => b.days - a.days || (a.full_name_en ?? '').localeCompare(b.full_name_en ?? ''));
 }
 
 /**

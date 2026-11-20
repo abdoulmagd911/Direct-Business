@@ -13,7 +13,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { oldMonth } from './support/finance-month';
 import { blocksSettled } from './support/finance-blocks';
-import { callAs, makePerson, signIn } from './support/stack';
+import { callAs, makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
@@ -117,10 +117,16 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
     tile(page, 'revenue').locator('[data-finance-provisional]'),
     'the Provisional part sits in the tile',
   ).toContainText('of which Provisional 500 · 1 unit');
+  // Landing 34: Revenue holds the Provisional amount ("of which"); Cost and Profit leave it out and say so, with the
+  // same one amount — the provisional revenue
+  await expect(
+    tile(page, 'cost').locator('[data-finance-provisional]'),
+    'cost names the Provisional amount it leaves out',
+  ).toContainText('not counting Provisional 500 · 1 unit');
   await expect(
     tile(page, 'profit').locator('[data-finance-provisional]'),
     'profit keeps its Provisional part',
-  ).toContainText('of which Provisional 500 · 1 unit');
+  ).toContainText('not counting Provisional 500 · 1 unit');
   await expect(page.locator('[data-finance-commissions]'), 'the commissions sentence is on the Overview').toHaveText(
     'Commissions paid outside Payments are not included.',
   );
@@ -170,7 +176,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
 });
 
-test('a member reads Finance at View and sees the month and its figures, but no Close month (Landing 7, F179 overturn)', async ({
+test('a member reads Finance at View and sees the month and its figures, but no Close month (View by a person change; Landing 34: members start at none)', async ({
   page,
 }) => {
   const ym = await oldMonth();
@@ -184,12 +190,22 @@ test('a member reads Finance at View and sees the month and its figures, but no 
   const member = await makePerson();
   await page.context().clearCookies();
   await signIn(page, member.email);
+  // Landing 34 (owner's test round of 19 Nov, item 5): Members start at none on Finance — the address says no access
+  await page.goto(addressOf(ym));
+  await hydrated(page);
+  await expect(page.locator('[data-state="no-access"]'), 'a member has no Finance to start with').toHaveCount(1);
+  await expect(page.locator('[data-finance-tile]'), 'and no figures').toHaveCount(0);
+  // Finance follows the access each person has: this member is given View by a person change, so the month exists
+  // (the admin seeded it above) and the member reads it: the month row and the figures are there, and the write
+  // controls stay Full-gated, so there is no Close month button and no New invoice link
+  await sql(
+    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+     values ($1, 'finance', 'view', 'Made up: reads Finance, Landing 34', $1)`,
+    [member.id],
+  );
   await page.goto(addressOf(ym));
   await hydrated(page);
   await blocksSettled(page);
-  // Landing 7, F179 overturn: Finance follows the access each person has — Members start at View — so the month
-  // exists (the admin seeded it above) and the member reads it: the month row and the figures are there, and the
-  // write controls stay Full-gated, so there is no Close month button and no New invoice link
   await expect(page.locator('[data-state="no-access"]'), 'a member reads Finance').toHaveCount(0);
   await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the month row for a member reader').toHaveCount(1);
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);

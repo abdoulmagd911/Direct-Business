@@ -18,6 +18,14 @@ import { cn } from './cn';
 
 export type { ColumnDef };
 
+/** What inside a row answers a press itself, so the row does not (Landing 34). */
+const OWN_CONTROL = 'a, button, input, select, textarea, label, [role="menu"], [role="menuitem"], [role="dialog"]';
+
+/** True when a press landed on a control inside the row (a link, a button, a menu's item): it is that control's. */
+export function pressIsControls(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(OWN_CONTROL) !== null;
+}
+
 /**
  * The list table: TanStack Table + Virtual. Row height comes from the density tokens (48 px
  * comfortable, 40 px compact), a card with a soft-fill sticky header (600 12/16, muted), hairline dividers, hover on
@@ -141,11 +149,17 @@ export function DataTable<T>({
 
   // A clickable row is focusable (Enter/Space opens it) but is not a widget: the links and checkboxes
   // inside stay their own controls (axe nested-interactive).
+  // Landing 34: a press on a control inside the row is that control's alone. A click on a cell's link used to bubble
+  // to the row and open the record a second time — two navigations (and two record reads) for one click — and a
+  // menu's item, though drawn in a portal, bubbles here through React's tree the same way.
   const rowProps = (row: Row<T>) =>
     onRowClick
       ? {
           tabIndex: 0,
-          onClick: () => onRowClick(row.original),
+          onClick: (e: React.MouseEvent) => {
+            if (pressIsControls(e.target)) return;
+            onRowClick(row.original);
+          },
           onKeyDown: (e: React.KeyboardEvent) => {
             if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
               e.preventDefault();
@@ -159,6 +173,8 @@ export function DataTable<T>({
     <div className={cn('overflow-hidden rounded-lg border border-border bg-raised shadow-1', className)} data-table>
       <div ref={scrollRef} className="overflow-auto scrollbar-thin" style={{ maxHeight }}>
         <table className="w-full min-w-[480px] border-collapse text-[length:var(--row-font)]">
+          {/* Landing 34: each header cell sticks, not only the group (a sticky <thead> is not honoured everywhere, and
+              with collapsed borders its hairline scrolled away, so the row under it showed through, half cut) */}
           <thead className="sticky top-0 z-[1] bg-surface">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
@@ -171,7 +187,7 @@ export function DataTable<T>({
                       style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}
                       aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
                       className={cn(
-                        'h-[var(--row-h-head)] whitespace-nowrap border-b border-border px-3 text-start text-xs font-semibold leading-4 text-muted',
+                        'sticky top-0 z-[1] h-[var(--row-h-head)] whitespace-nowrap border-b border-border bg-surface px-3 text-start text-xs font-semibold leading-4 text-muted shadow-[inset_0_-1px_0_var(--color-border)]',
                         numeric && 'text-end',
                       )}
                     >
@@ -210,6 +226,9 @@ export function DataTable<T>({
                 <tr
                   key={row.id}
                   data-index={vi.index}
+                  // Landing 34: a row is measured as drawn (a wrapped name or two flags make it taller than the
+                  // density's height), so the rows above the window are spaced by their real heights
+                  ref={virtual.measureElement}
                   data-selected={isSel || undefined}
                   aria-current={isSel ? 'true' : undefined}
                   {...rowProps(row)}

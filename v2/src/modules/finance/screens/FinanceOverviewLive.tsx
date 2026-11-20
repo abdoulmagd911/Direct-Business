@@ -1,8 +1,9 @@
 'use client';
 import { useLocale } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { cn } from '@/ui/cn';
+import { ledgerMayAsk, opensLedgerView } from '../ledger';
 import { useFinanceRead, type Block } from '../use-reads';
 import type { PeriodAsk } from '../period';
 import type {
@@ -51,6 +52,13 @@ export function FinanceOverviewLive({
       : person.full_name_en
     : undefined;
   const [phoneView, setPhoneView] = useState<PhoneView>('months');
+  // An address that names a part of the ledger (…/finance#finance-company — Income by company) opens the Ledger view
+  // on a phone, where that part is otherwise put away; once the ledger is drawn the browser is taken to it.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!opensLedgerView(hash)) return;
+    queueMicrotask(() => setPhoneView('ledger'));
+  }, []);
   const range = { p_from: ask.from, p_to: ask.to };
   const at = `${ask.from}|${ask.to}`;
   const period = useFinanceRead<Period, 'finance_period'>('finance_period', range, `period|${at}`);
@@ -115,7 +123,10 @@ export function FinanceOverviewLive({
           initial={ledger}
           view={view}
           full={full}
-          ready={period.block.status === 'ready'}
+          // The ledger waits for the figures to be ASKED first, never for them to succeed (Landing 34): held until
+          // they were "ready", a failed figures read left the ledger on "Loading" for good, with no Try again of its
+          // own. Once the figures have settled — read or failed — the ledger and "Is it counted?" ask theirs.
+          ready={ledgerMayAsk(period.block.status)}
         />
         {/* Importing needs Finance full (the batch start refuses anything less), so the section is only here for full. */}
         {full ? <FinanceImportSection /> : null}

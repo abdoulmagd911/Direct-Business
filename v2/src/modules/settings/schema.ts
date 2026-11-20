@@ -38,6 +38,23 @@ export type SettingRow = {
 
 export type SettingsAnswer = { can_edit: boolean; settings: SettingDefRow[] };
 
+/**
+ * api.settings' answer as the page draws it, or null when what arrived is not such an answer — a read that failed, or
+ * a shape with no list of settings (Landing 34: the page read `.settings` of whatever came back, and a failed read
+ * crashed the whole page instead of saying so). A definition without its rows is one with no rows.
+ */
+export function settingsAnswerOf(answer: unknown): SettingsAnswer | null {
+  if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return null;
+  const a = answer as { can_edit?: unknown; settings?: unknown };
+  if (!Array.isArray(a.settings)) return null;
+  return {
+    can_edit: a.can_edit === true,
+    settings: (a.settings as Partial<SettingDefRow>[])
+      .filter((d): d is SettingDefRow => !!d && typeof d === 'object' && typeof d.key === 'string')
+      .map((d) => ({ ...d, schema: d.schema ?? {}, rows: Array.isArray(d.rows) ? d.rows : [] })),
+  };
+}
+
 /** Does the value satisfy the schema? The database checks too (JSON-01); this only keeps Save disabled until it would. */
 export function valid(schema: SettingSchema, value: unknown): boolean {
   if (schema.const !== undefined) return JSON.stringify(value) === JSON.stringify(schema.const);

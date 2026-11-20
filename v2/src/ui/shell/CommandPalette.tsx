@@ -10,6 +10,7 @@ import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
 import { canSee } from '../person';
 import { reachableFor } from './nav';
+import { navStartedTo } from './nav-pending';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { tradeName } from '@/modules/partners/types';
 import { createActionsFor } from './CreateMenu';
@@ -109,9 +110,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     if (!o) setQ('');
     onOpenChange(o);
   };
+  // Landing 34 (item 8): a result opens its page. The move is asked of the router FIRST and said to the shell
+  // (`navStarted`: the top bar's Loading shows at once), then the search closes — before, the search closed and
+  // nothing at all showed until the server had answered the record's page, so on a slow read both a click and Enter
+  // read as "it just closed". The page we are already on is not asked for again.
   const go = (route: string) => {
+    if (navStartedTo(route)) router.push(route);
     close(false);
-    router.push(route);
   };
   // cmdk's own filter is off (QA-72): a person the server found by a nickname or a folded Arabic spelling stays; the
   // pages and actions are filtered here, on the words as shown

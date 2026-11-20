@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { formatDate, formatMoney, formatStoredDate } from '@/core/i18n/format';
+import { stampOf } from '@/modules/finance/figures';
 import { ledgerRowsToCsv } from '@/modules/finance/ledger';
 import { riyadhDay } from '@/modules/finance/period';
 import { ledgerReportOf } from '@/modules/finance/screens/ledger-report';
@@ -304,6 +305,10 @@ function CompanyFinanceLedger({
   const excluded = typeof nc?.excluded_units === 'number' ? nc.excluded_units : 0;
   const allCounted = unconfirmed === 0 && held === 0 && excluded === 0;
   const asOfDate = asOf.block.status === 'ready' ? ((asOf.block.data as PaymentsAsOf | null)?.as_of ?? null) : null;
+  const asOfStale =
+    asOf.block.status === 'ready' && asOf.block.data
+      ? stampOf(asOf.block.data as PaymentsAsOf, riyadhDay()).stale
+      : false;
   const flagLabel = (f: string) =>
     t.has(`finance.ledger.flag.${f}`)
       ? t(`finance.ledger.flag.${f}`)
@@ -368,9 +373,17 @@ function CompanyFinanceLedger({
           <StatusChip tone="neutral">{t('finance.period.total.ytd')}</StatusChip>
         </div>
         {asOf.block.status === 'ready' ? (
-          <span className="font-data text-sm text-muted tabular" data-finance-stamp>
+          // Landing 34 (item 19): the same honest stamp as the Finance page — older than two days reads "not
+          // refreshed since", in the warning tone, never as if it were current
+          <span
+            className={cn('font-data text-sm tabular', asOfStale ? 'text-warning' : 'text-muted')}
+            data-finance-stamp
+            data-stale={asOfStale ? '' : undefined}
+          >
             {asOfDate
-              ? t('finance.stamp', { date: formatDate(`${asOfDate}T12:00:00Z`, locale) })
+              ? t(asOfStale ? 'finance.stampStale' : 'finance.stamp', {
+                  date: formatDate(`${asOfDate}T12:00:00Z`, locale),
+                })
               : t('finance.stampNone')}
           </span>
         ) : null}

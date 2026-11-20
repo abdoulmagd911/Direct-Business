@@ -33,17 +33,17 @@ async function memberWithTeam(): Promise<TestPerson> {
   return person;
 }
 
-test('every page names its tab: "Tasks · Commercial" (QA-219)', async ({ page }) => {
+test('every page names its tab: "Tasks · Direct Corporate" (QA-219)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/tasks');
   await hydrated(page);
   for (const [path, title] of [
-    ['/tasks', 'Tasks · Commercial'],
-    ['/partners', 'Partners · Commercial'],
-    ['/my-day', 'My day · Commercial'],
-    ['/kpis/achievements', 'Achievements · Commercial'],
-    ['/activity', 'Activity · Commercial'],
-    ['/settings/org', 'People & access · Commercial'],
+    ['/tasks', 'Tasks · Direct Corporate'],
+    ['/partners', 'Partners · Direct Corporate'],
+    ['/my-day', 'My day · Direct Corporate'],
+    ['/kpis/achievements', 'Achievements · Direct Corporate'],
+    ['/activity', 'Activity · Direct Corporate'],
+    ['/settings/org', 'People & access · Direct Corporate'],
   ] as const) {
     await page.goto(path);
     await hydrated(page);

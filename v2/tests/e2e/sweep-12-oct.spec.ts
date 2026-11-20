@@ -87,6 +87,8 @@ test('phone 390: a page keeps the floating + clear of its last row, New partner 
   // the floating + is 56 px at 76 px up: the page's foot is at least that clear (the + never ends over a row)
   await page.goto('/partners');
   await hydrated(page);
+  // a long list streams in after the shell: until it arrives its loading frame is a page too
+  await expect(page.locator('[data-page]'), 'the list has arrived: its loading frame is gone').toHaveCount(1);
   const clear = await page.locator('[data-page]').evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
   expect(clear, 'the page keeps the + clear: at least 132 px below its last row').toBeGreaterThanOrEqual(132);
 
@@ -123,7 +125,7 @@ test('Finance and Settings are in the menu of the people whose access opens them
   for (const [who, finance, settings] of [
     [admin, true, true],
     [manager, true, false],
-    [member, true, false], // Landing 7, F179 overturn: Finance follows the access — Members start at View
+    [member, false, false], // Landing 34 (owner's test round of 19 Nov, item 5): Members start at none on Finance
   ] as const) {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 1440, height: 900 });

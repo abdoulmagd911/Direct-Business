@@ -1,7 +1,7 @@
 'use client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
@@ -13,6 +13,12 @@ import { toast } from './Toast';
  * (`followed_change`). Reads api.following on mount; one click flips it through api.follow. Not a logged request, so
  * no Undo: the button itself goes back. A Viewer (the read-only role, FIX-03 F137) sees the button disabled —
  * watching is not available to their role — and the server refuses a follow all the same.
+ *
+ * Landing 34: the button was disabled, with no word why, for as long as its own read (api.following) was on its way
+ * — seconds on a slow day, so on a phone it read as "Watch is disabled on every record". It is pressable at once
+ * now: while the read is still out the button says Watch, and a press is exactly that (follow, on) — the late read
+ * then no longer overwrites what the person chose. The one case that stays disabled, the Viewer's, says why: as the
+ * button's tooltip, and as a line under it where there is no hover (touch).
  */
 export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: string; size?: 'sm' | 'md' }) {
   const t = useTranslations();
@@ -22,12 +28,16 @@ export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: 
   const [on, setOn] = useState<boolean | null | 'hidden' | 'failed'>(null);
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const reasonId = useId();
+  /** The person pressed before the read answered: their press decides, not the read that lands after it. */
+  const pressed = useRef(false);
   useEffect(() => {
     let live = true;
+    pressed.current = false;
     rpc('following', { p_entity: entity, p_id: id })
-      .then((v) => live && setOn(v === true))
+      .then((v) => live && !pressed.current && setOn(v === true))
       .catch((e: unknown) => {
-        if (!live) return;
+        if (!live || pressed.current) return;
         const kind = (e as { kind?: string }).kind;
         setOn(kind === 'PermissionDenied' || kind === 'NotFound' ? 'hidden' : 'failed');
       });
@@ -43,7 +53,8 @@ export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: 
       </Button>
     );
   const flip = async () => {
-    if (on === null) return;
+    pressed.current = true;
+    // `on` is still null while the read is out: the button says Watch then, so `!on` asks to watch
     setBusy(true);
     try {
       const next = await rpc('follow', { p_entity: entity, p_id: id, p_on: !on });
@@ -55,18 +66,30 @@ export function FollowButton({ entity, id, size = 'md' }: { entity: string; id: 
     }
     setBusy(false);
   };
-  return (
+  const button = (
     <Button
       size={size}
       icon={on ? <EyeOff /> : <Eye />}
       onClick={() => void flip()}
-      disabled={on === null || viewer}
+      disabled={viewer}
       loading={busy}
       aria-pressed={on === true}
+      title={viewer ? t('errors.follow.not_allowed') : undefined}
+      aria-describedby={viewer ? reasonId : undefined}
       data-follow
       data-following={on ? '' : undefined}
     >
       {on ? t('follow.following') : t('follow.follow')}
     </Button>
+  );
+  if (!viewer) return button;
+  return (
+    <span className="inline-flex flex-col items-start gap-1">
+      {button}
+      {/* why it is disabled, in words: read by a screen reader everywhere, and seen where there is no hover (touch) */}
+      <span id={reasonId} className="text-xs text-muted [@media(hover:hover)]:sr-only" data-follow-reason>
+        {t('errors.follow.not_allowed')}
+      </span>
+    </span>
   );
 }

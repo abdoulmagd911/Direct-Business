@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMe } from '@/core/auth/me-context';
 import { THEMES, type Theme } from '@/core/prefs';
+import { useLanguageChoice } from '@/core/prefs/use-language-choice';
 import { useThemeChoice } from '@/core/prefs/use-theme-choice';
+import { useArabicEnabled } from '@/core/settings/app-flags';
 import { Avatar } from '../Avatar';
 import { personOf } from '../person';
 import {
@@ -35,6 +37,9 @@ export function ProfileMenu() {
   const me = useMe();
   const person = personOf(me);
   const { theme, choose } = useThemeChoice();
+  // Landing 34 (item 11): while Arabic is on (Settings → App), each person picks their language here
+  const arabic = useArabicEnabled();
+  const language = useLanguageChoice();
   return (
     <Menu>
       <form id={SIGN_OUT_FORM} method="post" action="/auth/sign-out" hidden />
@@ -67,6 +72,24 @@ export function ProfileMenu() {
             </MenuRadioItem>
           ))}
         </MenuRadioGroup>
+        {arabic ? (
+          <>
+            <MenuSeparator />
+            <MenuLabel>{t('profileMenu.language')}</MenuLabel>
+            <MenuRadioGroup
+              value={language.locale}
+              onValueChange={(v) => void language.choose(v as 'en' | 'ar')}
+              data-language-menu
+            >
+              <MenuRadioItem value="en" data-language-item="en">
+                {t('locale.en')}
+              </MenuRadioItem>
+              <MenuRadioItem value="ar" data-language-item="ar">
+                {t('locale.ar')}
+              </MenuRadioItem>
+            </MenuRadioGroup>
+          </>
+        ) : null}
         <MenuSeparator />
         <MenuItem icon={<LogOut />} onSelect={signOut} data-sign-out>
           {t('profileMenu.signOut')}

@@ -10,6 +10,11 @@ select set_config('t.am', test.person('Test Account Manager', 'member')::text, t
 select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
 select set_config('t.outsider', test.person('Test Outsider', 'member')::text, true);
 select set_config('t.nofin', test.person('Test No Finance', 'member')::text, true);
+-- Landing 34: a Team member starts with no access to Finance; this one is given View, as an admin would in Settings
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am')::uuid, 'finance', 'view', 'made up: View on Finance'),
+       (current_setting('t.am2')::uuid, 'finance', 'view', 'made up: View on Finance'),
+       (current_setting('t.outsider')::uuid, 'finance', 'view', 'made up: View on Finance');
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.outsider')::uuid, 'clients', 'none', 'made up: no clients'),
        (current_setting('t.nofin')::uuid, 'finance', 'none', 'made up: no Finance access');

@@ -9,7 +9,8 @@ import { DbError, type DbErrorKind } from '@/core/db/errors';
 import { deviceLabel } from '@/core/auth/device-label';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
-import { offersSwitch } from '@/core/test-switch/offer';
+import { offersSwitch, offersSwitchOver } from '@/core/test-switch/offer';
+import { navStartedTo } from '@/ui/shell/nav-pending';
 import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { Avatar } from '@/ui/Avatar';
 import { Button } from '@/ui/Button';
@@ -818,6 +819,18 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
 
   const sw = useTestSwitch();
   const follow = !self ? <FollowButton entity="person" id={person.id} /> : null;
+  // V656, Landing 30: Sign in as test user, for the owner on a TEST person. Landing 34 (item 29): while this device is
+  // already switched, every OTHER test person's page offers the direct switch instead — for whoever the device is
+  // signed in as (a test Admin or a test Member), so nobody goes back to the real account just to change test user.
+  const switchButton = offersSwitch(me, row ?? person) ? (
+    <Button onClick={() => void sw.start(person.id)} disabled={sw.busy} data-test-switch-start={person.id}>
+      {t('testSwitch.start')}
+    </Button>
+  ) : offersSwitchOver(me, row ?? person) ? (
+    <Button onClick={() => void sw.over(person.id)} disabled={sw.busy} data-test-switch-over={person.id}>
+      {t('testSwitch.overTo')}
+    </Button>
+  ) : null;
   const actions =
     admin && !self ? (
       <>
@@ -830,11 +843,7 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         </Button>
         {/* V656, Landing 30: Sign in as test user — the door the People table's wide rows no longer carry (its
             column pushed the table past its box, QA-592). Same gate, same call, same words as the phone cards. */}
-        {offersSwitch(me, row ?? person) ? (
-          <Button onClick={() => void sw.start(person.id)} disabled={sw.busy} data-test-switch-start={person.id}>
-            {t('testSwitch.start')}
-          </Button>
-        ) : null}
+        {switchButton}
         <Menu>
           <MenuTrigger asChild>
             <Button aria-label={t('common.more')} data-person-more>
@@ -855,11 +864,14 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
         </Menu>
       </>
     ) : self ? (
-      <Button variant="primary" onClick={() => router.push('/profile')}>
+      <Button variant="primary" onClick={() => void (navStartedTo('/profile') && router.push('/profile'))}>
         {t('profile.title')}
       </Button>
     ) : (
-      follow
+      <>
+        {follow}
+        {switchButton}
+      </>
     );
 
   return (

@@ -34,6 +34,11 @@ import {
 } from './support/landing-32';
 import { callAs, sql } from './support/stack';
 
+// The tests of this file take turns, in order, in one worker: tests 4 and 7 take every made-up rule off the lists
+// (`clearMadeUpRules`), and the exclusions tests 1, 2, 5 and 6 make are such rules — run side by side, test 4 took
+// test 2's and test 5's exclusion away while they were reading it (seen on 20 Nov: "counted" rows 2 for 1, 5 for 4).
+test.describe.configure({ mode: 'default' });
+
 async function openFinance(page: Page, url: string) {
   await page.goto(url);
   await hydrated(page);
@@ -563,6 +568,10 @@ test('8 · the speed gate: the Finance reads answer in under 3 s for every role;
   const year = { p_from: `${d.slice(0, 4)}-01-01`, p_to: d };
   const READS = ['finance_unified_ledger', 'finance_period', 'finance_counted_by_month'] as const;
   const out: Record<string, Record<string, number | string>> = {};
+  // Landing 34 (owner's test round of 19 Nov, item 5): a Team member starts at none on Finance, so the reads refuse a
+  // member as they refuse a person with no role; the gate holds for every role that reads (viewer: View; manager, head
+  // and admin: Full)
+  const NO_READ: readonly string[] = ['member', 'none'];
   for (const role of ['admin', 'head', 'manager', 'member', 'viewer', 'none'] as const) {
     const who = await signedInAs(browser, await personAs(role));
     try {
@@ -571,16 +580,20 @@ test('8 · the speed gate: the Finance reads answer in under 3 s for every role;
         const t0 = Date.now();
         const r = await callAs(who.context, fn, year);
         const ms = Date.now() - t0;
-        if (role === 'none') {
-          expect(r.status, `${fn}: a person with no role is refused, not answered and not an error`).toBe(403);
+        if (NO_READ.includes(role)) {
+          const who = role === 'none' ? 'a person with no role' : 'a member, at none on Finance,';
+          expect(r.status, `${fn}: ${who} is refused, not answered and not an error`).toBe(403);
           expect((r.body as { code?: string }).code, `${fn}: refused for want of access`).toBe('42501');
+          expect((r.body as { message?: string }).message, `${fn}: the refusal names the missing level`).toBe(
+            'access.needs_level',
+          );
           out[role]![fn] = `refused (${r.status}) in ${ms} ms`;
         } else {
           expect(r.status, `${fn} as ${role}: ${JSON.stringify(r.body).slice(0, 200)}`).toBe(200);
           expect(ms, `${fn} as ${role} answered in ${ms} ms`).toBeLessThan(3000);
           out[role]![fn] = ms;
         }
-        console.log(`[l32-speed] ${role} · ${fn} · ${out[role]![fn]}${role === 'none' ? '' : ' ms'}`);
+        console.log(`[l32-speed] ${role} · ${fn} · ${out[role]![fn]}${NO_READ.includes(role) ? '' : ' ms'}`);
       }
     } finally {
       await who.context.close();

@@ -1,7 +1,10 @@
 // @ts-check
-// V59 — the app's wording never says "Direct KSA", "DirectKSA", "Direct Corporate", "B2B" or "MICE" — nor, since the
-// owner's list of 29 Sep, "Google", "Zoom", "Keep me signed in" or "GMV". The department is "Commercial"; the product
-// is "Commercial Workspace". Scanned: the message catalogs (messages/*.json), the e-mail templates
+// V59 — the app's wording never says "Direct KSA", "DirectKSA", "B2B" or "MICE" — nor, since the owner's list of
+// 29 Sep, "Google", "Zoom", "Keep me signed in" or "GMV". The department is "Commercial".
+// Landing 34 (the owner's test round of 19 Nov, items 36 and 38) reverses one part of V59: the workspace's brand IS
+// "Direct Corporate" (logo line, tab titles, footer), so that name is no longer refused in the catalogs, the e-mail
+// templates or page text. It stays refused in DATA (seeds, list values, names typed in — core.banned_word is
+// unchanged), where it would still be a mis-typed organisation, not the brand. Scanned: the message catalogs (messages/*.json), the e-mail templates
 // (supabase/templates/*.html — V145), every piece of literal text in src/ (strings, template pieces, JSX text — the
 // page templates, and the settings' defaults), and — since V404 — the string literals of every migration from
 // SEEDS_FROM on: list values and seeds are wording too, and the segment is Government, never "B2G" beside it. In data
@@ -19,7 +22,6 @@ export const SEEDS_FROM = '20260929091000';
 /** @type {[RegExp, string][]} */
 export const FORBIDDEN = [
   [/\bdirect[\s\-_.]*ksa\b/gi, 'Direct KSA'],
-  [/\bdirect[\s\-_.]*corporate\b/gi, 'Direct Corporate'],
   [/\bb[\s\-_.]*2[\s\-_.]*b\b/gi, 'B2B'],
   // V404: the segment is Government, never with "(B2G)" after it.
   [/\bb[\s\-_.]*2[\s\-_.]*g\b/gi, 'B2G'],
@@ -33,9 +35,13 @@ export const FORBIDDEN = [
 ];
 
 /** The words banned in data too — list values, seeds, names typed in (V59, V404): the database holds this list. */
-export const FORBIDDEN_IN_DATA = FORBIDDEN.filter(([, word]) =>
-  ['Direct KSA', 'Direct Corporate', 'B2B', 'B2G', 'MICE'].includes(word),
-);
+/** @type {[RegExp, string][]} */
+export const FORBIDDEN_IN_DATA = [
+  ...FORBIDDEN.filter(([, word]) => word === 'Direct KSA'),
+  // refused in data only since Landing 34: on the screens it is the workspace's own name
+  [/\bdirect[\s\-_.]*corporate\b/gi, 'Direct Corporate'],
+  ...FORBIDDEN.filter(([, word]) => ['B2B', 'B2G', 'MICE'].includes(word)),
+];
 
 /**
  * @param {string} text
@@ -53,7 +59,7 @@ export function forbiddenIn(text, list = FORBIDDEN) {
 
 export default defineCheck({
   name: CHECK,
-  rule: 'V59/V73/V74/V404: never "Direct KSA", "Direct Corporate", "B2B", "B2G", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs, the e-mail templates or page text; never V59\'s five or "B2G" in seeds',
+  rule: 'V59/V73/V74/V404: never "Direct KSA", "B2B", "B2G", "MICE", "Google", "Zoom", "Keep me signed in" or "GMV" in the catalogs, the e-mail templates or page text; never V59\'s five or "B2G" in seeds',
   run(ctx) {
     /** @type {import('./lib.mjs').Finding[]} */
     const out = [];

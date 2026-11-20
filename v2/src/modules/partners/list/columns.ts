@@ -3,12 +3,15 @@
  * a wide desk). The width is the table's own place on the page — not the window — because the drawer beside it may be
  * open or folded. The order columns go in is the boards': Type first, then Owner, then Last activity; the
  * organisation, its status and its flags always stay. Under `CARDS_UNDER` there is no room for a table at all and the
- * list is drawn as the phone's rows. The organisation's name takes what is left and is cut with "…", never the page.
+ * list is drawn as the phone's rows. The organisation's name takes what is left and wraps inside it (Landing 34: a name is
+ * read whole, never cut with "…"). The row's Actions button is always drawn and has its own narrow column.
  */
 export const CARDS_UNDER = 600;
 
 /** What each column needs, cell padding included (px). The name is whatever remains. */
 const NEED = { select: 44, status: 120, flags: 168, last_activity_on: 136, owner_id: 200, type: 136 } as const;
+/** The row's Actions button (Landing 34): a 32 px button in a column of its own, always drawn. */
+export const ACTIONS_WIDTH = 40;
 const NAME_MIN = 200;
 const NAME_MAX = 440;
 /** The name cell's own padding and the card's hairlines. */
@@ -31,7 +34,7 @@ export type ColumnPlan = {
 export function columnPlan(width: number, selectable: boolean): ColumnPlan {
   if (width <= 0) return { cards: false, hidden: [], nameMax: NAME_MAX };
   if (width < CARDS_UNDER) return { cards: true, hidden: [...DROP_ORDER], nameMax: NAME_MAX };
-  const fixed = (selectable ? NEED.select : 0) + NEED.status + NEED.flags + NAME_PAD;
+  const fixed = (selectable ? NEED.select : 0) + NEED.status + NEED.flags + NAME_PAD + ACTIONS_WIDTH;
   const hidden: HideableColumn[] = [];
   let used = fixed + DROP_ORDER.reduce((sum, c) => sum + NEED[c], 0);
   for (const c of DROP_ORDER) {

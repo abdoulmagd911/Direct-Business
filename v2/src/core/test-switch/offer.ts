@@ -11,3 +11,24 @@ export function offersSwitch(
 ): boolean {
   return !me.test_switch && !!me.person?.role?.is_admin && row.is_test === true;
 }
+
+/**
+ * Landing 34 (item 29): while this device IS switched to a TEST user, the way to another TEST user is direct — offered
+ * on every other TEST row (never the one the device already is, never a real colleague). Only someone who started a
+ * switch has `me.test_switch` set, and the database let them start it; it decides again at each step (it ends the
+ * switch and starts the next as the real signed-in person: test_switch.not_allowed, test_switch.not_a_test_user).
+ */
+export function offersSwitchOver(
+  me: Pick<Me, 'test_switch'> & { person?: Pick<Me['person'], 'id'> | null },
+  row: { id?: string; is_test?: boolean },
+): boolean {
+  return !!me.test_switch && row.is_test === true && !!row.id && row.id !== me.person?.id;
+}
+
+/** The TEST people a switched device can go straight to, by name: everyone marked TEST but the one it already is. */
+export function switchTargets<P extends { id: string; is_test?: boolean; full_name_en: string }>(
+  me: Pick<Me, 'test_switch'> & { person?: Pick<Me['person'], 'id'> | null },
+  people: readonly P[],
+): P[] {
+  return people.filter((p) => offersSwitchOver(me, p)).sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
+}

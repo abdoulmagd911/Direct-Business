@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { BrandLogo } from '@/ui/BrandLogo';
+import { BrandLockup } from '@/ui/BrandLogo';
 import { DataState } from '@/ui/DataState';
 
 /**
@@ -17,7 +17,7 @@ export function LayoutTransient() {
   return (
     <main className="grid min-h-dvh place-items-center bg-bg px-4 py-10 text-text" data-layout-transient>
       <div className="flex w-full max-w-[520px] flex-col gap-5">
-        <BrandLogo height={28} />
+        <BrandLockup height={28} label={t('app.brand')} word={t('app.corporate')} />
         <DataState
           kind="failed"
           message={t('errors.crash.bodyNoData')}

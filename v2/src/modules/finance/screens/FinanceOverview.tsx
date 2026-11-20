@@ -18,7 +18,7 @@ import { KpiTile } from '@/ui/KpiTile';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { toast } from '@/ui/Toast';
-import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm, type MonthRow } from '../figures';
+import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm, stampOf, type MonthRow } from '../figures';
 import type { PeriodAsk, PeriodKey } from '../period';
 import { monthStart } from '../period';
 import type { IncomeByService, LateChange, OverviewData, Period } from '../types';
@@ -95,7 +95,18 @@ export function FinanceOverview({
     );
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
   const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
-  const asOf = data.asOf ? data.asOf.as_of : undefined;
+  // the Payments stamp: the day behind the figures, said as "not refreshed since" once it is more than two days old
+  const stamp = data.asOf ? stampOf(data.asOf, today) : null;
+  /** Income by company is a part of the ledger: a phone opens that view first, then the browser is taken to it. */
+  const toCompany = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    onPhoneView?.('ledger');
+    requestAnimationFrame(() =>
+      (document.getElementById('finance-company') ?? document.getElementById('finance-ledger'))?.scrollIntoView({
+        block: 'start',
+      }),
+    );
+  };
   // Nothing imported from Payments yet and nothing in the period (V622): the page is one clear note under the period and
   // the stamp — no tiles of zeros, no months of dashes. A read that failed is never this — it says which read failed.
   // An empty period after imports exist is a different thing (F173): the Overview shows its zero tiles and says the
@@ -164,8 +175,25 @@ export function FinanceOverview({
         {data.asOf === null ? (
           missing('asOf', t('finance.failed.stamp'), 'items-end')
         ) : (
-          <span className="font-data text-sm text-muted tabular" data-finance-stamp>
-            {asOf ? t('finance.stamp', { date: formatDate(`${asOf}T12:00:00Z`, locale) }) : t('finance.stampNone')}
+          <span className="flex flex-col items-end gap-0.5">
+            {/* a stamp more than two days old is a warning, in words — never shown as if it were current (Landing 34) */}
+            <span
+              className={cn('font-data text-sm tabular', stamp?.stale ? 'font-medium text-warning' : 'text-muted')}
+              data-finance-stamp
+              data-stale={stamp?.stale ? '' : undefined}
+            >
+              {stamp?.day
+                ? t(stamp.stale ? 'finance.stampStale' : 'finance.stamp', {
+                    date: formatDate(`${stamp.day}T12:00:00Z`, locale),
+                  })
+                : t('finance.stampNone')}
+            </span>
+            {/* the stamp is the OLDEST file's day; when another file was read later, that day is said too */}
+            {stamp?.newest ? (
+              <span className="font-data text-xs text-muted tabular" data-finance-stamp-newest>
+                {t('finance.stampNewest', { date: formatDate(`${stamp.newest}T12:00:00Z`, locale) })}
+              </span>
+            ) : null}
           </span>
         )}
       </div>
@@ -193,11 +221,16 @@ export function FinanceOverview({
 
           <div className="flex flex-col gap-1 text-base" data-finance-lines>
             {data.notInvoiced ? (
-              <p data-finance-not-invoiced>
+              // each word and each figure is a part of its own with a gap between them: on a phone the words and
+              // the figures ran together ("Ready1·Pending1") — the space no longer depends on how the line breaks
+              <p className="flex flex-wrap items-baseline gap-x-1.5" data-finance-not-invoiced>
                 <span className="font-medium text-strong">{t('finance.notInvoiced')}</span>{' '}
                 <span className="text-muted">{t('finance.ready')}</span>{' '}
-                <b className="font-data tabular">{data.notInvoiced.ready.units}</b>
-                <span className="text-muted"> · {t('finance.pending')} </span>
+                <b className="font-data tabular">{data.notInvoiced.ready.units}</b>{' '}
+                <span className="text-muted" aria-hidden="true">
+                  ·
+                </span>{' '}
+                <span className="text-muted">{t('finance.pending')}</span>{' '}
                 <b className="font-data tabular">{data.notInvoiced.pending.units}</b>
               </p>
             ) : (
@@ -234,7 +267,11 @@ export function FinanceOverview({
               )}
             </div>
             <div className={cn('min-w-0', away('services'))}>
-              {data.service ? <ByService service={data.service} /> : missing('service', t('finance.failed.service'))}
+              {data.service ? (
+                <ByService service={data.service} onCompany={toCompany} />
+              ) : (
+                missing('service', t('finance.failed.service'))
+              )}
             </div>
           </div>
         </>
@@ -356,6 +393,13 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
  * The figure cards (V21, the finalisation board): Revenue, Cost and Profit as recorded here, then Provisional — the
  * revenue of the rows whose cost is not known yet, which Profit leaves out. Two to a row on a phone and in a narrow
  * place, four across where the page is wide enough.
+ *
+ * Landing 34: there is ONE Provisional amount on the page — `provisional.revenue`, the revenue of the rows whose cost
+ * is not known yet — and every card names that same amount: Revenue holds it ("of which Provisional"), Cost and
+ * Profit leave it out ("not counting Provisional"). Before, Cost read `provisional.cost` (always empty, so a dash) and
+ * Profit read `provisional.profit`, which leaves the imported rows out (their profit is empty with their cost) — so the
+ * same page said 4,200, a dash and 3,500 for one thing. A provisional row has no cost and so no profit: neither is
+ * printed as a figure.
  */
 function Tiles({ period }: { period: Period }) {
   const t = useTranslations();
@@ -376,8 +420,9 @@ function Tiles({ period }: { period: Period }) {
         label={t('finance.tile.costHere')}
         icon={<Receipt />}
         value={period.cost}
-        provisional={p.cost}
+        provisional={p.revenue}
         units={p.units}
+        left
       />
       <FigureTile
         kind="profit"
@@ -385,8 +430,9 @@ function Tiles({ period }: { period: Period }) {
         icon={<TrendingUp />}
         tone={period.profit < 0 ? 'danger' : undefined}
         value={period.profit}
-        provisional={p.profit}
+        provisional={p.revenue}
         units={p.units}
+        left
       />
       <FigureTile
         kind="provisional"
@@ -413,6 +459,7 @@ function FigureTile({
   value,
   provisional,
   units,
+  left,
   note,
 }: {
   kind: string;
@@ -420,9 +467,11 @@ function FigureTile({
   icon: ReactNode;
   tone?: 'success' | 'danger';
   value: number;
-  /** Empty (null) while the Provisional part has no figure — shown empty, never as 0 (rulebook §16). */
+  /** The Provisional amount: the revenue of the rows whose cost is not known yet. Empty (null) is shown empty, never 0. */
   provisional?: number | null;
   units?: number;
+  /** True on Cost and Profit: the figure leaves the Provisional amount out, where Revenue holds it. */
+  left?: boolean;
   /** The Provisional card's one line, in place of a Provisional part. */
   note?: string;
 }) {
@@ -456,14 +505,21 @@ function FigureTile({
                 {note}
               </span>
             ) : (
-              <span className="text-sm" data-finance-provisional>
-                <span className="font-medium text-warning">{t('finance.provisional')}</span>{' '}
-                <b className="font-data text-text tabular">
+              // words, amount, dot and rows are parts of their own with a gap between them (Landing 34): on a phone
+              // they ran together ("Provisional4,200·3 units") where the line broke inside the card
+              <span className="flex flex-wrap items-baseline gap-x-1 text-sm" data-finance-provisional>
+                <span className="font-medium text-warning">
+                  {t(left ? 'finance.provisionalLeft' : 'finance.provisional')}
+                </span>{' '}
+                <b className="font-data text-text tabular" data-finance-provisional-amount>
                   {provisional === null || provisional === undefined
                     ? t('finance.months.none')
                     : formatMoney(provisional, locale)}
-                </b>
-                <span className="text-muted"> · {t('finance.provisionalUnits', { count: units ?? 0 })}</span>
+                </b>{' '}
+                <span className="text-muted" aria-hidden="true">
+                  ·
+                </span>{' '}
+                <span className="text-muted">{t('finance.provisionalUnits', { count: units ?? 0 })}</span>
               </span>
             )}
           </span>
@@ -575,8 +631,9 @@ function Months({
             <span className="hidden text-end font-data tabular @min-[600px]:block">{money(period.revenue)}</span>
             <span className="hidden text-end font-data tabular @min-[600px]:block">{money(period.cost)}</span>
             <span className="hidden text-end font-data tabular @min-[600px]:block">{money(period.profit)}</span>
-            <span className="hidden text-end font-data tabular @min-[600px]:block">
-              {money(period.provisional.profit)}
+            {/* the same Provisional amount as the card above: the revenue of the rows whose cost is not known yet */}
+            <span className="hidden text-end font-data tabular @min-[600px]:block" data-finance-total-provisional>
+              {money(period.provisional.revenue)}
             </span>
             <span className="text-end font-data tabular @min-[600px]:hidden">
               {money(period.revenue)} · {money(period.profit)}
@@ -637,7 +694,7 @@ function MonthItem({ row, full, onClose }: { row: MonthRow; full: boolean; onClo
         <Figure
           className="hidden @min-[600px]:block"
           label={t('finance.months.provisional')}
-          value={money(f?.provisional_profit)}
+          value={money(f?.provisional_revenue)}
         />
         <div className="order-2 ms-auto flex flex-wrap items-center justify-end gap-2 @min-[600px]:order-none @min-[600px]:ms-0">
           <MonthChips row={row} full={full} onClose={onClose} />
@@ -645,7 +702,7 @@ function MonthItem({ row, full, onClose }: { row: MonthRow; full: boolean; onClo
         <div className="order-3 grid basis-full grid-cols-3 gap-3 @min-[600px]:hidden" data-finance-month-card>
           <Figure label={t('finance.months.revenue')} value={money(f?.revenue)} stacked />
           <Figure label={t('finance.months.profit')} value={money(f?.profit)} stacked />
-          <Figure label={t('finance.months.provisional')} value={money(f?.provisional_profit)} stacked />
+          <Figure label={t('finance.months.provisional')} value={money(f?.provisional_revenue)} stacked />
         </div>
       </div>
       {late > 0 ? (
@@ -687,8 +744,10 @@ function Figure({
 }
 
 /**
- * The Provisional row under a month with cost-provisional units: their revenue and profit apart, the cost empty,
- * never 0 (rulebook §16). The month's own row keeps the clean totals, so the two rows never double-count.
+ * The Provisional row under a month with cost-provisional units: their revenue apart, the cost empty, never 0
+ * (rulebook §16) — and the profit empty with it (Landing 34: a row with no cost has no profit; the read's
+ * `provisional_profit` also leaves the imported rows out, so it never agreed with the revenue beside it). The month's
+ * own row keeps the clean totals, so the two rows never double-count.
  */
 function ProvisionalMonthItem({ row }: { row: MonthRow }) {
   const t = useTranslations();
@@ -711,16 +770,12 @@ function ProvisionalMonthItem({ row }: { row: MonthRow }) {
           value={formatMoney(f.provisional_revenue, locale)}
         />
         <Figure className="hidden @min-[600px]:block" label={t('finance.months.cost')} value={none} />
-        <Figure
-          className="hidden @min-[600px]:block"
-          label={t('finance.months.profit')}
-          value={formatMoney(f.provisional_profit, locale)}
-        />
+        <Figure className="hidden @min-[600px]:block" label={t('finance.months.profit')} value={none} />
         <Figure className="hidden @min-[600px]:block" label={t('finance.months.provisional')} value={none} />
         <span aria-hidden="true" className="hidden @min-[600px]:block" />
         <div className="order-3 grid basis-full grid-cols-3 gap-3 @min-[600px]:hidden" data-finance-month-card>
           <Figure label={t('finance.months.revenue')} value={formatMoney(f.provisional_revenue, locale)} stacked />
-          <Figure label={t('finance.months.profit')} value={formatMoney(f.provisional_profit, locale)} stacked />
+          <Figure label={t('finance.months.profit')} value={none} stacked />
           <Figure label={t('finance.months.provisional')} value={none} stacked />
         </div>
       </div>
@@ -794,7 +849,14 @@ function AfterClose({ lines }: { lines: LateChange[] }) {
   );
 }
 
-function ByService({ service }: { service: IncomeByService }) {
+function ByService({
+  service,
+  onCompany,
+}: {
+  service: IncomeByService;
+  /** Takes the person to Income by company, in the ledger below. */
+  onCompany?: (e: { preventDefault: () => void }) => void;
+}) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const top = Math.max(1, ...service.rows.map((r) => Math.abs(r.revenue)));
@@ -804,6 +866,18 @@ function ByService({ service }: { service: IncomeByService }) {
       id="finance-service"
       title={t('finance.service.title')}
       source={t('finance.here')}
+      action={
+        onCompany ? (
+          <a
+            href="#finance-company"
+            onClick={onCompany}
+            className="inline-flex min-h-8 items-center text-sm font-medium text-link underline-offset-2 hover:underline max-sm:min-h-11"
+            data-finance-company-link
+          >
+            {t('finance.ledger.byCompany')}
+          </a>
+        ) : undefined
+      }
       data-finance-service
     >
       <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5 sm:pb-5">

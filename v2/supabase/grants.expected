@@ -166,6 +166,7 @@ function api.my_follow_ups(p_entity text, p_id uuid) execute authenticated
 function api.my_note(p_id uuid) execute authenticated
 function api.my_notes_by_kind(p_scope text, p_kind text, p_limit integer, p_offset integer) execute authenticated
 function api.my_notes_remove(p_ids uuid[], p_reason text, p_delete_reminders boolean) execute authenticated
+function api.my_streak() execute authenticated
 function api.note_add(p_entity text, p_id uuid, p_kind text, p_body text, p_happened_on date, p_mentions uuid[]) execute authenticated
 function api.note_capture(p_kind text, p_values jsonb, p_mentions uuid[]) execute authenticated
 function api.note_edit(p_id uuid, p_values jsonb, p_version integer, p_mentions uuid[]) execute authenticated
@@ -291,6 +292,7 @@ function api.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.team_load(p_people uuid[]) execute authenticated
 function api.team_retire(p_id uuid, p_move_to uuid, p_reason text) execute authenticated
 function api.team_save(p_id uuid, p_department uuid, p_code text, p_name_en text, p_name_ar text, p_lead uuid, p_version integer, p_reason text) execute authenticated
+function api.team_streaks() execute authenticated
 function api.templates_offered(p_event text, p_partner uuid) execute authenticated
 function api.tender_bulk_assign(p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function api.tender_save(p_id uuid, p_values jsonb, p_version integer) execute authenticated
@@ -591,6 +593,7 @@ function work.import_batch_start(p_partner uuid, p_signature text, p_file_name t
 function work.import_batches(p_partner uuid) execute authenticated
 function work.import_code_check(p_text text) execute authenticated
 function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
+function work.my_streak() execute authenticated
 function work.open_asks() execute authenticated
 function work.project_get(p_id uuid) execute authenticated
 function work.project_health_set(p_project uuid, p_health text, p_line text, p_happened_on date) execute authenticated
@@ -623,6 +626,7 @@ function work.tasks_assign(p_ids uuid[], p_owner uuid, p_reason text) execute au
 function work.tasks_priority_set(p_ids uuid[], p_priority text, p_reason text) execute authenticated
 function work.tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.team_load(p_people uuid[]) execute authenticated
+function work.team_streaks() execute authenticated
 function work.templates_offered(p_event text, p_partner uuid) execute authenticated
 function work.test_tasks_remove(p_ids uuid[], p_reason text) execute authenticated
 function work.weekly_unlogged(p_show_routine boolean) execute authenticated

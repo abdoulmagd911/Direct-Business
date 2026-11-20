@@ -18,7 +18,7 @@ import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PageHeader } from '@/ui/PageHeader';
 import { Select } from '@/ui/Select';
 import { rpc } from '@/core/db/rpc';
-import { checklistCount, noteTitle } from '../logic';
+import { checklistCount, cutAtWord, noteTitle } from '../logic';
 import { NOTE_VISIBILITIES, type MyNote, type NoteItem, type PartnerRef, type TurnKind } from '../types';
 import { KIND_ICON, LinkChip, VisibilityChip } from './NoteBits';
 import { PeoplePicker } from './PeoplePicker';
@@ -216,11 +216,15 @@ export function NotePage({
               : { label: t('pages.myDay.blocks.team'), href: '/my-day?tab=team' },
         ]}
         title={
-          <span className="flex min-w-0 items-center gap-3">
-            <Icon className="size-6 shrink-0 text-muted" aria-hidden="true" />
-            {/* the <bdi> itself is cut short: an inline <bdi> inside a cut-short box kept its whole width and ran past
-                the screen on a phone (tests/e2e/a-note-turned-into-a-task-stays-on-a-phone-screen.spec.ts) */}
-            <bdi className="min-w-0 truncate">{title}</bdi>
+          <span className="flex min-w-0 items-start gap-3">
+            <Icon className="mt-1 size-6 shrink-0 text-muted sm:mt-1.5" aria-hidden="true" />
+            {/* the title wraps onto as many lines as it needs, between words (Landing 34, item 22): cut to one line it
+                lost its end on a phone, mid-word — "…the Riyadh hotels…". The <bdi> is the flex item that may shrink,
+                so a long title still never runs past the screen
+                (tests/e2e/a-note-turned-into-a-task-stays-on-a-phone-screen.spec.ts) */}
+            <bdi className="min-w-0 break-words" data-note-title>
+              {title}
+            </bdi>
           </span>
         }
         meta={
@@ -299,8 +303,10 @@ export function NotePage({
             <fieldset className="flex flex-col gap-2" data-note-items>
               <legend className="mb-1 text-sm font-medium">
                 {t('pages.myDay.note.items')}
+                {/* a real space before the count, not a margin alone: read as text it said "Checklist2/3" (item 15) */}
+                {count.total ? ' ' : null}
                 {count.total ? (
-                  <span className="ms-2 font-data text-xs text-muted">
+                  <span className="ms-1 font-data text-xs text-muted">
                     {count.done}/{count.total}
                   </span>
                 ) : null}
@@ -593,7 +599,7 @@ export function NotePage({
               projects={taskLookups.projects}
               priorities={taskLookups.priorities}
               initial={{
-                title: noteTitle(note).slice(0, TITLE_MAX),
+                title: cutAtWord(noteTitle(note), TITLE_MAX).head,
                 partnerId: taskLookups.partners.some((p) => p.id === note.meeting_partner?.id)
                   ? note.meeting_partner?.id
                   : undefined,

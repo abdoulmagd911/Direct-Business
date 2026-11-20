@@ -35,7 +35,9 @@ for (const size of [
     await page.locator('[data-quick-save]').click();
     await expect(toast(page, 'Note saved')).toBeVisible();
     await page.locator('[data-my-note]', { hasText: first }).locator('[data-note-open]').click();
-    await expect(page.locator('[data-note-title]'), 'the first sentence is the title').toHaveValue(first);
+    // the hook names the page's heading (a bdi that wraps, Landing 34) and the Title box: both read the first sentence
+    await expect(page.locator('input[data-note-title]'), 'the first sentence is the title').toHaveValue(first);
+    await expect(page.locator('bdi[data-note-title]'), 'the first sentence heads the page, whole').toHaveText(first);
     await expect(page.locator('[data-note-body]'), 'and the rest is in Notes').toHaveValue(rest);
 
     // finding 2
@@ -53,7 +55,7 @@ for (const size of [
     const id = (made.body as { id: string }).id;
     await page.goto(`/my-day/notes/${id}`);
     await hydrated(page);
-    await page.locator('[data-note-title]').fill(`Made-up list ${tag} renamed`);
+    await page.locator('input[data-note-title]').fill(`Made-up list ${tag} renamed`);
     await page.locator('[data-note-save]').click();
     await expect(toast(page, 'Checklist saved'), 'a checklist is saved as a checklist').toBeVisible();
 

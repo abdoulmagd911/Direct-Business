@@ -1,7 +1,7 @@
 'use client';
 import { Download } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatMoney, formatStoredDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { StatusChip } from '@/ui/Chip';
@@ -262,7 +262,15 @@ export function FinanceReport({
         </p>
       ) : null}
 
-      <Block id="finance-ledger-companies" title={t('finance.ledger.byPartner')} data-finance-ledger-companies>
+      {/* "Income by company" — the owner's own words for this table (Landing 34, item 18), and a place with an address
+          of its own (…/finance#finance-company), like Income by service */}
+      <Block
+        id="finance-ledger-companies"
+        anchor="finance-company"
+        title={t('finance.ledger.byCompany')}
+        data-finance-ledger-companies
+        data-finance-by-company
+      >
         {report.by_company.length === 0 ? (
           empty
         ) : (
@@ -577,12 +585,31 @@ export function FinanceReport({
 /** One part of the report: its heading, then its table edge to edge inside the card. */
 function Block({
   id,
+  anchor,
   title,
   children,
   ...rest
-}: { id: string; title: string; children: ReactNode } & Record<`data-${string}`, string | boolean | undefined>) {
+}: {
+  id: string;
+  /** The part's own address on the page (…#anchor), when it has one. */
+  anchor?: string;
+  title: string;
+  children: ReactNode;
+} & Record<`data-${string}`, string | boolean | undefined>) {
+  // The part is drawn only once the ledger has answered, long after the browser looked for the address's #anchor:
+  // an address that names this part is taken to it now.
+  const here = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (anchor && window.location.hash === `#${anchor}`) here.current?.scrollIntoView({ block: 'start' });
+  }, [anchor]);
   return (
-    <section aria-labelledby={id} className="flex min-w-0 flex-col border-t border-border" {...rest}>
+    <section
+      ref={here}
+      id={anchor}
+      aria-labelledby={id}
+      className="flex min-w-0 scroll-mt-20 flex-col border-t border-border"
+      {...rest}
+    >
       <h3 id={id} className="px-4 pb-2.5 pt-4 font-display text-base font-semibold leading-5 text-strong sm:px-5">
         {title}
       </h3>

@@ -27,7 +27,7 @@ test('email and password sign in on the deep link; an unlisted email and a wrong
   page,
 }) => {
   await page.goto('/sign-in?next=%2Ftasks');
-  await expect(page.getByRole('heading', { name: 'Commercial Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Direct Corporate Workspace' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Google|Zoom/ }), 'the only door is email and password').toHaveCount(0);
   await expect(
     page.getByLabel('Keep me signed in on this device'),

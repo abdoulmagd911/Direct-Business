@@ -3,6 +3,9 @@
  * Next; a row has a done tick (with Undo), the title, the client chip and the due day, and a tap on it opens the task;
  * with nothing due it says "Nothing due today". Phone first: at 375 and 1,440 px, no sideways scroll, the tick and the
  * row are 44 px high at least. Arabic and English read the same catalog words. Every value is made up.
+ * Landing 34: Today's three sits above the block and draws up to three starred tasks, three unstarred urgent ones and
+ * three others; the block holds the rest. So the person here has three more tasks of each kind, due sooner, that fill
+ * Today's three — and the four tasks the block is read by are the ones left for it. No task is drawn twice.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -19,14 +22,15 @@ async function personWithTasks() {
     [me.id, `td_${t}`, `Test Team ${t}`, `فريق اختبار ${t}`],
   );
   await sql(`update core.person set team_id = $2 where id = $1`, [me.id, team!.id]);
-  const make = async (title: string, offset: number) => {
+  const make = async (title: string, offset: number, starred = false) => {
     const number = `TSK-1999-${Date.now()}${Math.floor(Math.random() * 1000)}`;
     await sql(
-      `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by, due_on)
+      `insert into work.task (number, title, owner_id, team_id, department_id, status_id, work_type, created_by, due_on,
+                              starred)
        values ($1, $2, $3, $4, (select department_id from core.team where id = $4),
                (select id from work.task_status where is_default and deleted_at is null), 'internal', $3,
-               core.riyadh_today() + $5::int)`,
-      [number, title, me.id, team!.id, offset],
+               core.riyadh_today() + $5::int, $6)`,
+      [number, title, me.id, team!.id, offset, starred],
     );
     return number;
   };
@@ -42,6 +46,21 @@ for (const width of [375, 1440]) {
     const due = await make(`Due task ${t}`, 0);
     await make(`Soon task ${t}`, 1);
     await make(`Later task ${t}`, 5);
+    // Today's three takes the three of each kind that are due first (Landing 34): three starred and overdue, three
+    // unstarred and overdue, three not urgent and due before the Later task — the four above are left for the block
+    const three = {
+      important: [
+        await make(`Top A ${t}`, -5, true),
+        await make(`Top B ${t}`, -4, true),
+        await make(`Top C ${t}`, -3, true),
+      ],
+      short: [await make(`Short A ${t}`, -3), await make(`Short B ${t}`, -2), await make(`Short C ${t}`, -1)],
+      // two on one day: within a day the order is the task number's
+      maintenance: [
+        ...[await make(`Keep A ${t}`, 3), await make(`Keep B ${t}`, 3)].sort(),
+        await make(`Keep C ${t}`, 4),
+      ],
+    };
     await page.setViewportSize({ width, height: width === 375 ? 800 : 1000 });
     await signIn(page, me.email, '/my-day');
     await hydrated(page);
@@ -59,13 +78,43 @@ for (const width of [375, 1440]) {
     const block = page.locator('[data-today-block]');
     await expect(block.locator(`[data-today-task="${late}"]`), 'the client chip').toContainText(org);
     await expect(block).toBeVisible();
+    // Today's three, above the block: three of each kind, the ones due first, each drawn there and not in the block
+    const top = page.locator('[data-todays-three]');
+    await expect(top.locator('h3'), "Today's three: its groups, each with a space before its count").toHaveText([
+      'Important 3',
+      'Short 3',
+      'Maintenance 3',
+    ]);
+    for (const g of ['important', 'short', 'maintenance'] as const) {
+      expect(
+        await top
+          .locator(`[data-three-group="${g}"] [data-three-row]`)
+          .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-three-row'))),
+        `Today's three · ${g}: the three due first, by due day then number`,
+      ).toEqual(three[g]);
+      for (const number of three[g])
+        await expect(
+          block.locator(`[data-today-task="${number}"]`),
+          'a task of Today’s three is not drawn again in the block',
+        ).toHaveCount(0);
+    }
+    for (const number of [late, due])
+      await expect(top.locator(`[data-today-task="${number}"]`), 'the rest stays in the block').toHaveCount(0);
+    expect((await top.boundingBox())!.y, "Today's three sits above the Today block").toBeLessThan(
+      (await block.boundingBox())!.y,
+    );
     // the card is titled Today and its groups never just that (QA-564): the four boxes of V661 — starred and overdue is Do now
     await expect(block.locator('h2')).toHaveText('Today');
+    // a real space stands between a box's name and its count (Landing 34): "Do now 1", never "Do now1"
     await expect(block.locator('h3'), 'the boxes, in order, with the empty ones left out').toHaveText([
-      /^Do now\s*1$/,
-      /^Quick or pass to someone\s*2$/,
-      /^Later\s*1$/,
+      'Do now 1',
+      'Quick or pass to someone 2',
+      'Later 1',
     ]);
+    expect(
+      await block.locator('h3').evaluateAll((hs) => hs.map((h) => h.textContent)),
+      'the space is a real one, in the text itself',
+    ).toEqual(['Do now 1', 'Quick or pass to someone 2', 'Later 1']);
     expect(await block.getByText('Today', { exact: true }).count(), 'the word Today is the card title only').toBe(1);
     await expect(block.locator('[data-today-group="do_now"]')).toContainText(`Late task ${t}`);
     await expect(block.locator('[data-today-group="quick"]')).toContainText(`Due task ${t}`);

@@ -61,12 +61,23 @@ export function Tabs({
   // inside the same soft ground (so its corners are 26 px there, a pill while it is one row).
   const trackClass =
     'flex min-w-0 max-w-full gap-1 overflow-x-auto overflow-y-hidden rounded-pill bg-surface p-1 [scrollbar-width:none] max-sm:flex-1 max-sm:rounded-[26px]';
+  // A tab's name and its count are ONE run of words with a real space between them (Landing 34, item 15): as two
+  // flex children of the tab they had only a margin, so the text read "Action items0" to a screen reader, a copy and
+  // a test. The space is the gap now (with 2 px, the 6 px it was).
   const count = (n?: number) =>
     n !== undefined ? (
-      <span className="ms-1.5 font-data text-xs font-normal text-muted" data-tab-count>
+      <span className="ms-0.5 font-data text-xs font-normal text-muted" data-tab-count>
         {n}
       </span>
     ) : null;
+  const face = (t: TabDef) =>
+    t.count === undefined ? (
+      t.label
+    ) : (
+      <span data-tab-face>
+        {t.label} {count(t.count)}
+      </span>
+    );
 
   if (tabs.every((t) => t.href)) {
     const folded = moreLabel ? tabs.filter((t) => t.more) : [];
@@ -82,8 +93,7 @@ export function Tabs({
               onClick={() => setPressed(t.value)}
               className={cn(tabClass(t.value === value || t.value === pressed), folded.includes(t) && 'max-sm:hidden')}
             >
-              {t.label}
-              {count(t.count)}
+              {face(t)}
               <LinkPending />
             </Link>
           ))}
@@ -105,8 +115,7 @@ export function Tabs({
                       aria-current={t.value === value ? 'page' : undefined}
                       data-tabs-more-item={t.value}
                     >
-                      {t.label}
-                      {count(t.count)}
+                      {face(t)}
                     </Link>
                   </MenuItem>
                 ))}
@@ -161,8 +170,7 @@ export function Tabs({
               onKeyDown={(e) => onArrow(e, i)}
               className={tabClass(active)}
             >
-              {t.label}
-              {count(t.count)}
+              {face(t)}
             </button>
           );
         })}

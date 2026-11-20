@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { readTwice } from '@/core/db/retry';
 import { serviceDb } from '@/core/db/service';
 import { readTheme, type Theme } from '@/core/prefs';
 
@@ -31,7 +32,10 @@ const DENSITIES = new Set(['comfortable', 'compact']);
 
 export const getAppSettings = cache(async (): Promise<AppSettings> => {
   try {
-    const { data, error } = await serviceDb().rpc('app_settings');
+    // tried once more when the call failed on its way (Landing 34): a single stalled read answered with the
+    // defaults — Arabic off — and the whole app silently fell back to English for that request
+    const db = serviceDb();
+    const { data, error } = await readTwice(() => db.rpc('app_settings'));
     if (error || !data || typeof data !== 'object') return APP_DEFAULTS;
     const v = data as Record<string, unknown>;
     const theme = v['app.default_theme'];

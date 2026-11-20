@@ -3,7 +3,7 @@ import { MoreHorizontal, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
@@ -30,11 +30,16 @@ import { RailField, RailSection } from '@/ui/record/Rail';
 import { RecordPage } from '@/ui/record/RecordPage';
 import { PageFrame } from '@/ui/shell/AppShell';
 import { PersonHover } from './PersonHover';
+import { ReadFailed } from './ReadFailed';
+import { markPartnersChanged } from '../list/freshness';
+import type { ReadFailure } from '../read-failure';
 import { sideFieldRows } from '../side-fields';
-import { CodesTab, FilesSection, FinanceTab } from './record/CompanyTabs';
+import { FilesSection } from './record/CompanyTabs';
+import { SummaryTabs } from './record/SummaryTabs';
 import { EditPartnerDialog } from './record/EditPartnerDialog';
 import { AddNoteDialog, LogActivityDialog } from './record/LogActivityDialog';
 import { ContactDialog, ContractDialog, IdentifierDialog, ReferenceDialog } from './record/RailDialogs';
+import { archiveLanded, archivedShown, savedEditLanded, withSavedEdit, type SavedEdit } from './record/saved-overlay';
 import { OwnerDialog, SideDialog, SideOffDialog, StatusDialog } from './record/SideDialogs';
 import { today, useWords } from './record/words';
 import {
@@ -69,6 +74,8 @@ export type PartnerRecordData = {
   view: string;
   card: PartnerCard | null;
   refused: boolean;
+  /** Why the record's read failed (a read stopped for time, no answer); null when it answered or was refused. */
+  failure?: ReadFailure | null;
   org: OrgAnswer;
   notes: Note[];
   contracts: Contract[];
@@ -78,6 +85,8 @@ export type PartnerRecordData = {
   /** The company's files (null when the read failed) and its Codes/Finance summary (same). */
   files: CompanyFile[] | null;
   summary: CompanySummary | null;
+  /** The page read left the summary to the Codes / Finance tabs, which ask for it when opened (Landing 34). */
+  summaryDeferred?: boolean;
   lists: {
     types: ListEntry[];
     tiers: ListEntry[];
@@ -112,13 +121,30 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const locale = useLocale() as 'en' | 'ar';
   const router = useRouter();
   const words = useWords();
-  const { me, side, card, refused, org, notes, contracts, history, comments, files, summary, lists } = data;
+  const { me, side, refused, org, notes, contracts, history, comments, files, summary, lists } = data;
   const tab = (TABS as readonly string[]).includes(TAB_ALIASES[data.tab] ?? data.tab)
     ? (TAB_ALIASES[data.tab] ?? data.tab)
     : 'overview';
   const discussionFilter =
     data.filter === 'files' || data.filter === 'questions' ? (data.filter as 'files' | 'questions') : undefined;
-  const refresh = () => router.refresh();
+  // Landing 34: the re-read after a change is a transition (the top bar's own refetch shows while it is out), and it
+  // tells the list that what it last drew is from before this change, so going back to it reads it again.
+  const [, startRefresh] = useTransition();
+  // …and the Codes / Finance tabs read their summary again (a change here may be one that moves money).
+  const [changes, setChanges] = useState(0);
+  const refresh = () => {
+    setChanges((n) => n + 1);
+    markPartnersChanged();
+    startRefresh(() => router.refresh());
+  };
+  // What was just saved, laid over the card until the re-read confirms it (record/saved-overlay.ts): an edit's
+  // accepted values, and what Archive / Unarchive said. Before, the record kept the card it was read with until the
+  // re-read landed, so "unarchived" was toasted over a record still marked Archived, and a saved note stayed "+ Add".
+  const [saved, setSaved] = useState<SavedEdit>(null);
+  const [saidArchived, setSaidArchived] = useState<boolean | null>(null);
+  if (data.card && savedEditLanded(data.card, saved)) setSaved(null);
+  if (data.card && archiveLanded(data.card.archived_at, saidArchived)) setSaidArchived(null);
+  const card = data.card ? withSavedEdit(data.card, saved) : null;
   // The Discussion tab's own count while it is open, so the tab's number follows an add or a delete at once.
   const [commentCount, setCommentCount] = useState<number | null>(null);
   // History shows the client-work notes only: comment-kind notes are internal talk, which lives in Discussion now.
@@ -152,20 +178,19 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
     return (
       <PageFrame>
         <PageHeader crumbs={[{ label: title, href: SIDE_ROUTE[side] }]} title={t('entity.partner')} />
-        <DataState
-          kind={refused ? 'no-access' : 'failed'}
-          what={t('entity.partner')}
-          message={refused ? t('partners.noAccess') : undefined}
-          onRetry={refresh}
-          retryLabel={t('common.tryAgain')}
-        />
+        {refused ? (
+          <DataState kind="no-access" what={t('entity.partner')} message={t('partners.noAccess')} />
+        ) : (
+          // Landing 34: the failed record says what failed and why, and its Try again is seen to work (ReadFailed)
+          <ReadFailed message={t('partners.read.record')} failure={data.failure} />
+        )}
       </PageFrame>
     );
   }
 
   const sidesOn = card.sides.filter((s) => s.on);
   const sideOf = (k: Side) => card.sides.find((s) => s.side === k && s.on) ?? null;
-  const archived = !!card.archived_at;
+  const archived = archivedShown(card.archived_at, saidArchived);
   const fullOn = (k: Side) => me.levels[SIDE_PAGE[k]] === 'full';
   /** Full on any side the record has on: the record-level Remove / Archive / Unarchive gate. */
   const full = sidesOn.some((s) => fullOn(s.side));
@@ -215,13 +240,31 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
     command(
       words(t('partners.archivedDone', { name: tradeName(card, locale) })),
       () => rpc('partner_archive', { p_id: card.id }) as Promise<{ request_id?: string | null } | null>,
-      { after: refresh },
+      {
+        after: () => {
+          setSaidArchived(true);
+          refresh();
+        },
+        afterUndo: () => {
+          setSaidArchived(false);
+          refresh();
+        },
+      },
     );
   const unarchive = () =>
     command(
       words(t('partners.unarchivedDone', { name: tradeName(card, locale) })),
       () => rpc('partner_unarchive', { p_id: card.id }) as Promise<{ request_id?: string | null } | null>,
-      { after: refresh },
+      {
+        after: () => {
+          setSaidArchived(false);
+          refresh();
+        },
+        afterUndo: () => {
+          setSaidArchived(true);
+          refresh();
+        },
+      },
     );
 
   const figures: KeyFigure[] = FIGURES.map((k) => {
@@ -328,7 +371,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
               {full ? (
                 <>
                   <MenuSeparator />
-                  {card.archived_at ? (
+                  {archived ? (
                     <MenuItem onSelect={() => void unarchive()} data-partner-unarchive>
                       {t('partners.unarchivePartner')}
                     </MenuItem>
@@ -827,7 +870,12 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                 {t(`partners.flags.${f}`)}
               </StatusChip>
             ))}
-            {card.archived_at ? <StatusChip tone="neutral">{t('partners.archived')}</StatusChip> : null}
+            {archived ? (
+              // the mark sits on a span of its own: StatusChip passes no data-* on to the page
+              <span className="inline-flex" data-partner-archived-chip>
+                <StatusChip tone="neutral">{t('partners.archived')}</StatusChip>
+              </span>
+            ) : null}
             <FollowUpChips entity="partner" id={card.id} />
             <RecordHeaderCounts
               comments={commentCount ?? comments?.comments.length ?? null}
@@ -854,6 +902,8 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         }))}
         tab={tab}
         tabHref={(k) => `${base}/${card.id}?tab=${k}`}
+        // six sections: one row that scrolls sideways inside itself on a phone, never two rows (Landing 34)
+        tabsOneRow
         words={{ tabs: t('record.tabs'), notMeasured: t('common.notMeasured') }}
       >
         {/* An archived organisation takes no change until it is unarchived: its write buttons are not offered, and this
@@ -913,17 +963,18 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             />
           )
         ) : null}
-        {tab === 'codes' ? <CodesTab card={card} summary={summary} /> : null}
-        {tab === 'finance' ? (
-          <FinanceTab
-            card={card}
-            summary={summary}
-            onRetry={refresh}
-            side={side}
-            hideImported={data.hideImported}
-            view={data.view}
-          />
-        ) : null}
+        {/* Codes and Finance read their own summary, when opened (record/SummaryTabs.tsx); nothing else waits on it */}
+        <SummaryTabs
+          tab={tab}
+          card={card}
+          deferred={data.summaryDeferred === true}
+          initial={summary}
+          stamp={changes}
+          onPageRetry={refresh}
+          side={side}
+          hideImported={data.hideImported}
+          view={data.view}
+        />
         {tab === 'history' ? (
           <>
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
@@ -1080,7 +1131,10 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
         priorities={lists.priorities}
         nameOfPerson={nameOfPerson}
         clientOn={!!sideOf('client')}
-        onDone={refresh}
+        onDone={(done) => {
+          setSaved(done ?? null);
+          refresh();
+        }}
       />
       {sideOn ? (
         <SideDialog

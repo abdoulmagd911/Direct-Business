@@ -740,7 +740,10 @@ export function RecordHeaderCounts({
   const second = evidence ? evidence.count : (files ?? null);
   if (comments === null && second === null) return null;
   return (
-    <p className="flex flex-wrap items-center gap-x-1 text-sm" data-record-counts>
+    // Landing 34 (item 15): the two counts are words in a line, with a real " · " between them — as flex children
+    // (before) the dot had no space on either side in the text a screen reader, a copy or a test reads
+    // ("0 comments·0 files"); only a 4 px gap drew one.
+    <p className="text-sm" data-record-counts>
       {comments !== null ? (
         <Link
           href={href('all')}
@@ -751,7 +754,7 @@ export function RecordHeaderCounts({
       ) : null}
       {comments !== null && second !== null ? (
         <span aria-hidden="true" className="text-muted">
-          ·
+          {' · '}
         </span>
       ) : null}
       {evidence ? (

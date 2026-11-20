@@ -1,7 +1,9 @@
 'use client';
 import { Bell, Search } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
+import { BrandLockup } from '../BrandLogo';
 import { cn } from '../cn';
 import { IconButton } from '../IconButton';
 import { Kbd } from '../Kbd';
@@ -17,7 +19,8 @@ import { ProfileMenu } from './ProfileMenu';
  * From 640 px the four sit together at the END edge of the bar — the right in English, the left in Arabic — with the
  * bar's own 24 px margin (owner, 13 Nov): the search stops growing at 440 px, and the space it leaves goes BEFORE
  * the group (justify-end), never after the profile chip, which had left the chip in the middle of a wide bar. On a
- * phone the search takes the start and the bell and the chip keep the end, as before.
+ * phone the workspace's name is at the start (Landing 34: the wordmark and "Corporate"), the search takes the room
+ * between, and the bell and the chip keep the end.
  */
 export function TopBar({
   onOpenSearch,
@@ -32,10 +35,22 @@ export function TopBar({
   unread?: number;
 }) {
   const t = useTranslations('top');
+  const say = useTranslations();
   const pathname = usePathname();
   return (
     <header className="relative z-10 h-[var(--topbar-h)] shrink-0 bg-top-bg text-top-text shadow-topbar" data-topbar>
-      <div className="mx-auto flex h-full w-full max-w-[var(--page-max)] items-center gap-3 px-4 sm:justify-end sm:px-6 xl:px-10">
+      <div className="mx-auto flex h-full w-full max-w-[var(--page-max)] items-center gap-2 px-4 sm:justify-end sm:gap-3 sm:px-6 xl:px-10">
+        {/* Landing 34 (item 37): a phone has no drawer, so the bar carries the workspace's name at its start — the
+            wordmark and "Corporate", as the drawer's head does — and it is the way to My day, as the drawer's logo
+            is. It never shrinks; the search beside it takes what is left (100 px at 360). */}
+        <Link
+          href="/my-day"
+          aria-label={say('nav.my_day')}
+          className="flex h-11 shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-focus sm:hidden"
+          data-top-brand
+        >
+          <BrandLockup height={20} label={say('app.brand')} word={say('app.corporate')} />
+        </Link>
         <button
           type="button"
           onClick={onOpenSearch}
@@ -43,7 +58,7 @@ export function TopBar({
           aria-keyshortcuts="Control+K"
           data-search
           className={cn(
-            'flex h-11 min-w-0 flex-1 items-center gap-2 rounded-pill border border-transparent bg-search-bg pe-2 ps-3.5 text-base text-search-text transition-colors duration-[var(--dur-fast)] hover:border-search-border focus-visible:outline-2 focus-visible:outline-focus sm:h-10 sm:w-10 sm:flex-none sm:justify-center sm:px-0 lg:w-[320px] lg:flex-[0_1_320px] lg:justify-start lg:pe-2 lg:ps-3.5',
+            'flex h-11 min-w-0 flex-1 items-center gap-2 rounded-pill border border-transparent bg-search-bg pe-2 ps-3.5 text-base max-sm:gap-1.5 max-sm:ps-3 text-search-text transition-colors duration-[var(--dur-fast)] hover:border-search-border focus-visible:outline-2 focus-visible:outline-focus sm:h-10 sm:w-10 sm:flex-none sm:justify-center sm:px-0 lg:w-[320px] lg:flex-[0_1_320px] lg:justify-start lg:pe-2 lg:ps-3.5',
           )}
         >
           <Search className="size-4 shrink-0 sm:max-lg:size-5" aria-hidden="true" />
@@ -51,7 +66,6 @@ export function TopBar({
           <span className="hidden min-w-0 flex-1 truncate text-start lg:inline">{t('search')}</span>
           <Kbd className="ms-auto hidden lg:inline">Ctrl K</Kbd>
         </button>
-        <div className="flex-1 sm:hidden" />
         <CreateMenu />
         <IconButton
           label={unread ? t('notificationsUnread', { count: unread }) : t('notifications')}

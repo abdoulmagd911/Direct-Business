@@ -55,8 +55,8 @@ sabotages.push(
     edits: [
       {
         file: 'src/app/(app)/settings/[group]/page.tsx',
-        find: "    serverRpc('settings', { p_group: def.page }) as Promise<unknown>,",
-        replace: "    (await serverRpc('settings', { p_group: def.page })) as unknown,",
+        find: "    orNull(serverRpc('settings', { p_group: def.page }) as Promise<unknown>),",
+        replace: "    (await orNull(serverRpc('settings', { p_group: def.page }) as Promise<unknown>)) as unknown,",
       },
     ],
   },

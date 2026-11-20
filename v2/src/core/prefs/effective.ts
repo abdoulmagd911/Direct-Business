@@ -15,9 +15,24 @@ export function effectivePrefs(
   const profile = me?.profile ?? null;
   const theme = readTheme(profile?.theme) ?? app.default_theme;
   const density = profile?.density ?? app.default_density;
-  const wanted = profile?.locale ?? cookies.locale;
-  const locale = app.arabic_enabled ? wanted : 'en';
+  const locale = personLocale(profile?.locale, cookies.locale, app);
   return { theme, density, locale };
+}
+
+/**
+ * The language a signed-in person is answered in — ONE rule for the words (core/i18n/request.ts), the page's
+ * direction (serverPrefs) and the cookie PrefsSync keeps (Landing 34): English while Arabic is off, whatever was
+ * chosen; with Arabic on, the language saved in their profile, and only without one the cookie's. Before, the words
+ * followed the cookie alone while the layout followed the profile, so a person whose profile said Arabic was first
+ * answered in English and only a second load put it right.
+ */
+export function personLocale(
+  profileLocale: Prefs['locale'] | null | undefined,
+  cookieLocale: Prefs['locale'],
+  app: Pick<AppSettings, 'arabic_enabled'>,
+): Prefs['locale'] {
+  if (!app.arabic_enabled) return 'en';
+  return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : cookieLocale;
 }
 
 /** The language a request is answered in: the cookie's choice, unless Arabic is switched off (ACC-139). */
@@ -47,6 +62,6 @@ export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string)
     density: own('density') ? raw.density : eff.density,
     // the door (nobody signed in) has no profile, so the cookie's language stands there whatever the Arabic
     // switch says (F205); signed in, the switch still rules (ACC-139)
-    locale: me ? effectiveLocale(raw.locale, app) : raw.locale,
+    locale: me ? eff.locale : raw.locale,
   };
 }

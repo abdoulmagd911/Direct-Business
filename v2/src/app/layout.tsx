@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getMessages } from 'next-intl/server';
+import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { dirOf } from '@/core/prefs';
 import { serverPrefs } from '@/core/prefs/effective';
@@ -13,9 +13,12 @@ import '@/ui/globals.css';
 
 // The tab icon is the orange mark on a slate rounded square: src/app/icon.svg (32), favicon.ico (16 + 32) and
 // apple-icon.png (180) — Next serves them at /icon.svg, /favicon.ico and /apple-icon.png and lists them in <head>.
-export const metadata: Metadata = {
-  title: { default: 'Commercial', template: '%s · Commercial' },
-};
+// The tab's title (Landing 34, items 36–38): "<Page> · Direct Corporate" — the workspace's name in the language on
+// screen (`app.short`: «دايركت للشركات» in Arabic), never the old department word.
+export async function generateMetadata(): Promise<Metadata> {
+  const name = (await getTranslations())('app.short');
+  return { title: { default: name, template: `%s · ${name}` } };
+}
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 

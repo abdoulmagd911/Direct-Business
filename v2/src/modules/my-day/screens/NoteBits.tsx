@@ -114,6 +114,8 @@ export function FromNoteChip({ note }: { note: Pick<FromNote, 'id' | 'title'> })
     >
       <StickyNote aria-hidden="true" />
       {t('pages.myDay.note.fromNote')}
+      {/* a real space before the dot: the chip's gap is not a character, so its text read "From note· title" (item 15) */}
+      {note.title ? ' ' : null}
       {note.title ? <span className="max-w-48 truncate font-normal text-muted">· {note.title}</span> : null}
     </Link>
   );

@@ -10,8 +10,8 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/en.json',
-        find: '"name": "Commercial Workspace"',
-        replace: j('"name": "Direct', ' KSA Commercial Workspace"'),
+        find: '"name": "Direct Corporate Workspace"',
+        replace: j('"name": "Direct', ' KSA Workspace"'),
       },
     ],
   },
@@ -20,7 +20,11 @@ export const sabotages = [
     breaks: ['check:forbidden-words'],
     expect: j('messages/en.json:3 [forbidden-words] "GM', 'V" — the app never says Sales (GMV)'),
     edits: [
-      { file: 'messages/en.json', find: '"name": "Commercial Workspace"', replace: j('"name": "Sales', ' (GMV)"') },
+      {
+        file: 'messages/en.json',
+        find: '"name": "Direct Corporate Workspace"',
+        replace: j('"name": "Sales', ' (GMV)"'),
+      },
     ],
   },
   {
@@ -30,7 +34,7 @@ export const sabotages = [
     edits: [
       {
         file: 'messages/en.json',
-        find: '"name": "Commercial Workspace"',
+        find: '"name": "Direct Corporate Workspace"',
         replace: j('"name": "Sign in with Goo', 'gle"'),
       },
     ],
@@ -40,7 +44,11 @@ export const sabotages = [
     breaks: ['check:forbidden-words'],
     expect: j('messages/en.json:3 [forbidden-words] "Zo', 'om"'),
     edits: [
-      { file: 'messages/en.json', find: '"name": "Commercial Workspace"', replace: j('"name": "Meet on Zo', 'om"') },
+      {
+        file: 'messages/en.json',
+        find: '"name": "Direct Corporate Workspace"',
+        replace: j('"name": "Meet on Zo', 'om"'),
+      },
     ],
   },
   {

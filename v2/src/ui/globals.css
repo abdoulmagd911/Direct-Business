@@ -328,6 +328,20 @@
          because a link's own break-words would otherwise win and break a word only after the box has grown) */
       overflow-wrap: anywhere !important;
     }
+    /*
+     * Landing 34 (item 15, the missing spaces on a phone): a link that holds more than plain words — a bold name and
+     * the words after it, a label and its figure — is NOT made a flex box. A flex box drops the white space between its
+     * children and at the edges of each one, so "of which Provisional 4,200 · 3 units" read "Provisional4,200·3 units"
+     * on a phone and nowhere else. Such a link is an inline block of the same 44 px with its words centred by
+     * `align-content` (every browser since early 2024; an older one sets them at the top of the same box): inside it
+     * the words flow as they do on a wide screen, spaces and all. A link that holds only words, or words and an icon,
+     * keeps the flex box (nothing there has a space to lose), and a link that says its own display (`flex`,
+     * `inline-flex`, `grid`) is not touched, as before.
+     */
+    :where(a[href]:not([role]):has(> :not(svg, img))):not(p a, [data-inline-link], [data-inline-link] a) {
+      display: inline-block;
+      align-content: center;
+    }
     /* what a link holds may shrink and wrap or end in an ellipsis — a long title in a card never runs off the screen */
     :where(a[href]:not([role])):not(p a, [data-inline-link], [data-inline-link] a) > :not(svg, img) {
       min-width: 0;

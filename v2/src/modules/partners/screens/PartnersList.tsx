@@ -2,11 +2,21 @@
 import { CappedNote } from './CappedNote';
 import * as RP from '@radix-ui/react-popover';
 import type { RowSelectionState, SortingState, VisibilityState } from '@tanstack/react-table';
-import { Archive, CalendarClock, Columns3, Hourglass, Moon, Plus, SlidersHorizontal } from 'lucide-react';
+import {
+  Archive,
+  CalendarClock,
+  Columns3,
+  Hourglass,
+  Loader2,
+  Moon,
+  MoreHorizontal,
+  Plus,
+  SlidersHorizontal,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import type { Me } from '@/core/auth/me';
 import { command, type CommandWords } from '@/core/commands/command';
 import { rpc } from '@/core/db/rpc';
@@ -20,7 +30,10 @@ import { DataState } from '@/ui/DataState';
 import { DataTable, type ColumnDef } from '@/ui/DataTable';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
+import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
+import { LinkPending } from '@/ui/LinkPending';
+import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/Menu';
 import { PageHeader } from '@/ui/PageHeader';
 import { PhoneFilter } from '@/ui/PhoneFilter';
 import { PartnerLogo } from '@/ui/PartnerLogo';
@@ -29,15 +42,27 @@ import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Select } from '@/ui/Select';
 import { Switch } from '@/ui/Switch';
 import { PageFrame } from '@/ui/shell/AppShell';
+import { navStartedTo } from '@/ui/shell/nav-pending';
 import { cn } from '@/ui/cn';
 import { useMediaQuery } from '@/ui/useMediaQuery';
 import { NewPartnerDialog } from './NewPartnerDialog';
 import { PartnerHover } from './PartnerHover';
-import { columnPlan } from '../list/columns';
-import { addressOf, emptyFilters as empty, type ListFilters } from '../list/filters';
+import { ReadFailed } from './ReadFailed';
+import { ACTIONS_WIDTH, columnPlan } from '../list/columns';
+import {
+  ARCHIVED_PICK,
+  addressOf,
+  emptyFilters as empty,
+  statusPicks,
+  withSearch,
+  withStatusPicks,
+  type ListFilters,
+} from '../list/filters';
+import { clearStale, listIsStale, markPartnersChanged, sawList } from '../list/freshness';
 import { KpiCards, PhoneChips } from '../list/KpiCards';
 import type { KpiCounts } from '../list/kpi';
 import { useElementWidth } from '../list/useElementWidth';
+import type { ReadFailure } from '../read-failure';
 import { compareFlags, compareOwner } from '../sort';
 import {
   SIDE_PAGE,
@@ -71,6 +96,9 @@ export function PartnersList({
   filters,
   answer,
   failed,
+  failure = null,
+  partial = false,
+  stamp = '',
   counts,
   org,
   types,
@@ -86,6 +114,12 @@ export function PartnersList({
   filters: ListFilters;
   answer: PartnersAnswer | null;
   failed: boolean;
+  /** Why the list read failed (a refusal, a read stopped for time, no answer), when the page knows. */
+  failure?: ReadFailure | null;
+  /** A read beside the list (the people, the types, the tiers, the priorities) did not answer: the list still draws. */
+  partial?: boolean;
+  /** The stamp of this list read (list/freshness.ts): a list restored from before a change reads again. */
+  stamp?: string;
   /** The cards' figures (null = not known), counted by the page from the same read as the list. */
   counts: KpiCounts;
   org: OrgAnswer;
@@ -143,8 +177,28 @@ export function PartnersList({
     setSeenQ(filters.q);
     setQ(filters.q);
   }
-  const go = (f: ListFilters) => router.push(addressOf(base, f));
+  // Landing 34: every move of this list is a transition, so the screen says it is loading from the press to the
+  // arrival of the new rows. Before, the search (and every chip) called router.push with nothing on screen for the
+  // seconds the read took — "typed, pressed Enter, the table still showed everything" — and a row's press the same.
+  const [pending, startMove] = useTransition();
+  // `navStartedTo` is the shell's own word for a move made in code: its bar across the top shows at once as well.
+  // (It answers false for the address we are already on: nothing would arrive, so nothing is asked.)
+  const move = (to: string) => {
+    if (!navStartedTo(to)) return;
+    startMove(() => router.push(to));
+  };
+  const go = (f: ListFilters) => move(addressOf(base, f));
   const set = (patch: Partial<ListFilters>) => go({ ...filters, ...patch, view: '' });
+  const open = (id: string) => move(`${base}/${id}`);
+  const reread = () => startMove(() => router.refresh());
+  // A list restored from before a change (Back from the record just added) is the read from before it: read again.
+  useEffect(() => {
+    if (!stamp) return;
+    sawList(stamp);
+    if (!listIsStale(stamp)) return;
+    clearStale();
+    startMove(() => router.refresh());
+  }, [stamp, router]);
 
   const fixedViews = [
     { key: 'all', label: t('common.all') },
@@ -184,17 +238,23 @@ export function PartnersList({
         accessorKey: 'trade_name_en',
         header: t('partners.columns.name'),
         cell: ({ row }) => (
-          <span className="flex min-w-0 items-center gap-3" style={{ maxWidth: plan.nameMax }} data-partner-name>
+          // Landing 34: the name wraps inside its place and is read whole — never cut with "…"
+          <span
+            className="flex min-w-0 items-center gap-3 whitespace-normal py-1.5"
+            style={{ maxWidth: plan.nameMax }}
+            data-partner-name
+          >
             <PartnerLogo name={row.original.trade_name_en} size="sm" className="size-8" />
             <span className="flex min-w-0 flex-col">
               <PartnerHover id={row.original.id} types={sideTypes}>
                 <Link
                   href={`${base}/${row.original.id}`}
-                  className="truncate font-medium leading-5 text-link hover:underline"
+                  className="min-w-0 break-words font-medium leading-5 text-link hover:underline"
                   data-entity="partner"
                   data-partner-link={row.original.id}
                 >
-                  <bdi className="min-w-0 truncate">{tradeName(row.original, locale)}</bdi>
+                  <bdi className="min-w-0 break-words">{tradeName(row.original, locale)}</bdi>
+                  <LinkPending />
                 </Link>
               </PartnerHover>
               <span className="flex min-w-0 items-center gap-1.5 text-xs leading-[18px] text-muted">
@@ -252,7 +312,8 @@ export function PartnersList({
             <PersonChip
               person={avatarOf(p, locale)}
               href={`/people/${p.id}`}
-              className="max-w-44 [&_.name]:min-w-0 [&_.name]:truncate"
+              // Landing 34: an owner's name wraps inside its column and is read whole — never cut with "…"
+              className="max-w-44 whitespace-normal [&_.name]:min-w-0 [&_.name]:break-words [&_.name]:leading-5"
             />
           ) : (
             <span className="text-muted">—</span>
@@ -284,8 +345,22 @@ export function PartnersList({
           </span>
         ),
       },
+      {
+        // Landing 34: every row carries its Actions button, always drawn (never on hover only, never for some rows)
+        id: 'actions',
+        size: ACTIONS_WIDTH,
+        enableSorting: false,
+        enableHiding: false,
+        header: () => <span className="sr-only">{t('common.actions')}</span>,
+        cell: ({ row }) => (
+          <span className="-mx-2 flex justify-end">
+            <RowActions row={row.original} mayArchive={full} onOpen={open} words={words} />
+          </span>
+        ),
+      },
     ];
-  }, [t, locale, types, sideTypes, people, base, plan.nameMax]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `open` and `words` are this render's own closures
+  }, [t, locale, types, sideTypes, people, base, plan.nameMax, full]);
 
   const activeFilters =
     [filters.q].filter(Boolean).length +
@@ -305,6 +380,10 @@ export function PartnersList({
 
   const chipLabel = (keys: string[], label: (k: string) => string) =>
     keys.length ? keys.map(label).join(', ') : undefined;
+  // one array for as long as the address is the same: the picker seeds its draft when this changes
+  const statusPicked = useMemo(() => statusPicks(filters), [filters]);
+  const statusLabel = (k: string) =>
+    k === ARCHIVED_PICK ? t('partners.archived') : k === 'none' ? t('partners.status.none') : t(`partners.status.${k}`);
 
   return (
     <PageFrame>
@@ -353,7 +432,7 @@ export function PartnersList({
             className="flex items-center"
             onSubmit={(e) => {
               e.preventDefault();
-              set({ q });
+              go(withSearch(filters, q));
             }}
           >
             <Input
@@ -362,6 +441,8 @@ export function PartnersList({
               placeholder={t('partners.search')}
               aria-label={t('common.search')}
               className="h-[var(--control-h-sm)] w-[220px]"
+              type="search"
+              enterKeyHint="search"
               data-partners-search
             />
           </form>
@@ -395,16 +476,13 @@ export function PartnersList({
           <ChipPicker
             idPrefix="status"
             field={t('partners.columns.status')}
-            value={chipLabel(filters.statuses, (k) =>
-              k === 'none' ? t('partners.status.none') : t(`partners.status.${k}`),
-            )}
-            count={filters.statuses.length ? answer?.total : undefined}
-            options={[...STATUSES, 'none'].map((s) => ({
-              value: s,
-              label: s === 'none' ? t('partners.status.none') : t(`partners.status.${s}`),
-            }))}
-            picked={filters.statuses}
-            onChange={(v) => set({ statuses: v })}
+            // Landing 34: Archived is one of the chip's choices (it writes the address's archived view), so an archived
+            // organisation can be found — and restored from its row — without knowing its address
+            value={chipLabel(statusPicked, statusLabel)}
+            count={statusPicked.length ? answer?.total : undefined}
+            options={[...STATUSES, 'none', ARCHIVED_PICK].map((s) => ({ value: s, label: statusLabel(s) }))}
+            picked={statusPicked}
+            onChange={(v) => go({ ...withStatusPicks(filters, v), view: '' })}
             words={t}
           />
           <Button
@@ -461,7 +539,25 @@ export function PartnersList({
             onChange={setColumnVisibility}
           />
         )}
+        {pending ? (
+          <span role="status" className="inline-flex items-center gap-1.5 text-sm text-muted" data-partners-pending>
+            <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            {t('common.loading')}
+          </span>
+        ) : null}
       </div>
+      {partial ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-raised px-4 py-2.5 text-sm shadow-1"
+          data-partners-partial
+        >
+          <span>{t('partners.read.partial')}</span>
+          <Button size="sm" variant="link" loading={pending} onClick={reread} data-partners-partial-retry>
+            {t('common.tryAgain')}
+          </Button>
+        </div>
+      ) : null}
 
       {filters.archived ? (
         <div
@@ -475,15 +571,17 @@ export function PartnersList({
         </div>
       ) : null}
       {answer ? <CappedNote shown={rows.length} total={answer.total} /> : null}
-      <div ref={rowsRef} className="flex min-w-0 flex-col" data-partners-rows>
-        {failed ? (
-          <DataState
-            kind="failed"
-            what={title}
-            message={t('partners.list.failed')}
-            onRetry={() => router.refresh()}
-            retryLabel={t('common.tryAgain')}
-          />
+      <div
+        ref={rowsRef}
+        className={cn('flex min-w-0 flex-col transition-opacity', pending && 'opacity-60')}
+        aria-busy={pending || undefined}
+        data-partners-rows
+      >
+        {failed && failure?.kind === 'refused' ? (
+          // a refusal is an answer, not a failed read: it is said as no access, with no Try again
+          <DataState kind="no-access" what={title} message={t('state.noAccess', { what: title })} />
+        ) : failed ? (
+          <ReadFailed message={t('partners.list.failed')} failure={failure} />
         ) : answer && rows.length === 0 ? (
           <DataState
             kind="empty"
@@ -517,13 +615,15 @@ export function PartnersList({
                 >
                   <PartnerLogo name={r.trade_name_en} size="sm" className="size-8" />
                   <div className="flex min-w-0 flex-1 flex-col">
+                    {/* Landing 34: the name wraps and is read whole (it was cut with "…"); the tap is the whole row */}
                     <Link
                       href={`${base}/${r.id}`}
-                      className="inline-flex min-h-11 min-w-0 items-center truncate font-medium text-link after:absolute after:inset-0 after:content-['']"
+                      className="inline-flex min-h-11 min-w-0 items-start pb-2.5 pt-2.5 font-medium leading-5 text-link after:absolute after:inset-0 after:content-['']"
                       data-entity="partner"
                       data-partner-link={r.id}
                     >
-                      <bdi className="min-w-0 truncate">{tradeName(r, locale)}</bdi>
+                      <bdi className="min-w-0 break-words">{tradeName(r, locale)}</bdi>
+                      <LinkPending />
                     </Link>
                     <div className="-mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 pb-1 text-sm text-muted">
                       <FlagWords flags={r.flags} archived={r.archived} />
@@ -545,6 +645,10 @@ export function PartnersList({
                       {t(`partners.status.${r.status}`)}
                     </StatusChip>
                   ) : null}
+                  {/* over the row's own tap (the link's ::after), so the button is pressed, not the row */}
+                  <span className="relative z-[1] -me-2 shrink-0">
+                    <RowActions row={r} mayArchive={full} onOpen={open} words={words} />
+                  </span>
                 </li>
               );
             })}
@@ -562,7 +666,7 @@ export function PartnersList({
             sorting={sorting}
             onSortingChange={setSorting}
             columnVisibility={visibility}
-            onRowClick={(r) => router.push(`${base}/${r.id}`)}
+            onRowClick={(r) => open(r.id)}
             labels={{ selectRow: t('table.selectRow'), selectAll: t('table.selectAll') }}
             emptyState={<DataState kind={answer ? 'empty' : 'loading'} message={t('partners.none')} />}
           />
@@ -621,9 +725,75 @@ export function PartnersList({
         org={org}
         types={types}
         tiers={tiers}
-        onCreated={(id) => router.push(`${base}/${id}`)}
+        onCreated={(id) => {
+          // the list on screen was read before the add: going back to it reads it again (list/freshness.ts)
+          markPartnersChanged();
+          open(id);
+        }}
       />
     </PageFrame>
+  );
+}
+
+/**
+ * A row's Actions (Landing 34): one button on every row, always drawn — Open for everyone; Archive, or Unarchive on
+ * an archived row, for someone with Full on the page (the database's own gate: partner.writable). Archive and
+ * Unarchive are one request with its Undo, and the list reads again after it.
+ */
+function RowActions({
+  row,
+  mayArchive,
+  onOpen,
+  words,
+}: {
+  row: PartnerRow;
+  mayArchive: boolean;
+  onOpen: (id: string) => void;
+  words: (done: string) => CommandWords;
+}) {
+  const t = useTranslations();
+  const locale = useLocale() as 'en' | 'ar';
+  const name = tradeName(row, locale);
+  const flip = (fn: 'partner_archive' | 'partner_unarchive', done: string) => {
+    markPartnersChanged();
+    return command(words(done), () => rpc(fn, { p_id: row.id }) as Promise<{ request_id?: string | null } | null>);
+  };
+  return (
+    // the row is itself a press target: a press on its Actions is the button's alone
+    <span onClick={(e) => e.stopPropagation()}>
+      <Menu>
+        <MenuTrigger asChild>
+          <IconButton
+            label={`${t('common.actions')} · ${name}`}
+            icon={<MoreHorizontal />}
+            size="sm"
+            data-partner-actions={row.id}
+          />
+        </MenuTrigger>
+        <MenuContent>
+          <MenuItem onSelect={() => onOpen(row.id)} data-partner-row-open>
+            {t('partners.rowOpen')}
+          </MenuItem>
+          {mayArchive ? (
+            row.archived ? (
+              <MenuItem
+                onSelect={() => void flip('partner_unarchive', t('partners.unarchivedDone', { name }))}
+                data-partner-row-unarchive
+              >
+                {t('partners.unarchivePartner')}
+              </MenuItem>
+            ) : (
+              <MenuItem
+                onSelect={() => void flip('partner_archive', t('partners.archivedDone', { name }))}
+                data-partner-row-archive
+              >
+                {t('partners.archivePartner')}
+              </MenuItem>
+            )
+          ) : null}
+        </MenuContent>
+      </Menu>
+    </span>
   );
 }
 
@@ -771,7 +941,7 @@ function ChipPicker({
         >
           <ul className="flex flex-col">
             {options.map((o) => (
-              <li key={o.value} className="rounded-md px-2 py-1.5 hover:bg-surface">
+              <li key={o.value} className="rounded-md px-2 py-1.5 hover:bg-surface" data-chip-option={o.value}>
                 <span className="flex items-center gap-2">
                   <Checkbox
                     id={`${idPrefix}-${o.value}`}

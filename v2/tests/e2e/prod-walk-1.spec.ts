@@ -17,15 +17,15 @@ test('each page names itself in the tab (W37)', async ({ page }) => {
   const admin = await makePerson({ admin: true });
   await signIn(page, admin.email, '/my-day');
   await hydrated(page);
-  await expect(page).toHaveTitle('My day · Commercial');
+  await expect(page).toHaveTitle('My day · Direct Corporate');
   for (const [route, title] of [
-    ['/tasks', 'Tasks · Commercial'],
-    ['/partners', 'Partners · Commercial'],
-    ['/suppliers', 'Suppliers · Commercial'],
-    ['/finance', 'Finance · Commercial'],
-    ['/activity', 'Activity · Commercial'],
-    ['/profile', 'My profile · Commercial'],
-    ['/settings/org', 'People & access · Commercial'],
+    ['/tasks', 'Tasks · Direct Corporate'],
+    ['/partners', 'Partners · Direct Corporate'],
+    ['/suppliers', 'Suppliers · Direct Corporate'],
+    ['/finance', 'Finance · Direct Corporate'],
+    ['/activity', 'Activity · Direct Corporate'],
+    ['/profile', 'My profile · Direct Corporate'],
+    ['/settings/org', 'People & access · Direct Corporate'],
   ] as const) {
     await page.goto(route);
     await expect(page, route).toHaveTitle(title);
