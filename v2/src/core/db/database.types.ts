@@ -488,6 +488,7 @@ export type Database = {
       own_password_set: { Args: { p_auth_user: string; p_keep_session: string }; Returns: Json };
       page_seen: { Args: { p_page: string }; Returns: string };
       partner: { Args: { p_id: string }; Returns: Json };
+      partner_achievements: { Args: { p_partner: string }; Returns: Json };
       partner_archive: { Args: { p_id: string; p_reason?: string }; Returns: Json };
       partner_bulk_assign: {
         Args: { p_ids: string[]; p_owner: string; p_priority: string; p_reason?: string; p_side: string };

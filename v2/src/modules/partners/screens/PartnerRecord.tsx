@@ -36,6 +36,7 @@ import type { ReadFailure } from '../read-failure';
 import { sideFieldRows } from '../side-fields';
 import { FilesSection } from './record/CompanyTabs';
 import { SummaryTabs } from './record/SummaryTabs';
+import { PartnerAchievements } from './record/PartnerAchievements';
 import { EditPartnerDialog } from './record/EditPartnerDialog';
 import { AddNoteDialog, LogActivityDialog } from './record/LogActivityDialog';
 import { ContactDialog, ContractDialog, IdentifierDialog, ReferenceDialog } from './record/RailDialogs';
@@ -1055,6 +1056,9 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             )}
           </section>
         ) : null}
+        {/* the achievements logged with this organisation: their own read, asked when Related is opened
+            (record/PartnerAchievements.tsx) — never an amount beside them (an achievement's value is not revenue) */}
+        <PartnerAchievements tab={tab} partnerId={card.id} stamp={changes} people={org.people} />
         {tab === 'related' ? (
           <section className="rounded-lg border border-border bg-raised p-5" data-partner-related>
             {sidesOn.map((s) => (

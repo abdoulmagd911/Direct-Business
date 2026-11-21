@@ -425,3 +425,21 @@ export const statusTone = (s: Status | null): 'success' | 'warning' | 'danger' |
         : s === 'prospect'
           ? 'info'
           : 'neutral';
+
+/** One achievement on an organisation's Related tab (api.partner_achievements). No amount on purpose: an achievement's
+ *  value is not revenue (FIX-06 / D29), so the record never shows one beside its money. */
+export type PartnerAchievement = {
+  id: string;
+  number: string;
+  title: string;
+  category: string;
+  category_en: string;
+  category_ar: string;
+  happened_on: string | null;
+  logged_at: string;
+  logged_by: string | null;
+  owner_id: string | null;
+};
+
+/** api.partner_achievements: the organisation's achievements the reader may see, newest first, at most 50 of `total`. */
+export type PartnerAchievements = { rows: PartnerAchievement[]; total: number; more: boolean };

@@ -58,9 +58,6 @@ export function statusGroups<R extends Pick<TaskRow, 'status' | 'meaning' | 'blo
   return out;
 }
 
-/** How many cards a board column shows on a phone before "See all" (15 Nov phone board: two). */
-export const PHONE_COLUMN_CARDS = 2;
-
 /**
  * What a task is about, in names: "project · partner", one of them, or the word for internal work. A name the reader
  * may not see (the lookups hold none) is left out; with nothing to say the answer is empty.

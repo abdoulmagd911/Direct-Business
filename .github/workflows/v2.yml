@@ -182,16 +182,16 @@ jobs:
         run: supabase stop --no-backup
 
   e2e-sabotage:
-    name: every end-to-end spec fails under its sabotage (${{ matrix.shard }}/3)
+    name: every end-to-end spec fails under its sabotage (${{ matrix.shard }}/5)
     runs-on: ubuntu-latest
     # one build per sabotage: on a single runner the sweep alone took 105 minutes at #211 (12 Oct) and kept growing
-    # with every PR, so it runs as three shards side by side (V631). On a pull request only the sabotages of what the
+    # with every PR, so it runs as five shards side by side (V631; three until run 1616 of 21 Nov, when two were cut off at 120 minutes). On a pull request only the sabotages of what the
     # PR touches run (V634 (2), V281 — the rule is in scripts/sabotage-select.mjs); a push to v2/main runs them all.
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     env:
       # empty on v2/main and on a manual run: the full set
       CHANGED_SINCE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
@@ -209,7 +209,7 @@ jobs:
           cache-dependency-path: v2/pnpm-lock.yaml
       - name: which sabotages this shard runs, and why
         id: plan
-        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"} --plan
+        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/5 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"} --plan
       - if: steps.plan.outputs.count != '0'
         run: pnpm install --frozen-lockfile
       - if: steps.plan.outputs.count != '0'
@@ -228,7 +228,7 @@ jobs:
         run: pnpm build
       - name: this shard's end-to-end sabotages each turn their spec red
         if: steps.plan.outputs.count != '0'
-        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/3 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"}
+        run: node scripts/sabotage.mjs --kind e2e --shard ${{ matrix.shard }}/5 ${CHANGED_SINCE:+--changed-since "$CHANGED_SINCE"}
       - if: always() && steps.plan.outputs.count != '0'
         run: supabase stop --no-backup
 

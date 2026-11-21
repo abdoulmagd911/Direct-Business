@@ -2,6 +2,7 @@
 // what failed, and the Activity page neither offers the settings log to a switched session nor falls when one of
 // its reads fails. Each sabotage takes one of those back, and the test named must go red for it.
 const MIGRATION = 'supabase/migrations/20261115100000_codes_reads_no_jit.sql';
+const LANDING_35 = 'supabase/migrations/20261122090200_perf_finance_reads_one_pass.sql';
 const ACTIVITY_PAGE = 'src/app/(app)/activity/page.tsx';
 const CODES_PAGE = 'src/app/(app)/codes/page.tsx';
 const SWITCHED = 'unit:tests/unit/pages/a-switched-session-is-not-offered-the-settings-log.test.tsx';
@@ -14,7 +15,12 @@ export const sabotages = [
     name: 'codes-list-loses-jit-off',
     breaks: ['sql:JIT-05'],
     expect: 'finance.codes_list runs with JIT off',
-    edits: [{ file: MIGRATION, find: 'alter function finance.codes_list() set jit = off;', replace: '' }],
+    // Landing 35 redefines the three codes reads and repeats the setting in its own migration (CREATE OR REPLACE
+    // drops it), so each sabotage takes the setting away there too
+    edits: [
+      { file: MIGRATION, find: 'alter function finance.codes_list() set jit = off;', replace: '' },
+      { file: LANDING_35, find: 'alter function finance.codes_list() set jit = off;', replace: '' },
+    ],
   },
   {
     name: 'codes-detail-loses-jit-off',
@@ -29,13 +35,17 @@ export const sabotages = [
         find: 'alter function finance.codes_detail(uuid) set jit = off;',
         replace: '',
       },
+      { file: LANDING_35, find: 'alter function finance.codes_detail(uuid) set jit = off;', replace: '' },
     ],
   },
   {
     name: 'codes-by-company-loses-jit-off',
     breaks: ['sql:JIT-05'],
     expect: 'finance.codes_by_company runs with JIT off',
-    edits: [{ file: MIGRATION, find: 'alter function finance.codes_by_company() set jit = off;', replace: '' }],
+    edits: [
+      { file: MIGRATION, find: 'alter function finance.codes_by_company() set jit = off;', replace: '' },
+      { file: LANDING_35, find: 'alter function finance.codes_by_company() set jit = off;', replace: '' },
+    ],
   },
   // ---- the switched session and the settings log
   {

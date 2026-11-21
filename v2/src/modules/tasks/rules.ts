@@ -190,6 +190,55 @@ export function queryFilters(query: Record<string, unknown> | undefined): Partia
   };
 }
 
+/** How long the search box waits after the last key before it asks (Landing 35: the list filters as you type). */
+export const SEARCH_DEBOUNCE_MS = 250;
+
+/** What the search box asks for: its words as the address keeps them (`parseFilters`), or nothing when it is empty. */
+export const searchTerm = (typed: string): string | undefined => typed.trim().slice(0, 100) || undefined;
+
+/**
+ * The address the search box moves to once typing has paused — or null when the box already says what the address
+ * holds (nothing to ask, so nothing is asked twice). Every other choice (tab, layout, chips, sort) is kept.
+ */
+export function searchHref(f: TaskFilters, typed: string): string | null {
+  const term = searchTerm(typed);
+  return term === f.q ? null : filtersHref(f, { q: term });
+}
+
+/**
+ * The search box against the address (Landing 35). The box asks the address as it is typed in, and an answer to its
+ * OWN question must never rewrite it: an older answer ("ab") can arrive while the person has typed on ("abc"), and
+ * copying it back would eat the last letters and throw the caret. So the box follows the address only when the address
+ * holds a search the box did not ask for — Clear all, a saved view, Back. `asked` is what the box has asked since the
+ * address last moved by another hand; once its newest question is answered the older ones are forgotten.
+ */
+export function searchBoxOnAddress(
+  addressQ: string | undefined,
+  asked: readonly string[],
+): { follow: boolean; asked: string[] } {
+  const q = addressQ ?? '';
+  if (!asked.includes(q)) return { follow: true, asked: [] };
+  return { follow: false, asked: asked[asked.length - 1] === q ? [q] : [...asked] };
+}
+
+/**
+ * Opening a saved view (FIX-12) replaces the tab and every filter with the view's own — but List / Board / Calendar is
+ * how the rows are LOOKED at, not which rows: a view that names no layout keeps the one on screen (Landing 35: a view
+ * saved from the list threw the board back to the list).
+ */
+export function viewFilters(f: TaskFilters, query: Record<string, unknown> | undefined): Partial<TaskFilters> {
+  const next = queryFilters(query);
+  return next.layout ? next : { ...next, layout: f.layout, month: next.month ?? f.month };
+}
+
+/**
+ * Whether a person's default saved view opens by itself: only on the bare list (`/tasks`), where the address chose
+ * nothing. An address that carries a choice of its own — a tab, the board, a search, a chip — is what was asked for,
+ * on a refresh and on Back too; the default never replaces it (Landing 35: `?layout=board` drew the list for anyone
+ * with a default view, because the default was opened over every fresh load).
+ */
+export const defaultViewOpens = (f: TaskFilters): boolean => filtersHref(f) === '/tasks';
+
 /** The address of the list with one change made (a chip set, dropped, or the view switched). */
 export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): string {
   const next = { ...f, ...change };

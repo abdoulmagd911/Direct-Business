@@ -445,6 +445,12 @@ export const sabotages = [
         find: 'alter function finance.income_by_service(date, date) set jit = off;',
         replace: '',
       },
+      // Landing 35 redefines the read and repeats the setting in its own migration (CREATE OR REPLACE drops it)
+      {
+        file: 'supabase/migrations/20261122090200_perf_finance_reads_one_pass.sql',
+        find: 'alter function finance.income_by_service(date, date) set jit = off;',
+        replace: '',
+      },
     ],
   },
   {

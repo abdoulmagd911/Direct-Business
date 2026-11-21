@@ -263,25 +263,33 @@ test('a member sees their department’s work, never another’s (V96)', async (
   const member = await memberWithTeam();
   const colleague = await memberWithTeam();
   const outsider = await makePerson();
-  const ours = await taskIn('commercial', colleague.id, `Made-up colleague task ${randomUUID().slice(0, 6)}`);
-  const mine = await taskIn('commercial', member.id, `Made-up own task ${randomUUID().slice(0, 6)}`);
-  const theirs = await taskIn(`test_other_${randomUUID().slice(0, 8)}`, outsider.id, 'Made-up other department task');
+  // one made-up word in all three titles, and the lists are read through it (Landing 35): the Team list holds at most
+  // 200 tasks, so on a database that already holds hundreds of the department's tasks these three could fall outside
+  // it and the test would fail for the wrong reason (CI run 1616, the sabotage shard's well-used database)
+  const word = `v96${randomUUID().slice(0, 8)}`;
+  const ours = await taskIn('commercial', colleague.id, `Made-up colleague task ${word}`);
+  const mine = await taskIn('commercial', member.id, `Made-up own task ${word}`);
+  const theirs = await taskIn(
+    `test_other_${randomUUID().slice(0, 8)}`,
+    outsider.id,
+    `Made-up other department task ${word}`,
+  );
   await sql(
     `update core.person set department_id = (select department_id from work.task where number = $1) where id = $2`,
     [theirs, outsider.id],
   );
-  const { ctx, page } = await signedIn(browser, member, 1440, 900, '/tasks?view=team');
+  const { ctx, page } = await signedIn(browser, member, 1440, 900, `/tasks?view=team&q=${word}`);
   await expect(page.locator(`li[data-task-row="${ours}"]`), 'the department’s task shows in Team').toBeVisible();
   await expect(page.locator(`li[data-task-row="${theirs}"]`), 'another department’s does not').toHaveCount(0);
 
-  await page.goto('/tasks');
+  await page.goto(`/tasks?q=${word}`);
   // the list arrives after the page's first answer (Landing 34): "no such row" is only a finding once My work has
   // drawn its rows, so the member's own task is waited for first — before it, the count is 0 whatever the scope
   await expect(page.locator(`li[data-task-row="${mine}"]`), 'My work has drawn: the member’s own task').toBeVisible();
   await expect(page.locator(`li[data-task-row="${ours}"]`), 'a colleague’s task is not My work').toHaveCount(0);
 
   await page.goto(`/tasks/${theirs}`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Made-up other department task' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1, name: `Made-up other department task ${word}` })).toHaveCount(0);
   // QA-233: a task one may not see, or none at that number, is the app's own Not found page (#145), never Next's bare 404
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await page.goto('/tasks/TSK-2099-9999');

@@ -63,9 +63,9 @@ async function open(page: Page, path: string) {
 // ------------------------------------------------------------------------------------------- a · Today's three
 
 const SOURCES = [
-  'Important — your starred tasks',
-  'Short — due today or within 2 days, not starred',
-  'Maintenance — the rest of your own tasks: overdue, due later or with no due day',
+  'Important — your starred tasks first, then your longest overdue',
+  'Short — due today or within 2 days first, then your next due days',
+  'Maintenance — the rest of your own open tasks',
 ];
 const GROUPS = ['important', 'short', 'maintenance'] as const;
 
@@ -857,8 +857,9 @@ test('f · the workspace reads Direct Corporate; the phone top bar carries the b
   test.setTimeout(240_000);
   const person = await staffAs('admin');
   const word = tag();
-  // more tasks due today and tomorrow than Today's three takes, so the Today block keeps a "Quick or pass to someone" group
-  const tasks = await seedOpenTasks(person, word, { starred: 0, quick: 6, later: 0 });
+  // more tasks due today and tomorrow than Today's three takes, so the Today block keeps a "Quick or pass to someone"
+  // group. Landing 35: a group short of three is topped up, so the three takes up to nine — ten are made, one is left.
+  const tasks = await seedOpenTasks(person, word, { starred: 0, quick: 10, later: 0 });
   await page.setViewportSize(DESKTOP);
   await signIn(page, person.email, '/my-day');
   await hydrated(page);

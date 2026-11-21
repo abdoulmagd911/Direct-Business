@@ -54,7 +54,8 @@ async function seedCompany(call: Door, adminId: string) {
         created_on: d,
         total_sar: 1000,
         client_id: cid,
-        dpin: 'DPIN-C1',
+        // its own number each time: a tax invoice number is kept once, so two tests starting together must not share one
+        dpin: `DPIN-C${Math.floor(Math.random() * 900000 + 100000)}`,
         dpin_total: 800,
       },
       { ref: m2, status: 'Fully Paid', created_on: d, total_sar: 500, client_id: cid },

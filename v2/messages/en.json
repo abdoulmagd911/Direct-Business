@@ -540,9 +540,9 @@
         },
         "sourcesLabel": "Where each group comes from",
         "sources": {
-          "important": "Important — your starred tasks",
-          "short": "Short — due today or within {days, plural, one {# day} other {# days}}, not starred",
-          "maintenance": "Maintenance — the rest of your own tasks: overdue, due later or with no due day"
+          "important": "Important — your starred tasks first, then your longest overdue",
+          "short": "Short — due today or within {days, plural, one {# day} other {# days}} first, then your next due days",
+          "maintenance": "Maintenance — the rest of your own open tasks"
         },
         "streak": {
           "days": "Streak: {days, plural, one {# working day} other {# working days}}",
@@ -3251,7 +3251,11 @@
     "related": {
       "tasks": "Tasks",
       "tasksNone": "No tasks on this organisation yet",
-      "due": "Due {date}"
+      "due": "Due {date}",
+      "achievements": "Achievements",
+      "achievementsNone": "No achievements logged for this organisation yet",
+      "loggedBy": "Logged by {name}",
+      "achievementsMore": "Showing the newest {shown} of {total}"
     },
     "gone": {
       "title": "This organisation is not here",

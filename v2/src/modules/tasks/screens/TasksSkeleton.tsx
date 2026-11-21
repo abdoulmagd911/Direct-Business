@@ -26,9 +26,13 @@ export function TasksSkeleton({ board = false, label }: { board?: boolean; label
         <div className={cn(bar, 'ms-auto h-10 w-28')} />
       </div>
       {board ? (
-        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        // the board's own shape (TaskBoard): columns side by side in one row, never wrapped under each other
+        <div className="flex min-w-0 items-start gap-3 overflow-hidden">
           {[3, 2, 1, 2].map((cards, i) => (
-            <div key={i} className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2">
+            <div
+              key={i}
+              className="flex w-[calc(100%-2.5rem)] shrink-0 flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:w-auto sm:min-w-[15rem] sm:flex-1 sm:basis-0"
+            >
               <div className={cn(bar, 'm-1.5 h-4 w-24')} />
               {Array.from({ length: cards }, (_, j) => (
                 <div

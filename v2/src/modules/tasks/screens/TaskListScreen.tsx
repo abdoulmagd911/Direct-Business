@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, Columns3, List, ListChecks, Plus, Search } f
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { nameOf } from '@/modules/org/types';
 import { BulkBar } from '@/ui/BulkBar';
@@ -23,6 +23,7 @@ import {
   DUE_CHIPS,
   LAYOUTS,
   SCOPES,
+  SEARCH_DEBOUNCE_MS,
   STATUS_CHIPS,
   STATUS_TONE,
   TASK_SORTS,
@@ -31,8 +32,12 @@ import {
   keepRow,
   phoneScopes,
   riyadhDay,
-  queryFilters,
+  defaultViewOpens,
+  searchBoxOnAddress,
+  searchHref,
+  searchTerm,
   sortRows,
+  viewFilters,
   type Layout,
   type TaskFilters,
   type TaskSortKey,
@@ -85,9 +90,14 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   // the box shows the search the address holds: a navigation that changes the search (Clear all, a saved view) must
   // move the box too — a box that kept its mount-time text showed a search that was no longer running (F102).
   const [seenQ, setSeenQ] = useState(f.q ?? '');
+  // Landing 35: the box asks as it is typed in, so an answer to its OWN question never rewrites it (an older answer
+  // arriving while the person typed on ate the last letters and threw the caret) — `searchBoxOnAddress`.
+  const [asked, setAsked] = useState<string[]>([]);
   if ((f.q ?? '') !== seenQ) {
+    const on = searchBoxOnAddress(f.q, asked);
     setSeenQ(f.q ?? '');
-    setQ(f.q ?? '');
+    setAsked(on.asked);
+    if (on.follow) setQ(f.q ?? '');
   }
   const today = riyadhDay(new Date());
   // FIX-01: the priority filter is judged on the rows, the sort re-orders them — the server's order stands when no
@@ -136,6 +146,26 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
     if (navStartedTo(href)) router.push(href);
   };
   const retry = () => router.refresh();
+  // Landing 35 — the search filters as you type. The cause of "only after Enter": the box only kept its own text, and
+  // nothing but the form's submit ever moved the address. Now a pause of SEARCH_DEBOUNCE_MS after the last key asks
+  // for the box's words (an emptied box drops the search); Enter asks at once. The address is REPLACED, not pushed, so
+  // Back leaves the list instead of walking back through every letter; the screen stays mounted, so the box keeps its
+  // focus and its caret. The router gives up an older question when a newer one is asked, and the rows and the address
+  // arrive together, so an older answer cannot be drawn over a newer one.
+  const term = searchTerm(q) ?? '';
+  const wanted = searchHref(f, q);
+  // asked already and the answer is on its way: the same question is not asked twice
+  const inFlight = wanted !== null && asked[asked.length - 1] === term;
+  const search = (href: string) => {
+    setAsked((a) => [...a, term]);
+    if (navStartedTo(href)) router.replace(href, { scroll: false });
+  };
+  const searchLater = useEffectEvent(search);
+  useEffect(() => {
+    if (!wanted || inFlight) return;
+    const timer = setTimeout(() => searchLater(wanted), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [wanted, inFlight]);
   // the open saved view (Phase 5): All, or a built-in — Starred, Need help — or one anyone saved; the choice lives
   // in the address with the filters, so Back and refresh keep it
   const [view, setView] = useState(f.escalated ? 'escalated' : f.starred ? 'starred' : 'all');
@@ -154,8 +184,9 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
     if (v.key === 'escalated') return go({ escalated: true, starred: undefined });
     // FIX-12 (D42): Mine — the tasks I own or am helping on, across all scope tabs.
     if (v.key === 'mine') return go({ scope: 'my_work', starred: undefined, escalated: undefined });
-    // a saved view: its whole query applies on this list (FIX-12, D36(j))
-    go(queryFilters(v.query));
+    // a saved view: its whole query applies on this list (FIX-12, D36(j)); the layout on screen stays unless the view
+    // names its own (Landing 35)
+    go(viewFilters(f, v.query));
   };
 
   const chipMenu = (field: string, options: { key: string; label: string; href: string }[]) => (
@@ -241,8 +272,11 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         query={{ ...f } as unknown as Record<string, unknown>}
         onOpen={openView}
         canShare={me.levels.tasks === 'full'}
-        // FIX-12 (F046): the labelled default opens first on a fresh load, as Finance and My day already do.
-        onDefault={openView}
+        // FIX-12 (F046): the labelled default opens first on a fresh load, as Finance and My day already do — but only
+        // on the bare list: an address with a choice of its own (?layout=board, a tab, a search) is kept (Landing 35).
+        onDefault={(v) => {
+          if (defaultViewOpens(f)) openView(v);
+        }}
         saveHint={t('views.saveHint')}
       />
       <div className="flex flex-wrap items-center gap-2" data-task-chips>
@@ -252,8 +286,10 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
             className="relative w-full sm:w-[280px]"
             onSubmit={(e) => {
               e.preventDefault();
-              go({ q: q.trim() || undefined });
+              // Enter asks at once — also when the same words were asked and no answer came (a lost request)
+              if (wanted) search(wanted);
             }}
+            data-task-search
           >
             <Search
               className="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-muted"

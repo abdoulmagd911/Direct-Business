@@ -217,9 +217,9 @@ describe("My day opens with Today's three", () => {
   it('lists the three source lines under the section', async () => {
     await draw(tasks);
     expect([...document.querySelectorAll('[data-three-sources] li')].map((li) => li.textContent)).toEqual([
-      'Important — your starred tasks',
-      'Short — due today or within 2 days, not starred',
-      'Maintenance — the rest of your own tasks: overdue, due later or with no due day',
+      'Important — your starred tasks first, then your longest overdue',
+      'Short — due today or within 2 days first, then your next due days',
+      'Maintenance — the rest of your own open tasks',
     ]);
   });
 
