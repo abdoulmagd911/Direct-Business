@@ -6,6 +6,10 @@
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.lead', test.person('Test Finance Lead', 'head')::text, true);
 select set_config('t.am', test.person('Test Account Manager', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.lead')::uuid, 'pipeline', 'view', 'made up: Finance only');
 

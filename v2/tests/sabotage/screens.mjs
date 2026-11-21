@@ -526,27 +526,41 @@ export const sabotages = [
   },
 
   {
+    // Landing 34: a signed-in person's language is `personLocale` now (the words, the direction and the cookie all
+    // follow it); `effectiveLocale`, which this used to break, is read by nothing. The mistake moves with the rule:
+    // English whether the switch is on or off.
     name: 'arabic-never-switched-on',
     breaks: ['e2e:tests/e2e/app-settings.alone.spec.ts'],
-    expect: 'once Arabic is on, the switch shows and the cookie is honoured',
+    expect: 'a person with no saved language is answered in Arabic once Arabic is on',
     edits: [
       {
         file: 'src/core/prefs/effective.ts',
-        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
-        replace: "  return 'en';",
+        find: "  if (!app.arabic_enabled) return 'en';",
+        replace: "  if (app.arabic_enabled || !app.arabic_enabled) return 'en';",
       },
     ],
   },
 
   {
+    // Landing 34: the cookie is no part of a signed-in person's language any more (`personLocale` takes none), and
+    // `effectiveLocale`, which this used to break, is read by nothing. The one place the cookie's language still
+    // meets a signed-in page is where it is kept for the door alone — the words and <html lang> in
+    // core/i18n/request.ts, the direction in `serverPrefs` — so the mistake is planted in both: a cookie that says
+    // Arabic is served to everyone, signed in or not, whatever the Arabic switch says.
     name: 'arabic-cookie-wins-while-off',
     breaks: ['e2e:tests/e2e/access.spec.ts'],
     expect: 'signed in, the page stays English',
     edits: [
       {
+        file: 'src/core/i18n/request.ts',
+        find: "const locale = me?.status === 'ok' ? personLocale(me.profile?.locale, app) : prefs.locale;",
+        replace:
+          "const locale =\n    me?.status === 'ok' && prefs.locale !== 'ar' ? personLocale(me.profile?.locale, app) : prefs.locale;",
+      },
+      {
         file: 'src/core/prefs/effective.ts',
-        find: "  return app.arabic_enabled ? cookieLocale : 'en';",
-        replace: '  return cookieLocale;',
+        find: '    locale: me ? eff.locale : raw.locale,',
+        replace: '    locale: raw.locale,',
       },
     ],
   },
@@ -953,9 +967,11 @@ export const sabotages = [
   },
 
   {
+    // Landing 34: the list draws a refused read as no access too, so under this mistake the words are still right;
+    // what gives it away is the list drawn around them (the spec's "stands alone" check).
     name: 'clients-none-reads-as-a-list',
     breaks: ['e2e:tests/e2e/clients-none.spec.ts'],
-    expect: 'no-access',
+    expect: 'the no-access state stands alone: no list is drawn around it',
     edits: [
       {
         file: 'src/modules/partners/screens/list-page.tsx',

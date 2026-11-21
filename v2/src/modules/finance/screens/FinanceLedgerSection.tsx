@@ -12,7 +12,7 @@ import { toast } from '@/ui/Toast';
 import { LEDGER_KINDS, ledgerFilterQuery, ledgerReadArgs } from '../ledger';
 import type { PeriodAsk } from '../period';
 import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
-import { useFinanceRead } from '../use-reads';
+import { financeWrote, useFinanceRead } from '../use-reads';
 import { CountedTable } from './CountedTable';
 import { FinanceReport, type LedgerToggle } from './FinanceReport';
 import { FinanceCard } from './parts';
@@ -131,6 +131,7 @@ export function FinanceLedgerSection({
     toast.done(
       t(kind === 'exclude' ? 'finance.ledger.excludedDone' : 'finance.ledger.includedDone', { number: row.number }),
     );
+    financeWrote();
     refetchAll();
   };
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>

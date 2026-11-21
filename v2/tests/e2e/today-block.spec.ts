@@ -3,9 +3,11 @@
  * Next; a row has a done tick (with Undo), the title, the client chip and the due day, and a tap on it opens the task;
  * with nothing due it says "Nothing due today". Phone first: at 375 and 1,440 px, no sideways scroll, the tick and the
  * row are 44 px high at least. Arabic and English read the same catalog words. Every value is made up.
- * Landing 34: Today's three sits above the block and draws up to three starred tasks, three unstarred urgent ones and
- * three others; the block holds the rest. So the person here has three more tasks of each kind, due sooner, that fill
- * Today's three — and the four tasks the block is read by are the ones left for it. No task is drawn twice.
+ * Landing 34: Today's three sits above the block and draws up to three starred tasks, three unstarred ones due today
+ * or within two days and three others (Landing 34b: picked by the database; an overdue unstarred task is one of the
+ * others); the block holds the rest. So the person here has three more tasks of each kind, due sooner or made
+ * sooner, that fill Today's three — and the four tasks the block is read by are the ones left for it. No task is
+ * drawn twice.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
@@ -42,25 +44,25 @@ for (const width of [375, 1440]) {
     page,
   }) => {
     const { me, t, make } = await personWithTasks();
-    const late = await make(`Late task ${t}`, -2);
-    const due = await make(`Due task ${t}`, 0);
-    await make(`Soon task ${t}`, 1);
-    await make(`Later task ${t}`, 5);
-    // Today's three takes the three of each kind that are due first (Landing 34): three starred and overdue, three
-    // unstarred and overdue, three not urgent and due before the Later task — the four above are left for the block
+    // Today's three is picked by the database from all my own open tasks (Landing 34b): Important = starred; Short =
+    // not starred and due today or within two days — never an overdue one; Maintenance = the rest (overdue, later,
+    // no due day). Each by due day then number. So three of each kind are made FIRST and due no later than the four
+    // tasks the block is read by — those four are what is left for the block.
     const three = {
       important: [
         await make(`Top A ${t}`, -5, true),
         await make(`Top B ${t}`, -4, true),
         await make(`Top C ${t}`, -3, true),
       ],
-      short: [await make(`Short A ${t}`, -3), await make(`Short B ${t}`, -2), await make(`Short C ${t}`, -1)],
-      // two on one day: within a day the order is the task number's
-      maintenance: [
-        ...[await make(`Keep A ${t}`, 3), await make(`Keep B ${t}`, 3)].sort(),
-        await make(`Keep C ${t}`, 4),
-      ],
+      // all due today: within a day the order is the task number's, so these come before the Due task made after them
+      short: [await make(`Short A ${t}`, 0), await make(`Short B ${t}`, 0), await make(`Short C ${t}`, 0)],
+      // an overdue unstarred task is Maintenance, and first there; then two on one day, by number
+      maintenance: [await make(`Old ${t}`, -3), ...[await make(`Keep A ${t}`, 3), await make(`Keep B ${t}`, 3)].sort()],
     };
+    const late = await make(`Late task ${t}`, -2);
+    const due = await make(`Due task ${t}`, 0);
+    await make(`Soon task ${t}`, 1);
+    await make(`Later task ${t}`, 5);
     await page.setViewportSize({ width, height: width === 375 ? 800 : 1000 });
     await signIn(page, me.email, '/my-day');
     await hydrated(page);

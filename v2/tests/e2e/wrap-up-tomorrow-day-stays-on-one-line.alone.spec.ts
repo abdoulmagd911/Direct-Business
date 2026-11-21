@@ -6,8 +6,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
-import { setPrefs } from './helpers';
-import { withArabicOn } from './support/arabic';
+import { readsArabic, withArabicOn } from './support/arabic';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -33,7 +32,7 @@ for (const code of ['en', 'ar'] as const) {
       await sql(`update work.task set due_on = core.riyadh_today() where number = $1`, [
         (made.body as { number: string }).number,
       ]);
-      if (code === 'ar') await setPrefs(context, { locale: 'ar' });
+      if (code === 'ar') await readsArabic(member.id);
       await page.reload();
       await hydrated(page);
       await page.locator('[data-wrap-open]').click();

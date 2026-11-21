@@ -79,7 +79,8 @@ select test.raises($$select api.import_batch_rows('00000000-0000-0000-0000-00000
 -- setting in Settings › People & access › Access, given to this member below.
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
 select test.as_owner();
--- Landing 34: a Team member starts with no access to Finance; this one is given View, as an admin would in Settings
+-- Landing 34b (the owner, 21 Nov 2026): a Team member starts at Full on Finance; this one is held at View — a reader,
+-- not an editor — as an admin would in Settings
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.mem')::uuid, 'finance', 'view', 'made up: View on Finance');
 select test.as_person(current_setting('t.mem')::uuid);

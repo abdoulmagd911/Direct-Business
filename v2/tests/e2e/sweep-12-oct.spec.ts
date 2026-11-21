@@ -121,11 +121,19 @@ test('Finance and Settings are in the menu of the people whose access opens them
     manager.id,
   ]);
   const member = await makePerson();
+  // a person set to None on Finance by a person change (Settings › People & access › Access): the one with no Finance
+  const closed = await makePerson();
+  await sql(
+    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+     values ($1, 'finance', 'none', 'Made up: no Finance for this person', $1)`,
+    [closed.id],
+  );
 
   for (const [who, finance, settings] of [
     [admin, true, true],
     [manager, true, false],
-    [member, false, false], // Landing 34 (owner's test round of 19 Nov, item 5): Members start at none on Finance
+    [member, true, false], // the owner, 21 Nov: Members start at Full on Finance (this overrules Landing 34's none)
+    [closed, false, false], // Finance follows the access: None for this person, so no Finance on a desktop or a phone
   ] as const) {
     await page.context().clearCookies();
     await page.setViewportSize({ width: 1440, height: 900 });

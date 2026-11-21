@@ -3,6 +3,7 @@ import { useLocale } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { cn } from '@/ui/cn';
+import { healthOf } from '../figures';
 import { ledgerMayAsk, opensLedgerView } from '../ledger';
 import { useFinanceRead, type Block } from '../use-reads';
 import type { PeriodAsk } from '../period';
@@ -80,7 +81,8 @@ export function FinanceOverviewLive({
   const data: OverviewData = {
     period: dataOf(period.block),
     closed: dataOf(closed.block),
-    health: dataOf(health.block),
+    // a list, or nothing: an answer of any other shape is a read that failed, said so with Try again — never figures
+    health: healthOf(dataOf(health.block)),
     notInvoiced: dataOf(notInvoiced.block),
     asOf: dataOf(asOf.block),
     service: dataOf(service.block),
@@ -104,6 +106,7 @@ export function FinanceOverviewLive({
           asOf: is(asOf.block),
           service: is(service.block),
         }}
+        refused={{ health: health.block.status === 'failed' && health.block.refused === true }}
         retry={{
           period: period.retry,
           closed: closed.retry,

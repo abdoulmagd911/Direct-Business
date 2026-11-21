@@ -18,10 +18,21 @@ import { KpiTile } from '@/ui/KpiTile';
 import { PageHeader } from '@/ui/PageHeader';
 import { Tabs } from '@/ui/Tabs';
 import { toast } from '@/ui/Toast';
-import { attention, lateCount, lateParts, monthRows, monthsGap, shortForm, stampOf, type MonthRow } from '../figures';
+import {
+  attention,
+  attentionState,
+  lateCount,
+  lateParts,
+  monthRows,
+  monthsGap,
+  shortForm,
+  stampOf,
+  type MonthRow,
+} from '../figures';
 import type { PeriodAsk, PeriodKey } from '../period';
 import { monthStart } from '../period';
 import type { IncomeByService, LateChange, OverviewData, Period } from '../types';
+import { financeWrote } from '../use-reads';
 import { CloseReceipt, type Closed } from './CloseReceipt';
 import { FinanceCard, TilesSkeleton } from './parts';
 
@@ -55,6 +66,7 @@ export function FinanceOverview({
   full,
   data,
   loading,
+  refused,
   retry: retryBlock,
   closer,
   phoneView,
@@ -67,6 +79,8 @@ export function FinanceOverview({
   data: OverviewData;
   /** A block still being read: drawn as loading, not as failed. */
   loading?: Partial<Record<keyof OverviewData, boolean>>;
+  /** A block the database refused this reader (42501): an answer, not a failure — the strip is then not drawn. */
+  refused?: Partial<Record<keyof OverviewData, boolean>>;
   /** Repeats one block's own read; the page's refresh is only the fallback. */
   retry?: Partial<Record<keyof OverviewData, () => void>>;
   /** The signed-in person's name, for the receipt of a month they close. */
@@ -95,6 +109,8 @@ export function FinanceOverview({
     );
   const rows = data.period && data.closed ? monthRows(data.period, data.closed, monthStart(today)) : null;
   const flags = data.health ? attention(data.health, lateCount(data.closed, ask.from, ask.to)) : null;
+  // the strip from its own read alone: drawn, on its way, failed in words — or, refused to this reader, not there
+  const strip = attentionState({ health: data.health, loading: loading?.health, refused: refused?.health });
   // the Payments stamp: the day behind the figures, said as "not refreshed since" once it is more than two days old
   const stamp = data.asOf ? stampOf(data.asOf, today) : null;
   /** Income by company is a part of the ledger: a phone opens that view first, then the browser is taken to it. */
@@ -144,7 +160,7 @@ export function FinanceOverview({
     />
   ) : null;
   return (
-    <div className="@container flex flex-col gap-5" data-finance-overview>
+    <div className="@container flex flex-col gap-5" data-finance-overview data-finance-strip={strip}>
       <PageHeader
         title={t('nav.finance')}
         actions={
@@ -252,7 +268,7 @@ export function FinanceOverview({
               <AttentionChip kind="no-client" count={flags.noClient} label={t('finance.attention.noClient')} />
               <AttentionChip kind="late" count={flags.late} label={t('finance.attention.late')} />
             </section>
-          ) : data.health ? null : (
+          ) : strip === 'hidden' ? null : (
             missing('health', t('finance.failed.health'))
           )}
 
@@ -587,6 +603,7 @@ function Months({
       setClosing(null);
       // the one action here with no Undo (V620): a closed month is never reopened
       toast.done(t('finance.close.done', { month: monthName(month, locale) }));
+      financeWrote();
       refetchAll();
     } catch (e) {
       setClosing(null);

@@ -99,6 +99,9 @@ export type PendingReminder = {
 };
 
 /** One of my open tasks as `my.my_tasks` serves it (D3): grouped by Riyadh day; `helping` are the ones I only help on. */
+/** The three groups of Today's three. */
+export type ThreeGroupKey = 'important' | 'short' | 'maintenance';
+
 export type TodayTask = {
   id: string;
   number: string;
@@ -159,6 +162,17 @@ export type MyDayAnswer = {
   reminders: PendingReminder[];
   /** Me only: my open tasks due by the end of this week (absent from an older answer). */
   tasks?: TodayTask[];
+  /**
+   * Me only (Landing 34b): Today's three as the database picks it from ALL my own open tasks — Important = starred,
+   * Short = not starred and due today or within two days, Maintenance = the rest (overdue, later, no due day); at most
+   * three each in one fixed order, with how many each group holds in all. Absent from an older answer.
+   */
+  three?: {
+    important: TodayTask[];
+    short: TodayTask[];
+    maintenance: TodayTask[];
+    totals: Record<ThreeGroupKey, number>;
+  } | null;
   /** Me only: what yesterday's wrap-up carried to today. */
   carried_over?: CarriedItem[];
 };

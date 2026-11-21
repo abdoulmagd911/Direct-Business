@@ -13,7 +13,10 @@ test('a theme PrefsSync copied from the profile gives way when the profile chang
   page,
 }) => {
   const member = await makePerson();
-  await sql(`insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'dark')`, [member.id]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'dark') on conflict (person_id) do update set theme = excluded.theme`,
+    [member.id],
+  );
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

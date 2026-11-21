@@ -17,7 +17,7 @@ export const sabotages = [
   {
     name: 'finance-new-button-for-everyone',
     breaks: ['e2e:tests/e2e/finance-new-button.spec.ts'],
-    expect: 'a member does not get the New invoice button',
+    expect: 'a viewer does not get the New invoice button',
     edits: [
       {
         file: OVERVIEW,

@@ -72,11 +72,22 @@ export interface TestPerson {
  * the admin's allow-list would; `canSignIn: false` is a listed person who is switched off. The auth user holds the
  * test password, and the app knows it (`passwordRecorded`, default) — so no "Generate for everyone without a password"
  * running in a parallel spec ever replaces it; `passwordRecorded: false` is a person the app thinks has none.
+ *
+ * `locale` is the language saved in the person's profile (Landing 34b). While Arabic is on, a signed-in person is
+ * answered in their SAVED language and a person who never chose reads Arabic — so every made-up person has English
+ * saved (the default), and a spec that turns Arabic on in a parallel worker changes nothing for them. `locale: 'ar'`
+ * is a person who chose Arabic; `locale: null` is a person who never chose (no profile at all).
  */
 export async function makePerson(
-  opts: { admin?: boolean; canSignIn?: boolean; listed?: boolean; passwordRecorded?: boolean } = {},
+  opts: {
+    admin?: boolean;
+    canSignIn?: boolean;
+    listed?: boolean;
+    passwordRecorded?: boolean;
+    locale?: SavedLanguage | null;
+  } = {},
 ): Promise<TestPerson> {
-  const { admin: isAdmin = false, canSignIn = true, listed = true, passwordRecorded = true } = opts;
+  const { admin: isAdmin = false, canSignIn = true, listed = true, passwordRecorded = true, locale = 'en' } = opts;
   const id = randomUUID();
   const tag = id.slice(0, 8);
   const email = `test.e2e-${tag}@example.test`;
@@ -98,6 +109,7 @@ export async function makePerson(
              (select id from core.role where key = $3), $4, 'staff')`,
     [id, name, roleKey, canSignIn],
   );
+  if (locale) await saveLanguage(id, locale);
   if (!listed) return { id, email, authUserId: null, name };
   await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [id, email]);
   const created = await admin().createUser({ email, email_confirm: true, password: TEST_PASSWORD });
@@ -108,6 +120,34 @@ export async function makePerson(
     [created.data.user.id, id, email, passwordRecorded],
   );
   return { id, email, authUserId: created.data.user.id, name };
+}
+
+export type SavedLanguage = 'en' | 'ar';
+
+/**
+ * The language a person has saved in their profile, written as their own choice would be ("Your language", the
+ * profile menu, My profile): the profile row is made if there is none, and nothing else in it is touched. `null` puts
+ * the choice away again — a person who never chose.
+ */
+export async function saveLanguage(personId: string, locale: SavedLanguage | null): Promise<void> {
+  if (locale === null) {
+    await sql(`update core.person_profile set locale = null where person_id = $1`, [personId]);
+    return;
+  }
+  await sql(
+    `insert into core.person_profile (person_id, created_by, locale) values ($1, $1, $2)
+       on conflict (person_id) do update set locale = excluded.locale`,
+    [personId, locale],
+  );
+}
+
+/** The language a person has saved (null: they never chose, or have no profile). */
+export async function savedLanguage(personId: string): Promise<SavedLanguage | null> {
+  const [row] = await sql<{ locale: SavedLanguage | null }>(
+    `select locale from core.person_profile where person_id = $1`,
+    [personId],
+  );
+  return row?.locale ?? null;
 }
 
 /** A made-up email nobody holds. */
@@ -212,6 +252,14 @@ export async function givePassword(email: string, password = TEST_PASSWORD): Pro
   if (error) throw new Error(error.message);
   await sql(
     `update core.person_auth set password_set_at = now(), must_change_password = false where auth_user_id = $1`,
+    [row.id],
+  );
+  // a person made through the app has no saved language; like every made-up person they read English whatever a
+  // parallel spec does with the Arabic switch (see makePerson) — a language they already chose is left alone
+  await sql(
+    `insert into core.person_profile (person_id, created_by, locale)
+       select person_id, person_id, 'en' from core.person_auth where auth_user_id = $1
+     on conflict (person_id) do update set locale = coalesce(core.person_profile.locale, 'en')`,
     [row.id],
   );
 }

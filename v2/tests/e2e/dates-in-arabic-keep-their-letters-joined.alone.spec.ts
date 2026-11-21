@@ -6,8 +6,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, sql } from './support/stack';
-import { setPrefs } from './helpers';
-import { withArabicOn } from './support/arabic';
+import { readsArabic, withArabicOn } from './support/arabic';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
 
@@ -31,7 +30,7 @@ test('a date in Arabic is drawn in the app’s own fonts, not a system monospace
     expect(made.status, JSON.stringify(made.body)).toBe(200);
     const { number } = made.body as { number: string };
     await sql(`update work.task set due_on = core.riyadh_today() where number = $1`, [number]);
-    await setPrefs(context, { locale: 'ar' });
+    await readsArabic(member.id);
     await page.reload();
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');

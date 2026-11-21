@@ -31,8 +31,56 @@ export const sabotages = [
     edits: [
       {
         file: MY_DAY,
-        find: 'const belowThree = [...three.rest, ...helpingTasks(answer.tasks ?? [])];',
+        find: 'const belowThree = three.rest;',
         replace: 'const belowThree = answer.tasks ?? [];',
+      },
+    ],
+  },
+  {
+    // Landing 34b: the screen sorts the database's pick again (here: the highest number first), so the three are no
+    // longer the ones due first in the database's own order
+    name: 'e2e-l34-the-screen-sorts-the-three-again',
+    breaks: [ROUND],
+    expect: 'draws exactly the expected titles, in order',
+    edits: [
+      {
+        file: 'src/modules/my-day/logic.ts',
+        find: 'out[g].push(row);',
+        replace: 'out[g].push(row);\n      out[g].sort((x, y) => y.number.localeCompare(x.number));',
+      },
+    ],
+  },
+  {
+    // Landing 34b, the owner's own check: the three come in a different order on every load. (The order is drawn by
+    // lot, so two loads agree by chance once in about two hundred runs; the test then still fails on a later load.)
+    name: 'e2e-l34-todays-three-moves-between-loads',
+    breaks: [ROUND],
+    expect: "Today's three is the same on load",
+    edits: [
+      {
+        file: 'src/modules/my-day/server.ts',
+        find: "  const day = (await serverRpc('my_day', { p_scope: scope, p_limit: limit })) as unknown as MyDayAnswer;\n",
+        replace:
+          "  const day = (await serverRpc('my_day', { p_scope: scope, p_limit: limit })) as unknown as MyDayAnswer;\n" +
+          "  for (const g of ['important', 'short', 'maintenance'] as const)\n" +
+          '    if (day.three?.[g])\n' +
+          '      day.three[g] = day.three[g]\n' +
+          '        .map((row) => ({ row, lot: Math.random() }))\n' +
+          '        .sort((x, y) => x.lot - y.lot)\n' +
+          '        .map((x) => x.row);\n',
+      },
+    ],
+  },
+  {
+    // a group that holds more than the three drawn no longer says so
+    name: 'e2e-l34-the-more-line-is-gone',
+    breaks: [ROUND],
+    expect: 'says how many more it holds in Tasks',
+    edits: [
+      {
+        file: 'src/modules/my-day/screens/TodaysThree.tsx',
+        find: '{threeMore(three, g) > 0 ? (',
+        replace: '{threeMore(three, g) > 99 ? (',
       },
     ],
   },
@@ -247,15 +295,30 @@ export const sabotages = [
   },
   {
     // picking a language does nothing (the reload alone is not what the screen depends on: the app's own
-    // preferences sync reloads too, so a plant on the reload stays green)
+    // preferences sync reloads too, so a plant on the reload stays green). Landing 34b: with Arabic on the screen is
+    // Arabic already, so the first choice that must do something is English
     name: 'e2e-l34-a-language-choice-does-nothing',
     breaks: [ARABIC],
-    expect: 'choosing العربية reloads into Arabic',
+    expect: 'choosing English draws the app in English while Arabic stays on',
     edits: [
       {
         file: 'src/core/prefs/use-language-choice.ts',
         find: 'if (next === locale) return;',
         replace: 'if (next !== locale) return;',
+      },
+    ],
+  },
+  {
+    // Landing 34b: turning Arabic on switches nobody's screen — a person with no saved language still reads English
+    // (the old rule's result: the switch only offered a choice)
+    name: 'arabic-on-leaves-everyone-in-english',
+    breaks: [ARABIC],
+    expect: 'after the save the app is Arabic for the admin who chose no language',
+    edits: [
+      {
+        file: 'src/core/prefs/effective.ts',
+        find: "  return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : 'ar';",
+        replace: "  return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : 'en';",
       },
     ],
   },

@@ -55,8 +55,8 @@ export default defineModule({
       route: '/partners/[id]?tab=finance',
       label: 'partners.companyFinance.page',
       built: true,
-      // a team member starts at none, as on Finance itself (Landing 34, item 5); an admin may raise it in Settings
-      defaults: { admin: 'full', head: 'full', manager: 'full', viewer: 'view' },
+      // a team member starts at full, as on Finance itself (the owner, 21 Nov); a viewer only reads
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
   ],
   entities: [

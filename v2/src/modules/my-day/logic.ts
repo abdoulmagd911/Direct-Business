@@ -1,4 +1,4 @@
-import { TURN_KINDS, type TodayTask, type MyNote, type NoteLink, type TurnKind } from './types';
+import { TURN_KINDS, type MyDayAnswer, type TodayTask, type MyNote, type NoteLink, type TurnKind } from './types';
 
 /** Every block on My day draws this many rows at most, then a "more" link (V433: 5–7 rows, Comfortable, never cramped). */
 export const BLOCK_ROWS = 7;
@@ -158,29 +158,45 @@ export const THREE_GROUPS = ['important', 'short', 'maintenance'] as const;
 export type ThreeGroup = (typeof THREE_GROUPS)[number];
 /** How many tasks each group of Today's three holds at most. */
 export const THREE_EACH = 3;
-export type TodaysThree = Record<ThreeGroup, TodayTask[]> & { rest: TodayTask[] };
+export type TodaysThree = Record<ThreeGroup, TodayTask[]> & { rest: TodayTask[]; totals: Record<ThreeGroup, number> };
 
 /**
  * Today's three — the daily practice: 3 important + 3 short + 3 maintenance from the person's OWN open tasks (never the
- * ones they only help on, never a system-wide list). No new stored field: important = the starred tasks (the Do now and
- * Plan it boxes), short = not starred and urgent (the Quick box), maintenance = the other own tasks (the Later box — the
- * upkeep that keeps things running). Each group is sorted by due day then number and holds at most three; `rest` is
- * every own task not picked, which stays in the Today block below, grouped as before.
+ * ones they only help on, never a system-wide list). Landing 34b: the DATABASE picks them (`api.my_day` → `three`, from
+ * my.my_three) out of ALL the person's own open tasks — Important = starred; Short = not starred and due today or
+ * within `URGENT_WITHIN_DAYS`; Maintenance = the rest (overdue, later, or with no due day) — in one fixed order, so the
+ * section is the same on every load. The screen picks nothing itself: the Today list it used to pick from only holds
+ * this week's tasks, which is why an undated task was in no group and an overdue one counted as Short.
+ * `totals` is how many each group holds in all; `rest` is what stays in the Today block below: the tasks of the Today
+ * list that were not picked into the three (mine and the ones I help on), drawn once.
  */
-export function todaysThree(tasks: TodayTask[], day: string): TodaysThree {
-  const boxes = todayBoxes(tasks, day);
-  const all: Record<ThreeGroup, TodayTask[]> = {
-    important: [...boxes.do_now, ...boxes.plan_it].sort(byDueThenNumber),
-    short: boxes.quick,
-    maintenance: boxes.later,
+export function todaysThree(three: MyDayAnswer['three'], tasks: TodayTask[]): TodaysThree {
+  const out: TodaysThree = {
+    important: [],
+    short: [],
+    maintenance: [],
+    rest: [],
+    totals: { important: 0, short: 0, maintenance: 0 },
   };
-  const out: TodaysThree = { important: [], short: [], maintenance: [], rest: [] };
+  const picked = new Set<string>();
   for (const g of THREE_GROUPS) {
-    out[g] = all[g].slice(0, THREE_EACH);
-    out.rest.push(...all[g].slice(THREE_EACH));
+    const rows = Array.isArray(three?.[g]) ? (three?.[g] ?? []) : [];
+    // the database's own order and its limit; a row without an id, or one already drawn in an earlier group, is dropped
+    for (const row of rows) {
+      if (!row || typeof row.id !== 'string' || picked.has(row.id) || out[g].length >= THREE_EACH) continue;
+      picked.add(row.id);
+      out[g].push(row);
+    }
+    const total = three?.totals?.[g];
+    out.totals[g] =
+      typeof total === 'number' && Number.isFinite(total) ? Math.max(Math.floor(total), out[g].length) : out[g].length;
   }
+  out.rest = tasks.filter((task) => !picked.has(task.id));
   return out;
 }
+
+/** How many of a group's tasks are not drawn in Today's three (they are in the Today block or on Tasks). */
+export const threeMore = (three: TodaysThree, g: ThreeGroup): number => Math.max(three.totals[g] - three[g].length, 0);
 
 /** The person's streak as `api.my_streak` answers it: working days in a row with Today's three done. */
 export type Streak = { days: number; today_done: number; target: number };

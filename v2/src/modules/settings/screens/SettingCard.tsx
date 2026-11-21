@@ -178,6 +178,13 @@ export function SettingCard({
           </Button>
         ) : null}
       </div>
+      {/* what the Arabic switch does, in plain words (Landing 34b, the owner's ask): on, the workspace opens in
+          Arabic for everyone who chose no language of their own */}
+      {def.key === ARABIC_KEY ? (
+        <p className="text-sm text-muted" data-setting-says>
+          {t('settings.language.whatArabicDoes')}
+        </p>
+      ) : null}
       {/* Arabic is on: the choice it opens is offered here at once, to the person who has just turned it on */}
       {def.key === ARABIC_KEY && def.value === true ? <LanguageChoice /> : null}
       {deptRows.length ? (

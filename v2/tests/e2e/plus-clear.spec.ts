@@ -123,7 +123,10 @@ test('the "Profile saved" toast stands above the bottom bar and nothing covers i
 }) => {
   const me = await makePerson();
   // the first save of a profile creates its row, which offers no Undo: start from a profile that exists
-  await sql(`insert into core.person_profile (person_id, created_by) values ($1, $1)`, [me.id]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by) values ($1, $1) on conflict (person_id) do nothing`,
+    [me.id],
+  );
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/profile');
   await hydrated(page);

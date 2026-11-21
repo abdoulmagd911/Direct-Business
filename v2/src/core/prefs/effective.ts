@@ -4,35 +4,35 @@ import { PREF_DEFS, ownChoice, prefsFrom, readTheme, type Prefs } from './index'
 
 /**
  * What the screen should show for a signed-in person (ACC-090/091/139): their own profile choice first, then the
- * admin's default, then the registry's; the language is English whatever the cookie says while Arabic is off (V122).
+ * admin's default, then the registry's; the language is the workspace's — English while Arabic is off (V122), Arabic
+ * while it is on — unless the person chose their own (personLocale).
  * The cookies are only this answer's cache (core/prefs) — PrefsSync brings them in line.
  */
-export function effectivePrefs(
-  me: Me | null,
-  app: AppSettings,
-  cookies: Prefs,
-): Pick<Prefs, 'theme' | 'density' | 'locale'> {
+export function effectivePrefs(me: Me | null, app: AppSettings): Pick<Prefs, 'theme' | 'density' | 'locale'> {
   const profile = me?.profile ?? null;
   const theme = readTheme(profile?.theme) ?? app.default_theme;
   const density = profile?.density ?? app.default_density;
-  const locale = personLocale(profile?.locale, cookies.locale, app);
+  const locale = personLocale(profile?.locale, app);
   return { theme, density, locale };
 }
 
 /**
  * The language a signed-in person is answered in — ONE rule for the words (core/i18n/request.ts), the page's
- * direction (serverPrefs) and the cookie PrefsSync keeps (Landing 34): English while Arabic is off, whatever was
- * chosen; with Arabic on, the language saved in their profile, and only without one the cookie's. Before, the words
- * followed the cookie alone while the layout followed the profile, so a person whose profile said Arabic was first
- * answered in English and only a second load put it right.
+ * direction (serverPrefs), the cookie PrefsSync keeps and the one My profile keeps:
+ *   - Arabic off (Settings → App → Arabic): English, whatever anyone chose;
+ *   - Arabic on: the workspace's language IS Arabic. A person who chose their own language (the Arabic card's
+ *     "Your language", the profile menu, My profile — saved in their profile) keeps it, English or Arabic; a person
+ *     who never chose (no profile, or no language in it) is answered in Arabic.
+ * The cookie is not part of the rule (Landing 34b): it is only this answer's cache, so the same person reads the same
+ * language on every device from the first paint. Before, a person who had not chosen followed the cookie — English on
+ * every device that had never been told otherwise — so turning Arabic on switched nothing for anyone.
  */
 export function personLocale(
   profileLocale: Prefs['locale'] | null | undefined,
-  cookieLocale: Prefs['locale'],
   app: Pick<AppSettings, 'arabic_enabled'>,
 ): Prefs['locale'] {
   if (!app.arabic_enabled) return 'en';
-  return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : cookieLocale;
+  return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : 'ar';
 }
 
 /** The language a request is answered in: the cookie's choice, unless Arabic is switched off (ACC-139). */
@@ -50,7 +50,7 @@ export function effectiveLocale(cookieLocale: Prefs['locale'], app: AppSettings)
 export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string) => string | undefined): Prefs {
   const raw = prefsFrom(get);
   const own = (key: 'theme' | 'density') => !me && ownChoice(key, get);
-  const eff = effectivePrefs(me, app, raw);
+  const eff = effectivePrefs(me, app);
   // Before sign-in (Landing 31, the theme-switcher rules): the theme last used on this device — its cookie, a choice
   // made here or the cache of the last person's — and on a first visit, with no cookie at all, the device's own
   // light or dark setting (System).
@@ -61,7 +61,7 @@ export function serverPrefs(me: Me | null, app: AppSettings, get: (name: string)
     theme: me ? eff.theme : doorTheme,
     density: own('density') ? raw.density : eff.density,
     // the door (nobody signed in) has no profile, so the cookie's language stands there whatever the Arabic
-    // switch says (F205); signed in, the switch still rules (ACC-139)
+    // switch says (F205); signed in, the switch rules and then the person's own choice (personLocale)
     locale: me ? eff.locale : raw.locale,
   };
 }

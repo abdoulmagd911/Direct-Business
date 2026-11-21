@@ -32,6 +32,7 @@ import {
   type Why,
 } from '@/modules/imports';
 import { PartnerPicker } from '@/modules/my-day/screens/PartnerPicker';
+import { financeWrote } from '../use-reads';
 import type { PartnerRef } from '@/modules/my-day/types';
 import { Button, buttonVariants } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
@@ -423,6 +424,7 @@ export function FinanceImportSection() {
       })) as { counts?: PreviewCounts } | null;
       setConfirmed(done?.counts ?? preview.counts);
       toast.done(t('import.confirmed'));
+      financeWrote();
       refetchAll();
       setStage('confirmed');
       // the batch just confirmed belongs in Previous imports at once, not after a reload

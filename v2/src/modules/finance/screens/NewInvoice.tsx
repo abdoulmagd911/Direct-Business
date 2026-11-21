@@ -36,6 +36,7 @@ import {
   type ListEntry,
   type Lists,
 } from '../invoice-form';
+import { financeWrote } from '../use-reads';
 
 const NONE = '__none';
 /** A line's field takes the whole row on a phone, so the line's total and its remove button share the last one. */
@@ -145,6 +146,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
             toast.done(t('activity.undone'));
             // the panel must not keep printing the figures of an invoice that is no longer there (QA-551)
             setSaved((now) => (now?.ref === d.ref.trim() ? null : now));
+            financeWrote();
             refetchAll();
           } catch (e) {
             const { key, detail } = errorKey(e, (k) => t.has(k));
@@ -153,6 +155,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
         },
       },
     });
+    financeWrote();
     refetchAll();
     setBusy(false);
     if (again) {

@@ -13,6 +13,7 @@ import { navStartedTo } from '@/ui/shell/nav-pending';
 import { useTestSwitch } from '@/core/test-switch/use-test-switch';
 import { formatDate } from '@/core/i18n/format';
 import { modules } from '@/core/registry';
+import { searchPeople, searchWords } from '../people-search';
 import type { SettingDefRow } from '@/modules/settings/schema';
 import { SettingCard } from '@/modules/settings/screens/SettingCard';
 import { Avatar } from '@/ui/Avatar';
@@ -189,18 +190,19 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
   const [adding, setAdding] = useState(false);
   const [showTest, setShowTest] = useState(false);
   const sw = useTestSwitch();
-  // the search reads the department and team names too (both languages), so a name typed in either language finds
-  // its people; the department picker narrows the same rows (one change covers the table and the phone cards)
-  const hay = (p: PersonRow) => {
+  // The search (people-search.ts, one rule for the table and the phone cards): every word typed must be somewhere in
+  // the person's names, nicknames, job titles or e-mails — or in the name of their department or team, both
+  // languages — in any order, whatever the capitals. The department picker narrows the same rows.
+  const places = (p: PersonRow) => {
     const d = org.departments.find((x) => x.id === p.department_id);
     const tm = p.team_id ? org.teams.find((x) => x.id === p.team_id) : undefined;
-    return `${p.full_name_en} ${p.full_name_ar ?? ''} ${p.nickname_en ?? ''} ${p.emails.map((e) => e.email).join(' ')} ${d?.name_en ?? ''} ${d?.name_ar ?? ''} ${tm?.name_en ?? ''} ${tm?.name_ar ?? ''}`;
+    return [d?.name_en, d?.name_ar, tm?.name_en, tm?.name_ar];
   };
-  const rows = people
-    .filter(
-      (p) => (dept === 'all' || p.department_id === dept) && (!q || hay(p).toLowerCase().includes(q.toLowerCase())),
-    )
-    .sort((a, b) => a.full_name_en.localeCompare(b.full_name_en));
+  const rows = searchPeople(
+    people.filter((p) => dept === 'all' || p.department_id === dept),
+    q,
+    places,
+  ).sort((a, b) => (a.full_name_en ?? '').localeCompare(b.full_name_en ?? ''));
   // V656: Sign in as test user is offered to admins on the TEST rows only; the server decides who may really use it.
   // Landing 30: on the phone list only (under Test users) — in the wide table the button was a column of its own that
   // pushed the table past its box (QA-592); there the door is on the person's record (PersonRecord, the actions row).
@@ -237,7 +239,9 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
         {addDialog}
       </section>
     );
-  // on a phone the TEST users are a list of their own, closed until asked for (13 Nov board)
+  // on a phone the TEST users are a list of their own, closed until asked for (13 Nov board) — but a search opens
+  // it: a TEST user the search found is shown, not folded away under a count (Landing 34b)
+  const testOpen = showTest || searchWords(q).length > 0;
   const everyday = rows.filter((p) => !p.is_test);
   const testUsers = rows.filter((p) => p.is_test);
   const card = (p: PersonRow) => {
@@ -299,6 +303,7 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
               placeholder={t('settings.people.searchPlaceholder')}
               autoComplete="off"
               className="ps-9 sm:w-72"
+              data-people-filter
             />
           </label>
           <Select
@@ -417,7 +422,7 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
         >
           <button
             type="button"
-            aria-expanded={showTest}
+            aria-expanded={testOpen}
             onClick={() => setShowTest((o) => !o)}
             className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-start text-base font-medium text-strong focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
             data-people-test-users-toggle
@@ -431,14 +436,18 @@ function PeopleTab({ me, org, people, today }: { me: Me; org: OrgAnswer; people:
             <span className="min-w-0 flex-1">{t('settings.people.testUsers')}</span>
             <span className="font-data text-sm font-normal text-muted">{testUsers.length}</span>
             <ChevronDown
-              className={cn('size-4 shrink-0 text-muted transition-transform', showTest && 'rotate-180')}
+              className={cn('size-4 shrink-0 text-muted transition-transform', testOpen && 'rotate-180')}
               aria-hidden="true"
             />
           </button>
-          {showTest ? <ul className="divide-y divide-border border-t border-border">{testUsers.map(card)}</ul> : null}
+          {testOpen ? <ul className="divide-y divide-border border-t border-border">{testUsers.map(card)}</ul> : null}
         </div>
       ) : null}
-      {q.trim() !== '' && rows.length === 0 ? <DataState kind="empty" message={t('settings.people.noMatch')} /> : null}
+      {rows.length === 0 ? (
+        <div data-people-no-match>
+          <DataState kind="empty" message={t('settings.people.noMatch')} />
+        </div>
+      ) : null}
       {addDialog}
     </section>
   );

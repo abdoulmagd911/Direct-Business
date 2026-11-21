@@ -5,9 +5,10 @@ import { defineModule } from '../../core/registry/define-module';
 // what they have access to, and it can be edited in the Settings of the Commercial Workspace"). The starting levels
 // below are the defaults the admin sees in Settings › People & access › Access, where any role's level can be changed
 // (none / view / own / full) — the page, the menu and the figures all follow that level. Viewers start at View
-// (read-only); the write controls (New invoice, Close month, Import) stay Full-gated. Team members start at NONE
-// (Landing 34, the owner's test round of 19 Nov, item 5: "Members must NOT see Finance") — still a setting an admin
-// may raise for a role or a person, never a hard-coded refusal. Levels: TECH-SPEC §8.
+// (read-only); the write controls (New invoice, Close month, Import) stay Full-gated. Team members start at FULL
+// (the owner, 21 Nov: "everyone sees Finance and everyone adds and edits it; only the view-only roles see it but
+// cannot edit" — this overrules Landing 34's None) — still a setting an admin may change for a role or a person,
+// never a hard-coded rule. Levels: TECH-SPEC §8.
 export default defineModule({
   key: 'finance',
   pages: [
@@ -19,7 +20,7 @@ export default defineModule({
       nav: { group: 'main', order: 70, tier: 'manage' },
       // The screens are built (Overview, New invoice): Create, the phone + and Ctrl K may offer New invoice (QA-556)
       built: true,
-      defaults: { admin: 'full', head: 'full', manager: 'full', viewer: 'view' },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
     },
     {
       key: 'settings.finance',

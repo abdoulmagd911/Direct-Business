@@ -30,11 +30,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type Page } from '@playwright/test';
 import { expect, test } from './support/fixtures';
-import { setPrefs } from './helpers';
-import { withArabicOn } from './support/arabic';
+import { readsArabic, withArabicOn } from './support/arabic';
 import { brokenWords } from './support/broken-words';
 import { ensureAchievementPlan } from './support/achievement-plan';
-import { callAs, makePerson, signIn, sql } from './support/stack';
+import { callAs, makePerson, saveLanguage, savedLanguage, signIn, sql } from './support/stack';
 import { noteLinkWidths, reminderStartGap, seed, walk } from './support/taps';
 
 const hydrated = (page: Page) => page.waitForFunction(() => !!document.querySelector('[data-hydrated]'));
@@ -89,25 +88,73 @@ test("the admin's default theme and density apply to a person without their own 
   }
 });
 
-test('once Arabic is on, the switch shows and the cookie is honoured (ACC-129)', async ({ page, context }) => {
-  const admin = await makePerson({ admin: true });
+/** The locale cookie this browser holds (undefined: none was ever written). */
+const localeCookie = async (page: Page) => (await page.context().cookies()).find((c) => c.name === 'v2.locale')?.value;
+
+test('once Arabic is on, a signed-in person with no saved language is answered in Arabic, and their own saved choice wins (ACC-129)', async ({
+  page,
+}) => {
+  const word = (code: 'en' | 'ar') =>
+    (
+      JSON.parse(readFileSync(join(process.cwd(), 'messages', `${code}.json`), 'utf8')) as {
+        profile: { language: string };
+      }
+    ).profile.language;
+  // a person who never chose a language: no profile at all
+  const admin = await makePerson({ admin: true, locale: null });
+  const html = page.locator('html');
   await withArabicOn(admin.id, 'Made-up reason', async () => {
     await page.goto('/sign-in');
     // the door draws the button twice — in the phone's bar and beside the form on a wide screen — and shows one
     await expect(page.locator('[data-door-language]:visible')).toBeVisible();
+    // the door follows its own button and cookie, not the switch: nobody chose Arabic on this browser
+    await expect(html, 'the sign-in page stays English until its own button is used').toHaveAttribute('lang', 'en');
+    expect(await localeCookie(page), 'this browser holds no Arabic cookie before signing in').not.toBe('ar');
+
+    // signed in, with nothing chosen anywhere: Arabic, because the workspace is
     await signIn(page, admin.email, '/my-day');
+    await expect(html, 'a person with no saved language is answered in Arabic once Arabic is on').toHaveAttribute(
+      'lang',
+      'ar',
+      { timeout: 45_000 },
+    );
+    await expect(html, 'Arabic reads right to left').toHaveAttribute('dir', 'rtl');
     await hydrated(page);
-    // the language lives in My profile's Preferences, not in the profile chip's menu (V217, cut 5)
+    expect(await savedLanguage(admin.id), 'reading Arabic saved no choice for them').toBeNull();
+    await expect
+      .poll(() => localeCookie(page), { message: 'the cookie follows the answer; it did not make it' })
+      .toBe('ar');
+    // the language lives in My profile's Preferences (V217, cut 5) — named in the language on screen
     await page.goto('/profile');
     await hydrated(page);
-    await expect(page.locator('main').getByText('Language', { exact: true })).toBeVisible();
-    // My profile keeps the language cookie as its own cache, so the cookie choice is tried on another page
+    await expect(html, 'My profile is in Arabic too').toHaveAttribute('lang', 'ar');
+    await expect(page.locator('main').getByText(word('ar'), { exact: true })).toBeVisible();
+
+    // their own saved choice wins over the workspace's language — English, whatever the cookie still says
     await page.goto('/my-day');
     await hydrated(page);
-    await setPrefs(context, { locale: 'ar' });
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await saveLanguage(admin.id, 'en');
+    expect(await localeCookie(page), 'the cookie still says Arabic when the choice is saved').toBe('ar');
+    await page.goto('/my-day');
+    await expect(html, 'a person who saved English is answered in English while Arabic is on').toHaveAttribute(
+      'lang',
+      'en',
+    );
+    await expect(html, 'English reads left to right').toHaveAttribute('dir', 'ltr');
+    await hydrated(page);
+    await expect.poll(() => localeCookie(page), { message: 'the cookie follows the saved English' }).toBe('en');
+    await page.goto('/profile');
+    await hydrated(page);
+    await expect(page.locator('main').getByText(word('en'), { exact: true })).toBeVisible();
+
+    // and the other way: a saved Arabic is Arabic, though the cookie says English by now
+    await page.goto('/my-day');
+    await hydrated(page);
+    await saveLanguage(admin.id, 'ar');
+    expect(await localeCookie(page), 'the cookie still says English when Arabic is saved').toBe('en');
+    await page.goto('/my-day');
+    await expect(html, 'a person who saved Arabic is answered in Arabic').toHaveAttribute('lang', 'ar');
+    await expect(html).toHaveAttribute('dir', 'rtl');
   });
 });
 
@@ -131,15 +178,16 @@ for (const code of ['en', 'ar'] as const) {
 
   test(`in ${code}: Full on Finance — the desktop Create menu, Ctrl K and the phone + all offer Invoice, which opens /finance/new`, async ({
     page,
-    context,
   }) => {
     await withArabic(async () => {
       const admin = await makePerson({ admin: true });
       await page.setViewportSize({ width: 1440, height: 900 });
       await signIn(page, admin.email, '/my-day');
       await hydrated(page);
-      // the language is chosen after signing in: the sign-in helper types into the English form
-      await setPrefs(context, { locale: code });
+      // the language is the person's own saved choice (Landing 34b): English is saved for every made-up person, so
+      // the en leg reads English although Arabic is on; the ar leg's person chooses العربية — after signing in, the
+      // sign-in helper types into the English form
+      if (code === 'ar') await readsArabic(admin.id);
       await page.goto('/my-day');
       await hydrated(page);
       await expect(page.locator('html')).toHaveAttribute('lang', code);
@@ -179,7 +227,6 @@ for (const code of ['en', 'ar'] as const) {
 
   test(`in ${code}: View on Finance — no Invoice at any of the three doors, and the other items are still there`, async ({
     page,
-    context,
   }) => {
     await withArabic(async () => {
       // a member with Finance at View: Create still offers their other items, never Invoice
@@ -192,7 +239,7 @@ for (const code of ['en', 'ar'] as const) {
       await page.setViewportSize({ width: 1440, height: 900 });
       await signIn(page, person.email, '/my-day');
       await hydrated(page);
-      await setPrefs(context, { locale: code });
+      if (code === 'ar') await readsArabic(person.id);
       await page.goto('/my-day');
       await hydrated(page);
       await expect(page.locator('html')).toHaveAttribute('lang', code);
@@ -221,14 +268,13 @@ for (const code of ['en', 'ar'] as const) {
   // each is still a 44 px target and every word fits whole, in each language
   test(`in ${code} at 375 px: an admin's bar holds six slots, Create last, each at least 44 px wide with its label whole`, async ({
     page,
-    context,
   }) => {
     await withArabic(async () => {
       const admin = await makePerson({ admin: true });
       await page.setViewportSize({ width: 375, height: 800 });
       await signIn(page, admin.email, '/my-day');
       await hydrated(page);
-      await setPrefs(context, { locale: code });
+      if (code === 'ar') await readsArabic(admin.id);
       await page.goto('/my-day');
       await hydrated(page);
       await expect(page.locator('html')).toHaveAttribute('lang', code);
@@ -273,7 +319,7 @@ test('in Arabic at 375 px: the weekly review reads right to left in the catalog�
     await hydrated(page);
     const note = await callAs(context, 'note_capture', { p_kind: 'sticky', p_values: { title: 'ملاحظة تجريبية' } });
     expect(note.status, JSON.stringify(note.body)).toBe(200);
-    await setPrefs(context, { locale: 'ar' });
+    await readsArabic(me.id);
     await page.goto('/my-day/week');
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -307,7 +353,6 @@ type FilterWords = {
 
 test('in Arabic at 375 px: the Achievements list’s switches and month box say what they mean, in the catalog’s words', async ({
   page,
-  context,
 }) => {
   await withArabic(async () => {
     const f = (JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as FilterWords).pages
@@ -316,7 +361,7 @@ test('in Arabic at 375 px: the Achievements list’s switches and month box say 
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, me.email, '/kpis/achievements');
     await hydrated(page);
-    await setPrefs(context, { locale: 'ar' });
+    await readsArabic(me.id);
     await page.goto('/kpis/achievements');
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -374,7 +419,7 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
       },
     });
     expect(made.status, JSON.stringify(made.body)).toBe(200);
-    await setPrefs(context, { locale: 'ar' });
+    await readsArabic(me.id);
     await page.goto(`/kpis/achievements/${(made.body as { id: string }).id}`);
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -441,10 +486,7 @@ test('in Arabic at 375 px: the Achievements record and list say Clear filters, A
 
 // ---- V657: a task's comments in Arabic, at 375 px
 
-test('in Arabic at 375 px: the Discussion tab, the box and the comment say the catalog’s words', async ({
-  page,
-  context,
-}) => {
+test('in Arabic at 375 px: the Discussion tab, the box and the comment say the catalog’s words', async ({ page }) => {
   await withArabic(async () => {
     const ar = JSON.parse(readFileSync(join(process.cwd(), 'messages', 'ar.json'), 'utf8')) as {
       pages: { tasks: { tabs: { discussion: string } } };
@@ -475,7 +517,7 @@ test('in Arabic at 375 px: the Discussion tab, the box and the comment say the c
     );
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, me.email, '/');
-    await setPrefs(context, { locale: 'ar' });
+    await readsArabic(me.id);
     await page.goto(`/tasks/${number}?tab=comments`);
     await hydrated(page);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -501,8 +543,7 @@ test('every tappable thing is at least 44 px wide and high on a phone, on every 
   await withArabic(async () => {
     await page.setViewportSize({ width: 375, height: 800 });
     const { me, clientId, number } = await seed(page);
-    await sql(`insert into core.person_profile (person_id, created_by, locale) values ($1, $1, 'ar')`, [me.id]);
-    await page.context().addCookies([{ name: 'v2.locale', value: 'ar', url: new URL(page.url()).origin }]);
+    await readsArabic(me.id);
     await page.goto('/my-day');
     await expect(page.locator('html'), 'the Arabic walk is in Arabic, right to left').toHaveAttribute('dir', 'rtl');
     expect(await walk(page, me, clientId, number), 'every tappable thing is 44 px wide and high on a phone').toEqual(
@@ -530,8 +571,7 @@ test('a short reminder title on My day starts at the right edge of its link, not
   await withArabic(async () => {
     await page.setViewportSize({ width: 375, height: 800 });
     const { me } = await seed(page);
-    await sql(`insert into core.person_profile (person_id, created_by, locale) values ($1, $1, 'ar')`, [me.id]);
-    await page.context().addCookies([{ name: 'v2.locale', value: 'ar', url: new URL(page.url()).origin }]);
+    await readsArabic(me.id);
     await page.goto('/my-day');
     await expect(page.locator('html'), 'the Arabic QA-580 check is in Arabic, right to left').toHaveAttribute(
       'dir',
@@ -570,7 +610,7 @@ test.afterEach(async () => {
 });
 
 for (const width of [1280, 1440]) {
-  test(`People and Teams tables fit their box in Arabic — at ${width} px`, async ({ page, context }) => {
+  test(`People and Teams tables fit their box in Arabic — at ${width} px`, async ({ page }) => {
     test.setTimeout(120_000);
     await withArabic(async () => {
       const admin = await makePerson({ admin: true });
@@ -609,7 +649,7 @@ for (const width of [1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await signIn(page, admin.email, '/my-day');
       await hydrated(page);
-      await setPrefs(context, { locale: 'ar' });
+      await readsArabic(admin.id);
       for (const tab of ['people', 'teams']) {
         await page.goto(`/settings/org?tab=${tab}`);
         await hydrated(page);

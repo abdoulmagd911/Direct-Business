@@ -51,6 +51,12 @@ exception when insufficient_privilege then
   perform test.fail(format('a head with Full on Finance keeps the map, without the Settings page — refused: %s', sqlerrm));
 end
 $$;
-select test.as_person(test.person('Test Member', 'member'));
+select test.as_owner();
+select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
+select test.as_person(current_setting('t.mem')::uuid);
 select test.raises($$select api.list_save('import_map', null, '{"source": "expenses", "header": "Charge", "name_en": "Charge", "name_ar": "Charge", "field": "amount_sar"}')$$,
   '42501', 'Own on Finance does not change the map', 'access.needs_level');

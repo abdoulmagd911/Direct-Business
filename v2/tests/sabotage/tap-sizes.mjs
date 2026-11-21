@@ -57,11 +57,18 @@ export const sabotages = [
     name: 'a-row-link-centres-its-words',
     breaks: [E2E, ARABIC],
     expect: 'the words start at the start edge of their link, not centred in it',
+    // Landing 34: a link that holds an element other than an icon (the reminder's title is one) is an inline block
+    // now, not a flex box, so centring the flex box alone no longer moves its words — both kinds are centred here.
     edits: [
       {
         file: 'src/ui/globals.css',
         find: '      display: inline-flex;\n      align-items: center;\n',
         replace: '      display: inline-flex;\n      align-items: center;\n      justify-content: center;\n',
+      },
+      {
+        file: 'src/ui/globals.css',
+        find: '      display: inline-block;\n      align-content: center;\n',
+        replace: '      display: inline-block;\n      align-content: center;\n      text-align: center;\n',
       },
     ],
   },

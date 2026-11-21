@@ -176,7 +176,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
 });
 
-test('a member reads Finance at View and sees the month and its figures, but no Close month (View by a person change; Landing 34: members start at none)', async ({
+test('a member reads Finance at Full — the month, its figures, Close month and New invoice — and a viewer reads the same month with no Close month and no New invoice (the owner, 21 Nov)', async ({
   page,
 }) => {
   const ym = await oldMonth();
@@ -187,30 +187,55 @@ test('a member reads Finance at View and sees the month and its figures, but no 
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     return r.body as { id?: string };
   }, ym);
+  // The owner's decision of 21 Nov (it overrules Landing 34's "members do not see Finance"): everyone sees Finance and
+  // everyone adds and edits it. A Team member starts at Full: the month exists (the admin seeded it above), the member
+  // reads it — the month row and the figures — and has the write controls a manager has: Close month and New invoice
   const member = await makePerson();
   await page.context().clearCookies();
   await signIn(page, member.email);
-  // Landing 34 (owner's test round of 19 Nov, item 5): Members start at none on Finance — the address says no access
-  await page.goto(addressOf(ym));
-  await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]'), 'a member has no Finance to start with').toHaveCount(1);
-  await expect(page.locator('[data-finance-tile]'), 'and no figures').toHaveCount(0);
-  // Finance follows the access each person has: this member is given View by a person change, so the month exists
-  // (the admin seeded it above) and the member reads it: the month row and the figures are there, and the write
-  // controls stay Full-gated, so there is no Close month button and no New invoice link
-  await sql(
-    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-     values ($1, 'finance', 'view', 'Made up: reads Finance, Landing 34', $1)`,
-    [member.id],
-  );
   await page.goto(addressOf(ym));
   await hydrated(page);
   await blocksSettled(page);
   await expect(page.locator('[data-state="no-access"]'), 'a member reads Finance').toHaveCount(0);
-  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the month row for a member reader').toHaveCount(1);
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the month row for a member').toHaveCount(1);
+  await expect(page.locator('[data-finance-tile]'), 'figures for a member').not.toHaveCount(0);
+  await expect(
+    page.locator(`[data-finance-month="${ym}-01"] [data-close-month]`),
+    'a member, at Full on Finance, has Close month',
+  ).toHaveCount(1);
+  await expect(page.locator('[data-new-invoice-link]'), 'a member has New invoice').toHaveCount(1);
+
+  // Only the view-only role reads without editing: a Viewer (View on Finance) sees the same month and figures, and
+  // the write controls stay Full-gated — no Close month button and no New invoice link — and the write itself is
+  // refused when asked for directly
+  const viewer = await makePerson();
+  await sql(`update core.person set role_id = (select id from core.role where key = 'viewer') where id = $1`, [
+    viewer.id,
+  ]);
+  await page.context().clearCookies();
+  await signIn(page, viewer.email);
+  await page.goto(addressOf(ym));
+  await hydrated(page);
+  await blocksSettled(page);
+  await expect(page.locator('[data-state="no-access"]'), 'a viewer reads Finance').toHaveCount(0);
+  await expect(page.locator(`[data-finance-month="${ym}-01"]`), 'the month row for a viewer').toHaveCount(1);
+  await expect(page.locator('[data-finance-tile]'), 'figures for a viewer').not.toHaveCount(0);
   await expect(page.locator('[data-close-month]'), 'only Full on Finance closes a month').toHaveCount(0);
-  await expect(page.locator('[data-finance-tile]'), 'figures for a member reader').not.toHaveCount(0);
   await expect(page.locator('[data-new-invoice-link]'), 'no New invoice for a View reader').toHaveCount(0);
+  const write = await callAs(page.context(), 'finance_row_add', {
+    p_table: 'invoice',
+    p_fields: {
+      ref: ref(),
+      kind: 'transaction',
+      status: 'Fully Paid',
+      created_on: `${ym}-11`,
+      paid_on: `${ym}-13`,
+      total_sar: 250,
+      customer_name: 'Made Up Trading Co',
+    },
+    p_reason: 'made up',
+  });
+  expect(write.status, `a viewer's own write to Finance is refused: ${JSON.stringify(write.body)}`).toBe(403);
 });
 
 test('phone 390: nothing scrolls sideways, the Provisional part is directly under its figure, every target is 44 px', async ({

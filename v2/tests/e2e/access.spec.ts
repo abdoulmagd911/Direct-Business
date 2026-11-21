@@ -95,9 +95,10 @@ test('My profile is reached from the avatar menu at the top, its one place, at 1
 
 test('the root goes to the start page the person chose (ACC-091)', async ({ page }) => {
   const member = await makePerson();
-  await sql(`insert into core.person_profile (person_id, created_by, start_page) values ($1, $1, 'tasks')`, [
-    member.id,
-  ]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by, start_page) values ($1, $1, 'tasks') on conflict (person_id) do update set start_page = excluded.start_page`,
+    [member.id],
+  );
   await signIn(page, member.email, '/');
   await expect(page, 'the start page is Tasks').toHaveURL(/\/tasks$/);
   // a start page the person may not see falls back to My day, never to a refusal

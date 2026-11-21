@@ -53,8 +53,10 @@ export const sabotages = [
     edits: [
       {
         file: EFFECTIVE,
-        find: "return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : cookieLocale;",
-        replace: 'return cookieLocale;',
+        // Landing 34b: the cookie left the rule (a person who chose nothing reads the workspace's Arabic), so the
+        // sabotage is the nearest one that still ignores the profile — everyone is answered in the workspace's language
+        find: "return profileLocale === 'ar' || profileLocale === 'en' ? profileLocale : 'ar';",
+        replace: "return 'ar';",
       },
     ],
   },

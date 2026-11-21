@@ -1,9 +1,9 @@
--- Sabotage: a-member-pins-an-invoice
+-- Sabotage: own-on-finance-pins-an-invoice
 -- Breaks: sql:MPN-01
--- Expect: a member cannot pin an invoice to an organisation
--- A member with Own on Finance pins an imported invoice to any organisation, moving its revenue and credit (QA-535).
--- (Landing 7, F179 overturn: Members start at View on Finance now, so the old 'own' gate no longer refuses the
--- test's member on level alone; the plant drops the level gate whole — anyone signed in may pin.)
+-- Expect: Own on Finance cannot pin an invoice to an organisation
+-- A person with Own on Finance pins an imported invoice to any organisation, moving its revenue and credit (QA-535):
+-- the plant drops the level gate whole — anyone signed in may pin. (Landing 34b: a Team member starts at Full on
+-- Finance now, so the test's member is held at Own by a person override; the rule is the level, not the role.)
 create or replace function finance.match_pin_set(p_invoice uuid, p_partner uuid, p_kind text, p_reason text) returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$

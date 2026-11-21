@@ -115,9 +115,9 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   context,
 }) => {
   // The menu rule (V238): a member's menu is every page their access opens — Pipeline is none for a member (brief E) —
-  // and Settings is the admin's door. Finance follows the access: Landing 34 (owner's test round of 19 Nov, item 5)
-  // moved members to none, so it is not in a member menu. The drawer's head (the logo and the word "Corporate", a
-  // link to My day) is not an entry of the menu.
+  // and Settings is the admin's door. Finance follows the access: a member starts at Full on it (the owner, 21 Nov:
+  // "everyone sees Finance"; this overrules Landing 34's none), so it IS in a member menu. The drawer's head (the logo
+  // and the word "Corporate", a link to My day) is not an entry of the menu.
   await setPrefs(context, { theme: 'direct' });
   await page.setViewportSize({ width: 1500, height: 900 });
   const member = await makePerson();
@@ -130,6 +130,7 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
     'My day',
     'Tasks',
     'Partners',
+    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
@@ -139,8 +140,8 @@ test('the drawer comes from the registry: a team member sees no Settings and no 
   );
   await expect(
     page.locator('[data-drawer]').getByRole('link', { name: 'Finance' }),
-    'Finance is none for a member too (Landing 34)',
-  ).toHaveCount(0);
+    'Finance is in a member menu (the owner, 21 Nov: members start at Full)',
+  ).toHaveCount(1);
   await expect(page.locator('[data-drawer-head] a'), 'the head reads Corporate beside the logo').toHaveText(
     'Corporate',
   );

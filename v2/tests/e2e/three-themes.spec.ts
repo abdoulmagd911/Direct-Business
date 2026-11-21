@@ -43,7 +43,10 @@ for (const width of [375, 1440]) {
 
 test('a person whose saved theme is colorful reads Light, in every tab', async ({ page, context }) => {
   const member = await makePerson();
-  await sql(`insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'colorful')`, [member.id]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'colorful') on conflict (person_id) do update set theme = excluded.theme`,
+    [member.id],
+  );
   await signIn(page, member.email, '/my-day');
   await hydrated(page);
   expect(await theme(page), 'colorful reads as Light').toBe('light');

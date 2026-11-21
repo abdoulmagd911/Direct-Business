@@ -22,7 +22,7 @@ for (const width of [375, 1440]) {
   test(`a name saves only when Save is pressed, then says Saved with an Undo — at ${width} px`, async ({ page }) => {
     const member = await makePerson();
     await sql(
-      `insert into core.person_profile (person_id, created_by, display_name_en, display_name_ar) values ($1, $1, 'Test Display', 'اسم تجريبي')`,
+      `insert into core.person_profile (person_id, created_by, display_name_en, display_name_ar) values ($1, $1, 'Test Display', 'اسم تجريبي') on conflict (person_id) do update set display_name_en = excluded.display_name_en, display_name_ar = excluded.display_name_ar`,
       [member.id],
     );
     await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
@@ -91,7 +91,10 @@ for (const width of [375, 1440]) {
   test(`theme and density save at once, show where they act, and Undo — at ${width} px`, async ({ page }) => {
     const member = await makePerson();
     // a first-ever profile row cannot be undone away yet (builder A's), so the Undos start from a row that exists
-    await sql(`insert into core.person_profile (person_id, created_by) values ($1, $1)`, [member.id]);
+    await sql(
+      `insert into core.person_profile (person_id, created_by) values ($1, $1) on conflict (person_id) do nothing`,
+      [member.id],
+    );
     await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
     await signIn(page, member.email, '/profile');
     await hydrated(page);

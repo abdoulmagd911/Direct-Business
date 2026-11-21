@@ -29,8 +29,8 @@ test('a team member edits their profile and sees it at once; Settings refuses th
   await expect(page.locator('[data-topbar] [data-profile-chip]')).toContainText('Nick');
 
   // no colour to pick and no badge or drawer on the screen (V217, cut 6; V636: no profile colour). Start page (F207)
-  // IS here — the pages this person can see, plus Default — and it offers no Finance to a member: Landing 34 (owner's
-  // test round of 19 Nov, item 5) moved members to none on Finance
+  // IS here — the pages this person can see, plus Default — and it offers Finance to a member: a member starts at
+  // Full on Finance (the owner, 21 Nov; this overrules Landing 34's none)
   await expect(page.locator('[data-colour]'), 'no colour swatches on My profile').toHaveCount(0);
   for (const gone of ['Badge', 'Drawer', 'Nickname', 'Colour'])
     await expect(page.getByLabel(gone, { exact: true }), `${gone} is not on My profile`).toHaveCount(0);
@@ -41,14 +41,15 @@ test('a team member edits their profile and sees it at once; Settings refuses th
     'My day',
     'Tasks',
     'Partners',
+    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
   await expect(
     page.getByRole('option', { name: 'Finance', exact: true }),
-    'Finance is not a start page a member can pick',
-  ).toHaveCount(0);
+    'Finance is a start page a member can pick',
+  ).toHaveCount(1);
   await page.getByRole('option', { name: 'Default' }).click();
 
   // Theme: five cards — Light, Dark, Direct, Turquoise and System — and nothing else (Landing 31; no Colorful, V636)
@@ -111,7 +112,10 @@ test('the profile chip opens My profile; an Undo puts the stored value and the d
 
   // the first save of a profile creates its row, and the database does not undo a creation of core.person_profile
   // (its Undo answers "cannot be removed" — NEED for builder A), so the Undos below start from a profile that exists
-  await sql(`insert into core.person_profile (person_id, created_by) values ($1, $1)`, [member.id]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by) values ($1, $1) on conflict (person_id) do nothing`,
+    [member.id],
+  );
   await page.reload();
   await hydrated(page);
 
@@ -164,7 +168,10 @@ test("a browser with no choice of its own gets the profile's density and theme b
   const member = await makePerson();
   // the theme leaves the screens with the one-theme change, so a stored one stands in for it here — stored before the
   // page opens, so no save of the page's own can race it
-  await sql(`insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'dark')`, [member.id]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by, theme) values ($1, $1, 'dark') on conflict (person_id) do update set theme = excluded.theme`,
+    [member.id],
+  );
   await page.setViewportSize({ width: 1500, height: 900 });
   await signIn(page, member.email, '/profile');
   await hydrated(page);

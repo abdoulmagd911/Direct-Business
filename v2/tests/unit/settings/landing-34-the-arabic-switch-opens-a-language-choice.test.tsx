@@ -94,14 +94,23 @@ describe('Arabic on offers the language choice at once (item 11)', () => {
     expect(card(arabic(true, { key: 'app.made_up_switch' }))).not.toContain('data-language-choice');
   });
 
-  it('one rule for the language: English while Arabic is off; on, the profile’s language, then the cookie’s', () => {
+  it('one rule for the language: English while Arabic is off; on, the person’s own choice, and Arabic without one', () => {
     const on = { arabic_enabled: true };
     const off = { arabic_enabled: false };
-    expect(personLocale('ar', 'ar', off)).toBe('en');
-    expect(personLocale('ar', 'en', on), 'a saved Arabic is answered in Arabic on the first load').toBe('ar');
-    expect(personLocale('en', 'ar', on)).toBe('en');
-    expect(personLocale(null, 'ar', on)).toBe('ar');
-    expect(personLocale(undefined, 'en', on)).toBe('en');
+    // off: English for everyone, whatever was chosen
+    expect(personLocale('ar', off)).toBe('en');
+    expect(personLocale('en', off)).toBe('en');
+    expect(personLocale(null, off)).toBe('en');
+    expect(personLocale(undefined, off)).toBe('en');
+    // on: a person who chose keeps their choice, English or Arabic
+    expect(personLocale('ar', on), 'a saved Arabic is answered in Arabic on the first load').toBe('ar');
+    expect(personLocale('en', on), 'a person who chose English keeps English while Arabic is on').toBe('en');
+    // on: the workspace is Arabic for a person who never chose (Landing 34b) — no language saved, or no profile
+    expect(personLocale(null, on), 'no language saved: the workspace’s Arabic').toBe('ar');
+    expect(personLocale(undefined, on), 'no profile at all: the workspace’s Arabic').toBe('ar');
+    // a value that is no language is no choice
+    expect(personLocale('fr' as never, on)).toBe('ar');
+    expect(personLocale('' as never, on)).toBe('ar');
   });
 
   it('the page’s direction follows the same rule: a saved Arabic is right-to-left whatever the cookie says', () => {

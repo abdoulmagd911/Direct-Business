@@ -1,13 +1,19 @@
 /**
  * Landing 34 in the browser: the fixes of the owner's test round of 19 Nov, one test per group, with volume.
  *  a. Today's three is on My day for every employee role — three groups, at most three each, where each group comes
- *     from, no task drawn twice — with the streak line, and stacked on a phone.
+ *     from, no task drawn twice — with the streak line, and stacked on a phone. Landing 34b: the database picks it
+ *     from all the person's own open tasks — the exact titles in order, an overdue task under Maintenance and never
+ *     Short, an undated one under Maintenance, "N more in Tasks", no cancelled or done task — and a second load
+ *     gives the same lists. a2: the same on a second load, after coming back and after signing in again.
  *  b. Partners with forty organisations: the list loads on the first try, the search box filters, a name opens its
  *     record on the first click, the record does not wait for the Finance summary, Archived is a Status choice and
  *     Unarchive shows at once, a new partner is on the list on the way back, a saved note is on the record at once,
  *     every row has Actions and a long name is read whole.
  *  c. The top search opens a result by Enter and by a click; the menu's links move on the first click.
- *  d. A member has no Finance anywhere; a manager has it.
+ *  d. Everyone sees Finance and everyone adds to it (the owner, 21 Nov — this overrules item 5 of the round, "members
+ *     must not see Finance"): a member has it in the menu, the bar, Ctrl K, by address and on a partner, with New
+ *     invoice, as a manager does; a viewer sees it and has no write control (a write of their own is refused); a
+ *     person set to None in Settings › People & access › Access has no Finance anywhere.
  *  e. Finance loads every block on the first try; the Provisional amount is one amount in three places and counts
  *     the imported row; Income by company has its address; an old Payments date says so.
  *  f. The workspace reads "Direct Corporate"; the phone's top bar carries the brand; a record's sections are one row
@@ -26,6 +32,7 @@ import {
   hydrated,
   num,
   paymentsAsOf,
+  quietMonth,
   searchFor,
   sectionsBar,
   seedFinanceMonth,
@@ -39,8 +46,9 @@ import {
   signedInAs,
   staffAs,
   tag,
+  threeOnScreen,
 } from './support/landing-34';
-import { callAs, signIn } from './support/stack';
+import { callAs, signIn, sql } from './support/stack';
 
 const drawerLabels = async (page: Page) =>
   (await page.locator('[data-drawer] a[href]:not([data-entity])').allInnerTexts()).map((l) => l.trim()).filter(Boolean);
@@ -56,9 +64,10 @@ async function open(page: Page, path: string) {
 
 const SOURCES = [
   'Important — your starred tasks',
-  'Short — due within 2 days, not starred',
-  'Maintenance — the rest of your own tasks',
+  'Short — due today or within 2 days, not starred',
+  'Maintenance — the rest of your own tasks: overdue, due later or with no due day',
 ];
+const GROUPS = ['important', 'short', 'maintenance'] as const;
 
 test("a · Today's three is on My day for every employee role, with its streak, and stacks on a phone", async ({
   browser,
@@ -67,10 +76,21 @@ test("a · Today's three is on My day for every employee role, with its streak, 
   for (const role of ['admin', 'head', 'manager', 'member', 'viewer'] as const) {
     const person = await staffAs(role);
     const word = tag();
-    // the member carries the volume (25 tasks and a streak); the others enough to fill two groups; a Viewer has no tasks
+    // the member carries the volume (25 tasks and a streak); a Viewer has no tasks. The others: 4 starred, 4 due
+    // today or tomorrow, and 5 others — 2 overdue since more than a year, 2 with no due day and 1 due later (the head:
+    // 3 with no due day and none later, so one of them is drawn) — plus a cancelled and a done task, never current
     const full = role === 'member' ? await seedTwentyFive(person, word) : null;
     const open4 =
-      role === 'viewer' || full ? null : await seedOpenTasks(person, word, { starred: 4, quick: 4, later: 1 });
+      role === 'viewer' || full
+        ? null
+        : await seedOpenTasks(
+            person,
+            word,
+            role === 'head'
+              ? { starred: 4, quick: 4, later: 0, overdue: 2, undated: 3, ghosts: true }
+              : { starred: 4, quick: 4, later: 1, overdue: 2, undated: 2, ghosts: true },
+          );
+    const seeded = full?.open ?? open4;
     const { context, page } = await signedInAs(browser, person);
     try {
       await hydrated(page);
@@ -85,7 +105,7 @@ test("a · Today's three is on My day for every employee role, with its streak, 
         await groups.evaluateAll((els) => els.map((e) => e.getAttribute('data-three-group'))),
         `${role}: Important, Short, Maintenance, in that order`,
       ).toEqual(['important', 'short', 'maintenance']);
-      for (const g of ['important', 'short', 'maintenance']) {
+      for (const g of GROUPS) {
         const rows = await three.locator(`[data-three-group="${g}"] [data-three-row]`).count();
         expect(rows, `${role}: ${g} holds at most three tasks`).toBeLessThanOrEqual(3);
       }
@@ -94,18 +114,94 @@ test("a · Today's three is on My day for every employee role, with its streak, 
         `${role}: each group says where it comes from`,
       ).toHaveText(SOURCES);
 
-      if (full || open4) {
+      if (seeded) {
         await expect(
           three.locator('[data-three-group="important"] [data-three-row]'),
           `${role}: three of the starred tasks are Important`,
         ).toHaveCount(3);
         await expect(
           three.locator('[data-three-group="short"] [data-three-row]'),
-          `${role}: three of the tasks due now are Short`,
+          `${role}: three of the tasks due today or tomorrow are Short`,
         ).toHaveCount(3);
-        const picked = await three
-          .locator('[data-three-row]')
-          .evaluateAll((els) => els.map((e) => e.getAttribute('data-three-row') ?? ''));
+        await expect(
+          three.locator('[data-three-group="maintenance"] [data-three-row]'),
+          `${role}: three of the other own tasks are Maintenance`,
+        ).toHaveCount(3);
+        const first = await threeOnScreen(page);
+        // the exact three of each group, in the database's one order: due day (no due day last), then number
+        const titlesOf = (numbers: string[]) => numbers.map((n) => seeded.titles[n]);
+        for (const g of GROUPS) {
+          expect(first[g]!.titles, `${role}: ${g} draws exactly the expected titles, in order`).toEqual(
+            titlesOf(seeded.three[g]),
+          );
+          expect(first[g]!.rows, `${role}: ${g} draws exactly the expected tasks, in order`).toEqual(seeded.three[g]);
+          expect(first[g]!.count, `${role}: ${g} counts the three it draws`).toBe('3');
+          expect(
+            first[g]!.more,
+            `${role}: ${g} says how many more it holds in Tasks (${seeded.totals[g]} in all)`,
+          ).toBe(seeded.totals[g] - 3);
+        }
+        // named outright, so the rule is read here and not only worked out: starred due today first, then the later one
+        expect(first.important!.titles, `${role}: Important is the starred tasks, the ones due today first`).toEqual([
+          `Made-up task ${word} starred 1`,
+          `Made-up task ${word} starred 3`,
+          full ? `Made-up task ${word} starred 5` : `Made-up task ${word} starred 2`,
+        ]);
+        expect(first.short!.titles, `${role}: Short is the unstarred tasks due today, then tomorrow`).toEqual([
+          `Made-up task ${word} quick 1`,
+          `Made-up task ${word} quick 3`,
+          full ? `Made-up task ${word} quick 5` : `Made-up task ${word} quick 2`,
+        ]);
+        expect(
+          first.maintenance!.titles,
+          `${role}: Maintenance starts with the tasks overdue since long ago, then the next by due day`,
+        ).toEqual([
+          `Made-up task ${word} overdue 1`,
+          `Made-up task ${word} overdue 2`,
+          role === 'head' ? `Made-up task ${word} undated 1` : `Made-up task ${word} later 1`,
+        ]);
+        for (const number of seeded.overdue) {
+          await expect(
+            three.locator(`[data-three-group="maintenance"] [data-three-row="${number}"]`),
+            `${role}: a task overdue since long ago is under Maintenance (${seeded.titles[number]})`,
+          ).toHaveCount(1);
+          await expect(
+            three.locator(`[data-three-group="short"] [data-three-row="${number}"]`),
+            `${role}: an overdue task is never Short (${seeded.titles[number]})`,
+          ).toHaveCount(0);
+        }
+        // a task with no due day is Maintenance: drawn there (the head) or counted in its "N more in Tasks" line
+        const undatedDrawn = seeded.undated.filter((n) => first.maintenance!.rows.includes(n));
+        expect(undatedDrawn.length, `${role}: the undated tasks drawn under Maintenance`).toBe(role === 'head' ? 1 : 0);
+        expect(
+          first.maintenance!.rows.length + first.maintenance!.more,
+          `${role}: every other own task — overdue, later and undated — is counted under Maintenance`,
+        ).toBe(seeded.later.length + seeded.overdue.length + seeded.undated.length);
+        for (const number of seeded.undated) {
+          for (const g of ['important', 'short'])
+            await expect(
+              three.locator(`[data-three-group="${g}"] [data-three-row="${number}"]`),
+              `${role}: an undated task is neither Important nor Short`,
+            ).toHaveCount(0);
+        }
+        const moreLine = three.locator('[data-three-group="important"] [data-three-more]');
+        await expect(moreLine, `${role}: the more line says how many`).toHaveText(
+          `${seeded.totals.important - 3} more in Tasks`,
+        );
+        await expect(moreLine.locator('a'), `${role}: the more line leads to Tasks`).toHaveAttribute('href', '/tasks');
+        // a task whose status says cancelled (its closed stamp empty) and a done task are current nowhere on My day
+        for (const number of seeded.ghosts)
+          await expect(
+            page.locator(`[data-today-task="${number}"]`),
+            `${role}: a cancelled or a done task never shows as current (${seeded.titles[number]})`,
+          ).toHaveCount(0);
+        if (seeded.ghosts.length)
+          await expect(
+            page.locator('[data-todays-three], [data-today-block]').getByText(/cancelled|finished/),
+            `${role}: no cancelled and no done task is named in Today's three or the Today block`,
+          ).toHaveCount(0);
+
+        const picked = GROUPS.flatMap((g) => first[g]!.rows);
         for (const number of picked) {
           await expect(
             page.locator(`[data-today-block] [data-today-task="${number}"]`),
@@ -117,11 +213,20 @@ test("a · Today's three is on My day for every employee role, with its streak, 
           ).toHaveCount(1);
         }
         // the tasks not picked stay in the Today block below
-        const left = (full?.open ?? open4)!.quick.filter((n) => !picked.includes(n));
+        const left = seeded.quick.filter((n) => !picked.includes(n));
         await expect(
           page.locator(`[data-today-block] [data-today-task="${left[0]}"]`),
           `${role}: a task not picked stays in the Today block`,
         ).toHaveCount(1);
+
+        // the owner's own check: My day loaded twice gives exactly the same three lists in the same order
+        await page.reload();
+        await hydrated(page);
+        await expect(three.locator('[data-three-row]'), `${role}: the second load draws its nine rows`).toHaveCount(9);
+        expect(
+          await threeOnScreen(page),
+          `${role}: a second load of My day gives exactly the same three lists in the same order`,
+        ).toEqual(first);
       }
 
       if (full) {
@@ -158,6 +263,51 @@ test("a · Today's three is on My day for every employee role, with its streak, 
     } finally {
       await context.close();
     }
+  }
+});
+
+test("a2 · Today's three is the same for the same person on a second load and after signing in again", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const person = await staffAs('member');
+  const word = tag();
+  // many tasks on the same days and several with no due day: only one fixed order keeps the lists still
+  const seeded = await seedOpenTasks(person, word, { starred: 6, quick: 7, later: 2, overdue: 3, undated: 4 });
+  const read = async (page: Page) => {
+    await hydrated(page);
+    await expect(page.locator('[data-todays-three] [data-three-row]'), 'nine rows are drawn').toHaveCount(9);
+    return threeOnScreen(page);
+  };
+  const one = await signedInAs(browser, person);
+  let first: Awaited<ReturnType<typeof threeOnScreen>>;
+  try {
+    first = await read(one.page);
+    for (let load = 2; load <= 3; load += 1) {
+      await one.page.reload();
+      expect(
+        await read(one.page),
+        `Today's three is the same on load ${load} as on the first: the same tasks in the same order`,
+      ).toEqual(first);
+    }
+    // away to another page and back: still the same
+    await open(one.page, '/tasks');
+    await open(one.page, '/my-day');
+    expect(await read(one.page), "Today's three is the same after leaving My day and coming back").toEqual(first);
+  } finally {
+    await one.context.close();
+  }
+  // a new sign-in, in a browser that has never seen this person
+  const two = await signedInAs(browser, person);
+  try {
+    expect(await read(two.page), "Today's three is the same after signing in again").toEqual(first);
+  } finally {
+    await two.context.close();
+  }
+  // and it is the rule's own order, not just a still one: due day (no due day last), then number
+  for (const g of GROUPS) {
+    expect(first[g]!.rows, `Today's three is the same as the rule's fixed order · ${g}`).toEqual(seeded.three[g]);
+    expect(first[g]!.more, `Today's three · ${g} says how many more it holds`).toBe(seeded.totals[g] - 3);
   }
 });
 
@@ -383,18 +533,154 @@ test('c · the top search opens a result by Enter and by a click; the menu moves
 
 // ------------------------------------------------------------------------------------------------- d · access
 
-test('d · a member has no Finance in the menu, the bar, More or Ctrl K, by address or on a partner; a manager has it', async ({
+const invoiceOf = (ym: string, total: number) => ({
+  p_table: 'invoice',
+  p_fields: {
+    ref: `TX-935${Math.floor(Math.random() * 900000 + 100000)}`,
+    kind: 'transaction',
+    status: 'Fully Paid',
+    created_on: `${ym}-10`,
+    paid_on: `${ym}-12`,
+    total_sar: total,
+    customer_name: 'Made-up Trading Org',
+  },
+  p_reason: 'made up',
+});
+
+test('d · a member sees Finance — the menu, the bar, Ctrl K, by address, on a partner — and can add; a viewer sees it and cannot add; a person set to None does not see it; a manager has it', async ({
   browser,
 }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(420_000);
   const admin = await staffAs('admin');
+  // one made-up import from Payments is logged, so the Finance page is past "Not imported yet" (as signedInAdmin does)
+  await sql(
+    `insert into finance.import_batch (id, file, file_name, export_time, started_by)
+     values ('00000000-0000-4000-8000-0000000f1ce5', 'invoices', 'made-up-invoices.xlsx', now() - interval '1 day', $1)
+     on conflict (id) do nothing`,
+    [admin.id],
+  );
   const a = await signedInAs(browser, admin);
-  const org = await seedOrg(doorOf(a.context), `Access ${tag()}`);
+  const adminDoor = doorOf(a.context);
+  const org = await seedOrg(adminDoor, `Access ${tag()}`);
+  // the person with no Finance: a member set to None on Finance and on a partner's Finance tab by a person change —
+  // the same door Settings › People & access › Access calls for an admin
+  const closed = await staffAs('member');
+  for (const page of ['finance', 'partner_finance'])
+    await adminDoor('access_set_person_level', {
+      p_person: closed.id,
+      p_page: page,
+      p_level: 'none',
+      p_reason: 'Made up: no Finance for this person',
+    });
   await a.context.close();
 
-  // a member, and a second member standing in for anyone of Commercial
+  // a member, and a second member standing in for anyone of Commercial: Finance everywhere, and New invoice
   for (const who of ['a member', 'a second member of Commercial']) {
     const { context, page } = await signedInAs(browser, await staffAs('member'));
+    try {
+      await hydrated(page);
+      expect(await drawerLabels(page), `${who}: Finance is in the menu`).toContain('Finance');
+
+      const palette = await searchFor(page, 'Finance');
+      await expect(
+        palette.getByRole('option', { name: 'Finance', exact: true }),
+        `${who}: Ctrl K offers Finance`,
+      ).toHaveCount(1);
+      await page.keyboard.press('Escape');
+
+      // the member adds a paid invoice of their own in a far-past month, and Finance draws it for them
+      const ym = await quietMonth();
+      const added = await callAs(context, 'finance_row_add', invoiceOf(ym, 4320));
+      expect(added.status, `${who}: their own write to Finance is taken: ${JSON.stringify(added.body)}`).toBe(200);
+      await page.locator('[data-drawer] a[href="/finance"]').click();
+      await expect(page, `${who}: Finance opens from the menu`).toHaveURL(/\/finance(\?|$)/, { timeout: 30_000 });
+      await open(page, `/finance?period=custom&from=${ym}-01&to=${ym}-28`);
+      await blocksSettled(page);
+      await expect(page.locator('[data-state="no-access"]'), `${who}: /finance is not refused`).toHaveCount(0);
+      await expect(
+        page.locator('[data-finance-tile="revenue"]'),
+        `${who}: the figures are drawn, their own invoice in them`,
+      ).toContainText('4,320');
+      const newInvoice = page.locator('[data-new-invoice-link]');
+      await expect(newInvoice, `${who}: New invoice is offered`).toBeVisible();
+      await newInvoice.click();
+      await expect(page, `${who}: New invoice opens its form`).toHaveURL(/\/finance\/new$/, { timeout: 30_000 });
+      await hydrated(page);
+      await expect(page.locator('[data-new-invoice]'), `${who}: the New invoice form is drawn`).toBeVisible();
+
+      // a partner's Finance tab: the tab is there, and the money is drawn
+      await open(page, `/partners/${org.id}?tab=finance`);
+      await expect(page.locator('[data-record-header]'), `${who}: the partner record opens`).toContainText(org.name);
+      await expect(page.locator('[data-summary-state]'), `${who}: the Finance tab has answered`).toHaveCount(0, {
+        timeout: 30_000,
+      });
+      await expect(
+        page.locator('[data-partner-finance]'),
+        `${who}: the money of the partner is drawn on its Finance tab`,
+      ).toBeVisible();
+      await expect(
+        page.locator('#main [data-state="no-access"]'),
+        `${who}: a partner's Finance tab does not say no access`,
+      ).toHaveCount(0);
+
+      await page.setViewportSize(PHONE);
+      await open(page, '/my-day');
+      const bar = await barLabels(page);
+      await page.locator('[data-bottom-more]').click();
+      const sheet = page.locator('[data-more-sheet]');
+      await expect(sheet).toBeVisible();
+      const more = await sheet.locator('a[href="/finance"]').count();
+      expect(
+        bar.includes('Finance') || more > 0,
+        `${who}: Finance is in the phone's bar or under More (bar: ${bar.join(', ')})`,
+      ).toBe(true);
+      await page.keyboard.press('Escape');
+    } finally {
+      await context.close();
+    }
+  }
+
+  // a viewer — the view-only role: sees Finance and the figures, and has no write control; a write is refused
+  {
+    const { context, page } = await signedInAs(browser, await staffAs('viewer'));
+    try {
+      await hydrated(page);
+      expect(await drawerLabels(page), 'a viewer: Finance is in the menu').toContain('Finance');
+      await page.locator('[data-drawer] a[href="/finance"]').click();
+      await expect(page, 'a viewer: Finance opens').toHaveURL(/\/finance(\?|$)/, { timeout: 30_000 });
+      await hydrated(page);
+      await blocksSettled(page);
+      await expect(page.locator('[data-state="no-access"]'), 'a viewer: /finance is not refused').toHaveCount(0);
+      await expect(page.locator('[data-finance-tiles]'), 'a viewer: the figures are drawn').toBeVisible();
+      await expect(page.locator('[data-new-invoice-link]'), 'a viewer: no New invoice').toHaveCount(0);
+      await expect(page.locator('[data-close-month]'), 'a viewer: no Close month').toHaveCount(0);
+      await page.locator('[data-create]').click();
+      await expect(page.locator('[data-create-item="invoice"]'), 'a viewer: Create offers no Invoice').toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await open(page, '/finance/new');
+      await expect(page.locator('[data-new-invoice]'), 'a viewer: the New invoice form is not drawn').toHaveCount(0);
+      await expect(page.locator('[data-state="no-access"]'), 'a viewer: /finance/new says no access').toHaveCount(1);
+      const refused = await callAs(context, 'finance_row_add', invoiceOf(await quietMonth(), 250));
+      expect(refused.status, `a viewer: a write of their own is refused: ${JSON.stringify(refused.body)}`).toBe(403);
+      expect((refused.body as { code?: string }).code, 'a viewer: refused for want of access').toBe('42501');
+
+      await open(page, `/partners/${org.id}?tab=finance`);
+      await expect(page.locator('[data-summary-state]'), 'a viewer: the Finance tab has answered').toHaveCount(0, {
+        timeout: 30_000,
+      });
+      await expect(
+        page.locator('[data-partner-finance]'),
+        'a viewer: the money of the partner is drawn on its Finance tab',
+      ).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+
+  // a person set to None: no Finance in the menu, the bar, More or Ctrl K, by address or on a partner
+  {
+    const who = 'a person set to None';
+    const { context, page } = await signedInAs(browser, closed);
     try {
       await hydrated(page);
       expect(await drawerLabels(page), `${who}: no Finance link in the menu`).not.toContain('Finance');
@@ -412,6 +698,8 @@ test('d · a member has no Finance in the menu, the bar, More or Ctrl K, by addr
       await open(page, '/finance');
       await expect(page.locator('[data-state="no-access"]'), `${who}: /finance says no access`).toHaveCount(1);
       await expect(page.locator('[data-finance-overview]'), `${who}: no Finance figures`).toHaveCount(0);
+      const refused = await callAs(context, 'finance_row_add', invoiceOf(await quietMonth(), 250));
+      expect(refused.status, `${who}: a write of their own is refused`).toBe(403);
 
       // a partner's Finance tab: the tab is there, and says the money is not open to them
       await open(page, `/partners/${org.id}?tab=finance`);
@@ -451,6 +739,7 @@ test('d · a member has no Finance in the menu, the bar, More or Ctrl K, by addr
       timeout: 30_000,
     });
     await expect(page.locator('[data-state="no-access"]'), 'a manager is not refused Finance').toHaveCount(0);
+    await expect(page.locator('[data-new-invoice-link]'), 'a manager has New invoice, as a member does').toBeVisible();
   } finally {
     await context.close();
   }
@@ -568,7 +857,7 @@ test('f · the workspace reads Direct Corporate; the phone top bar carries the b
   test.setTimeout(240_000);
   const person = await staffAs('admin');
   const word = tag();
-  // more tasks due now than Today's three takes, so the Today block keeps a "Quick or pass to someone" group
+  // more tasks due today and tomorrow than Today's three takes, so the Today block keeps a "Quick or pass to someone" group
   const tasks = await seedOpenTasks(person, word, { starred: 0, quick: 6, later: 0 });
   await page.setViewportSize(DESKTOP);
   await signIn(page, person.email, '/my-day');

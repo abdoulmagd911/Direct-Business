@@ -568,12 +568,20 @@ test('8 · the speed gate: the Finance reads answer in under 3 s for every role;
   const year = { p_from: `${d.slice(0, 4)}-01-01`, p_to: d };
   const READS = ['finance_unified_ledger', 'finance_period', 'finance_counted_by_month'] as const;
   const out: Record<string, Record<string, number | string>> = {};
-  // Landing 34 (owner's test round of 19 Nov, item 5): a Team member starts at none on Finance, so the reads refuse a
-  // member as they refuse a person with no role; the gate holds for every role that reads (viewer: View; manager, head
-  // and admin: Full)
-  const NO_READ: readonly string[] = ['member', 'none'];
-  for (const role of ['admin', 'head', 'manager', 'member', 'viewer', 'none'] as const) {
-    const who = await signedInAs(browser, await personAs(role));
+  // The gate holds for every role, because every role reads Finance (the owner, 21 Nov: "everyone sees Finance" —
+  // member, manager, head and admin at Full, viewer at View; this overrules Landing 34's none for a member). The reads
+  // refuse a person with no role, and a person set to None on Finance by a person change (Settings › People & access ›
+  // Access) — "closed" below, a member otherwise
+  const NO_READ: readonly string[] = ['closed', 'none'];
+  for (const role of ['admin', 'head', 'manager', 'member', 'viewer', 'closed', 'none'] as const) {
+    const person = await personAs(role === 'closed' ? 'member' : role);
+    if (role === 'closed')
+      await sql(
+        `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+         values ($1, 'finance', 'none', 'Made up: no Finance for this person', $1)`,
+        [person.id],
+      );
+    const who = await signedInAs(browser, person);
     try {
       out[role] = {};
       for (const fn of READS) {
@@ -581,7 +589,7 @@ test('8 · the speed gate: the Finance reads answer in under 3 s for every role;
         const r = await callAs(who.context, fn, year);
         const ms = Date.now() - t0;
         if (NO_READ.includes(role)) {
-          const who = role === 'none' ? 'a person with no role' : 'a member, at none on Finance,';
+          const who = role === 'none' ? 'a person with no role' : 'a person set to None on Finance';
           expect(r.status, `${fn}: ${who} is refused, not answered and not an error`).toBe(403);
           expect((r.body as { code?: string }).code, `${fn}: refused for want of access`).toBe('42501');
           expect((r.body as { message?: string }).message, `${fn}: the refusal names the missing level`).toBe(

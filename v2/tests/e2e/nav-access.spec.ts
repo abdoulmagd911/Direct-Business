@@ -141,16 +141,16 @@ for (const who of ['admin', 'Commercial member'] as const) {
     if (who === 'admin') expect(wide.at(-1), 'Settings sits at the foot for an admin').toBe('Settings');
     else expect(wide, 'no Settings for a member').not.toContain('Settings');
 
-    // the pages a plain member's access opens are the pages in their menu; Finance follows the access, and Landing 34
-    // (owner's test round of 19 Nov, item 5) moved members to none — so it is in no member menu and its address says
-    // no access; an admin (Full) has it
-    if (who === 'Commercial member') {
+    // the pages a plain member's access opens are the pages in their menu; Finance follows the access, and a member
+    // starts at Full on it as an admin does (the owner, 21 Nov: "everyone sees Finance and everyone adds and edits it";
+    // this overrules Landing 34's none) — so it is in both menus, its address opens and New invoice is offered
+    if (who === 'Commercial member')
       expect(wide, 'Achievements is in the menu where the access opens it').toContain('Achievements');
-      expect(wide, 'Finance is not in a member menu: a member starts at none').not.toContain('Finance');
-      await desktop.goto('/finance');
-      await hydrated(desktop);
-      await expect(desktop.locator('[data-state="no-access"]'), '/finance says no access to a member').toHaveCount(1);
-    } else expect(wide, 'Finance is in the menu where the access opens it').toContain('Finance');
+    expect(wide, `Finance is in the menu of a ${who}: the access opens it`).toContain('Finance');
+    await desktop.goto('/finance');
+    await hydrated(desktop);
+    await expect(desktop.locator('[data-state="no-access"]'), `/finance opens for a ${who}`).toHaveCount(0);
+    await expect(desktop.locator('[data-new-invoice-link]'), `a ${who} has New invoice on Finance`).toHaveCount(1);
     await desktop.context().close();
     await phone.context().close();
   });

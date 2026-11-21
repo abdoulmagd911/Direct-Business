@@ -44,7 +44,11 @@ export const sabotages = [
     ],
   },
   {
-    // 1: the form /tasks/new opened is closed, and a later Add task from the header still leaves the list
+    // 1: the form /tasks/new opened is closed, and a later Add task from the header still leaves the list.
+    // Landing 34: /tasks/new's form (NewTaskEntry) and the list's own Add task each hold their own "closed on the
+    // address" mark and share only `spendNewTaskAddress`, so a mark that merely stays set inside one form no longer
+    // reaches the other. The mistake is planted where the two meet: the address once spent is remembered for the
+    // whole window, so the header's form finds it too.
     name: 'header-add-follows-the-spent-address',
     breaks: [E2E],
     expect: 'from the header, the list stays and shows the new task',
@@ -52,7 +56,10 @@ export const sabotages = [
       {
         file: 'src/modules/tasks/screens/TaskListScreen.tsx',
         find: 'closedOnAddress.current = byAddress;',
-        replace: 'closedOnAddress.current = closedOnAddress.current || byAddress;',
+        replace:
+          'const spent = window as unknown as { newTaskAddressSpent?: boolean };\n' +
+          '  spent.newTaskAddressSpent = spent.newTaskAddressSpent || byAddress;\n' +
+          '  closedOnAddress.current = spent.newTaskAddressSpent;',
       },
     ],
   },

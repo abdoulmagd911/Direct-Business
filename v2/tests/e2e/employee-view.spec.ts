@@ -94,9 +94,10 @@ const tag = () => Math.random().toString(36).slice(2, 8);
 const UNBUILT = ['Overview', 'Pipeline', 'Projects', 'Appraisal'];
 
 // Finance follows the access each person has — the level is a setting in Settings › People & access › Access.
-// Landing 34 (owner's test round of 19 Nov, item 5) moved Members to none on Finance (Viewers stay at View;
-// managers, heads and admins have Full) — so Finance is NOT in the member/BD menu, bar or More and /finance says
-// no access to them; it IS in the viewer's. The lists below are the Landing 34 lists.
+// The owner's decision of 21 Nov (it overrules Landing 34's "members do not see Finance"): everyone sees Finance and
+// everyone adds and edits it — Members, managers, heads and admins start at Full — and only the view-only role
+// (Viewer) reads it without the write controls. So Finance IS in the member/BD menu, bar and More, /finance opens
+// for them with New invoice; a person set to None by a person change is the one who has no Finance (test 6).
 test('1 · a member: the drawer is every built page their access opens (V238, QA3-002); the phone bar is the first four and More', async ({
   page,
 }) => {
@@ -105,25 +106,30 @@ test('1 · a member: the drawer is every built page their access opens (V238, QA
     'My day',
     'Tasks',
     'Partners',
+    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
   await expect(
     page.locator('[data-drawer] a[href="/finance"]'),
-    'no Finance in a member menu (Landing 34: members start at none)',
-  ).toHaveCount(0);
+    'Finance is in a member menu (the owner, 21 Nov: members start at Full)',
+  ).toHaveCount(1);
   await expect(page.locator('[data-drawer-head] a'), 'the head is the logo and the word Corporate').toHaveText(
     'Corporate',
   );
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Achievements', 'More', 'Create']);
-  expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
-  await expect(page.locator('[data-bottom-bar] a[href="/finance"]'), 'no Finance on the phone bar').toHaveCount(0);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
+  expect(await morePages(page), 'More holds the rest of the same list').toEqual([
+    'Achievements',
+    'Reports',
+    'Discount codes',
+  ]);
+  await expect(page.locator('[data-bottom-bar] a[href="/finance"]'), 'Finance is on the phone bar').toHaveCount(1);
   await page.goto('/finance');
   await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]'), '/finance says no access to a member').toHaveCount(1);
-  await expect(page.locator('[data-finance-overview]'), 'and draws no figures').toHaveCount(0);
+  await expect(page.locator('[data-state="no-access"]'), '/finance opens for a member').toHaveCount(0);
+  await expect(page.locator('[data-finance-overview]'), 'and draws the figures').toHaveCount(1);
 });
 
 test('2 · a Business Development member (Pipeline Own by a person change) gets no Pipeline entry while Pipeline is not built', async ({
@@ -134,14 +140,15 @@ test('2 · a Business Development member (Pipeline Own by a person change) gets 
     'My day',
     'Tasks',
     'Partners',
+    'Finance',
     'Achievements',
     'Reports',
     'Discount codes',
   ]);
-  await expect(page.locator('[data-drawer] a[href="/finance"]'), 'no Finance in a BD member menu').toHaveCount(0);
+  await expect(page.locator('[data-drawer] a[href="/finance"]'), 'Finance is in a BD member menu').toHaveCount(1);
   await page.setViewportSize(PHONE);
-  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Achievements', 'More', 'Create']);
-  expect(await morePages(page)).toEqual(['Reports', 'Discount codes']);
+  expect(await barLabels(page)).toEqual(['My day', 'Tasks', 'Partners', 'Finance', 'More', 'Create']);
+  expect(await morePages(page)).toEqual(['Achievements', 'Reports', 'Discount codes']);
 });
 
 test('3 · a manager: every built page their access opens, in order (Activity at View); the bar is the first four and More', async ({
@@ -200,6 +207,15 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   await page.locator('[data-create]').click();
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
   await page.keyboard.press('Escape');
+  // the view-only role reads Finance — the page opens and the figures draw — and has no write control on it (the
+  // owner, 21 Nov: "only the view-only roles see it but cannot edit it")
+  await page.goto('/finance');
+  await hydrated(page);
+  await expect(page.locator('[data-state="no-access"]'), '/finance opens for a viewer').toHaveCount(0);
+  await expect(page.locator('[data-finance-overview]'), 'the Finance overview draws for a viewer').toHaveCount(1);
+  await expect(page.locator('[data-new-invoice-link]'), 'no New invoice for a viewer').toHaveCount(0);
+  await page.goto('/my-day');
+  await hydrated(page);
   await page.setViewportSize(PHONE);
   expect(await barLabels(page)).toEqual(['My day', 'Partners', 'Finance', 'Achievements', 'More', 'Create']);
   expect(await morePages(page), 'More holds the rest of the same list').toEqual(['Reports', 'Discount codes']);
@@ -207,10 +223,11 @@ test('5 · a viewer: the built pages their access opens, Reports in More; Create
   await expect(page.getByRole('menuitem')).toHaveText(['Capture', 'Idea']);
 });
 
-test('6 · a member opens KPIs from the menu; Finance is closed to a member (Landing 34) and opens at View by a person change — figures, no writes; Reports is built, in the menu and in Ctrl K', async ({
+test('6 · a member opens KPIs from the menu; Finance opens for a member at Full (the owner, 21 Nov) — figures and New invoice — and is closed to a person set to None; Reports is built, in the menu and in Ctrl K', async ({
   page,
+  browser,
 }) => {
-  const member = await openAs(page, 'member');
+  await openAs(page, 'member');
   // the menu says Achievements (daily use 8); /kpis opens the list
   await page.goto('/kpis');
   await hydrated(page);
@@ -220,40 +237,46 @@ test('6 · a member opens KPIs from the menu; Finance is closed to a member (Lan
     page.locator('[data-drawer]').getByRole('link', { name: 'Achievements' }),
     "Achievements is in the menu: the member's access opens it",
   ).toHaveCount(1);
-  // Landing 34 (owner's test round of 19 Nov, item 5): Members start at none on Finance — its address says no access,
-  // the menu has no Finance entry and Ctrl K does not offer it
+  // The owner's decision of 21 Nov: Members start at Full on Finance — its address opens, the menu carries a Finance
+  // entry, the figures read and the write control (New invoice) is there, as it is for a manager
   await page.goto('/finance');
   await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]'), '/finance says no access to a member').toHaveCount(1);
-  await expect(page.locator('[data-finance-overview]'), 'no Finance figures for a member').toHaveCount(0);
+  await expect(page.locator('[data-state="no-access"]'), '/finance opens for a member').toHaveCount(0);
   await expect(
     page.locator('[data-drawer]').getByRole('link', { name: 'Finance' }),
-    'Finance is not in a member menu',
-  ).toHaveCount(0);
-  await page.keyboard.press('Control+k');
-  await page.locator('[data-command-palette]').getByPlaceholder('Go to a page or search…').fill('Finance');
-  await expect(
-    page.locator('[data-command-palette]').getByRole('option', { name: 'Finance', exact: true }),
-    'Ctrl K does not offer Finance to a member (Landing 34)',
-  ).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  // Finance follows the access each person has: given View by a person change (Settings › People & access › Access),
-  // its address opens for this member, the menu carries a Finance entry, and the figures read; the write controls
-  // stay Full-gated, so there is no New invoice link and no Import section
-  await sql(
-    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
-     values ($1, 'finance', 'view', 'Made up: reads Finance, Landing 34', $1)`,
-    [member.id],
-  );
-  await page.goto('/finance');
-  await hydrated(page);
-  await expect(page.locator('[data-state="no-access"]'), '/finance opens for a member given View').toHaveCount(0);
-  await expect(
-    page.locator('[data-drawer]').getByRole('link', { name: 'Finance' }),
-    'Finance is in the menu of a member given View',
+    'Finance is in a member menu',
   ).toHaveCount(1);
   await expect(page.locator('[data-finance-overview]'), 'the Finance overview draws').toHaveCount(1);
-  await expect(page.locator('[data-new-invoice-link]'), 'no New invoice for a View reader').toHaveCount(0);
+  await expect(page.locator('[data-new-invoice-link]'), 'a member has New invoice (Full on Finance)').toHaveCount(1);
+  // Finance follows the access each person has: a person set to None by a person change (Settings › People & access ›
+  // Access) has no Finance — the address says no access, the menu has no Finance entry and Ctrl K does not offer it
+  const ctx = await browser.newContext();
+  const closed = await ctx.newPage();
+  const none = await personAs('member');
+  await sql(
+    `insert into core.person_page_level (person_id, page_key, level, reason, created_by)
+     values ($1, 'finance', 'none', 'Made up: no Finance for this person', $1)`,
+    [none.id],
+  );
+  await closed.setViewportSize(DESKTOP);
+  await signIn(closed, none.email, '/finance');
+  await hydrated(closed);
+  await expect(
+    closed.locator('[data-state="no-access"]'),
+    '/finance says no access to a person set to None',
+  ).toHaveCount(1);
+  await expect(closed.locator('[data-finance-overview]'), 'no Finance figures for a person set to None').toHaveCount(0);
+  await expect(
+    closed.locator('[data-drawer]').getByRole('link', { name: 'Finance' }),
+    'Finance is not in the menu of a person set to None',
+  ).toHaveCount(0);
+  await closed.keyboard.press('Control+k');
+  await closed.locator('[data-command-palette]').getByPlaceholder('Go to a page or search…').fill('Finance');
+  await expect(
+    closed.locator('[data-command-palette]').getByRole('option', { name: 'Finance', exact: true }),
+    'Ctrl K does not offer Finance to a person set to None',
+  ).toHaveCount(0);
+  await ctx.close();
   // Reports is built now: its address answers, it is in the menu, and Ctrl K offers it
   await page.goto('/reports');
   await hydrated(page);
@@ -273,7 +296,7 @@ test('6 · a member opens KPIs from the menu; Finance is closed to a member (Lan
   await palette.getByPlaceholder('Go to a page or search…').fill('Finance');
   await expect(
     palette.getByRole('option', { name: 'Finance', exact: true }),
-    'Ctrl K offers Finance to a member given View',
+    'Ctrl K offers Finance to a member (the owner, 21 Nov)',
   ).toHaveCount(1);
   await palette.getByPlaceholder('Go to a page or search…').fill('Achievements');
   await palette.getByRole('option', { name: 'Achievements', exact: true }).click();
@@ -362,7 +385,7 @@ test('8 · Partners carries the tab row Partners · Suppliers with counts; the o
 
 // ── Create ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture, Task and Idea, never Partner', async ({
+test('9 · Create offers only built screens at Full, and a member with read-only lists gets Capture, Task, Invoice and Idea, never Partner', async ({
   page,
   browser,
 }) => {
@@ -408,9 +431,10 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.setViewportSize(DESKTOP);
   await signIn(one, member.email, '/my-day');
   await hydrated(one);
-  // Partners, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day) and Task, plus Idea
+  // Partners, Suppliers and KPIs are read only, so Create keeps Capture (open to anyone who can open My day), Task and
+  // Idea — and Invoice, because a member starts at Full on Finance (the owner, 21 Nov)
   await one.locator('[data-create]').click();
-  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Idea']);
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Invoice', 'Idea']);
   await one.locator('[data-create-item="task"]').click();
   await expect(one, 'the Tasks page draws itself with quick add, no redirect (V286)').toHaveURL(/\/tasks\/new$/);
   await expect(one.locator('[data-quick-add]'), 'quick add is open on arrival').toBeVisible();
@@ -419,7 +443,7 @@ test('9 · Create offers only built screens at Full, and a member with read-only
   await one.goto('/my-day');
   await hydrated(one);
   await one.locator('[data-create-bar]').click();
-  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Idea']);
+  await expect(one.getByRole('menuitem')).toHaveText(['Capture', 'Task', 'Invoice', 'Idea']);
   await ctx.close();
 });
 

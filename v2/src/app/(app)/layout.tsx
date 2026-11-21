@@ -1,10 +1,8 @@
-import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { getMe } from '@/core/auth/get-me';
 import { MeProvider } from '@/core/auth/me-context';
 import { requireMe } from '@/core/auth/require-me';
 import { DbError } from '@/core/db/errors';
-import { prefsFrom } from '@/core/prefs';
 import { effectivePrefs } from '@/core/prefs/effective';
 import { getAppSettings } from '@/core/settings/app';
 import { AppFlagsProvider } from '@/core/settings/app-flags';
@@ -26,12 +24,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     if (e instanceof DbError && e.kind === 'Unavailable') return <LayoutTransient />;
     throw e;
   }
-  const [me, app, store] = await Promise.all([requireMe(), getAppSettings(), cookies()]);
-  const prefs = effectivePrefs(
-    me,
-    app,
-    prefsFrom((n) => store.get(n)?.value),
-  );
+  const [me, app] = await Promise.all([requireMe(), getAppSettings()]);
+  // what this person should see — the language by the one rule (personLocale): the cookies are only its cache, and
+  // PrefsSync brings them in line (after an admin turns Arabic on or off, that is what draws the app again)
+  const prefs = effectivePrefs(me, app);
   return (
     <MeProvider me={me}>
       {/* whether Arabic is on, for the language choice (the profile menu, Settings → App) — Landing 34 */}

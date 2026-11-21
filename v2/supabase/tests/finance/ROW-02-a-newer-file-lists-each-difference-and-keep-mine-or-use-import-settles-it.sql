@@ -3,11 +3,15 @@
 -- expense's field, each with both values and counted per invoice; the line's other fields follow the newer file. Keep
 -- mine leaves the person's value; Use import writes the file's and gives the field back to the imports; each is one
 -- request that Undo takes back. A value the person kept theirs against is not listed again; a newer value is. A member
--- cannot decide, and a decided difference is not decided twice. Every value is made up.
+-- held at Own on Finance cannot decide, and a decided difference is not decided twice. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-kept-difference-is-not-listed.sql, use-import-leaves-the-field-the-persons.sql,
 -- keep-mine-is-asked-again.sql, a-line-edit-freezes-the-whole-line.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select set_config('t.d', (core.riyadh_today() - 20)::text, true);
 
 -- the first export
@@ -69,11 +73,11 @@ select test.eq((select jsonb_build_object('name', name, 'total', total_sar) from
   '{"name": "Hotel nights (2)", "total": 310.00}'::jsonb,
   'the line keeps the name the person set; its other fields follow the newer file');
 
--- a member cannot decide
+-- Own on Finance cannot decide
 select set_config('t.dbranch', (select id from finance.import_difference where field = 'branch')::text, true);
 select test.as_person(current_setting('t.mem')::uuid);
 select test.raises(format('select api.finance_difference_decide(%L, %L, 1)', current_setting('t.dbranch'), 'keep_mine'),
-  '42501', 'a member cannot settle a difference');
+  '42501', 'Own on Finance cannot settle a difference');
 
 -- Keep mine, then Undo
 select test.as_person(current_setting('t.head')::uuid);

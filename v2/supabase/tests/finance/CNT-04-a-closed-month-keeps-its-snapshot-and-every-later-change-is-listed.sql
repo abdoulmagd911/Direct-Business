@@ -1,10 +1,14 @@
 -- CNT-04 — a month's close (V610, V500): a person with Full on Finance closes a past month; its snapshot — each counted
 -- unit as it stood — never changes; a unit paid after the close is listed as late-paid against that month, one voided
 -- after it as dropped, and a cost that changed as cost changed, with the riyals — never folded in silently. The current
--- month cannot be closed, nor a month twice; a member cannot close one. Every value is made up.
+-- month cannot be closed, nor a month twice; a person below Full on Finance (a member held at Own) cannot close one. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/a-late-payment-is-folded-in-silently.sql, a-closed-snapshot-changes.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select set_config('t.m', (date_trunc('month', core.riyadh_today()::timestamp) - interval '1 month')::date::text, true);
 select set_config('t.d', (current_setting('t.m')::date + 5)::text, true);
 
@@ -16,7 +20,7 @@ select api.finance_import('invoices', jsonb_build_array(
   now() - interval '3 days');
 
 select test.as_person(current_setting('t.mem')::uuid);
-select test.raises(format($$select api.finance_month_close(%L)$$, current_setting('t.m')), '42501', 'a member cannot close a month');
+select test.raises(format($$select api.finance_month_close(%L)$$, current_setting('t.m')), '42501', 'Own on Finance cannot close a month');
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format($$select api.finance_month_close(%L)$$, core.riyadh_today()), 'P0001',
   'the current month is not over', 'finance.month_not_over');

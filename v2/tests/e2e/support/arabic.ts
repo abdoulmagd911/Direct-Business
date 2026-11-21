@@ -1,5 +1,13 @@
 import pg from 'pg';
-import { sql } from './stack';
+import { saveLanguage, sql } from './stack';
+
+/**
+ * The person of an Arabic leg reads Arabic because they CHOSE it: the language is saved in their profile, as the
+ * Arabic card's "Your language" would save it (Landing 34b). The cookie decides nothing for a signed-in person, and
+ * every made-up person starts with English saved (support/stack.ts, makePerson) — so the leg says whose language it
+ * is. The next page they load is Arabic from its first paint, while Arabic is on.
+ */
+export const readsArabic = (personId: string) => saveLanguage(personId, 'ar');
 
 /**
  * Arabic on for the length of one case, then off again. The setting reaches every screen and the Arabic specs run in

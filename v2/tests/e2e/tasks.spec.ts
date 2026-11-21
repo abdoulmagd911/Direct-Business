@@ -264,6 +264,7 @@ test('a member sees their department’s work, never another’s (V96)', async (
   const colleague = await memberWithTeam();
   const outsider = await makePerson();
   const ours = await taskIn('commercial', colleague.id, `Made-up colleague task ${randomUUID().slice(0, 6)}`);
+  const mine = await taskIn('commercial', member.id, `Made-up own task ${randomUUID().slice(0, 6)}`);
   const theirs = await taskIn(`test_other_${randomUUID().slice(0, 8)}`, outsider.id, 'Made-up other department task');
   await sql(
     `update core.person set department_id = (select department_id from work.task where number = $1) where id = $2`,
@@ -274,6 +275,9 @@ test('a member sees their department’s work, never another’s (V96)', async (
   await expect(page.locator(`li[data-task-row="${theirs}"]`), 'another department’s does not').toHaveCount(0);
 
   await page.goto('/tasks');
+  // the list arrives after the page's first answer (Landing 34): "no such row" is only a finding once My work has
+  // drawn its rows, so the member's own task is waited for first — before it, the count is 0 whatever the scope
+  await expect(page.locator(`li[data-task-row="${mine}"]`), 'My work has drawn: the member’s own task').toBeVisible();
   await expect(page.locator(`li[data-task-row="${ours}"]`), 'a colleague’s task is not My work').toHaveCount(0);
 
   await page.goto(`/tasks/${theirs}`);

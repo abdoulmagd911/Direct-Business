@@ -30,6 +30,16 @@ import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
 // throws the page's reads away: before, each of the page's eight reads dropped its answer — one still on its way
 // too — and asked again, so looking at another tab during a slow first load started the whole load over. Now only a
 // write does that; a window coming back re-asks an answer that has gone old, and leaves a read in flight alone.
+//
+// Landing 34, the follow-up ("What needs attention" stuck on Loading): that last fix never worked in the real app.
+// The window coming back was told from a write by a mark that lasted until the end of the browser's own focus event —
+// and the same landing made the shell wait FOCUS_SETTLE_MS (400 ms) after that event before it asks for the refetch.
+// The mark was long gone by then, so every return of the window still counted as a write: all the reads thrown away
+// and asked again, one still on its way too. A block that had answered kept its figures meanwhile; the one that had
+// not — the health line, asked last and the heaviest — began again at the back of the queue each time, and sat on
+// "Loading" for as long as the person kept coming back to the window. Now the moment the window came back is kept
+// (BACK_WINDOW_MS), and a write says that it is one (commandBusy, or financeWrote from this module's own screens).
+// A block also knows a REFUSAL from a failure (`refused`), and Try again never answers from what was kept.
 
 /** How many Finance reads this browser has in flight at once. */
 export const LIMIT = 2;
@@ -170,7 +180,8 @@ async function once<T>(key: string, fn: ApiFunction, args: unknown, signal: Abor
   const asked = epoch;
   const request: Promise<T> = ask<T>(fn, args)
     .then((data) => {
-      if (asked === epoch) kept.set(key, { at: Date.now(), data });
+      // an answer of nothing is never kept: the block says it could not be read, and its Try again must ask again
+      if (asked === epoch && data !== null && data !== undefined) kept.set(key, { at: Date.now(), data });
       return data;
     })
     .finally(() => {
@@ -181,9 +192,13 @@ async function once<T>(key: string, fn: ApiFunction, args: unknown, signal: Abor
   return whileWaiting(request, signal);
 }
 
-/** One read: its turn in the queue, one more ask after a pause when it failed for time or transport. */
-export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: AbortSignal): Promise<T> {
+/**
+ * One read: its turn in the queue, one more ask after a pause when it failed for time or transport. `fresh` is the
+ * person's own Try again: it always goes to the database, never to what was kept.
+ */
+export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: AbortSignal, fresh = false): Promise<T> {
   const key = `${fn}|${JSON.stringify(args)}`;
+  if (fresh) kept.delete(key);
   const hit = kept.get(key);
   if (hit && Date.now() - hit.at < KEEP_MS) return hit.data as T;
   let data: T;
@@ -209,20 +224,57 @@ export const forgetFinanceReads = () => {
 };
 
 /**
- * True while the shell's refetch is only the window coming back (focus / visibility), not a write. The shell asks for
- * that refetch from inside the browser's own focus event, so a mark set as the event starts (capture, on the window)
- * and cleared right after it tells the two apart. Anything else that asks for a refetch counts as a write.
+ * How long after the window came back a refetch still counts as that return. The shell asks for its focus refetch
+ * FOCUS_SETTLE_MS (400 ms) after the browser's focus event (src/ui/shell/RefetchBridge.tsx), so this must be longer
+ * than that wait — a unit test holds the two together.
  */
-let windowBack = false;
-if (typeof window !== 'undefined') {
-  const mark = () => {
-    windowBack = true;
+export const BACK_WINDOW_MS = 2_000;
+
+/** When the window last came back (focus, or the tab shown again); null once a refetch or a write has used it up. */
+let cameBackAt: number | null = null;
+
+/** The window came back: the shell's refetch that follows is not a write. */
+export function windowCameBack(now = Date.now()) {
+  cameBackAt = now;
+}
+
+/**
+ * A write was made from a Finance screen that does not go through `command()`: the refetch asked for right after it
+ * is a write, whatever the window did a moment ago. Called just before `refetchAll()`.
+ */
+export function financeWrote() {
+  cameBackAt = null;
+}
+
+/**
+ * Why the shell is asking every screen to refetch: 'back' when the window came back a moment ago and no write is in
+ * flight, 'write' for everything else — a doubt is always a write, so figures are never left old after one.
+ */
+export function refetchCause(at: { cameBackAt: number | null; now: number; busy: boolean }): 'write' | 'back' {
+  if (at.busy || at.cameBackAt === null) return 'write';
+  const since = at.now - at.cameBackAt;
+  return since >= 0 && since <= BACK_WINDOW_MS ? 'back' : 'write';
+}
+
+/** The cause of the refetch being asked for now; a return of the window counts once, for the blocks of one refetch. */
+function causeNow(): 'write' | 'back' {
+  const cause = refetchCause({ cameBackAt, now: Date.now(), busy: commandBusy() });
+  // every block of the page hears the same refetch in one go; after it the return is used up, so a write that
+  // follows within the window is a write
+  if (cause === 'back')
     setTimeout(() => {
-      windowBack = false;
+      cameBackAt = null;
     }, 0);
+  return cause;
+}
+
+if (typeof window !== 'undefined') {
+  // the same two signals the shell listens to, and only a window that is shown
+  const back = () => {
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') windowCameBack();
   };
-  window.addEventListener('focus', mark, true);
-  window.addEventListener('visibilitychange', mark, true);
+  window.addEventListener('focus', back, true);
+  window.addEventListener('visibilitychange', back, true);
 }
 
 /**
@@ -239,7 +291,14 @@ export function refetchPlan(
   return block.status === 'ready' && now - block.answeredAt > BACK_STALE_MS ? 'ask' : 'leave';
 }
 
-export type Block<T> = { status: 'loading' } | { status: 'ready'; data: T } | { status: 'failed' };
+/**
+ * `refused` on a failed block: the database answered, and the answer was "you may not read this" (42501). That is
+ * not a failure to say with Try again — asking again gets the same answer — so a block may simply not be drawn.
+ */
+export type Block<T> = { status: 'loading' } | { status: 'ready'; data: T } | { status: 'failed'; refused?: boolean };
+
+/** True for the database's refusal of the reader; false for a read that could not be made or timed out. */
+export const isRefusal = (e: unknown) => e instanceof DbError && e.kind === 'PermissionDenied';
 
 /**
  * One block of the page: loading, then ready or failed, for one read. The state belongs to the read it was asked
@@ -254,6 +313,8 @@ export function useFinanceRead<T, F extends ApiFunction>(
 ): { block: Block<T>; retry: () => void } {
   const [state, setState] = useState<{ key: string; block: Block<T> }>({ key, block: { status: 'loading' } });
   const [turn, setTurn] = useState(0);
+  // the turn the person's own Try again asked for: that ask goes to the database, never to what was kept
+  const freshTurn = useRef(-1);
   // what this block holds now and when it was answered, for the refetch listener below (it is registered once)
   const held = useRef<{ status: Block<T>['status']; answeredAt: number }>({ status: 'loading', answeredAt: 0 });
   const argsKey = JSON.stringify(args);
@@ -261,7 +322,9 @@ export function useFinanceRead<T, F extends ApiFunction>(
     if (!enabled) return undefined;
     const controller = new AbortController();
     held.current = { status: 'loading', answeredAt: 0 };
-    readFinance<T>(fn, JSON.parse(argsKey), controller.signal).then(
+    const fresh = freshTurn.current === turn;
+    freshTurn.current = -1;
+    readFinance<T>(fn, JSON.parse(argsKey), controller.signal, fresh).then(
       (data) => {
         if (!controller.signal.aborted) held.current = { status: 'ready', answeredAt: Date.now() };
         if (!controller.signal.aborted) setState({ key, block: { status: 'ready', data } });
@@ -271,7 +334,7 @@ export function useFinanceRead<T, F extends ApiFunction>(
         // still the latest one, not the shape of the error (QA-549)
         if (controller.signal.aborted || isCancel(e)) return;
         held.current = { status: 'failed', answeredAt: 0 };
-        setState({ key, block: { status: 'failed' } });
+        setState({ key, block: { status: 'failed', refused: isRefusal(e) } });
       },
     );
     return () => controller.abort();
@@ -280,7 +343,7 @@ export function useFinanceRead<T, F extends ApiFunction>(
   useEffect(
     () =>
       onRefetch(() => {
-        const cause = windowBack && !commandBusy() ? 'back' : 'write';
+        const cause = causeNow();
         if (refetchPlan(cause, held.current, Date.now()) === 'leave') return;
         if (cause === 'write') forgetFinanceReads();
         held.current = { status: 'loading', answeredAt: 0 };
@@ -291,8 +354,9 @@ export function useFinanceRead<T, F extends ApiFunction>(
   const retry = useCallback(() => {
     held.current = { status: 'loading', answeredAt: 0 };
     setState({ key, block: { status: 'loading' } });
-    setTurn((n) => n + 1);
-  }, [key]);
+    freshTurn.current = turn + 1;
+    setTurn(turn + 1);
+  }, [key, turn]);
   // what is on screen is the answer for this read; after a write the old figures stay until the new ones arrive
   return { block: state.key === key ? state.block : { status: 'loading' }, retry };
 }

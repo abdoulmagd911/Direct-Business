@@ -541,8 +541,8 @@
         "sourcesLabel": "Where each group comes from",
         "sources": {
           "important": "Important — your starred tasks",
-          "short": "Short — due within {days, plural, one {# day} other {# days}}, not starred",
-          "maintenance": "Maintenance — the rest of your own tasks"
+          "short": "Short — due today or within {days, plural, one {# day} other {# days}}, not starred",
+          "maintenance": "Maintenance — the rest of your own tasks: overdue, due later or with no due day"
         },
         "streak": {
           "days": "Streak: {days, plural, one {# working day} other {# working days}}",
@@ -552,7 +552,8 @@
         "team": {
           "title": "My team's streaks",
           "days": "{days, plural, =0 {No streak yet} one {# working day} other {# working days}}"
-        }
+        },
+        "more": "{count, plural, one {# more in Tasks} other {# more in Tasks}}"
       }
     },
     "settings": {
@@ -2397,7 +2398,8 @@
       "removed": "Removed from the merge list"
     },
     "language": {
-      "yours": "Your language"
+      "yours": "Your language",
+      "whatArabicDoes": "When on, the workspace opens in Arabic for everyone who has not chosen their own language. Each person can still choose English or العربية for themselves."
     }
   },
   "errors": {

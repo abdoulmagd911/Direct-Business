@@ -8,6 +8,7 @@ import { useMe } from '@/core/auth/me-context';
 import { rpc } from '@/core/db/rpc';
 import { formatDate } from '@/core/i18n/format';
 import { DENSITIES, DIRS, PREF_DEFS, readPrefs, readTheme, setPref, type Theme } from '@/core/prefs';
+import { personLocale } from '@/core/prefs/effective';
 import { usePrefs } from '@/core/prefs/usePrefs';
 import { NOTIFICATION_KINDS, WORK_NOTIFICATION_KINDS } from '@/modules/settings/module';
 import { Avatar } from '@/ui/Avatar';
@@ -98,12 +99,14 @@ export function MyProfile({
     // the cookies are a cache of the profile, never a choice of this browser (one source, the same in every tab)
     setPref('theme', readTheme(me.profile?.theme) ?? PREF_DEFS.theme.default, { cache: true });
     setPref('density', me.profile?.density ?? PREF_DEFS.density.default, { cache: true });
-    setPref('locale', me.profile?.locale ?? PREF_DEFS.locale.default);
+    // the language by the one rule (personLocale), never "English unless saved": with Arabic on, a person who chose
+    // none reads Arabic, and writing English here flipped them back on every visit to this page (Landing 34b)
+    setPref('locale', personLocale(me.profile?.locale, { arabic_enabled: arabicEnabled }));
     if (me.profile?.drawer_pinned !== null && me.profile?.drawer_pinned !== undefined)
       setPref('drawer', me.profile.drawer_pinned ? 'pinned' : 'collapsed');
     // the words on screen come from the server in the cookie's language: a reverted language needs one more answer
     if (readPrefs().locale !== before.locale) router.refresh();
-  }, [me, router]);
+  }, [me, router, arabicEnabled]);
   const [deviceRows, setDeviceRows] = useState(devices);
   const { prefs, set: setPrefs } = usePrefs();
   const dev = process.env.NODE_ENV !== 'production';

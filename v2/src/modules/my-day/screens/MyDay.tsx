@@ -15,7 +15,7 @@ import { StatusChip } from '@/ui/Chip';
 import { DataState } from '@/ui/DataState';
 import { Tabs } from '@/ui/Tabs';
 import { entityRoute } from '@/ui/entity-route';
-import { BLOCK_ROWS, helpingTasks, todaysThree } from '../logic';
+import { BLOCK_ROWS, todaysThree } from '../logic';
 import { CAPTURE_KINDS, openQuickCapture, type CaptureKind } from '../quick-capture';
 import { markReminderDone } from '../reminder-done';
 import { laterReminders } from '../today-reminders';
@@ -106,8 +106,9 @@ export function MyDay({ data }: { data: MyDayData }) {
   const starred = (answer.tasks ?? []).filter((task) => task.starred && task.role === 'owner');
   // Today's three (Landing 34): 3 important + 3 short + 3 maintenance of my own tasks sit at the top; the Today block
   // below keeps the rest of mine, grouped as before, and the tasks I only help on
-  const three = todaysThree(answer.tasks ?? [], answer.day);
-  const belowThree = [...three.rest, ...helpingTasks(answer.tasks ?? [])];
+  // Landing 34b: the database picks the three from all my own open tasks; what it did not pick stays below, once
+  const three = todaysThree(answer.three, answer.tasks ?? []);
+  const belowThree = three.rest;
   const authorOf = (id: string) => {
     const p = people.get(id);
     return p ? personName(p, locale) : undefined;

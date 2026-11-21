@@ -312,7 +312,10 @@ export const sabotages = [
       {
         file: READS,
         find: "if (!(e instanceof DbError) || e.kind !== 'Unavailable') throw e;",
-        replace: 'throw e;',
+        // not a bare `throw e;`: the lines after it still read `e` as a DbError (noAnswer.has(e)), so with the test
+        // gone the build stopped on a type error and the spec never ran. The test stays, and a condition that is
+        // always true joins it: every failed read is thrown on, none is asked again.
+        replace: "if (!(e instanceof DbError) || e.kind !== 'Unavailable' || RETRY_AFTER_MS > 0) throw e;",
       },
     ],
   },

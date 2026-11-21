@@ -315,12 +315,25 @@ test('the same number twice is refused in its field, and an empty form says what
 });
 
 test('a person without Full on Finance gets the no-access state, not the form', async ({ page }) => {
+  // a Team member starts at Full on Finance (the owner, 21 Nov), so the person without Full is the view-only role
+  const viewer = await makePerson();
+  await sql(`update core.person set role_id = (select id from core.role where key = 'viewer') where id = $1`, [
+    viewer.id,
+  ]);
+  await signIn(page, viewer.email);
+  await page.goto('/finance/new');
+  await hydrated(page);
+  await expect(page.locator('[data-new-invoice]'), 'a viewer never sees the form').toHaveCount(0);
+  await expect(page.locator('[data-state="no-access"]')).toBeVisible();
+});
+
+test('a member, at Full on Finance, opens the New invoice form by its address', async ({ page }) => {
   const member = await makePerson();
   await signIn(page, member.email);
   await page.goto('/finance/new');
   await hydrated(page);
-  await expect(page.locator('[data-new-invoice]'), 'a member never sees the form').toHaveCount(0);
-  await expect(page.locator('[data-state="no-access"]')).toBeVisible();
+  await expect(page.locator('[data-new-invoice]'), 'a member sees the form').toBeVisible();
+  await expect(page.locator('[data-state="no-access"]'), 'a member is not refused').toHaveCount(0);
 });
 
 test('phone 390: one column, nothing scrolls sideways, every target is 44 px, Save is reachable', async ({ page }) => {

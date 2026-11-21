@@ -13,7 +13,10 @@ const theme = (page: Page) => page.evaluate(() => document.documentElement.datas
 
 async function themed(value: string) {
   const member = await makePerson();
-  await sql(`insert into core.person_profile (person_id, created_by, theme) values ($1, $1, $2)`, [member.id, value]);
+  await sql(
+    `insert into core.person_profile (person_id, created_by, theme) values ($1, $1, $2) on conflict (person_id) do update set theme = excluded.theme`,
+    [member.id, value],
+  );
   return member;
 }
 

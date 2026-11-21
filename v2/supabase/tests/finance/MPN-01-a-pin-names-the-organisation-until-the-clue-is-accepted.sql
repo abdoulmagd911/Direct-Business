@@ -1,12 +1,16 @@
 -- MPN-01 — pins (P4-3, §3.5 level 0; V147). A person with Full on Finance pins an invoice whose clues matched nothing
--- to an organisation (entry) — a pin moves revenue, so a member (Own) cannot set or clear one (QA-535); a matched row
+-- to an organisation (entry) — a pin moves revenue, so a person below Full (a member held at Own) cannot set or clear one (QA-535); a matched row
 -- takes no pin, and one pin per row. A decision pin needs the Client side's identify capability too. The pinned row still waits in Needs a decision with its pin beside it; accepting the clue there
 -- makes the row match by itself and lets the pin go in the same request, so Undo brings both back. Finance health
 -- lists a pin whose invoice would now match a different organisation without it. Every value is made up.
--- Sabotages: supabase/tests/sabotage/a-pin-does-not-win.sql, a-member-pins-an-invoice.sql.
+-- Sabotages: supabase/tests/sabotage/a-pin-does-not-win.sql, own-on-finance-pins-an-invoice.sql.
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select set_config('t.mgr', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.d', (core.riyadh_today() - 10)::text, true);
 
@@ -32,10 +36,10 @@ select set_config('t.i2', (select id::text from finance.invoice where ref = 'SA-
 select set_config('t.i3', (select id::text from finance.invoice where ref = 'SA-8803'), true);
 select set_config('t.i4', (select id::text from finance.invoice where ref = 'SA-8804'), true);
 
--- a member cannot pin (QA-535); an entry pin by Full on Finance; a matched row takes none; one pin per row
+-- Own on Finance cannot pin (QA-535); an entry pin by Full on Finance; a matched row takes none; one pin per row
 select test.as_person(current_setting('t.am')::uuid);
 select test.raises(format('select api.match_pin_set(%L, %L, %L, %L)', current_setting('t.i1'), current_setting('t.x'), 'entry', 'made up'),
-  '42501', 'a member cannot pin an invoice to an organisation', 'access.needs_level');
+  '42501', 'Own on Finance cannot pin an invoice to an organisation', 'access.needs_level');
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.p1', api.match_pin_set(current_setting('t.i1')::uuid, current_setting('t.x')::uuid, 'entry',
                                             'made up: picked while typing')::text, true);

@@ -3,7 +3,9 @@
  * Landing 34, item 1: My day had no Today's three. It now opens, under the banner, with a "Today's three" section — From
  * your own task lists — Important · Short · Maintenance, three rows each at most (the Today block's own row), a line
  * per group when it has none, the three source lines under it and a small streak line read from `api.my_streak`. A
- * streak that cannot be read draws nothing, never an error. The rest of my tasks stay in the Today block below. On the
+ * streak that cannot be read draws nothing, never an error. The rest of my tasks stay in the Today block below.
+ * Landing 34b: the section draws what the DATABASE picked (`answer.three`, from all my own open tasks) — in its order,
+ * an undated own task under Maintenance — and a group that holds more than the three drawn says "N more in Tasks". On the
  * My team tab the team's streaks are listed from `api.team_streaks`; an empty list draws nothing.
  * Item 15: a group's name and its count are apart by a real space, not by a margin alone.
  * Names are made up. Sabotage: tests/sabotage/landing-34-myday.mjs.
@@ -67,6 +69,27 @@ const tasks = [
   task(31, '2026-11-18', { role: 'helper', group: 'helping', starred: true }), // only helping
 ];
 
+/**
+ * The database's pick (my.my_three), stood in for here: from my OWN open tasks only — Important = starred; Short = not
+ * starred and due today or within 2 days (never an overdue one); Maintenance = the rest. Three each, due day then
+ * number (no due day last), with each group's total.
+ */
+type Three = NonNullable<MyDayAnswer['three']>;
+const pickOf = (own: TodayTask[]): Three => {
+  const mine = own
+    .filter((t) => t.role === 'owner' && t.group !== 'helping')
+    .sort((x, y) => (x.due_on ?? '9999').localeCompare(y.due_on ?? '9999') || x.number.localeCompare(y.number));
+  const group = (t: TodayTask) =>
+    t.starred ? 'important' : t.due_on && t.due_on >= DAY && t.due_on <= '2026-11-20' ? 'short' : 'maintenance';
+  const of = (g: string) => mine.filter((t) => group(t) === g);
+  return {
+    important: of('important').slice(0, 3),
+    short: of('short').slice(0, 3),
+    maintenance: of('maintenance').slice(0, 3),
+    totals: { important: of('important').length, short: of('short').length, maintenance: of('maintenance').length },
+  };
+};
+
 let root: Root | null = null;
 afterEach(() => {
   act(() => root?.unmount());
@@ -77,8 +100,29 @@ afterEach(() => {
   streakFails = false;
   calls.length = 0;
 });
-const draw = async (rows: TodayTask[] | undefined, scope: Scope = 'me', locale: 'en' | 'ar' = 'en') => {
-  const answer = { scope, day: DAY, notes: [], notes_total: 0, reminders: [], since: [], more: false, tasks: rows };
+const AS_THE_DATABASE = Symbol('picked as the database would');
+/** An older database's answer: no `three` key at all. */
+const NO_PICK = Symbol('no three in the answer');
+/** `three` is the database's pick; left out, it is picked from the Today list's rows as the database would. */
+const draw = async (
+  rows: TodayTask[] | undefined,
+  scope: Scope = 'me',
+  locale: 'en' | 'ar' = 'en',
+  three: unknown = AS_THE_DATABASE,
+) => {
+  if (three === AS_THE_DATABASE) three = scope === 'me' ? pickOf(rows ?? []) : null;
+  if (three === NO_PICK) three = undefined;
+  const answer = {
+    scope,
+    day: DAY,
+    notes: [],
+    notes_total: 0,
+    reminders: [],
+    since: [],
+    more: false,
+    tasks: rows,
+    three,
+  };
   const host = document.createElement('div');
   document.body.append(host);
   root = createRoot(host);
@@ -174,8 +218,8 @@ describe("My day opens with Today's three", () => {
     await draw(tasks);
     expect([...document.querySelectorAll('[data-three-sources] li')].map((li) => li.textContent)).toEqual([
       'Important — your starred tasks',
-      'Short — due within 2 days, not starred',
-      'Maintenance — the rest of your own tasks',
+      'Short — due today or within 2 days, not starred',
+      'Maintenance — the rest of your own tasks: overdue, due later or with no due day',
     ]);
   });
 
@@ -189,6 +233,108 @@ describe("My day opens with Today's three", () => {
   it('is only on Me: the My team and Workspace tabs have no section', async () => {
     await draw(tasks, 'team');
     expect(one('[data-todays-three]')).toBeNull();
+  });
+});
+
+describe("Today's three is the database's pick (Landing 34b)", () => {
+  const below = () =>
+    [...document.querySelectorAll('[data-today-block] [data-today-task]')].map((r) =>
+      r.getAttribute('data-today-task'),
+    );
+  const more = (group: string) => one(`[data-three-group="${group}"] [data-three-more]`);
+
+  it("draws the three from the answer's own pick, in the order the database gave — never picked or sorted again from the Today list", async () => {
+    // the Today list holds three starred tasks; the database's pick names other rows, in no day or number order
+    await draw(tasks, 'me', 'en', {
+      important: [task(52, null, { starred: true }), task(51, '2026-11-30', { starred: true })],
+      short: [task(62, '2026-11-20'), task(61, '2026-11-18')],
+      maintenance: [task(73, null), task(72, '2026-12-09'), task(71, '2025-02-03', { group: 'overdue' })],
+      totals: { important: 2, short: 2, maintenance: 3 },
+    });
+    expect(rowsOf('important')).toEqual(['TSK-052', 'TSK-051']);
+    expect(rowsOf('short')).toEqual(['TSK-062', 'TSK-061']);
+    expect(rowsOf('maintenance')).toEqual(['TSK-073', 'TSK-072', 'TSK-071']);
+    expect(text('[data-three-group="important"] [data-three-count]')).toBe('2');
+  });
+
+  it('shows an own task with no due day under Maintenance, though the Today list below never holds it', async () => {
+    const undated = task(81, null);
+    await draw(tasks, 'me', 'en', pickOf([...tasks, undated]));
+    expect(rowsOf('maintenance')).toEqual(['TSK-021', 'TSK-081']);
+    expect(rowsOf('short')).not.toContain('TSK-081');
+    expect(document.querySelectorAll('[data-today-task="TSK-081"]')).toHaveLength(1);
+    expect(one('[data-three-group="maintenance"] [data-three-empty]')).toBeNull();
+  });
+
+  it('says "N more in Tasks", linked to Tasks, only under a group that holds more than the three drawn', async () => {
+    await draw(tasks);
+    // four starred, three drawn: one more — and Short and Maintenance, drawn whole, say nothing
+    expect(more('important')?.getAttribute('data-three-more')).toBe('1');
+    expect(text('[data-three-group="important"] [data-three-more]')).toBe('1 more in Tasks');
+    expect(more('important')?.querySelector('a')?.getAttribute('href')).toBe('/tasks');
+    expect(more('short')).toBeNull();
+    expect(more('maintenance')).toBeNull();
+    expect(document.querySelectorAll('[data-three-more]')).toHaveLength(1);
+    act(() => root?.unmount());
+    document.body.innerHTML = '';
+    // the database's own totals are what is counted: 3 of 12 drawn, and a group with nothing drawn but 2 counted
+    await draw(tasks, 'me', 'en', { ...pickOf(tasks), totals: { important: 12, short: 1, maintenance: 1 } });
+    expect(more('important')?.getAttribute('data-three-more')).toBe('9');
+    expect(text('[data-three-group="important"] [data-three-more]')).toBe('9 more in Tasks');
+    expect(more('short')).toBeNull();
+    expect(more('maintenance')).toBeNull();
+  });
+
+  it('says nothing more when every group is drawn whole, and nothing at all for someone with no tasks', async () => {
+    await draw([task(1, '2026-11-19', { starred: true }), task(11, '2026-11-18'), task(21, '2026-11-25')]);
+    expect(rowsOf('important')).toEqual(['TSK-001']);
+    expect(document.querySelectorAll('[data-three-more]')).toHaveLength(0);
+    act(() => root?.unmount());
+    document.body.innerHTML = '';
+    await draw([]);
+    expect(document.querySelectorAll('[data-three-more]')).toHaveLength(0);
+  });
+
+  it('never draws a picked task again in the Today block, and keeps there every Today-list task that was not picked', async () => {
+    const overdue = task(91, '2025-06-01', { group: 'overdue' }); // overdue since long ago: Maintenance, never Short
+    const rows = [...tasks, overdue, task(41, '2026-11-18'), task(42, '2026-11-18'), task(43, '2026-11-18')];
+    await draw(rows);
+    expect(rowsOf('short')).toEqual(['TSK-011', 'TSK-041', 'TSK-042']);
+    expect(rowsOf('maintenance')).toEqual(['TSK-091', 'TSK-021']);
+    const above = [...rowsOf('important'), ...rowsOf('short'), ...rowsOf('maintenance')];
+    expect(above).toHaveLength(8);
+    for (const number of above) {
+      expect(below(), `${number} is in the three, so not in the Today block`).not.toContain(number);
+      expect(document.querySelectorAll(`[data-today-task="${number}"]`), number ?? '').toHaveLength(1);
+    }
+    // what was not picked is below, once: the fourth starred one, the fourth short one and the one I only help on
+    expect([...below()].sort()).toEqual(['TSK-004', 'TSK-031', 'TSK-043']);
+  });
+
+  it('with no pick in the answer (an older database) draws three empty groups, no crash, and every task in the Today block', async () => {
+    for (const none of [NO_PICK, null, { request_id: 'r1' }, { important: 'x', short: null, totals: null }]) {
+      await draw(tasks, 'me', 'en', none);
+      expect(one('[data-todays-three]'), String(none)).not.toBeNull();
+      expect(document.querySelectorAll('[data-three-row]')).toHaveLength(0);
+      expect(document.querySelectorAll('[data-three-empty]')).toHaveLength(3);
+      expect(document.querySelectorAll('[data-three-more]')).toHaveLength(0);
+      expect([...below()].sort()).toEqual([
+        'TSK-001',
+        'TSK-002',
+        'TSK-003',
+        'TSK-004',
+        'TSK-011',
+        'TSK-021',
+        'TSK-031',
+      ]);
+      act(() => root?.unmount());
+      document.body.innerHTML = '';
+    }
+  });
+
+  it('says the more line in Arabic too', async () => {
+    await draw(tasks, 'me', 'ar', { ...pickOf(tasks), totals: { important: 5, short: 1, maintenance: 1 } });
+    expect(text('[data-three-group="important"] [data-three-more]')).toBe('مهمتان أخريان في المهام');
   });
 });
 

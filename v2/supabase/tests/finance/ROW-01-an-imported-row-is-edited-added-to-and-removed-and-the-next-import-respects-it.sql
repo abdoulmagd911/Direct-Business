@@ -1,11 +1,15 @@
 -- ROW-01 — every imported row can be edited, added to and removed in the app (V622 (3)): by a person with Full on
 -- Finance, each change one request that Undo takes back. A field a person edited stays theirs — a newer import leaves it
 -- and lists the difference for them; a line or an expense a person removed is never brought back; a line added by hand
--- stays when a newer file does not have it; an invoice added by hand is never touched. A member cannot. Every value is
+-- stays when a newer file does not have it; an invoice added by hand is never touched. A member held at Own on Finance cannot. Every value is
 -- made up. Sabotages: supabase/tests/sabotage/an-import-overwrites-a-persons-edit.sql,
 -- an-import-brings-back-a-removed-expense.sql, an-import-drops-a-line-added-by-hand.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select set_config('t.d', (core.riyadh_today() - 20)::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);
@@ -25,10 +29,10 @@ select set_config('t.v', (select version from finance.invoice where ref = 'TX-51
 select set_config('t.l2', (select id from finance.invoice_line where invoice_id = current_setting('t.i')::uuid and line_no = 2)::text, true);
 select set_config('t.e2', (select id from finance.expense_line where expense_type = 'Visa')::text, true);
 
--- a member cannot
+-- Own on Finance cannot
 select test.as_person(current_setting('t.mem')::uuid);
 select test.raises(format('select api.finance_row_edit(%L, %L, %L, %s)', 'invoice', current_setting('t.i'),
-                          '{"total_sar": 1}', current_setting('t.v')), '42501', 'a member cannot edit an imported row');
+                          '{"total_sar": 1}', current_setting('t.v')), '42501', 'Own on Finance cannot edit an imported row');
 
 -- each change is one request that Undo takes back
 select test.as_person(current_setting('t.head')::uuid);

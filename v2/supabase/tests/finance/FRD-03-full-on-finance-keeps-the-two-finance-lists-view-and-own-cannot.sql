@@ -1,9 +1,13 @@
 -- FRD-03 — the two lists V627 keeps on the finance page are kept by Full on Finance, not only by admins (QA-539; V627,
 -- V613, V622). A head with Full on Finance — no admin — adds a channel and an import column, and edits the channel; a
--- member with Own on Finance and a viewer with View on Finance are refused both. Every value is made up.
+-- member held at Own on Finance and a viewer with View on Finance are refused both. Every value is made up.
 -- Sabotage: supabase/tests/sabotage/the-finance-lists-are-admins-only.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.mem', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mem')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select set_config('t.view', test.person('Test Viewer', 'viewer')::text, true);
 
 select test.as_person(current_setting('t.head')::uuid);

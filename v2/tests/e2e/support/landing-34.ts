@@ -8,7 +8,7 @@ import { expect, type Page } from '@playwright/test';
 import pg from 'pg';
 import { oldMonth } from './finance-month';
 import { personAs, rowNo, seedImported, seedOrg, tag, type Door, type RoleKey } from './landing-32';
-import { sql, type TestPerson } from './stack';
+import { sql, type SavedLanguage, type TestPerson } from './stack';
 
 export {
   doorOf,
@@ -35,8 +35,11 @@ export const sideways = (page: Page) => page.evaluate(() => document.documentEle
 export type Staff = TestPerson & { teamId: string };
 
 /** A made-up person of one role, in a made-up team of their own (a task needs its owner's team). */
-export async function staffAs(role: Exclude<RoleKey, 'none'>): Promise<Staff> {
-  const person = await personAs(role);
+export async function staffAs(
+  role: Exclude<RoleKey, 'none'>,
+  opts: { locale?: SavedLanguage | null } = {},
+): Promise<Staff> {
+  const person = await personAs(role, opts);
   const t = tag();
   const [team] = await sql<{ id: string }>(
     `insert into core.team (department_id, code, name_en, name_ar)
@@ -75,28 +78,114 @@ export async function seedTask(owner: Staff, title: string, seed: TaskSeed): Pro
   return number;
 }
 
-export type OpenTasks = { starred: string[]; quick: string[]; later: string[] };
+export type OpenTasks = {
+  starred: string[];
+  quick: string[];
+  later: string[];
+  overdue: string[];
+  undated: string[];
+  /** Never current, whatever they look like: a task whose STATUS says cancelled with no closed stamp, and a done one. */
+  ghosts: string[];
+  /** Number → title, for every task seeded here. */
+  titles: Record<string, string>;
+  /** What Today's three must draw, by the rule (see `seedOpenTasks`): the task numbers in order, and each total. */
+  three: Record<'important' | 'short' | 'maintenance', string[]>;
+  totals: Record<'important' | 'short' | 'maintenance', number>;
+};
+
+type OpenCounts = {
+  starred: number;
+  quick: number;
+  later: number;
+  overdue?: number;
+  undated?: number;
+  ghosts?: boolean;
+};
 
 /**
- * A person's open tasks: `starred` starred ones (Important), `quick` unstarred ones due today or overdue (Short), and
- * `later` unstarred ones due five or more days ahead (Maintenance — the My day read carries those only while they
- * fall inside this week, so a test never counts on them being drawn).
+ * A person's open tasks, for Today's three as the database picks it (Landing 34b):
+ *  · `starred` starred ones, due today and six days ahead by turns — Important;
+ *  · `quick` unstarred ones due today and tomorrow by turns — Short (due today or within two days, never overdue);
+ *  · `later` unstarred ones due five or more days ahead, `overdue` unstarred ones overdue since more than a year
+ *    (400 days, then 380 …) and `undated` unstarred ones with no due day — all three Maintenance.
+ *  · `ghosts`: one starred task due today whose status says cancelled though its closed stamp is empty, and one
+ *    starred task done today — neither is current, so neither may be drawn anywhere on My day.
+ * `three` and `totals` are what the rule then gives — each group by due day (no due day last) then number, three at
+ * most — worked out here from the days seeded, never read back from the screen or from the database's own pick.
  */
-export async function seedOpenTasks(
-  owner: Staff,
-  word: string,
-  counts: { starred: number; quick: number; later: number },
-): Promise<OpenTasks> {
-  const out: OpenTasks = { starred: [], quick: [], later: [] };
-  for (let i = 0; i < counts.starred; i += 1)
-    out.starred.push(
-      await seedTask(owner, `Made-up task ${word} starred ${i + 1}`, { offset: i % 2 ? 6 : 0, starred: true }),
+export async function seedOpenTasks(owner: Staff, word: string, counts: OpenCounts): Promise<OpenTasks> {
+  const out: OpenTasks = {
+    starred: [],
+    quick: [],
+    later: [],
+    overdue: [],
+    undated: [],
+    ghosts: [],
+    titles: {},
+    three: { important: [], short: [], maintenance: [] },
+    totals: { important: 0, short: 0, maintenance: 0 },
+  };
+  const seeded: { number: string; offset: number | null; group: 'important' | 'short' | 'maintenance' }[] = [];
+  const add = async (
+    kind: 'starred' | 'quick' | 'later' | 'overdue' | 'undated',
+    i: number,
+    offset: number | null,
+    group: 'important' | 'short' | 'maintenance',
+  ) => {
+    const title = `Made-up task ${word} ${kind} ${i + 1}`;
+    const number = await seedTask(owner, title, { offset, starred: kind === 'starred' });
+    out[kind].push(number);
+    out.titles[number] = title;
+    seeded.push({ number, offset, group });
+  };
+  for (let i = 0; i < counts.starred; i += 1) await add('starred', i, i % 2 ? 6 : 0, 'important');
+  for (let i = 0; i < counts.quick; i += 1) await add('quick', i, i % 2 ? 1 : 0, 'short');
+  for (let i = 0; i < counts.later; i += 1) await add('later', i, 5 + i, 'maintenance');
+  for (let i = 0; i < (counts.overdue ?? 0); i += 1) await add('overdue', i, -400 + 20 * i, 'maintenance');
+  for (let i = 0; i < (counts.undated ?? 0); i += 1) await add('undated', i, null, 'maintenance');
+  if (counts.ghosts) {
+    const cancelled = await seedTask(owner, `Made-up task ${word} cancelled`, { offset: 0, starred: true });
+    await sql(
+      `update work.task set status_id = (select id from work.task_status where meaning = 'cancelled' and deleted_at is null limit 1),
+                            closed_at = null, cancelled_reason = 'made up: cancelled with no closed stamp'
+        where number = $1`,
+      [cancelled],
     );
-  for (let i = 0; i < counts.quick; i += 1)
-    out.quick.push(await seedTask(owner, `Made-up task ${word} quick ${i + 1}`, { offset: i % 2 ? -1 : 0 }));
-  for (let i = 0; i < counts.later; i += 1)
-    out.later.push(await seedTask(owner, `Made-up task ${word} later ${i + 1}`, { offset: 5 + i }));
+    const [now] = await sql<{ day: string }>(`select to_char(core.riyadh_today(), 'YYYY-MM-DD') as day`);
+    const done = await seedTask(owner, `Made-up task ${word} finished`, { offset: 0, starred: true, doneOn: now!.day });
+    out.ghosts.push(cancelled, done);
+    out.titles[cancelled] = `Made-up task ${word} cancelled`;
+    out.titles[done] = `Made-up task ${word} finished`;
+  }
+  for (const g of ['important', 'short', 'maintenance'] as const) {
+    const rows = seeded
+      .filter((r) => r.group === g)
+      .sort(
+        (x, y) =>
+          (x.offset ?? Number.POSITIVE_INFINITY) - (y.offset ?? Number.POSITIVE_INFINITY) ||
+          (x.number < y.number ? -1 : x.number > y.number ? 1 : 0),
+      );
+    out.three[g] = rows.slice(0, 3).map((r) => r.number);
+    out.totals[g] = rows.length;
+  }
   return out;
+}
+
+/** What Today's three shows now: each group's task numbers in the order drawn, and its "more" count (0: no line). */
+export async function threeOnScreen(page: Page) {
+  return page.locator('[data-todays-three]').evaluate((section) => {
+    const out: Record<string, { rows: string[]; titles: string[]; more: number; count: string }> = {};
+    for (const g of section.querySelectorAll('[data-three-group]')) {
+      const rows = [...g.querySelectorAll('[data-three-row]')];
+      out[g.getAttribute('data-three-group') ?? ''] = {
+        rows: rows.map((r) => r.getAttribute('data-three-row') ?? ''),
+        titles: rows.map((r) => (r.querySelector('[data-today-open]')?.textContent ?? '').trim()),
+        more: Number(g.querySelector('[data-three-more]')?.getAttribute('data-three-more') ?? 0),
+        count: (g.querySelector('[data-three-count]')?.textContent ?? '').trim(),
+      };
+    }
+    return out;
+  });
 }
 
 /**
@@ -121,9 +210,12 @@ export async function seedStreak(owner: Staff, word: string): Promise<{ days: nu
   return { days: before.length + (working ? 1 : 0), todayDone: 3 };
 }
 
-/** Twenty-five tasks of one person: 5 starred, 8 due now, 3 later (16 open) and a streak's 9 done ones. */
+/**
+ * Twenty-five tasks of one person: 5 starred, 6 due today or tomorrow, 1 later, 2 overdue since long ago and 2 with
+ * no due day (16 open) and a streak's 9 done ones.
+ */
 export async function seedTwentyFive(owner: Staff, word: string) {
-  const open = await seedOpenTasks(owner, word, { starred: 5, quick: 8, later: 3 });
+  const open = await seedOpenTasks(owner, word, { starred: 5, quick: 6, later: 1, overdue: 2, undated: 2 });
   const streak = await seedStreak(owner, word);
   return { open, streak };
 }

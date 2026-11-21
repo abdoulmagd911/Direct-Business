@@ -13,7 +13,7 @@ for (const width of [375, 1440]) {
   test(`each name box shows and saves its own name — at ${width} px`, async ({ page }) => {
     const member = await makePerson();
     await sql(
-      `insert into core.person_profile (person_id, created_by, display_name_en, display_name_ar) values ($1, $1, 'Test Display', 'اسم تجريبي')`,
+      `insert into core.person_profile (person_id, created_by, display_name_en, display_name_ar) values ($1, $1, 'Test Display', 'اسم تجريبي') on conflict (person_id) do update set display_name_en = excluded.display_name_en, display_name_ar = excluded.display_name_ar`,
       [member.id],
     );
     await page.setViewportSize({ width, height: width > 700 ? 1000 : 800 });
@@ -98,7 +98,7 @@ test('once there is a display name the header shows it, and the empty Arabic box
 }) => {
   const member = await makePerson();
   await sql(
-    `insert into core.person_profile (person_id, created_by, display_name_en) values ($1, $1, 'Test Display')`,
+    `insert into core.person_profile (person_id, created_by, display_name_en) values ($1, $1, 'Test Display') on conflict (person_id) do update set display_name_en = excluded.display_name_en`,
     [member.id],
   );
   await page.setViewportSize({ width: 375, height: 800 });

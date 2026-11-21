@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { callAs, makePerson, signIn, sql, type TestPerson } from './stack';
+import { callAs, makePerson, signIn, sql, type SavedLanguage, type TestPerson } from './stack';
 
 export const hydrated = (page: Page) =>
   page.waitForFunction(() => !!document.querySelector('[data-hydrated]'), null, { timeout: 30_000 });
@@ -21,9 +21,12 @@ export const num = (s: string) => Number(s.replace(/[^\d.-]/g, ''));
 export type Door = <T = { id?: string }>(fn: string, args: Record<string, unknown>) => Promise<T>;
 export type RoleKey = 'admin' | 'head' | 'manager' | 'member' | 'viewer' | 'none';
 
-/** A made-up person holding one of the five roles, or none at all. */
-export async function personAs(role: RoleKey): Promise<TestPerson> {
-  const p = await makePerson({ admin: role === 'admin' });
+/**
+ * A made-up person holding one of the five roles, or none at all. `locale` is the language saved in their profile
+ * (support/stack.ts, makePerson): English unless said otherwise, `null` for a person who never chose.
+ */
+export async function personAs(role: RoleKey, opts: { locale?: SavedLanguage | null } = {}): Promise<TestPerson> {
+  const p = await makePerson({ admin: role === 'admin', ...opts });
   if (role === 'none') await sql(`update core.person set role_id = null where id = $1`, [p.id]);
   else if (role !== 'admin' && role !== 'member')
     await sql(`update core.person set role_id = (select id from core.role where key = $1) where id = $2`, [role, p.id]);

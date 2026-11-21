@@ -81,6 +81,29 @@ export function attention(health: HealthEntry[], late: number | null) {
   };
 }
 
+/** The health read's answer as the strip reads it: a list, or nothing — an answer of any other shape is not figures. */
+export const healthOf = (answer: unknown): HealthEntry[] | null =>
+  Array.isArray(answer) ? (answer as HealthEntry[]) : null;
+
+/**
+ * What the Needs attention strip is, from its own read alone — it never waits for another block (the Late changes
+ * count comes from the closed months and is a dash while they are away). It ALWAYS settles (Landing 34, the
+ * follow-up): `drawn` once the read answered a list; `hidden` when the database refused the reader (a refusal is an
+ * answer — the reader simply has no strip: no "Loading", no error, and no Try again that could only be refused
+ * again); `failed`, in words with Try again, when the read could not be made, timed out, or answered nothing;
+ * `loading` only while the read is truly on its way.
+ */
+export type AttentionState = 'drawn' | 'loading' | 'hidden' | 'failed';
+export function attentionState(read: {
+  health: HealthEntry[] | null;
+  loading?: boolean;
+  refused?: boolean;
+}): AttentionState {
+  if (read.health) return 'drawn';
+  if (read.loading) return 'loading';
+  return read.refused ? 'hidden' : 'failed';
+}
+
 /** The whole riyals the months do not add up to the period's tile (OA5): a gap of 1 SAR or more is named. */
 export function monthsGap(period: Period): number {
   const sum = period.months.reduce((s, m) => s + m.revenue, 0);

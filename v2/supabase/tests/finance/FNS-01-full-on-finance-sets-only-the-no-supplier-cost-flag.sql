@@ -2,10 +2,14 @@
 -- supplier cost — the one field, logged, and one Undo takes it back (Undo of a product change is judged on its Settings
 -- page, an admin's; the head sets the flag back through the same door); the same head cannot change the product's
 -- commission flag, service or name, nor retire it — the product list stays admins' in Settings → Finance; a member
--- cannot set the flag. Every value is made up.
+-- held at Own on Finance cannot set the flag. Every value is made up.
 -- Sabotage: supabase/tests/sabotage/full-on-finance-edits-the-whole-product.sql.
 select set_config('t.head', test.person('Test Finance Head', 'head')::text, true);
 select set_config('t.am', test.person('Test Member', 'member')::text, true);
+-- Landing 34b (the owner, 21 Nov 2026): a Team member now starts at Full on Finance. The rule here is about the
+-- LEVEL, so this member is held at Own — one step below Full — by a person override, as an admin would in Settings.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am')::uuid, 'finance', 'own', 'made up: held at Own on Finance');
 select test.as_owner();
 select set_config('t.p', (select id from finance.product where word = 'Direct Visas')::text, true);
 select set_config('t.pv', (select version from finance.product where id = current_setting('t.p')::uuid)::text, true);
@@ -32,4 +36,4 @@ select test.eq((select no_supplier_cost from finance.product where id = current_
 select set_config('t.pv', (select version from finance.product where id = current_setting('t.p')::uuid)::text, true);
 select test.as_person(current_setting('t.am')::uuid);
 select test.raises(format('select api.finance_no_supplier_cost_set(%L, true, %s)', current_setting('t.p'), current_setting('t.pv')),
-  '42501', 'a member cannot set the flag', 'access.needs_level');
+  '42501', 'Own on Finance cannot set the flag', 'access.needs_level');

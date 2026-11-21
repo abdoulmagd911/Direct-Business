@@ -5,11 +5,15 @@
  * with a Try again that repeats only that read. Quick switching between the period tabs must never leave an error
  * block. Also: a month reads "October 2026", never "1 Oct 2026"; an empty By service says so in one line.
  * Every value is made up.
+ * The "What needs attention" strip (Landing 34b): a window that comes back while the health read is on its way does
+ * not ask it again; a reader the database refuses the health read has no strip at all — no Loading, no error; a
+ * Viewer (View on Finance) gets the strip drawn. Sabotage: tests/sabotage/landing-34b-e2e.mjs.
  * Sabotage: tests/sabotage/finance.mjs "finance-reads-all-at-once", "finance-read-is-never-asked-again",
  * "finance-aborted-read-overwrites-the-answer", "finance-cancelled-read-frees-its-slot", "try-again-reloads-the-whole-page", "month-label-says-the-day", "by-service-empty-says-nothing", "finance-heavy-reads-asked-first".
  */
 import { expect, test, type Page } from '@playwright/test';
 import { blocksSettled } from './support/finance-blocks';
+import { personAs } from './support/landing-32';
 import { makePerson, signIn, sql } from './support/stack';
 
 const hydrated = (page: Page) =>
@@ -201,4 +205,145 @@ test('the reads are asked in the order a person looks: tiles, the two lists, the
       expect(at(early), `${early} is asked before ${heavy}`).toBeLessThan(at(heavy));
     }
   }
+});
+
+// ---- Landing 34b: the "What needs attention" strip always settles
+
+const fnOf = (url: string) => url.split('/rpc/')[1]?.split('?')[0] ?? '';
+
+test('a window that comes back while the health read is on its way does not ask it again, and the strip then draws', async ({
+  page,
+}) => {
+  await admin(page);
+  const asked: Record<string, number> = {};
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  await page.route(reads, async (route) => {
+    const fn = fnOf(route.request().url());
+    asked[fn] = (asked[fn] ?? 0) + 1;
+    // the heaviest read is still on its way while the person looks at another window
+    if (fn === 'finance_health') await held;
+    try {
+      await route.continue();
+    } catch {
+      // the page gave up on this request
+    }
+  });
+  try {
+    await page.goto('/finance?period=ytd');
+    await hydrated(page);
+    const overview = page.locator('[data-finance-overview]');
+    await expect(page.locator('[data-finance-tiles]'), 'the figures have answered').toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-finance-months]'), 'the months have answered').toBeVisible({ timeout: 45_000 });
+    await expect.poll(() => asked['finance_health'] ?? 0, 'the health read is out').toBe(1);
+    await expect(overview, 'the strip waits for its own read').toHaveAttribute('data-finance-strip', 'loading');
+
+    // the window comes back: the shell asks every screen to refetch 400 ms later (RefetchBridge, FOCUS_SETTLE_MS)
+    const refetched = page.waitForEvent('console', {
+      predicate: (m) => m.text().startsWith('[refetch] ms='),
+      timeout: 60_000,
+    });
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await refetched;
+    // well past the shell's wait, and time for a second ask to have reached the network
+    await page.waitForTimeout(1500);
+    expect(asked['finance_health'], 'the health read on its way is not asked again when the window comes back').toBe(1);
+    expect(asked['finance_period'], 'a fresh answer is not asked again either').toBe(1);
+    await expect(overview, 'the strip is still waiting for the one read').toHaveAttribute(
+      'data-finance-strip',
+      'loading',
+    );
+
+    release();
+    await expect(overview, 'the strip draws once its read answers').toHaveAttribute('data-finance-strip', 'drawn', {
+      timeout: 45_000,
+    });
+    await expect(page.locator('[data-finance-attention]'), 'What needs attention is on the page').toBeVisible();
+    await expect(
+      page.locator('[data-finance-overview] [data-state="loading"], [data-finance-overview] [data-state="failed"]'),
+      'no block is left on loading or failed',
+    ).toHaveCount(0);
+    expect(asked['finance_health'], 'the health read was asked once in all').toBe(1);
+  } finally {
+    release();
+  }
+});
+
+test('a reader the database refuses the health read has no attention strip — no Loading, no error, no second ask', async ({
+  page,
+}) => {
+  await admin(page);
+  const asked: Record<string, number> = {};
+  await page.route(reads, async (route) => {
+    const fn = fnOf(route.request().url());
+    asked[fn] = (asked[fn] ?? 0) + 1;
+    if (fn === 'finance_health')
+      return route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: '42501', message: 'access.needs_level', details: null, hint: null }),
+      });
+    return route.continue();
+  });
+  await page.goto('/finance?period=ytd');
+  await hydrated(page);
+  await settled(page);
+  await expect(page.locator('[data-finance-tiles]'), 'the figures are drawn').toBeVisible();
+  await expect.poll(() => asked['finance_health'] ?? 0, 'the health read was asked').toBe(1);
+  await expect(page.locator('[data-finance-overview]'), 'a refused health read hides the strip').toHaveAttribute(
+    'data-finance-strip',
+    'hidden',
+  );
+  await expect(page.locator('[data-finance-attention]'), 'no attention strip is drawn').toHaveCount(0);
+  await expect(
+    page.locator('[data-finance-overview] [data-state="failed"]'),
+    'a refusal is not said as "could not be loaded"',
+  ).toHaveCount(0);
+  await expect(
+    page.locator('[data-finance-overview] [data-state="loading"]'),
+    'a refusal leaves nothing on Loading',
+  ).toHaveCount(0);
+  // a refusal is an answer: asking again would get the same one
+  await page.waitForTimeout(2500);
+  expect(asked['finance_health'], 'a refused read is not asked again').toBe(1);
+  await expect(page.locator('[data-finance-overview]'), 'the strip stays hidden').toHaveAttribute(
+    'data-finance-strip',
+    'hidden',
+  );
+});
+
+test('a Viewer — View on Finance — gets the attention strip drawn', async ({ page }) => {
+  // the import log is past "Not imported yet" (made by an admin, as in the other tests here)
+  const maker = await makePerson({ admin: true });
+  await sql(
+    `insert into finance.import_batch (id, file, file_name, export_time, started_by)
+     values ('00000000-0000-4000-8000-0000000f1ce5', 'invoices', 'made-up-invoices.xlsx', now() - interval '1 day', $1)
+     on conflict (id) do nothing`,
+    [maker.id],
+  );
+  const viewer = await personAs('viewer');
+  const [level] = await sql<{ level: string }>(`select authz.level_of($1, 'finance')::text as level`, [viewer.id]);
+  expect(level?.level, 'a Viewer holds View on Finance, no more').toBe('view');
+  const statuses: number[] = [];
+  page.on('response', (r) => {
+    if (fnOf(r.url()) === 'finance_health') statuses.push(r.status());
+  });
+  await signIn(page, viewer.email, '/finance?period=ytd');
+  await hydrated(page);
+  await expect(page.locator('[data-finance-overview]'), 'Finance is drawn for a Viewer').toBeVisible();
+  await settled(page);
+  expect(statuses, 'the database answers the health read for a View reader').toEqual([200]);
+  await expect(page.locator('[data-finance-overview]'), 'a View reader’s strip is drawn').toHaveAttribute(
+    'data-finance-strip',
+    'drawn',
+  );
+  await expect(page.locator('[data-finance-attention]'), 'What needs attention is on the page').toBeVisible();
+  await expect(
+    page.locator('[data-finance-attention] [data-finance-flag]'),
+    'the strip holds its three counts',
+  ).toHaveCount(3);
+  await expect(
+    page.locator('[data-finance-overview] [data-state="failed"]'),
+    'no block says it could not be loaded',
+  ).toHaveCount(0);
 });

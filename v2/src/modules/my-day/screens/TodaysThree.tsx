@@ -1,5 +1,6 @@
 'use client';
 import { Flame, ListChecks } from 'lucide-react';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { rpc } from '@/core/db/rpc';
@@ -10,6 +11,7 @@ import {
   URGENT_WITHIN_DAYS,
   readStreak,
   readTeamStreaks,
+  threeMore,
   type Streak,
   type TeamStreak,
   type TodaysThree as Three,
@@ -35,7 +37,9 @@ export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskS
   const t = useTranslations('pages.myDay.three');
   const [streak, setStreak] = useState<Streak | null>(null);
   // the streak is asked on opening and again whenever my open tasks change (a task ticked done leaves the list)
-  const seen = [...THREE_GROUPS.flatMap((g) => three[g]), ...three.rest].map((task) => task.id).join(',');
+  const seen =
+    [...THREE_GROUPS.flatMap((g) => three[g]), ...three.rest].map((task) => task.id).join(',') +
+    `|${THREE_GROUPS.map((g) => three.totals[g]).join(',')}`;
   useEffect(() => {
     let live = true;
     ask('my_streak', {}, { retry: true })
@@ -87,6 +91,14 @@ export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskS
                 {t(`empty.${g}`)}
               </p>
             )}
+            {threeMore(three, g) > 0 ? (
+              // the group holds more than three: the others are in the Today block below or on Tasks, never lost
+              <p className="py-2 text-sm" data-three-more={threeMore(three, g)}>
+                <Link href="/tasks" className="text-link hover:underline">
+                  {t('more', { count: threeMore(three, g) })}
+                </Link>
+              </p>
+            ) : null}
           </div>
         ))}
       </div>

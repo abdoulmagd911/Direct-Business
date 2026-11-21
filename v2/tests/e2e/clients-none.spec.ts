@@ -30,6 +30,13 @@ test('Partners at none says no access on /partners, never a list that could not 
   await expect(state, 'the no-access state, not a list that could not load').toBeVisible();
   await expect(state).toContainText('You do not have access to Partners');
   await expect(page.locator('[data-partners-total]')).toHaveCount(0);
+  // Landing 34: a refused list read is itself drawn as no access now, inside the list — so the words alone no longer
+  // tell the page that refuses from the list that was asked for and refused. The page for a person at none never
+  // asks: nothing of the list is drawn around the state (no rows box, no search, no cards, no New button).
+  await expect(
+    page.locator('[data-partners-rows]'),
+    'the no-access state stands alone: no list is drawn around it',
+  ).toHaveCount(0);
 });
 
 test('with Partners at none and Suppliers kept, the menu has a door to Suppliers (QA-504)', async ({ page }) => {
