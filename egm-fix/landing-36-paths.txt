@@ -1,0 +1,9 @@
+docs/v2/landings/LANDING-36.md
+v2/messages/ar.json
+v2/messages/en.json
+v2/src/modules/tasks/screens/QuickAdd.tsx
+v2/src/modules/tasks/screens/TaskListScreen.tsx
+v2/tests/e2e/tasks.spec.ts
+v2/tests/sabotage/tasks.mjs
+v2/tests/unit/tasks/someone-in-no-team-must-pick-an-owner.test.ts
+v2/tests/unit/tasks/someone-in-no-team-without-assign-is-told-why.test.tsx
