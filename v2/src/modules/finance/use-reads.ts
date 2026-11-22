@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { commandBusy, onRefetch } from '@/core/commands/refetch';
+import { attemptKind, logAttempt } from '@/core/db/attempt-log';
 import { browserDb } from '@/core/db/client';
 import { DbError, unwrap } from '@/core/db/errors';
 import type { ApiArgs, ApiFunction } from '@/core/db/rpc';
@@ -171,11 +172,19 @@ function whileWaiting<T>(request: Promise<T>, signal: AbortSignal): Promise<T> {
 async function once<T>(key: string, fn: ApiFunction, args: unknown, signal: AbortSignal): Promise<T> {
   const sent = inFlight.get(key);
   if (sent) return whileWaiting(sent as Promise<T>, signal);
+  const queuedAt = Date.now();
   const done = await acquire(signal);
   const meanwhile = inFlight.get(key);
   if (meanwhile) {
     done();
     return whileWaiting(meanwhile as Promise<T>, signal);
+  }
+  // Landing 29: the same read, asked by another block, was sent AND answered while this one waited for its turn —
+  // that answer is this one's answer too; sending the read a second time would be a duplicate request.
+  const landed = kept.get(key);
+  if (landed && landed.at >= queuedAt) {
+    done();
+    return landed.data as T;
   }
   const asked = epoch;
   const request: Promise<T> = ask<T>(fn, args)
@@ -201,9 +210,23 @@ export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: Abo
   if (fresh) kept.delete(key);
   const hit = kept.get(key);
   if (hit && Date.now() - hit.at < KEEP_MS) return hit.data as T;
+  // Landing 29: every attempt logs its own line. A person who moved on is not an outcome of the read, so a wait
+  // that was cancelled logs nothing; an answer from what was kept sends nothing and logs nothing either.
+  const attempt = async (n: number): Promise<T> => {
+    const started = Date.now();
+    try {
+      const answer = await once<T>(key, fn, args, signal);
+      logAttempt({ fn, ms: Date.now() - started, outcome: 'ready', attempt: n, retry: n > 1 });
+      return answer;
+    } catch (e) {
+      if (!isCancel(e) && !signal.aborted)
+        logAttempt({ fn, ms: Date.now() - started, outcome: 'failed', kind: attemptKind(e), attempt: n, retry: n > 1 });
+      throw e;
+    }
+  };
   let data: T;
   try {
-    data = await once<T>(key, fn, args, signal);
+    data = await attempt(1);
   } catch (e) {
     if (isCancel(e) || signal.aborted) throw e;
     // only a database that could not answer in time (or could not be reached) is worth asking again
@@ -211,7 +234,7 @@ export async function readFinance<T>(fn: ApiFunction, args: unknown, signal: Abo
     // a request that got no answer at all has already cost the whole deadline: the person's Try again asks it
     if (noAnswer.has(e)) throw e;
     await pause(RETRY_AFTER_MS, signal);
-    data = await once<T>(key, fn, args, signal);
+    data = await attempt(2);
   }
   return data;
 }

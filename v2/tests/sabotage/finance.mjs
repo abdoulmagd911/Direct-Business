@@ -465,4 +465,17 @@ export const sabotages = [
       },
     ],
   },
+  // Landing 29: the seventh — the payments as-of day
+  {
+    name: 'payments-as-of-loses-jit-off',
+    breaks: ['sql:JIT-04'],
+    expect: 'finance.payments_as_of runs with JIT off',
+    edits: [
+      {
+        file: 'supabase/migrations/20261122120000_finance_payments_as_of_no_jit.sql',
+        find: 'alter function finance.payments_as_of() set jit = off;',
+        replace: '',
+      },
+    ],
+  },
 ];

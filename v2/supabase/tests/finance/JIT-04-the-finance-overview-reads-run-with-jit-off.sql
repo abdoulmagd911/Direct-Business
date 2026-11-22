@@ -42,3 +42,10 @@ select test.eq(
    where n.nspname = 'finance' and p.proname = 'company_not_counted'
      and 'jit=off' = any(p.proconfig)),
   1, 'finance.company_not_counted runs with JIT off');
+-- Landing 29: the seventh — the payments as-of day, asked beside the money reads on the same pages.
+select test.eq(
+  (select pg_catalog.count(*)::int from pg_catalog.pg_proc p
+   join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'finance' and p.proname = 'payments_as_of'
+     and 'jit=off' = any(p.proconfig)),
+  1, 'finance.payments_as_of runs with JIT off');

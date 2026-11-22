@@ -1,6 +1,7 @@
 'use client';
 import type { Database } from './database.types';
 import { browserDb } from './client';
+import { attemptKind, logAttempt } from './attempt-log';
 import { DbError, unwrap } from './errors';
 
 type Fns = Database['api']['Functions'];
@@ -29,7 +30,21 @@ export async function rpc<F extends ApiFunction>(
   // Whether the attempt now running gave up on the timeout: a retry after a 30 s wait would wait another 30 s,
   // so a timed-out call is never retried.
   let timedOut = false;
+  // Landing 29: every attempt logs its own line (function, milliseconds, outcome, attempt number, retry or not)
+  let attempts = 0;
   const attempt = async (): Promise<ApiReturns<F>> => {
+    attempts += 1;
+    const n = attempts;
+    const started = Date.now();
+    const log = (outcome: 'ready' | 'failed', e?: unknown) =>
+      logAttempt({
+        fn,
+        ms: Date.now() - started,
+        outcome,
+        kind: e === undefined ? undefined : attemptKind(e),
+        attempt: n,
+        retry: n > 1,
+      });
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
@@ -39,7 +54,12 @@ export async function rpc<F extends ApiFunction>(
     });
     try {
       const result = await Promise.race([browserDb().rpc(fn, args as never), timeout]);
-      return unwrap(result as { data: ApiReturns<F> | null; error: { code?: string; message?: string } | null });
+      const data = unwrap(result as { data: ApiReturns<F> | null; error: { code?: string; message?: string } | null });
+      log('ready');
+      return data;
+    } catch (e) {
+      log('failed', e);
+      throw e;
     } finally {
       clearTimeout(timer);
     }
