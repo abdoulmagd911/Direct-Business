@@ -7,6 +7,7 @@ import { refetchAll } from '@/core/commands/refetch';
 import { undoRequest } from '@/core/commands/undo';
 import { rpc } from '@/core/db/rpc';
 import { errorKey } from '@/core/db/words';
+import { formatStoredDate } from '@/core/i18n/format';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
 import { DatePicker } from '@/ui/DatePicker';
@@ -28,13 +29,17 @@ import {
   KINDS,
   lineFields,
   lineTotal,
+  numberIsUsed,
   problemsOf,
+  savedCounts,
+  savedInvoiceOf,
   serviceOfProduct,
   type ExpenseDraft,
   type InvoiceDraft,
   type LineDraft,
   type ListEntry,
   type Lists,
+  type SavedInvoice,
 } from '../invoice-form';
 import { financeWrote } from '../use-reads';
 
@@ -56,6 +61,9 @@ const fmt = (n: number, locale: string) =>
  * Revenue, Cost and Profit as they will count (with the Provisional part beside Profit), and Save or Save + new.
  * Each row is its own logged request (V622); the Undo in the toast takes them all back, last first. The database
  * checks every value again — this form only says what is missing before it asks.
+ * F185 (Landing 37): the form opens with the invoice the reader saved last — its transaction number, status, created
+ * and paid days and total, read back from the database — at the top, above the fields, and the same record is shown
+ * the moment a save lands. Opening the form again is never a blank page with no trace of the last save.
  */
 export function NewInvoice({ today, lists }: { today: string; lists: Lists | null }) {
   const t0 = useTranslations();
@@ -84,6 +92,8 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
   const [busy, setBusy] = useState(false);
   // the invoice just saved, whose figures the panel then reads from the database (never worked out here)
   const [saved, setSaved] = useState<{ ref: string; created: string } | null>(null);
+  // each save (and each Undo) asks the database again for the invoice saved last (F185)
+  const [savedTurn, setSavedTurn] = useState(0);
   const name = (e: ListEntry) => (locale === 'ar' && e.name_ar ? e.name_ar : e.name_en);
   const opts = (list: ListEntry[]) => list.map((e) => ({ value: e.key, label: name(e) }));
   const set = <K extends keyof InvoiceDraft>(k: K, v: InvoiceDraft[K]) => {
@@ -112,8 +122,11 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
     const made: string[] = [];
     try {
       // the same number twice is refused in the field, before anything is written
-      const hits = (await rpc('finance_search', { p_text: d.ref.trim(), p_limit: 10 })) as { ref: string }[] | null;
-      if ((hits ?? []).some((h) => h.ref.trim().toLowerCase() === d.ref.trim().toLowerCase())) {
+      // (an imported row with the same number is the same document arriving through the other door, as before
+      // Landing 37, when the search did not list imported rows: it refuses nothing here)
+      const hits = (await rpc('finance_search', { p_text: d.ref.trim(), p_limit: 10 })) as
+        { ref: string; source?: string }[] | null;
+      if (numberIsUsed(hits ?? [], d.ref)) {
         setErrors({ ref: 'used' });
         setBusy(false);
         return;
@@ -146,6 +159,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
             toast.done(t('activity.undone'));
             // the panel must not keep printing the figures of an invoice that is no longer there (QA-551)
             setSaved((now) => (now?.ref === d.ref.trim() ? null : now));
+            setSavedTurn((n) => n + 1);
             financeWrote();
             refetchAll();
           } catch (e) {
@@ -158,6 +172,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
     financeWrote();
     refetchAll();
     setBusy(false);
+    setSavedTurn((n) => n + 1);
     if (again) {
       setSaved({ ref: d.ref.trim(), created: d.created });
       setD(blankInvoice(today));
@@ -194,6 +209,7 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
           )}
         >
           <div className="flex min-w-0 flex-col gap-6">
+            <SavedRecord turn={savedTurn} />
             <Card>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div
@@ -546,6 +562,77 @@ type Unit = {
   cost_is: string;
 };
 type Read = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; units: Unit[] };
+
+type SavedRead = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; record: SavedInvoice | null };
+
+/**
+ * The last-saved indicator (F185): the invoice the reader saved last, as the database holds it — transaction number,
+ * status, created, paid and total. Read when the form opens and again after every save and every Undo, so it is the
+ * saved record itself, never what the fields happened to hold. A reader who has saved nothing sees nothing here. An
+ * empty paid day or total is a dash, never today and never 0. While it is asked again the record already shown stays.
+ */
+function SavedRecord({ turn }: { turn: number }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const [read, setRead] = useState<SavedRead>({ status: 'loading' });
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let live = true;
+    rpc('finance_last_saved', {})
+      .then((answer) => {
+        if (live) setRead({ status: 'ready', record: savedInvoiceOf(answer) });
+      })
+      .catch(() => {
+        if (live) setRead({ status: 'failed' });
+      });
+    return () => {
+      live = false;
+    };
+  }, [turn, retry]);
+  if (read.status === 'loading') return null;
+  if (read.status === 'failed')
+    return (
+      <DataState
+        kind="failed"
+        message={t('state.failed', { what: t('finance.new.lastSaved') })}
+        onRetry={() => setRetry((n) => n + 1)}
+        retryLabel={t('common.tryAgain')}
+      />
+    );
+  const r = read.record;
+  if (!r) return null;
+  const day = (d: string | null) => (d ? (formatStoredDate(d, locale as 'en' | 'ar') ?? d) : '—');
+  const facts: [string, string, ReactNode][] = [
+    ['transaction', t('finance.number.transaction'), <bdi key="v">{r.ref}</bdi>],
+    ['status', t('finance.number.status'), r.status ?? '—'],
+    ['created', t('finance.number.created'), day(r.created)],
+    ['paid', t('finance.number.paid'), day(r.paid)],
+    ['total', t('finance.number.total'), r.total === null ? '—' : fmt(r.total, locale)],
+  ];
+  return (
+    <section
+      className="@container flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-raised p-4 shadow-1 sm:p-5"
+      aria-label={t('finance.new.lastSaved')}
+      data-last-saved-record
+      data-ref={r.ref}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <h2 className="font-display text-lg font-semibold leading-6 text-strong">{t('finance.new.lastSaved')}</h2>
+        <StatusChip tone={savedCounts(r) ? 'success' : 'warning'}>
+          {savedCounts(r) ? t('finance.new.savedCounts') : t('finance.new.savedWaits')}
+        </StatusChip>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 @min-[560px]:grid-cols-5">
+        {facts.map(([k, label, value]) => (
+          <div key={k} className="flex min-w-0 flex-col gap-1" data-saved-fact={k}>
+            <dt className="text-xs text-muted">{label}</dt>
+            <dd className="font-data text-base font-medium text-strong tabular [overflow-wrap:anywhere]">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 /**
  * Last saved: the figures of the invoice just saved, as the database counts them (V610, V611, V617) — its own money

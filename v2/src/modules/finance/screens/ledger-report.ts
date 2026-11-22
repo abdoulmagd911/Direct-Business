@@ -1,4 +1,4 @@
-import type { CodeState, LedgerReport, LedgerRow, UnifiedPromoRow } from '../types';
+import type { CodeState, LedgerReport, LedgerRow, NotYetCountedRow, UnifiedPromoRow } from '../types';
 
 type Raw = Record<string, unknown>;
 
@@ -55,6 +55,33 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
     // only when the answer carries it: an older answer has no such part
     ...(p.code_state !== undefined ? { code_state: codeState(p.code_state) } : {}),
   }));
+  // Landing 37: the documents not fully paid yet. A row with no amount is no row; a link is kept only when it is a
+  // web address (the database stores what the file gave).
+  const notYetCounted = list(either(a, 'not_yet_counted', 'notYetCounted')).flatMap((n): NotYetCountedRow[] => {
+    const amount = num(n.amount);
+    if (amount === null) return [];
+    const link = text(n.direct_url);
+    return [
+      {
+        invoice_id: String(n.invoice_id ?? ''),
+        unit_kind: text(n.unit_kind) ?? '',
+        transaction_number: text(n.transaction_number),
+        invoice_number: text(n.invoice_number),
+        number: text(n.number),
+        partner_id: text(n.partner_id),
+        partner_number: text(n.partner_number),
+        trade_name_en: text(n.trade_name_en),
+        trade_name_ar: text(n.trade_name_ar),
+        created_on: text(n.created_on) ?? '',
+        amount,
+        received: num(n.received),
+        remaining: num(n.remaining),
+        status: text(n.status),
+        source: n.source === 'import' ? 'import' : 'manual',
+        direct_url: link && /^https?:\/\//i.test(link) ? link : null,
+      },
+    ];
+  });
   return {
     ...(a as unknown as LedgerReport),
     totals: {
@@ -68,6 +95,8 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
       importUnits: count('import_units', 'importUnits'),
       promoUnits: count('promo_units', 'promoUnits'),
       unconfirmedImportUnits: count('unconfirmed_import_units', 'unconfirmedImportUnits'),
+      notYetCountedUnits: count('not_yet_counted_units', 'notYetCountedUnits'),
+      notYetCountedAmount: count('not_yet_counted_amount', 'notYetCountedAmount'),
     },
     companies: list(a.companies) as unknown as LedgerReport['companies'],
     by_company: list(a.by_company).map((c) => ({
@@ -84,5 +113,6 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
     promoRows,
     codeDiscount: num(either(a, 'code_discount', 'codeDiscount')),
     canToggle: either(a, 'can_toggle', 'canToggle') === true,
+    notYetCounted,
   };
 }

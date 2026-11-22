@@ -314,6 +314,7 @@ export type Database = {
       finance_import_recognise: { Args: { p_headers: string[]; p_source: string }; Returns: Json };
       finance_import_rule_check: { Args: { p_partner: string; p_source_promo?: string }; Returns: Json };
       finance_income_by_service: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_last_saved: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_ledger: {
         Args: {
           p_client_id?: string;

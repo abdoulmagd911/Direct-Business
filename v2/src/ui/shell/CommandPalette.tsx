@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, CheckSquare, History, Search, Tag, UserRound } from 'lucide-react';
+import { Building2, CheckSquare, History, ReceiptText, Search, Tag, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
 import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
@@ -14,6 +14,7 @@ import { navStartedTo } from './nav-pending';
 import { openQuickCapture } from '@/modules/my-day/quick-capture';
 import { tradeName } from '@/modules/partners/types';
 import { createActionsFor } from './CreateMenu';
+import { invoiceHitCounts, invoiceHitRoute, invoiceHitsOf, type InvoiceHit } from './invoice-hit';
 import { paletteMatches } from './palette-match';
 
 // Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
@@ -41,7 +42,8 @@ const groupClass =
   '[&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted';
 
 /**
- * Ctrl K (V401): Go to a page; organisations, people, tasks and discount codes the reader may see — through
+ * Ctrl K (V401): Go to a page; organisations, people, tasks, discount codes and invoices (by their number, counted
+ * or not — Landing 37) the reader may see — through
  * api.search; the Create actions; and the actions each step registers (New task · Log activity · New invoice) —
  * only the ones whose page the person may see. Captured notes are NOT here (F-B3-03, Landing 15): the search
  * answers no notes group. Opens from the top-bar search or the shortcut; Escape closes and focus returns.
@@ -58,12 +60,14 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     partners: OrgHit[];
     codes: CodeHit[];
     tasks: TaskHit[];
+    invoices: InvoiceHit[];
   }>({
     term: '',
     people: [],
     partners: [],
     codes: [],
     tasks: [],
+    invoices: [],
   });
   // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
   const term = q.trim();
@@ -80,9 +84,10 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             partners: ((a as { partners?: OrgHit[] } | null)?.partners ?? []).slice(0, 8),
             codes: ((a as { codes?: CodeHit[] } | null)?.codes ?? []).slice(0, 8),
             tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),
+            invoices: invoiceHitsOf(a),
           }),
       )
-      .catch(() => live && setFound({ term, people: [], partners: [], codes: [], tasks: [] }));
+      .catch(() => live && setFound({ term, people: [], partners: [], codes: [], tasks: [], invoices: [] }));
     return () => {
       live = false;
     };
@@ -91,6 +96,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const partners = open && term.length >= 2 && found.term === term ? found.partners : [];
   const codes = open && term.length >= 2 && found.term === term ? found.codes : [];
   const tasks = open && term.length >= 2 && found.term === term ? found.tasks : [];
+  const invoices = open && term.length >= 2 && found.term === term ? found.invoices : [];
   // FIX-13(a): while the search for the term as typed is still on its way, the palette says so — the "Nothing
   // matches" empty state only shows once the answer for this term has settled.
   const searching = open && term.length >= 2 && found.term !== term;
@@ -245,6 +251,27 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                       <Tag className="size-4 shrink-0 text-muted" aria-hidden="true" />
                       <span className="truncate font-data">{c.code}</span>
                       <span className="ms-auto shrink-0 text-sm text-muted">{t(`pages.codes.filter.${c.state}`)}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              ) : null}
+              {invoices.length ? (
+                <Command.Group heading={t('palette.invoices')} className={groupClass}>
+                  {invoices.map((v) => (
+                    <Command.Item
+                      key={v.invoice_id}
+                      value={`${v.ref} ${v.invoice_id}`}
+                      onSelect={() => go(invoiceHitRoute(v))}
+                      className={itemClass}
+                      data-palette-invoice={v.ref}
+                      data-counted={invoiceHitCounts(v)}
+                    >
+                      <ReceiptText className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                      <bdi className="shrink-0 font-data">{v.ref}</bdi>
+                      {v.customer_name ? <span className="truncate text-sm text-muted">{v.customer_name}</span> : null}
+                      <span className="ms-auto shrink-0 text-sm text-muted" data-palette-invoice-state>
+                        {invoiceHitCounts(v) ? (v.status ?? '') : t('palette.invoiceNotCounted')}
+                      </span>
                     </Command.Item>
                   ))}
                 </Command.Group>

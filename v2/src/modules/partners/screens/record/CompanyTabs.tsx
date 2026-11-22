@@ -300,10 +300,15 @@ function CompanyFinanceLedger({
   const withoutCost = visibleRows.filter((r) => r.cost === null).length;
   const waiting = visibleRows.filter((r) => r.flags.includes('waiting_for_issuing')).length;
   const unconfirmed = report?.totals.unconfirmedImportUnits ?? 0;
+  // Landing 37 (A6): this organisation's documents that are not fully paid yet, by number — in no total above
+  const waitingRows = useMemo(
+    () => (report?.notYetCounted ?? []).filter((r) => !hide || r.source === 'manual'),
+    [report, hide],
+  );
   const nc = notCounted.block.status === 'ready' ? (notCounted.block.data as CompanyNotCounted | null) : null;
   const held = typeof nc?.held_units === 'number' ? nc.held_units : 0;
   const excluded = typeof nc?.excluded_units === 'number' ? nc.excluded_units : 0;
-  const allCounted = unconfirmed === 0 && held === 0 && excluded === 0;
+  const allCounted = unconfirmed === 0 && held === 0 && excluded === 0 && waitingRows.length === 0;
   const asOfDate = asOf.block.status === 'ready' ? ((asOf.block.data as PaymentsAsOf | null)?.as_of ?? null) : null;
   const asOfStale =
     asOf.block.status === 'ready' && asOf.block.data
@@ -662,6 +667,27 @@ function CompanyFinanceLedger({
               <p className="text-base text-muted" data-partner-finance-held>
                 {t('partners.companyFinance.heldRows', { count: held })}
               </p>
+            ) : null}
+            {waitingRows.length ? (
+              <ul className="flex flex-col" data-partner-finance-waiting>
+                {waitingRows.map((r) => (
+                  <li
+                    key={`${r.source}-${r.invoice_id}-${r.unit_kind}`}
+                    className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-border py-2.5 text-sm leading-5 first:border-t-0"
+                    data-partner-finance-waiting-row={r.number ?? ''}
+                  >
+                    <bdi className="font-data font-medium text-strong tabular [overflow-wrap:anywhere]">
+                      {r.number ?? '—'}
+                    </bdi>
+                    {r.status ? <bdi className="text-muted">{r.status}</bdi> : null}
+                    <span className="whitespace-nowrap text-muted">{day(r.created_on)}</span>
+                    <span className="ms-auto whitespace-nowrap" data-partner-finance-waiting-amount>
+                      <span className="text-muted">{t('finance.ledger.notYetCountedAmount')} </span>
+                      <bdi className="font-data tabular">{formatMoney(r.amount, locale)}</bdi>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
             {notCounted.block.status === 'ready' && excluded > 0 ? (
               <p className="text-base text-muted" data-partner-finance-excluded>

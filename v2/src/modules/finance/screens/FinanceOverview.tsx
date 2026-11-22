@@ -296,9 +296,23 @@ export function FinanceOverview({
   );
 }
 
-function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
+/**
+ * The period tabs, and under "Custom" its From / To panel. A tab is lit — and Custom's panel is open — the moment it
+ * is pressed (CR-1594-23, Landing 37): the panel used to be drawn only once the server had answered the new address,
+ * so on a slow read the first press showed nothing and a second press was made. The address still decides: when the
+ * answer lands (or Back is pressed) the tabs follow it again.
+ */
+export function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
   const t = useTranslations();
   const keys: PeriodKey[] = ['mtd', 'qtd', 'ytd', 'custom'];
+  // the tab just pressed, until the address has caught up with it (the same render-phase sync as the boxes below)
+  const [pressed, setPressed] = useState<PeriodKey | null>(null);
+  const [seenKey, setSeenKey] = useState(ask.key);
+  if (ask.key !== seenKey) {
+    setSeenKey(ask.key);
+    setPressed(null);
+  }
+  const shown = pressed ?? ask.key;
   const [from, setFrom] = useState(ask.from);
   const [to, setTo] = useState(ask.to);
   // The boxes follow the address (F171): opening a saved view changes `ask`, and the boxes must show the view's
@@ -328,22 +342,24 @@ function PeriodSwitch({ ask }: { ask: PeriodAsk }) {
             key={k}
             prefetch={false}
             href={k === 'custom' ? `/finance?period=custom&from=${ask.from}&to=${ask.to}` : `/finance?period=${k}`}
-            aria-current={ask.key === k ? 'page' : undefined}
+            onClick={() => setPressed(k)}
+            aria-current={shown === k ? 'page' : undefined}
             data-finance-period-key={k}
             className={cn(
               'inline-flex h-9 max-sm:h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-pill px-4 text-base font-medium leading-5 transition-[background-color,color,box-shadow] duration-[var(--dur-base)] ease-[var(--ease-standard)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus',
-              ask.key === k ? 'bg-raised font-semibold text-strong shadow-tab' : 'text-muted hover:text-strong',
+              shown === k ? 'bg-raised font-semibold text-strong shadow-tab' : 'text-muted hover:text-strong',
             )}
           >
             {t(`finance.period.${k}`)}
           </Link>
         ))}
       </nav>
-      {ask.key === 'custom' ? (
+      {shown === 'custom' ? (
         // From and To are named on screen (two bare boxes said nothing on a phone); two days that are not a period —
         // half typed, or the first after the second — are said so in place, instead of silently becoming the year
         <form
           className="flex flex-wrap items-start gap-2"
+          data-finance-custom-panel
           onSubmit={(e) => {
             e.preventDefault();
             if (!isDay(from) || !isDay(to) || from > to) {

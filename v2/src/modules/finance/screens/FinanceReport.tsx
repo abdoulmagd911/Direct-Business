@@ -40,6 +40,9 @@ export type LedgerToggle = 'exclude' | 'include';
  * An admin (`canToggle`) may Exclude a counted row or Include one excluded by hand, each with a reason; a row a list
  * rule catches points to Settings → Finance instead. A code text that matched no code, or more than one, is said on
  * the row. With no counted cost there is no Cost and no Profit to show: a dash and the words, never 0.
+ * Landing 37 (A6): a document that is not fully paid yet — Pending, Draft, part paid, an imported row not confirmed
+ * paid — is listed under "Not yet counted (N)" with its amount, what is left on it and its status. It is in no figure:
+ * the strip and every table above are the database's own totals, and this list adds nothing to them.
  */
 export function FinanceReport({
   report,
@@ -59,6 +62,7 @@ export function FinanceReport({
   const locale = useLocale() as Locale;
   // a narrow place lists the first rows and offers the rest; a table wide enough always lists them all
   const [allRows, setAllRows] = useState(false);
+  const [allWaiting, setAllWaiting] = useState(false);
   // the row Exclude / Include was pressed on; it stays while the box closes, so its title never blanks mid-way
   const [asked, setAsked] = useState<{ kind: LedgerToggle; row: LedgerRow } | null>(null);
   const [asking, setAsking] = useState(false);
@@ -170,6 +174,8 @@ export function FinanceReport({
   const day = (d: string | null | undefined) => (d ? (formatStoredDate(d, locale) ?? d) : '—');
   const total = report.totals;
   const promoRows = report.promoRows ?? [];
+  // the documents not fully paid yet: listed apart, in no figure (Landing 37)
+  const waitingRows = report.notYetCounted ?? [];
   const unconfirmed = total.unconfirmedImportUnits ? (
     <p className="text-sm text-muted" data-finance-ledger-unconfirmed>
       {t('finance.ledger.unconfirmed', { count: total.unconfirmedImportUnits })}
@@ -179,7 +185,8 @@ export function FinanceReport({
     report.rows.length === 0 &&
     report.invoices.length === 0 &&
     report.by_company.length === 0 &&
-    promoRows.length === 0
+    promoRows.length === 0 &&
+    waitingRows.length === 0
   ) {
     return (
       <div className="flex flex-col gap-2 border-t border-border px-4 py-4 sm:px-5" data-finance-report data-empty>
@@ -447,6 +454,104 @@ export function FinanceReport({
           </>
         )}
       </Block>
+
+      {waitingRows.length > 0 ? (
+        <Block
+          id="finance-ledger-not-yet-counted"
+          anchor="finance-ledger-waiting"
+          title={t('finance.ledger.notYetCountedTitle', { count: waitingRows.length })}
+          data-ledger-not-yet-counted
+        >
+          <p className="px-4 pb-3 text-sm text-muted sm:px-5">
+            {t('finance.ledger.notYetCountedNote')}{' '}
+            <span className="whitespace-nowrap" data-ledger-not-yet-counted-total>
+              {t('finance.ledger.notYetCountedTotal')}:{' '}
+              <bdi className="font-data text-text tabular">
+                {formatMoney(total.notYetCountedAmount ?? waitingRows.reduce((s, r) => s + r.amount, 0), locale)}
+              </bdi>
+            </span>
+          </p>
+          {/* each document as its own lines, at every width: its number and amount, then its status and what is left */}
+          <ul className="flex flex-col border-t border-border">
+            {waitingRows.map((r, i) => (
+              <li
+                key={`${r.source}-${r.invoice_id}-${r.unit_kind}`}
+                className={cn(
+                  'flex flex-col gap-1.5 border-b border-border px-4 py-3 text-sm leading-5 last:border-b-0 sm:px-5',
+                  !allWaiting && i >= NARROW_ROWS && '@max-[599px]:hidden',
+                )}
+                data-ledger-not-yet-counted-row={r.source}
+                data-number={r.number ?? undefined}
+              >
+                <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <bdi className="font-data font-medium text-strong tabular [overflow-wrap:anywhere]">
+                    {r.number ?? '—'}
+                  </bdi>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    {r.partner_id ? (
+                      <EntityLink
+                        kind="partner"
+                        href={`/partners/${r.partner_id}`}
+                        className="[overflow-wrap:anywhere]"
+                      >
+                        {(locale === 'ar' && r.trade_name_ar ? r.trade_name_ar : r.trade_name_en) ??
+                          r.partner_number ??
+                          t('finance.ledger.noPartner')}
+                      </EntityLink>
+                    ) : (
+                      <span className="text-muted">{t('finance.ledger.noPartner')}</span>
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap text-muted">{day(r.created_on)}</span>
+                  <span className="ms-auto whitespace-nowrap" data-ledger-not-yet-counted-amount>
+                    <span className="text-muted">{t('finance.ledger.notYetCountedAmount')} </span>
+                    <bdi className="font-data tabular">{formatMoney(r.amount, locale)}</bdi>
+                  </span>
+                </span>
+                {r.transaction_number && r.invoice_number ? (
+                  <Pair label={t('finance.ledger.invoiceNumber')} value={r.invoice_number} block />
+                ) : null}
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5" data-ledger-counted="not-yet">
+                  <StatusChip tone="warning">{t('finance.ledger.notYetCountedPill')}</StatusChip>
+                  {r.source === 'import' ? (
+                    <StatusChip tone="info">{t('finance.ledger.sourceImport')}</StatusChip>
+                  ) : null}
+                  {r.status ? (
+                    <span className="min-w-0 [overflow-wrap:anywhere]" data-ledger-not-yet-counted-status>
+                      <span className="text-muted">{t('finance.ledger.status')}: </span>
+                      <bdi>{r.status}</bdi>
+                    </span>
+                  ) : null}
+                  {r.remaining !== null ? (
+                    <span className="whitespace-nowrap" data-ledger-not-yet-counted-remaining>
+                      <span className="text-muted">{t('finance.ledger.remaining')} </span>
+                      <bdi className="font-data tabular">{formatMoney(r.remaining, locale)}</bdi>
+                    </span>
+                  ) : null}
+                  {r.direct_url ? (
+                    <a
+                      href={r.direct_url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex min-h-6 items-center gap-1 font-medium text-link underline decoration-border-strong underline-offset-[3px] hover:decoration-current max-sm:min-h-11"
+                      data-ledger-direct-link
+                    >
+                      {t('finance.ledger.openInDirect')}
+                    </a>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!allWaiting && waitingRows.length > NARROW_ROWS ? (
+            <div className="border-t border-border px-2 py-2 @min-[600px]:hidden">
+              <Button variant="ghost" size="sm" onClick={() => setAllWaiting(true)} data-ledger-not-yet-counted-see-all>
+                {t('finance.ledger.seeAll', { count: waitingRows.length })}
+              </Button>
+            </div>
+          ) : null}
+        </Block>
+      ) : null}
 
       {notCountedRows.length > 0 ? (
         <Block

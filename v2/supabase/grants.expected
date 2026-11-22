@@ -111,6 +111,7 @@ function api.finance_import_map(p_source text) execute authenticated
 function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
 function api.finance_import_rule_check(p_partner uuid, p_source_promo text) execute authenticated
 function api.finance_income_by_service(p_from date, p_to date) execute authenticated
+function api.finance_last_saved() execute authenticated
 function api.finance_ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function api.finance_merge_rule_remove(p_id uuid, p_reason text) execute authenticated
 function api.finance_merge_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
@@ -454,6 +455,7 @@ function finance.import_recognise(p_source text, p_headers text[]) execute authe
 function finance.import_rule_check(p_partner uuid, p_source_promo text) execute authenticated
 function finance.import_run(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function finance.income_by_service(p_from date, p_to date) execute authenticated
+function finance.last_saved() execute authenticated
 function finance.ledger(p_from date, p_to date, p_partner uuid, p_client_id text, p_kind text, p_code text, p_project text) execute authenticated
 function finance.match_decide(p_key text, p_decision text, p_partner uuid, p_reason text) execute authenticated
 function finance.match_pin_clear(p_id uuid, p_reason text) execute authenticated

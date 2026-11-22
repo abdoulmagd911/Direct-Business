@@ -166,6 +166,36 @@ export type UnifiedPromoRow = {
   code_state?: CodeState;
 };
 
+/**
+ * Landing 37 (A6) — one document that is not fully paid yet (Pending, Draft, part paid; an imported row not
+ * confirmed paid). The Ledger lists it apart, with its amount; it is in no total until it is paid.
+ */
+export type NotYetCountedRow = {
+  invoice_id: string;
+  unit_kind: string;
+  transaction_number: string | null;
+  invoice_number: string | null;
+  /** The row's own number: its transaction number, else its invoice number. */
+  number: string | null;
+  /** The organisation it would count under; null while its client is not known. */
+  partner_id: string | null;
+  partner_number: string | null;
+  trade_name_en: string | null;
+  trade_name_ar: string | null;
+  created_on: string;
+  /** The revenue that is not counted yet. */
+  amount: number;
+  /** What has arrived so far; empty for an imported row (its receipts are not read). */
+  received: number | null;
+  /** What is still to arrive; empty when the document carries no total. */
+  remaining: number | null;
+  /** The status word as it was recorded (Pending, Draft …). */
+  status: string | null;
+  source: 'manual' | 'import';
+  /** The record's own page in Direct, when it carries one. */
+  direct_url: string | null;
+};
+
 /** One invoice of the ledger: its total, what arrived, what is left, and its transactions. */
 export type LedgerInvoice = {
   invoice_id: string;
@@ -218,6 +248,9 @@ export type LedgerReport = {
     importUnits?: number;
     promoUnits?: number;
     unconfirmedImportUnits?: number;
+    /** Landing 37: the documents not fully paid yet, and their amount — said apart, never part of `revenue`. */
+    notYetCountedUnits?: number;
+    notYetCountedAmount?: number;
   };
   companies: LedgerCompany[];
   by_company: LedgerByCompany[];
@@ -230,6 +263,8 @@ export type LedgerReport = {
   codeDiscount?: number | null;
   /** True when the reader may Exclude / Include a row (an admin); everyone else reads the column only. */
   canToggle?: boolean;
+  /** Landing 37: the documents not fully paid yet, listed apart; an older read leaves it out. */
+  notYetCounted?: NotYetCountedRow[];
 };
 
 /** Everything the Overview reads in one go; a part that failed is null and says so on the screen. */

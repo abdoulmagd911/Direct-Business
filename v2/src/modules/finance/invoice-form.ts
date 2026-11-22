@@ -183,3 +183,53 @@ export function serviceOfProduct(productKey: string, lists: Lists): string {
   if (!p?.service_id) return '';
   return lists.service.find((s) => s.id === p.service_id)?.key ?? '';
 }
+
+/** The invoice the reader saved last, as the table holds it (api.finance_last_saved — F185, Landing 37). */
+export type SavedInvoice = {
+  invoiceId: string;
+  /** The transaction (or invoice) number it was saved under. */
+  ref: string;
+  kind: string;
+  /** The status word as it was recorded. */
+  status: string | null;
+  /** What that word means for counting: only `paid` counts. */
+  payState: string | null;
+  created: string;
+  /** Empty until a paid day is recorded — shown as a dash, never as today. */
+  paid: string | null;
+  /** Empty when the invoice carries no total — a dash, never 0. */
+  total: number | null;
+};
+
+/** The database's answer as the form shows it; nothing saved yet (or an answer with no number) is null. */
+export function savedInvoiceOf(answer: unknown): SavedInvoice | null {
+  if (!answer || typeof answer !== 'object') return null;
+  const a = answer as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' && v !== '' ? v : null);
+  const ref = str(a.ref);
+  const created = str(a.created_on);
+  if (!ref || !created) return null;
+  return {
+    invoiceId: str(a.invoice_id) ?? '',
+    ref,
+    kind: str(a.kind) ?? '',
+    status: str(a.status),
+    payState: str(a.pay_state),
+    created,
+    paid: str(a.paid_on),
+    total: typeof a.total_sar === 'number' && Number.isFinite(a.total_sar) ? a.total_sar : null,
+  };
+}
+
+/** True when the saved invoice is in the figures already: only a fully paid status counts. */
+export const savedCounts = (s: Pick<SavedInvoice, 'payState'>): boolean => s.payState === 'paid';
+
+/**
+ * Whether a typed number is already an invoice recorded here (the form refuses the same number twice). Since Landing 37
+ * the search also lists imported rows; one of those with the same number is the same document from the other door and
+ * refuses nothing — the two stores count it once (UNI-03).
+ */
+export function numberIsUsed(hits: { ref: string; source?: string | null }[], typed: string): boolean {
+  const want = typed.trim().toLowerCase();
+  return hits.some((h) => h.source !== 'import' && h.ref.trim().toLowerCase() === want);
+}
