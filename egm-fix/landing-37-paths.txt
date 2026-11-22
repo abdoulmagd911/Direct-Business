@@ -1,0 +1,6 @@
+docs/v2/landings/LANDING-37.md
+v2/messages/ar.json
+v2/messages/en.json
+v2/src/modules/tasks/screens/TaskBulkAssign.tsx
+v2/tests/e2e/tasks.spec.ts
+v2/tests/sabotage/tasks.mjs
