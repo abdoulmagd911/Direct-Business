@@ -847,6 +847,30 @@ function Evidence({ data }: { data: AchievementRecordData }) {
         onDone={() => router.refresh()}
         title={tc('record.files.title')}
       />
+      {/* Landing 33 (B4): the steps done on the source task are evidence too — what was done, which day, by whom */}
+      {a.source_task_steps?.length ? (
+        <section className="flex flex-col gap-2" data-task-steps>
+          <h3 className="text-base font-semibold">{t('steps.title')}</h3>
+          <p className="text-sm text-muted">{t('steps.what')}</p>
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {a.source_task_steps.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-2">
+                <span className="min-w-0 break-words" dir="auto">
+                  {s.text}
+                </span>
+                <span className="text-sm text-muted" data-task-step-done>
+                  {(locale === 'ar' ? (s.done_by_name_ar ?? s.done_by_name) : s.done_by_name)
+                    ? t('steps.by', {
+                        date: formatDate(s.done_on, locale),
+                        name: (locale === 'ar' ? (s.done_by_name_ar ?? s.done_by_name) : s.done_by_name) ?? '',
+                      })
+                    : formatDate(s.done_on, locale)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {a.refs.length ? (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border" data-refs>
           {a.refs.map((r) => (

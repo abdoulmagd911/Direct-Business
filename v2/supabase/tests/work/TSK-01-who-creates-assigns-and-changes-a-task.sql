@@ -50,7 +50,8 @@ select set_config('t.made2', api.task_create(jsonb_build_object('title', 'Made-u
   'owner_id', current_setting('t.am2')))::text, true);
 select test.eq(current_setting('t.made2')::jsonb ->> 'owner_id', current_setting('t.am2'),
   'a member names another owner for the work they create');
-select set_config('t.asg1', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am2')::uuid)::text, true);
+select set_config('t.asg1', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am2')::uuid,
+  'Made-up: a teammate takes it')::text, true);
 select test.as_owner();
 select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid), current_setting('t.am2')::uuid,
   'and gives away a task they own');
@@ -60,18 +61,26 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
 -- but a task that is no longer theirs stays out of reach, with or without the capability
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.mgr')),
-  '42501', 'a member who no longer owns the task cannot hand it to anyone else', 'access.needs_capability');
+  '42501', 'a member who no longer owns the task cannot hand it to anyone else', 'task.hand_over_not_yours');
 select test.as_person(current_setting('t.am3')::uuid);
 select test.raises(format('select api.task_create(%L::jsonb)', jsonb_build_object('title', 'Made up',
   'owner_id', current_setting('t.am1'))), '42501',
   'a member without the own-task capability does not give a task to someone else', 'access.needs_capability');
 
--- a manager gives it to someone else, who is told once
+-- Landing 33 (O-3, the owner's decision of 22 Nov): a manager does not hand over a team member's task …
 select test.as_person(current_setting('t.mgr')::uuid);
-select set_config('t.asg', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am1')::uuid)::text, true);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L, %L)', current_setting('t.t'),
+  current_setting('t.am1'), 'Made up'), '42501', 'a manager does not hand over a team member''s task',
+  'task.hand_over_not_yours');
+-- … its Responsible does, with a reason, and the new one is told once
+select test.as_person(current_setting('t.am2')::uuid);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.am1')),
+  'P0001', 'a hand-over needs its reason', 'task.hand_over_reason_required');
+select set_config('t.asg', api.tasks_assign(array[current_setting('t.t')::uuid], current_setting('t.am1')::uuid,
+  'Made-up: back to the first owner')::text, true);
 select test.as_owner();
 select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid), current_setting('t.am1')::uuid,
-  'a manager reassigns it');
+  'the Responsible hands it on');
 select test.eq((select count(*)::int from notify.notification where person_id = current_setting('t.am1')::uuid
                 and kind = 'assigned' and request_id = (current_setting('t.asg')::jsonb ->> 'request_id')::uuid), 1,
   'and the new owner is told once');
@@ -79,9 +88,9 @@ select test.eq((select team_id from work.task where id = current_setting('t.t'):
   (select id from core.team where code = 'test_desk'), 'the task keeps its team');
 
 -- nobody switched off, nobody from the test account
-select test.as_person(current_setting('t.mgr')::uuid);
-select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.off')),
-  'P0001', 'a switched-off person owns nothing', 'person.unavailable');
+select test.as_person(current_setting('t.am1')::uuid);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L, %L)', current_setting('t.t'),
+  current_setting('t.off'), 'Made up'), 'P0001', 'a switched-off person owns nothing', 'person.unavailable');
 select test.as_owner();
 update core.person set account = 'test_account', team_id = null where id = current_setting('t.am1')::uuid;
 select test.as_person(current_setting('t.mgr')::uuid);
@@ -94,8 +103,9 @@ select test.as_owner();
 update core.person set account = 'admin_account', team_id = null, manager_id = null where id = current_setting('t.acct')::uuid;
 select set_config('t.desk', (select id::text from core.team where code = 'test_desk'), true);
 select test.as_person(current_setting('t.mgr')::uuid);
-select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.acct')),
-  'P0001', 'the admin account owns nothing', 'person.unavailable');
+select set_config('t.mine', api.task_create(jsonb_build_object('title', 'Made-up manager''s own task')) ->> 'id', true);
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L, %L)', current_setting('t.mine'),
+  current_setting('t.acct'), 'Made up'), 'P0001', 'the admin account owns nothing', 'person.unavailable');
 select test.raises(format('select api.task_helpers_set(%L, array[%L]::uuid[])', current_setting('t.t'), current_setting('t.acct')),
   'P0001', 'nor helps on anything', 'person.unavailable');
 select test.as_person(current_setting('t.acct')::uuid);

@@ -39,7 +39,7 @@ import { TaskComments } from './TaskComments';
 import { Escalate } from './Escalate';
 import { StarMark, StarToggle } from './StarToggle';
 import { StatusMenu, statusName, useStatusMove } from './StatusControl';
-import { HelpersField, OwnerPicker } from './TaskPeople';
+import { DeputyField, HelpersField, OwnerPicker } from './TaskPeople';
 import { useCommandWords, useNames } from './words';
 
 export type TaskRecordData = {
@@ -84,10 +84,13 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   // or `tasks.assign_own` on a task of their own, FIX-03 P1b). The wider capability unlocks nothing else: the Team
   // view, backfill-for-others and the load figures still ask for `tasks.assign` (rules.ts).
   const mayHelp = task.can_edit && !closed;
-  const mayAssign =
-    mayHelp &&
-    (me.capabilities.includes('tasks.assign') ||
-      (me.capabilities.includes('tasks.assign_own') && task.owner_id === me.person.id));
+  // Landing 33 (O-3): a task is handed over by its Responsible only — the row says whether that is the reader. A task
+  // with no Responsible yet is placed by whoever gives work (`tasks.assign`).
+  const mayGive = me.capabilities.includes('tasks.assign') || me.capabilities.includes('tasks.assign_own');
+  const mayAssign = !closed && !!task.can_hand_over && mayGive;
+  const mayPlace = mayHelp && !task.owner_id && me.capabilities.includes('tasks.assign');
+  // Landing 33 (B3): the deputy acts too — the status moves for whoever may edit, or the deputy.
+  const mayAct = task.can_act ?? task.can_edit;
   const [editing, setEditing] = useState(false);
   const [escalating, setEscalating] = useState(false);
   const [delegating, setDelegating] = useState(false);
@@ -126,7 +129,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       ) : (
         <StarMark starred={task.starred} />
       )}
-      <StatusMenu task={task} statuses={lookups.statuses} label={statusLabel} canEdit={task.can_edit} />
+      <StatusMenu task={task} statuses={lookups.statuses} label={statusLabel} canEdit={mayAct} />
       {due === 'overdue' ? <StatusChip tone="danger">{t('status.overdue')}</StatusChip> : null}
       {task.stale ? <StatusChip tone="warning">{t('pages.tasks.flags.stale')}</StatusChip> : null}
       {task.escalated ? <StatusChip tone="warning">{t('pages.tasks.escalate.flag')}</StatusChip> : null}
@@ -214,7 +217,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
   };
   const actions = (
     <>
-      {task.can_edit && !closed && move.markDone ? (
+      {mayAct && !closed && move.markDone ? (
         <Button
           variant="primary"
           icon={<Check />}
@@ -279,7 +282,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
           ) : null}
         </MenuContent>
       </Menu>
-      {task.can_edit ? move.dialogs : null}
+      {mayAct ? move.dialogs : null}
       {mayRemove ? (
         <ReasonDialog
           open={removing}
@@ -301,12 +304,26 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
       <RailField label={t('pages.tasks.fields.status')}>
         <StatusChip tone={STATUS_TONE[view]}>{statusLabel}</StatusChip>
       </RailField>
-      <RailField label={t('pages.tasks.fields.owner')}>
-        {mayAssign ? (
+      <RailField label={t('pages.tasks.fields.responsible')}>
+        {mayPlace ? (
           <OwnerPicker task={task} people={lookups.org?.people ?? []} locale={names.locale} />
         ) : (
-          names.person(task.owner_id)
+          <span className="flex flex-wrap items-center gap-2" data-responsible>
+            <span>{names.person(task.owner_id)}</span>
+            {mayAssign ? (
+              <Button size="sm" onClick={() => setDelegating(true)} data-hand-over-open>
+                {t('pages.tasks.delegate.open')}
+              </Button>
+            ) : null}
+          </span>
         )}
+      </RailField>
+      <RailField label={t('pages.tasks.fields.deputy')} empty={!mayHelp && !task.deputy_id} add={<span>—</span>}>
+        {mayHelp ? (
+          <DeputyField task={task} people={lookups.org?.people ?? []} locale={names.locale} />
+        ) : task.deputy_id ? (
+          <span data-deputy>{names.person(task.deputy_id)}</span>
+        ) : null}
       </RailField>
       <RailField label={t('pages.tasks.fields.helpers')} empty={!mayHelp && !task.helpers.length} add={<span>—</span>}>
         {mayHelp ? (
@@ -406,7 +423,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="break-words text-base">{task.blocked_reason}</p>
                 {/* Unblock is resuming it (F019, D47): the In progress move, which clears the blocked reason — not
                     a generic Try-again on whatever blocked it. */}
-                {task.can_edit && inProgressStatus ? (
+                {mayAct && inProgressStatus ? (
                   <Button
                     variant="ghost"
                     size="xs"
@@ -474,6 +491,40 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 <p className="text-base text-muted">{t('pages.tasks.noStatusChanges')}</p>
               )}
             </section>
+            <section className="flex flex-col gap-2" data-handovers>
+              <h2 className="text-lg font-semibold">{t('pages.tasks.handovers.title')}</h2>
+              {task.handovers?.length ? (
+                <ul className="flex flex-col gap-2">
+                  {task.handovers.map((h, i) => (
+                    <li key={i} className="flex flex-col gap-0.5 text-sm" data-handover>
+                      <span className="flex flex-wrap items-center gap-x-2">
+                        <span className="text-muted">{date(h.happened_on)}</span>
+                        <span className="font-medium">
+                          {h.from
+                            ? t('pages.tasks.handovers.moved', {
+                                from: names.person(h.from),
+                                to: names.person(h.to),
+                              })
+                            : t('pages.tasks.handovers.given', { to: names.person(h.to) })}
+                        </span>
+                        {h.by !== h.from ? (
+                          <span className="text-muted">
+                            {t('pages.tasks.handovers.by', { name: names.person(h.by) })}
+                          </span>
+                        ) : null}
+                      </span>
+                      {h.reason ? (
+                        <span className="break-words text-muted" dir="auto" data-handover-reason>
+                          {h.reason}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-base text-muted">{t('pages.tasks.handovers.none')}</p>
+              )}
+            </section>
             {/* Related lives here now (Phase 4, the one layout): its own tab is gone. */}
             <div className="flex flex-col gap-4" data-related>
               <RailSection title={t('pages.tasks.tabs.related')}>
@@ -522,6 +573,7 @@ export function TaskRecord({ data }: { data: TaskRecordData }) {
                 files={files}
                 onFilesRetry={() => router.refresh()}
                 initialFilter={discussionFilter}
+                projects={lookups.projects.map((p) => ({ id: p.id, name: p.name_en, number: p.number }))}
               />
             ) : (
               <DataState

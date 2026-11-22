@@ -49,7 +49,15 @@ export type TaskRow = {
   escalated_note: string | null;
   version: number;
   can_edit: boolean;
+  /** Landing 33 (B3): the deputy — a helper who may also act (move the status, tick steps); null when there is none. */
+  deputy_id?: string | null;
+  /** Landing 33: whether the reader may move the status (whoever may edit, or the deputy). */
+  can_act?: boolean;
+  /** Landing 33 (O-3): whether the reader may hand the task over — its Responsible only. */
+  can_hand_over?: boolean;
   open_action_items: number;
+  /** Landing 33 (B4): every step the task has; with open_action_items, its progress. */
+  action_items_total?: number;
   helpers: string[];
   past_work: boolean;
   needs_owner: boolean;
@@ -99,6 +107,18 @@ export type TaskDetail = TaskRow & {
   refs: { id: string; system: string; system_en: string; system_ar: string | null; value: string }[];
   contacts: string[];
   status_history: StatusChange[];
+  /** Landing 33 (B3): who had the task, when it moved and why — newest first. */
+  handovers?: HandOver[];
+};
+
+/** One change of the Responsible, from the audit trail. */
+export type HandOver = {
+  at: string;
+  happened_on: string;
+  by: string;
+  from: string | null;
+  to: string | null;
+  reason: string | null;
 };
 
 /** A task status as the settings list holds it (api.list('task_status')): names editable, meaning locked (V401). */

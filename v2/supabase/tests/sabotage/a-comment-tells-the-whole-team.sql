@@ -2,7 +2,10 @@
 -- Breaks: sql:CMT-01
 -- Expect: and not a colleague who is not on the task
 -- A new comment tells everyone on the task's team, not only its owner, creator and helpers.
-create or replace function work.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid default null)
+-- Landing 33: comment_add takes two more optional arguments (links, mentions); the plant keeps the same signature
+-- so it replaces the function the door calls, and breaks the same one line as before.
+create or replace function work.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid default null,
+                                            p_links jsonb default null, p_mentions uuid[] default null)
   returns jsonb
 language plpgsql volatile security definer set search_path = ''
 as $$

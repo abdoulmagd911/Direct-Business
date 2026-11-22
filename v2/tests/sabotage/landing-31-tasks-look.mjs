@@ -63,9 +63,9 @@ export const sabotages = [
     edits: [
       {
         file: BOARD,
-        find: '                        <span className="relative z-10 shrink-0" data-task-pill={view}>',
+        find: '        <span className="relative z-10 shrink-0" data-task-pill={view} data-no-drag>',
         replace:
-          '                        <span data-task-pill="overdue">{t(\'status.overdue\')}</span>\n                        <span className="relative z-10 shrink-0" data-task-pill={view}>',
+          '        <span data-task-pill="overdue">{t(\'status.overdue\')}</span>\n        <span className="relative z-10 shrink-0" data-task-pill={view} data-no-drag>',
       },
     ],
   },
@@ -73,7 +73,7 @@ export const sabotages = [
     name: 'board-card-drops-the-partner',
     breaks: [DRAWN],
     expect: '> shows the partner, the due date (red when overdue) and the Responsible person',
-    edits: [{ file: BOARD, find: '                      <WhereMark row={r} names={names} first />\n', replace: '' }],
+    edits: [{ file: BOARD, find: '      <WhereMark row={r} names={names} first />\n', replace: '' }],
   },
   // ---- overdue is a date, not a pill
   {

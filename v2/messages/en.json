@@ -744,7 +744,12 @@
         "noCategories": "No categories for {year} yet. Log achievement says how to open the plan."
       },
       "valueNotNumber": "Enter a number",
-      "offerAction": "Log achievement"
+      "offerAction": "Log achievement",
+      "steps": {
+        "title": "Steps done on the task",
+        "what": "Each step done on the task this achievement came from, with its day and who did it.",
+        "by": "{date} · {name}"
+      }
     },
     "reports": {
       "summary": "Monthly summary",
@@ -949,7 +954,9 @@
         "notes": "Notes",
         "lastActivity": "Last update",
         "references": "References",
-        "achievement": "Achievement"
+        "achievement": "Achievement",
+        "deputy": "Deputy",
+        "responsible": "Responsible"
       },
       "tabs": {
         "overview": "Overview",
@@ -991,7 +998,13 @@
         "helperAdd": "Add a helper",
         "helperAdded": "{name} now helps on {number}",
         "helperRemove": "Remove {name}",
-        "helperRemoved": "{name} no longer helps on {number}"
+        "helperRemoved": "{name} no longer helps on {number}",
+        "deputyMark": "Deputy",
+        "deputyNone": "No deputy",
+        "deputyChange": "Change the deputy",
+        "deputySaved": "{name} is now the deputy on {number}",
+        "deputyCleared": "{number} has no deputy now",
+        "deputyWhat": "The deputy has the task under Helping and can mark it done. The Responsible still owns the outcome."
       },
       "load": {
         "title": "Team load",
@@ -1041,7 +1054,9 @@
         "unticked": "Reopened: {item}",
         "removed": "Action item removed: {item}",
         "textRequired": "Write the action item",
-        "textTooLong": "At most {max} characters"
+        "textTooLong": "At most {max} characters",
+        "doneBy": "Done {date} · {name}",
+        "doneOn": "Done {date}"
       },
       "errors": {
         "task": {
@@ -1054,9 +1069,8 @@
           "status_unchanged": "The task already has this status",
           "created_closed": "A new task cannot start closed",
           "delegate_cannot_see": "That person cannot see this task",
-          "delegate_note_required": "Write what they need to know",
           "delegate_to_yourself": "Pick someone other than yourself",
-          "client_work_needs_partner": "Client work needs a client or a project",
+          "client_work_needs_partner": "Partner work needs a partner or a project",
           "internal_has_no_partner": "Internal work has no partner",
           "due_before_start": "The due day is before the start",
           "team_required": "The task needs a team",
@@ -1073,7 +1087,14 @@
           "comment_not_yours": "Only the person who wrote a comment can change it",
           "remove_not_test": "Only test tasks can be removed",
           "owner_cannot_see": "That person cannot see this task, so it cannot be given to them",
-          "team_out_of_reach": "That team is in a department you do not work in"
+          "team_out_of_reach": "That team is in a department you do not work in",
+          "hand_over_not_yours": "Only the Responsible hands a task over. This one is not yours.",
+          "hand_over_reason_required": "Give a reason. Every hand-over needs one.",
+          "hand_over_reason_too_long": "A reason is 120 characters at most.",
+          "owner_cannot_see_partner": "That person cannot see this task’s partner, so the task cannot be given to them",
+          "deputy_unchanged": "That is already the deputy",
+          "deputy_is_responsible": "The Responsible cannot be their own deputy",
+          "deputy_cannot_see": "That person cannot see this task"
         },
         "action_item": {
           "text_required": "Write the action item",
@@ -1167,7 +1188,10 @@
       "board": {
         "emptyColumn": "Nothing here",
         "blockedLabel": "Blocked:",
-        "cancelledLabel": "Cancelled:"
+        "cancelledLabel": "Cancelled:",
+        "grip": "Drag “{title}” to another column",
+        "gripHint": "Drag to another column",
+        "dragging": "Moving “{title}”. Let go over a column to change its status; Escape puts it back."
       },
       "calendar": {
         "previous": "Previous month",
@@ -1176,16 +1200,18 @@
         "noDue": "{count, plural, one {# task with no due day} other {# tasks with no due day}}"
       },
       "delegate": {
-        "open": "Delegate",
-        "what": "Give this task to someone else, with a note. They become the owner and are told at once.",
-        "title": "Delegate {number}",
-        "to": "Delegate to",
+        "open": "Hand over",
+        "what": "Give your task to someone else, with a reason. They become the Responsible and are told at once.",
+        "title": "Hand over {number}",
+        "to": "Hand over to",
         "to_required": "Pick who to hand it to",
         "to_yourself": "Pick someone other than yourself",
-        "note": "What do they need to know?",
-        "note_required": "Write what they need to know",
-        "send": "Delegate",
-        "done": "Delegated to {name}"
+        "send": "Hand over",
+        "done": "Handed over to {name}",
+        "reason": "Reason",
+        "reason_required": "Give a reason. Every hand-over needs one.",
+        "reason_too_long": "A reason is {max} characters at most.",
+        "reasonCount": "{count} of {max} characters"
       },
       "star": {
         "mark": "Star “{title}”",
@@ -1226,7 +1252,18 @@
         "overdueLabel": "Overdue:",
         "priority": "Priority: {priority}",
         "seeAll": "See all · {count}",
-        "seeFewer": "Show fewer"
+        "seeFewer": "Show fewer",
+        "steps": "{done} of {total} steps"
+      },
+      "comments": {
+        "mentionNote": "A person you mention is added as a helper: the task shows under their Helping. The Responsible does not change."
+      },
+      "handovers": {
+        "title": "Hand-over history",
+        "none": "This task has not changed hands",
+        "moved": "{from} → {to}",
+        "given": "Given to {to}",
+        "by": "by {name}"
       }
     },
     "weeklyReview": {
@@ -1610,7 +1647,28 @@
       "newComments": "{count} new",
       "askChip": "Asked {name}",
       "removedQuestion": "Question deleted",
-      "removeQuestionTitle": "Delete the question?"
+      "removeQuestionTitle": "Delete the question?",
+      "decision": "Decision",
+      "decisionBy": "Marked as the decision by {name}",
+      "decisionMark": "Mark as the decision",
+      "decisionMove": "Make this the decision",
+      "decisionUnmark": "Remove the decision mark",
+      "decisionMarked": "Marked as the decision",
+      "decisionUnmarked": "Decision mark removed",
+      "linkHidden": "A linked record you cannot open",
+      "linkKind": {
+        "partner": "Partner",
+        "project": "Project",
+        "invoice": "Invoice",
+        "code": "Code"
+      },
+      "suggestNone": "No person or record by that name",
+      "suggestLabel": "People and records",
+      "suggestPerson": "Person",
+      "removePicked": "Remove {name}",
+      "mentionHint": "Type @ to mention a person or to link a partner, a code or an invoice.",
+      "linkSearch": "Find a record to link",
+      "linkRecord": "Link a record"
     },
     "titleMore": "More",
     "titleLess": "Show less"
@@ -2415,7 +2473,13 @@
       "asked_cannot_see": "That person cannot see this record",
       "not_open": "This question is already answered",
       "not_asked": "Only the person asked can answer this question",
-      "already_asked": "You already have an open question with {detail}."
+      "already_asked": "You already have an open question with {detail}.",
+      "link_unknown": "That kind of record cannot be linked",
+      "link_cannot_see": "You cannot link a record you cannot see",
+      "too_many_links": "A comment can link at most 10 records",
+      "too_many_mentions": "A comment can mention at most 20 people",
+      "mention_cannot_see": "{detail} cannot see this record, so cannot be mentioned on it",
+      "decision_unchanged": "That is already so"
     },
     "backfill": {
       "no_match": "That task and achievement no longer match",

@@ -18,7 +18,8 @@ select set_config('t.farteam', (select id::text from core.team where code = 'tes
 -- a manager's task is not given to someone in another department, who could neither list nor open it
 select test.as_person(current_setting('t.mgr')::uuid);
 select set_config('t.t', api.task_create(jsonb_build_object('title', 'Made-up handover')) ->> 'id', true);
-select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.far')),
+select test.raises(format('select api.tasks_assign(array[%L]::uuid[], %L, %L)', current_setting('t.t'),
+  current_setting('t.far'), 'Made up'),
   'P0001', 'someone who cannot see the task is not given it', 'task.owner_cannot_see');
 select test.as_owner();
 select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid), current_setting('t.mgr')::uuid,
@@ -27,7 +28,8 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
                 and entity_id = current_setting('t.t')::uuid), 0, 'and nobody is told of a task they cannot see');
 -- a teammate who sees it is given it
 select test.as_person(current_setting('t.mgr')::uuid);
-select test.runs(format('select api.tasks_assign(array[%L]::uuid[], %L)', current_setting('t.t'), current_setting('t.am1')),
+select test.runs(format('select api.tasks_assign(array[%L]::uuid[], %L, %L)', current_setting('t.t'),
+  current_setting('t.am1'), 'Made up'),
   'a teammate who sees the task is given it');
 
 -- a member's own task is not moved into another department's team, nor made there

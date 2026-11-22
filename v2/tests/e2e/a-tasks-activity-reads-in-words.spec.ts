@@ -46,7 +46,7 @@ for (const width of [1280, 375]) {
     expect((await callAs(ctx, 'task_helpers_set', { p_id: id, p_people: [mate.id] })).status).toBe(200);
     const moved = await callAs(ctx, 'task_update', { p_id: id, p_values: { due_on: '2026-11-02' }, p_version: 1 });
     expect(moved.status, JSON.stringify(moved.body)).toBe(200);
-    const given = await callAs(ctx, 'tasks_assign', { p_ids: [id], p_owner: mate.id });
+    const given = await callAs(ctx, 'tasks_assign', { p_ids: [id], p_owner: mate.id, p_reason: 'Made-up reason' });
     expect(given.status, JSON.stringify(given.body)).toBe(200);
     // the follow-up is a month ahead, at 09:00 Riyadh time: a reminder in the past is refused
     const ahead = new Date(Date.now() + 30 * 86_400_000);

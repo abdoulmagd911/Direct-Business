@@ -1,9 +1,13 @@
 -- DLG-01 — Delegate, the nudge dismissal, and the task row's new fields (Phase 1, CUJ 5/7).
--- A manager delegates a task to a member with a note: the member becomes the owner
--- and is told, the note is the task's timeline entry, and the delegator follows the
--- task — one request. A member delegates their OWN task the same way (FIX-03 P1b).
--- Refused: no note, to oneself, to someone who cannot see the task, by a member who
--- does not own the task. A closed task is dismissed from the nudge and restored
+-- Landing 33 (B3, the owner's decision of 22 Nov — rule O-3): a task is handed over by its
+-- Responsible only. The Responsible hands their own task to a colleague with a reason: the
+-- colleague becomes the Responsible and is told, the reason is the task's timeline entry,
+-- and the one who handed it over follows the task — one request. (Before Landing 33 this
+-- file had a head hand over a member's task; that is now the refusal below.)
+-- Refused: by a head who is not the Responsible (O-3), no reason, a reason over 120
+-- characters, to oneself, to someone who cannot see the task, by another member.
+-- Sabotages: a-manager-hands-over-a-members-task, a-hand-over-has-no-reason, a-hand-over-reason-runs-long,
+-- a-hand-over-leaves-no-history. A closed task is dismissed from the nudge and restored
 -- again; the row carries its star, its dismissal and whether an achievement already
 -- links to it. Every value is made up.
 select set_config('v2.test_now', '2026-10-01 09:00:00+03', true);
@@ -27,8 +31,17 @@ select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.t', api.task_create(jsonb_build_object('title', 'Made-up handover task', 'work_type', 'internal'))
   ->> 'id', true);
 
--- the head delegates to the second member, with a note
+-- O-3: the head may not hand over the member's task
 select test.as_person(current_setting('t.head')::uuid);
+select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
+  current_setting('t.am2'), 'Made up'), '42501', 'a head does not hand over a team member''s task',
+  'task.hand_over_not_yours');
+select test.as_owner();
+select test.eq((select owner_id from work.task where id = current_setting('t.t')::uuid)::text,
+  current_setting('t.am1'), 'and the task stays with its Responsible');
+
+-- the Responsible hands it to the second member, with a reason
+select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.d', api.task_delegate(current_setting('t.t')::uuid, current_setting('t.am2')::uuid,
   'Made-up: take this over, the client is waiting')::text, true);
 select test.as_owner();
@@ -38,11 +51,11 @@ select test.eq((select count(*)::int from notify.notification where person_id = 
                 and kind = 'assigned' and entity_id = current_setting('t.t')::uuid
                 and request_id = (current_setting('t.d')::jsonb ->> 'request_id')::uuid), 1,
   'the new owner is told, in the same request');
-select test.eq((select count(*)::int from notify.follow where person_id = current_setting('t.head')::uuid
+select test.eq((select count(*)::int from notify.follow where person_id = current_setting('t.am1')::uuid
                 and entity_table = 'work.task' and entity_id = current_setting('t.t')::uuid), 1,
   'the delegator follows the task from then on');
 select test.eq((select count(*)::int from work.task_helper where task_id = current_setting('t.t')::uuid
-                and person_id = current_setting('t.head')::uuid and deleted_at is null), 1,
+                and person_id = current_setting('t.am1')::uuid and deleted_at is null), 1,
   'and is listed in the Helpers list (FIX-40)');
 select test.eq((select kind || ': ' || body from core.note
                 where id = (current_setting('t.d')::jsonb ->> 'note_id')::uuid),
@@ -50,19 +63,39 @@ select test.eq((select kind || ': ' || body from core.note
 select test.eq((select count(distinct c.request_id)::int from audit.change c
                 where c.row_id = (current_setting('t.d')::jsonb ->> 'note_id')::uuid), 1, 'one request');
 
--- refused: no note, to oneself, to someone who cannot see the task, by a member who does not own it
-select test.as_person(current_setting('t.head')::uuid);
+-- the task keeps who had it, when it moved and why
+select test.as_person(current_setting('t.am2')::uuid);
+select test.eq(jsonb_array_length(api.task(current_setting('t.t')::uuid) -> 'handovers'), 1, 'one hand-over is kept');
+select test.eq(api.task(current_setting('t.t')::uuid) -> 'handovers' -> 0 ->> 'from', current_setting('t.am1'),
+  'it names who had the task');
+select test.eq(api.task(current_setting('t.t')::uuid) -> 'handovers' -> 0 ->> 'to', current_setting('t.am2'),
+  'who has it now');
+select test.eq(api.task(current_setting('t.t')::uuid) -> 'handovers' -> 0 ->> 'reason',
+  'Made-up: take this over, the client is waiting', 'and why');
+select test.eq(api.task(current_setting('t.t')::uuid) -> 'handovers' -> 0 ->> 'by', current_setting('t.am1'),
+  'and who handed it over');
+
+-- refused, as the new Responsible: no reason, a reason over 120 characters, to oneself, to someone who cannot see it
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
-  current_setting('t.am1'), ' '), 'P0001', 'a delegation says why', 'task.delegate_note_required');
+  current_setting('t.am1'), ' '), 'P0001', 'a hand-over says why', 'task.hand_over_reason_required');
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
-  current_setting('t.head'), 'Made up'), 'P0001', 'never to oneself', 'task.delegate_to_yourself');
+  current_setting('t.am1'), repeat('x', 121)), 'P0001', 'a reason is 120 characters at most',
+  'task.hand_over_reason_too_long');
+select test.eq((api.task_delegate(current_setting('t.t')::uuid, current_setting('t.am1')::uuid, repeat('x', 120))
+  ->> 'owner_id'), current_setting('t.am1'), 'exactly 120 characters pass');
+select test.as_person(current_setting('t.am1')::uuid);
+select api.task_delegate(current_setting('t.t')::uuid, current_setting('t.am2')::uuid, 'Made-up: back to you');
+select test.as_person(current_setting('t.am2')::uuid);
+select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
+  current_setting('t.am2'), 'Made up'), 'P0001', 'never to oneself', 'task.delegate_to_yourself');
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
   current_setting('t.blind'), 'Made up'), 'P0001', 'never to someone who cannot see it',
   'task.delegate_cannot_see');
+-- and another member, who is not the Responsible, hands nothing over
 select test.as_person(current_setting('t.am1')::uuid);
 select test.raises(format('select api.task_delegate(%L, %L, %L)', current_setting('t.t'),
-  current_setting('t.am2'), 'Made up'), '42501', 'giving work to others needs the capability',
-  'access.needs_capability');
+  current_setting('t.am1'), 'Made up'), '42501', 'only the Responsible hands a task over',
+  'task.hand_over_not_yours');
 
 -- a member delegates their OWN task (P1b): the new owner is told, the delegator follows it
 select test.as_person(current_setting('t.am1')::uuid);

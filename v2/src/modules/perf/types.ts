@@ -75,6 +75,15 @@ export type AchievementRef = {
 };
 
 export type AchievementDetail = AchievementRow & {
+  /** Landing 33 (B4): the steps done on the task this achievement came from — only for a reader who sees that task. */
+  source_task_steps?: {
+    id: string;
+    text: string;
+    done_on: string;
+    done_by: string | null;
+    done_by_name: string | null;
+    done_by_name_ar: string | null;
+  }[];
   notes: string | null;
   before_value: number | null;
   after_value: number | null;

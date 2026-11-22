@@ -64,36 +64,43 @@ const helpersOf = async (number: string) =>
   ).map((r) => r.person_id);
 
 for (const w of WIDTHS) {
-  test(`${w.name}: a manager changes the Owner with one picker, logged with Undo`, async ({ browser }) => {
+  // Landing 33 (B3, rule O-3): a task that has a Responsible changes hands only through Hand over, by that person,
+  // with a reason. (The one picker is left for a task with NO Responsible — past work only: live work always has one.)
+  test(`${w.name}: a manager is offered no way to change a member's Responsible; the Responsible hands over with a reason`, async ({
+    browser,
+  }) => {
     const tag = randomUUID().slice(0, 6);
     const manager = await makePerson({ admin: true });
     const first = await memberWithTeam(`Ab First Owner ${tag}`);
     const second = await memberWithTeam(`Ab Second Owner ${tag}`);
-    const number = await taskFor(first, `Made-up owner change ${tag}`);
+    const number = await taskFor(first, `Made-up hand over ${tag}`);
+    const boss = await browser.newContext({ viewport: { width: w.width, height: w.height } });
+    const bossPage = await boss.newPage();
+    await signIn(bossPage, manager.email, `/tasks/${number}`);
+    await hydrated(bossPage);
+    await expect(bossPage.locator('[data-responsible]')).toContainText(first.name);
+    await expect(bossPage.locator('[data-owner-picker]'), 'no picker on a task that has a Responsible').toHaveCount(0);
+    await expect(bossPage.locator('[data-hand-over-open]'), 'an admin is not offered a member’s task').toHaveCount(0);
+    await boss.close();
+
     const ctx = await browser.newContext({ viewport: { width: w.width, height: w.height } });
     const page = await ctx.newPage();
-    await signIn(page, manager.email, `/tasks/${number}`);
+    await signIn(page, first.email, `/tasks/${number}`);
     await hydrated(page);
-
-    const picker = page.locator('[data-owner-picker]').getByRole('combobox', { name: 'Change owner' });
-    await expect(picker, 'the Owner is a picker, showing the current owner').toContainText(first.name);
-    await picker.click();
+    await page.locator('[data-hand-over-open]').click();
+    const form = page.locator('form[data-delegate]');
+    await form.getByRole('combobox').click();
     await page.getByRole('option', { name: second.name, exact: true }).click();
-    await expect(toast(page, `${number} is now with ${second.name}`)).toBeVisible();
-    expect(await ownerOf(number), 'the owner changed').toBe(second.id);
-    await expect(picker).toContainText(second.name);
-
-    await toast(page, `${number} is now with`).getByRole('button', { name: 'Undo' }).click();
+    await form.locator('textarea[name="reason"]').fill(`Made-up reason ${tag}`);
+    await form.locator('[data-hand-over-send]').click();
+    await expect(toast(page, `Handed over to ${second.name}`)).toBeVisible();
+    expect(await ownerOf(number), 'the Responsible changed').toBe(second.id);
+    await toast(page, 'Handed over to').getByRole('button', { name: 'Undo' }).click();
     await expect.poll(() => ownerOf(number), 'Undo gives it back').toBe(first.id);
-    await expect(picker).toContainText(first.name);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
-      'no sideways scroll',
-    ).toBe(true);
     await ctx.close();
   });
 
-  test(`${w.name}: a member who may not give work to others has no Owner picker`, async ({ browser }) => {
+  test(`${w.name}: a member who may not give work to others is not offered Hand over`, async ({ browser }) => {
     const tag = randomUUID().slice(0, 6);
     const owner = await memberWithTeam(`Ab No Assign Owner ${tag}`);
     const number = await taskFor(owner, `Made-up no-assign task ${tag}`);
@@ -108,10 +115,12 @@ for (const w of WIDTHS) {
     const page = await ctx.newPage();
     await signIn(page, owner.email, `/tasks/${number}`);
     await hydrated(page);
+    await expect(page.locator('[data-responsible]')).toContainText(owner.name);
     await expect(
-      page.locator('[data-owner-picker]'),
-      'a member who may not give work to others has no Owner picker',
+      page.locator('[data-hand-over-open]'),
+      'a member who may not give work to others is not offered Hand over',
     ).toHaveCount(0);
+    await expect(page.locator('[data-owner-picker]')).toHaveCount(0);
     await ctx.close();
   });
 
@@ -129,15 +138,13 @@ for (const w of WIDTHS) {
     const page = await ownerCtx.newPage();
     await signIn(page, owner.email, `/tasks/${number}`);
     await hydrated(page);
-    // P1b (tasks.assign_own): a member may give away a task they own, so the Owner picker shows on their
-    // own task — it is own-delegation only, not giving others' work away
-    await expect(page.locator('[data-owner-picker]'), 'the owner has an Owner picker for their own task').toHaveCount(
-      1,
-    );
+    // P1b (tasks.assign_own): a member may give away a task they own, so Hand over shows on their own task
+    // (Landing 33: it was the Owner picker) — own tasks only, never someone else's work
     await expect(
-      page.locator('[data-owner-picker]').getByRole('combobox', { name: 'Change owner' }),
-      'the picker shows the current owner',
-    ).toContainText(owner.name);
+      page.locator('[data-hand-over-open]'),
+      'the Responsible is offered Hand over on their own task',
+    ).toHaveCount(1);
+    await expect(page.locator('[data-responsible]'), 'Details names the Responsible').toContainText(owner.name);
 
     const add = page.locator('[data-helper-add]').getByRole('combobox', { name: 'Add a helper' });
     await add.click();

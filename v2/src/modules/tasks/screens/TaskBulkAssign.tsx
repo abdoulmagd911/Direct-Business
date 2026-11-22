@@ -9,7 +9,9 @@ import type { ListEntry } from '@/modules/partners/types';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
+import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
+import { HAND_OVER_REASON_MAX, handOverReason } from '../rules';
 import { useCommandWords } from './words';
 
 /**
@@ -74,6 +76,9 @@ function TaskBulkAssignForm({
   const locale = useLocale() as 'en' | 'ar';
   const [owner, setOwner] = useState<string | undefined>();
   const [priority, setPriority] = useState<string | undefined>();
+  // Landing 33 (B3): giving my tasks to someone is a hand-over — it needs its reason, 120 characters at most
+  const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const people = assignablePeople(org?.people ?? [])
     .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
@@ -88,12 +93,21 @@ function TaskBulkAssignForm({
   // closes on a half-done choice. A leg that went through is cleared, so trying again never repeats it.
   const save = async () => {
     if (!owner && !priority) return;
+    const why = owner ? handOverReason(reason) : null;
+    if (why && 'error' in why) {
+      return setReasonError(t(`pages.tasks.delegate.${why.error}`, { max: HAND_OVER_REASON_MAX }));
+    }
     setBusy(true);
     if (owner) {
       const name = people.find((p) => p.value === owner)?.label ?? '';
       const r = await command(
         words(t('pages.tasks.bulkAssign.ownerDone', { count: ids.length, name })),
-        () => rpc('tasks_assign', { p_ids: ids, p_owner: owner }) as Promise<Written>,
+        () =>
+          rpc('tasks_assign', {
+            p_ids: ids,
+            p_owner: owner,
+            p_reason: why && 'reason' in why ? why.reason : undefined,
+          }) as Promise<Written>,
       );
       if (!r) return setBusy(false);
       setOwner(undefined);
@@ -117,6 +131,7 @@ function TaskBulkAssignForm({
   return (
     <form
       className="flex flex-col gap-4"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
         void save();
@@ -134,6 +149,23 @@ function TaskBulkAssignForm({
           />
         )}
       </Field>
+      {owner ? (
+        <Field label={t('pages.tasks.delegate.reason')} error={reasonError}>
+          {(p) => (
+            <Textarea
+              {...p}
+              rows={2}
+              maxLength={HAND_OVER_REASON_MAX}
+              value={reason}
+              name="reason"
+              onChange={(e) => {
+                setReasonError(undefined);
+                setReason(e.target.value);
+              }}
+            />
+          )}
+        </Field>
+      ) : null}
       <Field label={t('pages.tasks.fields.priority')}>
         {(p) => (
           <Select

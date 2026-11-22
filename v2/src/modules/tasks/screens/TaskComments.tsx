@@ -10,6 +10,8 @@ export { COMMENT_MAX } from '@/ui/record/Comments';
 /**
  * A task's comments (V657): the generic Discussion on the task. It reads core.comment (the Phase 2 cutover moved the
  * task's comments there); the old work.task_comment table's read path is retired.
+ *
+ * Landing 33: on a task a mention is a hand to help — the person becomes a helper (the note under the box says so).
  */
 export function TaskComments({
   task,
@@ -21,6 +23,7 @@ export function TaskComments({
   files,
   onFilesRetry,
   initialFilter,
+  projects,
 }: {
   task: Pick<TaskDetail, 'id' | 'number'>;
   data: CommentsData;
@@ -36,6 +39,8 @@ export function TaskComments({
   onFilesRetry?: () => void;
   /** The filter the Discussion opens on — the header's files count links here with it. */
   initialFilter?: 'all' | 'files' | 'questions';
+  /** The projects a comment may link with "@" (the search itself has none). */
+  projects?: { id: string; name: string; number?: string | null }[];
 }) {
   const t = useTranslations();
   const me = useMe();
@@ -52,6 +57,8 @@ export function TaskComments({
       files={files}
       onFilesRetry={onFilesRetry}
       initialFilter={initialFilter}
+      projects={projects}
+      mentionNote={t('pages.tasks.comments.mentionNote')}
     />
   );
 }

@@ -1,6 +1,6 @@
 // Landing 31 (the 15 Nov boards): the pieces of the Tasks look that are rules, not paint — kept pure so the list and the
 // board cannot disagree and a test can pin them without drawing anything.
-import { boardColumns, statusView, type StatusView } from '../rules';
+import { boardColumns, statusView, type Move, type StatusView } from '../rules';
 import type { TaskRow, TaskStatus } from '../types';
 
 /**
@@ -75,4 +75,21 @@ export function whereOf(
   if (!row.project_id && !row.partner_id && row.work_type === 'internal')
     return { kind: 'internal', parts: [internal] };
   return { kind: 'none', parts: [] };
+}
+
+/**
+ * Landing 33 (B5): the move a card makes when it is dropped on a column — the same move the status pill offers.
+ * Nothing when it is dropped where it already is, or on a column that names no status the app has. Blocked is In
+ * progress with its reason, so dropping on Blocked is the Block move (it asks its reason), and dropping a blocked
+ * card on In progress resumes it.
+ */
+export function dropMove(
+  row: Pick<TaskRow, 'status' | 'meaning' | 'blocked_reason'>,
+  column: { key: string; kind: 'status' | 'blocked'; status: TaskStatus | null },
+): Move | null {
+  const now = statusView(row) === 'blocked' ? 'blocked' : row.status;
+  if (column.kind === 'blocked') return now === 'blocked' ? null : { kind: 'block' };
+  if (!column.status || !column.status.active) return null;
+  if (now === column.key) return null;
+  return { kind: 'status', status: column.status };
 }

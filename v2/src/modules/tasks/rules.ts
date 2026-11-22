@@ -526,10 +526,30 @@ export function escalateValues(
 
 // ---------------------------------------------------------------- Delegate (Phase 1, CUJ 5)
 
-// Delegate picks from the same people as Escalate (V465) and sends the same shape — a person and a note, both
-// required, never myself — to api.task_delegate instead of api.escalate.
+// Hand over picks from the same people as Escalate (V465) and sends a person and a reason to api.task_delegate.
+// Landing 33 (B3, the owner's decision of 22 Nov): the reason is required on every hand-over and is 120 characters
+// at most; an empty one hands nothing over.
 export const delegateTargets = escalateTargets;
-export const delegateValues = escalateValues;
+export const HAND_OVER_REASON_MAX = 120;
+export type HandOverError = 'to_required' | 'to_yourself' | 'reason_required' | 'reason_too_long';
+export function handOverValues(
+  input: { to?: string; reason: string },
+  me: string,
+): { values: { p_to: string; p_note: string } } | { error: HandOverError } {
+  if (!input.to) return { error: 'to_required' };
+  if (input.to === me) return { error: 'to_yourself' };
+  const reason = input.reason.trim();
+  if (!reason) return { error: 'reason_required' };
+  if (reason.length > HAND_OVER_REASON_MAX) return { error: 'reason_too_long' };
+  return { values: { p_to: input.to, p_note: reason } };
+}
+/** The reason alone, for giving several of my own tasks to one person (bulk assign). */
+export function handOverReason(reason: string): { reason: string } | { error: 'reason_required' | 'reason_too_long' } {
+  const r = reason.trim();
+  if (!r) return { error: 'reason_required' };
+  if (r.length > HAND_OVER_REASON_MAX) return { error: 'reason_too_long' };
+  return { reason: r };
+}
 
 // ---------------------------------------------------------------- the achievement strip (Phase 1, CUJ 7)
 
@@ -652,10 +672,11 @@ export function byDueDay<R extends { due_on: string | null }>(
 /** Who ticks an action item: the task's editors, the item's owner, or a helper on it (V190). */
 export function canTick(
   item: { owner_id: string; helpers: string[] },
-  task: Pick<TaskRow, 'can_edit'>,
+  task: Pick<TaskRow, 'can_edit' | 'deputy_id'>,
   me: string,
 ): boolean {
-  return task.can_edit || item.owner_id === me || item.helpers.includes(me);
+  // Landing 33 (B3): the task's deputy ticks its steps too
+  return task.can_edit || task.deputy_id === me || item.owner_id === me || item.helpers.includes(me);
 }
 
 // ---------------------------------------------------------------- refusals in words

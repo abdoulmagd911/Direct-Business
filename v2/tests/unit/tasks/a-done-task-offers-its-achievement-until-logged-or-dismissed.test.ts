@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { achievementStrip, delegateTargets, delegateValues, refusalKey } from '@/modules/tasks/rules';
+import { achievementStrip, delegateTargets, handOverValues, refusalKey } from '@/modules/tasks/rules';
 import en from '../../../messages/en.json';
 import { ME, OTHER } from './fixtures';
 
@@ -28,17 +28,22 @@ describe('Delegate names someone else, with a note (Phase 1)', () => {
     expect(delegateTargets(people, ME).map((p) => p.id)).toEqual([OTHER, 'p5']);
   });
 
-  it('a person and a note are both required, and never myself', () => {
-    expect(delegateValues({ note: 'Take this over' }, ME)).toEqual({ error: 'to_required' });
-    expect(delegateValues({ to: ME, note: 'Take this' }, ME)).toEqual({ error: 'to_yourself' });
-    expect(delegateValues({ to: OTHER, note: '   ' }, ME)).toEqual({ error: 'note_required' });
-    expect(delegateValues({ to: OTHER, note: '  Take this over ' }, ME)).toEqual({
+  // Landing 33 (B3): the note became the hand-over's reason — still required, now 120 characters at most.
+  it('a person and a reason are both required, and never myself', () => {
+    expect(handOverValues({ reason: 'Take this over' }, ME)).toEqual({ error: 'to_required' });
+    expect(handOverValues({ to: ME, reason: 'Take this' }, ME)).toEqual({ error: 'to_yourself' });
+    expect(handOverValues({ to: OTHER, reason: '   ' }, ME)).toEqual({ error: 'reason_required' });
+    expect(handOverValues({ to: OTHER, reason: 'x'.repeat(121) }, ME)).toEqual({ error: 'reason_too_long' });
+    expect(handOverValues({ to: OTHER, reason: 'x'.repeat(120) }, ME)).toEqual({
+      values: { p_to: OTHER, p_note: 'x'.repeat(120) },
+    });
+    expect(handOverValues({ to: OTHER, reason: '  Take this over ' }, ME)).toEqual({
       values: { p_to: OTHER, p_note: 'Take this over' },
     });
   });
 
   it("the door's refusals read in the Tasks catalog's words", () => {
-    for (const k of ['delegate_note_required', 'delegate_to_yourself', 'delegate_cannot_see'] as const) {
+    for (const k of ['hand_over_reason_required', 'delegate_to_yourself', 'delegate_cannot_see'] as const) {
       expect(refusalKey(`errors.task.${k}`)).toBe(`pages.tasks.errors.task.${k}`);
       expect(en.pages.tasks.errors.task[k]).toBeTruthy();
     }

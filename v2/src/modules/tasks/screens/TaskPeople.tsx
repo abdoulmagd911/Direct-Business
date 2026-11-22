@@ -20,8 +20,9 @@ function pickable(people: readonly OrgPerson[], keep: readonly (string | null)[]
 }
 
 /**
- * The Owner in Details, for someone who gives work (`tasks.assign`): one picker; the choice is written through Assign
- * (the owner is told), logged, and its toast carries Undo (V287, D7).
+ * The Responsible in Details of a task that has NONE yet, for someone who gives work (`tasks.assign`): one picker;
+ * the choice is written through Assign (the person is told), logged, and its toast carries Undo (V287, D7).
+ * Landing 33 (O-3): a task that has a Responsible changes hands only through Hand over, by that person, with a reason.
  */
 export function OwnerPicker({
   task,
@@ -107,20 +108,29 @@ export function HelpersField({
         <ul className="flex flex-col gap-1">
           {task.helpers.map((h) => (
             <li key={h} className="flex items-center justify-between gap-2" data-helper={h}>
-              <span className="min-w-0 break-words">{name(h)}</span>
-              <IconButton
-                size="sm"
-                label={t('pages.tasks.people.helperRemove', { name: name(h) })}
-                icon={<X />}
-                disabled={busy}
-                onClick={() =>
-                  void set(
-                    (c) => c.filter((x) => x !== h),
-                    t('pages.tasks.people.helperRemoved', { number: task.number, name: name(h) }),
-                  )
-                }
-                data-helper-remove={h}
-              />
+              <span className="min-w-0 break-words">
+                {name(h)}
+                {h === task.deputy_id ? (
+                  <span className="ms-2 text-sm text-muted" data-helper-deputy>
+                    {t('pages.tasks.people.deputyMark')}
+                  </span>
+                ) : null}
+              </span>
+              {h === task.deputy_id ? null : (
+                <IconButton
+                  size="sm"
+                  label={t('pages.tasks.people.helperRemove', { name: name(h) })}
+                  icon={<X />}
+                  disabled={busy}
+                  onClick={() =>
+                    void set(
+                      (c) => c.filter((x) => x !== h),
+                      t('pages.tasks.people.helperRemoved', { number: task.number, name: name(h) }),
+                    )
+                  }
+                  data-helper-remove={h}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -145,6 +155,61 @@ export function HelpersField({
           />
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * The Deputy in Details (Landing 33, B3), for whoever may edit the task: one picker. The deputy is a helper — the
+ * task is under their Helping — who may also act on it (move its status, mark it done, tick its steps); they never
+ * hand it over, and the Responsible still owns the outcome. "No deputy" clears it. Logged, with Undo.
+ */
+export function DeputyField({
+  task,
+  people,
+  locale,
+}: {
+  task: TaskDetail;
+  people: readonly OrgPerson[];
+  locale: 'en' | 'ar';
+}) {
+  const t = useTranslations();
+  const words = useCommandWords();
+  const [busy, setBusy] = useState(false);
+  const NONE = 'none';
+  const options = [
+    { value: NONE, label: t('pages.tasks.people.deputyNone') },
+    ...pickable(people, [task.deputy_id ?? null])
+      .filter((p) => p.id !== task.owner_id)
+      .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  ];
+  const choose = async (v: string) => {
+    const next = v === NONE ? null : v;
+    if (next === (task.deputy_id ?? null) || busy) return;
+    const who = options.find((o) => o.value === v)?.label ?? '';
+    setBusy(true);
+    await command(
+      words(
+        next
+          ? t('pages.tasks.people.deputySaved', { number: task.number, name: who })
+          : t('pages.tasks.people.deputyCleared', { number: task.number }),
+      ),
+      // database.types.ts takes null for no deputy
+      () => rpc('task_deputy_set', { p_id: task.id, p_person: next as string }) as Promise<Written>,
+    );
+    setBusy(false);
+  };
+  return (
+    <div className="flex flex-col gap-1" data-deputy-picker>
+      <Select
+        value={task.deputy_id ?? NONE}
+        aria-label={t('pages.tasks.people.deputyChange')}
+        disabled={busy}
+        onValueChange={(v) => void choose(v)}
+        options={options}
+      />
+      <p className="text-sm text-muted">{t('pages.tasks.people.deputyWhat')}</p>
     </div>
   );
 }

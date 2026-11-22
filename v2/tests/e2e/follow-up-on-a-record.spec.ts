@@ -170,12 +170,12 @@ for (const w of WIDTHS) {
       await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Edit, Remind me and Delegate').toHaveText([
         'Edit',
         'Remind me',
-        'Delegate',
+        'Hand over',
       ]);
     } else {
       await expect(page.getByRole('menuitem'), 'the ⋯ menu holds Remind me and Delegate').toHaveText([
         'Remind me',
-        'Delegate',
+        'Hand over',
       ]);
     }
     await page.keyboard.press('Escape');

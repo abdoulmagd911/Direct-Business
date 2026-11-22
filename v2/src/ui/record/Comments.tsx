@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
@@ -12,9 +12,23 @@ import { StatusChip } from '@/ui/Chip';
 import { Confirm } from '@/ui/Confirm';
 import { DataState } from '@/ui/DataState';
 import { Field } from '@/ui/Field';
-import { Textarea } from '@/ui/Input';
+import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 import { useCommandWords } from './words';
+import {
+  CommentBody,
+  CommentLinks,
+  PickedChips,
+  SuggestionList,
+  mentionQuery,
+  suggestKey,
+  useSuggestions,
+  type CommentLink,
+  type CommentMention,
+  type PickedLink,
+  type PickedPerson,
+  type Suggestion,
+} from './CommentExtras';
 import { formatFileSize, type RecordFile } from './FilesSection';
 import { FileLinkButton } from './FileLinkButton';
 
@@ -43,10 +57,26 @@ export type RecordComment = {
   mine: boolean;
   can_edit: boolean;
   can_remove: boolean;
+  /** Landing 33: THE decision of the record (one at most), who marked it and when. */
+  is_decision?: boolean;
+  decided_at?: string | null;
+  decided_by?: string | null;
+  decided_by_name?: string | null;
+  decided_by_name_ar?: string | null;
+  /** Landing 33: the records this comment is about, as the reader may see them. */
+  links?: CommentLink[];
+  /** Landing 33: the people this comment mentions. */
+  mentions?: CommentMention[];
 };
 
 /** api.comments(entity, id): a record's comments, oldest first (newest last), and whether the reader may write one. */
-export type RecordComments = { read_at: string; can_write: boolean; comments: RecordComment[] };
+export type RecordComments = {
+  read_at: string;
+  can_write: boolean;
+  /** Landing 33: whether the reader may mark (or unmark) the decision. */
+  can_decide?: boolean;
+  comments: RecordComment[];
+};
 
 type Filter = 'all' | 'files' | 'questions';
 
@@ -58,7 +88,13 @@ type Filter = 'all' | 'files' | 'questions';
  * edits). Every write has its toast with Undo (D7). A question is a comment asked of one person: only their explicit
  * reply closes it, and a casual comment of theirs does not. File entries join the stream (Phase 4): each file the
  * record holds shows as one entry with a download link, in time order among the comments; the Files filter shows
- * them alone. No @mentions, no attachments (V657 scope stands).
+ * them alone.
+ *
+ * Landing 33 (B1, B2): one comment may be marked THE DECISION — it is pinned above the stream, so the answer is never
+ * buried; marking another moves the mark. A comment may link to the records it is about (a partner, a project, an
+ * invoice, a discount code), each a chip that opens the record. Typing "@" offers people and records: a person picked
+ * is mentioned and told (on a task they also become a helper — `mentionNote` says so under the box); a record picked
+ * is linked.
  */
 export function Comments({
   entity,
@@ -72,6 +108,8 @@ export function Comments({
   files,
   onFilesRetry,
   initialFilter,
+  projects,
+  mentionNote,
 }: {
   entity: string;
   id: string;
@@ -92,11 +130,27 @@ export function Comments({
   onFilesRetry?: () => void;
   /** The filter the stream opens on — the record header's counts link here with it. */
   initialFilter?: Filter;
+  /** Projects that "@" may link (the app's search has none); absent where a record offers none. */
+  projects?: { id: string; name: string; number?: string | null }[];
+  /** A line under the box saying what a mention does on this record (a task: the person becomes a helper). */
+  mentionNote?: string;
 }) {
   const t = useTranslations();
   const me = useMe();
   const words = useCommandWords();
+  const suggestId = useId();
+  const boxRef = useRef<HTMLTextAreaElement | null>(null);
   const [text, setText] = useState('');
+  // What the comment being written will carry: the people it mentions and the records it links.
+  const [pickedPeople, setPickedPeople] = useState<PickedPerson[]>([]);
+  const [pickedLinks, setPickedLinks] = useState<PickedLink[]>([]);
+  // The "@…" being typed (from the caret), or the Link a record search; null when neither is open.
+  const [at, setAt] = useState<{ from: number; term: string } | null>(null);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [active, setActive] = useState(0);
+  const [deciding, setDeciding] = useState<string | null>(null);
+  // A mark shown ahead of the re-read: the id marked, or '' when the mark was taken off.
+  const [markedNow, setMarkedNow] = useState<string | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -137,6 +191,7 @@ export function Comments({
     setGone([]);
     setNewWords({});
     setClosed({});
+    setMarkedNow(null);
   }
   // The read_at of the first read of this record: a comment written after it is new here. State, not a ref: it is
   // read during render, and it never moves after the first read.
@@ -156,9 +211,19 @@ export function Comments({
         .map((c) => {
           const w = newWords[c.id];
           const a = closed[c.id];
-          if (w === undefined && a === undefined) return c;
+          const d = markedNow === null ? undefined : markedNow === c.id;
+          if (w === undefined && a === undefined && (d === undefined || d === !!c.is_decision)) return c;
           return {
             ...c,
+            ...(d !== undefined && d !== !!c.is_decision
+              ? {
+                  is_decision: d,
+                  decided_by: d ? me.person.id : null,
+                  decided_by_name: d ? personName : null,
+                  decided_by_name_ar: d ? personName : null,
+                  decided_at: d ? new Date().toISOString() : null,
+                }
+              : null),
             ...(w !== undefined ? { body: w, edited_at: c.edited_at ?? 'now', edited: true } : null),
             ...(a !== undefined
               ? {
@@ -172,7 +237,7 @@ export function Comments({
               : null),
           };
         }),
-    [list, added, gone, newWords, closed, personName],
+    [list, added, gone, newWords, closed, personName, markedNow, me.person.id],
   );
   // One stream, in time order: the comments and the record's file-addition entries together. A file entry names
   // its uploader, as the files list does (FIX-46), with a download link.
@@ -197,6 +262,62 @@ export function Comments({
     questions: shown.filter((c) => c.asked_to !== null).length,
   };
   const newCount = shown.filter((c) => c.created_at > firstReadAt).length;
+  const decision = shown.find((c) => c.is_decision) ?? null;
+  const decidedName = (c: RecordComment) =>
+    (locale === 'ar' ? (c.decided_by_name_ar ?? c.decided_by_name) : c.decided_by_name) ?? '';
+  const suggest = useSuggestions(linking !== null ? linking : (at?.term ?? null), {
+    locale,
+    meId: me.person.id,
+    projects,
+    people: linking === null,
+  });
+  const suggestOpen = linking !== null ? linking.trim().length >= 2 : !!at && at.term.trim().length >= 2;
+  const activeItem = suggest.items[Math.min(active, Math.max(0, suggest.items.length - 1))];
+  const pick = (s: Suggestion | undefined) => {
+    if (!s) return;
+    const insert = s.type === 'person' ? `@${s.label} ` : `${s.label} `;
+    if (s.type === 'person') {
+      setPickedPeople((l) => (l.some((x) => x.id === s.id) ? l : [...l, { id: s.id, name: s.label }]));
+    } else {
+      setPickedLinks((l) =>
+        l.some((x) => x.id === s.id && x.kind === s.kind) ? l : [...l, { kind: s.kind, id: s.id, label: s.label }],
+      );
+    }
+    if (linking !== null) {
+      setLinking(null);
+    } else if (at) {
+      const caret = boxRef.current?.selectionStart ?? text.length;
+      const next = text.slice(0, at.from) + insert + text.slice(caret);
+      const place = at.from + insert.length;
+      setText(next);
+      setAt(null);
+      // the caret lands after what was inserted, once the new words are in the box
+      requestAnimationFrame(() => {
+        boxRef.current?.focus();
+        boxRef.current?.setSelectionRange(place, place);
+      });
+    }
+    setActive(0);
+  };
+  const decide = async (c: RecordComment, on: boolean) => {
+    setDeciding(c.id);
+    await command(
+      words(t(on ? 'record.comments.decisionMarked' : 'record.comments.decisionUnmarked')),
+      () => rpc('comment_decide', { p_id: c.id, p_on: on }) as Promise<{ request_id?: string | null }>,
+      {
+        undoDirect: true,
+        after: () => {
+          void readAgain();
+          setMarkedNow(on ? c.id : '');
+        },
+        afterUndo: () => {
+          void readAgain();
+          setMarkedNow(null);
+        },
+      },
+    );
+    setDeciding(null);
+  };
   useEffect(() => {
     onCount?.(shown.length);
     return () => onCount?.(null);
@@ -232,10 +353,20 @@ export function Comments({
     const body = text.trim();
     const asked = mode === 'ask' ? (askedTo ?? null) : null;
     const askedLabel = askable.find((p) => p.value === asked)?.label ?? '';
+    // a person whose "@Name" was deleted from the words again is not mentioned
+    const sentPeople = pickedPeople.filter((p) => body.includes(`@${p.name}`));
+    const sentLinks = pickedLinks;
     await command(
       words(mode === 'ask' ? t('record.comments.askAdded') : t('record.comments.added')),
       () =>
-        rpc('comment_add', { p_entity: entity, p_id: id, p_body: body, p_asked_to: asked ?? undefined }) as Promise<{
+        rpc('comment_add', {
+          p_entity: entity,
+          p_id: id,
+          p_body: body,
+          p_asked_to: asked ?? undefined,
+          ...(sentLinks.length ? { p_links: sentLinks.map((l) => ({ kind: l.kind, id: l.id })) } : {}),
+          ...(sentPeople.length ? { p_mentions: sentPeople.map((p) => p.id) } : {}),
+        }) as Promise<{
           id?: string;
           request_id?: string | null;
         }>,
@@ -245,6 +376,10 @@ export function Comments({
           void readAgain();
           setText('');
           setAskedTo(undefined);
+          setPickedPeople([]);
+          setPickedLinks([]);
+          setAt(null);
+          setLinking(null);
           setAdded((a) => [
             ...a,
             {
@@ -269,6 +404,9 @@ export function Comments({
               answered_by: null,
               answered_by_name: null,
               answered_by_name_ar: null,
+              is_decision: false,
+              links: sentLinks.map((l) => ({ kind: l.kind, id: l.id, number: null, label: l.label, label_ar: null })),
+              mentions: sentPeople.map((p) => ({ id: p.id, name: p.name, name_ar: p.name })),
             },
           ]);
         },
@@ -381,6 +519,41 @@ export function Comments({
           <span className="text-muted">{t('record.comments.newComments', { count: newCount })}</span>
         </div>
       ) : null}
+      {decision ? (
+        <aside
+          className="flex flex-col gap-2 rounded-lg border border-border-strong border-s-4 border-s-accent bg-raised px-4 py-3 shadow-1"
+          aria-label={t('record.comments.decision')}
+          data-decision={decision.id}
+        >
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted">
+            <StatusChip tone="success">{t('record.comments.decision')}</StatusChip>
+            <span className="font-semibold text-text" data-decision-author>
+              {authorName(decision)}
+            </span>
+            <span>{when(decision.created_at)}</span>
+          </p>
+          <CommentBody body={decision.body} mentions={decision.mentions} />
+          <CommentLinks links={decision.links} locale={locale} />
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            {decidedName(decision) ? (
+              <span data-decision-by>
+                {t('record.comments.decisionBy', { name: decidedName(decision) })}
+                {decision.decided_at ? ` · ${when(decision.decided_at)}` : null}
+              </span>
+            ) : null}
+            {list.can_decide ? (
+              <Button
+                size="sm"
+                loading={deciding === decision.id}
+                onClick={() => void decide(decision, false)}
+                data-decision-unmark
+              >
+                {t('record.comments.decisionUnmark')}
+              </Button>
+            ) : null}
+          </p>
+        </aside>
+      ) : null}
       <div className="flex flex-wrap gap-2" role="group" aria-label={t('common.filter')}>
         {(Object.keys(filterLabels) as Filter[]).map((f) => (
           <Button
@@ -459,6 +632,11 @@ export function Comments({
                   </span>
                   <span data-comment-time>{when(c.created_at)}</span>
                   {c.edited ? <span data-comment-edited>{t('record.comments.edited')}</span> : null}
+                  {c.is_decision ? (
+                    <span data-comment-is-decision>
+                      <StatusChip tone="success">{t('record.comments.decision')}</StatusChip>
+                    </span>
+                  ) : null}
                 </p>
                 {c.asked_to ? (
                   <p className="text-sm font-medium" data-comment-question>
@@ -496,9 +674,10 @@ export function Comments({
                     </div>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap break-words text-base" dir="auto" data-comment-body>
-                    {c.body}
-                  </p>
+                  <>
+                    <CommentBody body={c.body} mentions={c.mentions} />
+                    <CommentLinks links={c.links} locale={locale} />
+                  </>
                 )}
                 {!c.question_open && c.answer ? (
                   <div className="flex flex-col gap-1 rounded-md bg-surface px-3 py-2">
@@ -549,8 +728,21 @@ export function Comments({
                   </div>
                 ) : null}
                 {editing !== c.id &&
-                (c.can_edit || c.can_remove || (c.question_open && c.asked_to === me.person.id)) ? (
+                (c.can_edit ||
+                  c.can_remove ||
+                  (list.can_decide && !c.is_decision) ||
+                  (c.question_open && c.asked_to === me.person.id)) ? (
                   <div className="flex flex-wrap gap-2">
+                    {list.can_decide && !c.is_decision ? (
+                      <Button
+                        size="sm"
+                        loading={deciding === c.id}
+                        onClick={() => void decide(c, true)}
+                        data-comment-decide
+                      >
+                        {t(decision ? 'record.comments.decisionMove' : 'record.comments.decisionMark')}
+                      </Button>
+                    ) : null}
                     {c.can_edit ? (
                       <Button
                         size="sm"
@@ -638,14 +830,34 @@ export function Comments({
             {(p) => (
               <Textarea
                 {...p}
+                ref={boxRef}
                 value={text}
                 rows={3}
                 name="comment"
+                aria-controls={suggestOpen && linking === null ? suggestId : undefined}
+                aria-activedescendant={
+                  suggestOpen && linking === null && suggest.items.length ? `${suggestId}-${active}` : undefined
+                }
                 onChange={(e) => {
                   setError(undefined);
                   setText(e.target.value);
+                  setAt(mentionQuery(e.target.value, e.target.selectionStart ?? e.target.value.length));
+                  setActive(0);
                 }}
                 onKeyDown={(e) => {
+                  if (
+                    linking === null &&
+                    suggestKey(e, {
+                      open: suggestOpen,
+                      count: suggest.items.length,
+                      active,
+                      setActive,
+                      pick: () => pick(activeItem),
+                      close: () => setAt(null),
+                    })
+                  ) {
+                    return;
+                  }
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
                     void add();
@@ -654,9 +866,84 @@ export function Comments({
               />
             )}
           </Field>
-          <div>
+          {suggestOpen && linking === null ? (
+            <SuggestionList
+              id={suggestId}
+              items={suggest.items}
+              busy={suggest.busy}
+              active={active}
+              onPick={pick}
+              onHover={setActive}
+            />
+          ) : null}
+          <p className="text-sm text-muted" data-mention-hint>
+            {t('record.comments.mentionHint')}
+            {mentionNote ? ` ${mentionNote}` : null}
+          </p>
+          {linking !== null ? (
+            <div className="flex flex-col gap-2" data-link-search>
+              <Field label={t('record.comments.linkSearch')}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    autoFocus
+                    value={linking}
+                    name="comment-link"
+                    onChange={(e) => {
+                      setLinking(e.target.value);
+                      setActive(0);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !suggest.items.length) e.preventDefault();
+                      suggestKey(e, {
+                        open: true,
+                        count: suggest.items.length,
+                        active,
+                        setActive,
+                        pick: () => pick(activeItem),
+                        close: () => setLinking(null),
+                      });
+                    }}
+                  />
+                )}
+              </Field>
+              {suggestOpen ? (
+                <SuggestionList
+                  id={suggestId}
+                  items={suggest.items}
+                  busy={suggest.busy}
+                  active={active}
+                  onPick={pick}
+                  onHover={setActive}
+                />
+              ) : null}
+            </div>
+          ) : null}
+          <PickedChips
+            people={pickedPeople.filter((x) => text.includes(`@${x.name}`))}
+            links={pickedLinks}
+            onRemovePerson={(pid) => {
+              const gonePerson = pickedPeople.find((x) => x.id === pid);
+              setPickedPeople((l) => l.filter((x) => x.id !== pid));
+              if (gonePerson) setText((v) => v.split(`@${gonePerson.name}`).join(gonePerson.name));
+            }}
+            onRemoveLink={(l) => setPickedLinks((all) => all.filter((x) => !(x.id === l.id && x.kind === l.kind)))}
+          />
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="primary" loading={busy === 'add'} data-comment-add>
               {mode === 'ask' ? t('record.comments.ask') : t('record.comments.add')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setAt(null);
+                setActive(0);
+                setLinking((v) => (v === null ? '' : null));
+              }}
+              aria-expanded={linking !== null}
+              data-comment-link-open
+            >
+              {t('record.comments.linkRecord')}
             </Button>
           </div>
         </form>

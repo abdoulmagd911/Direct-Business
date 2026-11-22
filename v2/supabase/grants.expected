@@ -63,8 +63,9 @@ function api.codes_attribution_remove(p_id uuid, p_reason text) execute authenti
 function api.codes_by_company() execute authenticated
 function api.codes_detail(p_code uuid) execute authenticated
 function api.codes_list() execute authenticated
-function api.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid) execute authenticated
+function api.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid, p_links jsonb, p_mentions uuid[]) execute authenticated
 function api.comment_answer(p_id uuid, p_answer text) execute authenticated
+function api.comment_decide(p_id uuid, p_on boolean) execute authenticated
 function api.comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
 function api.comment_remove(p_id uuid, p_reason text) execute authenticated
 function api.comments(p_entity text, p_id uuid) execute authenticated
@@ -274,6 +275,7 @@ function api.task_comments(p_task uuid) execute authenticated
 function api.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function api.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
 function api.task_delegate(p_id uuid, p_to uuid, p_note text) execute authenticated
+function api.task_deputy_set(p_id uuid, p_person uuid) execute authenticated
 function api.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function api.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated
 function api.task_nudge_dismiss(p_id uuid, p_dismissed boolean) execute authenticated
@@ -580,8 +582,9 @@ function work.backfill_confirm(p_task_id uuid, p_achievement_id uuid) execute au
 function work.backfill_keys_held(p_keys text[]) execute authenticated
 function work.backfill_proposals() execute authenticated
 function work.backfill_tasks(p_request jsonb) execute authenticated
-function work.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid) execute authenticated
+function work.comment_add(p_entity text, p_id uuid, p_body text, p_asked_to uuid, p_links jsonb, p_mentions uuid[]) execute authenticated
 function work.comment_answer(p_id uuid, p_answer text) execute authenticated
+function work.comment_decide(p_id uuid, p_on boolean) execute authenticated
 function work.comment_edit(p_id uuid, p_body text, p_version integer) execute authenticated
 function work.comment_remove(p_id uuid, p_reason text) execute authenticated
 function work.comments(p_entity text, p_id uuid) execute authenticated
@@ -610,6 +613,7 @@ function work.task_comments(p_task uuid) execute authenticated
 function work.task_contacts_set(p_task uuid, p_contacts uuid[]) execute authenticated
 function work.task_create(p_values jsonb, p_mentions uuid[]) execute authenticated
 function work.task_delegate(p_id uuid, p_to uuid, p_note text) execute authenticated
+function work.task_deputy_set(p_id uuid, p_person uuid) execute authenticated
 function work.task_from_template(p_template uuid, p_values jsonb) execute authenticated
 function work.task_get(p_id uuid) execute authenticated
 function work.task_helpers_set(p_id uuid, p_people uuid[]) execute authenticated

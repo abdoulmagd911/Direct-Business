@@ -53,7 +53,7 @@ import { TaskBulkAssign } from './TaskBulkAssign';
 import { TaskCalendar } from './TaskCalendar';
 import { TeamLoadPanel } from './TeamLoadPanel';
 import { DoneTick, statusName } from './StatusControl';
-import { CountBadge, DueMark, ResponsibleMark, WhereMark } from './TaskBits';
+import { CountBadge, DueMark, ResponsibleMark, StepsMark, WhereMark } from './TaskBits';
 import { pillOf, statusGroups } from './look';
 import { useNames } from './words';
 
@@ -659,7 +659,7 @@ function TaskLine({
           className="z-10 mt-1 shrink-0 @4xl:mt-0"
         />
       ) : null}
-      {row.can_edit ? (
+      {(row.can_act ?? row.can_edit) ? (
         <DoneTick task={row} statuses={lookups.statuses} title={row.title} />
       ) : (
         <span aria-hidden="true" className="mt-0.5 inline-block size-6 shrink-0" />
@@ -682,6 +682,8 @@ function TaskLine({
               {t('pages.tasks.look.priority', { priority })}
             </p>
           ) : null}
+          {/* Landing 33 (B4): the steps done, as words under the title — progress without opening the task */}
+          <StepsMark row={row} locale={names.locale} />
         </div>
         {/* one line on a phone (the partner, then the due day); two columns where the card is wide */}
         <div className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 @4xl:contents" data-task-line>

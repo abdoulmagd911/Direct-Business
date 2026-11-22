@@ -1999,7 +1999,7 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskBoard.tsx',
-        find: '                      <BlockReason task={r} />\n',
+        find: '      <BlockReason task={r} />\n',
         replace: '',
       },
     ],

@@ -122,6 +122,17 @@ export function Checklist({
                       {formatDate(i.due_on, locale)}
                     </span>
                   ) : null}
+                  {/* Landing 33 (B4): a step done is a dated record — the day, and who */}
+                  {i.done_on ? (
+                    <span className="block" data-item-done>
+                      {i.done_by
+                        ? t('pages.tasks.items.doneBy', {
+                            date: formatDate(i.done_on, locale),
+                            name: personName(i.done_by),
+                          })
+                        : t('pages.tasks.items.doneOn', { date: formatDate(i.done_on, locale) })}
+                    </span>
+                  ) : null}
                 </span>
                 {may ? (
                   <StarToggle

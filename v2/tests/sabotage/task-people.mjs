@@ -3,41 +3,43 @@ const E2E = 'e2e:tests/e2e/task-people.spec.ts';
 
 export const sabotages = [
   {
-    // the Owner picker writes nothing
+    // Landing 33: the Owner picker became Hand over (O-3). The hand-over writes nothing (it was: the picker writes nothing)
     name: 'task-owner-picker-changes-nobody',
     breaks: [E2E],
-    expect: 'is now with',
+    expect: 'the Responsible changed',
     edits: [
       {
-        file: 'src/modules/tasks/screens/TaskPeople.tsx',
-        find: 'if (owner === task.owner_id || busy) return;',
-        replace: 'if (owner) return;',
+        file: 'src/modules/tasks/screens/Delegate.tsx',
+        find: "() => rpc('task_delegate', { p_id: task.id, ...r.values }) as Promise<{ request_id?: string | null }>,",
+        replace: 'async () => ({}) as { request_id?: string | null },',
       },
     ],
   },
   {
-    // the owner change is written but gives no request to undo
+    // the hand-over is written but gives no request to undo (it was: the owner change)
     name: 'task-owner-change-has-no-undo',
     breaks: [E2E],
     expect: 'Undo',
     edits: [
       {
-        file: 'src/modules/tasks/screens/TaskPeople.tsx',
-        find: "rpc('tasks_assign', { p_ids: [task.id], p_owner: owner }) as Promise<Written>",
-        replace: "rpc('tasks_assign', { p_ids: [task.id], p_owner: owner }).then(() => ({})) as Promise<Written>",
+        file: 'src/modules/tasks/screens/Delegate.tsx',
+        find: "() => rpc('task_delegate', { p_id: task.id, ...r.values }) as Promise<{ request_id?: string | null }>,",
+        replace:
+          "() => rpc('task_delegate', { p_id: task.id, ...r.values }).then(() => ({})) as Promise<{ request_id?: string | null }>,",
       },
     ],
   },
   {
-    // everyone who may edit the task is offered the Owner picker, not only whoever gives work
+    // Landing 33: the Responsible is offered Hand over only when they may give work at all (tasks.assign_own);
+    // the plant offers it to every Responsible (it was: the Owner picker offered to every editor)
     name: 'task-owner-picker-is-offered-to-every-editor',
     breaks: [E2E],
-    expect: 'a member who may not give work to others has no Owner picker',
+    expect: 'a member who may not give work to others is not offered Hand over',
     edits: [
       {
         file: 'src/modules/tasks/screens/TaskRecord.tsx',
-        find: "const mayAssign =\n    mayHelp &&\n    (me.capabilities.includes('tasks.assign') ||\n      (me.capabilities.includes('tasks.assign_own') && task.owner_id === me.person.id));",
-        replace: 'const mayAssign = mayHelp;',
+        find: '  const mayAssign = !closed && !!task.can_hand_over && mayGive;',
+        replace: '  const mayAssign = !closed && !!task.can_hand_over;',
       },
     ],
   },

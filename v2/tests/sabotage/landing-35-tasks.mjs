@@ -75,13 +75,19 @@ export const sabotages = [
     name: 'l35-a-long-column-shows-two-cards',
     breaks: [DRAWN],
     expect: '> every card of a long column is drawn — none is folded away',
-    edits: [{ file: BOARD, find: '{c.rows.map((r) => {', replace: '{c.rows.slice(0, 2).map((r) => {' }],
+    edits: [{ file: BOARD, find: '{c.rows.map((r) => (', replace: '{c.rows.slice(0, 2).map((r) => (' }],
   },
   {
     name: 'l35-a-board-card-drops-the-number',
     breaks: [DRAWN],
     expect: '> the number, the title, the Responsible person and the due day',
-    edits: [{ file: BOARD, find: '                          {r.number}\n', replace: '' }],
+    edits: [
+      {
+        file: BOARD,
+        find: '          {r.number}\n        </span>\n        <span className="flex shrink-0',
+        replace: '        </span>\n        <span className="flex shrink-0',
+      },
+    ],
   },
   {
     name: 'l35-every-board-card-wears-a-star',

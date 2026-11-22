@@ -448,7 +448,12 @@
         "noCategories": "لا توجد فئات لعام {year} بعد. يشرح «تسجيل إنجاز» كيف تفتح الخطة."
       },
       "valueNotNumber": "أدخل رقمًا",
-      "offerAction": "تسجيل إنجاز"
+      "offerAction": "تسجيل إنجاز",
+      "steps": {
+        "title": "الخطوات المنجزة في المهمة",
+        "what": "كل خطوة أُنجزت في المهمة التي جاء منها هذا الإنجاز، مع يومها ومن أنجزها.",
+        "by": "{date} · {name}"
+      }
     },
     "reports": {
       "summary": "ملخص شهري",
@@ -949,7 +954,9 @@
         "notes": "الملاحظات",
         "lastActivity": "آخر تحديث",
         "references": "المراجع",
-        "achievement": "الإنجاز"
+        "achievement": "الإنجاز",
+        "deputy": "النائب",
+        "responsible": "المسؤول"
       },
       "tabs": {
         "overview": "نظرة عامة",
@@ -990,7 +997,13 @@
         "helperAdd": "إضافة مساعد",
         "helperAdded": "أصبح {name} يساعد في {number}",
         "helperRemove": "إزالة {name}",
-        "helperRemoved": "لم يعد {name} يساعد في {number}"
+        "helperRemoved": "لم يعد {name} يساعد في {number}",
+        "deputyMark": "النائب",
+        "deputyNone": "بلا نائب",
+        "deputyChange": "تغيير النائب",
+        "deputySaved": "{name} الآن نائب في {number}",
+        "deputyCleared": "{number} بلا نائب الآن",
+        "deputyWhat": "تظهر المهمة لدى النائب ضمن «أساعد فيها» ويمكنه إنجازها. ويبقى المسؤول صاحب النتيجة."
       },
       "status": {
         "change": "الحالة: {status}. تغيير",
@@ -1016,7 +1029,9 @@
         "unticked": "أُعيد فتح: {item}",
         "removed": "حُذف بند العمل: {item}",
         "textRequired": "اكتب بند العمل",
-        "textTooLong": "الحد الأقصى للأحرف: {max}"
+        "textTooLong": "الحد الأقصى للأحرف: {max}",
+        "doneBy": "أُنجزت {date} · {name}",
+        "doneOn": "أُنجزت {date}"
       },
       "errors": {
         "task": {
@@ -1029,9 +1044,8 @@
           "status_unchanged": "المهمة في هذه الحالة بالفعل",
           "created_closed": "لا يمكن أن تبدأ مهمة جديدة وهي مغلقة",
           "delegate_cannot_see": "هذا الشخص لا يمكنه رؤية هذه المهمة",
-          "delegate_note_required": "اكتب ما يجب أن يعرفه",
           "delegate_to_yourself": "اختر شخصًا غير نفسك",
-          "client_work_needs_partner": "عمل العميل يحتاج إلى عميل أو مشروع",
+          "client_work_needs_partner": "عمل الشريك يحتاج إلى شريك أو مشروع",
           "internal_has_no_partner": "العمل الداخلي لا شريك له",
           "due_before_start": "يوم الاستحقاق قبل البداية",
           "team_required": "المهمة تحتاج إلى فريق",
@@ -1048,7 +1062,14 @@
           "comment_not_yours": "لا يعدّل التعليق إلا من كتبه",
           "remove_not_test": "لا يمكن إزالة إلا مهام الاختبار",
           "owner_cannot_see": "هذا الشخص لا يمكنه رؤية هذه المهمة، لذا لا يمكن إسنادها إليه",
-          "team_out_of_reach": "هذا الفريق في قسم لا تعمل فيه"
+          "team_out_of_reach": "هذا الفريق في قسم لا تعمل فيه",
+          "hand_over_not_yours": "المسؤول وحده يسلّم المهمة. وهذه ليست مهمتك.",
+          "hand_over_reason_required": "اذكر السبب. كل تسليم يحتاج إلى سبب.",
+          "hand_over_reason_too_long": "السبب 120 حرفًا على الأكثر.",
+          "owner_cannot_see_partner": "هذا الشخص لا يمكنه رؤية شريك هذه المهمة، لذا لا يمكن إسنادها إليه",
+          "deputy_unchanged": "هذا هو النائب بالفعل",
+          "deputy_is_responsible": "لا يكون المسؤول نائبًا عن نفسه",
+          "deputy_cannot_see": "هذا الشخص لا يمكنه رؤية هذه المهمة"
         },
         "action_item": {
           "text_required": "اكتب بند العمل",
@@ -1140,7 +1161,7 @@
         "overdue": "{count} متأخرة",
         "items": "{count, plural, one {بند عمل واحد} two {بندا عمل} few {# بنود عمل} many {# بند عمل} other {# بند عمل}}",
         "clients": "{count, plural, one {شريك واحد} two {شريكان} few {# شركاء} many {# شريكًا} other {# شريك}}",
-        "prospects": "{count, plural, one {عميل محتمل واحد} two {عميلان محتملان} few {# عملاء محتملين} many {# عميلًا محتملًا} other {# عميل محتمل}}"
+        "prospects": "{count, plural, one {شريك محتمل واحد} two {شريكان محتملان} few {# شركاء محتملين} many {# شريكًا محتملًا} other {# شريك محتمل}}"
       },
       "escalate": {
         "open": "أحتاج مساعدة",
@@ -1167,7 +1188,10 @@
       "board": {
         "emptyColumn": "لا شيء هنا",
         "blockedLabel": "متوقفة:",
-        "cancelledLabel": "أُلغيت:"
+        "cancelledLabel": "أُلغيت:",
+        "grip": "اسحب «{title}» إلى عمود آخر",
+        "gripHint": "اسحب إلى عمود آخر",
+        "dragging": "جارٍ نقل «{title}». أفلتها فوق عمود لتغيير حالتها، ومفتاح Escape يعيدها."
       },
       "calendar": {
         "previous": "الشهر السابق",
@@ -1176,16 +1200,18 @@
         "noDue": "{count, plural, one {مهمة واحدة بلا يوم استحقاق} two {مهمتان بلا يوم استحقاق} few {# مهام بلا يوم استحقاق} many {# مهمة بلا يوم استحقاق} other {# مهمة بلا يوم استحقاق}}"
       },
       "delegate": {
-        "open": "تفويض",
-        "what": "أعطِ هذه المهمة لشخص آخر مع ملاحظة. يصبح مالكها ويُبلَّغ فورًا.",
-        "title": "تفويض {number}",
-        "to": "تفويض إلى",
+        "open": "تسليم",
+        "what": "سلّم مهمتك لشخص آخر مع ذكر السبب. يصبح هو المسؤول ويُبلَّغ فورًا.",
+        "title": "تسليم {number}",
+        "to": "التسليم إلى",
         "to_required": "اختر من تسلّمها له",
         "to_yourself": "اختر شخصًا غير نفسك",
-        "note": "ما الذي يجب أن يعرفه؟",
-        "note_required": "اكتب ما يجب أن يعرفه",
-        "send": "تفويض",
-        "done": "تم التفويض إلى {name}"
+        "send": "تسليم",
+        "done": "تم التسليم إلى {name}",
+        "reason": "السبب",
+        "reason_required": "اذكر السبب. كل تسليم يحتاج إلى سبب.",
+        "reason_too_long": "السبب {max} حرفًا على الأكثر.",
+        "reasonCount": "{count} من {max} حرفًا"
       },
       "star": {
         "mark": "أضف نجمة إلى «{title}»",
@@ -1226,7 +1252,18 @@
         "overdueLabel": "متأخرة:",
         "priority": "الأولوية: {priority}",
         "seeAll": "عرض الكل · {count}",
-        "seeFewer": "عرض أقل"
+        "seeFewer": "عرض أقل",
+        "steps": "{done} من {total} خطوات"
+      },
+      "comments": {
+        "mentionNote": "من تشير إليه يُضاف مساعدًا: تظهر المهمة لديه ضمن «أساعد فيها». ولا يتغيّر المسؤول."
+      },
+      "handovers": {
+        "title": "سجل التسليم",
+        "none": "لم تنتقل هذه المهمة من شخص إلى آخر",
+        "moved": "{from} ← {to}",
+        "given": "أُسندت إلى {to}",
+        "by": "بواسطة {name}"
       }
     },
     "weeklyReview": {
@@ -2327,7 +2364,13 @@
       "asked_cannot_see": "هذا الشخص لا يمكنه رؤية هذا السجل",
       "not_open": "هذا السؤال مجاب عنه بالفعل",
       "not_asked": "لا يجيب عن هذا السؤال إلا الشخص الذي سُئل",
-      "already_asked": "لديك سؤال مفتوح مع {detail}."
+      "already_asked": "لديك سؤال مفتوح مع {detail}.",
+      "link_unknown": "لا يمكن ربط هذا النوع من السجلات",
+      "link_cannot_see": "لا يمكنك ربط سجل لا يمكنك رؤيته",
+      "too_many_links": "يمكن للتعليق أن يرتبط بعشرة سجلات على الأكثر",
+      "too_many_mentions": "يمكن للتعليق أن يشير إلى عشرين شخصًا على الأكثر",
+      "mention_cannot_see": "{detail} لا يمكنه رؤية هذا السجل، لذا لا يمكن الإشارة إليه فيه",
+      "decision_unchanged": "هذا هو الحال بالفعل"
     },
     "backfill": {
       "no_match": "لم تعد هذه المهمة وهذا الإنجاز متطابقين",
@@ -3269,7 +3312,28 @@
       "newComments": "{count} جديدة",
       "askChip": "سؤال إلى {name}",
       "removedQuestion": "تم حذف السؤال",
-      "removeQuestionTitle": "حذف السؤال؟"
+      "removeQuestionTitle": "حذف السؤال؟",
+      "decision": "القرار",
+      "decisionBy": "حدّده قرارًا: {name}",
+      "decisionMark": "تحديده كقرار",
+      "decisionMove": "اجعل هذا هو القرار",
+      "decisionUnmark": "إزالة علامة القرار",
+      "decisionMarked": "تم تحديده كقرار",
+      "decisionUnmarked": "أزيلت علامة القرار",
+      "linkHidden": "سجل مرتبط لا يمكنك فتحه",
+      "linkKind": {
+        "partner": "شريك",
+        "project": "مشروع",
+        "invoice": "فاتورة",
+        "code": "كود"
+      },
+      "suggestNone": "لا يوجد شخص أو سجل بهذا الاسم",
+      "suggestLabel": "أشخاص وسجلات",
+      "suggestPerson": "شخص",
+      "removePicked": "إزالة {name}",
+      "mentionHint": "اكتب @ للإشارة إلى شخص أو لربط شريك أو كود أو فاتورة.",
+      "linkSearch": "ابحث عن سجل لربطه",
+      "linkRecord": "ربط سجل"
     },
     "titleMore": "المزيد",
     "titleLess": "عرض أقل"

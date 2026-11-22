@@ -1,7 +1,7 @@
 'use client';
-import { Briefcase, Building2, CalendarDays, CalendarX2 } from 'lucide-react';
+import { Briefcase, Building2, CalendarDays, CalendarX2, ListChecks } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { formatDate } from '@/core/i18n/format';
+import { formatDate, formatNumber } from '@/core/i18n/format';
 import { avatarOf } from '@/modules/org/types';
 import { Avatar } from '@/ui/Avatar';
 import { cn } from '@/ui/cn';
@@ -110,6 +110,42 @@ export function CountBadge({ count }: { count: number }) {
   return (
     <span className="inline-grid h-[22px] min-w-[22px] place-items-center rounded-pill bg-pressed px-1.5 font-data text-xs font-semibold text-strong">
       {count}
+    </span>
+  );
+}
+
+/**
+ * A task's steps done (Landing 33, B4): "2 of 5 steps" with a thin bar, on a row or a card that has steps. Nothing
+ * for a task with none. The bar is decoration; the words carry the count.
+ */
+export function StepsMark({
+  row,
+  locale,
+  className,
+}: {
+  row: Pick<TaskRow, 'open_action_items' | 'action_items_total'>;
+  locale: 'en' | 'ar';
+  className?: string;
+}) {
+  const t = useTranslations();
+  const total = row.action_items_total ?? 0;
+  if (total <= 0) return null;
+  const done = Math.max(0, total - row.open_action_items);
+  return (
+    <span
+      className={cn('inline-flex min-w-0 items-center gap-1.5 text-sm text-muted', className)}
+      data-task-steps={`${done}/${total}`}
+    >
+      <ListChecks className="size-4 shrink-0" aria-hidden="true" />
+      <span className="whitespace-nowrap">
+        {t('pages.tasks.look.steps', { done: formatNumber(done, locale), total: formatNumber(total, locale) })}
+      </span>
+      <span className="h-1.5 w-10 shrink-0 overflow-hidden rounded-pill bg-pressed" aria-hidden="true">
+        <span
+          className={cn('block h-full rounded-pill', done === total ? 'bg-success' : 'bg-info')}
+          style={{ width: `${Math.round((done / total) * 100)}%` }}
+        />
+      </span>
     </span>
   );
 }

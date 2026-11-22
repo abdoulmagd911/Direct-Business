@@ -246,7 +246,7 @@ test('desk 1440: Done, Edit and Need help sit on one row; Remind me is behind th
   await row.locator('[data-task-more]').click();
   await expect(page.getByRole('menuitem'), 'the dots hold Remind me and Delegate').toHaveText([
     'Remind me',
-    'Delegate',
+    'Hand over',
   ]);
   await page.keyboard.press('Escape');
   await ctx.close();

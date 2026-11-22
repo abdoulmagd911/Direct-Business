@@ -273,8 +273,9 @@ export const sabotages = [
     edits: [
       {
         file: RULES,
-        find: '  return task.can_edit || item.owner_id === me || item.helpers.includes(me);',
-        replace: '  return true || task.can_edit || item.owner_id === me || item.helpers.includes(me);',
+        find: '  return task.can_edit || task.deputy_id === me || item.owner_id === me || item.helpers.includes(me);',
+        replace:
+          '  return true || task.can_edit || task.deputy_id === me || item.owner_id === me || item.helpers.includes(me);',
       },
     ],
   },

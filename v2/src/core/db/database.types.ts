@@ -179,8 +179,19 @@ export type Database = {
       codes_by_company: { Args: Record<PropertyKey, never>; Returns: Json };
       codes_detail: { Args: { p_code: string }; Returns: Json };
       codes_list: { Args: Record<PropertyKey, never>; Returns: Json };
-      comment_add: { Args: { p_asked_to?: string; p_body: string; p_entity: string; p_id: string }; Returns: Json };
+      comment_add: {
+        Args: {
+          p_asked_to?: string;
+          p_body: string;
+          p_entity: string;
+          p_id: string;
+          p_links?: Json;
+          p_mentions?: string[];
+        };
+        Returns: Json;
+      };
       comment_answer: { Args: { p_answer: string; p_id: string }; Returns: Json };
+      comment_decide: { Args: { p_id: string; p_on: boolean }; Returns: Json };
       comment_edit: { Args: { p_body: string; p_id: string; p_version: number }; Returns: Json };
       comment_remove: { Args: { p_id: string; p_reason?: string }; Returns: Json };
       comments: { Args: { p_entity: string; p_id: string }; Returns: Json };
@@ -656,6 +667,7 @@ export type Database = {
       task_contacts_set: { Args: { p_contacts: string[]; p_task: string }; Returns: Json };
       task_create: { Args: { p_mentions?: string[]; p_values: Json }; Returns: Json };
       task_delegate: { Args: { p_id: string; p_note: string; p_to: string }; Returns: Json };
+      task_deputy_set: { Args: { p_id: string; p_person: string }; Returns: Json };
       task_from_template: { Args: { p_template: string; p_values?: Json }; Returns: Json };
       task_helpers_set: { Args: { p_id: string; p_people: string[] }; Returns: Json };
       task_nudge_dismiss: { Args: { p_dismissed: boolean; p_id: string }; Returns: Json };

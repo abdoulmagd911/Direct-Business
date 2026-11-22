@@ -4,20 +4,25 @@ import { useState } from 'react';
 import { useMe } from '@/core/auth/me-context';
 import { command } from '@/core/commands/run';
 import { rpc } from '@/core/db/rpc';
+import { formatNumber } from '@/core/i18n/format';
 import { nameOf, type OrgAnswer } from '@/modules/org/types';
 import { Button } from '@/ui/Button';
 import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
-import { delegateTargets, delegateValues } from '../rules';
+import { delegateTargets, HAND_OVER_REASON_MAX, handOverValues } from '../rules';
 import type { TaskDetail } from '../types';
 import { useCommandWords } from './words';
 
 /**
- * Delegate (Phase 1, CUJ 5): give this task to someone else, with a note. They become the owner and are told at
- * once, the note is the task's timeline entry, and the delegator follows the task from then on. Whoever may give
- * work to others (`tasks.assign`) delegates it; the door checks the person can see it.
+ * Hand over (Landing 33, B3 — it was "Delegate", Phase 1 CUJ 5): the Responsible gives their own task to someone
+ * else, with a reason. They become the Responsible and are told at once; the reason is kept in the task's hand-over
+ * history; the one who handed it over follows the task from then on. Only the Responsible hands a task over (O-3) —
+ * the menu offers it to nobody else, and the door refuses.
+ *
+ * The reason is required every time, 120 characters at most. With no reason the field turns red and says so, the
+ * button stays live, and nothing is handed over.
  */
 export function Delegate({
   open,
@@ -59,19 +64,19 @@ function DelegateForm({
   const words = useCommandWords();
   const locale = useLocale() as 'en' | 'ar';
   const [to, setTo] = useState<string | undefined>();
-  const [note, setNote] = useState('');
+  const [reason, setReason] = useState('');
   const [toError, setToError] = useState<string | undefined>();
-  const [noteError, setNoteError] = useState<string | undefined>();
+  const [reasonError, setReasonError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const people = delegateTargets(org?.people ?? [], me.person.id)
     .map((p) => ({ value: p.id, label: nameOf(p, locale) }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const send = async () => {
-    const r = delegateValues({ to, note }, me.person.id);
+    const r = handOverValues({ to, reason }, me.person.id);
     if ('error' in r) {
-      const said = t(`pages.tasks.delegate.${r.error}`);
-      if (r.error === 'note_required') setNoteError(said);
+      const said = t(`pages.tasks.delegate.${r.error}`, { max: HAND_OVER_REASON_MAX });
+      if (r.error === 'reason_required' || r.error === 'reason_too_long') setReasonError(said);
       else setToError(said);
       return;
     }
@@ -88,6 +93,7 @@ function DelegateForm({
   return (
     <form
       className="flex flex-col gap-4"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
         void send();
@@ -108,25 +114,32 @@ function DelegateForm({
           />
         )}
       </Field>
-      <Field label={t('pages.tasks.delegate.note')} error={noteError}>
+      <Field label={t('pages.tasks.delegate.reason')} error={reasonError}>
         {(p) => (
           <Textarea
             {...p}
-            rows={4}
-            value={note}
+            rows={3}
+            maxLength={HAND_OVER_REASON_MAX}
+            value={reason}
             onChange={(e) => {
-              setNoteError(undefined);
-              setNote(e.target.value);
+              setReasonError(undefined);
+              setReason(e.target.value);
             }}
-            name="note"
+            name="reason"
           />
         )}
       </Field>
+      <p className="-mt-2 text-sm text-muted" data-reason-count>
+        {t('pages.tasks.delegate.reasonCount', {
+          count: formatNumber(reason.trim().length, locale),
+          max: formatNumber(HAND_OVER_REASON_MAX, locale),
+        })}
+      </p>
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button variant="primary" type="submit" loading={busy}>
+        <Button variant="primary" type="submit" loading={busy} data-hand-over-send>
           {t('pages.tasks.delegate.send')}
         </Button>
       </div>

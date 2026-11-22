@@ -103,7 +103,7 @@ for (const w of WIDTHS) {
       page.locator('[data-record-rail] dt', { hasText: /^Due$/ }),
       'Details does not repeat the due day',
     ).toHaveCount(0);
-    await expect(page.locator('[data-record-rail]'), 'Details keeps its other fields').toContainText('Owner');
+    await expect(page.locator('[data-record-rail]'), 'Details keeps its other fields').toContainText('Responsible');
     await expect(page.getByRole('link', { name: /Action items/ }), 'the Action items tab stays').toBeVisible();
     await ctx.close();
   });
