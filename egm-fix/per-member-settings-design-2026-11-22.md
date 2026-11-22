@@ -53,3 +53,7 @@ The session builds it as the next landing: the three rows on each person's recor
 ## Approval — APPROVED 22 Nov 2026 (voice call)
 
 He said "Yes" to Rocky's recommendation. Build as the next landing after the sweep fix round is fully settled.
+
+## Reading confirmed for the build (23 Nov 2026, relayed by Rocky)
+
+A Manager keeps managing their team's work exactly as today. The "Edit someone else's work" row only governs editing work outside what the person's role already gives them: "View only" on that row does not take away a Manager's team editing. The role basics stay as they are; the three rows only add or restrict the extras.
