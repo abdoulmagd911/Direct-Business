@@ -1,6 +1,8 @@
-# Landing 37 — Finance F-C: a Pending or Draft invoice is seen, and found, before it counts
+# Landing 38 — Finance F-C: a Pending or Draft invoice is seen, and found, before it counts
 
-23 Nov 2026 · base `cc77a03` (Landing 36, live) · target `v2/main` · one push.
+23 Nov 2026 · built on `cc77a03` (Landing 36), then merged with `07d11a5` (Landing 37, the bulk-assign words, pushed by another session meanwhile) · target `v2/main` · one push.
+
+This work was asked for as "Landing 37"; that number was taken on `v2/main` while it was being built, so it lands as 38. Its test files, sabotage files and migration keep "landing-37" / "fc" in their names.
 
 Scope: **A6** (uncounted rows in the Ledger, the form's last-saved record — F185, the search by number, the
 end-to-end check on invoice 1163000012) **+ A7** (CR-1594-23, the "Custom" period link). Nothing else: no Part B, no
@@ -146,7 +148,7 @@ Run on the final tree, on this machine, before the push:
 
 | Check | Result |
 | --- | --- |
-| Base equals the live head `cc77a03` before editing and again before the push | yes |
+| Base equals the live head `cc77a03` before editing | yes — `v2/main` moved to `07d11a5` before the push; merged, and the quick checks and the Tasks and Finance browser specs rerun on the merged tree |
 | `pnpm typecheck` · `pnpm lint` · `pnpm format:check` | exit 0 · exit 0 · exit 0 |
 | `node scripts/checks/run.mjs` | 19 green |
 | `node scripts/db/gen-types.mjs --check` (Supabase CLI 2.118.0) | matches the migrations |
