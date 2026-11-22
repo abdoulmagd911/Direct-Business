@@ -55,7 +55,7 @@ describe('someone in no team who may not assign is told why (QA-521)', () => {
 
   it('someone in a team, and the admin account, still get the form', () => {
     expect(html(TEAM, [])).toContain('Add task');
-    expect(html(null, ['tasks.assign'])).toContain('Pick an owner');
+    expect(html(null, ['tasks.assign'])).toContain('Pick who is responsible');
   });
 
   it('Past work says so too, with no grid to paste into', () => {

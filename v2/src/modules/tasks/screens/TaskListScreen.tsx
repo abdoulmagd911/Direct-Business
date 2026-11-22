@@ -221,7 +221,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   const fDue = t('pages.tasks.fields.due');
   const fClient = t('pages.tasks.fields.client');
   const fProject = t('pages.tasks.fields.project');
-  const fOwner = t('pages.tasks.fields.owner');
+  const fOwner = t('pages.tasks.fields.responsible');
   const fPriority = t('pages.tasks.fields.priority');
 
   return (

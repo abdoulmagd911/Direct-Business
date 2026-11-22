@@ -160,7 +160,7 @@ export const sabotages = [
   {
     name: 'tasks-no-team-says-needs-a-team',
     breaks: [unit('someone-in-no-team-must-pick-an-owner')],
-    expect: 'reads as "Pick an owner"',
+    expect: 'reads as "Pick who is responsible"',
     edits: [{ file: RULES, find: "key === 'errors.task.team_required' ?", replace: "key === 'errors.task.never' ?" }],
   },
   {
@@ -280,6 +280,30 @@ export const sabotages = [
     ],
   },
   // ---- the browser (GC-3's acceptance test, V509)
+  {
+    name: 'e2e-tasks-the-list-filter-says-owner',
+    breaks: [e2e],
+    expect: 'the list filter says Responsible',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "  const fOwner = t('pages.tasks.fields.responsible');",
+        replace: "  const fOwner = t('pages.tasks.fields.owner');",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-quick-add-says-owner',
+    breaks: [e2e],
+    expect: 'no Default: the Owner starts empty',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/QuickAdd.tsx',
+        find: "<Field label={t('pages.tasks.fields.responsible')} error={ownerError}>",
+        replace: "<Field label={t('pages.tasks.fields.owner')} error={ownerError}>",
+      },
+    ],
+  },
   {
     name: 'e2e-tasks-blocked-saved-without-its-reason',
     breaks: [e2e],

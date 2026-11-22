@@ -228,7 +228,7 @@ export function QuickAddForm({
         )}
       </Field>
       {mayPickOwner ? (
-        <Field label={t('pages.tasks.fields.owner')} error={ownerError}>
+        <Field label={t('pages.tasks.fields.responsible')} error={ownerError}>
           {(p) =>
             owners.offerDefault ? (
               <Select

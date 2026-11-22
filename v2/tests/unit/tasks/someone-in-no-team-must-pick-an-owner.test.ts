@@ -33,7 +33,7 @@ describe('quick add for someone in no team: no Default, an owner must be picked 
     expect(quickAddValues({ title: 'A' }, ME)).toEqual({ values: { title: 'A' } });
   });
 
-  it('the database\'s "needs a team" reads as "Pick an owner" in quick add', () => {
+  it('the database\'s "needs a team" reads as "Pick who is responsible" in quick add', () => {
     expect(quickAddRefusalKey('errors.task.team_required')).toBe('pages.tasks.add.owner_required');
     expect(quickAddRefusalKey('errors.task.title_required')).toBe('pages.tasks.errors.task.title_required');
   });

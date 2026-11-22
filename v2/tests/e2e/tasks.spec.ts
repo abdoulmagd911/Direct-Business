@@ -221,11 +221,11 @@ for (const w of WIDTHS) {
 
     await openAdd(page);
     const form = page.locator('form[data-quick-add]');
-    const pickOwner = form.getByRole('combobox', { name: 'Owner' });
-    await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick an owner');
+    const pickOwner = form.getByRole('combobox', { name: 'Responsible' });
+    await expect(pickOwner, 'no Default: the Owner starts empty').toContainText('Pick who is responsible');
     await form.locator('input[name="title"]').fill(title);
     await form.locator('button[type="submit"]').click();
-    await expect(form.getByRole('alert'), 'saving with no owner says what to do').toHaveText('Pick an owner');
+    await expect(form.getByRole('alert'), 'saving with no owner says what to do').toHaveText('Pick who is responsible');
 
     await pickOwner.click();
     await expect(page.getByRole('option', { name: 'Default' }), 'Default is not offered').toHaveCount(0);
@@ -237,6 +237,14 @@ for (const w of WIDTHS) {
     await expect(page.getByText(`Task added: ${title}`)).toBeVisible();
     const [task] = await sql<{ owner_id: string }>(`select owner_id from work.task where title = $1`, [title]);
     expect(task?.owner_id, 'the task is the picked owner’s').toBe(owner.id);
+    if (w.name === 'desk') {
+      // the list's filter says the same word as the form and the task page (owner's ruling, 22 Nov)
+      await expect(
+        page.getByRole('button', { name: 'Add filter: Responsible' }),
+        'the list filter says Responsible',
+      ).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Add filter: Owner' })).toHaveCount(0);
+    }
     await ctx.close();
   });
 }

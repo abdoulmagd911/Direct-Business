@@ -984,7 +984,7 @@
         "dueToday": "Today",
         "dueClear": "Clear",
         "duePlaceholder": "For example, 20 Oct 2026",
-        "owner_required": "Pick an owner",
+        "owner_required": "Pick who is responsible",
         "notSaved": "Nothing was saved. What you typed is still here."
       },
       "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
