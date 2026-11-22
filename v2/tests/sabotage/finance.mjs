@@ -212,7 +212,13 @@ export const sabotages = [
     name: 'new-invoice-saves-a-duplicate-number',
     breaks: [NEW_E2E],
     expect: 'the same number twice is refused in its field',
-    edits: [{ file: NEW_SCREEN, find: 'if ((hits ?? []).some(', replace: 'if (false && (hits ?? []).some(' }],
+    edits: [
+      {
+        file: NEW_SCREEN,
+        find: 'if (numberIsUsed(hits ?? [], d.ref)) {',
+        replace: 'if (false && numberIsUsed(hits ?? [], d.ref)) {',
+      },
+    ],
   },
   {
     name: 'new-invoice-undo-leaves-the-lines',
