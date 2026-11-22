@@ -1,0 +1,10 @@
+docs/v2/landings/LANDING-29.md
+v2/src/core/db/attempt-log.ts
+v2/src/core/db/rpc.ts
+v2/src/modules/finance/use-reads.ts
+...0261122120000_finance_payments_as_of_no_jit.sql
+...the-finance-overview-reads-run-with-jit-off.sql
+v2/tests/sabotage/finance.mjs
+v2/tests/sabotage/landing-29.mjs
+...-29-every-browser-attempt-logs-one-line.test.ts
+...window-coming-back-sends-no-read-twice.test.tsx
