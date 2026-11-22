@@ -281,6 +281,30 @@ export const sabotages = [
   },
   // ---- the browser (GC-3's acceptance test, V509)
   {
+    name: 'e2e-tasks-bulk-assign-says-owner',
+    breaks: [e2e],
+    expect: 'the bulk box says Responsible',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskBulkAssign.tsx',
+        find: "<Field label={t('pages.tasks.fields.responsible')}>",
+        replace: "<Field label={t('pages.tasks.fields.owner')}>",
+      },
+    ],
+  },
+  {
+    name: 'e2e-tasks-bulk-action-is-unnamed',
+    breaks: [e2e],
+    expect: 'the bulk action is named for the Responsible',
+    edits: [
+      {
+        file: 'src/modules/tasks/screens/TaskListScreen.tsx',
+        find: "label: t('pages.tasks.bulkAssign.open'),",
+        replace: "label: t('pages.tasks.fields.owner'),",
+      },
+    ],
+  },
+  {
     name: 'e2e-tasks-the-list-filter-says-owner',
     breaks: [e2e],
     expect: 'the list filter says Responsible',

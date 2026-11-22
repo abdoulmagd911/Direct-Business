@@ -138,7 +138,7 @@ function TaskBulkAssignForm({
       }}
       data-task-bulk-assign
     >
-      <Field label={t('pages.tasks.fields.owner')}>
+      <Field label={t('pages.tasks.fields.responsible')}>
         {(p) => (
           <Select
             id={p.id}
