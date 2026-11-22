@@ -917,9 +917,9 @@
         "priority": "Priority"
       },
       "bulkAssign": {
-        "open": "Assign owner and priority",
+        "open": "Assign Responsible and priority",
         "title": "{count, plural, one {Assign # task} other {Assign # tasks}}",
-        "what": "Give the selected tasks to one owner, set their priority, or both. Either choice may be left unchanged.",
+        "what": "Give the selected tasks to one Responsible, set their priority, or both. Either choice may be left unchanged.",
         "unchanged": "No change",
         "ownerDone": "{count} assigned to {name}",
         "priorityDone": "{count} set to {priority}"

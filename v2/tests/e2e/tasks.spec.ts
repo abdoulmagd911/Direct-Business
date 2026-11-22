@@ -249,6 +249,25 @@ for (const w of WIDTHS) {
   });
 }
 
+test('the bulk-assign box says Responsible, as the quick-add form and the list filter do', async ({ browser }) => {
+  const admin = await makePerson({ admin: true });
+  const owner = await memberWithTeam();
+  const word = randomUUID().slice(0, 6);
+  await taskIn('commercial', owner.id, `Made-up bulk task ${word}`);
+  const { ctx, page } = await signedIn(browser, admin, 1440, 900, `/tasks?view=team&q=${word}`);
+  await page.getByLabel('Select row').first().click();
+  const bar = page.locator('[data-bulk-bar]');
+  await expect(bar.locator('[data-bulk-action="assign"]'), 'the bulk action is named for the Responsible').toHaveText(
+    'Assign Responsible and priority',
+  );
+  await bar.locator('[data-bulk-action="assign"]').click();
+  const form = page.locator('form[data-task-bulk-assign]');
+  await expect(form.getByRole('combobox', { name: 'Responsible' }), 'the bulk box says Responsible').toBeVisible();
+  await expect(form.getByRole('combobox', { name: 'Owner' })).toHaveCount(0);
+  await expect(page.getByText('Give the selected tasks to one Responsible', { exact: false })).toBeVisible();
+  await ctx.close();
+});
+
 test('phone: see what is due today and tick one off (V509)', async ({ browser }) => {
   const member = await memberWithTeam();
   const title = `Made-up due today ${randomUUID().slice(0, 6)}`;
