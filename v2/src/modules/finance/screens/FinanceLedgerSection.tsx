@@ -14,6 +14,7 @@ import type { PeriodAsk } from '../period';
 import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
 import { financeWrote, useFinanceRead } from '../use-reads';
 import { CountedTable } from './CountedTable';
+import { FinanceAchievements } from './FinanceAchievements';
 import { FinanceReport, type LedgerToggle } from './FinanceReport';
 import { FinanceCard } from './parts';
 import { ledgerReportOf } from './ledger-report';
@@ -248,6 +249,8 @@ export function FinanceLedgerSection({
       </FinanceCard>
       {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}
       <CountedTable from={ask.from} to={ask.to} ready={ready} />
+      {/* the period's achievements, apart from the money (Landing 41): a list with no amount, in no total */}
+      <FinanceAchievements from={ask.from} to={ask.to} ready={ready} />
     </>
   );
 }

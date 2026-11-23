@@ -255,6 +255,7 @@ export type Database = {
       file_review_set: { Args: { p_id: string; p_review_on: string; p_version?: number }; Returns: Json };
       files: { Args: { p_entity: string; p_id: string; p_side?: string }; Returns: Json };
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
+      finance_achievements: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_channel_set: {
         Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
         Returns: Json;

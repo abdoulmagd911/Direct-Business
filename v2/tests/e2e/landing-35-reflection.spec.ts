@@ -14,9 +14,10 @@
  *     record links to the client's page, the Achievements list has it — and the client's record lists it on its
  *     Related tab (number and title), the title opening the achievement's own record (built on 21 Nov, after this
  *     test first wrote down that the record showed it nowhere).
- *     Finance shows no achievement anywhere — neither the client's Finance tab nor the Finance page: an achievement's
- *     value is "Not revenue" by rule, so no figure may count it. The test holds that too; the day Finance starts
- *     showing achievements it goes red and is rewritten to hold the new behaviour.
+ *     The client's Finance tab shows no achievement. The Finance page lists it in a card of its own, apart from the
+ *     money, and nowhere else (Landing 41, the owner's ruling of 22 Nov — until then Finance showed none, and this
+ *     test said it would be rewritten the day that changed): an achievement's value is "Not revenue" by rule, so no
+ *     figure, line or ledger row may count it. The test holds that.
  * Every value is made up. Sabotage: tests/sabotage/landing-35-reflection.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -232,7 +233,7 @@ test('1 · a Client ID added on the client page shows on Finance, and an invoice
   await expect(page.locator('[data-finance-ledger-row]'), 'the Ledger lists both rows').toHaveCount(2);
 });
 
-test('2 · an achievement logged for a client is saved with the client, links to it and is listed on the client’s Related tab; Finance shows no achievement', async ({
+test('2 · an achievement logged for a client is saved with the client, links to it and is listed on the client’s Related tab; Finance lists it apart from the money', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -294,15 +295,27 @@ test('2 · an achievement logged for a client is saved with the client, links to
   await expect(page, 'its link opens the achievement').toHaveURL(new RegExp(`${achievementPath}$`));
   await expect(page.locator('[data-record-header]'), 'the achievement’s own record').toContainText(number);
 
-  // ---- AS BUILT: Finance shows no achievement anywhere — neither the client's Finance tab nor the Finance page.
-  // (An achievement's value is "Not revenue" by rule, so no figure may ever count it; a list of them is a new thing.)
+  // ---- The client's Finance tab shows no achievement. The Finance page lists it in a card of its own, apart from
+  // the money (Landing 41, the owner's ruling of 22 Nov) — and nowhere else on the page: an achievement's value is
+  // "Not revenue" by rule, so no figure, line or ledger row may ever count it.
   const tab = await openClientFinance(page, org.id);
   expect(shows(await tab.innerText()), 'as built: the client’s Finance tab does not show the achievement').toBe(false);
   await expect(page.locator('[data-partner-finance-row]'), 'an achievement is no money row').toHaveCount(0);
   await openFinance(page, `${d.slice(0, 4)}-01-01`, d, org.id);
-  expect(shows(await main.innerText()), 'as built: the Finance page does not show the achievement').toBe(false);
-  await expect(main.locator('a[href^="/kpis/achievements/"]'), 'as built: Finance links to no achievement').toHaveCount(
-    0,
-  );
+  const card = main.locator('[data-finance-achievements]');
+  await expect(
+    card.locator(`[data-finance-achievement="${number}"]`),
+    'the Finance page lists the achievement in its own card, apart from the money',
+  ).toHaveCount(1);
+  await expect(card, 'the card says it is not money').toContainText('Not money');
+  await expect(card, 'and draws no amount beside an achievement').not.toContainText(/SAR/);
+  // everything on the page but that card: no word of the achievement, and no link to one
+  const outside = await main.evaluate((el) => {
+    const copy = el.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll('[data-finance-achievements]').forEach((c) => c.remove());
+    return { text: copy.textContent ?? '', links: copy.querySelectorAll('a[href^="/kpis/achievements/"]').length };
+  });
+  expect(shows(outside.text), 'outside that card the Finance page does not show the achievement').toBe(false);
+  expect(outside.links, 'and links to no achievement').toBe(0);
   await expect(partnerLine(page, org.id), 'an achievement makes no line under Income by company').toHaveCount(0);
 });

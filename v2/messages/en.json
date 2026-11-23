@@ -3666,6 +3666,13 @@
       "services": "Services",
       "ledger": "Ledger"
     },
+    "achievements": {
+      "title": "Achievements in this period",
+      "notMoney": "Not money — counted in no total",
+      "failed": "The achievements",
+      "empty": "No achievements in this period.",
+      "more": "Showing the newest {shown} of {total}. Open Achievements for all of them."
+    },
     "counted": {
       "title": "Is it counted?",
       "failed": "The counted table",

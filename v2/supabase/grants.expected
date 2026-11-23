@@ -92,6 +92,7 @@ function api.file_finish(p_id uuid, p_sha256 text) execute authenticated
 function api.file_review_set(p_id uuid, p_review_on date, p_version integer) execute authenticated
 function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
+function api.finance_achievements(p_from date, p_to date) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
 function api.finance_company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
@@ -559,6 +560,7 @@ function perf.categories_remove(p_ids uuid[], p_reason text) execute authenticat
 function perf.category_retire(p_id uuid, p_replacement uuid, p_reason text) execute authenticated
 function perf.category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.category_usage(p_id uuid) execute authenticated
+function perf.finance_achievements(p_from date, p_to date) execute authenticated
 function perf.partner_achievements(p_partner uuid) execute authenticated
 function perf.plan_get(p_id uuid) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
