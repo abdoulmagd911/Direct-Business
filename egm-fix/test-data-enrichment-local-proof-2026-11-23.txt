@@ -1,0 +1,52 @@
+$ enrich-test-data.mjs (plan)
+enrich (plan) as TEST Admin; for TEST Head, TEST Member, TEST Viewer
+  to add: 6 organisations (of 6), 33 tasks (of 33), 1 project, 6 achievements (of 6), 3 pipeline cards (of 3), 6 invoices (of 6); with them a discount code, contacts, notes, steps and comments
+  Finance, year to date — the exact change this run makes:
+    revenue         1,234 →       17,234   (+16,000)
+    cost              234 →        2,634   (+2,400)
+    profit          1,000 →        4,600   (+3,600)
+    (revenue: the 4 fully paid invoices, 4,000 + 6,000 + 2,500 + 3,500; cost: the one approved cost, 2,400; profit: only the invoice whose cost is known, 6,000 − 2,400; the Pending 5,000 and the Draft 1,500 count in no figure)
+  Nothing was written. Run again with --write to add it.
+$ enrich-test-data.mjs --write
+enrich (write) as TEST Admin; for TEST Head, TEST Member, TEST Viewer
+  to add: 6 organisations (of 6), 33 tasks (of 33), 1 project, 6 achievements (of 6), 3 pipeline cards (of 3), 6 invoices (of 6); with them a discount code, contacts, notes, steps and comments
+  Finance, year to date — the exact change this run makes:
+    revenue         1,234 →       17,234   (+16,000)
+    cost              234 →        2,634   (+2,400)
+    profit          1,000 →        4,600   (+3,600)
+    (revenue: the 4 fully paid invoices, 4,000 + 6,000 + 2,500 + 3,500; cost: the one approved cost, 2,400; profit: only the invoice whose cost is known, 6,000 − 2,400; the Pending 5,000 and the Draft 1,500 count in no figure)
+enrich --write: done, 144 writes through the app's doors.
+  Finance revenue, year to date: 1,234 → 17,234 (+16,000; expected +16,000)
+  Finance cost, year to date: 234 → 2,634 (+2,400; expected +2,400)
+  Finance profit, year to date: 1,000 → 4,600 (+3,600; expected +3,600)
+enrich proof: open TEST tasks per person: TEST Head 9 · TEST Member 9 · TEST Viewer 9
+enrich proof: blocked tasks 3 (3 wanted) · test invoices linked to their TEST client 6 (6 wanted) · achievements logged from a task 1 (1 wanted)
+$ enrich-test-data.mjs --write
+enrich (write) as TEST Admin; for TEST Head, TEST Member, TEST Viewer
+  to add: 0 organisations (of 6), 0 tasks (of 33), 0 project, 0 achievements (of 6), 0 pipeline cards (of 3), 0 invoices (of 6); with them a discount code, contacts, notes, steps and comments
+  Finance, year to date — the exact change this run makes:
+    revenue        17,234 →       17,234   (+0)
+    cost            2,634 →        2,634   (+0)
+    profit          4,600 →        4,600   (+0)
+    (revenue: the 4 fully paid invoices, 4,000 + 6,000 + 2,500 + 3,500; cost: the one approved cost, 2,400; profit: only the invoice whose cost is known, 6,000 − 2,400; the Pending 5,000 and the Draft 1,500 count in no figure)
+enrich --write: done, 0 writes through the app's doors.
+  Finance revenue, year to date: 17,234 → 17,234 (+0; expected +0)
+  Finance cost, year to date: 2,634 → 2,634 (+0; expected +0)
+  Finance profit, year to date: 4,600 → 4,600 (+0; expected +0)
+$ enrich-test-data.mjs --clean
+enrich --clean: removed 33 tasks, 1 projects, 6 organisations, 6 achievements, 3 pipeline cards, 6 invoices.
+  still there under this script's names: 0
+  Finance revenue, year to date: 17,234 → 1,234 (-16,000)
+  Finance cost, year to date: 2,634 → 234 (-2,400)
+  Finance profit, year to date: 4,600 → 1,000 (-3,600)
+$ enrich-test-data.mjs (plan)
+enrich (plan) as TEST Admin; for TEST Head, TEST Member, TEST Viewer
+  to add: 6 organisations (of 6), 33 tasks (of 33), 1 project, 6 achievements (of 6), 3 pipeline cards (of 3), 6 invoices (of 6); with them a discount code, contacts, notes, steps and comments
+  Finance, year to date — the exact change this run makes:
+    revenue         1,234 →       17,234   (+16,000)
+    cost              234 →        2,634   (+2,400)
+    profit          1,000 →        4,600   (+3,600)
+    (revenue: the 4 fully paid invoices, 4,000 + 6,000 + 2,500 + 3,500; cost: the one approved cost, 2,400; profit: only the invoice whose cost is known, 6,000 − 2,400; the Pending 5,000 and the Draft 1,500 count in no figure)
+  Nothing was written. Run again with --write to add it.
+enrich proof: Finance year to date before {"revenue":1234,"cost":234,"profit":1000} · after write and clean {"revenue":1234,"cost":234,"profit":1000}
+enrich proof: the figures returned exactly to where they started; a second write added nothing.
