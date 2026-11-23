@@ -1,0 +1,6 @@
+docs/v2/landings/LANDING-44.md
+v2/src/modules/settings/screens/ActivityScreen.tsx
+v2/tests/e2e/landing-33-task-features.spec.ts
+v2/tests/e2e/landing-44-activity-what-filter.spec.ts
+v2/tests/sabotage/landing-44.mjs
+v2/tests/unit/shell/the-activity-what-filter-shows-only-the-chosen-kind-inside-an-entry.test.ts
