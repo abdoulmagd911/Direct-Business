@@ -1,0 +1,2 @@
+docs/v2/landings/LANDING-39.md
+v2/tests/sabotage/finance.mjs
