@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // @ts-check
-// The proof of scripts/fixtures/enrich-test-data.mjs on THIS machine only: on the local Supabase stack it makes four
-// TEST people (an admin, a head, a member and a viewer, marked TEST, with made-up @example.test addresses), opens this
-// year's achievement plan, and then runs the enrichment as a person would against the live workspace:
-//   plan → write → write again (must add nothing) → clean → plan
-// printing the Finance figures at each step, and fails unless they return exactly to where they started.
+// The proof of scripts/fixtures/enrich-test-data.mjs on THIS machine only. On the local Supabase stack it makes the
+// workspace's shape: a made-up Admin account (an admin, NOT marked TEST, with a made-up @example.test sign-in) on the
+// test-user switch list, and four TEST people (an admin, a head, a member and a viewer, marked TEST) with no sign-in of
+// their own, as in the live workspace (V656). It opens this year's achievement plan, then runs the enrichment as a
+// person would against the live workspace, signed in as the Admin account:
+//   plan → write → write again (must add nothing) → clean → a run that is refused part-way → plan
+// printing the Finance figures at each step. It fails unless they return exactly to where they started, unless every
+// run says it switched back, and unless no sign-in is left switched after any run — the refused one included.
 //
 //   node scripts/fixtures/enrich-prove-local.mjs      (from v2/, after: supabase start, supabase db reset --local)
 //
@@ -39,7 +42,7 @@ const sql = async (/** @type {string} */ text, /** @type {unknown[]} */ params =
   (await db.query(text, params)).rows;
 const email = (/** @type {string} */ key) => `enrich.test.${key}@${FIXTURE_DOMAIN}`;
 
-if (!(await sql(`select 1 from core.person_email where email = $1`, [email('admin')])).length) {
+if (!(await sql(`select 1 from core.person_email where email = $1`, [email('holder')])).length) {
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL ?? '', env.SUPABASE_SECRET_KEY ?? '', {
     auth: { persistSession: false, autoRefreshToken: false },
   }).auth.admin;
@@ -51,31 +54,43 @@ if (!(await sql(`select 1 from core.person_email where email = $1`, [email('admi
      returning id`,
     [dep.id],
   );
+  // the made-up Admin account: an admin, not TEST, with a sign-in, on the switch list
+  const [holder] = await sql(
+    `insert into core.person (full_name_en, full_name_ar, department_id, team_id, role_id, can_sign_in, kind, is_test)
+     values ('Made-up Admin Account', 'حساب مسؤول وهمي', $1, $2, (select id from core.role where key = 'admin'), true,
+             'staff', false) returning id`,
+    [dep.id, team.id],
+  );
+  await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [
+    holder.id,
+    email('holder'),
+  ]);
+  const made = await admin.createUser({ email: email('holder'), password: PASSWORD, email_confirm: true });
+  if (!made.data.user) fail(`could not make the sign-in for ${email('holder')}: ${made.error?.message}`);
+  await sql(
+    `insert into core.person_auth (auth_user_id, person_id, email, password_set_at) values ($1, $2, $3, now())`,
+    [made.data.user?.id, holder.id, email('holder')],
+  );
+  await sql(`insert into core.test_switch_holder (person_id, note) values ($1, 'made up: the enrichment proof')`, [
+    holder.id,
+  ]);
+  // the TEST people: marked TEST, no e-mail and no sign-in, as in the live workspace
   for (const [key, en, ar] of /** @type {[string, string, string][]} */ ([
     ['admin', 'TEST Admin', 'مسؤول تجريبي'],
     ['head', 'TEST Head', 'رئيس تجريبي'],
     ['member', 'TEST Member', 'عضو تجريبي'],
     ['viewer', 'TEST Viewer', 'مشاهد تجريبي'],
   ])) {
-    const [row] = await sql(
-      `insert into core.person (full_name_en, full_name_ar, department_id, team_id, role_id, can_sign_in, kind, is_test)
-       values ($1, $2, $3, $4, (select id from core.role where key = $5), true, 'staff', true) returning id`,
-      [en, ar, dep.id, team.id, key],
-    );
-    await sql(`insert into core.person_email (person_id, email, is_primary) values ($1, $2, true)`, [
-      row.id,
-      email(key),
-    ]);
-    const made = await admin.createUser({ email: email(key), password: PASSWORD, email_confirm: true });
-    if (!made.data.user) fail(`could not make the sign-in for ${email(key)}: ${made.error?.message}`);
     await sql(
-      `insert into core.person_auth (auth_user_id, person_id, email, password_set_at) values ($1, $2, $3, now())`,
-      [made.data.user?.id, row.id, email(key)],
+      `insert into core.person (full_name_en, full_name_ar, department_id, team_id, role_id, can_sign_in, kind, is_test)
+       values ($1, $2, $3, $4, (select id from core.role where key = $5), true, 'staff', true)`,
+      [en, ar, dep.id, team.id, key],
     );
   }
   await sql(
-    `update core.team set lead_person_id = (select person_id from core.person_email where email = $2) where id = $1`,
-    [team.id, email('head')],
+    `update core.team set lead_person_id = (select id from core.person where full_name_en = 'TEST Head' and is_test)
+     where id = $1`,
+    [team.id],
   );
   await sql(
     `do $$ declare d uuid := (select id from core.department where code = 'commercial');
@@ -94,7 +109,7 @@ if (!(await sql(`select 1 from finance.invoice where ref = 'MADEUP-BASE-1'`)).le
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: 'api' },
   });
-  await base.auth.signInWithPassword({ email: email('admin'), password: PASSWORD });
+  await base.auth.signInWithPassword({ email: email('holder'), password: PASSWORD });
   await base.rpc('sign_in_complete', { p_provider: 'email', p_device_label: 'Enrichment proof' });
   const year = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric' }).format(new Date());
   const made = await base.rpc('finance_row_add', {
@@ -120,7 +135,10 @@ if (!(await sql(`select 1 from finance.invoice where ref = 'MADEUP-BASE-1'`)).le
   await base.auth.signOut({ scope: 'local' });
 }
 
-const run = (/** @type {string[]} */ args) => {
+/** No sign-in may be left switched to a TEST user after a run (V656: the switch belongs to the device's sign-in). */
+const leftSwitched = async () =>
+  (await sql(`select count(*)::int as n from core.device_session where as_person_id is not null`))[0].n;
+const run = (/** @type {string[]} */ args, /** @type {RegExp | null} */ refused = null) => {
   console.log(`\n$ enrich-test-data.mjs ${args.join(' ') || '(plan)'}`);
   const r = spawnSync('node', ['scripts/fixtures/enrich-test-data.mjs', ...args], {
     cwd: V2,
@@ -129,12 +147,20 @@ const run = (/** @type {string[]} */ args) => {
       ...process.env,
       ENRICH_API_URL: env.NEXT_PUBLIC_SUPABASE_URL,
       ENRICH_PUBLISHABLE_KEY: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      ENRICH_EMAIL: email('admin'),
+      ENRICH_EMAIL: email('holder'),
       ENRICH_PASSWORD: PASSWORD,
     },
   });
   process.stdout.write(r.stdout);
-  if (r.status !== 0) fail(`the script stopped: ${r.stderr.trim()}`);
+  if (refused) {
+    if (r.status === 0) fail('a run that had to be refused went through');
+    if (!refused.test(r.stderr)) fail(`the run was refused for another reason: ${r.stderr.trim()}`);
+    process.stdout.write(`  (refused, as it must be: ${r.stderr.trim()})\n`);
+  } else if (r.status !== 0) fail(`the script stopped: ${r.stderr.trim()}`);
+  if (!/^enrich: signed in as Made-up Admin Account; switched to TEST Admin$/m.test(r.stdout))
+    fail('the run did not say it switched to TEST Admin');
+  if (!/^enrich: switched back to Made-up Admin Account: yes$/m.test(r.stdout))
+    fail('the run did not prove its switch back');
   return r.stdout;
 };
 /** The three year-to-date figures a run printed first ("revenue  1,000 → …"). */
@@ -146,9 +172,16 @@ const figuresIn = (/** @type {string} */ text) =>
     ]),
   );
 
-const start = figuresIn(run([]));
+const checked = async (/** @type {string[]} */ args, /** @type {RegExp | null} */ refused = null) => {
+  const text = run(args, refused);
+  const n = await leftSwitched();
+  console.log(`enrich proof: sign-ins left switched after this run: ${n}`);
+  if (n) fail('a sign-in was left switched to a TEST user');
+  return text;
+};
+const start = figuresIn(await checked([]));
 if (!start.revenue) fail('the proof did not start from figures above zero');
-run(['--write']);
+await checked(['--write']);
 // what the approved list promises, read straight from the database after the write
 const open = await sql(
   `select p.full_name_en as who, count(*)::int as n
@@ -171,18 +204,75 @@ console.log(
   `enrich proof: blocked tasks ${blocked.n} (3 wanted) · test invoices linked to their TEST client ${linked.n} (6 wanted) · achievements logged from a task ${fromTask.n} (1 wanted)`,
 );
 if (blocked.n !== 3 || linked.n !== 6 || fromTask.n !== 1) fail('the written data is not what the list says');
-const second = run(['--write']);
+// every write was the TEST Admin's, with the Admin account named behind it
+const [logged] = await sql(
+  `select count(*)::int as n,
+          count(*) filter (where r.actor_id <> (select id from core.person where full_name_en = 'TEST Admin' and is_test))::int as other
+   from audit.request r where r.switched_by = (select id from core.person where full_name_en = 'Made-up Admin Account')`,
+);
+console.log(
+  `enrich proof: log entries made while switched ${logged.n}, of them not as TEST Admin ${logged.other} (0 wanted)`,
+);
+if (!logged.n || logged.other) fail('the writes were not logged as TEST Admin with the Admin account named');
+const second = await checked(['--write']);
 if (
   !/to add: 0 organisations \(of 6\), 0 tasks \(of 33\), 0 project, 0 achievements \(of 6\), 0 pipeline cards \(of 3\), 0 invoices \(of 6\)/.test(
     second,
   )
 )
   fail('a second --write found something to add');
-run(['--clean']);
-const end = figuresIn(run([]));
+await checked(['--clean']);
+// a run refused part-way, after the switch: one of the six test invoices on its own makes the plan stop — it must
+// still switch back
+const lone = createClient(env.NEXT_PUBLIC_SUPABASE_URL ?? '', env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '', {
+  auth: { persistSession: false, autoRefreshToken: false },
+  db: { schema: 'api' },
+});
+await lone.auth.signInWithPassword({ email: email('holder'), password: PASSWORD });
+await lone.rpc('sign_in_complete', { p_provider: 'email', p_device_label: 'Enrichment proof' });
+const one = await lone.rpc('finance_row_add', {
+  p_table: 'invoice',
+  p_fields: { ref: 'TESTENR-0001', kind: 'transaction', status: 'Draft', created_on: '2026-01-05', total_sar: 1 },
+  p_reason: 'made up: one test invoice on its own',
+});
+if (one.error) fail(`the lone invoice was refused: ${one.error.message}`);
+await checked([], /some of the six test invoices are there and some are not/);
+const gone = await lone.rpc('finance_rows_remove', { p_table: 'invoice', p_ids: [one.data.id], p_reason: 'made up' });
+if (gone.error) fail(`the lone invoice could not be removed: ${gone.error.message}`);
+await lone.auth.signOut({ scope: 'local' });
+// an admin who is not on the switch list is refused before anything is read or written as a TEST user
+const holderId = (await sql(`select id from core.person where full_name_en = 'Made-up Admin Account'`))[0].id;
+await sql(`delete from core.test_switch_holder where person_id = $1`, [holderId]);
+{
+  console.log('\n$ enrich-test-data.mjs (plan), the account taken off the switch list');
+  const r = spawnSync('node', ['scripts/fixtures/enrich-test-data.mjs'], {
+    cwd: V2,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ENRICH_API_URL: env.NEXT_PUBLIC_SUPABASE_URL,
+      ENRICH_PUBLISHABLE_KEY: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      ENRICH_EMAIL: email('holder'),
+      ENRICH_PASSWORD: PASSWORD,
+    },
+  });
+  if (r.status === 0 || !/not on the test-user switch list/.test(r.stderr))
+    fail(`an account off the switch list was not refused: ${r.stderr.trim()}`);
+  if (/^enrich \(plan\)/m.test(r.stdout)) fail('an account off the switch list read the plan');
+  console.log(`  (refused, as it must be: ${r.stderr.trim()})`);
+  const n = await leftSwitched();
+  console.log(`enrich proof: sign-ins left switched after this run: ${n}`);
+  if (n) fail('a sign-in was left switched to a TEST user');
+}
+await sql(`insert into core.test_switch_holder (person_id, note) values ($1, 'made up: the enrichment proof')`, [
+  holderId,
+]);
+const end = figuresIn(await checked([]));
 console.log(
   `\nenrich proof: Finance year to date before ${JSON.stringify(start)} · after write and clean ${JSON.stringify(end)}`,
 );
 if (JSON.stringify(start) !== JSON.stringify(end)) fail('the figures did not return to where they started');
 await db.end();
-console.log('enrich proof: the figures returned exactly to where they started; a second write added nothing.');
+console.log(
+  'enrich proof: the figures returned exactly to where they started; a second write added nothing; every run switched back, the refused one too, and no sign-in was left switched.',
+);
