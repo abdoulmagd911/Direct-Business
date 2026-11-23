@@ -1,0 +1,16 @@
+docs/v2/landings/LANDING-41.md
+v2/messages/ar.json
+v2/messages/en.json
+v2/src/core/db/database.types.ts
+v2/src/modules/finance/screens/FinanceAchievements.tsx
+v2/src/modules/finance/screens/FinanceLedgerSection.tsx
+v2/supabase/grants.expected
+v2/supabase/migrations/20261123110000_finance_achievements_of_the_period.sql
+v2/supabase/tests/finance/FAC-01-finance-lists-the-periods-achievements-apart-from-the-money.sql
+v2/supabase/tests/sabotage/finance-achievements-of-another-period.sql
+v2/supabase/tests/sabotage/finance-achievements-the-oldest-first.sql
+v2/supabase/tests/sabotage/finance-achievements-what-the-reader-may-not-see.sql
+v2/tests/e2e/landing-35-reflection.spec.ts
+v2/tests/e2e/landing-41-finance-achievements.spec.ts
+v2/tests/sabotage/landing-41.mjs
+v2/tests/unit/finance/finance-lists-the-periods-achievements-apart-from-the-money.test.tsx
