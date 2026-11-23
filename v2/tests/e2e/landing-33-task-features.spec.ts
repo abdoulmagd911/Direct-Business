@@ -16,7 +16,7 @@
  *  no level on Tasks, so they see no task at all).
  * Every value is made up. Sabotage: tests/sabotage/landing-33.mjs.
  */
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { shot } from './helpers';
 import { readsArabic, withArabicOn } from './support/arabic';
 import { doorOf, hydrated, seedTask, sideways, staffAs, tag, type Staff } from './support/landing-34';
@@ -63,6 +63,24 @@ const statusOf = async (number: string) =>
     )
   )[0]!;
 
+/** The board scrolls sideways while the pointer is this near its edge (`EDGE_PX` in board-drag.ts). */
+const BOARD_EDGE_PX = 56;
+
+/**
+ * Where to point at a column: the middle of the part of it that is on the board AND outside the board's two edge
+ * strips. Pointing inside a strip keeps the board scrolling, so the column slides out from under a still pointer.
+ * Null while no such part is on the screen.
+ */
+async function aimAt(page: Page, column: Locator): Promise<{ x: number; y: number } | null> {
+  const b = await column.boundingBox();
+  const frame = await page.locator('[data-task-board]').boundingBox();
+  if (!b || !frame) return null;
+  const left = Math.max(b.x, frame.x + BOARD_EDGE_PX + 8);
+  const right = Math.min(b.x + b.width, frame.x + frame.width - BOARD_EDGE_PX - 8);
+  if (right - left < 16) return null;
+  return { x: (left + right) / 2, y: b.y + Math.min(b.height / 2, 120) };
+}
+
 /** Carry a board card to a column with the mouse: press on the card (or its grip), move in steps, let go. */
 async function dragCard(page: Page, number: string, toColumn: string, by: 'card' | 'grip' = 'card') {
   const card = page.locator(`[data-board-card="${number}"]`);
@@ -78,8 +96,9 @@ async function dragCard(page: Page, number: string, toColumn: string, by: 'card'
   for (let i = 0; i < 40; i++) {
     const b = await target.boundingBox();
     const w = page.viewportSize()!.width;
-    if (b && b.x + b.width / 2 > 8 && b.x + b.width / 2 < w - 8) {
-      await page.mouse.move(b.x + b.width / 2, b.y + Math.min(b.height / 2, 120), { steps: 6 });
+    const aim = await aimAt(page, target);
+    if (aim) {
+      await page.mouse.move(aim.x, aim.y, { steps: 6 });
       // the board may still be scrolling from the edge (on a phone above all): the column is under the card only
       // once it says so — otherwise it is measured again and the card carried to it again
       await page.waitForTimeout(150);
@@ -95,8 +114,9 @@ async function dragCard(page: Page, number: string, toColumn: string, by: 'card'
   // The board may still be scrolling from the edge when the column comes under the card (on a phone above all):
   // measured again and pointed at once more just before the drop, so the card lands where the test aimed it.
   await page.waitForTimeout(150);
-  const at = (await target.boundingBox())!;
-  await page.mouse.move(at.x + at.width / 2, at.y + Math.min(at.height / 2, 120), { steps: 2 });
+  const at = await aimAt(page, target);
+  expect(at, 'the column is on the board, clear of its scrolling edges').not.toBeNull();
+  await page.mouse.move(at!.x, at!.y, { steps: 2 });
   await expect(target, 'the column is still under the card at the drop').toHaveAttribute('data-drop-target', '');
   await page.mouse.up();
   await expect(page.locator('[data-board-ghost]')).toHaveCount(0);
