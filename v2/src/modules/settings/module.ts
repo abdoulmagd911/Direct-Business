@@ -290,5 +290,8 @@ export default defineModule({
       label: 'cap.files.restricted',
       defaults: { head: true, manager: true },
     },
+    // Landing 40 (per-member settings): "Edit someone else's work" — an extra set on one person's record. No role
+    // holds it by default: a role's own levels already say whose work its people edit.
+    { key: 'records.edit_others', page: 'settings.app', label: 'cap.records.edit_others', defaults: {} },
   ],
 });

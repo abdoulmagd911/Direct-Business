@@ -1480,6 +1480,9 @@
     },
     "files": {
       "restricted": "رؤية الملفات المقيّدة"
+    },
+    "records": {
+      "edit_others": "تعديل عمل شخص آخر"
     }
   },
   "setting": {
@@ -2030,6 +2033,20 @@
       "switchedOn": "تم تفعيل {name}",
       "switchedOff": "تم إيقاف {name}",
       "accessStandard": "{role} (دون تغيير)",
+      "extra": {
+        "title": "صلاحيات إضافية لهذا الشخص",
+        "as_role": "حسب دوره",
+        "allowed": "مسموح",
+        "view_only": "عرض فقط",
+        "import": "استيراد الملفات في المالية",
+        "edit_others": "تعديل عمل شخص آخر",
+        "credit": "تغيير حدود الائتمان",
+        "setBy": "حدّده {name} في {date}",
+        "set": "حُدّد في {date}",
+        "viewer": "المشاهد يبقى للعرض فقط. لمنح هذا الشخص أكثر، غيّر دوره.",
+        "admin": "مسؤول النظام لديه كل شيء.",
+        "change": "{what} لـ {name}"
+      },
       "accessChanged": "{role} + {count, plural, one {تغيير واحد} two {تغييران} few {# تغييرات} many {# تغييرًا} other {# تغيير}}",
       "accessShowAll": "عرض الكل",
       "adminHasAll": "للمسؤول أعلى مستوى في كل صفحة — يحدده الدور لا اختيار هنا",
@@ -2600,6 +2617,7 @@
       "not_your_own": "لا أحد يغيّر صلاحياته بنفسه",
       "admins_only": "مسؤول النظام فقط يفعل هذا",
       "above_your_level": "لا يمكنك منح أكثر مما تملك",
+      "viewer_stays_view_only": "المشاهد يبقى للعرض فقط. غيّر دوره لمنحه أكثر.",
       "denied": "لا تملك صلاحية تنفيذ هذا"
     },
     "profile": {

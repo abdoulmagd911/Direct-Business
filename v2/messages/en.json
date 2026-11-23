@@ -1480,6 +1480,9 @@
     },
     "files": {
       "restricted": "See restricted files"
+    },
+    "records": {
+      "edit_others": "Edit someone else's work"
     }
   },
   "setting": {
@@ -2218,6 +2221,20 @@
       "switchedOn": "{name} switched on",
       "switchedOff": "{name} switched off",
       "accessStandard": "{role} (standard)",
+      "extra": {
+        "title": "Extra access for this person",
+        "as_role": "As their role",
+        "allowed": "Allowed",
+        "view_only": "View only",
+        "import": "Import files on Finance",
+        "edit_others": "Edit someone else's work",
+        "credit": "Change credit limits",
+        "setBy": "Set by {name} on {date}",
+        "set": "Set on {date}",
+        "viewer": "A Viewer stays view-only. To give this person more, change their role.",
+        "admin": "An admin has everything.",
+        "change": "{what} for {name}"
+      },
       "accessChanged": "{role} + {count, plural, one {# change} other {# changes}}",
       "accessShowAll": "Show all",
       "adminHasAll": "An admin has every page at its top level — the role decides it, not a choice here",
@@ -2534,6 +2551,7 @@
       "not_your_own": "Nobody changes their own access",
       "admins_only": "Only an admin can do this",
       "above_your_level": "You cannot grant more than you have",
+      "viewer_stays_view_only": "A Viewer stays view-only. Change their role to give them more.",
       "denied": "You do not have access to do this"
     },
     "common": {

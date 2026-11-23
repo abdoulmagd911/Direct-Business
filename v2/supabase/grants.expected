@@ -600,6 +600,7 @@ function work.import_batch_start(p_partner uuid, p_signature text, p_file_name t
 function work.import_batches(p_partner uuid) execute authenticated
 function work.import_code_check(p_text text) execute authenticated
 function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
+function work.import_require() execute authenticated
 function work.my_streak() execute authenticated
 function work.open_asks() execute authenticated
 function work.project_get(p_id uuid) execute authenticated

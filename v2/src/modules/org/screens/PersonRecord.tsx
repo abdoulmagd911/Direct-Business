@@ -43,6 +43,7 @@ import {
 import type { Device } from './MyProfile';
 import { isAccount } from './OrgAccess';
 import { describeWith, summarizeWith } from '../types';
+import { EXTRA_CHOICES, EXTRA_ROWS, extraChoiceOf, type ExtraChoice, type ExtraRow } from '../extra-access';
 import { assignablePeople } from '../pickers';
 
 /** What a person holds, as api.person_open_work answers it: the open counts, and the departments they head. */
@@ -232,6 +233,8 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
   const [email, setEmail] = useState('');
   const [levelChange, setLevelChange] = useState<{ page: string; level: Level } | null>(null);
   const [roleChange, setRoleChange] = useState<string | null>(null);
+  /** An extra waiting for its reason (Landing 40): which of the three rows, and the choice picked. */
+  const [extraChange, setExtraChange] = useState<{ row: ExtraRow; choice: ExtraChoice } | null>(null);
   /**
    * The edit form shows the stored values and sends only what changed (the old app's lesson): it is filled from the
    * record every time Edit opens — so a refresh, an Undo or a change by someone else is what the form starts from,
@@ -515,6 +518,27 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
       },
     );
   };
+  // "As their role" removes the person's own setting; the two other choices write it (granted or not).
+  const setExtra = async (reason: string) => {
+    if (!extraChange) return;
+    const capability = EXTRA_ROWS[extraChange.row];
+    await run(
+      words(t('settings.access.changed')),
+      () =>
+        (extraChange.choice === 'as_role'
+          ? rpc('access_clear_person_capability', { p_person: person.id, p_capability: capability, p_reason: reason })
+          : rpc('access_set_person_capability', {
+              p_person: person.id,
+              p_capability: capability,
+              p_granted: extraChange.choice === 'allowed',
+              p_reason: reason,
+            })) as Promise<{ request_id?: string | null } | null>,
+      () => {
+        setExtraChange(null);
+        refresh();
+      },
+    );
+  };
   const setRole = async (reason: string) => {
     if (!roleChange) return;
     await run(
@@ -723,6 +747,60 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
                 : t('settings.people.accessStandard', { role });
             })()}
           </p>
+        </RailSection>
+      ) : null}
+      {access ? (
+        <RailSection
+          title={t('settings.people.extra.title')}
+          // a sentence is not a term–definition pair: the section is a list of fields only when it draws the rows
+          plain={personIsAdmin || access.role?.key === 'viewer'}
+          data-extra-access
+        >
+          {/* a Viewer stays view-only and an admin has everything (the database says so whatever a row holds):
+              facts, said once, never a picker */}
+          {personIsAdmin ? (
+            <p className="text-sm text-muted" data-extra-note>
+              {t('settings.people.extra.admin')}
+            </p>
+          ) : access.role?.key === 'viewer' ? (
+            <p className="text-sm text-muted" data-extra-note>
+              {t('settings.people.extra.viewer')}
+            </p>
+          ) : (
+            (Object.keys(EXTRA_ROWS) as ExtraRow[]).map((row) => {
+              const own = access.capability_overrides.find((o) => o.capability === EXTRA_ROWS[row]);
+              const choice = extraChoiceOf(own);
+              const setter = own?.set_by ? org.people.find((x) => x.id === own.set_by) : undefined;
+              return (
+                <RailField key={row} label={t(`settings.people.extra.${row}`)}>
+                  <span className="flex flex-col gap-1" data-extra-row={row} data-extra-choice={choice}>
+                    {admin && !self ? (
+                      <Select
+                        value={choice}
+                        onValueChange={(v) => v !== choice && setExtraChange({ row, choice: v as ExtraChoice })}
+                        options={EXTRA_CHOICES.map((c) => ({ value: c, label: t(`settings.people.extra.${c}`) }))}
+                        className="h-8 min-w-32 text-sm"
+                      />
+                    ) : (
+                      <span>{t(`settings.people.extra.${choice}`)}</span>
+                    )}
+                    {own ? (
+                      <span className="text-sm text-muted" data-extra-set>
+                        {setter
+                          ? t('settings.people.extra.setBy', {
+                              name: nameOf(setter, locale),
+                              date: formatDate(new Date(own.set_at), locale, { dateStyle: 'medium' }),
+                            })
+                          : t('settings.people.extra.set', {
+                              date: formatDate(new Date(own.set_at), locale, { dateStyle: 'medium' }),
+                            })}
+                      </span>
+                    ) : null}
+                  </span>
+                </RailField>
+              );
+            })
+          )}
         </RailSection>
       ) : null}
       {access && allAccess
@@ -1347,6 +1425,30 @@ export function PersonRecord({ data }: { data: PersonRecordData }) {
             : undefined
         }
         onSave={setLevel}
+        words={{
+          reason: t('common.reason'),
+          save: t('common.save'),
+          cancel: t('common.cancel'),
+          reasonRequired: t('settings.form.reasonRequired'),
+        }}
+      />
+      <ReasonDialog
+        open={extraChange !== null}
+        onOpenChange={(o) => !o && setExtraChange(null)}
+        title={
+          extraChange
+            ? t('settings.people.extra.change', {
+                what: t(`settings.people.extra.${extraChange.row}`),
+                name: shownName,
+              })
+            : ''
+        }
+        body={
+          extraChange
+            ? `${t(`settings.people.extra.${extraChoiceOf(access?.capability_overrides.find((o) => o.capability === EXTRA_ROWS[extraChange.row]))}`)} → ${t(`settings.people.extra.${extraChange.choice}`)}`
+            : undefined
+        }
+        onSave={setExtra}
         words={{
           reason: t('common.reason'),
           save: t('common.save'),

@@ -22,10 +22,11 @@ export const sabotages = [
     breaks: ['sql:CCL-01'],
     expect: 'a manager is told they can change it',
     edits: [
+      // Landing 40 redefines the rule (a person's own setting first, then the role): the role's part is taken out there
       {
-        file: MIGRATION,
-        find: "      and (r.is_admin or r.key in ('head', 'manager')))",
-        replace: '      and r.is_admin)',
+        file: 'supabase/migrations/20261123100000_per_member_extra_access.sql',
+        find: "                            r.key in ('head', 'manager')))))",
+        replace: '                            false))))',
       },
     ],
   },
@@ -55,33 +56,33 @@ export const sabotages = [
   },
   // ---- the screen's rule: who gets the edit form
   {
-    name: 'credit-limit-a-team-member-is-offered-the-form',
+    name: 'credit-limit-a-viewer-is-offered-the-form',
     breaks: [CREDIT],
-    expect: '> a team member, a viewer and a person with no role are not',
+    expect: '> a viewer and a person with no role never are',
     edits: [
       {
         file: RULE,
-        find: "export const CREDIT_LIMIT_ROLES: readonly string[] = ['manager', 'head'];",
-        replace: "export const CREDIT_LIMIT_ROLES: readonly string[] = ['manager', 'head', 'member', 'viewer'];",
+        find: "export const CREDIT_LIMIT_NEVER: readonly string[] = ['viewer'];",
+        replace: 'export const CREDIT_LIMIT_NEVER: readonly string[] = [];',
       },
     ],
   },
   {
     name: 'credit-limit-a-manager-is-not-offered-the-form',
     breaks: [CREDIT],
-    expect: '> a manager, a head of department and an admin are',
+    expect: '> a manager, a head of department, an admin and a team member may be — the database says who is',
     edits: [
       {
         file: RULE,
-        find: "export const CREDIT_LIMIT_ROLES: readonly string[] = ['manager', 'head'];",
-        replace: "export const CREDIT_LIMIT_ROLES: readonly string[] = ['head'];",
+        find: "export const CREDIT_LIMIT_NEVER: readonly string[] = ['viewer'];",
+        replace: "export const CREDIT_LIMIT_NEVER: readonly string[] = ['viewer', 'manager'];",
       },
     ],
   },
   {
     name: 'credit-limit-page-trusts-the-answer-alone',
     breaks: [CREDIT],
-    expect: '> a team member stays read-only even if the answer said they may change it',
+    expect: '> a viewer stays read-only even if the answer said they may change it',
     edits: [
       {
         file: PAGE,

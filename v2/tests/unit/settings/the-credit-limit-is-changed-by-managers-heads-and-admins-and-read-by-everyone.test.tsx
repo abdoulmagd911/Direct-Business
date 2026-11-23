@@ -1,6 +1,7 @@
 /**
  * Landing 31 — the credit limit in Settings → Finance (the owner's decision of 16 Nov 2026; boards fin2-credit-*).
- * A manager, a head of department and an admin get the edit form; a team member and a viewer get the read-only view —
+ * A manager, a head of department and an admin get the edit form by role, and (Landing 40) so does a team member whose
+ * record says "Allowed" — the database's answer says who; a viewer never does. Everyone else gets the read-only view —
  * the figure, never a box; the amount typed is whole riyals above zero; the Finance page opens for someone who is not
  * an admin with that card and nothing else of Settings, and every other Settings page still refuses them.
  * The database decides for real (CCL-01). Every value is made up.
@@ -26,11 +27,11 @@ const role = (key: string | null) => ({
 });
 
 describe('who is offered the edit form', () => {
-  it('a manager, a head of department and an admin are', () => {
-    for (const key of ['manager', 'head', 'admin']) expect(mayChangeCreditLimit(role(key)), key).toBe(true);
+  it('a manager, a head of department, an admin and a team member may be — the database says who is', () => {
+    for (const key of ['manager', 'head', 'admin', 'member']) expect(mayChangeCreditLimit(role(key)), key).toBe(true);
   });
-  it('a team member, a viewer and a person with no role are not', () => {
-    for (const key of ['member', 'viewer', null]) expect(mayChangeCreditLimit(role(key)), String(key)).toBe(false);
+  it('a viewer and a person with no role never are', () => {
+    for (const key of ['viewer', null]) expect(mayChangeCreditLimit(role(key)), String(key)).toBe(false);
   });
 });
 
@@ -153,10 +154,15 @@ describe('Settings → Finance, by who opens it', () => {
     expect(page.SettingsGroup).toBeUndefined();
     expect(asked).toEqual(['finance_credit_limit']);
   });
-  it('a team member stays read-only even if the answer said they may change it', async () => {
-    me = role('member');
+  it('a viewer stays read-only even if the answer said they may change it', async () => {
+    me = role('viewer');
     answers.finance_credit_limit = { amount: 1250000, can_edit: true, is_default: true, set_at: null };
     expect((await open('finance')).CreditLimitCard?.[0]?.props.canEdit).toBe(false);
+  });
+  it('a team member the database allows (their record says Allowed) gets the edit form', async () => {
+    me = role('member');
+    answers.finance_credit_limit = { amount: 1250000, can_edit: true, is_default: true, set_at: null };
+    expect((await open('finance')).CreditLimitCard?.[0]?.props).toMatchObject({ canEdit: true, undo: false });
   });
   it('a manager and a head of department: the edit form, without Undo (a setting is undone by an admin)', async () => {
     answers.finance_credit_limit = { amount: 900000, can_edit: true, is_default: false, set_at: null };

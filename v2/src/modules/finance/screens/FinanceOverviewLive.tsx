@@ -34,12 +34,15 @@ export function FinanceOverviewLive({
   ask,
   today,
   full,
+  mayImport,
   ledger,
   view,
 }: {
   ask: PeriodAsk;
   today: string;
   full: boolean;
+  /** Whether this person imports files: the extra finance.import (Landing 40) — a head or an admin by role, or "Allowed". */
+  mayImport: boolean;
   /** The ledger's filters, from the address (workstream B); the section below the Overview draws them. */
   ledger: LedgerFilter;
   view: string;
@@ -131,8 +134,9 @@ export function FinanceOverviewLive({
           // own. Once the figures have settled — read or failed — the ledger and "Is it counted?" ask theirs.
           ready={ledgerMayAsk(period.block.status)}
         />
-        {/* Importing needs Finance full (the batch start refuses anything less), so the section is only here for full. */}
-        {full ? <FinanceImportSection /> : null}
+        {/* Importing needs Finance full and the import extra (the import doors refuse anything less), so the section
+            is only here for a person who has both. */}
+        {full && mayImport ? <FinanceImportSection /> : null}
       </div>
     </div>
   );
