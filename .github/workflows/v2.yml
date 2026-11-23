@@ -164,7 +164,15 @@ jobs:
         with:
           version: 2.118.0
       - name: start the stack (database, auth, the Data API and the mail catcher; every migration applied)
-        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+        # A shared runner sometimes still holds a port of the stack (the mail catcher's 54324 — runs 1620 and 1626):
+        # the start then fails before any test runs. It is stopped and tried once more; a second failure is real.
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api || {
+            echo "the stack did not start; stopping it and trying once more"
+            supabase stop --no-backup || true
+            sleep 15
+            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+          }
       - name: the stack's addresses and keys for the app and the specs (its fixed local ones, never the cloud's — V120)
         run: node scripts/e2e/stack-env.mjs >> "$GITHUB_ENV"
       - name: the api schema's types match the migrations (V114)
@@ -218,7 +226,15 @@ jobs:
           version: 2.118.0
       - name: start the stack (database, auth, the Data API and the mail catcher; every migration applied)
         if: steps.plan.outputs.count != '0'
-        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+        # A shared runner sometimes still holds a port of the stack (the mail catcher's 54324 — runs 1620 and 1626):
+        # the start then fails before any test runs. It is stopped and tried once more; a second failure is real.
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api || {
+            echo "the stack did not start; stopping it and trying once more"
+            supabase stop --no-backup || true
+            sleep 15
+            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime,storage-api
+          }
       - name: the stack's addresses and keys for the app and the specs (its fixed local ones, never the cloud's — V120)
         if: steps.plan.outputs.count != '0'
         run: node scripts/e2e/stack-env.mjs >> "$GITHUB_ENV"
