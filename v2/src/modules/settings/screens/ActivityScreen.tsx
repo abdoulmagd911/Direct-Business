@@ -54,6 +54,24 @@ export function whatFilterOptions(entries: { key: string; label: string }[]): { 
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/**
+ * The entries the What filter keeps, each showing only its changes of the chosen kind (Landing 44). The log lists a
+ * whole request when any one of its changes is of that kind, so a request that wrote many kinds at once — the
+ * seed import of 20 Nov wrote 1,384 changes over 28 record types, 8 of them comments — came in under "Comment"
+ * and was drawn whole, named after its first change ("Organisation added"). It now shows its comment changes only.
+ * `what` is the filter's value: one or more entity keys joined with ","; empty keeps every entry as it is.
+ */
+export function onlyWhat(rows: HistoryRow[], what: string): HistoryRow[] {
+  const keys = what
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!keys.length) return rows;
+  return rows
+    .map((r) => ({ ...r, changes: r.changes.filter((c) => c.entity !== undefined && keys.includes(c.entity)) }))
+    .filter((r) => r.changes.length > 0);
+}
+
 /** The rows of one request merged with older pages, by request, newest first (F-B4-04): a page never repeats a
  * request already read, however the cursor fell. */
 export function mergeActivityRows(rows: HistoryRow[], page: HistoryRow[]): HistoryRow[] {
@@ -156,10 +174,12 @@ export function ActivityScreen({
     setExtraKey(filterKey);
     setExtraRows([]);
   }
-  const allRows = mergeActivityRows(rows, extraRows);
-  const hasEarlier = total !== undefined && allRows.length < total;
+  // the pages count as read: what the What filter hides inside an entry never makes "Show earlier" ask again
+  const merged = mergeActivityRows(rows, extraRows);
+  const allRows = onlyWhat(merged, current === 'changes' ? filters.entity : '');
+  const hasEarlier = total !== undefined && merged.length < total;
   const loadEarlier = async () => {
-    const last = allRows[allRows.length - 1];
+    const last = merged[merged.length - 1];
     if (!last || !hasEarlier) return;
     const page = (await rpc('activity', {
       p_actor: filters.actor || undefined,

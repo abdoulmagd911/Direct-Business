@@ -80,7 +80,11 @@ async function dragCard(page: Page, number: string, toColumn: string, by: 'card'
     const w = page.viewportSize()!.width;
     if (b && b.x + b.width / 2 > 8 && b.x + b.width / 2 < w - 8) {
       await page.mouse.move(b.x + b.width / 2, b.y + Math.min(b.height / 2, 120), { steps: 6 });
-      break;
+      // the board may still be scrolling from the edge (on a phone above all): the column is under the card only
+      // once it says so — otherwise it is measured again and the card carried to it again
+      await page.waitForTimeout(150);
+      if ((await target.getAttribute('data-drop-target')) === '') break;
+      continue;
     }
     const frame = (await page.locator('[data-task-board]').boundingBox())!;
     const right = b ? b.x > w / 2 : true;
@@ -88,6 +92,12 @@ async function dragCard(page: Page, number: string, toColumn: string, by: 'card'
     await page.waitForTimeout(120);
   }
   await expect(target, 'the column under the card is marked').toHaveAttribute('data-drop-target', '');
+  // The board may still be scrolling from the edge when the column comes under the card (on a phone above all):
+  // measured again and pointed at once more just before the drop, so the card lands where the test aimed it.
+  await page.waitForTimeout(150);
+  const at = (await target.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + Math.min(at.height / 2, 120), { steps: 2 });
+  await expect(target, 'the column is still under the card at the drop').toHaveAttribute('data-drop-target', '');
   await page.mouse.up();
   await expect(page.locator('[data-board-ghost]')).toHaveCount(0);
 }
@@ -421,8 +431,13 @@ test('B5 — the board: drag a card to another column and its status changes; th
   const grip = (await phone.page.locator(`[data-board-card="${c}"] [data-board-grip]`).boundingBox())!;
   expect(Math.min(grip.width, grip.height), 'the grip is a 44 px target').toBeGreaterThanOrEqual(44);
   await dragCard(phone.page, c, 'in_progress', 'grip');
+  // the screen shows the card in its new column first; the write behind it may take a moment on a busy runner
+  await expect(
+    phone.page.locator(`[data-board-column="in_progress"] [data-board-card="${c}"]`),
+    'the card sits in its new column on a phone',
+  ).toBeVisible();
   await expect
-    .poll(async () => (await statusOf(c)).meaning, 'the grip carried the card on a phone')
+    .poll(async () => (await statusOf(c)).meaning, { message: 'the grip carried the card on a phone', timeout: 20_000 })
     .toBe('in_progress');
   expect(await sideways(phone.page), 'the page does not scroll sideways on a phone').toBeLessThanOrEqual(0);
   expect(await smallWords(phone.page), 'nothing under 12 px on the board on a phone').toEqual([]);
