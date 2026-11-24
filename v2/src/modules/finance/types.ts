@@ -1,5 +1,6 @@
 // The shapes the Finance reads answer in (api.finance_period, finance_closed_months, finance_health, …). The wrappers
 // return jsonb, so the screen states what it reads here; a read that does not fit fails in words, never as 0 (M27, M53).
+import type { CommissionType, DealType, DealTypeBy, DealTypeLine } from './deal-type';
 
 export type Part = { units: number; revenue: number; cost: number; profit: number };
 
@@ -125,6 +126,16 @@ export type LedgerRow = {
   merged_by?: 'client_id' | 'discount_code' | null;
   /** What the code text on the row matched: one code, none, or more than one. */
   code_state?: CodeState;
+  /** Landing 47 (A5): prepaid, postpaid, tender or promo; null = not set (nothing settles it yet). */
+  deal_type?: DealType | null;
+  /** What decided the deal type: a person, the invoice's client ID, its code, or its organisation's own kind. */
+  deal_type_by?: DealTypeBy | null;
+  /** Landing 47 (A12): a counted row of a postpaid deal — paid, and still to be settled by the organisation. */
+  receivable?: boolean;
+  /** Landing 47 (A14): the row carries a DPIN — its tax invoice is issued. */
+  tax_invoice_issued?: boolean;
+  /** Landing 47 (A7): which provider commission a hand-typed commission is. */
+  commission_type?: CommissionType | null;
 };
 
 /** What a code text matched in the codes list; null when the row carries no code text. */
@@ -194,6 +205,8 @@ export type NotYetCountedRow = {
   source: 'manual' | 'import';
   /** The record's own page in Direct, when it carries one. */
   direct_url: string | null;
+  /** Landing 47 (A5): the document's deal type; null = not set. An older read leaves it out. */
+  deal_type?: DealType | null;
 };
 
 /** One invoice of the ledger: its total, what arrived, what is left, and its transactions. */
@@ -265,6 +278,10 @@ export type LedgerReport = {
   canToggle?: boolean;
   /** Landing 37: the documents not fully paid yet, listed apart; an older read leaves it out. */
   notYetCounted?: NotYetCountedRow[];
+  /** Landing 47 (A5): the listed counted rows added up by deal type — the database's own lines. */
+  byDealType?: DealTypeLine[];
+  /** True when the reader may set a row's deal type (Full on Finance). */
+  canSetDealType?: boolean;
 };
 
 /** Everything the Overview reads in one go; a part that failed is null and says so on the screen. */

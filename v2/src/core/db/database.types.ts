@@ -256,16 +256,26 @@ export type Database = {
       files: { Args: { p_entity: string; p_id: string; p_side?: string }; Returns: Json };
       files_remove: { Args: { p_ids: string[]; p_reason?: string }; Returns: Json };
       finance_achievements: { Args: { p_from: string; p_to: string }; Returns: Json };
+      finance_ageing: { Args: { p_all?: boolean; p_partner?: string }; Returns: Json };
       finance_channel_set: {
         Args: { p_channel: string; p_invoice: string; p_person?: string; p_reason?: string };
         Returns: Json;
       };
       finance_closed_months: { Args: Record<PropertyKey, never>; Returns: Json };
+      finance_commission_set: {
+        Args: { p_invoice: string; p_proof: string; p_reason: string; p_type: string };
+        Returns: Json;
+      };
       finance_company_not_counted: { Args: { p_from: string; p_partner: string; p_to: string }; Returns: Json };
+      finance_contract_payments: { Args: { p_contract: string; p_grain?: string }; Returns: Json };
       finance_counted_by_month: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_credit_limit: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_credit_limit_set: { Args: { p_amount: number; p_reason: string }; Returns: Json };
       finance_days_to_pay: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
+      finance_deal_type_set: {
+        Args: { p_number: string; p_partner: string; p_reason: string; p_type: string };
+        Returns: Json;
+      };
       finance_difference_counts: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -300,6 +310,7 @@ export type Database = {
       };
       finance_exclusion_rules: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_health: { Args: { p_from?: string; p_to?: string }; Returns: Json };
+      finance_held_rows: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_import: {
         Args: {
           p_dry_run?: boolean;
@@ -367,6 +378,7 @@ export type Database = {
       };
       finance_proposal_decide: { Args: { p_id: string; p_reason?: string; p_tick: boolean }; Returns: Json };
       finance_receivables: { Args: { p_partner?: string }; Returns: Json };
+      finance_reconciliation: { Args: { p_from: string; p_to: string }; Returns: Json };
       finance_row_add: { Args: { p_fields: Json; p_reason?: string; p_table: string }; Returns: Json };
       finance_row_edit: {
         Args: { p_fields: Json; p_id: string; p_reason?: string; p_table: string; p_version: number };
@@ -427,6 +439,7 @@ export type Database = {
       };
       import_batches: { Args: { p_partner: string }; Returns: Json };
       import_code_check: { Args: { p_text: string }; Returns: Json };
+      import_expense_preview: { Args: { p_partner: string; p_rows: Json }; Returns: Json };
       import_ledger: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };

@@ -90,6 +90,8 @@ export function ledgerRowsToCsv(
     dpin: string;
     flags: string;
     total: string;
+    /** Landing 47 (A5): the deal type column — the last one, so every earlier column stays where it was. */
+    dealType?: string;
   },
   companyName: (partnerId: string | null) => string,
 ): string {
@@ -107,6 +109,7 @@ export function ledgerRowsToCsv(
       headers.profit,
       headers.dpin,
       headers.flags,
+      ...(headers.dealType ? [headers.dealType] : []),
     ]
       .map(csvCell)
       .join(','),
@@ -126,6 +129,8 @@ export function ledgerRowsToCsv(
         money(r.profit),
         r.dpin,
         r.flags.join(' '),
+        // the deal type as the database names it; empty when it is not set — never a guessed word
+        ...(headers.dealType ? [r.deal_type ?? ''] : []),
       ]
         .map(csvCell)
         .join(','),
@@ -133,7 +138,20 @@ export function ledgerRowsToCsv(
   }
   const t = report.totals;
   lines.push(
-    [headers.total, '', '', '', '', '', money(t.revenue), money(t.cost), money(t.profit), '', '']
+    [
+      headers.total,
+      '',
+      '',
+      '',
+      '',
+      '',
+      money(t.revenue),
+      money(t.cost),
+      money(t.profit),
+      '',
+      '',
+      ...(headers.dealType ? [''] : []),
+    ]
       .map(csvCell)
       .join(','),
   );

@@ -6,7 +6,7 @@ import { rpc } from '@/core/db/rpc';
 import { Button } from '@/ui/Button';
 import { DataState } from '@/ui/DataState';
 import { readFailure, type ReadFailure } from '../../read-failure';
-import type { CompanySummary, PartnerCard, Side } from '../../types';
+import type { CompanySummary, Contract, PartnerCard, Side } from '../../types';
 import { CodesTab, FinanceTab } from './CompanyTabs';
 
 /**
@@ -30,7 +30,10 @@ export function SummaryTabs({
   side,
   hideImported,
   view,
+  contracts = [],
 }: {
+  /** The record's contracts: the Finance tab lists a client-side contract's payments (Landing 47, A13). */
+  contracts?: Contract[];
   /** The record's open tab; only 'codes' and 'finance' draw (and ask). */
   tab: string;
   card: PartnerCard;
@@ -124,6 +127,7 @@ export function SummaryTabs({
       side={side}
       hideImported={hideImported}
       view={view}
+      contracts={contracts}
     />
   );
 }

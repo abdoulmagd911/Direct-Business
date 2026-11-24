@@ -23,6 +23,7 @@ import {
   blankExpense,
   blankInvoice,
   blankLine,
+  commissionOf,
   expenseFields,
   hasRevenue,
   invoiceFields,
@@ -41,6 +42,7 @@ import {
   type Lists,
   type SavedInvoice,
 } from '../invoice-form';
+import { COMMISSION_TYPES } from '../deal-type';
 import { financeWrote } from '../use-reads';
 
 const NONE = '__none';
@@ -142,6 +144,16 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
       const id = await add('invoice', invoiceFields(d, lists));
       for (const l of d.lines) await add('invoice_line', lineFields(l, id, lists));
       for (const e of d.expenses) await add('expense_line', expenseFields(e, id, lists));
+      // A7: the commission names itself on the invoice just typed. It is part of this one save: a refusal here takes
+      // the invoice back with everything else (the catch below), and Undo of the invoice takes the naming with it.
+      const commission = commissionOf(d);
+      if (commission)
+        await rpc('finance_commission_set', {
+          p_invoice: id,
+          p_type: commission,
+          p_proof: d.commissionProof.trim(),
+          p_reason: t('finance.new.commissionReason'),
+        });
     } catch (e) {
       // all or nothing: what was already written is taken back, then the refusal is said in words
       for (const rid of [...made].reverse()) await undoRequest(rid).catch(() => null);
@@ -328,6 +340,47 @@ function NewInvoiceForm({ today, lists }: { today: string; lists: Lists }) {
                 </Field>
               </div>
             </Card>
+
+            {/* Landing 47 (A7): a commission typed by hand names which provider commission it is, with its proof */}
+            {hasRevenue(d.kind) ? (
+              <Card title={t('finance.new.commission')}>
+                <div className="grid gap-4 @min-[640px]:grid-cols-3" data-new-invoice-commission>
+                  <Field label={t('finance.new.commissionType')}>
+                    {(p) => (
+                      <Select
+                        {...p}
+                        value={d.commissionType || NONE}
+                        onValueChange={(v) =>
+                          set('commissionType', (v === NONE ? '' : v) as InvoiceDraft['commissionType'])
+                        }
+                        options={[
+                          { value: NONE, label: t('finance.new.commissionNone') },
+                          ...COMMISSION_TYPES.map((c) => ({ value: c, label: t(`finance.commissionType.${c}`) })),
+                        ]}
+                        data-new-invoice-commission-type
+                      />
+                    )}
+                  </Field>
+                  {commissionOf(d) ? (
+                    <Field
+                      label={t('finance.new.commissionProof')}
+                      error={problem('commissionProof')}
+                      required={t('common.required')}
+                      className="@min-[640px]:col-span-2"
+                    >
+                      {(p) => (
+                        <Input
+                          {...p}
+                          value={d.commissionProof}
+                          onChange={(e) => set('commissionProof', e.target.value)}
+                          data-new-invoice-commission-proof
+                        />
+                      )}
+                    </Field>
+                  ) : null}
+                </div>
+              </Card>
+            ) : null}
 
             {d.kind !== 'wallet_topup' ? (
               <Card

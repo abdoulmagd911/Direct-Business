@@ -8,6 +8,8 @@ import { formatDate, formatMoney, formatStoredDate } from '@/core/i18n/format';
 import { stampOf } from '@/modules/finance/figures';
 import { ledgerRowsToCsv } from '@/modules/finance/ledger';
 import { riyadhDay } from '@/modules/finance/period';
+import { ContractPayments } from '@/modules/finance/screens/ContractPayments';
+import { FinanceAgeing } from '@/modules/finance/screens/FinanceChecks';
 import { ledgerReportOf } from '@/modules/finance/screens/ledger-report';
 import type { LedgerReport, LedgerRow, PaymentsAsOf } from '@/modules/finance/types';
 import { useFinanceRead } from '@/modules/finance/use-reads';
@@ -20,7 +22,8 @@ import { Money } from '@/ui/Money';
 import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Switch } from '@/ui/Switch';
 import { FilesSection as SharedFilesSection } from '@/ui/record/FilesSection';
-import type { CompanyFile, CompanySummary, Identifier, ListEntry, PartnerCard, Side } from '../../types';
+import { isPostpaidOnly } from '../../postpaid';
+import type { CompanyFile, CompanySummary, Contract, Identifier, ListEntry, PartnerCard, Side } from '../../types';
 
 /** The file kinds the company Files section offers, and the purpose each is stored under. */
 const FILE_KINDS = [
@@ -719,7 +722,10 @@ export function FinanceTab({
   side,
   hideImported,
   view,
+  contracts = [],
 }: {
+  /** The record's contracts (Landing 47, A13): a client-side one lists its payments by month or quarter here. */
+  contracts?: Contract[];
   card: PartnerCard;
   summary: CompanySummary | null;
   onRetry: () => void;
@@ -752,6 +758,9 @@ export function FinanceTab({
     );
   }
   const wallet = summary.wallet;
+  // Landing 47 (A12): a postpaid organisation has no wallet top-up — it settles by hand with the Finance team
+  const postpaid = isPostpaidOnly(card.identifiers);
+  const clientContracts = contracts.filter((c) => c.side === 'client');
   const groups = (['prepaid', 'postpaid', 'tender'] as const).map((sub) => ({
     sub,
     rows: card.identifiers.filter((i) => i.kind === 'payments_client_id' && i.subkind === sub),
@@ -838,15 +847,53 @@ export function FinanceTab({
             </span>
             {t('partners.companyFinance.wallet')}
           </h2>
-          {moneyRow(t('partners.companyFinance.toppedUp'), wallet.topped_up, locale, notKnown, sar)}
-          {moneyRow(t('partners.companyFinance.walletSpent'), wallet.wallet_spent, locale, notKnown, sar)}
-          {moneyRow(t('partners.companyFinance.invoicedTotal'), wallet.invoiced_total, locale, notKnown, sar)}
-          {moneyRow(t('partners.companyFinance.balance'), wallet.balance, locale, notKnown, sar, true)}
-          {moneyRow(t('partners.companyFinance.held'), wallet.held, locale, notKnown, sar)}
-          {moneyRow(t('partners.companyFinance.available'), wallet.available, locale, notKnown, sar, true)}
-          <p className="mt-2 text-sm text-muted">{t('partners.companyFinance.heldNotRecorded')}</p>
+          {postpaid ? (
+            // no top-up, no wallet balance: only what was invoiced, and the words for how it is settled
+            <>
+              {moneyRow(t('partners.companyFinance.invoicedTotal'), wallet.invoiced_total, locale, notKnown, sar)}
+              <p className="mt-2 text-sm text-muted" data-partner-finance-wallet-postpaid>
+                {t('partners.companyFinance.postpaidNoTopUp')}
+              </p>
+            </>
+          ) : (
+            <>
+              {moneyRow(t('partners.companyFinance.toppedUp'), wallet.topped_up, locale, notKnown, sar)}
+              {moneyRow(t('partners.companyFinance.walletSpent'), wallet.wallet_spent, locale, notKnown, sar)}
+              {moneyRow(t('partners.companyFinance.invoicedTotal'), wallet.invoiced_total, locale, notKnown, sar)}
+              {moneyRow(t('partners.companyFinance.balance'), wallet.balance, locale, notKnown, sar, true)}
+              {moneyRow(t('partners.companyFinance.held'), wallet.held, locale, notKnown, sar)}
+              {moneyRow(t('partners.companyFinance.available'), wallet.available, locale, notKnown, sar, true)}
+              <p className="mt-2 text-sm text-muted">{t('partners.companyFinance.heldNotRecorded')}</p>
+            </>
+          )}
         </section>
       </div>
+
+      {side === 'client' ? (
+        <>
+          {/* Landing 47 (A6): what this organisation still owes and how old it is — the Finance page's own read */}
+          <FinanceAgeing partner={card.id} />
+          {/* Landing 47 (A13): each contract's payments, by month or quarter, with its invoices under each period */}
+          <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-finance-contracts>
+            <h2 className={cn(CARD_TITLE, 'mb-3')}>{t('partners.companyFinance.contractPayments')}</h2>
+            {clientContracts.length ? (
+              <ul className="divide-y divide-border">
+                {clientContracts.map((c) => (
+                  <ContractPayments
+                    key={c.id}
+                    contractId={c.id}
+                    title={c.title}
+                    startOn={c.start_on}
+                    endOn={c.end_on}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <DataState kind="empty" compact message={t('partners.companyFinance.contractNone')} />
+            )}
+          </section>
+        </>
+      ) : null}
 
       <section className={cn(CARD, 'p-5 max-sm:p-4')} data-partner-finance-tenders>
         <h2 className={cn(CARD_TITLE, 'mb-3')}>{t('partners.companyFinance.tenders')}</h2>

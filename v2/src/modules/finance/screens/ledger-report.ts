@@ -1,3 +1,4 @@
+import { commissionTypeOf, dealTypeByOf, dealTypeLinesOf, dealTypeOf } from '../deal-type';
 import type { CodeState, LedgerReport, LedgerRow, NotYetCountedRow, UnifiedPromoRow } from '../types';
 
 type Raw = Record<string, unknown>;
@@ -36,6 +37,13 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
     source_partner_id: text(r.source_partner_id),
     merged_by: r.merged_by === 'client_id' || r.merged_by === 'discount_code' ? r.merged_by : null,
     code_state: codeState(r.code_state),
+    // Landing 47: the row's marks. A deal type the database does not name is "not set"; a mark is on only when the
+    // database says so — an older answer carries none, and none is then drawn.
+    deal_type: dealTypeOf(r.deal_type),
+    deal_type_by: dealTypeByOf(r.deal_type_by),
+    receivable: r.receivable === true,
+    tax_invoice_issued: r.tax_invoice_issued === true,
+    commission_type: commissionTypeOf(r.commission_type),
     // a row that does not count carries no cost and no profit, whatever arrived
     ...(r.counted === false ? { cost: null, profit: null } : {}),
   }));
@@ -79,6 +87,7 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
         status: text(n.status),
         source: n.source === 'import' ? 'import' : 'manual',
         direct_url: link && /^https?:\/\//i.test(link) ? link : null,
+        deal_type: dealTypeOf(n.deal_type),
       },
     ];
   });
@@ -114,5 +123,7 @@ export function ledgerReportOf(answer: unknown): LedgerReport {
     codeDiscount: num(either(a, 'code_discount', 'codeDiscount')),
     canToggle: either(a, 'can_toggle', 'canToggle') === true,
     notYetCounted,
+    byDealType: dealTypeLinesOf(either(a, 'by_deal_type', 'byDealType')),
+    canSetDealType: either(a, 'can_set_deal_type', 'canSetDealType') === true,
   };
 }

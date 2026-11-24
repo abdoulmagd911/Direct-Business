@@ -11,10 +11,12 @@ import { Select } from '@/ui/Select';
 import { toast } from '@/ui/Toast';
 import { LEDGER_KINDS, ledgerFilterQuery, ledgerReadArgs } from '../ledger';
 import type { PeriodAsk } from '../period';
+import type { DealType } from '../deal-type';
 import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
 import { financeWrote, useFinanceRead } from '../use-reads';
 import { CountedTable } from './CountedTable';
 import { FinanceAchievements } from './FinanceAchievements';
+import { FinanceAgeing, FinanceHeld, FinanceReconciliation } from './FinanceChecks';
 import { FinanceReport, type LedgerToggle } from './FinanceReport';
 import { FinanceCard } from './parts';
 import { ledgerReportOf } from './ledger-report';
@@ -135,6 +137,20 @@ export function FinanceLedgerSection({
     financeWrote();
     refetchAll();
   };
+  // Landing 47 (A5): set one row's deal type — the row's own number at the organisation it is RECORDED under (none for
+  // a row recorded here that matches no organisation). Full on Finance; the database refuses anyone else, in words.
+  const onSetDealType = async (row: LedgerRow, type: DealType | null, reason: string) => {
+    if (!row.number) return;
+    await rpc('finance_deal_type_set', {
+      p_partner: (row.source_partner_id ?? null) as never,
+      p_number: row.number,
+      p_type: type as never,
+      p_reason: reason,
+    });
+    toast.done(t('finance.ledger.deal.setDone', { number: row.number }));
+    financeWrote();
+    refetchAll();
+  };
   const companyName = (c: { partner_id: string | null; trade_name_en: string | null; trade_name_ar: string | null }) =>
     locale === 'ar' && c.trade_name_ar ? c.trade_name_ar : (c.trade_name_en ?? '');
   // The partners the box offers stay while the next view loads, so a picked partner never goes blank meanwhile.
@@ -245,10 +261,16 @@ export function FinanceLedgerSection({
           failed={read.block.status === 'failed'}
           onRetry={read.retry}
           onToggle={onToggle}
+          onSetDealType={onSetDealType}
         />
       </FinanceCard>
       {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}
       <CountedTable from={ask.from} to={ask.to} ready={ready} />
+      {/* Landing 47: does Finance agree with itself (A10), what is owed and how old (A6), what is held to tie (A11) —
+          three reads of their own beside the money; each waits its turn like the ledger and asks again on its own */}
+      <FinanceReconciliation from={ask.from} to={ask.to} ready={ready} />
+      <FinanceAgeing ready={ready} />
+      <FinanceHeld from={ask.from} to={ask.to} ready={ready} />
       {/* the period's achievements, apart from the money (Landing 41): a list with no amount, in no total */}
       <FinanceAchievements from={ask.from} to={ask.to} ready={ready} />
     </>

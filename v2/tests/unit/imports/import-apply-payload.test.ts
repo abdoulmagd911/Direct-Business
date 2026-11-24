@@ -14,6 +14,8 @@ function row(patch: Partial<NormalisedRow> & { rowNos: number[] }): NormalisedRo
     wallet_topup: 0,
     cost: null,
     expense_lines: 0,
+    lines: [],
+    expense_repeats: 0,
     status_text: null,
     fully_paid: false,
     audit_required: false,
