@@ -312,3 +312,21 @@ that spec red.
 - A row's deal-type chip says what decided it only as a hover title (person · client ID · code · partner).
 - On the contract payments list a period with only not-yet-counted invoices shows a total of 0 with the invoices
   marked under it.
+
+## CI runs 1633 and the next — a second red job, and its fix (fourth and fifth commits, tests only)
+
+In both runs shard 5/5 of the browser sabotage job was red on this landing's own plant
+`e2e-l47-the-ledger-draws-no-deal-type`: the test went red, but not with the words the plant names. It could not be
+made to on the builder's machine — not on a clean database, not after the eleven Finance plants that ran before it,
+not with CI's settings.
+
+The cause is the month the test took for itself. The other Finance specs draw a free far-past month from a counter
+(`tests/e2e/support/finance-month.ts`, 1960 onward, one step a draw); on a clean database its 26th draw is March 1962,
+the month this spec named as its own — and `ownMonth` clears imported rows only, not a typed invoice. In the shard,
+enough draws ran first; the typed invoice moved the month's Revenue, and the test stopped at "the month counts the
+three rows", before the line the plant breaks.
+
+This spec's three page-wide months are now in 1958, before the counter's range (the fifth commit); the fourth commit
+(the Ledger's figures are waited for, not read once) was made before the cause was found and is kept as a harmless
+tightening. The same latent clash exists for the months `landing-32-finance-fb.spec.ts` names (1962-05, 1962-08,
+1963-02, 1964-03): not touched here — reported.

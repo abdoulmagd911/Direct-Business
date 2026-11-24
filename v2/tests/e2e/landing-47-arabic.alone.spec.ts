@@ -39,7 +39,7 @@ test('Arabic: the deal types, the agreement check, the pursue list, the held row
   test.setTimeout(300_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
-  const month = await ownMonth('1962-09');
+  const month = await ownMonth('1958-09');
   const org = await seedOrg(call, 'Arabic Postpaid With A Long Trade Name For The Narrow Screen');
   const bare = await call('partner_create', {
     p_partner: {

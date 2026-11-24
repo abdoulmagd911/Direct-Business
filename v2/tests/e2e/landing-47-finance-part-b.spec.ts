@@ -13,7 +13,10 @@
  *  5. An expense file: a line repeated in the file is counted once, a reference that is a tax invoice number is held
  *     in words, and Confirm stores the cost the preview showed.
  *  6. The speed gate: the four new reads answer in under 3 s in total for every role; no role, no read.
- * Page-wide figures are read only inside a far-past month no other spec uses. Every value is made up.
+ * Page-wide figures are read only inside a far-past month no other spec uses — before 1960, where the month
+ * sequence the other Finance specs draw from (support/finance-month.ts, 1960 onward) never lands: on the build
+ * machine its 26th draw was March 1962, this spec's first month, and a typed invoice there moved the total.
+ * Every value is made up.
  * Sabotage: tests/sabotage/landing-47-e2e.mjs.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -92,7 +95,7 @@ test('1 · the Ledger says what each row is, By deal type filters it, a person s
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
-  const month = await ownMonth('1962-03');
+  const month = await ownMonth('1958-03');
   const postpaid = await seedOrg(call, 'Postpaid Deal');
   // an organisation that holds no client ID at all: nothing settles its rows' deal type
   const bare = await call('partner_create', {
@@ -310,7 +313,7 @@ test('4 · a commission typed by hand carries its proof, and its Ledger row says
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await signedInAdmin(page);
-  const month = await ownMonth('1962-07');
+  const month = await ownMonth('1958-07');
   const number = rowNo();
   await page.goto('/finance/new');
   await hydrated(page);
