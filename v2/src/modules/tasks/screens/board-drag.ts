@@ -8,12 +8,44 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPoi
  * anywhere else on the board still scrolls it. While a card is carried, the column under the pointer is marked, the
  * board scrolls sideways near its edges, and Escape puts the card back. Letting go over another column hands the
  * board the card and the column; nothing is moved here — the board asks the same move the status pill would.
+ *
+ * Landing 47: a column takes a card anywhere in its LANE — the strip of the board above and below it, not only the
+ * column's own box. A short column (an empty one above all) is a few lines tall beside a long one, and a card carried
+ * straight across from lower down passed under it and was not taken. And the board's sideways scroll near an edge
+ * goes by the clock, not by the screen's refresh rate (a 120 Hz phone scrolled twice as fast as a 60 Hz one), slower
+ * at the strip's inner side than at the board's very edge, so a column can be stopped on.
  */
 export type DragState = { id: string; x: number; y: number; over: string | null; label: string } | null;
 
 const START_PX = 6;
-const EDGE_PX = 56;
-const SCROLL_PX = 14;
+export const EDGE_PX = 56;
+/** The sideways scroll at the board's very edge, in px a second (what 14 px a frame was on a 60 Hz screen). */
+export const SCROLL_PX_S = 840;
+
+export type Box = { left: number; right: number; top: number; bottom: number };
+
+/**
+ * The column whose lane holds the point: inside the board, the column the point is level with — whether the point
+ * is on the column's own box or above or below it. Null outside the board and in the gap between two columns.
+ */
+export function laneAt(x: number, y: number, board: Box, columns: readonly { key: string; box: Box }[]): string | null {
+  if (x < board.left || x > board.right || y < board.top || y > board.bottom) return null;
+  for (const c of columns) if (x >= c.box.left && x <= c.box.right) return c.key;
+  return null;
+}
+
+/**
+ * How far the board scrolls sideways for a pointer at `x` over `ms` milliseconds: nothing outside the two edge
+ * strips; inside one, from about a third of the full speed at the strip's inner side to the full speed at the edge.
+ * Negative is towards the left edge. A long gap between two frames counts as 50 ms at most, so the board never jumps.
+ */
+export function edgeScroll(x: number, left: number, right: number, ms: number): number {
+  const into = x < left + EDGE_PX ? left + EDGE_PX - x : x > right - EDGE_PX ? x - (right - EDGE_PX) : 0;
+  if (into <= 0) return 0;
+  const depth = Math.min(1, into / EDGE_PX);
+  const px = (SCROLL_PX_S * (0.35 + 0.65 * depth) * Math.min(Math.max(ms, 0), 50)) / 1000;
+  return x < left + EDGE_PX ? -px : px;
+}
 
 export function useBoardDrag(onDrop: (cardId: string, columnKey: string) => void) {
   const [drag, setDrag] = useState<DragState>(null);
@@ -36,7 +68,15 @@ export function useBoardDrag(onDrop: (cardId: string, columnKey: string) => void
   const columnAt = (x: number, y: number): string | null => {
     const el = document.elementFromPoint(x, y);
     const col = el instanceof Element ? el.closest('[data-board-column]') : null;
-    return col instanceof HTMLElement ? (col.dataset.boardKey ?? null) : null;
+    if (col instanceof HTMLElement) return col.dataset.boardKey ?? null;
+    // not on a column's own box: the column whose lane the pointer is in (a short column under a long one's card)
+    const f = frame.current;
+    if (!f) return null;
+    const columns = Array.from(f.querySelectorAll<HTMLElement>('[data-board-column]')).map((c) => ({
+      key: c.dataset.boardKey ?? '',
+      box: c.getBoundingClientRect(),
+    }));
+    return laneAt(x, y, f.getBoundingClientRect(), columns) || null;
   };
 
   const stop = useCallback(() => {
@@ -64,14 +104,23 @@ export function useBoardDrag(onDrop: (cardId: string, columnKey: string) => void
       // a pointer that cannot be captured still drags while it stays over the page
     }
     // near the board's edges it scrolls sideways, so a column off the screen can be reached
-    const tick = () => {
+    let then = performance.now();
+    // the part of a pixel not yet scrolled: a browser keeps whole pixels, and a slow frame's step can be under one
+    let owed = 0;
+    const tick = (now: number) => {
       const f = frame.current;
       if (!f || !live.current?.on) return;
       const r = f.getBoundingClientRect();
       const { x: px, y: py } = last.current;
       const before = f.scrollLeft;
-      if (px < r.left + EDGE_PX) f.scrollLeft -= SCROLL_PX;
-      else if (px > r.right - EDGE_PX) f.scrollLeft += SCROLL_PX;
+      const step = edgeScroll(px, r.left, r.right, now - then);
+      then = now;
+      owed = step === 0 ? 0 : owed + step;
+      const whole = Math.trunc(owed);
+      if (whole !== 0) {
+        f.scrollLeft += whole;
+        owed -= whole;
+      }
       if (f.scrollLeft !== before) setDrag((d) => (d ? { ...d, over: columnAt(px, py) } : d));
       timer.current = window.requestAnimationFrame(tick);
     };

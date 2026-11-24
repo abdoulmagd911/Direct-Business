@@ -270,8 +270,11 @@ export function Comments({
     meId: me.person.id,
     projects,
     people: linking === null,
+    roster: people,
   });
-  const suggestOpen = linking !== null ? linking.trim().length >= 2 : !!at && at.term.trim().length >= 2;
+  // Landing 47: a bare "@" opens the list too, with the record's people in it — it no longer waits for two letters
+  const suggestOpen =
+    linking !== null ? linking.trim().length >= 2 : !!at && (at.term.trim().length >= 2 || suggest.items.length > 0);
   const activeItem = suggest.items[Math.min(active, Math.max(0, suggest.items.length - 1))];
   const pick = (s: Suggestion | undefined) => {
     if (!s) return;
@@ -841,7 +844,13 @@ export function Comments({
                 onChange={(e) => {
                   setError(undefined);
                   setText(e.target.value);
-                  setAt(mentionQuery(e.target.value, e.target.selectionStart ?? e.target.value.length));
+                  setAt(
+                    mentionQuery(
+                      e.target.value,
+                      e.target.selectionStart ?? e.target.value.length,
+                      pickedPeople.map((x) => x.name),
+                    ),
+                  );
                   setActive(0);
                 }}
                 onKeyDown={(e) => {

@@ -32,6 +32,9 @@ import { useNames } from './words';
  * and the same Undo. A mouse drags the card from anywhere; a finger drags it by its grip. The pill's menu stays: it is
  * the way by keyboard, and the way for anyone who would rather not drag. Only someone who may move the task's status
  * (whoever may edit it, or its deputy) can drag its card. Nothing is shown as moved before the database has answered.
+ *
+ * Landing 47: a card dropped beside a short column — below its box — is taken too (`laneAt` in board-drag.ts), and
+ * while a card is carried the columns are drawn the board's full height, so the lane under the card is seen marked.
  */
 export function TaskBoard({ rows, lookups, today }: { rows: TaskRow[]; lookups: TaskLookups; today: string }) {
   const t = useTranslations();
@@ -80,6 +83,9 @@ export function TaskBoard({ rows, lookups, today }: { rows: TaskRow[]; lookups: 
             key={`${c.kind}:${c.key}`}
             className={cn(
               BOARD_COLUMN,
+              // Landing 47: while a card is carried every column stands the board's full height, so a short (empty)
+              // column is a lane the eye can see and the card can be dropped into from anywhere beside it
+              drag && 'self-stretch',
               drag && drag.over === c.key && takes && 'border-accent bg-accent-soft outline-2 outline-accent',
             )}
             aria-label={title}
