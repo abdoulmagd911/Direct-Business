@@ -1,6 +1,11 @@
-# Landing 47 — Finance Part B: every figure checkable (the ten addendum items)
+# Landing 48 — Finance Part B: every figure checkable (the ten addendum items)
 
-24 Nov 2026 · base `f158ee80` (Landing 46) · target `v2/main` · one push.
+24 Nov 2026 · base `f158ee80` (Landing 46) · target `v2/main` · by pull request 401.
+
+This work was built as "Landing 47"; while it was being checked, the small-fix round opened its own Landing 47 (pull
+request 400, ten minutes earlier), so this one takes the next number. Its first commit, its migrations' comments, its
+test files and its sabotage files keep "Landing 47" / `landing-47` / `l47` in their words and names — as Landing 38
+kept "37". The two changes share no file.
 
 Built from the Finance finalisation spec of 14 Nov 2026 (pasted into the build session by the oversight; it is **not**
 committed — it names real clients and client IDs, and this repository is public).
