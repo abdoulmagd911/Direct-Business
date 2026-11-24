@@ -109,7 +109,7 @@ export const SIGNATURES: Signature[] = [
       'Approver/Rejector',
     ],
     naturalKey: 'Invoice# (the transaction number, not an invoice number)',
-    note: 'Trap, verified on a real record: the Invoice# column here is the TRANSACTION reference. Expense lines join to a transaction, never straight to an invoice. Only lines whose Status is Approved count as cost; every Approved line is summed, none deduplicated, even identical amounts.',
+    note: 'Trap, verified on a real record: the Invoice# column here is the TRANSACTION reference. Expense lines join to a transaction, never straight to an invoice. Only lines whose Status is Approved count as cost. One expense is told from another by the transaction number, the amount, the approval time and the expense type: a line repeating all four is the same expense and is counted once; lines that differ on any of them are all counted, even with identical amounts. A reference that is a tax invoice number (DPIN or TTIN) is held, never matched.',
   },
   {
     key: 'promo_code_invoice_export',

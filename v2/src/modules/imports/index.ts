@@ -13,8 +13,9 @@ export { fullyPaidVerdict, isApprovedExpense } from './paid';
 export type { PaidVerdict } from './paid';
 export { WHY, whyOf, whyText } from './reasons';
 export type { Why, WhyCode } from './reasons';
-export { normaliseFile } from './normalise';
-export type { HeldRow, NormaliseOptions, NormaliseResult, NormalisedRow } from './normalise';
+export { isTaxInvoiceRef, normaliseFile } from './normalise';
+export type { ExpenseLine, HeldRow, NormaliseOptions, NormaliseResult, NormalisedRow } from './normalise';
+export { applySettled, expenseRowsToSettle, settledOf } from './expense-settle';
 export { buildPreview, mergedRecord } from './preview';
 export type {
   ExistingRecord,

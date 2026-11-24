@@ -93,13 +93,17 @@ function api.file_review_set(p_id uuid, p_review_on date, p_version integer) exe
 function api.files(p_entity text, p_id uuid, p_side text) execute authenticated
 function api.files_remove(p_ids uuid[], p_reason text) execute authenticated
 function api.finance_achievements(p_from date, p_to date) execute authenticated
+function api.finance_ageing(p_partner uuid, p_all boolean) execute authenticated
 function api.finance_channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function api.finance_closed_months() execute authenticated
+function api.finance_commission_set(p_invoice uuid, p_type text, p_proof text, p_reason text) execute authenticated
 function api.finance_company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function api.finance_contract_payments(p_contract uuid, p_grain text) execute authenticated
 function api.finance_counted_by_month(p_from date, p_to date) execute authenticated
 function api.finance_credit_limit() execute authenticated
 function api.finance_credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function api.finance_days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
+function api.finance_deal_type_set(p_partner uuid, p_number text, p_type text, p_reason text) execute authenticated
 function api.finance_difference_counts() execute authenticated
 function api.finance_difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function api.finance_differences(p_invoice uuid) execute authenticated
@@ -107,6 +111,7 @@ function api.finance_exclusion_rule_remove(p_id uuid, p_reason text) execute aut
 function api.finance_exclusion_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function api.finance_exclusion_rules() execute authenticated
 function api.finance_health(p_from date, p_to date) execute authenticated
+function api.finance_held_rows(p_from date, p_to date) execute authenticated
 function api.finance_import(p_file text, p_rows jsonb, p_export_time timestamp with time zone, p_file_name text, p_sha256 text, p_dry_run boolean) execute authenticated
 function api.finance_import_map(p_source text) execute authenticated
 function api.finance_import_recognise(p_source text, p_headers text[]) execute authenticated
@@ -127,6 +132,7 @@ function api.finance_period(p_from date, p_to date) execute authenticated
 function api.finance_period_units(p_from date, p_to date) execute authenticated
 function api.finance_proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
 function api.finance_receivables(p_partner uuid) execute authenticated
+function api.finance_reconciliation(p_from date, p_to date) execute authenticated
 function api.finance_row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function api.finance_row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function api.finance_row_exclude(p_partner uuid, p_number text, p_reason text) execute authenticated
@@ -151,6 +157,7 @@ function api.import_batch_rows(p_batch uuid) execute authenticated
 function api.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function api.import_batches(p_partner uuid) execute authenticated
 function api.import_code_check(p_text text) execute authenticated
+function api.import_expense_preview(p_partner uuid, p_rows jsonb) execute authenticated
 function api.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.individual_add(p_name text, p_reason text) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
@@ -429,6 +436,7 @@ function core.view_default_set(p_page text, p_view uuid) execute authenticated
 function core.view_save(p_id uuid, p_page text, p_name text, p_query jsonb, p_shared boolean, p_sort integer, p_version integer) execute authenticated
 function core.views(p_page text) execute authenticated
 function core.views_remove(p_ids uuid[], p_reason text) execute authenticated
+function finance.ageing(p_partner uuid, p_all boolean) execute authenticated
 function finance.channel_set(p_invoice uuid, p_channel text, p_person uuid, p_reason text) execute authenticated
 function finance.closed_months() execute authenticated
 function finance.code_attribution_add(p_code uuid, p_partner uuid, p_reason text) execute authenticated
@@ -439,11 +447,14 @@ function finance.code_use_remove(p_id uuid, p_reason text) execute authenticated
 function finance.codes_by_company() execute authenticated
 function finance.codes_detail(p_code uuid) execute authenticated
 function finance.codes_list() execute authenticated
+function finance.commission_set(p_invoice uuid, p_type text, p_proof text, p_reason text) execute authenticated
 function finance.company_not_counted(p_partner uuid, p_from date, p_to date) execute authenticated
+function finance.contract_payments(p_contract uuid, p_grain text) execute authenticated
 function finance.counted_by_month(p_from date, p_to date) execute authenticated
 function finance.credit_limit() execute authenticated
 function finance.credit_limit_set(p_amount numeric, p_reason text) execute authenticated
 function finance.days_to_pay(p_partner uuid, p_from date, p_to date) execute authenticated
+function finance.deal_type_set(p_partner uuid, p_number text, p_type text, p_reason text) execute authenticated
 function finance.difference_counts() execute authenticated
 function finance.difference_decide(p_id uuid, p_choice text, p_version integer, p_reason text) execute authenticated
 function finance.differences(p_invoice uuid) execute authenticated
@@ -451,6 +462,7 @@ function finance.exclusion_rule_remove(p_id uuid, p_reason text) execute authent
 function finance.exclusion_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function finance.exclusion_rules() execute authenticated
 function finance.health(p_from date, p_to date) execute authenticated
+function finance.held_rows(p_from date, p_to date) execute authenticated
 function finance.import_map_list(p_source text) execute authenticated
 function finance.import_recognise(p_source text, p_headers text[]) execute authenticated
 function finance.import_rule_check(p_partner uuid, p_source_promo text) execute authenticated
@@ -475,6 +487,7 @@ function finance.period_figures(p_from date, p_to date) execute authenticated
 function finance.period_units(p_from date, p_to date) execute authenticated
 function finance.proposal_decide(p_id uuid, p_tick boolean, p_reason text) execute authenticated
 function finance.receivables(p_partner uuid) execute authenticated
+function finance.reconciliation(p_from date, p_to date) execute authenticated
 function finance.row_add(p_table text, p_fields jsonb, p_reason text) execute authenticated
 function finance.row_edit(p_table text, p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function finance.row_exclude(p_partner uuid, p_number text, p_reason text) execute authenticated
@@ -601,6 +614,7 @@ function work.import_batch_rows(p_batch uuid) execute authenticated
 function work.import_batch_start(p_partner uuid, p_signature text, p_file_name text, p_source_promo text) execute authenticated
 function work.import_batches(p_partner uuid) execute authenticated
 function work.import_code_check(p_text text) execute authenticated
+function work.import_expense_preview(p_partner uuid, p_rows jsonb) execute authenticated
 function work.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function work.import_require() execute authenticated
 function work.my_streak() execute authenticated

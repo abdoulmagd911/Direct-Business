@@ -9,8 +9,11 @@ import { cn } from '@/ui/cn';
 import { DataState } from '@/ui/DataState';
 import { EntityLink } from '@/ui/EntityLink';
 import { ReasonDialog } from '@/ui/ReasonDialog';
+import { Select } from '@/ui/Select';
+import { DEAL_TYPES, filterByDeal, sortByDeal, type DealFilter, type DealType } from '../deal-type';
 import { isCounted, ledgerRowsToCsv } from '../ledger';
 import type { LedgerReport, LedgerRow } from '../types';
+import { DealPills, DealTypeTable } from './DealMarks';
 import { NUM, TD, TH } from './parts';
 
 type Locale = 'en' | 'ar';
@@ -43,6 +46,10 @@ export type LedgerToggle = 'exclude' | 'include';
  * Landing 37 (A6): a document that is not fully paid yet — Pending, Draft, part paid, an imported row not confirmed
  * paid — is listed under "Not yet counted (N)" with its amount, what is left on it and its status. It is in no figure:
  * the strip and every table above are the database's own totals, and this list adds nothing to them.
+ * Landing 47: every row says its deal type — prepaid, postpaid, tender or promo, or that it is not set (A5) — and,
+ * where it applies, "Paid · receivable" (A12), "Tax invoice issued" (A14) and which commission it is (A7). "By deal
+ * type" lists the database's own lines per deal type, and filters and sorts the row list under it; a person with Full
+ * on Finance (`canSetDealType`) sets a row's deal type with a reason. None of it reads or changes a figure.
  */
 export function FinanceReport({
   report,
@@ -50,6 +57,7 @@ export function FinanceReport({
   failed,
   onRetry,
   onToggle,
+  onSetDealType,
 }: {
   report: LedgerReport | null;
   loading: boolean;
@@ -57,6 +65,8 @@ export function FinanceReport({
   onRetry: () => void;
   /** Runs Exclude / Include for one row with the reason typed; it throws in the database's words when refused. */
   onToggle?: (kind: LedgerToggle, row: LedgerRow, reason: string) => Promise<void>;
+  /** Sets one row's deal type (null = let the rule decide again) with the reason typed; throws when refused. */
+  onSetDealType?: (row: LedgerRow, type: DealType | null, reason: string) => Promise<void>;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -66,6 +76,12 @@ export function FinanceReport({
   // the row Exclude / Include was pressed on; it stays while the box closes, so its title never blanks mid-way
   const [asked, setAsked] = useState<{ kind: LedgerToggle; row: LedgerRow } | null>(null);
   const [asking, setAsking] = useState(false);
+  // Landing 47: the deal-type filter and sort over the row list, and the row whose deal type is being set
+  const [dealFilter, setDealFilter] = useState<DealFilter>('all');
+  const [dealSorted, setDealSorted] = useState(false);
+  const [dealRow, setDealRow] = useState<LedgerRow | null>(null);
+  const [dealChoice, setDealChoice] = useState<DealType | 'none'>('none');
+  const [dealAsking, setDealAsking] = useState(false);
   if (loading || failed || !report) {
     return (
       <div className="border-t border-border px-4 py-4 sm:px-5">
@@ -124,6 +140,7 @@ export function FinanceReport({
         dpin: t('finance.ledger.dpin'),
         flags: t('finance.ledger.flags'),
         total: t('finance.ledger.totals'),
+        dealType: t('finance.ledger.deal.filterLabel'),
       },
       nameOf,
     );
@@ -169,6 +186,16 @@ export function FinanceReport({
     setAsking(true);
   };
   const countedRows = report.rows.filter(isCounted);
+  // the counted rows as listed: the deal-type filter, then the sort — the figures above never follow them
+  const filteredRows = filterByDeal(countedRows, dealFilter);
+  const listedRows = dealSorted ? sortByDeal(filteredRows) : filteredRows;
+  const maySetDeal = (r: LedgerRow) =>
+    report.canSetDealType === true && !!onSetDealType && !!r.number && (r.source === 'manual' || !!r.source_partner_id);
+  const askDeal = (row: LedgerRow) => {
+    setDealRow(row);
+    setDealChoice(row.deal_type_by === 'person' && row.deal_type ? row.deal_type : 'none');
+    setDealAsking(true);
+  };
   const notCountedRows = report.rows.filter((r) => !isCounted(r));
   // a stored day (2026-11-08) is written the one way, 8 Nov 2026 (W-daily 13)
   const day = (d: string | null | undefined) => (d ? (formatStoredDate(d, locale) ?? d) : '—');
@@ -367,11 +394,25 @@ export function FinanceReport({
         {report.truncated ? (
           <p className="px-4 pb-3 text-sm text-warning sm:px-5">{t('finance.ledger.truncated')}</p>
         ) : null}
+        {countedRows.length === 0 ? null : (
+          <DealTypeTable
+            lines={report.byDealType ?? []}
+            filter={dealFilter}
+            onFilter={setDealFilter}
+            sorted={dealSorted}
+            onSort={setDealSorted}
+            partial={report.truncated}
+          />
+        )}
         {countedRows.length === 0 ? (
           empty
+        ) : listedRows.length === 0 ? (
+          <p className="border-t border-border px-4 py-4 text-base text-muted sm:px-5" data-ledger-deal-none>
+            {t('finance.ledger.deal.noneOfType')}
+          </p>
         ) : (
           <>
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse border-t border-border">
               <thead>
                 <tr className="border-y border-border bg-surface">
                   <th className={TH}>{t('finance.ledger.transactionNumber')}</th>
@@ -386,7 +427,7 @@ export function FinanceReport({
                 </tr>
               </thead>
               <tbody>
-                {countedRows.map((r, i) => {
+                {listedRows.map((r, i) => {
                   const pills = sourcePills(r);
                   const flags = flagsText(r.flags);
                   return (
@@ -404,6 +445,7 @@ export function FinanceReport({
                         </bdi>
                         <Pair label={t('finance.ledger.invoiceNumber')} value={r.invoice_number ?? '—'} block />
                         {codePill(r)}
+                        <DealPills row={r} onSet={maySetDeal(r) ? () => askDeal(r) : undefined} />
                         <Under until="600">
                           {partnerCell(r.partner_id)}
                           <span className="whitespace-nowrap">{day(r.created_on)}</span>
@@ -444,10 +486,10 @@ export function FinanceReport({
                 })}
               </tbody>
             </table>
-            {!allRows && countedRows.length > NARROW_ROWS ? (
+            {!allRows && listedRows.length > NARROW_ROWS ? (
               <div className="border-t border-border px-2 py-2 @min-[600px]:hidden">
                 <Button variant="ghost" size="sm" onClick={() => setAllRows(true)} data-finance-ledger-see-all>
-                  {t('finance.ledger.seeAll', { count: countedRows.length })}
+                  {t('finance.ledger.seeAll', { count: listedRows.length })}
                 </Button>
               </div>
             ) : null}
@@ -515,6 +557,11 @@ export function FinanceReport({
                   <StatusChip tone="warning">{t('finance.ledger.notYetCountedPill')}</StatusChip>
                   {r.source === 'import' ? (
                     <StatusChip tone="info">{t('finance.ledger.sourceImport')}</StatusChip>
+                  ) : null}
+                  {r.deal_type ? (
+                    <span data-ledger-deal-type={r.deal_type}>
+                      <StatusChip tone="neutral">{t(`finance.ledger.deal.type.${r.deal_type}`)}</StatusChip>
+                    </span>
                   ) : null}
                   {r.status ? (
                     <span className="min-w-0 [overflow-wrap:anywhere]" data-ledger-not-yet-counted-status>
@@ -682,6 +729,37 @@ export function FinanceReport({
             if (asked) await onToggle(asked.kind, asked.row, reason);
           }}
         />
+      ) : null}
+      {onSetDealType && report.canSetDealType ? (
+        <ReasonDialog
+          open={dealAsking}
+          onOpenChange={setDealAsking}
+          title={t('finance.ledger.deal.setTitle', { number: dealRow?.number ?? '' })}
+          body={t('finance.ledger.deal.setBody')}
+          words={{
+            reason: t('finance.ledger.reasonRequired'),
+            save: t('common.save'),
+            cancel: t('common.cancel'),
+            reasonRequired: t('errors.common.reason_required'),
+          }}
+          onSave={async (reason) => {
+            if (dealRow) await onSetDealType(dealRow, dealChoice === 'none' ? null : dealChoice, reason);
+          }}
+        >
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-strong">
+            {t('finance.ledger.deal.filterLabel')}
+            <Select
+              value={dealChoice}
+              onValueChange={(v) => setDealChoice(v as DealType | 'none')}
+              options={[
+                { value: 'none', label: t('finance.ledger.deal.letRuleDecide') },
+                ...DEAL_TYPES.map((d) => ({ value: d, label: t(`finance.ledger.deal.type.${d}`) })),
+              ]}
+              aria-label={t('finance.ledger.deal.filterLabel')}
+              data-ledger-deal-choice
+            />
+          </label>
+        </ReasonDialog>
       ) : null}
     </div>
   );

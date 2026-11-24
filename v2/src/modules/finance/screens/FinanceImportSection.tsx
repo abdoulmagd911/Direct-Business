@@ -18,6 +18,9 @@ import {
   parseCsv,
   ruleCheckOf,
   toApplyPayload,
+  applySettled,
+  expenseRowsToSettle,
+  settledOf,
   whyOf,
   type Detection,
   type ExistingRecord,
@@ -289,15 +292,28 @@ export function FinanceImportSection() {
         setFileProblem({ text: norm.fileProblem, why: norm.fileWhy });
         return;
       }
+      // Landing 47 (A3 + A4): an expense file is settled by the database before it is shown — the cost Confirm will
+      // store (what is stored + what is new, a repeated line counted once) and the rows it holds because their
+      // reference is a tax invoice number. A read that fails stops the preview: a cost is never shown by guess.
+      let settledRows = { records: norm.records, held: norm.held };
+      const toSettle = expenseRowsToSettle(norm.records);
+      if (toSettle.length > 0) {
+        const settled = settledOf(
+          await rpc('import_expense_preview', { p_partner: partner.id, p_rows: toSettle as never }),
+        );
+        if (gen !== previewGen.current) return;
+        if (settled === null) throw new Error('import_expense_preview');
+        settledRows = applySettled(norm.records, norm.held, settled);
+      }
       setFileProblem(null);
       setExisting(stored);
-      setRecords(norm.records);
-      setHeld(norm.held);
+      setRecords(settledRows.records);
+      setHeld(settledRows.held);
       setDecisions({});
       setRuleCheck(rule);
       setRuleFailed(rule === null);
       setCodeState(codeFound);
-      setPreview(buildPreview(stored, norm.records, norm.held, {}));
+      setPreview(buildPreview(stored, settledRows.records, settledRows.held, {}));
       setStage('preview');
     } catch {
       if (gen === previewGen.current) setExistingFailed(true);

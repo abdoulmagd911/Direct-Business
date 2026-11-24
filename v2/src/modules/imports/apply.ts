@@ -47,6 +47,8 @@ export function toApplyPayload(
       direct_url: record.direct_url,
       direct_ref: record.direct_ref,
       duplicate: p.duplicate,
+      // Landing 47 (A4): an expense row carries its Approved lines; the database keys each one and counts it once
+      ...(record.kind === 'expense' ? { lines: record.lines } : {}),
     });
   }
   return { rows, held: preview.problems, decisions };

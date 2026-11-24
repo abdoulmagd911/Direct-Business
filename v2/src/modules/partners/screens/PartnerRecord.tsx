@@ -975,6 +975,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
           side={side}
           hideImported={data.hideImported}
           view={data.view}
+          contracts={contracts}
         />
         {tab === 'history' ? (
           <>

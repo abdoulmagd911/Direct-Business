@@ -2,6 +2,8 @@
 // before it is sent, and the live totals beside it. The database decides what counts once the rows are saved — the
 // totals here are only what the person is about to enter, worked out the way V611 says.
 
+import { commissionTypeOf, type CommissionType } from './deal-type';
+
 export type InvoiceKind = 'transaction' | 'standalone' | 'billing' | 'wallet_topup';
 /** Credit note is not offered (V423, out of v1). */
 export const KINDS: InvoiceKind[] = ['transaction', 'standalone', 'billing', 'wallet_topup'];
@@ -25,6 +27,10 @@ export type InvoiceDraft = {
   clientId: string;
   customerName: string;
   customerEmail: string;
+  /** Landing 47 (A7): which provider commission this is, when the invoice is a commission typed by hand; '' = none. */
+  commissionType: CommissionType | '';
+  /** The commission's proof — where its statement or transfer is kept. Required with a commission type. */
+  commissionProof: string;
   lines: LineDraft[];
   expenses: ExpenseDraft[];
 };
@@ -91,6 +97,8 @@ export const blankInvoice = (today: string): InvoiceDraft => ({
   clientId: '',
   customerName: '',
   customerEmail: '',
+  commissionType: '',
+  commissionProof: '',
   lines: [],
   expenses: [],
 });
@@ -99,6 +107,13 @@ const byKey = (list: ListEntry[], key: string) => list.find((e) => e.key === key
 
 /** A wallet top-up and a monthly invoice carry no revenue of their own (V616, V617). */
 export const hasRevenue = (kind: InvoiceKind) => kind === 'transaction' || kind === 'standalone';
+
+/**
+ * The commission a draft names (Landing 47, A7): only a unit that carries revenue can be one, so a monthly invoice or
+ * a wallet top-up names none, whatever the box still holds.
+ */
+export const commissionOf = (d: Pick<InvoiceDraft, 'kind' | 'commissionType'>): CommissionType | null =>
+  hasRevenue(d.kind) ? commissionTypeOf(d.commissionType) : null;
 
 export type Problem = { field: string; key: string };
 
@@ -115,6 +130,9 @@ export function problemsOf(d: InvoiceDraft, lists: Lists): Problem[] {
   if (hasRevenue(d.kind) || d.kind === 'billing') {
     if (amountOf(d.total) === 'invalid') out.push({ field: 'total', key: 'invalid' });
   }
+  // A7: a commission names itself and carries its proof — both, or neither
+  if (commissionOf(d) && d.commissionProof.trim() === '') out.push({ field: 'commissionProof', key: 'required' });
+  else if (d.commissionProof.trim().length > 500) out.push({ field: 'commissionProof', key: 'too_long' });
   d.lines.forEach((l, i) => {
     if (l.name.trim() === '') out.push({ field: `line.${i}.name`, key: 'required' });
     if (lineTotal(l) === null) out.push({ field: `line.${i}.price`, key: 'invalid' });

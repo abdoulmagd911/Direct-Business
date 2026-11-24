@@ -1766,7 +1766,8 @@
       },
       "import": {
         "started": "Import started",
-        "confirmed": "Import confirmed"
+        "confirmed": "Import confirmed",
+        "expense_keys": "Expense lines recorded ({count})"
       },
       "alert": {
         "weekly_unlogged": "{count, plural, one {# done task is not yet logged as an achievement} other {# done tasks are not yet logged as achievements}}",
@@ -1781,6 +1782,10 @@
       },
       "contact": {
         "removed": "{count, plural, one {# contact removed} other {# contacts removed}}"
+      },
+      "finance": {
+        "deal_type_set": "Deal type set on {number}",
+        "commission_set": "Commission named on {number}"
       }
     },
     "signIn": {
@@ -2772,7 +2777,11 @@
       "exclusion_rule_exists": "This is already on the exclusion list.",
       "merge_rule_exists": "This is already on the merge list.",
       "row_already_excluded": "Row {detail} is already excluded",
-      "row_excluded_by_list": "Row {detail} is excluded by a list rule — change it in Settings → Finance"
+      "row_excluded_by_list": "Row {detail} is excluded by a list rule — change it in Settings → Finance",
+      "commission_is_typed_by_hand": "Only an invoice typed by hand takes a commission type ({detail})",
+      "commission_needs_type": "Say which commission it is",
+      "commission_needs_proof": "A commission needs its proof",
+      "edit_at_transaction_level": "A monthly invoice is not edited or removed by hand: change its transactions ({detail})"
     },
     "wrap_up": {
       "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",
@@ -3085,7 +3094,19 @@
       "codeNotFound": "Code has not been found",
       "flag": {
         "code_held": "Held: more than one code carries this text"
-      }
+      },
+      "postpaidNoTopUp": "Postpaid: no wallet top-up. It is settled by hand with the Finance team.",
+      "contractPayments": "Contract payments",
+      "contractNone": "No contract on the client side yet.",
+      "contractShow": "Show payments",
+      "contractGrain": {
+        "month": "By month",
+        "quarter": "By quarter"
+      },
+      "contractQuarter": "Q{quarter} {year}",
+      "contractTotal": "Counted in the contract's term:",
+      "contractNoPayments": "No invoice inside this contract's term yet.",
+      "contractOpenEnded": "no end date"
     },
     "archive": {
       "title": "All files",
@@ -3617,7 +3638,36 @@
         "product": "Service",
         "partner": "Partner"
       },
-      "byCompany": "Income by company"
+      "byCompany": "Income by company",
+      "deal": {
+        "filterLabel": "Deal type",
+        "type": {
+          "prepaid": "Prepaid",
+          "postpaid": "Postpaid",
+          "tender": "Tender",
+          "promo": "Promo code",
+          "none": "Not set"
+        },
+        "notSet": "Deal type not set",
+        "receivable": "Paid · receivable",
+        "taxIssued": "Tax invoice issued",
+        "commission": "Commission · {type}",
+        "by": {
+          "person": "Set by a person",
+          "client_id": "From the client ID on the invoice",
+          "code": "From its discount code",
+          "organisation": "From the partner's client IDs"
+        },
+        "set": "Set deal type",
+        "change": "Change",
+        "sort": "Sort by deal type",
+        "noneOfType": "No row of this deal type in this view.",
+        "partial": "The list is cut: these lines add up the listed rows only.",
+        "setTitle": "Deal type of {number}",
+        "setBody": "Sets what this row says it is. No figure changes.",
+        "letRuleDecide": "Not set by a person",
+        "setDone": "Deal type of {number} saved"
+      }
     },
     "new": {
       "title": "New invoice",
@@ -3653,7 +3703,12 @@
       "lastSaved": "Last saved",
       "savedCounts": "Counted",
       "savedWaits": "Not counted until it is paid",
-      "noFigures": "Not in any figure"
+      "noFigures": "Not in any figure",
+      "commission": "Commission",
+      "commissionType": "Which commission",
+      "commissionNone": "Not a commission",
+      "commissionProof": "Proof",
+      "commissionReason": "Named when the commission was typed"
     },
     "notImported": "Not imported yet. The figures appear here after the first Payments import.",
     "periodEmpty": "Nothing in this period ({from} – {to}).",
@@ -3689,7 +3744,78 @@
     },
     "stampStale": "Payments · not refreshed since {date}",
     "stampNewest": "Newest file read {date}",
-    "provisionalLeft": "not counting Provisional"
+    "provisionalLeft": "not counting Provisional",
+    "commissionType": {
+      "airlines": "Airlines",
+      "provider": "Provider",
+      "cashback": "Cashback",
+      "study_abroad": "Study abroad",
+      "other": "Other"
+    },
+    "reconcile": {
+      "title": "Does Finance agree with itself?",
+      "source": "The figures above beside the ledger",
+      "failed": "the agreement check",
+      "agrees": "Agrees",
+      "agreesLine": "The two sides say the same for this period. No gap.",
+      "gaps": "{count, plural, one {# gap} other {# gaps}}",
+      "gapsLine": "{failing, plural, =0 {All under 1 SAR.} one {# of 1 SAR or more.} other {# of 1 SAR or more.}}",
+      "figureHead": "Figure",
+      "sideOverview": "Finance page",
+      "sideLedger": "Ledger",
+      "figure": {
+        "revenue": "Revenue",
+        "cost": "Cost",
+        "profit": "Profit",
+        "units": "Counted rows"
+      },
+      "gap": {
+        "sides": "{figure}: the Finance page and the ledger differ",
+        "organisations": "{figure}: the partners' lines do not add up to the ledger's total",
+        "row_profit": "{number}: profit is not revenue less cost",
+        "cost_lines": "{number}: cost is not the sum of its expense lines"
+      },
+      "difference": "Difference",
+      "failing": "1 SAR or more",
+      "small": "Under 1 SAR",
+      "truncated": "The ledger's row list is cut: the row checks covered the listed rows only."
+    },
+    "ageing": {
+      "title": "Outstanding and how old",
+      "asOf": "As of {date}",
+      "failed": "what is outstanding",
+      "showAll": "All deal types",
+      "showPostpaid": "Postpaid only",
+      "scopePostpaid": "Postpaid, and rows whose deal type is not set.",
+      "scopeAll": "Every deal type.",
+      "empty": "Nothing outstanding for postpaid.",
+      "emptyAll": "Nothing outstanding.",
+      "outstanding": "Outstanding",
+      "oldest": "Oldest",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "noDate": "No date",
+      "invoices": "{count, plural, one {# invoice} other {# invoices}}",
+      "bucket": {
+        "days_0_30": "0–30 days",
+        "days_31_60": "31–60 days",
+        "days_61_90": "61–90 days",
+        "days_over_90": "Over 90 days"
+      },
+      "truncated": "The list is cut at 500 invoices; the totals count them all."
+    },
+    "held": {
+      "title": "Held — to tie",
+      "source": "Still in the ledger, counted as before",
+      "failed": "the held rows",
+      "empty": "Nothing is held in this period.",
+      "reason": {
+        "no_organisation": "No partner matched",
+        "no_client_id": "No client ID",
+        "same_number": "One number under more than one partner"
+      },
+      "total": "{count, plural, one {# row} other {# rows}} · SAR {amount}",
+      "truncated": "The list is cut at 500 rows; the totals count them all."
+    }
   },
   "import": {
     "title": "Import",
@@ -3798,7 +3924,9 @@
       "changed": "Changed: {fields}",
       "db_total_differs": "Invoice total differs from the stored transaction amount: transaction amount kept, held for a person",
       "db_invoice_elsewhere": "Invoice number is already on another row: held for a person, nothing merged by guess",
-      "db_shared_invoice": "Invoice number covers several transactions, so no single row owns this code link: held for a person"
+      "db_shared_invoice": "Invoice number covers several transactions, so no single row owns this code link: held for a person",
+      "expense_tax_ref": "Keyed to a tax invoice number ({ref}), not a transaction number: an expense is never matched to a tax invoice, held for a person",
+      "db_expense_tax_ref": "An expense is keyed to a transaction number, never to a tax invoice number: held for a person"
     },
     "step": {
       "label": "Import steps",

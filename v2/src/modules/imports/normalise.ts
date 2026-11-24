@@ -16,7 +16,11 @@
 //   A wallet line inside a real sale (product "Direct Wallet", or a line named Wallet
 //   Balance / رصيد المحفظة) is split off: revenue is the invoice amount less that part.
 // - Expense rows join to a transaction, never straight to an invoice: the expense file's
-//   Invoice# column IS the transaction number. Only Approved lines count as cost.
+//   Invoice# column IS the transaction number. Only Approved lines count as cost. A line
+//   whose reference is a tax invoice number (DPIN… / TTIN…) is held: a cost is never
+//   matched to a tax invoice (Landing 47, A3). Every Approved line travels with its amount,
+//   approval time and expense type; the database tells one expense from another by those
+//   and the transaction number, and counts a repeated line once (A4) — never this file.
 // - Promo rows match an invoice by the 10-digit Invoice Number only. The file has no code
 //   column, so the code id must be given at import time; without it the whole file stops.
 
@@ -45,6 +49,10 @@ export type NormalisedRow = {
   cost: number | null;
   /** How many expense lines fed this cost (expense rows only). */
   expense_lines: number;
+  /** The Approved lines themselves (expense rows only): what the database keys each expense by (Landing 47, A4). */
+  lines: ExpenseLine[];
+  /** How many of the lines the database found to be repeats of an expense already counted (set by the preview). */
+  expense_repeats: number;
   status_text: string | null;
   fully_paid: boolean;
   audit_required: boolean;
@@ -63,6 +71,12 @@ export type NormalisedRow = {
   /** The Direct reference itself, always kept so a link can be built later. */
   direct_ref: string | null;
 };
+
+/** One Approved expense line: its amount, its approval time as the file wrote it, and its expense type. */
+export type ExpenseLine = { amount: number; approved_at: string; expense_type: string };
+
+/** A reference that is a tax invoice number — DPIN (Direct payment) or TTIN (Techtic) — never a transaction number. */
+export const isTaxInvoiceRef = (ref: string): boolean => /^(DPIN|TTIN)/i.test(ref.trim());
 
 /** A row that is not written: its row number, its reason in English (what the database stores) and as a code (`why`,
  * worded on the review screen in the person's language). A held row read back from storage has no `why`. */
@@ -132,6 +146,8 @@ function baseRow(kind: NormalisedRow['kind'], rowNos: number[]): NormalisedRow {
     wallet_topup: 0,
     cost: null,
     expense_lines: 0,
+    lines: [],
+    expense_repeats: 0,
     status_text: null,
     fully_paid: false,
     audit_required: false,
@@ -305,7 +321,7 @@ function normaliseInvoices(header: string[], rows: string[][], options: Normalis
 function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult {
   const read = makeReader(header);
   const held: HeldRow[] = [];
-  type Group = { rowNos: number[]; sum: number; lines: number; date: string | null };
+  type Group = { rowNos: number[]; sum: number; lines: number; date: string | null; items: ExpenseLine[] };
   const groups = new Map<string, Group>();
   const order: string[] = [];
   rows.forEach((row, i) => {
@@ -314,6 +330,11 @@ function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult 
     const ref = read.get(row, 'Invoice#');
     if (!ref) {
       held.push(hold(rowNo, { code: 'expense_no_ref' }));
+      return;
+    }
+    // A3: a cost is keyed to a transaction number, never to a tax invoice number
+    if (isTaxInvoiceRef(ref)) {
+      held.push(hold(rowNo, { code: 'expense_tax_ref', values: { ref } }));
       return;
     }
     const amount = parseMoney(read.get(row, 'Amount (SAR)'));
@@ -327,13 +348,18 @@ function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult 
     }
     let group = groups.get(ref);
     if (!group) {
-      group = { rowNos: [], sum: 0, lines: 0, date: null };
+      group = { rowNos: [], sum: 0, lines: 0, date: null, items: [] };
       groups.set(ref, group);
       order.push(ref);
     }
     group.rowNos.push(rowNo);
     group.sum = Math.round((group.sum + amount) * 100) / 100;
     group.lines += 1;
+    group.items.push({
+      amount,
+      approved_at: read.get(row, 'Approval/Rejection Date'),
+      expense_type: read.get(row, 'Expense Type'),
+    });
     if (group.date === null) group.date = parseDate(read.get(row, 'Created At'));
   });
   const records = order.map((ref) => {
@@ -342,6 +368,7 @@ function normaliseExpenses(header: string[], rows: string[][]): NormaliseResult 
     record.transaction_ref = ref;
     record.cost = group.sum;
     record.expense_lines = group.lines;
+    record.lines = group.items;
     record.record_date = group.date;
     record.direct_ref = ref;
     return record;

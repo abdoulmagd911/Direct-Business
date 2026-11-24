@@ -22,6 +22,8 @@ export const WHY = {
   expense_no_ref: 'No transaction number on this expense line, so it cannot be matched',
   expense_amount: 'Expense amount cannot be read, so this line is not counted',
   expense_not_approved: 'Expense not approved yet ({status}), so it is not counted as cost',
+  expense_tax_ref:
+    'Keyed to a tax invoice number ({ref}), not a transaction number: an expense is never matched to a tax invoice, held for a person',
   // transaction list
   no_transaction_ref: 'No transaction number on this row, so it cannot be matched',
   // promo export
@@ -61,6 +63,7 @@ export const WHY = {
   db_invoice_elsewhere: 'Invoice number is already on another row: held for a person, nothing merged by guess',
   db_shared_invoice:
     'Invoice number covers several transactions, so no single row owns this code link: held for a person',
+  db_expense_tax_ref: 'An expense is keyed to a transaction number, never to a tax invoice number: held for a person',
 } as const;
 
 export type WhyCode = keyof typeof WHY;

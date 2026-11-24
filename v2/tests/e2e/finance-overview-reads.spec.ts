@@ -76,26 +76,64 @@ test('quick switching between the periods never leaves an error block, and never
 
 test('going back to a period just seen never leaves a block stuck on loading (QA-549)', async ({ page }) => {
   await admin(page);
-  await page.goto('/finance?period=ytd');
-  await hydrated(page);
-  await settled(page);
-  // every read now answers slowly; the person goes to MTD and back to YTD while the first asks are still out
+  // Every Finance read of the page is counted from its request until the server has really answered it (route.fetch
+  // runs on when the page gives up on the request). `slow` holds each one 800 ms; `forMtd` counts the held reads
+  // that are MTD's own (a read with a period that does not start on 1 January).
+  // Landing 48 rewrote the waits of this test as waits for the reads themselves. The page gained three cards, and
+  // the three fixed waits it used no longer held: "settled" was true before the lower cards had asked anything, so
+  // their YTD reads were still going out when MTD was pressed; 300 ms later the page had often sent nothing for MTD
+  // yet; and 5000 ms was shorter than the queue. Each left no stale answer to land, and the plant stayed green.
+  const yearStart = `"p_from":"${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date()).slice(0, 4)}-01-01"`;
+  let out = 0;
+  let slow = false;
+  let forMtd = 0;
   await page.route(reads, async (route) => {
-    await new Promise((r) => setTimeout(r, 800));
+    out += 1;
+    const body = route.request().postData() ?? '';
+    if (slow && body.includes('"p_from"') && !body.includes(yearStart)) forMtd += 1;
     try {
-      await route.continue();
+      if (slow) await new Promise((r) => setTimeout(r, 800));
+      const response = await route.fetch();
+      await route.fulfill({ response }).catch(() => {
+        // the page gave up on this request; the server has answered all the same
+      });
     } catch {
       // the page closed
+    } finally {
+      out -= 1;
     }
   });
+  /** The page is quiet: no block is loading and no read is out — twice, half a second apart. */
+  const quiet = async () => {
+    await settled(page);
+    await expect
+      .poll(
+        async () => {
+          if (out > 0) return false;
+          await page.waitForTimeout(500);
+          return out === 0 && (await page.locator('[data-finance-overview] [data-state="loading"]').count()) === 0;
+        },
+        { message: 'every read the page asks on its own has been answered', timeout: 90_000 },
+      )
+      .toBe(true);
+  };
+  await page.goto('/finance?period=ytd');
+  await hydrated(page);
+  await quiet();
+  // loaded a second time, warm: the fault shows only while the answers for YTD are still kept (20 s) on the way back,
+  // and a cold first load can outlast that
+  await page.reload();
+  await hydrated(page);
+  await quiet();
+  // every read now answers slowly; the person goes to MTD and back to YTD while MTD's first asks are still out
+  slow = true;
   await page.locator('[data-finance-period-key="mtd"]').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() => forMtd, { message: 'the reads for MTD are out', timeout: 30_000 }).toBeGreaterThan(0);
   await page.locator('[data-finance-period-key="ytd"]').click();
   await settled(page);
   // the reads sent for MTD land now, after the kept YTD answers were shown: they must change nothing
-  // (L17: 5000 ms — under parallel load the 800 ms route delay plus server time exceeds the old 1600 ms
-  // budget, so the stale answers landed after the assertion and the plant stayed green)
-  await page.waitForTimeout(5000);
+  await expect.poll(() => out, { message: 'every held read has been answered', timeout: 60_000 }).toBe(0);
+  await page.waitForTimeout(1000);
   await expect(
     page.locator('[data-finance-overview] [data-state="loading"], [data-finance-overview] [data-state="failed"]'),
     'no block is left on loading or failed after going back to a period',
