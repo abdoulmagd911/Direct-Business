@@ -9,7 +9,8 @@
   separate track (42 cells), never in M; Arabic is the B cells; six roles (AD, CO, HE, MG, ME, VW).
 * **Sources read:** `test_plan_draft.md`, `followup-test-round-plan-2026-11-10.md`, `batch0-note-2026-11-08.md`,
   `reissue-amendment-3-consolidated-review-report.md`, `per-member-settings-design-2026-11-22.md`,
-  `reskin-task-enhancement-brief-2026-11-15.md` — in full. `consolidated-fix-list.md`, `glitch-list.md`, `round-status.md` — headers, terms, the per-group headings, §7,
+  `reskin-task-enhancement-brief-2026-11-15.md`, `batch4-session3-note-2026-11-08.md`,
+  `followup-glitch-list.md` — in full. `consolidated-fix-list.md`, `glitch-list.md`, `round-status.md` — headers, terms, the per-group headings, §7,
   the §8 index (all 248 findings, parsed by script: 77 / 57 / 112 / 2, each exactly once) and the status entries for
   both rounds; the long decision and finding bodies were not read line by line. Code: `v2/main` at `f158ee80`
   against `5764f84` (66 commits, route files, page registry, role defaults, `docs/v2/landings/LANDING-28…46.md`).
@@ -27,10 +28,23 @@
 | New cells at `f158ee8` (§3 below) | + 56 |
 | **M for this round** | **1,206** |
 
-* **The seven struck cells are not named by ID in any file received.** Every source says only "7 Member R24 cells".
-  R24 has 8 controls, so Member holds 8 control cells; which one of the eight was counted as tested is recorded only
-  in `batch4-session3-note-2026-11-08.md`. Nothing is guessed here. (The seven manager-dependent cells of the frozen
-  plan §8 — A3, N4, K3, K8, J3, R7, N1 — are a different seven and are not struck.)
+* **The seven struck cells, by ID** (`batch4-session3-note-2026-11-08.md`, lines 8, 18 and 82 — "the TEST Member R24
+  controls"). The frozen plan gives control cells no serial number, so the ID is screen · control · role:
+
+  | # (fix list §7) | Cell |
+  |---|---|
+  | 4 | R24 · person filter (Who) · ME |
+  | 5 | R24 · kind filter (What) · ME |
+  | 6 | R24 · date filter (Since) · ME |
+  | 7 | R24 · row → record · ME |
+  | 8 | R24 · Try again · ME |
+  | 9 | R24 · empty state · ME |
+  | 10 | R24 · Undo entries · ME |
+
+  The eighth Member cell, **R24 · search · ME, is not struck**: the session tested it (global search works for a
+  Member without the page) and it stays in M. The order of #4–10 follows the note's own list; the fix list numbers
+  the seven only as a range. (The seven manager-dependent cells of the frozen plan §8 — A3, N4, K3, K8, J3, R7, N1 —
+  are a different seven and are not struck.)
 * **Still struck at this head:** Member starts with no access to `/activity` at `f158ee8` (Admin Full, Head View,
   Manager View), so P2 stands.
 * **M freezes at the end of this round's Batch 0**, as in the frozen plan §3.4: the 56 new cells are counted from the
@@ -270,11 +284,9 @@ Finance, the partner's Finance tab, Tasks.
 2. **TEST Commercial and import.** Importing is now a per-person extra (Landing 40), held by a Head by default. The
    frozen R20 import cells are pressed by AD and CO; if TEST Commercial holds no extra, the CO import cell records
    "section not offered" as the right result. Confirm, or set the extra for the round and restore it after.
-3. **The 12 Nov round's own findings** (40 recorded by Batch 5, in `followup-glitch-list.md`) are not in F1 or F3,
-   which hold the first round's 248 only. Say if they should be added as a fourth batch.
-4. **The seven struck cell IDs** — see §1. `reissue-amendment-3-consolidated-review-report.md` (D6) names A3, N4,
-   K3, K8, J3, R7, N1: those are the manager-dependent cells that let the first round end "1,150 of 1,157". They
-   were never struck, and they are not the seven Member R24 cells.
+3. **The 12 Nov round's own findings** — see §7, the fourth-batch option. Rocky rules; this plan does not.
+4. **Amendment 3 report, D6:** A3, N4, K3, K8, J3, R7, N1 are the manager-dependent cells behind "may end 1,150 of
+   1,157". They were never struck; the struck seven are named in §1.
 5. **Per-member settings — the approved design and the build differ in two places.** The design of 22 Nov says
    "Edit someone else's work" and "Change credit limits" are Admin + Head by default. Landing 40 built "Edit someone
    else's work" as an extra no role holds by default, where View only takes nothing away; and the company-wide
@@ -283,3 +295,37 @@ Finance, the partner's Finance tab, Tasks.
 6. **"Across the six roles."** The 15 Nov brief asks for the task features to be tested as all six roles. This plan
    keeps the frozen plan's rule (Manager and Member act; Head and Commercial are checked by the mirror-breaker
    cells). Pressing the 10 task-feature controls as all six roles would add 20 cells.
+
+## 7 · Fourth-batch option — the 12 Nov round's own findings (prepared, NOT decided)
+
+Source: `followup-glitch-list.md` (round at head `c41bc5d`, 928 of 1,150 pressed). If Rocky rules them in, they run
+as **F4** after F1 and F2; M does not change, because each is re-tested on a cell M already holds.
+
+| 12 Nov batch | Blocks work | Wrong data | Cosmetic | Findings |
+|---|---|---|---|---|
+| Batch 1 — task record, new task, shell | 1 | 6 | 3 | 10 |
+| Batch 2 — My day, notes, achievements | 0 | 1 | 2 | 3 |
+| Batch 3 — partners, files, codes | 4 | 3 | 1 | 8 |
+| Batch 4 — Finance, reports, activity | 4 | 1 | 0 | 5 |
+| Batch 5 — settings, people, sign-in | 7 | 4 | 2 | 13 |
+| Batch 6 — N7 Thursday bell | 1 | 0 | 0 | 1 |
+| Batch 6 — sweep, journeys, mirror | 1 | 2 | 0 | 3 |
+| **F4 if ruled in** | **18** | **17** | **8** | **43** |
+
+Also in that file, outside the 43:
+* 2 observations (Settings-log raw keys; a person's name read twice) — not counted there, not counted here.
+* 4 findings from the live checks after Landings 14 and 15: F-L14V-01 (cosmetic, the Not-found page names the wrong
+  address — left for a later landing) and F-L15V-01/02/03 (codes in search, Files sort by name, `/activity` not
+  drawing), which `round-status.md` records as closed live on 12 Nov.
+
+What the ruling changes:
+
+| | Without F4 | With F4 (43) | With F4 + the 4 live-check findings |
+|---|---|---|---|
+| M | 1,206 | 1,206 | 1,206 |
+| Findings re-tested | 248 | 291 | 295 |
+| Blocks-work findings re-tested | 77 | 95 | 98 |
+
+Several of the 43 were worked on in Landings 14, 15 and 20 (the bell's count and link, "Need help" wording, Activity
+row links, the import preview, codes in search, Files sort, people search). This plan does not mark any of them
+closed: a finding closes only when its cell passes at `f158ee8`.
