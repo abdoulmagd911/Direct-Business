@@ -110,15 +110,55 @@ export function splitMentions(body: string, mentions: CommentMention[]): (string
   return out;
 }
 
-/** The "@query" being typed at the caret, or null: an @ at the start or after a space, then up to 40 characters with no line break. */
-export function mentionQuery(text: string, caret: number): { from: number; term: string } | null {
+/**
+ * The "@query" being typed at the caret, or null: an @ at the start or after a space, then up to 40 characters with no
+ * line break. Landing 47: an "@Name" already picked (`picked`) is a finished mention, not a query — the words typed
+ * after it are the comment, and they open no list.
+ */
+export function mentionQuery(
+  text: string,
+  caret: number,
+  picked: readonly string[] = [],
+): { from: number; term: string } | null {
   const before = text.slice(0, caret);
   const at = before.lastIndexOf('@');
   if (at === -1) return null;
   if (at > 0 && !/\s/.test(before[at - 1]!)) return null;
   const term = before.slice(at + 1);
   if (term.length > 40 || /[\n@]/.test(term)) return null;
+  if (picked.some((name) => !!name && term.startsWith(name))) return null;
   return { from: at, term };
+}
+
+/** How many people a bare "@" lists at most (the list scrolls). */
+export const ROSTER_MAX = 50;
+
+/**
+ * Landing 47: the people a bare "@" offers at once, before two letters have been typed — the record's own people
+ * (whoever may be asked on it), never the reader, by name. With one letter typed, those with a name part that starts
+ * with it. Two letters and more go to the app's one search, as before. A term that holds a space is not a name being
+ * started ("see you @ 5"), so it offers nobody.
+ */
+export function rosterMatches(
+  roster: readonly { id: string; name: string }[] | undefined,
+  term: string | null,
+  meId: string,
+): Suggestion[] {
+  if (term === null || term.length >= 2 || /\s/.test(term) || !roster?.length) return [];
+  const fold = term.toLocaleLowerCase();
+  return roster
+    .filter((p) => p.id !== meId && !!p.name.trim())
+    .filter(
+      (p) =>
+        !fold ||
+        p.name
+          .toLocaleLowerCase()
+          .split(/\s+/)
+          .some((w) => w.startsWith(fold)),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, ROSTER_MAX)
+    .map((p) => ({ type: 'person' as const, id: p.id, label: p.name, alt: null }));
 }
 
 export type Suggestion =
@@ -144,11 +184,14 @@ export function useSuggestions(
     meId: string;
     projects?: { id: string; name: string; number?: string | null }[];
     people: boolean;
+    /** The record's own people: what a bare "@" lists before the search has two letters to go on (Landing 47). */
+    roster?: { id: string; name: string }[];
   },
 ): { items: Suggestion[]; busy: boolean } {
   const [found, setFound] = useState<{ term: string; items: Suggestion[] }>({ term: '', items: [] });
-  const { locale, meId, projects, people } = opts;
+  const { locale, meId, projects, people, roster } = opts;
   const q = term?.trim() ?? '';
+  const early = useMemo(() => (people ? rosterMatches(roster, term, meId) : []), [people, roster, term, meId]);
   useEffect(() => {
     if (q.length < 2) return;
     let live = true;
@@ -208,7 +251,7 @@ export function useSuggestions(
       clearTimeout(timer);
     };
   }, [q, locale, meId, projects, people]);
-  if (q.length < 2) return { items: [], busy: false };
+  if (q.length < 2) return { items: early, busy: false };
   return found.term === q ? { items: found.items, busy: false } : { items: [], busy: true };
 }
 
