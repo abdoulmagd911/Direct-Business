@@ -7,8 +7,9 @@
 * **Frozen record:** `test_plan_draft.md` (head `5764f84`, M = 1,157) is not edited. This plan keeps its method: a
   cell is one control × each acting role at 1440 px, plus state, visibility and the named classes; phone is a
   separate track (42 cells), never in M; Arabic is the B cells; six roles (AD, CO, HE, MG, ME, VW).
-* **Sources read:** `test_plan_draft.md`, `followup-test-round-plan-2026-11-10.md`, `batch0-note-2026-11-08.md` — in
-  full. `consolidated-fix-list.md`, `glitch-list.md`, `round-status.md` — headers, terms, the per-group headings, §7,
+* **Sources read:** `test_plan_draft.md`, `followup-test-round-plan-2026-11-10.md`, `batch0-note-2026-11-08.md`,
+  `reissue-amendment-3-consolidated-review-report.md`, `per-member-settings-design-2026-11-22.md`,
+  `reskin-task-enhancement-brief-2026-11-15.md` — in full. `consolidated-fix-list.md`, `glitch-list.md`, `round-status.md` — headers, terms, the per-group headings, §7,
   the §8 index (all 248 findings, parsed by script: 77 / 57 / 112 / 2, each exactly once) and the status entries for
   both rounds; the long decision and finding bodies were not read line by line. Code: `v2/main` at `f158ee80`
   against `5764f84` (66 commits, route files, page registry, role defaults, `docs/v2/landings/LANDING-28…46.md`).
@@ -23,8 +24,8 @@
 | Struck per P2 — the 7 Member R24 cells (`/activity`), fix list §7 #4–10 | − 7 |
 | Follow-up M as last issued (10 and 12 Nov) | 1,150 |
 | Struck at `f158ee8` (no route, screen or control group was removed) | − 0 |
-| New cells at `f158ee8` (§3 below) | + 47 |
-| **M for this round** | **1,197** |
+| New cells at `f158ee8` (§3 below) | + 56 |
+| **M for this round** | **1,206** |
 
 * **The seven struck cells are not named by ID in any file received.** Every source says only "7 Member R24 cells".
   R24 has 8 controls, so Member holds 8 control cells; which one of the eight was counted as tested is recorded only
@@ -32,7 +33,7 @@
   plan §8 — A3, N4, K3, K8, J3, R7, N1 — are a different seven and are not struck.)
 * **Still struck at this head:** Member starts with no access to `/activity` at `f158ee8` (Admin Full, Head View,
   Manager View), so P2 stands.
-* **M freezes at the end of this round's Batch 0**, as in the frozen plan §3.4: the 47 new cells are counted from the
+* **M freezes at the end of this round's Batch 0**, as in the frozen plan §3.4: the 56 new cells are counted from the
   landing notes and the code, and Batch 0 confirms each control at first open. A control that is not there is a
   finding, not a silent cut.
 * **Phone track:** 42 cells, unchanged, reported apart.
@@ -57,7 +58,7 @@
 50 route files at `f158ee8` (48 at `5764f84`); none removed. The frozen plan's tripwire ("a new theme name appears")
 has fired by design: the re-skin landed in Landing 31, which is why every design-class cell is re-looked (§4, F3-c).
 
-## 3 · Cell inventory — the 47 new cells
+## 3 · Cell inventory — the 56 new cells
 
 | Set | Where | New cells | Count |
 |---|---|---|---|
@@ -79,10 +80,15 @@ has fired by design: the re-skin landed in Landing 31, which is why every design
 | | notification | N9 a mention on a task sends one notice | 1 |
 | My day (Landings 34, 34b, 35) | R2 | control ×MG, ME: Today's three (three groups of up to three; row → task; the same nine after a reload) | 2 |
 | Client achievements (Landing 35) | R9 Related tab | control ×MG, ME: an achievement row → its record | 2 |
-| **Total** | | | **47** |
+| The re-skin (Landing 31; brief of 15 Nov) | R8 Partners list | control ×MG, ME: the four cards Active, Prospects, Stale, Quiet, each filtering the list | 2 |
+| | R9 Finance tab | control ×MG, ME: the "Imported" switch | 2 |
+| | Shell | control ×MG, ME: theme switcher in the profile menu | 2 |
+| | theme look | E10 sign-in (R39) and E11 Tasks list (R5) in every live theme — the two rebuilt screens E1–E9 do not cover | 2 |
+| Task features, access rule (brief B3) | refusal | X9 a hand-over to someone who cannot see the task's partner is refused | 1 |
+| **Total** | | | **56** |
 
-By class: 24 control, 2 state, 1 visibility, 7 agreement, 5 finance reconciliation, 4 refusal, 3 route, 1
-notification.
+By class: 30 control, 2 state, 1 visibility, 7 agreement, 5 finance reconciliation, 5 refusal, 3 route, 1
+notification, 2 theme look.
 
 **Head changes that add no cell** (they change what an existing cell must show, and are re-pressed in F2):
 
@@ -105,14 +111,14 @@ notification.
 | Batch | What | Count |
 |---|---|---|
 | **F1** | re-test of the 77 blocks-work findings, by fix group | 77 fixes |
-| **F2** | new surfaces since `5764f84`: 47 new cells + 36 changed cells | 83 cells |
+| **F2** | new surfaces since `5764f84`: 56 new cells + 36 changed cells | 92 cells |
 | **F3** (stretch) | re-test of the 57 wrong-data + 112 cosmetic findings | 169 fixes |
 | not provable | the 2 not-provable findings, re-attempted with their groups | 2 |
 | **Findings re-tested** | F1 + F3 + 2 | **248** |
 
 A fix is re-tested on the cells its Verification line names in `consolidated-fix-list.md` (by first-round session,
 shown in the last column). The number of cells pressed is tallied from the batch notes at run time and reported as
-"tested N of 1,197", as in the 10 Nov plan; cells named by no Verification line and not in F2 are covered by CI on
+"tested N of 1,206", as in the 10 Nov plan; cells named by no Verification line and not in F2 are covered by CI on
 the head, and the round note says so.
 
 ### F1 — the 77 blocks-work findings (72 in fix groups + 5 with no product fix)
@@ -160,11 +166,11 @@ Notes for F1:
 * **FIX-28 (F054, F076)** close only on a live induced error showing the control, as the 10 Nov plan ruled.
 * **§3 findings** have no product fix: the re-test records whether the state is as the fix list left it.
 
-### F2 — new surfaces (83 cells)
+### F2 — new surfaces (92 cells)
 
-The 47 new cells of §3 and the 36 changed cells listed under it. Run after F1's money and access groups, in this
-order: R20 Finance (14 new + 9 changed) → R26 per-member settings (9) → R7 / R5 task features (17 + 5) → R2, R9
-(4) → routes (2 + 3) → settings and shell (9) → themes (9) → #1577 areas (4 + 2 phone).
+The 56 new cells of §3 and the 36 changed cells listed under it. Run after F1's money and access groups, in this
+order: R20 Finance (14 new + 9 changed) → R26 per-member settings (9) → R7 / R5 task features (18 + 5) → R2, R8, R9
+(8) → routes (2 + 3) → settings and shell (11) → themes (11) → #1577 areas (4 + 2 phone).
 
 ### F3 — stretch: wrong data, then cosmetic
 
@@ -231,7 +237,7 @@ order: R20 Finance (14 new + 9 changed) → R26 per-member settings (9) → R7 /
 | §3 (no product fix) | No product fix — confirm the recorded state only | 7 | F071, F081, F111, F112, F139, F153, F154 | B2s3, B2s4, B3s1, B3s3, B3s4 |
 **F3-c · re-skin re-look (existing cells, no change to M).** Landing 31 rebuilt the look, so the first round's
 design results no longer stand: L1–L35, B1–B35, C1–C35 and O1–O6 are looked at again with the cosmetic re-tests of
-the same screen (111 cells; E1–E9 are in F2). The six rebuilt screens go first: sign-in, My day, Partners list,
+the same screen (111 cells; E1–E11 are in F2). The six rebuilt screens go first: sign-in, My day, Partners list,
 Finance, the partner's Finance tab, Tasks.
 
 **The 2 not-provable findings**
@@ -247,7 +253,7 @@ Finance, the partner's Finance tab, Tasks.
 * **Tripwire, restated for this head:** stop if a theme other than Light, Dark, Direct, Turquoise or System appears,
   or a landing after Landing 46 changes a screen.
 * **Batch 0:** baselines per list, the F2–F5 Finance totals before any press, notification-switch counts read live,
-  the manager chain, and first-open confirmation of the 47 new controls. Proof achievements ACH-2026-0029, 0038,
+  the manager chain, and first-open confirmation of the 56 new cells' controls. Proof achievements ACH-2026-0029, 0038,
   0040 and 0043 are never removed.
 * **Calendar cells:** N7 and T5 need a Wednesday press and the Thursday 11:00–11:59 Riyadh window; outside it they
   are recorded not provable, never passed.
@@ -266,4 +272,14 @@ Finance, the partner's Finance tab, Tasks.
    "section not offered" as the right result. Confirm, or set the extra for the round and restore it after.
 3. **The 12 Nov round's own findings** (40 recorded by Batch 5, in `followup-glitch-list.md`) are not in F1 or F3,
    which hold the first round's 248 only. Say if they should be added as a fourth batch.
-4. **The seven struck cell IDs** — see §1.
+4. **The seven struck cell IDs** — see §1. `reissue-amendment-3-consolidated-review-report.md` (D6) names A3, N4,
+   K3, K8, J3, R7, N1: those are the manager-dependent cells that let the first round end "1,150 of 1,157". They
+   were never struck, and they are not the seven Member R24 cells.
+5. **Per-member settings — the approved design and the build differ in two places.** The design of 22 Nov says
+   "Edit someone else's work" and "Change credit limits" are Admin + Head by default. Landing 40 built "Edit someone
+   else's work" as an extra no role holds by default, where View only takes nothing away; and the company-wide
+   credit limit is changed by a Manager, a Head or an Admin (Landing 31, decision 4). A13–A15 test what is built;
+   say if the design's wording should be the expected result instead.
+6. **"Across the six roles."** The 15 Nov brief asks for the task features to be tested as all six roles. This plan
+   keeps the frozen plan's rule (Manager and Member act; Head and Commercial are checked by the mirror-breaker
+   cells). Pressing the 10 task-feature controls as all six roles would add 20 cells.
