@@ -111,8 +111,9 @@ test('1 · the Ledger says what each row is, By deal type filters it, a person s
   await seedImportedRow(bare.id!, admin.id, month.mid, { number: unset, revenue: 250, cost: 50 });
 
   await openFinance(page, month.url);
-  const revenue = await stripNumber(page, 'revenue');
-  expect(revenue, 'the month counts the three rows').toBe(1250);
+  // the figure is waited for, never read once: on a slow machine the strip is drawn a moment before its rows are in
+  await expect.poll(() => stripNumber(page, 'revenue'), { message: 'the month counts the three rows' }).toBe(1250);
+  const revenue = 1250;
 
   // each row says what it is
   await expect(
@@ -136,8 +137,8 @@ test('1 · the Ledger says what each row is, By deal type filters it, a person s
 
   // by deal type: the database's lines, and the filter over the list
   const line = (k: string) => page.locator(`[data-ledger-deal-line="${k}"] [data-ledger-deal-revenue]`);
-  expect(num(await line('postpaid').innerText()), 'postpaid: 700 + 300').toBe(1000);
-  expect(num(await line('none').innerText()), 'not set: 250').toBe(250);
+  await expect.poll(async () => num(await line('postpaid').innerText()), { message: 'postpaid: 700 + 300' }).toBe(1000);
+  await expect.poll(async () => num(await line('none').innerText()), { message: 'not set: 250' }).toBe(250);
   await page.locator('[data-ledger-deal-filter-option="none"]').click();
   await expect(page.locator('[data-finance-ledger-row]'), 'the filter keeps the row that is not set').toHaveCount(1);
   await expect(ledgerRow(page, unset), 'and it is that row').toBeVisible();
