@@ -249,6 +249,24 @@ deploy.
 Where it was run: a cloud container; local Postgres 16 for the plain SQL suite (CI uses 17) and the local Supabase
 stack (Postgres 17) for the types, the advisors, the second SQL run and the browser tests.
 
+## CI run 1633 — one red job, and its fix (third commit, tests only)
+
+The first CI run on this work was red in one job: an older browser sabotage,
+`finance-aborted-read-overwrites-the-answer`, went red in a neighbouring test and not with the words it names. It was
+not run on the builder's machine before the push (the older browser plants were left to CI, as said above).
+
+The cause is in the old test, uncovered by this landing: "going back to a period just seen never leaves a block
+stuck on loading" (QA-549) leaned on three fixed waits. With three more cards on the Finance page they stopped
+holding — the page was called settled before its lower cards had asked anything, so their reads were still going out
+when MTD was pressed; 300 ms later the page had often sent nothing for MTD yet; and the last wait was shorter than
+the queue. With no stale answer landing, the plant stayed green (2 runs in 3 on the builder's machine).
+
+The test now waits for the reads themselves: the page is quiet (no read out, no block loading, twice half a second
+apart), it is loaded a second time warm, MTD's own reads are seen to be out before going back, and every held read is
+answered before the check. No assertion is loosened and no product code changes. Proven on the builder's machine:
+the spec 3 runs green on the clean tree; the plant **5 runs of 5 red** with its own words; the five other plants of
+that spec red.
+
 ## Live checks
 
 - **Done, read-only, on the live database (24 Nov, counts only — nothing was written):** the last applied migration
