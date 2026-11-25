@@ -17,7 +17,7 @@ const TOUCH_COOKIE = 'v2_seen';
 const TOUCH_EVERY_MS = 60 * 60 * 1000;
 
 /**
- * Pages anyone may open: the sign-in page, the set-password page (Landing 51 — its first step is for a visitor who
+ * Pages anyone may open: the sign-in page, the set-password page (Landing 52 — its first step is for a visitor who
  * is not signed in; the page itself decides what a signed-in one gets) and the auth routes (which check the session
  * themselves).
  */

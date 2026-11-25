@@ -6,7 +6,7 @@
 -- is refused with exactly the reason the list gave.
 -- Every value is made up.
 -- Sabotage: supabase/tests/sabotage/restore-offered-without-the-records-own-checks.sql.
--- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the member
+-- Landing 52: what other people removed is listed only to those who may open Activity (DEL-05), so the member
 -- who reads the head's removal here is given Activity · View.
 select set_config('v2.test_now', '2026-10-12 09:00:00+03', true);
 select set_config('t.head', test.person('Test Restore Head', 'head')::text, true);

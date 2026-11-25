@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
- * Landing 51 (FIX-13, the F1 live re-test of 25 Nov): the top search sent one request for every letter typed —
+ * Landing 52 (FIX-13, the F1 live re-test of 25 Nov): the top search sent one request for every letter typed —
  * seven at once for one word, each slow while the others ran, one cut off — and a request that failed was shown as
  * "Nothing matches". Now: one request once the typing pauses, for the words as they stand; a request lost on its
  * way is asked again by itself (rpc's `retry`); one that still fails says so, with Try again; and "Nothing matches"
  * is kept for a search the server answered. An organisation the server finds is listed. Every value is made up.
- * Sabotage: tests/sabotage/landing-51.mjs.
+ * Sabotage: tests/sabotage/landing-52.mjs.
  */
 import { NextIntlClientProvider } from 'next-intl';
 import { act } from 'react';
@@ -92,7 +92,7 @@ const found = {
   ],
 };
 
-describe('the top search asks once, promptly, and says when it fails (Landing 51, FIX-13)', () => {
+describe('the top search asks once, promptly, and says when it fails (Landing 52, FIX-13)', () => {
   it('a word typed letter by letter is one request, for the whole word, and its organisation is listed', async () => {
     rpcMock.mockResolvedValue(found);
     await draw();

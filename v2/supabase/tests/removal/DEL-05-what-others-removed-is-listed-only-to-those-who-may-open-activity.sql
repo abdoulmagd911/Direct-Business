@@ -1,4 +1,4 @@
--- DEL-05 — Landing 51 (the F1 live re-test of 25 Nov, FIX-11): a Team member opened Recently deleted and read what
+-- DEL-05 — Landing 52 (the F1 live re-test of 25 Nov, FIX-11): a Team member opened Recently deleted and read what
 -- the admin, the head and the manager had removed. Now what other people removed is listed only to those who may
 -- open Activity (Activity · View or above: the admin, a head, a manager as seeded, or whoever is given the page);
 -- everyone else — a member, a viewer — is listed only what they removed themselves, even a record that was their

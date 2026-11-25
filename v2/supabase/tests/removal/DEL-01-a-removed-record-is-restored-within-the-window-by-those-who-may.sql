@@ -11,7 +11,7 @@
 --            supabase/tests/sabotage/recently-deleted-shows-everything.sql.
 -- Its owner restores what someone else removed (QA-60); and bringing a record back asks what adding it asks — an
 -- identifier its side's identify capability, a credit limit finance.credit_control (QA-47).
--- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
+-- Landing 52: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
 -- of this test are given Activity · View — what it pins is the rule beneath: only what each could read while live.
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select test.as_owner();

@@ -1,4 +1,4 @@
--- Landing 51 (F1 live re-test of 25 Nov, FIX-11): a Team member opened Recently deleted and read 187 removals —
+-- Landing 52 (F1 live re-test of 25 Nov, FIX-11): a Team member opened Recently deleted and read 187 removals —
 -- the Admin's, the Head's, the Manager's, each with its name and reason, many with Restore. The list asked one
 -- question only: "could this person read the record while it was live?" (core.deleted_visible). A member can read
 -- most of the team's tasks, so a member read most of the team's removals.

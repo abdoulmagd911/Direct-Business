@@ -1,5 +1,5 @@
 /**
- * Landing 51 — the three failures of the F1 live re-test of 25 Nov, in the browser, as a person meets them.
+ * Landing 52 — the three failures of the F1 live re-test of 25 Nov, in the browser, as a person meets them.
  *  · FIX-11: on Recently deleted a Team member is listed only what they removed themselves — not what a colleague
  *    or the admin removed, even of a task they could open — while a manager (who may open Activity) still is.
  *  · FIX-13: the top search asks the server once for a word typed letter by letter (it asked once per letter),
@@ -7,7 +7,7 @@
  *    "Nothing matches".
  *  · FIX-19: the sign-in page has a set-password link; it opens a page a signed-out visitor can use, where the work
  *    email and the temporary password from an admin lead to "Choose a new password"; the language button still works.
- * Every value is made up. Sabotage: tests/sabotage/landing-51.mjs.
+ * Every value is made up. Sabotage: tests/sabotage/landing-52.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { callAs, makePerson, signIn, signOut, sql } from './support/stack';

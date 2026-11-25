@@ -4,7 +4,7 @@ import { DoorFrame } from './DoorFrame';
 import { PasswordDoor } from './PasswordDoor';
 
 /**
- * /set-password for a visitor who is not signed in (Landing 51, FIX-19) — where the sign-in page's "Set your
+ * /set-password for a visitor who is not signed in (Landing 52, FIX-19) — where the sign-in page's "Set your
  * password" link leads. The first of two steps: the work email and the temporary password an admin generated
  * (Settings → People), through the sign-in door's own form and server check. A person whose password must change
  * then lands on "Choose a new password" (SetPassword); anyone else is simply signed in. No e-mail is sent.

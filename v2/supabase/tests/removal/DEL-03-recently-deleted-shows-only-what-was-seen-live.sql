@@ -4,7 +4,7 @@
 -- it still do. A viewer sees a removed achievement but may not restore it; whoever removed it may. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/recently-deleted-trusts-the-owners-shortcut.sql,
 --            supabase/tests/sabotage/recently-deleted-offers-restore-to-all.sql.
--- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
+-- Landing 52: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
 -- of this test are given Activity · View — what it pins is the rule beneath: only what each could read while live.
 select set_config('v2.test_now', '2026-10-12 09:00:00+03', true);
 select set_config('t.own', test.person('Test Removal Owner', 'member')::text, true);

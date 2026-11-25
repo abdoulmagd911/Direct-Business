@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 /**
- * Landing 51 (FIX-19, the F1 live re-test of 25 Nov): the sign-in page had no set-password link — only the plain
+ * Landing 52 (FIX-19, the F1 live re-test of 25 Nov): the sign-in page had no set-password link — only the plain
  * line "Forgot your password? Ask your admin.". Now the door carries one real link under that line, to
  * /set-password; that page is open to a visitor who is not signed in (the gate lets it through), and its first step
  * is the same form worded for a temporary password — "Temporary password", "Continue", "Back to sign in" — sent to
  * the sign-in door's own server check. The language button and the rest of the door are not touched. In English
  * and in Arabic. Every value is made up.
- * Sabotage: tests/sabotage/landing-51.mjs.
+ * Sabotage: tests/sabotage/landing-52.mjs.
  */
 import { NextIntlClientProvider } from 'next-intl';
 import { act } from 'react';
@@ -62,7 +62,7 @@ const type = (selector: string, value: string) => {
   });
 };
 
-describe('the sign-in page links to set-password (Landing 51, FIX-19)', () => {
+describe('the sign-in page links to set-password (Landing 52, FIX-19)', () => {
   it('the door carries a real link to /set-password, under the unchanged "Ask your admin" line', () => {
     draw(<SignIn next={null} refusal={null} />);
     const link = document.querySelector('[data-door-set-password]') as HTMLAnchorElement | null;

@@ -12,7 +12,7 @@ import { cn } from '@/ui/cn';
  * every refusal from the server is one banner (role="alert") — and a server that cannot be reached is said as that,
  * never as a wrong password. "Forgot your password? Ask your admin." is plain text under the password, never a link.
  *
- * Landing 51 (FIX-19, the F1 live re-test of 25 Nov): under that line the door now carries one link, "Have a
+ * Landing 52 (FIX-19, the F1 live re-test of 25 Nov): under that line the door now carries one link, "Have a
  * temporary password? Set your password", to /set-password — the page where someone whose admin has just given them
  * a temporary password signs in with it and chooses their own. No e-mail is sent by either page (owner, 29 Sep).
  * That page draws this same form as its first step (`temporary`): the password box is named "Temporary password", the

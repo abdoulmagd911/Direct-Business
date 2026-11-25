@@ -74,7 +74,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   });
   // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
   const term = q.trim();
-  // Landing 51 (FIX-13, the F1 live re-test of 25 Nov): the search asked the server once for EVERY letter typed —
+  // Landing 52 (FIX-13, the F1 live re-test of 25 Nov): the search asked the server once for EVERY letter typed —
   // seven requests in one second for one word, each several seconds while the others ran, one cut off at the
   // server's own limit — and a request that failed was shown as "Nothing matches", which is not true. Now the search
   // waits for a short pause in the typing and asks once, for the words as they stand (SEARCH_PAUSE_MS); a request

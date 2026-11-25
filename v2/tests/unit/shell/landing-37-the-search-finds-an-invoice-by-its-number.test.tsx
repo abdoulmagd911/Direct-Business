@@ -78,7 +78,7 @@ const type = async (text: string) => {
 };
 const flush = async () => {
   await act(async () => {
-    // Landing 51: the search asks once the typing has paused (SEARCH_PAUSE_MS), so the wait covers the pause
+    // Landing 52: the search asks once the typing has paused (SEARCH_PAUSE_MS), so the wait covers the pause
     await new Promise((r) => setTimeout(r, SEARCH_PAUSE_MS + 20));
   });
 };

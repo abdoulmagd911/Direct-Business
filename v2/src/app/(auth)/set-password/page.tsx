@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * "Set your own password" (owner, 29 Sep 13:50): shown to a signed-in person whose password must change — the first
  * sign-in, or after an admin's reset. No shell: the person is not in yet. Someone with nothing to change goes on.
  *
- * Landing 51 (FIX-19): the sign-in page links here, so a visitor who is NOT signed in is no longer bounced back to
+ * Landing 52 (FIX-19): the sign-in page links here, so a visitor who is NOT signed in is no longer bounced back to
  * the sign-in page (the link would have led nowhere). They get the first step — work email and the temporary
  * password from their admin, the sign-in door's own form and server check — and, once signed in with it, the step
  * below. No e-mail is sent; a person without a temporary password is told, as on the door, to ask their admin.
