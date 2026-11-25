@@ -13,6 +13,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en.json';
+import { SEARCH_PAUSE_MS } from '../../../src/ui/shell/search-pause';
 import type { Me } from '../../../src/core/auth/me';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -90,7 +91,8 @@ const mount = async (node: React.ReactNode) => {
 };
 const flush = () =>
   act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
+    // Landing 52: the search asks once the typing has paused (SEARCH_PAUSE_MS), so the wait covers the pause
+    await new Promise((r) => setTimeout(r, SEARCH_PAUSE_MS + 20));
   });
 
 describe('a move made in code says so to the shell', () => {

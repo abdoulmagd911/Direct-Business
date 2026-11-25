@@ -12,6 +12,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en.json';
+import { SEARCH_PAUSE_MS } from '../../../src/ui/shell/search-pause';
 import type { Me } from '../../../src/core/auth/me';
 import { invoiceHitCounts, invoiceHitRoute, invoiceHitsOf } from '../../../src/ui/shell/invoice-hit';
 
@@ -77,7 +78,8 @@ const type = async (text: string) => {
 };
 const flush = async () => {
   await act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
+    // Landing 52: the search asks once the typing has paused (SEARCH_PAUSE_MS), so the wait covers the pause
+    await new Promise((r) => setTimeout(r, SEARCH_PAUSE_MS + 20));
   });
 };
 

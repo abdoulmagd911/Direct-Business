@@ -1,5 +1,6 @@
 'use client';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useId, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from 'react';
 import { signInWithPassword, type PasswordError } from '@/core/auth/password-actions';
 import { cn } from '@/ui/cn';
@@ -10,8 +11,23 @@ import { cn } from '@/ui/cn';
  * focus; the button is full width, slate, "Signing in…" while the server answers (the fields read-only meanwhile);
  * every refusal from the server is one banner (role="alert") — and a server that cannot be reached is said as that,
  * never as a wrong password. "Forgot your password? Ask your admin." is plain text under the password, never a link.
+ *
+ * Landing 52 (FIX-19, the F1 live re-test of 25 Nov): under that line the door now carries one link, "Have a
+ * temporary password? Set your password", to /set-password — the page where someone whose admin has just given them
+ * a temporary password signs in with it and chooses their own. No e-mail is sent by either page (owner, 29 Sep).
+ * That page draws this same form as its first step (`temporary`): the password box is named "Temporary password", the
+ * button says "Continue", and the link under the box is "Back to sign in".
  */
-export function PasswordDoor({ next, refusal }: { next: string | null; refusal: string | null }) {
+export function PasswordDoor({
+  next,
+  refusal,
+  temporary = false,
+}: {
+  next: string | null;
+  refusal: string | null;
+  /** The first step of /set-password: the same form and the same server check, worded for a temporary password. */
+  temporary?: boolean;
+}) {
   const t = useTranslations();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -97,7 +113,7 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor={ids.password} className="door-label">
-          {t('sign_in.password.label')}
+          {temporary ? t('sign_in.password.temporary') : t('sign_in.password.label')}
         </label>
         {/* dir="ltr" with the box: a password is typed left to right, so its room for the eye is on the right — in
             Arabic the eye sat at the page's end (the left) on top of the first characters */}
@@ -151,15 +167,30 @@ export function PasswordDoor({ next, refusal }: { next: string | null; refusal: 
           </p>
         ) : null}
         <p className="door-muted text-[13px] leading-[18px]">{t('sign_in.password.forgot')}</p>
+        <p className="text-[13px] leading-[18px]">
+          {temporary ? (
+            <Link href="/sign-in" className="door-link" data-door-back>
+              {t('sign_in.password.backToSignIn')}
+            </Link>
+          ) : (
+            <Link href="/set-password" className="door-link" data-door-set-password>
+              {t('sign_in.password.setLink')}
+            </Link>
+          )}
+        </p>
       </div>
       <button
         type="submit"
         className="door-button"
         disabled={pending}
         aria-busy={pending || undefined}
-        data-door="password"
+        data-door={temporary ? 'temporary-password' : 'password'}
       >
-        {pending ? t('sign_in.password.signingIn') : t('sign_in.password.signIn')}
+        {pending
+          ? t('sign_in.password.signingIn')
+          : temporary
+            ? t('sign_in.password.continue')
+            : t('sign_in.password.signIn')}
       </button>
     </form>
   );

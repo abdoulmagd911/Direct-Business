@@ -803,7 +803,7 @@ IDN-01, IDN-02, NORM-01, NORM-02, LIST-01.
 
 **V141 — Recently deleted** ACTIVE · 2026-09-29. V401's "Recently deleted, 30 days with restore", for every record type that can be removed.
 
-- `api.recently_deleted()` lists what was removed in the last `audit.recently_deleted_days` (30, a setting). Each person sees only the records they may see (V143), with the record's name, who removed it and why.
+- `api.recently_deleted()` lists what was removed in the last `audit.recently_deleted_days` (30, a setting). Each person sees only the records they may see (V143), with the record's name, who removed it and why. Landing 52 (owner, 25 Nov, after the F1 live re-test): what **other people** removed is listed only to those who may open Activity (Activity · View or above — admin, head, manager as seeded); everyone else, a Team member and a Viewer included, is listed only what they removed themselves (`DEL-05`).
 - `api.restore(type, id, reason)` brings a record back within the window, in one request that Undo takes back.
   - Who may restore: ~~whoever removed it, its owner with Own on its page,~~ **[SUPERSEDED — V161: the remover or an owner only with at least Own on it now; never a system removal — V177]** anyone with Full on its page, or an admin. Access and sign-in records are an admin's only.
   - A record is never restored over a live duplicate (`restore.blocked_by_duplicate`).

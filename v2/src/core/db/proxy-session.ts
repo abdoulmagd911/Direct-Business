@@ -16,9 +16,13 @@ const AUTH_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
 const TOUCH_COOKIE = 'v2_seen';
 const TOUCH_EVERY_MS = 60 * 60 * 1000;
 
-/** Pages anyone may open: the sign-in page and the auth routes (which check the session themselves). */
+/**
+ * Pages anyone may open: the sign-in page, the set-password page (Landing 52 — its first step is for a visitor who
+ * is not signed in; the page itself decides what a signed-in one gets) and the auth routes (which check the session
+ * themselves).
+ */
 export function isPublicPath(path: string): boolean {
-  return path === '/sign-in' || path.startsWith('/auth/');
+  return path === '/sign-in' || path === '/set-password' || path.startsWith('/auth/');
 }
 
 /** An address under /api (W32). */

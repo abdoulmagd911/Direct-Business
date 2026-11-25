@@ -129,6 +129,13 @@
   font-size: 13px;
   font-weight: 600;
 }
+/* the door's one link (Landing 52): to the set-password page, and back from it */
+.door-link {
+  color: var(--link);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .door-eye:hover {
   background: var(--surface);
 }

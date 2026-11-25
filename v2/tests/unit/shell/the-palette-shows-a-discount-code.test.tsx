@@ -10,6 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import en from '../../../messages/en.json';
+import { SEARCH_PAUSE_MS } from '../../../src/ui/shell/search-pause';
 import type { Me } from '../../../src/core/auth/me';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -75,7 +76,8 @@ const type = async (text: string) => {
 
 const flush = async () => {
   await act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
+    // Landing 52: the search asks once the typing has paused (SEARCH_PAUSE_MS), so the wait covers the pause
+    await new Promise((r) => setTimeout(r, SEARCH_PAUSE_MS + 20));
   });
 };
 
@@ -94,7 +96,7 @@ describe('the palette shows a discount code', () => {
     await type('flights10');
     await flush();
     await flush();
-    expect(rpcMock).toHaveBeenCalledWith('search', { p_q: 'flights10', p_limit: 8 });
+    expect(rpcMock).toHaveBeenCalledWith('search', { p_q: 'flights10', p_limit: 8 }, { retry: true });
     const row = document.querySelector(`[data-palette-code="${CODE_ID}"]`);
     expect(row, 'the code is found by its text').not.toBeNull();
     expect(row?.textContent).toContain('FLIGHTS10');
