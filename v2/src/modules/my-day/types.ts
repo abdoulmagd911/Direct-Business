@@ -118,6 +118,12 @@ export type TodayTask = {
   starred?: boolean;
   /** How many times a wrap-up carried it over. */
   carried_over?: number;
+  /** Today's three only (Landing 53): finished today — it keeps its place, ticked. */
+  done?: boolean;
+  /** The task's kind (Landing 53): its type from the Settings list — the key and its name in both languages; null when it has none. */
+  type?: string | null;
+  type_en?: string | null;
+  type_ar?: string | null;
 };
 
 /**

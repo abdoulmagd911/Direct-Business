@@ -4,7 +4,7 @@
 -- number), with the totals. Landing 35: a group short of three is TOPPED UP from the person's other own open tasks
 -- (Important with the longest overdue, Short with the next due days ahead), so nine open tasks always read 3 + 3 + 3;
 -- a task is in one group only, and a task not shown is counted in the group its rule names. A task I only help on, another person's task, a done, a cancelled or a removed task is
--- never there — and a task whose status says cancelled is not current even when its closed stamp is empty. Asked twice,
+-- never there (a task done TODAY keeps its place: THREE-02) — and a task whose status says cancelled is not current even when its closed stamp is empty. Asked twice,
 -- the answer is the same. The clock is fixed; every value is made up.
 -- Sabotages: supabase/tests/sabotage/an-overdue-task-is-short.sql, an-undated-task-is-in-no-group.sql,
 -- a-cancelled-task-is-current.sql, a-helped-task-is-in-my-three.sql, todays-three-holds-four.sql,
@@ -70,7 +70,12 @@ insert into work.task_helper (task_id, person_id, created_by)
 values (current_setting('t.help')::uuid, current_setting('t.a')::uuid, current_setting('t.b')::uuid);
 select test.done();
 select test.as_person(current_setting('t.a')::uuid);
+-- done on an earlier day (Landing 53: a task done TODAY keeps its place, ticked — that is THREE-02's promise)
 select api.task_status_set(current_setting('t.done')::uuid, 'done');
+select test.act(current_setting('t.a')::uuid);
+update work.task set closed_at = '2026-11-17 16:00:00+03' where id = current_setting('t.done')::uuid;
+select test.done();
+select test.as_person(current_setting('t.a')::uuid);
 select test.act(current_setting('t.a')::uuid);
 update work.task set deleted_at = core.clock(), deleted_by = current_setting('t.a')::uuid, delete_reason = 'made-up removal'
 where id = current_setting('t.gone')::uuid;
@@ -83,7 +88,7 @@ select test.as_person(current_setting('t.a')::uuid);
 select set_config('t.three', (api.my_day('me') -> 'three')::text, true);
 select test.ok(current_setting('t.three') not like '%Made-up cancelled%', 'a task whose status is cancelled is not current');
 select test.ok(current_setting('t.three') not like '%Made-up done%' and current_setting('t.three') not like '%Made-up removed%',
-  'a done or a removed task is not current');
+  'a task done on an earlier day, or a removed one, is not current');
 select test.ok(current_setting('t.three') not like '%Made-up helped only%' and current_setting('t.three') not like '%Made-up someone else%',
   'a task I only help on, or someone else''s, is never in my three');
 select test.eq(pg_temp.titles(current_setting('t.three')::jsonb, 'short'),

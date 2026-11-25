@@ -45,8 +45,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/TodayBlock.tsx',
-        find: '{helping ? (\n        <StarMark starred={!!task.starred} />',
-        replace: '{false ? (\n        <StarMark starred={!!task.starred} />',
+        find: '{helping || task.done ? (\n        <StarMark starred={!!task.starred} />',
+        replace: '{task.done ? (\n        <StarMark starred={!!task.starred} />',
       },
     ],
   },

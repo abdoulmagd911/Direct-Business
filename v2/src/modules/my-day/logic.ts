@@ -195,6 +195,12 @@ export function todaysThree(three: MyDayAnswer['three'], tasks: TodayTask[]): To
   return out;
 }
 
+/** How far the day's three are worked down (Landing 53): the rows ticked done today, out of the rows drawn — "7 of 9 done today". */
+export function threeProgress(three: TodaysThree): { done: number; total: number } {
+  const rows = THREE_GROUPS.flatMap((g) => three[g]);
+  return { done: rows.filter((task) => task.done).length, total: rows.length };
+}
+
 /** How many of a group's tasks are not drawn in Today's three (they are in the Today block or on Tasks). */
 export const threeMore = (three: TodaysThree, g: ThreeGroup): number => Math.max(three.totals[g] - three[g].length, 0);
 
@@ -359,3 +365,53 @@ export function wrapRecover(before: WrapItem[], after: WrapItem[]) {
   const still = new Set(after.map((i) => i.id));
   return { gone: before.filter((i) => !still.has(i.id)), items: after };
 }
+
+/**
+ * "The rest of today", grouped by kind (Landing 53, the boards of the design session). A task's kind is its own type
+ * from the Settings list; a task with no type sits under Other. A follow-up — a reminder about a record — sits with the
+ * Follow-up tasks; a plain reminder has its own group, first. The kinds the boards draw come first, in their order; any
+ * other type from Settings follows by name; Other is last. A kind with nothing has no group.
+ */
+export const KIND_ORDER = ['meeting', 'call', 'follow_up', 'request', 'report', 'document', 'site_visit'] as const;
+/** The kind a follow-up reminder is listed under, and the one a task with no type is listed under. */
+export const FOLLOW_UP_KIND = 'follow_up';
+export const OTHER_KIND = 'other';
+export type KindGroup<R> = {
+  /** `reminders`, a task type's key, or `other`. */
+  key: string;
+  /** The type's own name from Settings, for a kind the catalog has no heading for. */
+  name_en: string | null;
+  name_ar: string | null;
+  reminders: R[];
+  rows: TodayTask[];
+};
+
+export function restByKind<R extends { about: unknown }>(tasks: TodayTask[], reminders: R[]): KindGroup<R>[] {
+  const groups = new Map<string, KindGroup<R>>();
+  const of = (key: string, en: string | null = null, ar: string | null = null) => {
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = { key, name_en: en, name_ar: ar, reminders: [], rows: [] }));
+    return g;
+  };
+  for (const r of reminders) of(r.about ? FOLLOW_UP_KIND : 'reminders').reminders.push(r);
+  for (const task of tasks) of(task.type || OTHER_KIND, task.type_en ?? null, task.type_ar ?? null).rows.push(task);
+  for (const g of groups.values()) {
+    // a group first made by a reminder learns its name from its first task
+    const named = g.rows.find((task) => task.type_en || task.type_ar);
+    if (named) Object.assign(g, { name_en: named.type_en ?? null, name_ar: named.type_ar ?? null });
+    g.rows.sort(byDueThenNumber);
+  }
+  const rank = (g: KindGroup<R>) => {
+    if (g.key === 'reminders') return -1;
+    if (g.key === OTHER_KIND) return 999;
+    const at = (KIND_ORDER as readonly string[]).indexOf(g.key);
+    return at < 0 ? 100 : at;
+  };
+  return [...groups.values()].sort(
+    (a, b) => rank(a) - rank(b) || (a.name_en ?? a.key).localeCompare(b.name_en ?? b.key),
+  );
+}
+
+/** How a block is grouped on My day: by kind (the boards' default) or by priority — the four boxes of V661. */
+export const REST_VIEWS = ['kind', 'priority'] as const;
+export type RestView = (typeof REST_VIEWS)[number];

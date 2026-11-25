@@ -120,7 +120,14 @@ export const sabotages = [
     name: 'day-heading-keeps-the-comma',
     breaks: [BANNER],
     expect: 'writes the day as the boards do',
-    edits: [{ file: MY_WORK, find: "day.replace(/,/g, '')", replace: 'day' }],
+    // Landing 53: the day is written in full, "Sunday, 15 November 2026" — here it loses its comma
+    edits: [
+      {
+        file: MY_WORK,
+        find: 'return `${weekday}, ${day} ${month} ${year}`;',
+        replace: 'return `${weekday} ${day} ${month} ${year}`;',
+      },
+    ],
   },
   {
     name: 'capture-button-shows-on-a-phone-banner',

@@ -169,6 +169,18 @@ export function MyDay({ data }: { data: MyDayData }) {
       />
       {/* Landing 34: the banner, then Today's three, then the rest — on Me, for everyone who has a My day, tasks or none */}
       {scope === 'me' ? <TodaysThree three={three} statuses={data.statuses} /> : null}
+      {/* Landing 53 (the boards): the rest of today sits right under the three, grouped by kind; the four boxes are its other view */}
+      {scope === 'me' ? (
+        <TodayBlock
+          tasks={belowThree}
+          day={answer.day}
+          statuses={data.statuses}
+          carried={answer.carried_over?.length ?? 0}
+          pending={answer.reminders}
+          due={data.due}
+          initialView="kind"
+        />
+      ) : null}
       {/* the manager's view of the team's streaks; nothing at all for someone who manages nobody */}
       {scope === 'team' ? <TeamStreaks /> : null}
       {/* Phase 5, at the top of My day: what waits on me (tasks flagged as needing help, addressed to me, plus the
@@ -358,16 +370,6 @@ export function MyDay({ data }: { data: MyDayData }) {
             <p className="py-2.5 text-base text-muted">{t('pages.myDay.waiting.emptyWaitingOnOthers')}</p>
           )}
         </section>
-      ) : null}
-      {scope === 'me' ? (
-        <TodayBlock
-          tasks={belowThree}
-          day={answer.day}
-          statuses={data.statuses}
-          carried={answer.carried_over?.length ?? 0}
-          pending={answer.reminders}
-          due={data.due}
-        />
       ) : null}
       {scope === 'me' ? <WeekDoor day={answer.day} unloggedCount={data.unlogged} /> : null}
       {/* Phase 5: my starred tasks, from the Today list — the star already carries undated tasks there. */}

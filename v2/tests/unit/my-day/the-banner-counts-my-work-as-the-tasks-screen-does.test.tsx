@@ -155,7 +155,7 @@ describe('the banner says what it counts', () => {
   });
   it('writes the day as the boards do', () => {
     const noon = '2026-11-15T12:00:00+03:00';
-    expect(dayHeading(noon, 'en')).toBe('Sun 15 Nov 2026');
+    expect(dayHeading(noon, 'en')).toBe('Sunday, 15 November 2026');
     expect(dayHeading(noon, 'ar')).toBe('الأحد، 15 نوفمبر 2026');
   });
 });

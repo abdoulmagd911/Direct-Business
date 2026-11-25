@@ -165,7 +165,7 @@ describe("My day opens with Today's three", () => {
     await draw(tasks);
     const section = one('[data-todays-three]')!;
     expect(section, "the Today's three section").not.toBeNull();
-    expect(section.querySelector('h2')?.textContent).toBe("Today's three");
+    expect(section.querySelector('h2')?.textContent).toBe("Today's Three");
     expect(text('[data-three-own]')).toBe('From your own task lists');
     const order = [
       ...document.querySelectorAll(
@@ -189,7 +189,7 @@ describe("My day opens with Today's three", () => {
     const below = [...document.querySelectorAll('[data-today-block] [data-today-task]')].map((r) =>
       r.getAttribute('data-today-task'),
     );
-    expect(below).toEqual(['TSK-004', 'TSK-031']);
+    expect([...below].sort()).toEqual(['TSK-004', 'TSK-031']);
     expect(document.querySelectorAll('[data-today-task="TSK-001"]')).toHaveLength(1);
   });
 
@@ -225,9 +225,9 @@ describe("My day opens with Today's three", () => {
 
   it('names the section and its groups in Arabic too', async () => {
     await draw(tasks, 'me', 'ar');
-    expect(one('[data-todays-three] h2')?.textContent).toBe('ثلاثة اليوم');
+    expect(one('[data-todays-three] h2')?.textContent).toBe('ثلاث مهام اليوم');
     expect(text('[data-three-own]')).toBe('من قوائم مهامك أنت');
-    expect(text('[data-three-group="important"] h3')).toBe('المهمة 3');
+    expect(text('[data-three-group="important"] h3')).toBe('مهمة 3');
   });
 
   it('is only on Me: the My team and Workspace tabs have no section', async () => {
@@ -343,17 +343,29 @@ describe('the streak line', () => {
     await draw(tasks);
     expect(calls).toContain('my_streak');
     expect(one('[data-streak]')?.getAttribute('data-streak')).toBe('4');
-    expect(text('[data-streak]')).toBe('Streak: 4 working days · 2 of 3 done today');
+    expect(text('[data-streak]')).toBe('4-day streak');
+    // Landing 53: how far today's rows are worked down is counted from the rows themselves — five drawn, none ticked
+    expect(text('[data-streak-line]')).toBe('4-day streak · 0 of 5 done today');
   });
   it('says there is no streak yet at 0 days', async () => {
     streak = { days: 0, today_done: 0, target: 3, today_counts: false, last_counted_on: null };
     await draw(tasks);
-    expect(text('[data-streak]')).toBe('No streak yet — finish three today to start one · 0 of 3 done today');
+    expect(text('[data-streak-line]')).toBe('No streak yet · 0 of 5 done today');
   });
-  it('never counts more than the three as done today', async () => {
+  it('counts the rows ticked done today out of the rows drawn (Landing 53)', async () => {
     streak = { days: 1, today_done: 5, target: 3, today_counts: true, last_counted_on: DAY };
+    const pick = pickOf(tasks);
+    await draw(tasks, 'me', 'en', {
+      ...pick,
+      important: pick.important.map((row, i) => (i < 2 ? { ...row, done: true } : row)),
+    });
+    expect(text('[data-streak-line]')).toBe('1-day streak · 2 of 5 done today');
+    expect(one('[data-streak-today]')?.getAttribute('data-streak-today')).toBe('2');
+  });
+  it('still says how far today is worked down when the streak cannot be read', async () => {
+    streakFails = true;
     await draw(tasks);
-    expect(text('[data-streak]')).toBe('Streak: 1 working day · 3 of 3 done today');
+    expect(text('[data-streak-line]')).toBe('0 of 5 done today');
   });
   it('draws nothing for the streak when it cannot be read — no error — and the section still shows', async () => {
     streakFails = true;
@@ -400,8 +412,13 @@ describe('a name and its count are a space apart (item 15)', () => {
   it("in Today's three and in the Today block's groups, read as text", async () => {
     await draw([...tasks, task(41, '2026-11-18'), task(42, '2026-11-18'), task(43, '2026-11-18')]);
     expect(one('[data-three-group="important"] h3')?.textContent).toBe('Important 3');
-    // four short ones: three above, the fourth stays in the Today block's "Quick or pass to someone" group
-    expect(one('[data-today-group="quick"] h3')?.textContent).toBe('Quick or pass to someone 1');
-    expect(one('[data-today-chip="quick"]')?.textContent).toBe('Quick or pass to someone 1');
+    // by kind (the board's default): a kind's name and its count
+    expect(one('[data-rest-kind="other"] h3')?.textContent).toBe('Other 3');
+    // by priority: four short ones — three above, the fourth stays in the "Quick or hand off" box
+    await act(async () => {
+      (one('[data-rest-view-option="priority"]') as HTMLButtonElement).click();
+    });
+    expect(one('[data-today-group="quick"] h3')?.textContent).toBe('Quick or hand off 1');
+    expect(one('[data-today-chip="quick"]')?.textContent).toBe('Quick or hand off 1');
   });
 });

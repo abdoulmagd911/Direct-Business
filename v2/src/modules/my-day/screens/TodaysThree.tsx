@@ -1,5 +1,5 @@
 'use client';
-import { Flame, ListChecks } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -12,11 +12,12 @@ import {
   readStreak,
   readTeamStreaks,
   threeMore,
+  threeProgress,
   type Streak,
   type TeamStreak,
   type TodaysThree as Three,
 } from '../logic';
-import { card, CardHead, groupHead } from './look';
+import { card, CardHead } from './look';
 import { TodayRow } from './TodayBlock';
 
 /**
@@ -26,20 +27,24 @@ import { TodayRow } from './TodayBlock';
 const ask = rpc as unknown as (fn: string, args: Record<string, never>, opts?: { retry?: boolean }) => Promise<unknown>;
 
 /**
- * Today's three (Landing 34, item 1) — the daily practice at the top of My day: 3 important + 3 short + 3 maintenance
- * from the person's OWN task lists (`todaysThree`), each row the Today block's own row, so the tick, the star and the
- * title behave as they do below. The section is always drawn on Me — with no tasks at all each group says so in a line
- * (a missing section was the bug). Under the heading a small streak line (`api.my_streak`, asked from the browser like
- * What's new, so it never holds the page back): when it cannot be read nothing is drawn for it, never an error. Under
- * the groups, one line per group saying where it comes from.
+ * Today's three (Landing 34, item 1; drawn as the boards of Landing 53) — the daily practice at the top of My day:
+ * 3 important + 3 short + 3 maintenance from the person's OWN tasks (`todaysThree`, the database's pick). The heading
+ * has a small streak line beside it — a flame, the working days in a row (`api.my_streak`, asked from the browser so it
+ * never holds the page back; when it cannot be read that part is simply not there), and how far today's rows are
+ * worked down ("7 of 9 done today", counted from the rows themselves). Three cards side by side on a wide screen; on a
+ * phone and a tablet one card with the three stacked and the streak line under the title. Each row is the Today
+ * block's own row: the tick, the title, its kind tag and the star; a task finished today keeps its place, ticked.
+ * The section is always drawn on Me — with no tasks at all each group says so in a line. Under the groups, one quiet
+ * line saying whose tasks these are and where each group comes from.
  */
 export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskStatus[] }) {
   const t = useTranslations('pages.myDay.three');
   const [streak, setStreak] = useState<Streak | null>(null);
-  // the streak is asked on opening and again whenever my open tasks change (a task ticked done leaves the list)
+  const progress = threeProgress(three);
+  // the streak is asked on opening and again whenever my tasks change (a task ticked done counts at once)
   const seen =
     [...THREE_GROUPS.flatMap((g) => three[g]), ...three.rest].map((task) => task.id).join(',') +
-    `|${THREE_GROUPS.map((g) => three.totals[g]).join(',')}`;
+    `|${THREE_GROUPS.map((g) => three.totals[g]).join(',')}|${progress.done}`;
   useEffect(() => {
     let live = true;
     ask('my_streak', {}, { retry: true })
@@ -55,31 +60,49 @@ export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskS
     };
   }, [seen]);
   return (
-    <section className={cn(card, 'pb-3 pt-1')} data-todays-three>
-      <CardHead icon={<ListChecks />} title={t('title')} />
-      <div className="flex flex-col gap-1 border-b border-border py-2.5 text-sm text-muted">
-        <p data-three-own>{t('sub')}</p>
-        {streak ? (
+    <section
+      className={cn(card, 'pb-3 pt-1 lg:border-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:shadow-none')}
+      data-todays-three
+    >
+      {/* the heading with the streak line beside it; on a narrow screen the line wraps under the title */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 max-lg:border-b max-lg:border-border lg:pb-4 lg:pt-0">
+        <h2 className="text-lg font-semibold leading-6 text-strong lg:text-xl lg:leading-7">{t('title')}</h2>
+        {streak || progress.total ? (
           // one line of plain text, its parts apart by real spaces (item 15) — it wraps between words on a phone
-          <p data-streak={streak.days}>
-            {streak.days > 0 ? t('streak.days', { days: streak.days }) : t('streak.none')}
-            {' · '}
-            <span data-streak-today={streak.today_done}>
-              {t('streak.today', { done: Math.min(streak.today_done, streak.target), target: streak.target })}
-            </span>
+          <p className="min-w-0 text-sm text-muted" data-streak-line>
+            <Flame aria-hidden="true" className="me-1.5 inline size-4 shrink-0 align-[-3px] text-accent-ink" />
+            {streak ? (
+              <span data-streak={streak.days}>
+                {streak.days > 0 ? t('streak.days', { days: streak.days }) : t('streak.none')}
+              </span>
+            ) : null}
+            {streak && progress.total ? ' · ' : null}
+            {progress.total ? (
+              <span data-streak-today={progress.done} data-streak-of={progress.total}>
+                {t('streak.today', { done: progress.done, target: progress.total })}
+              </span>
+            ) : null}
           </p>
         ) : null}
       </div>
-      {/* three columns on a wide screen; on a phone and a tablet the three stack */}
-      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-3">
+      {/* three cards side by side on a wide screen; on a phone and a tablet the three stack inside the one card */}
+      <div className="grid grid-cols-1 gap-x-4 lg:grid-cols-3">
         {THREE_GROUPS.map((g) => (
-          <div key={g} className="min-w-0" data-three-group={g}>
-            <h3 className={groupHead}>
-              {t(`groups.${g}`)}{' '}
-              <span className="ms-1 font-data" data-three-count>
+          <div
+            key={g}
+            className="min-w-0 lg:rounded-lg lg:border lg:border-border lg:bg-raised lg:px-5 lg:pb-2 lg:shadow-1"
+            data-three-group={g}
+          >
+            <h3 className="flex flex-wrap items-baseline gap-x-2 pt-4 text-base font-semibold text-strong">
+              {/* a real space between the name and its count, not a margin alone (Landing 34, item 15) */}
+              <span>{t(`groups.${g}`)}</span>{' '}
+              <span className="font-data text-sm font-medium text-muted" data-three-count>
                 {three[g].length}
               </span>
             </h3>
+            <p className="pb-1 text-sm text-muted" data-three-sub>
+              {t(`groupSub.${g}`)}
+            </p>
             {three[g].length ? (
               <ul className="divide-y divide-border">
                 {three[g].map((task) => (
@@ -92,7 +115,7 @@ export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskS
               </p>
             )}
             {threeMore(three, g) > 0 ? (
-              // the group holds more than three: the others are in the Today block below or on Tasks, never lost
+              // the group holds more than three: the others are in the block below or on Tasks, never lost
               <p className="py-2 text-sm" data-three-more={threeMore(three, g)}>
                 <Link href="/tasks" className="text-link hover:underline">
                   {t('more', { count: threeMore(three, g) })}
@@ -102,17 +125,17 @@ export function TodaysThree({ three, statuses }: { three: Three; statuses: TaskS
           </div>
         ))}
       </div>
-      <ul
-        aria-label={t('sourcesLabel')}
-        className="flex flex-col gap-1 border-t border-border pt-3 text-sm text-muted lg:flex-row lg:flex-wrap lg:gap-x-6"
-        data-three-sources
-      >
-        {THREE_GROUPS.map((g) => (
-          <li key={g} data-three-source={g}>
-            {t(`sources.${g}`, { days: URGENT_WITHIN_DAYS })}
-          </li>
-        ))}
-      </ul>
+      {/* whose tasks these are and where each group comes from: one quiet line under the cards */}
+      <div className="flex flex-col gap-1 pt-3 text-xs text-muted max-lg:border-t max-lg:border-border lg:flex-row lg:flex-wrap lg:gap-x-5">
+        <p data-three-own>{t('sub')}</p>
+        <ul aria-label={t('sourcesLabel')} className="contents" data-three-sources>
+          {THREE_GROUPS.map((g) => (
+            <li key={g} data-three-source={g}>
+              {t(`sources.${g}`, { days: URGENT_WITHIN_DAYS })}
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
