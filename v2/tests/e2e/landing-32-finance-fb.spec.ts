@@ -88,7 +88,7 @@ test('1 · an admin excludes one Ledger row and includes it again: every figure 
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
-  const month = await ownMonth('1962-05');
+  const month = await ownMonth('1958-05');
   const org = await seedOrg(call, 'Toggle');
   const [a, b, c] = [rowNo(), rowNo(), rowNo()];
   await seedImported(org.id, admin.id, month.mid, [
@@ -109,7 +109,7 @@ test('1 · an admin excludes one Ledger row and includes it again: every figure 
     'every row says it is counted',
   ).toHaveCount(3);
   await expect(page.locator('[data-ledger-not-counted]'), 'nothing is listed apart yet').toHaveCount(0);
-  const monthRow = page.locator('[data-counted-month="1962-05"]');
+  const monthRow = page.locator('[data-counted-month="1958-05"]');
   expect(
     num(
       await monthRow
@@ -180,7 +180,7 @@ test('1 · an admin excludes one Ledger row and includes it again: every figure 
 
 test('2 · a head reads the Counted? column and has no Exclude or Include', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  const month = await ownMonth('1962-08');
+  const month = await ownMonth('1958-08');
   const setup = await signedInAdmin(page);
   const org = await seedOrg(setup.call, 'Reader');
   const [a, b] = [rowNo(), rowNo()];
@@ -221,7 +221,7 @@ test('2 · a head reads the Counted? column and has no Exclude or Include', asyn
 test('3 · a period with no known cost shows Cost and Profit empty, never 0', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
-  const month = await ownMonth('1963-02');
+  const month = await ownMonth('1959-02');
   const org = await seedOrg(call, 'No Cost');
   const [a, b] = [rowNo(), rowNo()];
   await seedImported(org.id, admin.id, month.mid, [
@@ -263,7 +263,7 @@ test.describe('the lists in Settings → Finance', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await clearMadeUpRules();
     const { call, admin } = await signedInAdmin(page);
-    const month = await ownMonth('1964-03');
+    const month = await ownMonth('1959-03');
     const orgA = await seedOrg(call, 'Kept');
     const orgB = await seedOrg(call, 'Listed');
     const [a, b] = [rowNo(), rowNo()];
