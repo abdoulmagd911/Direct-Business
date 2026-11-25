@@ -11,8 +11,16 @@
 --            supabase/tests/sabotage/recently-deleted-shows-everything.sql.
 -- Its owner restores what someone else removed (QA-60); and bringing a record back asks what adding it asks — an
 -- identifier its side's identify capability, a credit limit finance.credit_control (QA-47).
+-- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
+-- of this test are given Activity · View — what it pins is the rule beneath: only what each could read while live.
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.viewer')::uuid, 'activity', 'view', 'made up: may open Activity');
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.pid', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Removals',
   'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate', 'owner_id', current_setting('t.am1'))))) ->> 'id', true);
@@ -29,6 +37,9 @@ select test.eq((select x ->> 'label' || ' · ' || (x ->> 'reason') from jsonb_ar
 select test.raises(format('select api.restore(%L, %L)', 'contact', current_setting('t.a')), '42501',
   'a viewer cannot restore it', 'restore.not_allowed');
 select set_config('t.blind', test.person('Test Other Desk', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.blind')::uuid, 'activity', 'view', 'made up: may open Activity');
 select test.as_owner();
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.blind')::uuid, 'clients', 'none', 'made up: another desk');
@@ -56,6 +67,9 @@ select test.eq((select deleted_at is not null from partner.contact where id = cu
 -- whoever removed it, alone: someone neither its owner nor Full on its page restores what they removed — while they
 -- still hold Own on it (rights now, V161)
 select set_config('t.am2', test.person('Test Second Member', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am2')::uuid, 'activity', 'view', 'made up: may open Activity');
 select test.as_person(current_setting('t.am2')::uuid);
 select set_config('t.d', api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact D",
   "name_ar": "جهة اتصال متخيلة"}') ->> 'id', true);

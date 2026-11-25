@@ -4,12 +4,29 @@
 -- it still do. A viewer sees a removed achievement but may not restore it; whoever removed it may. Every value is made up.
 -- Sabotages: supabase/tests/sabotage/recently-deleted-trusts-the-owners-shortcut.sql,
 --            supabase/tests/sabotage/recently-deleted-offers-restore-to-all.sql.
+-- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the readers
+-- of this test are given Activity · View — what it pins is the rule beneath: only what each could read while live.
 select set_config('v2.test_now', '2026-10-12 09:00:00+03', true);
 select set_config('t.own', test.person('Test Removal Owner', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.own')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.mate', test.person('Test Removal Colleague', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.mate')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.cut', test.person('Test Removal No Tasks', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.cut')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.far', test.person('Test Removal Far Helper', 'member', 'test_other_dept')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.far')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.viewer', test.person('Test Removal Viewer', 'viewer')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.viewer')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.admin', test.person('Test Removal Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
 select api.plan_open(test.department('commercial'), 2026);

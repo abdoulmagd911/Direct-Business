@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import * as RD from '@radix-ui/react-dialog';
-import { Building2, CheckSquare, History, ReceiptText, Search, Tag, UserRound } from 'lucide-react';
+import { Building2, CheckSquare, History, ReceiptText, RefreshCw, Search, Tag, UserRound } from 'lucide-react';
 import { useMe } from '@/core/auth/me-context';
 import { paletteActions, registerActions } from '@/core/commands/actions';
 import { rpc } from '@/core/db/rpc';
@@ -16,6 +16,7 @@ import { tradeName } from '@/modules/partners/types';
 import { createActionsFor } from './CreateMenu';
 import { invoiceHitCounts, invoiceHitRoute, invoiceHitsOf, type InvoiceHit } from './invoice-hit';
 import { paletteMatches } from './palette-match';
+import { SEARCH_PAUSE_MS } from './search-pause';
 
 // Recently deleted is everyone's own (V401): with the profile chip down to My profile and Sign out (V217, cut 5), a
 // person without Activity reaches it here.
@@ -56,6 +57,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [q, setQ] = useState('');
   const [found, setFound] = useState<{
     term: string;
+    failed: boolean;
     people: Hit[];
     partners: OrgHit[];
     codes: CodeHit[];
@@ -63,6 +65,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     invoices: InvoiceHit[];
   }>({
     term: '',
+    failed: false,
     people: [],
     partners: [],
     codes: [],
@@ -71,35 +74,55 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   });
   // People by name: two letters or more (api.search's own floor); only the answer to the term as typed now shows.
   const term = q.trim();
+  // Landing 51 (FIX-13, the F1 live re-test of 25 Nov): the search asked the server once for EVERY letter typed —
+  // seven requests in one second for one word, each several seconds while the others ran, one cut off at the
+  // server's own limit — and a request that failed was shown as "Nothing matches", which is not true. Now the search
+  // waits for a short pause in the typing and asks once, for the words as they stand (SEARCH_PAUSE_MS); a request
+  // lost on its way is asked once more by itself (rpc's `retry`, reads only); and one that still fails says so, with
+  // Try again — "Nothing matches" is kept for a search the server answered.
+  const [again, setAgain] = useState(0);
   useEffect(() => {
     if (!open || term.length < 2) return;
     let live = true;
-    rpc('search', { p_q: term, p_limit: 8 })
-      .then(
-        (a) =>
-          live &&
-          setFound({
-            term,
-            people: ((a as { people?: Hit[] } | null)?.people ?? []).slice(0, 8),
-            partners: ((a as { partners?: OrgHit[] } | null)?.partners ?? []).slice(0, 8),
-            codes: ((a as { codes?: CodeHit[] } | null)?.codes ?? []).slice(0, 8),
-            tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),
-            invoices: invoiceHitsOf(a),
-          }),
-      )
-      .catch(() => live && setFound({ term, people: [], partners: [], codes: [], tasks: [], invoices: [] }));
+    const wait = setTimeout(() => {
+      rpc('search', { p_q: term, p_limit: 8 }, { retry: true })
+        .then(
+          (a) =>
+            live &&
+            setFound({
+              term,
+              failed: false,
+              people: ((a as { people?: Hit[] } | null)?.people ?? []).slice(0, 8),
+              partners: ((a as { partners?: OrgHit[] } | null)?.partners ?? []).slice(0, 8),
+              codes: ((a as { codes?: CodeHit[] } | null)?.codes ?? []).slice(0, 8),
+              tasks: ((a as { tasks?: TaskHit[] } | null)?.tasks ?? []).slice(0, 8),
+              invoices: invoiceHitsOf(a),
+            }),
+        )
+        .catch(
+          () => live && setFound({ term, failed: true, people: [], partners: [], codes: [], tasks: [], invoices: [] }),
+        );
+    }, SEARCH_PAUSE_MS);
     return () => {
       live = false;
+      clearTimeout(wait);
     };
-  }, [term, open]);
-  const people = open && term.length >= 2 && found.term === term ? found.people : [];
-  const partners = open && term.length >= 2 && found.term === term ? found.partners : [];
-  const codes = open && term.length >= 2 && found.term === term ? found.codes : [];
-  const tasks = open && term.length >= 2 && found.term === term ? found.tasks : [];
-  const invoices = open && term.length >= 2 && found.term === term ? found.invoices : [];
+  }, [term, open, again]);
+  const answered = open && term.length >= 2 && found.term === term;
+  const people = answered ? found.people : [];
+  const partners = answered ? found.partners : [];
+  const codes = answered ? found.codes : [];
+  const tasks = answered ? found.tasks : [];
+  const invoices = answered ? found.invoices : [];
   // FIX-13(a): while the search for the term as typed is still on its way, the palette says so — the "Nothing
   // matches" empty state only shows once the answer for this term has settled.
   const searching = open && term.length >= 2 && found.term !== term;
+  // the search for the words as typed did not come back: said in words, never as "Nothing matches"
+  const failed = answered && found.failed;
+  const searchAgain = () => {
+    setFound((f) => ({ ...f, term: '', failed: false }));
+    setAgain((n) => n + 1);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -163,6 +186,18 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                   data-palette-searching
                 >
                   {t('palette.searching')}
+                </Command.Item>
+              ) : null}
+              {failed ? (
+                <Command.Item
+                  value="search-failed"
+                  onSelect={searchAgain}
+                  className={itemClass}
+                  data-palette-search-failed
+                >
+                  <RefreshCw className="size-4 text-muted" aria-hidden="true" />
+                  <span className="truncate">{t('palette.failed')}</span>
+                  <span className="ms-auto shrink-0 font-medium text-link">{t('common.tryAgain')}</span>
                 </Command.Item>
               ) : null}
               <Command.Empty className="px-3 py-6 text-center text-base text-muted">{t('palette.empty')}</Command.Empty>

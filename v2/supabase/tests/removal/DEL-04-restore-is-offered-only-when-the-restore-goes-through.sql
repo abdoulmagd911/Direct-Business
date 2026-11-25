@@ -6,10 +6,18 @@
 -- is refused with exactly the reason the list gave.
 -- Every value is made up.
 -- Sabotage: supabase/tests/sabotage/restore-offered-without-the-records-own-checks.sql.
+-- Landing 51: what other people removed is listed only to those who may open Activity (DEL-05), so the member
+-- who reads the head's removal here is given Activity · View.
 select set_config('v2.test_now', '2026-10-12 09:00:00+03', true);
 select set_config('t.head', test.person('Test Restore Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Replaced Owner', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.am2', test.person('Test Same Day Owner', 'member')::text, true);
+select test.as_owner();
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am2')::uuid, 'activity', 'view', 'made up: may open Activity');
 select set_config('t.admin', test.person('Test Restore Admin', 'admin')::text, true);
 select test.as_person(current_setting('t.admin')::uuid);
 select api.plan_open(test.department('commercial'), 2026);
