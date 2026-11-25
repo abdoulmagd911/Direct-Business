@@ -257,8 +257,9 @@ export async function seedOrganisations(call: Door, word: string, count = 40): P
 
 // ---------------------------------------------------------------------------------------------------- finance
 
-/** The far-past months other specs keep for themselves by name (tests/e2e/landing-32-*.spec.ts). */
-const TAKEN_MONTHS = ['1962-05', '1962-08', '1963-02', '1964-03', '1966-06'];
+/** The far-past month another spec keeps for itself by name (tests/e2e/landing-32-sweep.alone.spec.ts). The months
+ * landing-32-finance-fb names are before 1960, outside the counter's range, so they need no place here. */
+const TAKEN_MONTHS = ['1966-06'];
 
 /** A far-past month nothing else uses: no invoice, no close, no imported row — and none of the named months. */
 export async function quietMonth(): Promise<string> {
