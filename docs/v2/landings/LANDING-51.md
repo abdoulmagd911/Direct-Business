@@ -109,7 +109,17 @@ in their Recently deleted, so cannot restore it from there. The remover, a manag
 
 ## Verification (local, clean build, database built from zero)
 
-VERIFICATION_PLACEHOLDER
+- Types, lint, format and the house checks: green. Registry in step; generated types match the migrations.
+- Unit: 1,912 passed (1,903 + 9 new). Database, built from zero: 390 passed, 0 failed (389 + `DEL-05`).
+- Browser, on a clean build and the local stack: the three new tests 3 of 3; the full suite 617 passed, 10 skipped
+  (the same ten as before), and one unsteady check that is not this landing's — the colour-contrast reading of the
+  bell panel (and once the conflict dialog) while it is still fading in, the one Landing 47 wrote down. Repeated
+  three times it passed twice each; neither screen is touched here.
+- Sabotage: the 13 new ones red, each with its own words (1 database, 7 unit, 5 browser), and the six older
+  Recently deleted database sabotages still red against the edited tests. The whole sweep runs in CI on the push.
+- Live, read-only, before the push: one search alone answers in 0.05–0.25 s; on live every Team member (12) and the
+  Viewer hold Activity · None, and the admins, heads and the manager hold View or above — so the rule lands as
+  written: members and the viewer, their own removals only.
 
 ## Live check after deploy
 
