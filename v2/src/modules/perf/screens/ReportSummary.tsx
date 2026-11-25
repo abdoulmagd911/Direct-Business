@@ -137,10 +137,19 @@ export function ReportSummary({
           ) : undefined
         }
         actions={
-          <Button size="sm" variant="secondary" onClick={download} disabled={!page || rows.length === 0}>
-            <Download aria-hidden="true" />
-            {t('download')}
-          </Button>
+          <>
+            <Link
+              href={month ? `/reports/kpi-pace?month=${encodeURIComponent(month)}` : '/reports/kpi-pace'}
+              className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+              data-report-kpi-pace
+            >
+              {tc('pages.kpiPace.title')}
+            </Link>
+            <Button size="sm" variant="secondary" onClick={download} disabled={!page || rows.length === 0}>
+              <Download aria-hidden="true" />
+              {t('download')}
+            </Button>
+          </>
         }
       />
       <h2 className="text-lg font-semibold">{t('summary')}</h2>

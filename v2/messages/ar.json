@@ -1339,6 +1339,39 @@
         "result": "النتيجة",
         "number": "العدد"
       }
+    },
+    "kpiPace": {
+      "title": "وتيرة مؤشرات الأداء",
+      "kpis": "المؤشرات",
+      "year": "السنة",
+      "previousMonth": "الشهر السابق",
+      "nextMonth": "الشهر التالي",
+      "today": "اليوم",
+      "responsible": "المسؤول",
+      "noResponsible": "غير محدد",
+      "monthlyTarget": "الهدف الشهري",
+      "actualToDate": "المحقق حتى الآن",
+      "pace": "الوتيرة",
+      "target": "الهدف",
+      "actual": "المحقق",
+      "status": {
+        "on_track": "على المسار",
+        "at_risk": "في خطر",
+        "behind": "متأخر",
+        "not_started": "لم يبدأ",
+        "not_measured": "لم يُقَس"
+      },
+      "dealValueOf": "{name} — قيمة الصفقات (ر.س)",
+      "initiatives": "المبادرات",
+      "initiativeCount": "{name} ({count})",
+      "noInitiatives": "لا توجد مبادرات مرتبطة بعد",
+      "viewThem": "عرضها",
+      "edit": "تعديل {name}",
+      "showOnChart": "عرض {name} في الرسم",
+      "chartLabel": "الهدف والمحقق لمؤشر {name} يوماً بيوم",
+      "daysPassed": "انقضى {passed} من {total} يوم عمل · المستحق {share}% من الهدف",
+      "empty": "لا يوجد مؤشر له هدف لهذا الشهر بعد",
+      "setTargets": "تحديد الأهداف"
     }
   },
   "entity": {
@@ -2716,6 +2749,10 @@
     },
     "follow": {
       "not_allowed": "المراقبة غير متاحة لدورك."
+    },
+    "kpi": {
+      "responsible_limit": "يكون الشخص مسؤولاً عن {detail} مؤشرات على الأكثر في السنة",
+      "responsible_invalid": "اختر شخصاً من الفريق"
     }
   },
   "notifications": {
