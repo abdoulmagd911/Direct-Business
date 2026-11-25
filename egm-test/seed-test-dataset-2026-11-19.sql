@@ -19,7 +19,9 @@
 --   140 invoices: 80 transactions (the "bookings" — there is NO
 --     booking table in the schema; a transaction IS a booking, a
 --     travel sale with a 10-digit Payments ref) + 60 standalone
---     invoices, each standalone with its DPIN (finance.tax_invoice)
+--     invoices; the 45 costed ones each carry a DPIN
+--     (finance.tax_invoice) of total minus cost, the 15 cost-less
+--     or unpaid ones carry none
 --   160 invoice lines, 135 expense lines, 125 receipts,
 --     60 code uses (one per costed transaction — every code is
 --     USED, 3 times each)
@@ -574,8 +576,9 @@ CREATE TEMP TABLE seed_invoices (
 -- 4. Invoices.
 --    Transactions (80) are the bookings: a travel sale with a
 --    10-digit Payments ref (9000000001..9000000080). Standalone
---    invoices (60) are issued invoices, each with its DPIN
---    (9000000101..9000000160).
+--    invoices (60) are issued invoices (9000000101..9000000160);
+--    the 45 costed ones carry a DPIN = total minus approved cost,
+--    the other 15 carry none (no DPIN before the cost is Ready).
 --    Status: Fully Paid except Pending (tx 5,25,45,65,75; sa
 --    5,20,35,50) and Draft (tx 10,30,50,70; sa 10,40). Only Fully
 --    Paid counts in Finance. Provisional (cost not known yet, no
@@ -741,7 +744,7 @@ BEGIN
     VALUES (i, 'transaction', inv_id, ref, total, created, st, pn, is_costed, code_idx, disc);
   END LOOP;
 
-  -- ---------- 60 standalone invoices (each with its DPIN) ----------
+  -- ---------- 60 standalone invoices (a DPIN on the 45 costed) ----------
   FOR j IN 1..60 LOOP
     pn := ((j * 7 - 1) % 30) + 1;
     SELECT * INTO prow FROM seed_partners WHERE n = pn;
@@ -789,10 +792,18 @@ BEGIN
        core.test_id('person', ((j - 1) % 6) + 1));
 
     -- Its DPIN (a tax invoice is only allowed on billing/standalone).
-    INSERT INTO finance.tax_invoice
-      (dpin, parent_invoice_id, total_sar, issued_on, source, created_by)
-    VALUES
-      (ref, inv_id, total, created, 'manual', core.test_id('person', ((j - 1) % 6) + 1));
+    -- Corrected 25 Nov 2026: the DPIN is Direct's own part of the
+    -- invoice — the total minus the approved expenses (60% below) —
+    -- and it is issued only once the cost is Ready. A cost-less or
+    -- unpaid invoice gets NO DPIN. (The first version wrote the whole
+    -- total on all 60, which failed the Finance checks dpin_differs,
+    -- expenses_missing and dpin_before_ready on every one of them.)
+    IF (st = 'Fully Paid') AND NOT is_prov THEN
+      INSERT INTO finance.tax_invoice
+        (dpin, parent_invoice_id, total_sar, issued_on, source, created_by)
+      VALUES
+        (ref, inv_id, total - total * 0.60, created, 'manual', core.test_id('person', ((j - 1) % 6) + 1));
+    END IF;
 
     -- Expenses: costed only, 60%; the first 15 costed split 40% + 20%.
     IF is_costed THEN
@@ -1221,6 +1232,14 @@ BEGIN
   END IF;
   IF (SELECT coalesce(sum(discount_sar), 0) FROM finance.code_use u JOIN finance.invoice i ON i.id = u.invoice_id WHERE u.deleted_at IS NULL AND i.ref LIKE '9000000%') <> 7500 THEN
     RAISE EXCEPTION 'Seed verification failed: total discount on code uses is not 7,500.';
+  END IF;
+  -- The seed must not leave a failing Finance check behind (added 25 Nov 2026).
+  SELECT count(*) AS n INTO r FROM finance."check" c WHERE NOT c.ok AND c.ref LIKE '9000000%';
+  IF r.n <> 0 THEN
+    RAISE EXCEPTION 'Seed verification failed: % Finance check(s) fail on the seeded invoices (expected 0).', r.n;
+  END IF;
+  IF (SELECT count(*) FROM finance.tax_invoice t JOIN finance.invoice i ON i.id = t.parent_invoice_id WHERE t.deleted_at IS NULL AND i.ref LIKE '9000000%') <> 45 THEN
+    RAISE EXCEPTION 'Seed verification failed: the costed standalone invoices with a DPIN are not 45.';
   END IF;
   RAISE NOTICE 'Seed verification passed: 2025 = 63 units, 148,600 / 74,880 / 49,920 / 23,800; 2026 = 62 units, 343,400 / 176,400 / 117,600 / 49,400; discount total 7,500.';
 END
