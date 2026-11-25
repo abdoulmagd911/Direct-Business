@@ -256,15 +256,29 @@ test('a window that comes back while the health read is on its way does not ask 
   const asked: Record<string, number> = {};
   let release!: () => void;
   const held = new Promise<void>((r) => (release = r));
+  // the reads out now, the held health read apart
+  let out = 0;
   await page.route(reads, async (route) => {
     const fn = fnOf(route.request().url());
     asked[fn] = (asked[fn] ?? 0) + 1;
     // the heaviest read is still on its way while the person looks at another window
-    if (fn === 'finance_health') await held;
+    if (fn === 'finance_health') {
+      await held;
+      try {
+        await route.continue();
+      } catch {
+        // the page gave up on this request
+      }
+      return;
+    }
+    out += 1;
     try {
-      await route.continue();
+      const response = await route.fetch();
+      await route.fulfill({ response });
     } catch {
       // the page gave up on this request
+    } finally {
+      out -= 1;
     }
   });
   try {
@@ -283,8 +297,20 @@ test('a window that comes back while the health read is on its way does not ask 
     });
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     await refetched;
-    // well past the shell's wait, and time for a second ask to have reached the network
+    // well past the shell's wait — and, if the page did ask everything again, until that round has gone through: the
+    // reads go two at a time and the held one keeps a place, so a second ask for health waits behind every other
+    // block's. A fixed 1.5 s stopped being long enough when the page grew three more cards (CI 1638).
     await page.waitForTimeout(1500);
+    await expect
+      .poll(
+        async () => {
+          if (out > 0) return false;
+          await page.waitForTimeout(500);
+          return out === 0;
+        },
+        { message: 'every read asked again has been answered', timeout: 60_000 },
+      )
+      .toBe(true);
     expect(asked['finance_health'], 'the health read on its way is not asked again when the window comes back').toBe(1);
     expect(asked['finance_period'], 'a fresh answer is not asked again either').toBe(1);
     await expect(overview, 'the strip is still waiting for the one read').toHaveAttribute(
